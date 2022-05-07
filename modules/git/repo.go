@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // GPGSettings represents the default GPG settings for this repository
@@ -58,7 +59,7 @@ func (repo *Repository) parsePrettyFormatLogToList(logs []byte) ([]*Commit, erro
 
 // IsRepoURLAccessible checks if given repository URL is accessible.
 func IsRepoURLAccessible(ctx context.Context, url string) bool {
-	_, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").Run()
+	_, _, err := NewCommand(ctx, "ls-remote", "-q", "-h", url, "HEAD").RunStdString(nil)
 	return err == nil
 }
 
@@ -73,7 +74,7 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 	if bare {
 		cmd.AddArguments("--bare")
 	}
-	_, err = cmd.RunInDir(repoPath)
+	_, _, err = cmd.RunStdString(&RunOpts{Dir: repoPath})
 	return err
 }
 
@@ -81,11 +82,10 @@ func InitRepository(ctx context.Context, repoPath string, bare bool) error {
 func (repo *Repository) IsEmpty() (bool, error) {
 	var errbuf, output strings.Builder
 	if err := NewCommand(repo.Ctx, "show-ref", "--head", "^HEAD$").
-		RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  &output,
-			Stderr:  &errbuf,
+		Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: &output,
+			Stderr: &errbuf,
 		}); err != nil {
 		if err.Error() == "exit status 1" && errbuf.String() == "" {
 			return true, nil
@@ -98,15 +98,16 @@ func (repo *Repository) IsEmpty() (bool, error) {
 
 // CloneRepoOptions options when clone a repository
 type CloneRepoOptions struct {
-	Timeout    time.Duration
-	Mirror     bool
-	Bare       bool
-	Quiet      bool
-	Branch     string
-	Shared     bool
-	NoCheckout bool
-	Depth      int
-	Filter     string
+	Timeout       time.Duration
+	Mirror        bool
+	Bare          bool
+	Quiet         bool
+	Branch        string
+	Shared        bool
+	NoCheckout    bool
+	Depth         int
+	Filter        string
+	SkipTLSVerify bool
 }
 
 // Clone clones original repository to target path.
@@ -124,6 +125,9 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	cmd := NewCommandContextNoGlobals(ctx, args...).AddArguments("clone")
+	if opts.SkipTLSVerify {
+		cmd.AddArguments("-c", "http.sslVerify=false")
+	}
 	if opts.Mirror {
 		cmd.AddArguments("--mirror")
 	}
@@ -150,6 +154,12 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 	cmd.AddArguments("--", from, to)
 
+	if strings.Contains(from, "://") && strings.Contains(from, "@") {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, util.SanitizeCredentialURLs(from), to, opts.Shared, opts.Mirror, opts.Depth))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("clone branch %s from %s to %s (shared: %t, mirror: %t, depth: %d)", opts.Branch, from, to, opts.Shared, opts.Mirror, opts.Depth))
+	}
+
 	if opts.Timeout <= 0 {
 		opts.Timeout = -1
 	}
@@ -163,7 +173,7 @@ func CloneWithArgs(ctx context.Context, from, to string, args []string, opts Clo
 	}
 
 	stderr := new(bytes.Buffer)
-	if err = cmd.RunWithContext(&RunContext{
+	if err = cmd.Run(&RunOpts{
 		Timeout: opts.Timeout,
 		Env:     envs,
 		Stdout:  io.Discard,
@@ -197,13 +207,18 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 	if len(opts.Branch) > 0 {
 		cmd.AddArguments(opts.Branch)
 	}
+	if strings.Contains(opts.Remote, "://") && strings.Contains(opts.Remote, "@") {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, util.SanitizeCredentialURLs(opts.Remote), opts.Force, opts.Mirror))
+	} else {
+		cmd.SetDescription(fmt.Sprintf("push branch %s to %s (force: %t, mirror: %t)", opts.Branch, opts.Remote, opts.Force, opts.Mirror))
+	}
 	var outbuf, errbuf strings.Builder
 
 	if opts.Timeout == 0 {
 		opts.Timeout = -1
 	}
 
-	err := cmd.RunWithContext(&RunContext{
+	err := cmd.Run(&RunOpts{
 		Env:     opts.Env,
 		Timeout: opts.Timeout,
 		Dir:     repoPath,
@@ -245,7 +260,7 @@ func Push(ctx context.Context, repoPath string, opts PushOptions) error {
 // GetLatestCommitTime returns time for latest commit in repository (across all branches)
 func GetLatestCommitTime(ctx context.Context, repoPath string) (time.Time, error) {
 	cmd := NewCommand(ctx, "for-each-ref", "--sort=-committerdate", BranchPrefix, "--count", "1", "--format=%(committerdate)")
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return time.Time{}, err
 	}
@@ -262,7 +277,7 @@ type DivergeObject struct {
 func checkDivergence(ctx context.Context, repoPath, baseBranch, targetBranch string) (int, error) {
 	branches := fmt.Sprintf("%s..%s", baseBranch, targetBranch)
 	cmd := NewCommand(ctx, "rev-list", "--count", branches)
-	stdout, err := cmd.RunInDir(repoPath)
+	stdout, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return -1, err
 	}
@@ -299,23 +314,23 @@ func (repo *Repository) CreateBundle(ctx context.Context, commit string, out io.
 	defer os.RemoveAll(tmp)
 
 	env := append(os.Environ(), "GIT_OBJECT_DIRECTORY="+filepath.Join(repo.Path, "objects"))
-	_, err = NewCommand(ctx, "init", "--bare").RunInDirWithEnv(tmp, env)
+	_, _, err = NewCommand(ctx, "init", "--bare").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, err = NewCommand(ctx, "reset", "--soft", commit).RunInDirWithEnv(tmp, env)
+	_, _, err = NewCommand(ctx, "reset", "--soft", commit).RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
-	_, err = NewCommand(ctx, "branch", "-m", "bundle").RunInDirWithEnv(tmp, env)
+	_, _, err = NewCommand(ctx, "branch", "-m", "bundle").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}
 
 	tmpFile := filepath.Join(tmp, "bundle")
-	_, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunInDirWithEnv(tmp, env)
+	_, _, err = NewCommand(ctx, "bundle", "create", tmpFile, "bundle", "HEAD").RunStdString(&RunOpts{Dir: tmp, Env: env})
 	if err != nil {
 		return err
 	}

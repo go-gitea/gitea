@@ -72,8 +72,8 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 				"authorized_keys file %q is out of date.\nRegenerate it with:\n\t\"%s\"\nor\n\t\"%s\"",
 				fPath,
 				"gitea admin regenerate keys",
-				"gitea doctor --run authorized_keys --fix")
-			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized_keys --fix"`)
+				"gitea doctor --run authorized-keys --fix")
+			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
 		err = asymkey_model.RewriteAllPublicKeys()

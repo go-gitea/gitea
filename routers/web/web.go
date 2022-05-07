@@ -10,6 +10,7 @@ import (
 	"os"
 	"path"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -19,22 +20,26 @@ import (
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
-	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
 	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
+	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/healthcheck"
+	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
 	auth_service "code.gitea.io/gitea/services/auth"
+	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
 	"code.gitea.io/gitea/services/mailer"
@@ -42,6 +47,7 @@ import (
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
+	"gitea.com/go-chi/session"
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
@@ -71,8 +77,28 @@ func CorsHandler() func(next http.Handler) http.Handler {
 	}
 }
 
+// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
+// in the session (if there is a user id stored in session other plugins might return the user
+// object for that id).
+//
+// The Session plugin is expected to be executed second, in order to skip authentication
+// for users that have already signed in.
+func buildAuthGroup() *auth_service.Group {
+	group := auth_service.NewGroup(
+		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth realted routers
+		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
+		&auth_service.Session{},
+	)
+	if setting.Service.EnableReverseProxyAuth {
+		group.Add(&auth_service.ReverseProxy{})
+	}
+	specialAdd(group)
+
+	return group
+}
+
 // Routes returns all web routes
-func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
+func Routes() *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
@@ -81,6 +107,17 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 		CorsHandler: CorsHandler(),
 	}), "AssetsHandler"))
 
+	sessioner := session.Sessioner(session.Options{
+		Provider:       setting.SessionConfig.Provider,
+		ProviderConfig: setting.SessionConfig.ProviderConfig,
+		CookieName:     setting.SessionConfig.CookieName,
+		CookiePath:     setting.SessionConfig.CookiePath,
+		Gclifetime:     setting.SessionConfig.Gclifetime,
+		Maxlifetime:    setting.SessionConfig.Maxlifetime,
+		Secure:         setting.SessionConfig.Secure,
+		SameSite:       setting.SessionConfig.SameSite,
+		Domain:         setting.SessionConfig.Domain,
+	})
 	routes.Use(sessioner)
 
 	routes.Use(Recovery())
@@ -96,7 +133,12 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 
 	// this png is very likely to always be below the limit for gzip so it doesn't need to pass through gzip
 	routes.Get("/apple-touch-icon.png", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/apple-touch-icon.png"), http.StatusPermanentRedirect)
+	})
+
+	// redirect default favicon to the path of the custom favicon with a default as a fallback
+	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
 	})
 
 	common := []interface{}{}
@@ -137,24 +179,31 @@ func Routes(sessioner func(http.Handler) http.Handler) *web.Route {
 
 	routes.Get("/ssh_info", func(rw http.ResponseWriter, req *http.Request) {
 		if !git.SupportProcReceive {
-			rw.WriteHeader(404)
+			rw.WriteHeader(http.StatusNotFound)
 			return
 		}
 		rw.Header().Set("content-type", "text/json;charset=UTF-8")
 		_, err := rw.Write([]byte(`{"type":"gitea","version":1}`))
 		if err != nil {
 			log.Error("fail to write result: err: %v", err)
-			rw.WriteHeader(500)
+			rw.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		rw.WriteHeader(200)
+		rw.WriteHeader(http.StatusOK)
 	})
+
+	routes.Get("/api/healthz", healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
+	group := buildAuthGroup()
+	if err := group.Init(); err != nil {
+		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
+	}
+
 	// Get user from session if logged in.
-	common = append(common, context.Auth(auth_service.NewGroup(auth_service.Methods()...)))
+	common = append(common, context.Auth(group))
 
 	// GetHead allows a HEAD request redirect to GET if HEAD method is not defined for that route
 	common = append(common, middleware.GetHead)
@@ -256,8 +305,13 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/users", explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
+		m.Get("/topics/search", explore.TopicSearch)
 	}, ignExploreSignIn)
-	m.Get("/issues", reqSignIn, user.Issues)
+	m.Group("/issues", func() {
+		m.Get("", user.Issues)
+		m.Get("/search", repo.SearchIssues)
+	}, reqSignIn)
+
 	m.Get("/pulls", reqSignIn, user.Pulls)
 	m.Get("/milestones", reqSignIn, reqMilestonesDashboardPageEnabled, user.Milestones)
 
@@ -378,8 +432,8 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/user", func() {
 		// r.Get("/feeds", binding.Bind(auth.FeedsForm{}), user.Feeds)
-		m.Get("/activate", auth.Activate, reqSignIn)
-		m.Post("/activate", auth.ActivatePost, reqSignIn)
+		m.Get("/activate", auth.Activate)
+		m.Post("/activate", auth.ActivatePost)
 		m.Any("/activate_email", auth.ActivateEmail)
 		m.Get("/avatar/{username}/{size}", user.AvatarByUserName)
 		m.Get("/recover_account", auth.ResetPasswd)
@@ -387,7 +441,9 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/forgot_password", auth.ForgotPasswd)
 		m.Post("/forgot_password", auth.ForgotPasswdPost)
 		m.Post("/logout", auth.SignOut)
-		m.Get("/task/{task}", user.TaskStatus)
+		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
+		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
+		m.Get("/search", ignExploreSignIn, user.Search)
 	})
 	// ***** END: User *****
 
@@ -403,6 +459,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/config/test_mail", admin.SendTestMail)
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
+			m.Get("/stacktrace", admin.GoroutineStacktrace)
 			m.Post("/cancel/{pid}", admin.MonitorCancel)
 			m.Group("/queue/{qid}", func() {
 				m.Get("", admin.Queue)
@@ -438,6 +495,13 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/unadopted").Get(admin.UnadoptedRepos).Post(admin.AdoptOrDeleteRepository)
 			m.Post("/delete", admin.DeleteRepo)
 		})
+
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", admin.Packages)
+				m.Post("/delete", admin.DeletePackageVersion)
+			})
+		}
 
 		m.Group("/hooks", func() {
 			m.Get("", admin.DefaultOrSystemWebhooks)
@@ -491,11 +555,21 @@ func RegisterRoutes(m *web.Route) {
 	// ***** END: Admin *****
 
 	m.Group("", func() {
-		m.Get("/{username}", user.Profile)
+		m.Get("/favicon.ico", func(ctx *context.Context) {
+			ctx.ServeFile(path.Join(setting.StaticRootPath, "public/img/favicon.png"))
+		})
+		m.Group("/{username}", func() {
+			m.Get(".png", func(ctx *context.Context) { ctx.Error(http.StatusNotFound) })
+			m.Get(".keys", user.ShowSSHKeys)
+			m.Get(".gpg", user.ShowGPGKeys)
+			m.Get(".rss", feed.ShowUserFeedRSS)
+			m.Get(".atom", feed.ShowUserFeedAtom)
+			m.Get("", user.Profile)
+		}, context_service.UserAssignmentWeb())
 		m.Get("/attachments/{uuid}", repo.GetAttachment)
 	}, ignSignIn)
 
-	m.Post("/{username}", reqSignIn, user.Action)
+	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
 
 	if !setting.IsProd {
 		m.Get("/template/*", dev.TemplatePreview)
@@ -503,6 +577,7 @@ func RegisterRoutes(m *web.Route) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
+	canEnableEditor := context.CanEnableEditor()
 	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
@@ -514,6 +589,14 @@ func RegisterRoutes(m *web.Route) {
 	reqRepoIssuesOrPullsReader := context.RequireRepoReaderOr(unit.TypeIssues, unit.TypePullRequests)
 	reqRepoProjectsReader := context.RequireRepoReader(unit.TypeProjects)
 	reqRepoProjectsWriter := context.RequireRepoWriter(unit.TypeProjects)
+
+	reqPackageAccess := func(accessMode perm.AccessMode) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if ctx.Package.AccessMode < accessMode && !ctx.IsUserSiteAdmin() {
+				ctx.NotFound("", nil)
+			}
+		}
+	}
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
@@ -546,6 +629,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/{org}", func() {
 			m.Get("/teams/new", org.NewTeam)
 			m.Post("/teams/new", bindIgnErr(forms.CreateTeamForm{}), org.NewTeamPost)
+			m.Get("/teams/-/search", org.SearchTeam)
 			m.Get("/teams/{team}/edit", org.EditTeam)
 			m.Post("/teams/{team}/edit", bindIgnErr(forms.CreateTeamForm{}), org.EditTeamPost)
 			m.Post("/teams/{team}/delete", org.DeleteTeam)
@@ -610,7 +694,28 @@ func RegisterRoutes(m *web.Route) {
 			m.Combo("/{repoid}").Get(repo.Fork).
 				Post(bindIgnErr(forms.CreateRepoForm{}), repo.ForkPost)
 		}, context.RepoIDAssignment(), context.UnitTypes(), reqRepoCodeReader)
+		m.Get("/search", repo.SearchRepo)
 	}, reqSignIn)
+
+	m.Group("/{username}/-", func() {
+		if setting.Packages.Enabled {
+			m.Group("/packages", func() {
+				m.Get("", user.ListPackages)
+				m.Group("/{type}/{name}", func() {
+					m.Get("", user.RedirectToLastVersion)
+					m.Get("/versions", user.ListPackageVersions)
+					m.Group("/{version}", func() {
+						m.Get("", user.ViewPackageVersion)
+						m.Get("/files/{fileid}", user.DownloadPackageFile)
+						m.Group("/settings", func() {
+							m.Get("", user.PackageSettings)
+							m.Post("", bindIgnErr(forms.PackageSettingForm{}), user.PackageSettingsPost)
+						}, reqPackageAccess(perm.AccessModeWrite))
+					})
+				})
+			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}
+	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
 	m.Get("/{username}/{reponame}/releases/download/{vTag}/{fileName}", ignSignIn, context.RepoAssignment, repo.MustBeNotEmpty, repo.RedirectDownload)
@@ -732,13 +837,16 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
 				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
 			})
+			m.Get("/search", repo.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
+				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
 				m.Group("/dependency", func() {
@@ -757,6 +865,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), repo.ChangeIssueReaction)
 				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(forms.IssueLockForm{}), repo.LockIssue)
 				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
+				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
 			}, context.RepoMustNotBeArchived())
 			m.Group("/{index}", func() {
 				m.Get("/attachments", repo.GetIssueAttachments)
@@ -785,6 +894,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/comments/{id}", func() {
 			m.Get("/attachments", repo.GetCommentAttachments)
 		})
+		m.Post("/markdown", bindIgnErr(structs.MarkdownOption{}), misc.Markdown)
 		m.Group("/labels", func() {
 			m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), repo.NewLabel)
 			m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), repo.UpdateLabel)
@@ -819,12 +929,12 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
 					Post(bindIgnErr(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
+			}, repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
+		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -897,6 +1007,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
+		if setting.Packages.Enabled {
+			m.Get("/packages", repo.Packages)
+		}
+
 		m.Group("/projects", func() {
 			m.Get("", repo.Projects)
 			m.Get("/{id}", repo.ViewProject)
@@ -941,6 +1055,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
+			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
 		})
 
 		m.Group("/wiki", func() {
@@ -994,6 +1109,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Post("/merge", context.RepoMustNotBeArchived(), bindIgnErr(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
+			m.Post("/set_allow_maintainer_edit", bindIgnErr(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
@@ -1101,7 +1217,7 @@ func RegisterRoutes(m *web.Route) {
 				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
 				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
 				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
-			}, ignSignInAndCsrf)
+			}, ignSignInAndCsrf, context_service.UserAssignmentWeb())
 		})
 	})
 	// ***** END: Repository *****
@@ -1110,6 +1226,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("", user.Notifications)
 		m.Post("/status", user.NotificationStatusPost)
 		m.Post("/purge", user.NotificationPurgePost)
+		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
 	if setting.API.EnableSwagger {

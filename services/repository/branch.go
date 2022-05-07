@@ -35,7 +35,7 @@ func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_mode
 
 	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
+		Branch: fmt.Sprintf("%s%s:%s%s", git.BranchPrefix, oldBranchName, git.BranchPrefix, branchName),
 		Env:    models.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
@@ -55,7 +55,7 @@ func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit i
 
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
-	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
+	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(_, refName string) error {
 		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
 		case branchRefName == name:

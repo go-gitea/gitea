@@ -8,7 +8,7 @@ export function initCompSearchUserBox() {
   $searchUserBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/api/v1/users/search?q={query}`,
+      url: `${appSubUrl}/user/search?q={query}`,
       onResponse(response) {
         const items = [];
         const searchQueryUppercase = $searchUserBox.find('input').val().toUpperCase();

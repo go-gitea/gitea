@@ -43,7 +43,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	var (
-		userStyle = ctx.User.DiffViewStyle
+		userStyle = ctx.Doer.DiffViewStyle
 		style     string
 	)
 
@@ -56,7 +56,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx.User, style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx.Doer, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }
@@ -72,12 +72,12 @@ func SetWhitespaceBehavior(ctx *context.Context) {
 		whitespaceBehavior = defaultWhitespaceBehavior
 	}
 	if ctx.IsSigned {
-		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.User.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
+		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
 		if err == nil {
 			if whitespaceBehavior == "" {
 				whitespaceBehavior = userWhitespaceBehavior
 			} else if whitespaceBehavior != userWhitespaceBehavior {
-				_ = user_model.SetUserSetting(ctx.User.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
+				_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
 			}
 		} // else: we can ignore the error safely
 	}

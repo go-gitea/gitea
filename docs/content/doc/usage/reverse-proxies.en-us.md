@@ -30,6 +30,10 @@ server {
 
     location / {
         proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
@@ -47,6 +51,10 @@ server {
     location /git/ { 
         # Note: Trailing slash
         proxy_pass http://localhost:3000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
     }
 }
 ```
@@ -340,3 +348,18 @@ The added http-request will automatically add a trailing slash if needed and int
 
 Then you **MUST** set something like `[server] ROOT_URL = http://example.com/gitea/` correctly in your configuration.
 
+## Traefik
+
+If you want traefik to serve your Gitea instance, you can add the following label section to your `docker-compose.yaml` (Assuming the provider is docker).
+
+```yaml
+gitea:
+  image: gitea/gitea
+  ...
+  labels:
+    - "traefik.enable=true"
+    - "traefik.http.routers.gitea.rule=Host(`example.com`)"
+    - "traefik.http.services.gitea-websecure.loadbalancer.server.port=3000"
+```
+
+This config assumes that you are handling HTTPS on the traefik side and using HTTP between Gitea and traefik.

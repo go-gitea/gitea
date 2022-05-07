@@ -6,15 +6,17 @@ package webhook
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -79,7 +81,7 @@ func IsValidHookTaskType(name string) bool {
 }
 
 // hookQueue is a global queue of web hooks
-var hookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
+var hookQueue queue.UniqueQueue
 
 // getPayloadBranch returns branch for hook event, if applicable.
 func getPayloadBranch(p api.Payloader) string {
@@ -100,14 +102,47 @@ func getPayloadBranch(p api.Payloader) string {
 	return ""
 }
 
+// handle passed PR IDs and test the PRs
+func handle(data ...queue.Data) []queue.Data {
+	for _, datum := range data {
+		repoIDStr := datum.(string)
+		log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
+
+		repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
+		if err != nil {
+			log.Error("Invalid repo ID: %s", repoIDStr)
+			continue
+		}
+
+		tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
+		if err != nil {
+			log.Error("Get repository [%d] hook tasks: %v", repoID, err)
+			continue
+		}
+		for _, t := range tasks {
+			if err = Deliver(graceful.GetManager().HammerContext(), t); err != nil {
+				log.Error("deliver: %v", err)
+			}
+		}
+	}
+	return nil
+}
+
+func addToTask(repoID int64) error {
+	err := hookQueue.PushFunc(strconv.FormatInt(repoID, 10), nil)
+	if err != nil && err != queue.ErrAlreadyInQueue {
+		return err
+	}
+	return nil
+}
+
 // PrepareWebhook adds special webhook to task queue for given payload.
 func PrepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhook(w, repo, event, p); err != nil {
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
-	return nil
+	return addToTask(repo.ID)
 }
 
 func checkBranch(w *webhook_model.Webhook, branch string) bool {
@@ -187,8 +222,7 @@ func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 		return err
 	}
 
-	go hookQueue.Add(repo.ID)
-	return nil
+	return addToTask(repo.ID)
 }
 
 func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
@@ -214,7 +248,7 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks()
+	systemHooks, err := webhook_model.GetSystemWebhooks(util.OptionalBoolTrue)
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %v", err)
 	}
@@ -239,7 +273,5 @@ func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
 		return err
 	}
 
-	go hookQueue.Add(t.RepoID)
-
-	return nil
+	return addToTask(t.RepoID)
 }

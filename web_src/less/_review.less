@@ -50,8 +50,8 @@
 
 .show-outdated,
 .hide-outdated {
+  &:extend(.unselectable);
   display: block !important;
-  user-select: none !important;
 
   &:hover {
     text-decoration: underline;
@@ -197,6 +197,13 @@ a.blob-excerpt:hover {
   color: #fff;
 }
 
+// See the comment of createCommentEasyMDE() for the review editor
+// EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code
+#review-box .CodeMirror-scroll {
+  min-height: 80px;
+  max-height: calc(100vh - 360px);
+}
+
 @media @mediaSm {
   #review-box > .menu {
     > .ui.segment {
@@ -233,6 +240,19 @@ a.blob-excerpt:hover {
 
 .review-box > .segment {
   border: none !important;
+}
+
+#review-box .review-comments-counter {
+  background-color: var(--color-primary-light-4);
+  color: #fff;
+}
+
+#review-box:hover .review-comments-counter {
+  background-color: var(--color-primary-light-5);
+}
+
+#review-box .review-comments-counter[data-pending-comment-number="0"] {
+  display: none;
 }
 
 .pull.files.diff [id] {
