@@ -1,0 +1,127 @@
+<template>
+  <div>
+    <div class="ui form" v-if="showActionForm">
+      <form :action="mergeForm.baseLink+'/merge'" method="post">
+        <input type="hidden" name="_csrf" :value="csrfToken">
+        <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
+
+        <template v-if="!mergeStyleDetail.hideMergeMessage">
+          <div class="field">
+            <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
+          </div>
+          <div class="field">
+            <textarea name="merge_message_field" rows="5" :placeholder="mergeForm.mergeMessageFieldPlaceHolder" v-model="mergeMessageFieldValue"/>
+          </div>
+        </template>
+
+        <button class="ui green button" type="submit" name="do" :value="mergeStyle">
+          {{ mergeStyleDetail.textDoMerge }}
+        </button>
+
+        <button class="ui button merge-cancel" @click="showActionForm=false">
+          {{ mergeForm.textCancel }}
+        </button>
+
+        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable">
+          <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
+          <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
+        </div>
+      </form>
+    </div>
+
+    <div v-if="!showActionForm">
+      <div class="ui buttons merge-button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" @click="showActionForm=true">
+        <button class="ui button">
+          <svg-icon name="octicon-git-merge"/>
+          <span class="button-text">{{ mergeStyleDetail.textDoMerge }}</span>
+        </button>
+        <div class="ui dropdown icon button no-text" @click.stop="showMergeStyleMenu = !showMergeStyleMenu" v-if="mergeStyleAllowedCount>1">
+          <svg-icon name="octicon-triangle-down" :size="14"/>
+          <div class="menu" :class="{'show':showMergeStyleMenu}">
+            <template v-for="msd in mergeForm.mergeStyles">
+              <div class="item" v-if="msd.allowed" :key="msd.name" @click.stop="mergeStyle=msd.name">
+                {{ msd.textDoMerge }}
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import {SvgIcon} from '../svg.js';
+
+const {csrfToken, pageData} = window.config;
+
+export default {
+  name: 'PullRequestMergeForm',
+  components: {
+    SvgIcon,
+  },
+
+  data: () => ({
+    csrfToken,
+    mergeForm: pageData.pullRequestMergeForm,
+
+    mergeTitleFieldValue: '',
+    mergeMessageFieldValue: '',
+    deleteBranchAfterMerge: false,
+
+    mergeStyle: '',
+    mergeStyleDetail: {
+      textDoMerge: '',
+    },
+    mergeStyleAllowedCount: 0,
+
+    showMergeStyleMenu: false,
+    showActionForm: false,
+  }),
+
+  watch: {
+    mergeStyle(val) {
+      for (const msd of this.mergeForm.mergeStyles) {
+        if (val === msd.name) {
+          this.mergeStyleDetail = msd;
+        }
+      }
+    }
+  },
+
+  created() {
+    for (const msd of this.mergeForm.mergeStyles) {
+      if (msd.allowed) {
+        if (!this.mergeStyle) this.mergeStyle = msd.name;
+        this.mergeStyleAllowedCount++;
+      }
+    }
+    this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
+    this.mergeTitleFieldValue = this.mergeForm.mergeTitleFieldText;
+    this.mergeMessageFieldValue = this.mergeForm.mergeMessageFieldText;
+  },
+
+  mounted() {
+    document.addEventListener('mouseup', this.hideMergeStyleMenu);
+  },
+
+  unmounted() {
+    document.removeEventListener('mouseup', this.hideMergeStyleMenu);
+  },
+
+  methods: {
+    hideMergeStyleMenu() {
+      this.showMergeStyleMenu = false;
+    }
+  },
+};
+</script>
+
+<style scoped>
+.ui.dropdown .menu.show {
+  display: block;
+}
+.ui.checkbox label {
+  cursor: pointer;
+}
+</style>
