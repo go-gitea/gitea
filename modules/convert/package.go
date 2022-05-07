@@ -24,7 +24,7 @@ func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_m
 		}
 
 		if permission.HasAccess() {
-			repo = ToRepo(pd.Repository, perm.AccessModeNone)
+			repo = ToRepo(pd.Repository, permission)
 		}
 	}
 
