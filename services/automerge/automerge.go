@@ -105,9 +105,6 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	pulls := make(map[int64]*models.PullRequest)
 
 	for _, ref := range refs {
-		// If the branch starts with "pull/*" we know we're dealing with a fork.
-		// In that case, head and base branch are not in the same repo and we need to do some extra work
-		// to get the pull request for this branch.
 		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
 		// use that to get the pr.
 		if strings.HasPrefix(ref, git.PullPrefix) {
@@ -115,6 +112,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 			// e.g. 'refs/pull/1/head' would be []string{"1", "head"}
 			if len(parts) != 2 {
+				log.Error("getPullRequestsByHeadSHA found broken pull ref [%s] on repo [%-v]", ref, repo)
 				continue
 			}
 
@@ -135,17 +133,6 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 
 			if filter(p) {
 				pulls[p.ID] = p
-			}
-
-		} else if strings.HasPrefix(ref, git.BranchPrefix) {
-			prs, err := models.GetPullRequestsByHeadBranch(ctx, ref[len(git.BranchPrefix):], repo.ID)
-			if err != nil {
-				return nil, err
-			}
-			for _, pr := range prs {
-				if filter(pr) {
-					pulls[pr.ID] = pr
-				}
 			}
 		}
 	}
