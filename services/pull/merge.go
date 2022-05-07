@@ -84,7 +84,7 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 				"PullRequestIndex":       strconv.FormatInt(pr.Index, 10),
 				"PullRequestReference":   fmt.Sprintf("%s%d", issueReference, pr.Index),
 			}
-			refs, err := pr.ResolveCrossReferences(context.Background())
+			refs, err := pr.ResolveCrossReferences(baseGitRepo.Ctx)
 			if err == nil {
 				closeIssueIndexes := make([]string, 0, len(refs))
 				closeWord := "close"
