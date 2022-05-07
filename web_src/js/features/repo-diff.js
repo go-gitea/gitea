@@ -6,8 +6,23 @@ import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
+  const $reviewBox = $('#review-box');
+  const $counter = $reviewBox.find('.review-comments-counter');
+
   $(document).on('click', 'button[name="is_review"]', (e) => {
-    $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+    const $form = $(e.target).closest('form');
+    $form.append('<input type="hidden" name="is_review" value="true">');
+
+    // Watch for the form's submit event.
+    $form.on('submit', () => {
+      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
+      $counter.attr('data-pending-comment-number', num);
+      $counter.text(num);
+      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
+      $reviewBox.removeClass('pulse');
+      $reviewBox.width();
+      $reviewBox.addClass('pulse');
+    });
   });
 }
 
