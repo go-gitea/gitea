@@ -685,7 +685,7 @@ func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, false, pr.HasMerged)
 
-		// Call API to add Success status for commit
+		// Call API to add Failure status for commit
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", baseCtx.Username, baseCtx.Reponame, commitID, ctx.Token),
 			api.CreateStatusOption{
 				State:       api.CommitStatusFailure,
