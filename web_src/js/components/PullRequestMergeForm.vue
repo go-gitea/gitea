@@ -14,7 +14,7 @@
           </div>
         </template>
 
-        <button class="ui green button" type="submit" name="do" :value="mergeStyle">
+        <button class="ui button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
         </button>
 
@@ -22,14 +22,14 @@
           {{ mergeForm.textCancel }}
         </button>
 
-        <div class="ui checkbox" v-if="mergeForm.isPullBranchDeletable">
+        <div class="ui checkbox ml-2" v-if="mergeForm.isPullBranchDeletable">
           <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
       </form>
     </div>
 
-    <div v-if="!showActionForm">
+    <template v-if="!showActionForm">
       <div class="ui buttons merge-button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" @click="showActionForm=true">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
@@ -46,7 +46,7 @@
           </div>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
