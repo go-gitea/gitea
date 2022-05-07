@@ -107,6 +107,12 @@ func deletePullsByBaseRepoID(sess db.Engine, repoID int64) error {
 		return err
 	}
 
+	// Delete review states
+	if _, err := sess.In("pull_id", deleteCond).
+		Delete(&pull_model.ReviewState{}); err != nil {
+		return err
+	}
+
 	_, err := sess.Delete(&PullRequest{BaseRepoID: repoID})
 	return err
 }
