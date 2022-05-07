@@ -20,6 +20,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // PullRequestType defines pull request type
@@ -673,6 +675,18 @@ func (pr *PullRequest) updateCommitDivergence(e db.Engine, ahead, behind int) er
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
+}
+
+// GetPullRequestsByHeadBranch returns all prs by head branch
+// Since there could be multiple prs with the same head branch, this function returns a slice of prs
+func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepoID int64) ([]*PullRequest, error) {
+	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
+	prs := make([]*PullRequest, 0, 2)
+	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
+		Find(&prs); err != nil {
+		return nil, err
+	}
+	return prs, nil
 }
 
 // GetBaseBranchHTMLURL returns the HTML URL of the base branch
