@@ -1196,7 +1196,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 		}
 	}
 
-	if err := pull_service.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull, true); err != nil {
+	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
 		ctx.InternalServerError(err)
 	} else {
 		ctx.Status(http.StatusNoContent)
