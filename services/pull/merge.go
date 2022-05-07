@@ -47,7 +47,7 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	// Removing an auto merge pull and ignore if not exist
-	if err := RemoveScheduledAutoMerge(db.DefaultContext, doer, pr.ID, false); err != nil && !db.IsErrNotExist(err) {
+	if err := RemoveScheduledAutoMerge(db.DefaultContext, doer, pr, false); err != nil && !db.IsErrNotExist(err) {
 		return err
 	}
 

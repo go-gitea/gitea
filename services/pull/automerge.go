@@ -14,9 +14,9 @@ import (
 )
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, comment bool) error {
 	return db.WithTx(func(ctx context.Context) error {
-		if err := pull_model.DeleteScheduledAutoMerge(ctx, pullID); err != nil {
+		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		}
 
@@ -25,12 +25,7 @@ func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID
 			return nil
 		}
 
-		pr, err := models.GetPullRequestByID(ctx, pullID)
-		if err != nil {
-			return err
-		}
-
-		_, err = models.CreateAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pr, doer)
+		_, err := models.CreateAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pull, doer)
 		return err
 	}, ctx)
 }

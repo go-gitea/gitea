@@ -78,12 +78,7 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.
 		}
 		scheduled = true
 
-		pr, err := models.GetPullRequestByID(ctx, pull.ID)
-		if err != nil {
-			return err
-		}
-
-		_, err = models.CreateAutoMergeComment(ctx, models.CommentTypePRScheduledToAutoMerge, pr, doer)
+		_, err = models.CreateAutoMergeComment(ctx, models.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
 	}, ctx)
 	return
