@@ -253,7 +253,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
 		// If you don't let it run all the way then you will lose data
-		// FIXME: graceful: AddTestPullRequestTask needs to become a queue!
+		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {

@@ -5,21 +5,19 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/models/pull"
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func addReviewViewedFiles(x *xorm.Engine) error {
-	type ReviewState struct {
-		ID           int64                       `xorm:"pk autoincr"`
-		UserID       int64                       `xorm:"NOT NULL UNIQUE(pull_commit_user)"`
-		PullID       int64                       `xorm:"NOT NULL UNIQUE(pull_commit_user) DEFAULT 0"`
-		CommitSHA    string                      `xorm:"NOT NULL VARCHAR(40) UNIQUE(pull_commit_user)"`
-		UpdatedFiles map[string]pull.ViewedState `xorm:"NOT NULL TEXT JSON"`
-		UpdatedUnix  timeutil.TimeStamp          `xorm:"updated"`
+func addAutoMergeTable(x *xorm.Engine) error {
+	type MergeStyle string
+	type PullAutoMerge struct {
+		ID          int64      `xorm:"pk autoincr"`
+		PullID      int64      `xorm:"UNIQUE"`
+		DoerID      int64      `xorm:"NOT NULL"`
+		MergeStyle  MergeStyle `xorm:"varchar(30)"`
+		Message     string     `xorm:"LONGTEXT"`
+		CreatedUnix int64      `xorm:"created"`
 	}
 
-	return x.Sync2(new(ReviewState))
+	return x.Sync2(&PullAutoMerge{})
 }
