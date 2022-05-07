@@ -39,8 +39,13 @@ func Init() error {
 // handle passed PR IDs and test the PRs
 func handle(data ...queue.Data) []queue.Data {
 	for _, d := range data {
-		id, _ := strconv.ParseInt(d.(string), 10, 64)
-		handlePull(id)
+		var id int64
+		var sha string
+		if _, err := fmt.Sscanf(d.(string), "%d_%s", &id, &sha); err != nil {
+			log.Error("could not parse data from pr_auto_merge queue (%v): %v", d, err)
+			continue
+		}
+		handlePull(id, sha)
 	}
 	return nil
 }
@@ -148,9 +153,9 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 	return pulls, nil
 }
 
-func handlePull(pullID int64) {
+func handlePull(pullID int64, sha string) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(),
-		fmt.Sprintf("Handle AutoMerge of pull[%d]", pullID))
+		fmt.Sprintf("Handle AutoMerge of pull[%d] with sha[%s]", pullID, sha))
 	defer finished()
 
 	pr, err := models.GetPullRequestByID(ctx, pullID)
