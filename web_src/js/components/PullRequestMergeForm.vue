@@ -70,7 +70,8 @@ export default {
     deleteBranchAfterMerge: false,
 
     mergeStyle: '',
-    mergeStyleDetail: {
+    mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
+      hideMergeMessage: false,
       textDoMerge: '',
     },
     mergeStyleAllowedCount: 0,
@@ -117,6 +118,7 @@ export default {
 };
 </script>
 
+<!-- to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles -->
 <style scoped>
 .ui.dropdown .menu.show {
   display: block;
