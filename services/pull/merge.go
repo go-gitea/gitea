@@ -18,7 +18,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -48,7 +47,7 @@ func Merge(pr *models.PullRequest, doer *user_model.User, baseGitRepo *git.Repos
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	// Removing an auto merge pull and ignore if not exist
-	if err := pull_model.RemoveScheduledAutoMerge(db.DefaultContext, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
+	if err := RemoveScheduledAutoMerge(db.DefaultContext, doer, pr.ID, false); err != nil && !db.IsErrNotExist(err) {
 		return err
 	}
 

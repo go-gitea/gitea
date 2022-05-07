@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -61,17 +62,31 @@ func addToQueue(pr *models.PullRequest, sha string) {
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
 func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
-	lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
-	if err != nil {
-		return false, err
-	}
+	err = db.WithTx(func(ctx context.Context) error {
+		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
+		if err != nil {
+			return err
+		}
 
-	// we don't need to schedule
-	if lastCommitStatus.IsSuccess() {
-		return false, nil
-	}
+		// we don't need to schedule
+		if lastCommitStatus.IsSuccess() {
+			return nil
+		}
 
-	return true, pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message)
+		if err := pull_model.ScheduleAutoMerge(ctx, doer, pull.ID, style, message); err != nil {
+			return err
+		}
+		scheduled = true
+
+		pr, err := models.GetPullRequestByID(ctx, pull.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = models.CreateAutoMergeComment(ctx, models.CommentTypePRScheduledToAutoMerge, pr, doer)
+		return err
+	}, ctx)
+	return
 }
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
