@@ -335,7 +335,7 @@ func IsUserRepoAdminCtx(ctx context.Context, repo *repo_model.Repository, user *
 // AccessLevel returns the Access a user has to a repository. Will return NoneAccess if the
 // user does not have access.
 func AccessLevel(user *user_model.User, repo *repo_model.Repository) (perm_model.AccessMode, error) { //nolint
-	return accessLevelUnit(db.DefaultContext, user, repo, unit.TypeCode)
+	return AccessLevelUnit(user, repo, unit.TypeCode)
 }
 
 // AccessLevelUnit returns the Access a user has to a repository's. Will return NoneAccess if the

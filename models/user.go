@@ -81,7 +81,6 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&user_model.UserOpenID{UID: u.ID},
 		&issues.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
-		&repo_model.Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},
