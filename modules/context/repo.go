@@ -1019,6 +1019,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
+		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
 	}
 }
 
