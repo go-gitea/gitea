@@ -177,6 +177,9 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find access without repository
 		genericOrphanCheck("Access entries without existing repository",
 			"access", "repository", "access.repo_id=repository.id"),
+		// find action without repository
+		genericOrphanCheck("Action entries without existing repository",
+			"action", "repository", "action.repo_id=repository.id"),
 	)
 
 	for _, c := range consistencyChecks {
