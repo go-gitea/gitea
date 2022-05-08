@@ -416,7 +416,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	// admin should not delete himself
+	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
 		ctx.JSON(http.StatusOK, map[string]interface{}{
