@@ -5,7 +5,7 @@
         <input type="hidden" name="_csrf" :value="csrfToken">
         <input type="hidden" name="head_commit_id" v-model="mergeForm.pullHeadCommitID">
 
-        <template v-if="!mergeStyleDetail.hideMergeMessage">
+        <template v-if="!mergeStyleDetail.hideMergeMessageTexts">
           <div class="field">
             <input type="text" name="merge_title_field" v-model="mergeTitleFieldValue">
           </div>
@@ -18,7 +18,7 @@
           {{ mergeStyleDetail.textDoMerge }}
         </button>
 
-        <button class="ui button merge-cancel" @click="showActionForm=false">
+        <button class="ui button merge-cancel" @click="toggleActionForm(false)">
           {{ mergeForm.textCancel }}
         </button>
 
@@ -30,7 +30,7 @@
     </div>
 
     <template v-if="!showActionForm">
-      <div class="ui buttons merge-button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" @click="showActionForm=true">
+      <div class="ui buttons merge-button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" @click="toggleActionForm(true)">
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">{{ mergeStyleDetail.textDoMerge }}</span>
@@ -71,8 +71,10 @@ export default {
 
     mergeStyle: '',
     mergeStyleDetail: { // dummy only, these values will come from one of the mergeForm.mergeStyles
-      hideMergeMessage: false,
+      hideMergeMessageTexts: false,
       textDoMerge: '',
+      mergeTitleFieldText: '',
+      mergeMessageFieldText: '',
     },
     mergeStyleAllowedCount: 0,
 
@@ -82,24 +84,13 @@ export default {
 
   watch: {
     mergeStyle(val) {
-      for (const msd of this.mergeForm.mergeStyles) {
-        if (val === msd.name) {
-          this.mergeStyleDetail = msd;
-        }
-      }
+      this.mergeStyleDetail = this.mergeForm.mergeStyles.find((e) => e.name === val);
     }
   },
 
   created() {
-    for (const msd of this.mergeForm.mergeStyles) {
-      if (msd.allowed) {
-        if (!this.mergeStyle) this.mergeStyle = msd.name;
-        this.mergeStyleAllowedCount++;
-      }
-    }
-    this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
-    this.mergeTitleFieldValue = this.mergeForm.mergeTitleFieldText;
-    this.mergeMessageFieldValue = this.mergeForm.mergeMessageFieldText;
+    this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
+    this.mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
   },
 
   mounted() {
@@ -113,6 +104,13 @@ export default {
   methods: {
     hideMergeStyleMenu() {
       this.showMergeStyleMenu = false;
+    },
+    toggleActionForm(show) {
+      this.showActionForm = show;
+      if (!show) return;
+      this.deleteBranchAfterMerge = this.mergeForm.defaultDeleteBranchAfterMerge;
+      this.mergeTitleFieldValue = this.mergeStyleDetail.mergeTitleFieldText;
+      this.mergeMessageFieldValue = this.mergeStyleDetail.mergeMessageFieldText;
     }
   },
 };

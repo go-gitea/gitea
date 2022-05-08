@@ -328,6 +328,9 @@
 							<script>
 								<!-- /* eslint-disable */ -->
 								(() => {
+									const defaultMergeTitle = {{.DefaultMergeMessage}};
+									const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
+									const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
 									const mergeForm = {
 										'baseLink': {{.Link}},
 										'textCancel': {{$.i18n.Tr "cancel"}},
@@ -335,39 +338,43 @@
 
 										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
 										'pullHeadCommitID': {{.PullHeadCommitID}},
-										'mergeTitleFieldText': {{.Issue.PullRequest.GetDefaultMergeMessage $.Context}},
-										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
-										'mergeMessageFieldText': 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}},
 										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
 										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
 									};
 									mergeForm['mergeStyles'] = [
 										{
 											'name': 'merge',
 											'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
+											'mergeTitleFieldText': defaultMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
 										},
 										{
 											'name': 'rebase',
 											'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
-											'hideMergeMessage': true,
+											'hideMergeMessageTexts': true,
 										},
 										{
 											'name': 'rebase-merge',
 											'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+											'mergeTitleFieldText': defaultMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
 										},
 										{
 											'name': 'squash',
 											'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
+											'mergeTitleFieldText': defaultSquashMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
 										},
 										{
 											'name': 'manually-merged',
 											'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
-											'hideMergeMessage': true,
+											'hideMergeMessageTexts': true,
 										}
 									];
 									window.config.pageData.pullRequestMergeForm = mergeForm;
