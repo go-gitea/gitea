@@ -152,6 +152,7 @@ type RepoSettingForm struct {
 	PullsAllowSquash                      bool
 	PullsAllowManualMerge                 bool
 	PullsDefaultMergeStyle                string
+	PullsAllowCreateTag                   bool
 	EnableAutodetectManualMerge           bool
 	PullsAllowRebaseUpdate                bool
 	DefaultDeleteBranchAfterMerge         bool

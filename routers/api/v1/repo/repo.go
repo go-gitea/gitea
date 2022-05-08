@@ -849,6 +849,7 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 					AllowRebaseUpdate:             true,
 					DefaultDeleteBranchAfterMerge: false,
 					DefaultMergeStyle:             repo_model.MergeStyleMerge,
+					AllowCreateTag:                false,
 				}
 			} else {
 				config = unit.PullRequestsConfig()

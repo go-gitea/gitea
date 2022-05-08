@@ -118,6 +118,7 @@ type PullRequestsConfig struct {
 	AllowRebaseUpdate             bool
 	DefaultDeleteBranchAfterMerge bool
 	DefaultMergeStyle             MergeStyle
+	AllowCreateTag                bool
 }
 
 // FromDB fills up a PullRequestsConfig from serialized format.

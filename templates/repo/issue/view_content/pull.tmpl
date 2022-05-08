@@ -346,7 +346,7 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
-									{{if .IsPullBranchTaggable}}
+									{{if $prUnit.PullRequestsConfig.AllowCreateTag}}
 										<div class="ui checkbox ml-2">
 											<input name="tag_after_merge" type="checkbox">
 											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
@@ -375,7 +375,7 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
-									{{if .IsPullBranchTaggable}}
+									{{if $prUnit.PullRequestsConfig.AllowCreateTag}}
 										<div class="ui checkbox ml-2">
 											<input name="tag_after_merge" type="checkbox">
 											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
@@ -410,7 +410,7 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
-									{{if .IsPullBranchTaggable}}
+									{{if $prUnit.PullRequestsConfig.AllowCreateTag}}
 										<div class="ui checkbox ml-2">
 											<input name="tag_after_merge" type="checkbox">
 											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>
@@ -445,7 +445,7 @@
 											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
 										</div>
 									{{end}}
-									{{if .IsPullBranchTaggable}}
+									{{if $prUnit.PullRequestsConfig.AllowCreateTag}}
 										<div class="ui checkbox ml-2">
 											<input name="tag_after_merge" type="checkbox">
 											<label>{{$.i18n.Tr "repo.tag.create_tag_operation"}}</label>

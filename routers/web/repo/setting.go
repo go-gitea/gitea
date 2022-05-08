@@ -471,6 +471,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
+					AllowCreateTag:                form.PullsAllowCreateTag,
 				},
 			})
 		} else if !unit_model.TypePullRequests.UnitGlobalDisabled() {
