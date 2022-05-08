@@ -329,8 +329,8 @@ type GetFeedsOptions struct {
 }
 
 type ExtAction struct {
-	Action
-	Repo *repo_model.Repository `xorm:"extends"`
+	Action `xorm:"extends"`
+	Repo   *repo_model.Repository `xorm:"extends"`
 }
 
 // GetFeeds returns actions according to the provided options
