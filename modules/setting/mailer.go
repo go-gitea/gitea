@@ -150,7 +150,7 @@ func newMailService() {
 	if MailService.Protocol == "smtp" {
 		for _, ip := range ips {
 			if !ip.IsLoopback() {
-				log.Warn("connect via insecure SMTP to non-local address")
+				log.Warn("connecting over insecure SMTP protocol to non-local address is not recommended")
 				break
 			}
 		}
