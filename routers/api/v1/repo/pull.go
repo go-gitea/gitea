@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -799,13 +801,41 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	// set defaults to propagate needed fields
-	if err := form.SetDefaults(ctx, pr); err != nil {
-		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
-		return
+	if len(form.Do) == 0 {
+		form.Do = string(repo_model.MergeStyleMerge)
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	message := strings.TrimSpace(form.MergeTitleField)
+	if len(message) == 0 {
+		message, err = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "GetDefaultMergeMessage", err)
+			return
+		}
+	}
+
+	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+	if len(form.MergeMessageField) > 0 {
+		message += "\n\n" + form.MergeMessageField
+	}
+
+	if form.MergeWhenChecksSucceed {
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
+		if err != nil {
+			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
+			return
+		} else if scheduled {
+			// nothing more to do ...
+			ctx.Status(http.StatusCreated)
+			return
+		}
+	}
+
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 		} else if models.IsErrMergeConflicts(err) {
@@ -1111,6 +1141,78 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+func CancelScheduledAutoMerge(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
+	// ---
+	// summary: Cancel the scheduled auto merge for the given pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to merge
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pullIndex := ctx.ParamsInt64(":index")
+	pull, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pullIndex)
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.InternalServerError(err)
+		return
+	}
+
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if !exist {
+		ctx.NotFound()
+		return
+	}
+
+	if ctx.Doer.ID != autoMerge.DoerID {
+		allowed, err := models.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		if !allowed {
+			ctx.Error(http.StatusForbidden, "No permission to cancel", "user has no permission to cancel the scheduled auto merge")
+			return
+		}
+	}
+
+	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull); err != nil {
+		ctx.InternalServerError(err)
+	} else {
+		ctx.Status(http.StatusNoContent)
+	}
 }
 
 // GetPullRequestCommits gets all commits associated with a given PR

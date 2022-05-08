@@ -39,6 +39,7 @@ import (
 	web_routers "code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
@@ -147,6 +148,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
+	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
