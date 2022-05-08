@@ -1074,8 +1074,8 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	if err := pull_model.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest.ID, true); err != nil {
-		if models.IsErrNotExist(err) {
+	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest); err != nil {
+		if db.IsErrNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 			return
