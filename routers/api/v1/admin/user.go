@@ -310,6 +310,12 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
+	// admin should not delete themself
+	if ctx.ContextUser.ID == ctx.Doer.ID {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("you cannot delete yourself"))
+		return
+	}
+
 	if err := user_service.DeleteUser(ctx.ContextUser); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||

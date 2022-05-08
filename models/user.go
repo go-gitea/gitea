@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -82,6 +83,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
+		&pull_model.AutoMerge{DoerID: u.ID},
+		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
