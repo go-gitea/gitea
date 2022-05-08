@@ -1239,7 +1239,7 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 	}
 }
 
-func (opts *IssuesOptions) setupSessionWithLimit(sess *xorm.Session) {
+func (opts *IssuesOptions) setupSessionWithLimit(sess *xorm.Session) error {
 	if opts.Page >= 0 && opts.PageSize > 0 {
 		var start int
 		if opts.Page == 0 {
@@ -1249,10 +1249,10 @@ func (opts *IssuesOptions) setupSessionWithLimit(sess *xorm.Session) {
 		}
 		sess.Limit(opts.PageSize, start)
 	}
-	opts.setupSessionNoLimit(sess)
+	return opts.setupSessionNoLimit(sess)
 }
 
-func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
+func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) error {
 	if len(opts.IssueIDs) > 0 {
 		sess.In("issue.id", opts.IssueIDs)
 	}
@@ -1346,14 +1346,18 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.User != nil {
-		sess.And(
-			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
-		)
+		repoCond, err := issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue())
+		if err != nil {
+			return err
+		}
+		sess.And(repoCond)
+
 	}
+	return nil
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) (builder.Cond, error) {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
@@ -1361,7 +1365,32 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organizati
 	}
 	if org != nil {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			// If the current user is a admin, it doesn't necesarly mean
+			// it has joined the team, but we still should return all repo's
+			// of that team.
+			isAdmin, err := org.IsOwnedBy(userID)
+			if err != nil {
+				return nil, err
+			}
+			if isAdmin {
+				cond = cond.And(builder.In(repoIDstr,
+					builder.Select("repo_id").From("team_repo").Where(
+						builder.Eq{
+							"team_id": team.ID,
+						}.And(
+							builder.In(
+								"team_id", builder.Select("team_id").From("team_unit").Where(
+									builder.Eq{
+										"`team_unit`.org_id": org.ID,
+										"`team_unit`.type":   unitType,
+									},
+								),
+							),
+						),
+					)))
+			} else {
+				cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			}
 		} else {
 			cond = cond.And(
 				builder.Or(
@@ -1381,7 +1410,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organizati
 			),
 		)
 	}
-	return cond
+	return cond, nil
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
@@ -1414,7 +1443,9 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
-	opts.setupSessionNoLimit(sess)
+	if err := opts.setupSessionNoLimit(sess); err != nil {
+		return nil, fmt.Errorf("setupSessionNoLimit: %v", err)
+	}
 
 	countsSlice := make([]*struct {
 		RepoID int64
@@ -1441,7 +1472,9 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
-	opts.setupSessionNoLimit(sess)
+	if err := opts.setupSessionWithLimit(sess); err != nil {
+		return nil, fmt.Errorf("setupSessionWithLimit: %v", err)
+	}
 
 	accessCond := accessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
@@ -1459,7 +1492,9 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	e := db.GetEngine(db.DefaultContext)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	opts.setupSessionWithLimit(sess)
+	if err := opts.setupSessionNoLimit(sess); err != nil {
+		return nil, fmt.Errorf("setupSessionNoLimit: %v", err)
+	}
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
@@ -1484,7 +1519,9 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	opts.setupSessionNoLimit(sess)
+	if err := opts.setupSessionNoLimit(sess); err != nil {
+		return 0, fmt.Errorf("setupSessionNoLimit: %v", err)
+	}
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("unable to CountIssues: %w", err)
 	}
@@ -1717,7 +1754,11 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	if opts.UserID > 0 {
-		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
+		repoCond, err := issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull)
+		if err != nil {
+			return nil, err
+		}
+		cond = cond.And(repoCond)
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
