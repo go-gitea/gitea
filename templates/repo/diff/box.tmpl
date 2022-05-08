@@ -18,6 +18,12 @@
 				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
+				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
+					<meter id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></meter>
+					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{.i18n.Tr "repo.pulls.viewed_files_label"}}">
+						{{.i18n.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
+					</label>
+				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
 				{{template "repo/diff/options_dropdown" .}}
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
@@ -58,11 +64,11 @@
 				{{$isCsv := (call $.IsCsvFile $file)}}
 				{{$showFileViewToggle := or $isImage (and (not $file.IsIncomplete) $isCsv)}}
 				{{$nameHash := Sha1 $file.Name}}
-				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$nameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.IsGenerated}}data-folded="true"{{end}}>
+				<div class="diff-file-box diff-box file-content {{TabSizeClass $.Editorconfig $file.Name}} mt-3" id="diff-{{$nameHash}}" data-old-filename="{{$file.OldName}}" data-new-filename="{{$file.Name}}" {{if $file.ShouldBeHidden}}data-folded="true"{{end}}>
 					<h4 class="diff-file-header sticky-2nd-row ui top attached normal header df ac sb">
 						<div class="df ac">
 							<a role="button" class="fold-file muted mr-2">
-								{{if $file.IsGenerated}}
+								{{if $file.ShouldBeHidden}}
 									{{svg "octicon-chevron-right" 18}}
 								{{else}}
 									{{svg "octicon-chevron-down" 18}}
@@ -106,9 +112,18 @@
 									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
+							{{if and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
+								{{if $file.HasChangedSinceLastReview}}
+									<span class="changed-since-last-review unselectable">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
+								{{end}}
+								<div data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
+									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$i}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}></input>
+									<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
+								</div>
+							{{end}}
 						</div>
 					</h4>
-					<div class="diff-file-body ui attached unstackable table segment">
+					<div class="diff-file-body ui attached unstackable table segment" {{if $file.IsViewed}}data-folded="true"{{end}}>
 						<div id="diff-source-{{$i}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
 							{{if or $file.IsIncomplete $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">

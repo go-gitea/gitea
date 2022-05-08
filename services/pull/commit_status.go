@@ -137,5 +137,13 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}
 
-	return MergeRequiredContextsCommitStatus(commitStatuses, pr.ProtectedBranch.StatusCheckContexts), nil
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+		return "", errors.Wrap(err, "LoadProtectedBranch")
+	}
+	var requiredContexts []string
+	if pr.ProtectedBranch != nil {
+		requiredContexts = pr.ProtectedBranch.StatusCheckContexts
+	}
+
+	return MergeRequiredContextsCommitStatus(commitStatuses, requiredContexts), nil
 }

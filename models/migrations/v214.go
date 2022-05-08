@@ -5,18 +5,19 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addTagComment(x *xorm.Engine) error {
-	type Comment struct {
-		Tag string
+func addAutoMergeTable(x *xorm.Engine) error {
+	type MergeStyle string
+	type PullAutoMerge struct {
+		ID          int64      `xorm:"pk autoincr"`
+		PullID      int64      `xorm:"UNIQUE"`
+		DoerID      int64      `xorm:"NOT NULL"`
+		MergeStyle  MergeStyle `xorm:"varchar(30)"`
+		Message     string     `xorm:"LONGTEXT"`
+		CreatedUnix int64      `xorm:"created"`
 	}
 
-	if err := x.Sync2(new(Comment)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(&PullAutoMerge{})
 }

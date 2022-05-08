@@ -110,7 +110,11 @@ const (
 	CommentTypeDismissReview
 	// 33 Change issue ref
 	CommentTypeChangeIssueRef
-	// 34 tag PR commit
+	// 34 pr was scheduled to auto merge when checks succeed
+	CommentTypePRScheduledToAutoMerge
+	// 35 pr was un scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge
+	// 36 tag PR commit
 	CommentTypeTagPRCommit
 )
 
@@ -149,6 +153,8 @@ var commentStrings = []string{
 	"project_board",
 	"dismiss_review",
 	"change_issue_ref",
+	"pull_scheduled_merge",
+	"pull_cancel_scheduled_merge",
 }
 
 func (t CommentType) String() string {
