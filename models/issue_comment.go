@@ -1360,6 +1360,28 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 	return
 }
 
+// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
+		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
+	}
+	if err = pr.LoadIssueCtx(ctx); err != nil {
+		return
+	}
+
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+		return
+	}
+
+	comment, err = CreateCommentCtx(ctx, &CreateCommentOptions{
+		Type:  typ,
+		Doer:  doer,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+	})
+	return
+}
+
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
