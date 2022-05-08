@@ -872,17 +872,19 @@ func notifyPackage(sender *user_model.User, pd *packages_model.PackageDescriptor
 		return
 	}
 
-	org := pd.Owner
-	if !org.IsOrganization() {
-		org = nil
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.notifyPackage Package: %s[%d]", pd.Package.Name, pd.Package.ID))
+	defer finished()
+
+	apiPackage, err := convert.ToPackage(ctx, pd, sender)
+	if err != nil {
+		log.Error("Error converting package: %v", err)
+		return
 	}
 
 	if err := webhook_services.PrepareWebhooks(pd.Repository, webhook.HookEventPackage, &api.PackagePayload{
-		Action:       action,
-		Repository:   convert.ToRepo(pd.Repository, perm.AccessModeNone),
-		Package:      convert.ToPackage(pd),
-		Organization: convert.ToUser(org, nil),
-		Sender:       convert.ToUser(sender, nil),
+		Action:  action,
+		Package: apiPackage,
+		Sender:  convert.ToUser(sender, nil),
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
