@@ -377,6 +377,9 @@
 									<div class="field">
 										<input type="text" name="merge_title_field" value="{{.DefaultMergeMessage}}">
 									</div>
+									<div class="field">
+										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
+									</div>
 									<button class="ui green button" type="submit" name="do" value="rebase-merge">
 										{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
 									</button>
