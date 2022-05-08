@@ -913,6 +913,13 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			defer headRepo.Close()
 		}
+		if pr.BaseRepoID == pr.HeadRepoID {
+			if err := pull_service.RebaseBranchPulls(ctx, ctx.Doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch); err != nil {
+				log.Error("RebaseBranchPulls: %v", err)
+				ctx.Error(http.StatusInternalServerError, "RebaseBranchPulls", err)
+				return
+			}
+		}
 		if err := repo_service.DeleteBranch(ctx, ctx.Doer, pr.HeadRepo, headRepo, pr.HeadBranch); err != nil {
 			switch {
 			case git.IsErrBranchNotExist(err):

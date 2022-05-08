@@ -542,6 +542,34 @@ func (errs errlist) Error() string {
 	return ""
 }
 
+// RebaseBranchPulls change target branch for all pull requests who's base branch is the branch
+func RebaseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch, targetBranch string) error {
+	prs, err := models.GetUnmergedPullRequestsByBaseInfo(repoID, branch)
+	if err != nil {
+		return err
+	}
+
+	if err := models.PullRequestList(prs).LoadAttributes(); err != nil {
+		return err
+	}
+
+	var errs errlist
+	for _, pr := range prs {
+		if err = pr.Issue.LoadAttributes(); err != nil {
+			errs = append(errs, err)
+		} else if err = ChangeTargetBranch(ctx, pr, doer, targetBranch); err != nil &&
+			!models.IsErrIssueIsClosed(err) && !models.IsErrPullRequestHasMerged(err) &&
+			!models.IsErrPullRequestAlreadyExists(err) {
+			errs = append(errs, err)
+		}
+	}
+
+	if len(errs) > 0 {
+		return errs
+	}
+	return nil
+}
+
 // CloseBranchPulls close all the pull requests who's head branch is the branch
 func CloseBranchPulls(ctx context.Context, doer *user_model.User, repoID int64, branch string) error {
 	prs, err := issues_model.GetUnmergedPullRequestsByHeadInfo(ctx, repoID, branch)
