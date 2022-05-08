@@ -825,7 +825,7 @@ func getNotificationByID(e db.Engine, notificationID int64) (*Notification, erro
 	}
 
 	if !ok {
-		return nil, ErrNotExist{ID: notificationID}
+		return nil, db.ErrNotExist{ID: notificationID}
 	}
 
 	return notification, nil

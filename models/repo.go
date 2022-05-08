@@ -704,7 +704,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
 		&ProtectedTag{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
@@ -720,6 +719,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	// Delete Labels and related objects
 	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
+		return err
+	}
+
+	// Delete Pulls and related objects
+	if err := deletePullsByBaseRepoID(sess, repoID); err != nil {
 		return err
 	}
 

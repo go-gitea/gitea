@@ -8,10 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -255,54 +252,4 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 
 	pr.Issue.Title = "[wip] " + original
 	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
-}
-
-func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
-
-	msg, err := pr.GetDefaultMergeMessage(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", msg)
-
-	pr.BaseRepoID = 1
-	pr.HeadRepoID = 2
-	msg, err = pr.GetDefaultMergeMessage(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", msg)
-}
-
-func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	externalTracker := repo_model.RepoUnit{
-		Type: unit.TypeExternalTracker,
-		Config: &repo_model.ExternalTrackerConfig{
-			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
-		},
-	}
-	baseRepo := &repo_model.Repository{Name: "testRepo", ID: 1}
-	baseRepo.Owner = &user_model.User{Name: "testOwner"}
-	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
-
-	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)
-
-	msg, err := pr.GetDefaultMergeMessage(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", msg)
-
-	pr.BaseRepoID = 1
-	pr.HeadRepoID = 2
-	msg, err = pr.GetDefaultMergeMessage(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", msg)
-}
-
-func TestPullRequest_GetDefaultSquashMessage(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
-
-	msg, err := pr.GetDefaultSquashMessage(db.DefaultContext)
-	assert.NoError(t, err)
-	assert.Equal(t, "issue3 (#3)", msg)
 }
