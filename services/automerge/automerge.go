@@ -234,7 +234,7 @@ func handlePull(pullID int64, sha string) {
 		defer baseGitRepo.Close()
 	}
 
-	if err := pull_service.Merge(pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
+	if err := pull_service.Merge(ctx, pr, doer, baseGitRepo, scheduledPRM.MergeStyle, "", scheduledPRM.Message); err != nil {
 		log.Error("pull_service.Merge: %v", err)
 		return
 	}

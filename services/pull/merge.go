@@ -39,9 +39,6 @@ func GetDefaultMergeMessage(baseGitRepo *git.Repository, pr *models.PullRequest,
 	if err := pr.LoadHeadRepo(); err != nil {
 		return "", err
 	}
-	if pr.HeadRepo == nil {
-		return "", repo_model.ErrRepoNotExist{ID: pr.HeadRepoID}
-	}
 	if err := pr.LoadBaseRepo(); err != nil {
 		return "", err
 	}
