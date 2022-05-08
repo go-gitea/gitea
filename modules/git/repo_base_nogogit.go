@@ -137,6 +137,7 @@ func (repo *Repository) close() (err error) {
 		repo.checkWriter = nil
 	}
 	repo.closed = true
+	runtime.SetFinalizer(repo, nil)
 	return
 }
 

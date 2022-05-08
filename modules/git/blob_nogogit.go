@@ -124,7 +124,10 @@ func (b *blobReader) Close() (err error) {
 }
 
 func (b *blobReader) close() (err error) {
-	defer b.cancel()
+	defer func() {
+		b.cancel()
+		runtime.SetFinalizer(b, nil)
+	}()
 	b.closed = true
 	if b.n > 0 {
 		var n int
