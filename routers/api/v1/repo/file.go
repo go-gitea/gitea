@@ -53,7 +53,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   200:
-	//     description: success
+	//     description: Returns raw file content.
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -173,8 +173,10 @@ func GetEditorconfig(ctx *context.APIContext) {
 }
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
-func canWriteFiles(r *context.Repository) bool {
-	return r.Permission.CanWrite(unit.TypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
+func canWriteFiles(ctx *context.APIContext, branch string) bool {
+	return ctx.Repo.Permission.CanWriteToBranch(ctx.Doer, branch) &&
+		!ctx.Repo.Repository.IsMirror &&
+		!ctx.Repo.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
@@ -376,7 +378,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 
 // Called from both CreateFile or UpdateFile to handle both
 func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
@@ -433,7 +435,7 @@ func DeleteFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,

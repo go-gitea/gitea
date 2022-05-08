@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
@@ -85,19 +86,21 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	user = &user_model.User{
-		LowerName:    strings.ToLower(sr.Username),
-		Name:         sr.Username,
-		FullName:     composeFullName(sr.Name, sr.Surname, sr.Username),
-		Email:        sr.Mail,
-		LoginType:    source.authSource.Type,
-		LoginSource:  source.authSource.ID,
-		LoginName:    userName,
-		IsActive:     true,
-		IsAdmin:      sr.IsAdmin,
-		IsRestricted: sr.IsRestricted,
+		LowerName:   strings.ToLower(sr.Username),
+		Name:        sr.Username,
+		FullName:    composeFullName(sr.Name, sr.Surname, sr.Username),
+		Email:       sr.Mail,
+		LoginType:   source.authSource.Type,
+		LoginSource: source.authSource.ID,
+		LoginName:   userName,
+		IsAdmin:     sr.IsAdmin,
+	}
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsRestricted: util.OptionalBoolOf(sr.IsRestricted),
+		IsActive:     util.OptionalBoolTrue,
 	}
 
-	err := user_model.CreateUser(user)
+	err := user_model.CreateUser(user, overwriteDefault)
 	if err != nil {
 		return user, err
 	}

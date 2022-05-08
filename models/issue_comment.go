@@ -110,6 +110,10 @@ const (
 	CommentTypeDismissReview
 	// 33 Change issue ref
 	CommentTypeChangeIssueRef
+	// 34 pr was scheduled to auto merge when checks succeed
+	CommentTypePRScheduledToAutoMerge
+	// 35 pr was un scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge
 )
 
 var commentStrings = []string{
@@ -147,6 +151,8 @@ var commentStrings = []string{
 	"project_board",
 	"dismiss_review",
 	"change_issue_ref",
+	"pull_scheduled_merge",
+	"pull_cancel_scheduled_merge",
 }
 
 func (t CommentType) String() string {
@@ -284,14 +290,15 @@ type PushActionContent struct {
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
-	return c.loadIssue(db.GetEngine(db.DefaultContext))
+	return c.LoadIssueCtx(db.DefaultContext)
 }
 
-func (c *Comment) loadIssue(e db.Engine) (err error) {
+// LoadIssueCtx loads issue from database
+func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = getIssueByID(e, c.IssueID)
+	c.Issue, err = getIssueByID(db.GetEngine(ctx), c.IssueID)
 	return
 }
 
@@ -1126,7 +1133,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-	if err := c.loadIssue(sess); err != nil {
+	if err := c.LoadIssueCtx(ctx); err != nil {
 		return err
 	}
 	if err := c.addCrossReferences(ctx, doer, true); err != nil {

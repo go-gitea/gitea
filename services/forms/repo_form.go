@@ -6,6 +6,7 @@
 package forms
 
 import (
+	stdContext "context"
 	"net/http"
 	"strings"
 
@@ -400,15 +401,16 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title       string `binding:"Required;MaxSize(255)"`
-	LabelIDs    string `form:"label_ids"`
-	AssigneeIDs string `form:"assignee_ids"`
-	Ref         string `form:"ref"`
-	MilestoneID int64
-	ProjectID   int64
-	AssigneeID  int64
-	Content     string
-	Files       []string
+	Title               string `binding:"Required;MaxSize(255)"`
+	LabelIDs            string `form:"label_ids"`
+	AssigneeIDs         string `form:"assignee_ids"`
+	Ref                 string `form:"ref"`
+	MilestoneID         int64
+	ProjectID           int64
+	AssigneeID          int64
+	Content             string
+	Files               []string
+	AllowMaintainerEdit bool
 }
 
 // Validate validates the fields
@@ -568,6 +570,7 @@ type MergePullRequestForm struct {
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
@@ -578,7 +581,7 @@ func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) 
 }
 
 // SetDefaults if not provided for mergestyle and commit message
-func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
+func (f *MergePullRequestForm) SetDefaults(ctx stdContext.Context, pr *models.PullRequest) (err error) {
 	if f.Do == "" {
 		f.Do = "merge"
 	}
@@ -587,9 +590,9 @@ func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
 	if len(f.MergeTitleField) == 0 {
 		switch f.Do {
 		case "merge", "rebase-merge":
-			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
+			f.MergeTitleField, err = pr.GetDefaultMergeMessage(ctx)
 		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
+			f.MergeTitleField, err = pr.GetDefaultSquashMessage(ctx)
 		}
 	}
 
@@ -660,6 +663,11 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 type DismissReviewForm struct {
 	ReviewID int64 `binding:"Required"`
 	Message  string
+}
+
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+	AllowMaintainerEdit bool
 }
 
 // __________       .__

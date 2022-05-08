@@ -30,7 +30,11 @@
 					</div>
 					<div class="desc issue-item-bottom-row df ac fw my-1">
 						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n.Lang}}
+						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}
+							{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
+						{{end}}
+						{{if $hasRepositoryAccess}}
 							{{$.i18n.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.HTMLURL (.Repository.FullName | Escape) | Safe}}
 						{{else}}
 							{{$.i18n.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
