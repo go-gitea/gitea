@@ -913,7 +913,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			defer headRepo.Close()
 		}
-		if pr.BaseRepoID == pr.HeadRepoID {
+		if setting.Repository.PullRequest.RetargetChildsOnClose && pr.BaseRepoID == pr.HeadRepoID {
 			if err := pull_service.RebaseBranchPulls(ctx, ctx.Doer, pr.HeadRepoID, pr.HeadBranch, pr.BaseBranch); err != nil {
 				log.Error("RebaseBranchPulls: %v", err)
 				ctx.Error(http.StatusInternalServerError, "RebaseBranchPulls", err)
