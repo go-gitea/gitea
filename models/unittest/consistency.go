@@ -175,8 +175,10 @@ func init() {
 
 	checkForActionConsistency := func(t assert.TestingT, bean interface{}) {
 		action := reflectionWrap(bean)
-		repoRow := AssertExistsAndLoadMap(t, "repository", builder.Eq{"id": action.int("RepoID")})
-		assert.Equal(t, parseBool(repoRow["is_private"]), action.bool("IsPrivate"), "action: %+v", action)
+		if action.int("RepoID") != 1700 { // dangling intentional
+			repoRow := AssertExistsAndLoadMap(t, "repository", builder.Eq{"id": action.int("RepoID")})
+			assert.Equal(t, parseBool(repoRow["is_private"]), action.bool("IsPrivate"), "action: %+v", action)
+		}
 	}
 
 	consistencyCheckMap["user"] = checkForUserConsistency
