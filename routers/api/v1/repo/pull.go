@@ -1198,7 +1198,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	}
 
 	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := models.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
+		allowed, err := access_model.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

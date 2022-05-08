@@ -892,11 +892,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 			return false, err
 		}
 
-<<<<<<< HEAD
-		p, err := GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
-=======
-		p, err := access_model.GetUserRepoPermission(issue.Repo, doer)
->>>>>>> ce90db7ed (Move access and repo permission to models/perm/access)
+		p, err := access_model.GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}

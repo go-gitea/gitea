@@ -55,11 +55,7 @@ func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	if user != nil && user.IsAdmin {
 		return true
 	}
-<<<<<<< HEAD
-	perm, err := GetUserRepoPermission(ctx, repo, user)
-=======
-	perm, err := access_model.GetUserRepoPermissionCtx(ctx, repo, user)
->>>>>>> ce90db7ed (Move access and repo permission to models/perm/access)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		log.Error("GetUserRepoPermission(): %v", err)
 		return false
@@ -425,13 +421,8 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-<<<<<<< HEAD
-		if isAdmin, err := IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+		if isAdmin, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
 			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
-=======
-		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("isUserRepoAdmin: %v", err)
->>>>>>> ce90db7ed (Move access and repo permission to models/perm/access)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
@@ -1190,11 +1181,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-<<<<<<< HEAD
-		has, err := IsUserRepoAdminCtx(ctx, repo, doer)
-=======
-		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
->>>>>>> ce90db7ed (Move access and repo permission to models/perm/access)
+		has, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

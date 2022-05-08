@@ -7,8 +7,8 @@ package convert
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
@@ -17,7 +17,7 @@ import (
 func ToPackage(ctx context.Context, pd *packages.PackageDescriptor, doer *user_model.User) (*api.Package, error) {
 	var repo *api.Repository
 	if pd.Repository != nil {
-		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, doer)
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, doer)
 		if err != nil {
 			return nil, err
 		}

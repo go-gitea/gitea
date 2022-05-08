@@ -50,11 +50,11 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 				return nil, err
 			}
 
-			perms, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
+			perms, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 			if err != nil {
 				return nil, err
 			}
-			canPush = perms.CanWriteToBranch(user, b.Name)
+			canPush = models.CanMaintainerWriteToBranch(perms, b.Name, user)
 		}
 
 		return &api.Branch{

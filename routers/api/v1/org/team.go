@@ -599,7 +599,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := models.AccessLevel(ctx.Doer, repo)
+	access, err := access_model.AccessLevel(ctx.Doer, repo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
