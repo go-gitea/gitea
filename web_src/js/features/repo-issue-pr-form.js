@@ -6,7 +6,7 @@ export default function initPullRequestMergeForm() {
   if (!el) return;
 
   const View = Vue.extend({
-    render: (createElement) => createElement(PullRequestMergeForm, {props: {}}),
+    render: (createElement) => createElement(PullRequestMergeForm),
   });
   new View().$mount(el);
 }
