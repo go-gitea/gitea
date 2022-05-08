@@ -141,7 +141,7 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 	defer pullWorkingPool.CheckOut(fmt.Sprint(pr.ID))
 
 	// Removing an auto merge pull and ignore if not exist
-	if err := pull_model.RemoveScheduledAutoMerge(db.DefaultContext, doer, pr.ID, false); err != nil && !models.IsErrNotExist(err) {
+	if err := pull_model.DeleteScheduledAutoMerge(db.DefaultContext, pr.ID); err != nil && !db.IsErrNotExist(err) {
 		return err
 	}
 

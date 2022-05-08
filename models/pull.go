@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -94,6 +95,25 @@ type PullRequest struct {
 
 func init() {
 	db.RegisterModel(new(PullRequest))
+}
+
+func deletePullsByBaseRepoID(sess db.Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("pull_request").Where(builder.Eq{"pull_request.base_repo_id": repoID})
+
+	// Delete scheduled auto merges
+	if _, err := sess.In("pull_id", deleteCond).
+		Delete(&pull_model.AutoMerge{}); err != nil {
+		return err
+	}
+
+	// Delete review states
+	if _, err := sess.In("pull_id", deleteCond).
+		Delete(&pull_model.ReviewState{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&PullRequest{BaseRepoID: repoID})
+	return err
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
