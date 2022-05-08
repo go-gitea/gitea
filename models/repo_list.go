@@ -247,6 +247,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 							},
 						),
 					),
+					// Check if the user is in the owner team of the organisation.
 					builder.Exists(builder.Select("team_id").From("team_user").
 						Where(builder.Eq{
 							"org_id": orgID,
