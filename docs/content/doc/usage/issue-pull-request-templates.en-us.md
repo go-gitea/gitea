@@ -43,6 +43,39 @@ Possible file names for PR templates:
 - `.github/PULL_REQUEST_TEMPLATE.md`
 - `.github/pull_request_template.md`
 
+Possible file names for PR default merge message templates:
+
+- `.gitea/default_merge_message/MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/SQUASH_TEMPLATE.md`
+- `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
+
+Possible file names for PR default merge message templates:
+
+- `.gitea/default_merge_message/MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-MERGE_TEMPLATE.md`
+- `.gitea/default_merge_message/SQUASH_TEMPLATE.md`
+- `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
+- `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
+
+You can use the following variables enclosed in `${}` inside these templates which follow [os.Expand](https://pkg.go.dev/os#Expand) syntax:
+
+- BaseRepoOwnerName: Base repository owner name of this pull request
+- BaseRepoName: Base repository name of this pull request
+- BaseBranch: Base repository target branch name of this pull request
+- HeadRepoOwnerName: Head repository owner name of this pull request
+- HeadRepoName: Head repository name of this pull request
+- HeadBranch: Head repository branch name of this pull request
+- PullRequestTitle: Pull request's title
+- PullRequestDescription: Pull request's description
+- PullRequestPosterName: Pull request's poster name
+- PullRequestIndex: Pull request's index number
+- PullRequestReference: Pull request's reference char with index number. i.e. #1, !2
+- ClosingIssues: return a string contains all issues which will be closed by this pull request i.e. `close #1, close #2`
+
 Additionally, the New Issue page URL can be suffixed with `?title=Issue+Title&body=Issue+Text` and the form will be populated with those strings. Those strings will be used instead of the template if there is one.
 
 ## Issue Template Directory
