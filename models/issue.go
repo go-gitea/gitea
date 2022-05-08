@@ -1472,8 +1472,8 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 
-	if err := opts.setupSessionWithLimit(sess); err != nil {
-		return nil, fmt.Errorf("setupSessionWithLimit: %v", err)
+	if err := opts.setupSessionNoLimit(sess); err != nil {
+		return nil, fmt.Errorf("setupSessionNoLimit: %v", err)
 	}
 
 	accessCond := accessibleRepositoryCondition(user)
@@ -1492,8 +1492,8 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 	e := db.GetEngine(db.DefaultContext)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-	if err := opts.setupSessionNoLimit(sess); err != nil {
-		return nil, fmt.Errorf("setupSessionNoLimit: %v", err)
+	if err := opts.setupSessionWithLimit(sess); err != nil {
+		return nil, fmt.Errorf("setupSessionWithLimit: %v", err)
 	}
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
