@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -228,34 +227,6 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 	return
 }
 
-// GetDefaultMergeMessage returns default message used when merging pull request
-func (pr *PullRequest) GetDefaultMergeMessage(ctx context.Context) (string, error) {
-	if pr.HeadRepo == nil {
-		var err error
-		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
-		if err != nil {
-			return "", fmt.Errorf("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
-		}
-	}
-	if err := pr.LoadIssueCtx(ctx); err != nil {
-		return "", fmt.Errorf("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
-	}
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadBaseRepo: %v", err)
-	}
-
-	issueReference := "#"
-	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
-		issueReference = "!"
-	}
-
-	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
-	}
-
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
-}
-
 // ReviewCount represents a count of Reviews
 type ReviewCount struct {
 	IssueID int64
@@ -336,20 +307,6 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		reviewersWritten++
 	}
 	return committer.Commit()
-}
-
-// GetDefaultSquashMessage returns default message used when squash and merging pull request
-func (pr *PullRequest) GetDefaultSquashMessage(ctx context.Context) (string, error) {
-	if err := pr.LoadIssueCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadIssue: %v", err)
-	}
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadBaseRepo: %v", err)
-	}
-	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
-		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index), nil
-	}
-	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index), nil
 }
 
 // GetGitRefName returns git ref for hidden pull request branch
