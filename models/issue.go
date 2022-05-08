@@ -1351,7 +1351,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 }
 
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
-func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) (builder.Cond, error) {
+func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organization, team *Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
 	unitType := unit.TypeIssues
 	if isPull {
@@ -1379,7 +1379,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *Organizati
 			),
 		)
 	}
-	return cond, nil
+	return cond
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
@@ -1714,11 +1714,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	if opts.UserID > 0 {
-		repoCond, err := issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull)
-		if err != nil {
-			return nil, err
-		}
-		cond = cond.And(repoCond)
+		cond = cond.And(issuePullAccessibleRepoCond("issue.repo_id", opts.UserID, opts.Org, opts.Team, opts.IsPull))
 	}
 
 	sess := func(cond builder.Cond) *xorm.Session {
