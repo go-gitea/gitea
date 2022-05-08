@@ -162,7 +162,7 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 }
 
 func runHookPreReceive(c *cli.Context) error {
-	if os.Getenv(repo_module.EnvIsInternal) == "true" {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
 	ctx, cancel := installSignals()
