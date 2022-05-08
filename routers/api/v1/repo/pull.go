@@ -801,22 +801,6 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if form.MergeWhenChecksSucceed {
-		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
-		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
-				return
-			}
-			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
-			return
-		} else if scheduled {
-			// nothing more to do ...
-			ctx.Status(http.StatusCreated)
-			return
-		}
-	}
-
 	if len(form.Do) == 0 {
 		form.Do = string(repo_model.MergeStyleMerge)
 	}
@@ -833,6 +817,22 @@ func MergePullRequest(ctx *context.APIContext) {
 	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
 	if len(form.MergeMessageField) > 0 {
 		message += "\n\n" + form.MergeMessageField
+	}
+
+	if form.MergeWhenChecksSucceed {
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
+		if err != nil {
+			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
+				return
+			}
+			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
+			return
+		} else if scheduled {
+			// nothing more to do ...
+			ctx.Status(http.StatusCreated)
+			return
+		}
 	}
 
 	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
