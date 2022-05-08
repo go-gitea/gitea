@@ -950,13 +950,22 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	// set defaults to propagate needed fields
-	if err := form.SetDefaults(ctx, pr); err != nil {
-		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
-		return
+	message := strings.TrimSpace(form.MergeTitleField)
+	if len(message) == 0 {
+		var err error
+		message, err = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		if err != nil {
+			ctx.ServerError("GetDefaultMergeMessage", err)
+			return
+		}
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+	if len(form.MergeMessageField) > 0 {
+		message += "\n\n" + form.MergeMessageField
+	}
+
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
