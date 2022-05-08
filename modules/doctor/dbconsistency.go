@@ -142,6 +142,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			Fixer:        models.FixIssueLabelWithOutsideLabels,
 			FixedMessage: "Removed",
 		},
+		{
+			Name:         "Action with created_unix set as an empty string",
+			Counter:      models.CountActionCreatedUnixString,
+			Fixer:        models.FixActionCreatedUnixString,
+			FixedMessage: "Set to zero",
+		},
 	}
 
 	// TODO: function to recalc all counters
