@@ -17,7 +17,7 @@ var (
 	externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	// be carefull it's a negative set
+	// be careful it's a negative set
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
 
