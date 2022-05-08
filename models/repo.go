@@ -132,7 +132,7 @@ func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitT
 }
 
 func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	if user.IsAdmin {
+	if user != nil && user.IsAdmin {
 		return true
 	}
 	perm, err := getUserRepoPermission(ctx, repo, user)
