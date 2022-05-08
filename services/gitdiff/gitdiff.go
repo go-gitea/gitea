@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -603,6 +604,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 // DiffFile represents a file diff.
 type DiffFile struct {
 	Name                    string
+	NameHash                string
 	OldName                 string
 	Index                   int
 	Addition, Deletion      int
@@ -935,7 +937,6 @@ parsingLoop:
 				break curFileLoop
 			}
 		}
-
 	}
 
 	// TODO: There are numerous issues with this:
@@ -947,6 +948,8 @@ parsingLoop:
 	diffLineTypeBuffers[DiffLineAdd] = new(bytes.Buffer)
 	diffLineTypeBuffers[DiffLineDel] = new(bytes.Buffer)
 	for _, f := range diff.Files {
+		f.NameHash = base.EncodeSha1(f.Name)
+
 		for _, buffer := range diffLineTypeBuffers {
 			buffer.Reset()
 		}
