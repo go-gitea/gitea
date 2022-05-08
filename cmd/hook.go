@@ -180,7 +180,7 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// the environment is set by serv command
-	isWiki := os.Getenv(repo_module.EnvRepoIsWiki) == "true"
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	username := os.Getenv(repo_module.EnvRepoUsername)
 	reponame := os.Getenv(repo_module.EnvRepoName)
 	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
@@ -314,7 +314,7 @@ func runHookPostReceive(c *cli.Context) error {
 	}
 
 	// Now if we're an internal don't do anything else
-	if os.Getenv(repo_module.EnvIsInternal) == "true" {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
 
@@ -344,7 +344,7 @@ Gitea or set your environment appropriately.`, "")
 
 	// the environment is set by serv command
 	repoUser := os.Getenv(repo_module.EnvRepoUsername)
-	isWiki := os.Getenv(repo_module.EnvRepoIsWiki) == "true"
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
 	repoName := os.Getenv(repo_module.EnvRepoName)
 	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
 	pusherName := os.Getenv(repo_module.EnvPusherName)
