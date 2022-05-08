@@ -248,7 +248,7 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 	return res.RowsAffected()
 }
 
-// CountActionCreatedUnixString count created_unix that are a string
+// CountActionCreatedUnixString count created_unix that are an empty string
 func CountActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
 		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
@@ -256,7 +256,7 @@ func CountActionCreatedUnixString() (int64, error) {
 	return 0, nil
 }
 
-// FixActionCreatedUnixString set created_unix to zero if it is a string
+// FixActionCreatedUnixString set created_unix to zero if it is an empty string
 func FixActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
 		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
