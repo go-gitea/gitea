@@ -351,7 +351,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	sess = db.SetSessionPagination(sess, &opts)
 
 	extActions := make([]*ExtAction, 0, opts.PageSize)
-	if err := sess.Desc("`action`.created_unix").Find(&extActions); err != nil {
+	if err := sess.Table("action").Desc("`action`.created_unix").Find(&extActions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
