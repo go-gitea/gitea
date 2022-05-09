@@ -712,8 +712,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 }
 
 func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	var bytes []byte
-
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
@@ -734,7 +732,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		return "", false
 	}
 	defer r.Close()
-	bytes, err = io.ReadAll(r)
+	bytes, err := io.ReadAll(r)
 	if err != nil {
 		return "", false
 	}
@@ -1574,26 +1572,42 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		var mergeStyle repo_model.MergeStyle
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
 			defaultMergeStyle := prConfig.GetDefaultMergeStyle()
 			if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
-				ctx.Data["MergeStyle"] = defaultMergeStyle
+				mergeStyle = defaultMergeStyle
 			} else if prConfig.AllowMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleMerge
+				mergeStyle = repo_model.MergeStyleMerge
 			} else if prConfig.AllowRebase {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebase
+				mergeStyle = repo_model.MergeStyleRebase
 			} else if prConfig.AllowRebaseMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebaseMerge
+				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleSquash
+				mergeStyle = repo_model.MergeStyleSquash
 			} else if prConfig.AllowManualMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleManuallyMerged
-			} else {
-				ctx.Data["MergeStyle"] = ""
+				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}
 		}
+
+		ctx.Data["MergeStyle"] = mergeStyle
+
+		defaultMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, mergeStyle)
+		if err != nil {
+			ctx.ServerError("GetDefaultMergeMessage", err)
+			return
+		}
+		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
+
+		defaultSquashMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		if err != nil {
+			ctx.ServerError("GetDefaultSquashMergeMessage", err)
+			return
+		}
+		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
+
 		if err = pull.LoadProtectedBranch(); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return

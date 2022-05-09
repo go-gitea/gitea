@@ -416,6 +416,15 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
+	// admin should not delete themself
+	if u.ID == ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
+		})
+		return
+	}
+
 	if err = user_service.DeleteUser(u); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
