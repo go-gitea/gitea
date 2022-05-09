@@ -37,7 +37,7 @@
 			<div class="comment-header-right actions df ac">
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
-						<div class="ui label basic small yellow">
+						<div class="ui label basic small yellow pending-label">
 						{{$.root.i18n.Tr "repo.issues.review.pending"}}
 						</div>
 					{{else}}

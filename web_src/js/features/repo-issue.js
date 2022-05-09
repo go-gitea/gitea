@@ -160,6 +160,16 @@ export function initRepoIssueCommentDelete() {
         _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
+
+        // Check if this was a pending comment.
+        if ($conversationHolder.find('.pending-label').length) {
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
+        }
+
         $(`#${$this.data('comment-id')}`).remove();
         if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
           const path = $conversationHolder.data('path');

@@ -100,6 +100,7 @@ func PackageContexter() func(next http.Handler) http.Handler {
 				Resp: NewResponse(resp),
 				Data: map[string]interface{}{},
 			}
+			defer ctx.Close()
 
 			ctx.Req = WithContext(req, &ctx)
 

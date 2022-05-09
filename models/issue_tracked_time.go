@@ -251,7 +251,7 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if removedTime == 0 {
-		return ErrNotExist{}
+		return db.ErrNotExist{}
 	}
 
 	if err := issue.LoadRepo(ctx); err != nil {
@@ -311,7 +311,7 @@ func deleteTimes(e db.Engine, opts FindTrackedTimesOptions) (removedTime int64, 
 
 func deleteTime(e db.Engine, t *TrackedTime) error {
 	if t.Deleted {
-		return ErrNotExist{ID: t.ID}
+		return db.ErrNotExist{ID: t.ID}
 	}
 	t.Deleted = true
 	_, err := e.ID(t.ID).Cols("deleted").Update(t)
@@ -325,7 +325,7 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrNotExist{ID: id}
+		return nil, db.ErrNotExist{ID: id}
 	}
 	return time, nil
 }
