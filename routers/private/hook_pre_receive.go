@@ -475,7 +475,7 @@ func preReceiveDeletePRHeadRef(ctx *preReceiveContext, refFullName string) {
 		return
 	}
 
-	if pr.Issue.PosterID == ctx.opts.UserID {
+	if pr.Issue.PosterID == ctx.opts.UserID && !pr.HasMerged {
 		return
 	}
 
