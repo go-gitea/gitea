@@ -341,7 +341,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 
 	e := db.GetEngine(ctx)
 	sess := e.Where(cond).
-		Select("`action`.*").
+		Select("`action`.*"). // this line will avoid select other joined table's columns
 		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
