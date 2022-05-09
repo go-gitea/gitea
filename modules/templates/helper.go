@@ -146,7 +146,6 @@ func NewFuncMap() []template.FuncMap {
 		"EllipsisString":                 base.EllipsisString,
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"Sha1":                           Sha1,
 		"ShortSha":                       base.ShortSha,
 		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
@@ -647,11 +646,6 @@ func JSEscape(raw string) string {
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
 func DotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
-}
-
-// Sha1 returns sha1 sum of string
-func Sha1(str string) string {
-	return base.EncodeSha1(str)
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
