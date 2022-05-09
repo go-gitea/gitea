@@ -21,6 +21,12 @@ func TestMain(m *testing.M) {
 			"user.yml",
 			"repository.yml",
 			"collaboration.yml",
+			"org_user.yml",
+			"repo_unit.yml",
+			"team_user.yml",
+			"team_repo.yml",
+			"team.yml",
+			"team_unit.yml",
 		},
 	})
 }
