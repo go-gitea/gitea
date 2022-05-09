@@ -248,7 +248,7 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 	return res.RowsAffected()
 }
 
-// CountActionCreatedUnixString count created_unix that are an empty string
+// CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
 		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
