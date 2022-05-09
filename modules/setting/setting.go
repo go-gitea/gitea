@@ -921,9 +921,16 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	sec = Cfg.Section("security")
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
-	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
+	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", func() (string, error) {
+		// FIXME: https://github.com/go-gitea/gitea/issues/16832
+		//
+		// Until we properly support rotating an existing secret key,
+		// we shouldn't move users off of the default value
+		return "!#@FDEWREWR&*(", nil
+	})
+
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
@@ -946,11 +953,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	InternalToken = loadInternalToken(sec)
-	if InstallLock && InternalToken == "" {
-		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
-		generateSaveInternalToken()
-	}
+	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN", generate.NewInternalToken)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1139,51 +1142,73 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-func loadInternalToken(sec *ini.Section) string {
-	uri := sec.Key("INTERNAL_TOKEN_URI").String()
-	if uri == "" {
-		return sec.Key("INTERNAL_TOKEN").String()
+func loadSecret(
+	sec *ini.Section,
+	uriKey string,
+	verbatimKey string,
+	generator func() (string, error),
+) string {
+	// don't allow setting both URI and verbatim string
+	uri := sec.Key(uriKey).String()
+	verbatim := sec.Key(verbatimKey).String()
+	if uri != "" && verbatim != "" {
+		log.Fatal("Cannot specify both %s and %s", uriKey, verbatimKey)
 	}
+
+	// if we have no URI, use verbatim
+	if uri == "" {
+		// if verbatim isn't provided, generate one
+		if verbatim == "" {
+			secret, err := generator()
+			if err != nil {
+				log.Fatal("Error trying to generate %s: %v", verbatimKey, err)
+			}
+			CreateOrAppendToCustomConf(func(cfg *ini.File) {
+				cfg.Section(sec.Name()).Key(verbatimKey).SetValue(secret)
+			})
+			return secret
+		}
+
+		return verbatim
+	}
+
 	tempURI, err := url.Parse(uri)
 	if err != nil {
-		log.Fatal("Failed to parse INTERNAL_TOKEN_URI (%s): %v", uri, err)
+		log.Fatal("Failed to parse %s (%s): %v", uriKey, uri, err)
 	}
 	switch tempURI.Scheme {
 	case "file":
 		buf, err := os.ReadFile(tempURI.RequestURI())
 		if err != nil && !os.IsNotExist(err) {
-			log.Fatal("Failed to open InternalTokenURI (%s): %v", uri, err)
+			log.Fatal("Failed to open %s (%s): %v", uriKey, uri, err)
 		}
-		// No token in the file, generate one and store it.
+
+		// empty file; generate secret and store it
 		if len(buf) == 0 {
-			token, err := generate.NewInternalToken()
+			token, err := generator()
 			if err != nil {
-				log.Fatal("Error generate internal token: %v", err)
+				log.Fatal("Error generating %s: %v", verbatimKey, err)
 			}
+
 			err = os.WriteFile(tempURI.RequestURI(), []byte(token), 0o600)
 			if err != nil {
-				log.Fatal("Error writing to InternalTokenURI (%s): %v", uri, err)
+				log.Fatal("Error writing to %s (%s): %v", uriKey, uri, err)
 			}
+
+			// we assume generator gives pre-parsed token
 			return token
 		}
+
 		return strings.TrimSpace(string(buf))
+
+	// only file URIs are allowed
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
 	}
+
+	// we should never get here
+	log.Fatal("Unknown error when loading %s", verbatimKey)
 	return ""
-}
-
-// generateSaveInternalToken generates and saves the internal token to app.ini
-func generateSaveInternalToken() {
-	token, err := generate.NewInternalToken()
-	if err != nil {
-		log.Fatal("Error generate internal token: %v", err)
-	}
-
-	InternalToken = token
-	CreateOrAppendToCustomConf(func(cfg *ini.File) {
-		cfg.Section("security").Key("INTERNAL_TOKEN").SetValue(token)
-	})
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
@@ -1248,6 +1273,11 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 // CreateOrAppendToCustomConf creates or updates the custom config.
 // Use the callback to set individual values.
 func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
+	if CustomConf == "" {
+		log.Error("Custom config path must not be empty")
+		return
+	}
+
 	cfg := ini.Empty()
 	isFile, err := util.IsFile(CustomConf)
 	if err != nil {
@@ -1262,8 +1292,6 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 
 	callback(cfg)
 
-	log.Info("Settings saved to: %q", CustomConf)
-
 	if err := os.MkdirAll(filepath.Dir(CustomConf), os.ModePerm); err != nil {
 		log.Fatal("failed to create '%s': %v", CustomConf, err)
 		return
@@ -1271,6 +1299,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
 	}
+	log.Info("Settings saved to: %q", CustomConf)
 
 	// Change permissions to be more restrictive
 	fi, err := os.Stat(CustomConf)
