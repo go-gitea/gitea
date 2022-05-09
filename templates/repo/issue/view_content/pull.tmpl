@@ -329,7 +329,7 @@
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
+										<input type="text" name="merge_title_field" value="{{.DefaultMergeMessage}}">
 									</div>
 									<div class="field">
 										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
@@ -375,7 +375,7 @@
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
+										<input type="text" name="merge_title_field" value="{{.DefaultMergeMessage}}">
 									</div>
 									<div class="field">
 										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
@@ -401,7 +401,7 @@
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
 									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
+										<input type="text" name="merge_title_field" value="{{.DefaultSquashMergeMessage}}">
 									</div>
 									<div class="field">
 										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>

@@ -63,7 +63,7 @@ func ListCollaborators(ctx *context.APIContext) {
 
 	users := make([]*api.User, len(collaborators))
 	for i, collaborator := range collaborators {
-		users[i] = convert.ToUser(collaborator.User, ctx.User)
+		users[i] = convert.ToUser(collaborator.User, ctx.Doer)
 	}
 
 	ctx.SetTotalCountHeader(count)
@@ -233,6 +233,61 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	ctx.Status(http.StatusNoContent)
 }
 
+// GetRepoPermissions gets repository permissions for a user
+func GetRepoPermissions(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/collaborators/{collaborator}/permission repository repoGetRepoPermissions
+	// ---
+	// summary: Get repository permissions for a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: collaborator
+	//   in: path
+	//   description: username of the collaborator
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoCollaboratorPermission"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.Params(":collaborator") && !ctx.IsUserRepoAdmin() {
+		ctx.Error(http.StatusForbidden, "User", "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
+		return
+	}
+
+	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "GetUserByName", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+		}
+		return
+	}
+
+	permission, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(collaborator, ctx.ContextUser, permission.AccessMode))
+}
+
 // GetReviewers return all users that can be requested to review in this repo
 func GetReviewers(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/reviewers repository repoGetReviewers
@@ -255,12 +310,12 @@ func GetReviewers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.User.ID, 0)
+	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.User, reviewers))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, reviewers))
 }
 
 // GetAssignees return all users that have write access and can be assigned to issues
@@ -290,5 +345,5 @@ func GetAssignees(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.User, assignees))
+	ctx.JSON(http.StatusOK, convert.ToUsers(ctx.Doer, assignees))
 }

@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -127,7 +128,7 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 
 func TestRepository_RecalculateAccesses3(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	team5 := unittest.AssertExistsAndLoadBean(t, &Team{ID: 5}).(*Team)
+	team5 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
 	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})

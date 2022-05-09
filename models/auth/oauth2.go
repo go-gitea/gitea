@@ -245,7 +245,7 @@ func deleteOAuth2Application(sess db.Engine, id, userid int64) error {
 		"oauth2_authorization_code.grant_id = oauth2_grant.id AND oauth2_grant.application_id = ?", id).Find(&codes); err != nil {
 		return err
 	}
-	codeIDs := make([]int64, 0)
+	codeIDs := make([]int64, 0, len(codes))
 	for _, grant := range codes {
 		codeIDs = append(codeIDs, grant.ID)
 	}

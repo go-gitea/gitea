@@ -97,9 +97,9 @@ func CherryPick(ctx context.Context, repo *repo_model.Repository, doer *user_mod
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
+		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
 	} else {
-		commitHash, err = t.CommitTree(author, committer, treeHash, message, opts.Signoff)
+		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
 	}
 	if err != nil {
 		return nil, err

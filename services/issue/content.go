@@ -14,7 +14,7 @@ import (
 func ChangeContent(issue *models.Issue, doer *user_model.User, content string) (err error) {
 	oldContent := issue.Content
 
-	if err := issue.ChangeContent(doer, content); err != nil {
+	if err := models.ChangeIssueContent(issue, doer, content); err != nil {
 		return err
 	}
 

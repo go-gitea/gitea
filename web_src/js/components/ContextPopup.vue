@@ -120,7 +120,7 @@ export default {
     load(data, callback) {
       this.loading = true;
       this.i18nErrorMessage = null;
-      $.get(`${appSubUrl}/api/v1/repos/${data.owner}/${data.repo}/issues/${data.index}`).done((issue) => {
+      $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
         this.issue = issue;
       }).fail((jqXHR) => {
         if (jqXHR.responseJSON && jqXHR.responseJSON.message) {

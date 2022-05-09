@@ -27,7 +27,8 @@ import (
 
 var (
 	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	wikiWorkingPool   = sync.NewExclusivePool()
+	// TODO: use clustered lock (unique queue? or *abuse* cache)
+	wikiWorkingPool = sync.NewExclusivePool()
 )
 
 func nameAllowed(name string) error {
@@ -81,7 +82,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
-	} else if _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
+	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil
@@ -132,12 +133,12 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), "master")
 
-	basePath, err := models.CreateTemporaryPath("update-wiki")
+	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -156,7 +157,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, basePath)
+	gitRepo, err := git.OpenRepository(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -248,7 +249,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env: models.FullPushingEnvironment(
+		Env: repo_module.FullPushingEnvironment(
 			doer,
 			doer,
 			repo,
@@ -286,12 +287,12 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	basePath, err := models.CreateTemporaryPath("update-wiki")
+	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -305,7 +306,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, basePath)
+	gitRepo, err := git.OpenRepository(ctx, basePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", basePath, err)
 		return fmt.Errorf("Failed to open new temporary repository in: %s %v", basePath, err)
@@ -362,7 +363,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env:    models.PushingEnvironment(doer, repo),
+		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err

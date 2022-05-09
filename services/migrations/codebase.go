@@ -266,17 +266,7 @@ func (d *CodebaseDownloader) GetLabels() ([]*base.Label, error) {
 }
 
 type codebaseIssueContext struct {
-	foreignID int64
-	localID   int64
-	Comments  []*base.Comment
-}
-
-func (c codebaseIssueContext) LocalID() int64 {
-	return c.localID
-}
-
-func (c codebaseIssueContext) ForeignID() int64 {
-	return c.foreignID
+	Comments []*base.Comment
 }
 
 // GetIssues returns issues, limits are not supported
@@ -402,10 +392,9 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 			Labels: []*base.Label{
 				{Name: issue.Type.Name},
 			},
+			ForeignIndex: issue.TicketID.Value,
 			Context: codebaseIssueContext{
-				foreignID: issue.TicketID.Value,
-				localID:   issue.TicketID.Value,
-				Comments:  comments[1:],
+				Comments: comments[1:],
 			},
 		})
 
@@ -418,10 +407,10 @@ func (d *CodebaseDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, 
 }
 
 // GetComments returns comments
-func (d *CodebaseDownloader) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
-	context, ok := opts.Context.(codebaseIssueContext)
+func (d *CodebaseDownloader) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
+	context, ok := commentable.GetContext().(codebaseIssueContext)
 	if !ok {
-		return nil, false, fmt.Errorf("unexpected comment context: %+v", opts.Context)
+		return nil, false, fmt.Errorf("unexpected context: %+v", commentable.GetContext())
 	}
 
 	return context.Comments, true, nil
@@ -570,25 +559,14 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 				SHA:      d.getHeadCommit(rawMergeRequest.TargetRef),
 				RepoName: d.repoName,
 			},
+			ForeignIndex: rawMergeRequest.ID.Value,
 			Context: codebaseIssueContext{
-				foreignID: rawMergeRequest.ID.Value,
-				localID:   number,
-				Comments:  comments[1:],
+				Comments: comments[1:],
 			},
 		})
 	}
 
 	return pullRequests, true, nil
-}
-
-// GetReviews returns pull requests reviews
-func (d *CodebaseDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
-	return []*base.Review{}, nil
-}
-
-// GetTopics return repository topics
-func (d *CodebaseDownloader) GetTopics() ([]string, error) {
-	return []string{}, nil
 }
 
 func (d *CodebaseDownloader) tryGetUser(userID int64) *codebaseUser {

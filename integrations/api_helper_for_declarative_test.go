@@ -227,7 +227,7 @@ func doAPICreatePullRequest(ctx APITestContext, owner, repo, baseBranch, headBra
 			Title: fmt.Sprintf("create a pr from %s to %s", headBranch, baseBranch),
 		})
 
-		expected := 201
+		expected := http.StatusCreated
 		if ctx.ExpectedCode != 0 {
 			expected = ctx.ExpectedCode
 		}
@@ -246,7 +246,7 @@ func doAPIGetPullRequest(ctx APITestContext, owner, repo string, index int64) fu
 			owner, repo, index, ctx.Token)
 		req := NewRequest(t, http.MethodGet, urlStr)
 
-		expected := 200
+		expected := http.StatusOK
 		if ctx.ExpectedCode != 0 {
 			expected = ctx.ExpectedCode
 		}
@@ -287,7 +287,7 @@ func doAPIMergePullRequest(ctx APITestContext, owner, repo string, index int64) 
 
 		expected := ctx.ExpectedCode
 		if expected == 0 {
-			expected = 200
+			expected = http.StatusOK
 		}
 
 		if !assert.EqualValues(t, expected, resp.Code,
@@ -310,7 +310,38 @@ func doAPIManuallyMergePullRequest(ctx APITestContext, owner, repo, commitID str
 			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
 			return
 		}
+		ctx.Session.MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+func doAPIAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequestWithJSON(t, http.MethodPost, urlStr, &forms.MergePullRequestForm{
+			MergeMessageField:      "doAPIMergePullRequest Merge",
+			Do:                     string(repo_model.MergeStyleMerge),
+			MergeWhenChecksSucceed: true,
+		})
+
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
 		ctx.Session.MakeRequest(t, req, 200)
+	}
+}
+
+func doAPICancelAutoMergePullRequest(ctx APITestContext, owner, repo string, index int64) func(*testing.T) {
+	return func(t *testing.T) {
+		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/merge?token=%s",
+			owner, repo, index, ctx.Token)
+		req := NewRequest(t, http.MethodDelete, urlStr)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, 204)
 	}
 }
 

@@ -25,6 +25,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -113,6 +114,10 @@ var (
 			cli.BoolFlag{
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
+			},
+			cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
 			},
 		},
 	}
@@ -493,7 +498,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -551,7 +556,7 @@ func runCreateUser(c *cli.Context) error {
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(nil); n == 0 {
 		changePassword = false
 	}
 
@@ -559,17 +564,26 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
+	restricted := util.OptionalBoolNone
+
+	if c.IsSet("restricted") {
+		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+	}
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
-		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
-		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := user_model.CreateUser(u); err != nil {
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:     util.OptionalBoolTrue,
+		IsRestricted: restricted,
+	}
+
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -724,7 +738,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue

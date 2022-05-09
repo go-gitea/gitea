@@ -81,10 +81,9 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 		err = nil //nolint
 		hostName = u.Host
 	}
-	addrList, err := net.LookupIP(hostName)
-	if err != nil {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
-	}
+
+	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
+	addrList, _ := net.LookupIP(hostName)
 
 	var ipAllowed bool
 	var ipBlocked bool
@@ -325,9 +324,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				allComments := make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(base.GetCommentOptions{
-						Context: issue.Context,
-					})
+					comments, _, err := downloader.GetComments(issue)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -383,9 +380,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 					allComments := make([]*base.Comment, 0, commentBatchSize)
 					for _, pr := range prs {
 						log.Trace("migrating pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(base.GetCommentOptions{
-							Context: pr.Context,
-						})
+						comments, _, err := downloader.GetComments(pr)
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
 								return err
@@ -412,7 +407,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				// migrate reviews
 				allReviews := make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr.Context)
+					reviews, err := downloader.GetReviews(pr)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -446,10 +441,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Comments && supportAllComments {
 		log.Trace("migrating comments")
 		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetComments(base.GetCommentOptions{
-				Page:     i,
-				PageSize: commentBatchSize,
-			})
+			comments, isEnd, err := downloader.GetAllComments(i, commentBatchSize)
 			if err != nil {
 				return err
 			}
