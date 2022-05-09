@@ -77,15 +77,15 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		opts.Message = "apply-patch"
 	}
 
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusInternalServerError, "ApplyPatch", models.ErrUserDoesNotHaveAccessToRepo{
-			UserID:   ctx.User.ID,
+			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
 		return
 	}
 
-	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts)
+	fileResponse, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts)
 	if err != nil {
 		if models.IsErrUserCannotCommit(err) || models.IsErrFilePathProtected(err) {
 			ctx.Error(http.StatusForbidden, "Access", err)

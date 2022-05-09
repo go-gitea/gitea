@@ -154,7 +154,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DefaultBranch:                           "master",
+		DefaultBranch:                           "main",
 
 		// Repository editor settings
 		Editor: struct {
@@ -293,6 +293,10 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(false) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
 	// Handle default trustmodel settings

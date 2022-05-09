@@ -145,12 +145,11 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	}
 
 	cmd := git.NewCommand(ctx, args...)
-	if err := cmd.RunWithContext(&git.RunContext{
-		Timeout: -1,
-		Dir:     t.basePath,
-		Stdout:  stdout,
-		Stderr:  stderr,
-		Stdin:   strings.NewReader(opts.Content),
+	if err := cmd.Run(&git.RunOpts{
+		Dir:    t.basePath,
+		Stdout: stdout,
+		Stderr: stderr,
+		Stdin:  strings.NewReader(opts.Content),
 	}); err != nil {
 		return nil, fmt.Errorf("Error: Stdout: %s\nStderr: %s\nErr: %v", stdout.String(), stderr.String(), err)
 	}
@@ -164,9 +163,9 @@ func ApplyDiffPatch(ctx context.Context, repo *repo_model.Repository, doer *user
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
+		commitHash, err = t.CommitTreeWithDate("HEAD", author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
 	} else {
-		commitHash, err = t.CommitTree(author, committer, treeHash, message, opts.Signoff)
+		commitHash, err = t.CommitTree("HEAD", author, committer, treeHash, message, opts.Signoff)
 	}
 	if err != nil {
 		return nil, err

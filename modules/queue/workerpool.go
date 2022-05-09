@@ -6,11 +6,14 @@ package queue
 
 import (
 	"context"
+	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -19,9 +22,14 @@ import (
 // they use to detect if there is a block and will grow and shrink in
 // response to demand as per configuration.
 type WorkerPool struct {
+	// This field requires to be the first one in the struct.
+	// This is to allow 64 bit atomic operations on 32-bit machines.
+	// See: https://pkg.go.dev/sync/atomic#pkg-note-BUG & Gitea issue 19518
+	numInQueue         int64
 	lock               sync.Mutex
 	baseCtx            context.Context
 	baseCtxCancel      context.CancelFunc
+	baseCtxFinished    process.FinishedFunc
 	paused             chan struct{}
 	resumed            chan struct{}
 	cond               *sync.Cond
@@ -34,7 +42,6 @@ type WorkerPool struct {
 	blockTimeout       time.Duration
 	boostTimeout       time.Duration
 	boostWorkers       int
-	numInQueue         int64
 }
 
 var (
@@ -44,6 +51,7 @@ var (
 
 // WorkerPoolConfiguration is the basic configuration for a WorkerPool
 type WorkerPoolConfiguration struct {
+	Name         string
 	QueueLength  int
 	BatchLength  int
 	BlockTimeout time.Duration
@@ -54,12 +62,13 @@ type WorkerPoolConfiguration struct {
 
 // NewWorkerPool creates a new worker pool
 func NewWorkerPool(handle HandlerFunc, config WorkerPoolConfiguration) *WorkerPool {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), fmt.Sprintf("Queue: %s", config.Name), process.SystemProcessType, false)
 
 	dataChan := make(chan Data, config.QueueLength)
 	pool := &WorkerPool{
 		baseCtx:            ctx,
 		baseCtxCancel:      cancel,
+		baseCtxFinished:    finished,
 		batchLength:        config.BatchLength,
 		dataChan:           dataChan,
 		resumed:            closedChan,
@@ -204,6 +213,11 @@ func (p *WorkerPool) NumberOfWorkers() int {
 	return p.numberOfWorkers
 }
 
+// NumberInQueue returns the number of items in the queue
+func (p *WorkerPool) NumberInQueue() int64 {
+	return atomic.LoadInt64(&p.numInQueue)
+}
+
 // MaxNumberOfWorkers returns the maximum number of workers automatically added to the pool
 func (p *WorkerPool) MaxNumberOfWorkers() int {
 	p.lock.Lock()
@@ -294,6 +308,7 @@ func (p *WorkerPool) addWorkers(ctx context.Context, cancel context.CancelFunc, 
 		p.numberOfWorkers++
 		p.lock.Unlock()
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			p.doWork(ctx)
 
 			p.lock.Lock()
@@ -471,6 +486,7 @@ func (p *WorkerPool) FlushWithContext(ctx context.Context) error {
 }
 
 func (p *WorkerPool) doWork(ctx context.Context) {
+	pprof.SetGoroutineLabels(ctx)
 	delay := time.Millisecond * 300
 
 	// Create a common timer - we will use this elsewhere

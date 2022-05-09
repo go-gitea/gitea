@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,7 +21,6 @@ import (
 type ByteFIFOQueueConfiguration struct {
 	WorkerPoolConfiguration
 	Workers     int
-	Name        string
 	WaitOnEmpty bool
 }
 
@@ -135,6 +135,13 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 	return q.byteFIFO.Len(q.terminateCtx) == 0
 }
 
+// NumberInQueue returns the number in the queue
+func (q *ByteFIFOQueue) NumberInQueue() int64 {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return q.byteFIFO.Len(q.terminateCtx) + q.WorkerPool.NumberInQueue()
+}
+
 // Flush flushes the ByteFIFOQueue
 func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 	select {
@@ -146,6 +153,7 @@ func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 
 // Run runs the bytefifo queue
 func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("%s: %s Starting", q.typ, q.name)
@@ -348,6 +356,7 @@ func (q *ByteFIFOQueue) Terminate() {
 	if err := q.byteFIFO.Close(); err != nil {
 		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
 	}
+	q.baseCtxFinished()
 	log.Debug("%s: %s Terminated", q.typ, q.name)
 }
 

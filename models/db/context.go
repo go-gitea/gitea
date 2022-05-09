@@ -103,7 +103,14 @@ func WithContext(f func(ctx *Context) error) error {
 }
 
 // WithTx represents executing database operations on a transaction
-func WithTx(f func(ctx context.Context) error) error {
+// you can optionally change the context to a parrent one
+func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
+	parentCtx := DefaultContext
+	if len(stdCtx) != 0 && stdCtx[0] != nil {
+		// TODO: make sure parent context has no open session
+		parentCtx = stdCtx[0]
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -111,7 +118,7 @@ func WithTx(f func(ctx context.Context) error) error {
 	}
 
 	if err := f(&Context{
-		Context: DefaultContext,
+		Context: parentCtx,
 		e:       sess,
 	}); err != nil {
 		return err
@@ -146,6 +153,17 @@ func GetByBean(ctx context.Context, bean interface{}) (bool, error) {
 // DeleteByBean deletes all records according non-empty fields of the bean as conditions.
 func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
+}
+
+// DeleteBeans deletes all given beans, beans should contain delete conditions.
+func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // CountByBean counts the number of database records according non-empty fields of the bean as conditions.

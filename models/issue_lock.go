@@ -46,7 +46,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 	}
 	defer committer.Close()
 
-	if err := updateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
+	if err := UpdateIssueCols(ctx, opts.Issue, "is_locked"); err != nil {
 		return err
 	}
 
@@ -57,7 +57,7 @@ func updateIssueLock(opts *IssueLockOptions, lock bool) error {
 		Type:    commentType,
 		Content: opts.Reason,
 	}
-	if _, err := createComment(ctx, opt); err != nil {
+	if _, err := CreateCommentCtx(ctx, opt); err != nil {
 		return err
 	}
 

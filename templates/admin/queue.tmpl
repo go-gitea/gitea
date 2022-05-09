@@ -15,6 +15,7 @@
 						<th>{{.i18n.Tr "admin.monitor.queue.exemplar"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.numberworkers"}}</th>
 						<th>{{.i18n.Tr "admin.monitor.queue.maxnumberworkers"}}</th>
+						<th>{{.i18n.Tr "admin.monitor.queue.numberinqueue"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -24,6 +25,7 @@
 						<td>{{.Queue.ExemplarType}}</td>
 						<td>{{$sum := .Queue.NumberOfWorkers}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 						<td>{{if lt $sum 0}}-{{else}}{{.Queue.MaxNumberOfWorkers}}{{end}}</td>
+						<td>{{$sum := .Queue.NumberInQueue}}{{if lt $sum 0}}-{{else}}{{$sum}}{{end}}</td>
 					</tr>
 				</tbody>
 			</table>

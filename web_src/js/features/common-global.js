@@ -3,8 +3,9 @@ import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
+import {showGlobalErrorMessage} from '../bootstrap.js';
 
-const {csrfToken} = window.config;
+const {appUrl, csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -141,6 +142,18 @@ export function initGlobalCommon() {
       window.location = href;
     }
   });
+
+  // loading-button this logic used to prevent push one form more than one time
+  $(document).on('click', '.button.loading-button', function (e) {
+    const $btn = $(this);
+
+    if ($btn.hasClass('loading')) {
+      e.preventDefault();
+      return false;
+    }
+
+    $btn.addClass('loading disabled');
+  });
 }
 
 export function initGlobalDropzone() {
@@ -211,7 +224,7 @@ export function initGlobalLinkActions() {
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
@@ -342,4 +355,24 @@ export function initGlobalButtons() {
       window.location.href = $this.attr('data-done-url');
     });
   });
+}
+
+/**
+ * Too many users set their ROOT_URL to wrong value, and it causes a lot of problems:
+ *   * Cross-origin API request without correct cookie
+ *   * Incorrect href in <a>
+ *   * ...
+ * So we check whether current URL starts with AppUrl(ROOT_URL).
+ * If they don't match, show a warning to users.
+ */
+export function checkAppUrl() {
+  const curUrl = window.location.href;
+  if (curUrl.startsWith(appUrl)) {
+    return;
+  }
+  if (document.querySelector('.page-content.install')) {
+    return; // no need to show the message on the installation page
+  }
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
+You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }

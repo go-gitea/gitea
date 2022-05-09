@@ -60,13 +60,12 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.RunWithContext(&RunContext{
-		Env:     env,
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdin:   messageBytes,
-		Stdout:  stdout,
-		Stderr:  stderr,
+	err = cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdin:  messageBytes,
+		Stdout: stdout,
+		Stderr: stderr,
 	})
 
 	if err != nil {

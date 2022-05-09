@@ -287,6 +287,7 @@ MODE = console
 LEVEL = debug ; please set the level to debug when we are debugging a problem
 ROUTER = console
 COLORIZE = false ; this can be true if you can strip out the ansi coloring
+ENABLE_SSH_LOG = true ; shows logs related to git over SSH.
 ```
 
 Sometimes it will be helpful get some specific `TRACE` level logging restricted
@@ -445,7 +446,7 @@ Gitea includes built-in log rotation, which should be enough for most deployment
 - Disable built-in log rotation by setting `LOG_ROTATE` to `false` in your `app.ini`.
 - Install `logrotate`.
 - Configure `logrotate` to match your deployment requirements, see `man 8 logrotate` for configuration syntax details. In the `postrotate/endscript` block send Gitea a `USR1` signal via `kill -USR1` or `kill -10` to the `gitea` process itself, or run `gitea manager logging release-and-reopen` (with the appropriate environment). Ensure that your configurations apply to all files emitted by Gitea loggers as described in the above sections.
-- Always do `logrotate /etc/logrotate.conf --debug` to test your configurations. 
+- Always do `logrotate /etc/logrotate.conf --debug` to test your configurations.
 - If you are using docker and are running from outside of the container you can use `docker exec -u $OS_USER $CONTAINER_NAME sh -c 'gitea manager logging release-and-reopen'` or `docker exec $CONTAINER_NAME sh -c '/bin/s6-svc -1 /etc/s6/gitea/'` or send `USR1` directly to the Gitea process itself.
 
 The next `logrotate` jobs will include your configurations, so no restart is needed. You can also immediately reload `logrotate` with `logrotate /etc/logrotate.conf --force`.

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -31,21 +32,21 @@ func Members(ctx *context.Context) {
 		page = 1
 	}
 
-	opts := &models.FindOrgMembersOpts{
+	opts := &organization.FindOrgMembersOpts{
 		OrgID:      org.ID,
 		PublicOnly: true,
 	}
 
-	if ctx.User != nil {
-		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.User.ID)
+	if ctx.Doer != nil {
+		isMember, err := ctx.Org.Organization.IsOrgMember(ctx.Doer.ID)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "IsOrgMember")
 			return
 		}
-		opts.PublicOnly = !isMember && !ctx.User.IsAdmin
+		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
 
-	total, err := models.CountOrgMembers(opts)
+	total, err := organization.CountOrgMembers(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountOrgMembers")
 		return
@@ -54,7 +55,7 @@ func Members(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.MembersPagingNum, page, 5)
 	opts.ListOptions.Page = page
 	opts.ListOptions.PageSize = setting.UI.MembersPagingNum
-	members, membersIsPublic, err := models.FindOrgMembers(opts)
+	members, membersIsPublic, err := organization.FindOrgMembers(opts)
 	if err != nil {
 		ctx.ServerError("GetMembers", err)
 		return
@@ -80,24 +81,24 @@ func MembersAction(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "private":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.ChangeOrgUserStatus(org.ID, uid, false)
+		err = organization.ChangeOrgUserStatus(org.ID, uid, false)
 	case "public":
-		if ctx.User.ID != uid && !ctx.Org.IsOwner {
+		if ctx.Doer.ID != uid && !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = models.ChangeOrgUserStatus(org.ID, uid, true)
+		err = organization.ChangeOrgUserStatus(org.ID, uid, true)
 	case "remove":
 		if !ctx.Org.IsOwner {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		err = org.RemoveMember(uid)
-		if models.IsErrLastOrgOwner(err) {
+		err = models.RemoveOrgUser(org.ID, uid)
+		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": ctx.Org.OrgLink + "/members",
@@ -105,8 +106,8 @@ func MembersAction(ctx *context.Context) {
 			return
 		}
 	case "leave":
-		err = org.RemoveMember(ctx.User.ID)
-		if models.IsErrLastOrgOwner(err) {
+		err = models.RemoveOrgUser(org.ID, ctx.Doer.ID)
+		if organization.IsErrLastOrgOwner(err) {
 			ctx.Flash.Error(ctx.Tr("form.last_org_owner"))
 			ctx.JSON(http.StatusOK, map[string]interface{}{
 				"redirect": ctx.Org.OrgLink + "/members",

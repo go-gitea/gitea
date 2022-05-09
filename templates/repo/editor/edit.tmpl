@@ -31,13 +31,13 @@
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
 					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="preview" data-url="{{.Repository.APIURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
 					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
 					<textarea id="edit_area" name="content" class="hide" data-id="repo-{{.Repository.Name}}-{{.TreePath}}"
-						data-url="{{.Repository.APIURL}}/markdown"
+						data-url="{{.Repository.HTMLURL}}/markdown"
 						data-context="{{.RepoLink}}"
 						data-markdown-file-exts="{{.MarkdownFileExts}}"
 						data-line-wrap-extensions="{{.LineWrapExtensions}}">
