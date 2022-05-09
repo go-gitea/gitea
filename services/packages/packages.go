@@ -336,7 +336,7 @@ func DeletePackageFile(ctx context.Context, pf *packages_model.PackageFile) erro
 	return packages_model.DeleteFileByID(ctx, pf.ID)
 }
 
-// Cleanup removes old unreferenced package blobs
+// Cleanup removes expired package data
 func Cleanup(unused context.Context, olderThan time.Duration) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
@@ -345,24 +345,20 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 	defer committer.Close()
 
 	if err := container_service.Cleanup(ctx, olderThan); err != nil {
-		log.Error("hier")
 		return err
 	}
 
 	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
-		log.Error("hier2")
 		return err
 	}
 
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
 	if err != nil {
-		log.Error("hier3")
 		return err
 	}
 
 	for _, pb := range pbs {
 		if err := packages_model.DeleteBlobByID(ctx, pb.ID); err != nil {
-			log.Error("hier4")
 			return err
 		}
 	}
@@ -403,10 +399,9 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 
 	pv, err := packages_model.GetVersionByID(ctx, versionID)
 	if err != nil {
-		if err == packages_model.ErrPackageVersionNotExist {
-			return nil, nil, packages_model.ErrPackageNotExist
+		if err != packages_model.ErrPackageNotExist {
+			log.Error("Error getting package version: %v", err)
 		}
-		log.Error("Error getting package version: %v", err)
 		return nil, nil, err
 	}
 
@@ -426,7 +421,7 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(ctx, pv, pf)
+	return GetPackageFileStream(ctx, pf)
 }
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
@@ -436,11 +431,11 @@ func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.Packa
 		return nil, nil, err
 	}
 
-	return GetPackageFileStream(ctx, pv, pf)
+	return GetPackageFileStream(ctx, pf)
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pv *packages_model.PackageVersion, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, err
@@ -449,7 +444,7 @@ func GetPackageFileStream(ctx context.Context, pv *packages_model.PackageVersion
 	s, err := packages_module.NewContentStore().Get(packages_module.BlobHash256Key(pb.HashSHA256))
 	if err == nil {
 		if pf.IsLead {
-			if err := packages_model.IncrementDownloadCounter(ctx, pv.ID); err != nil {
+			if err := packages_model.IncrementDownloadCounter(ctx, pf.VersionID); err != nil {
 				log.Error("Error incrementing download counter: %v", err)
 			}
 		}

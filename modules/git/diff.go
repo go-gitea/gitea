@@ -28,34 +28,22 @@ const (
 )
 
 // GetRawDiff dumps diff results of repository in given commit ID to io.Writer.
-func GetRawDiff(ctx context.Context, repoPath, commitID string, diffType RawDiffType, writer io.Writer) error {
-	return GetRawDiffForFile(ctx, repoPath, "", commitID, diffType, "", writer)
+func GetRawDiff(repo *Repository, commitID string, diffType RawDiffType, writer io.Writer) error {
+	return GetRepoRawDiffForFile(repo, "", commitID, diffType, "", writer)
 }
 
 // GetReverseRawDiff dumps the reverse diff results of repository in given commit ID to io.Writer.
 func GetReverseRawDiff(ctx context.Context, repoPath, commitID string, writer io.Writer) error {
 	stderr := new(bytes.Buffer)
 	cmd := NewCommand(ctx, "show", "--pretty=format:revert %H%n", "-R", commitID)
-	if err := cmd.RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repoPath,
-		Stdout:  writer,
-		Stderr:  stderr,
+	if err := cmd.Run(&RunOpts{
+		Dir:    repoPath,
+		Stdout: writer,
+		Stderr: stderr,
 	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
 	return nil
-}
-
-// GetRawDiffForFile dumps diff results of file in given commit ID to io.Writer.
-func GetRawDiffForFile(ctx context.Context, repoPath, startCommit, endCommit string, diffType RawDiffType, file string, writer io.Writer) error {
-	repo, closer, err := RepositoryFromContextOrOpen(ctx, repoPath)
-	if err != nil {
-		return fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
-	}
-	defer closer.Close()
-
-	return GetRepoRawDiffForFile(repo, startCommit, endCommit, diffType, file, writer)
 }
 
 // GetRepoRawDiffForFile dumps diff results of file in given commit ID to io.Writer according given repository
@@ -97,11 +85,10 @@ func GetRepoRawDiffForFile(repo *Repository, startCommit, endCommit string, diff
 
 	stderr := new(bytes.Buffer)
 	cmd := NewCommand(repo.Ctx, args...)
-	if err = cmd.RunWithContext(&RunContext{
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  writer,
-		Stderr:  stderr,
+	if err = cmd.Run(&RunOpts{
+		Dir:    repo.Path,
+		Stdout: writer,
+		Stderr: stderr,
 	}); err != nil {
 		return fmt.Errorf("Run: %v - %s", err, stderr)
 	}
@@ -301,11 +288,10 @@ func GetAffectedFiles(repo *Repository, oldCommitID, newCommitID string, env []s
 
 	// Run `git diff --name-only` to get the names of the changed files
 	err = NewCommand(repo.Ctx, "diff", "--name-only", oldCommitID, newCommitID).
-		RunWithContext(&RunContext{
-			Env:     env,
-			Timeout: -1,
-			Dir:     repo.Path,
-			Stdout:  stdoutWriter,
+		Run(&RunOpts{
+			Env:    env,
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
 			PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 				// Close the writer end of the pipe to begin processing
 				_ = stdoutWriter.Close()

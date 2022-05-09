@@ -8,8 +8,10 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 
 	"xorm.io/builder"
 )
@@ -32,7 +34,7 @@ func (issues IssueList) getRepoIDs() []int64 {
 			repoIDs[issue.RepoID] = struct{}{}
 		}
 	}
-	return keysInt64(repoIDs)
+	return container.KeysInt64(repoIDs)
 }
 
 func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
@@ -83,7 +85,7 @@ func (issues IssueList) getPosterIDs() []int64 {
 			posterIDs[issue.PosterID] = struct{}{}
 		}
 	}
-	return keysInt64(posterIDs)
+	return container.KeysInt64(posterIDs)
 }
 
 func (issues IssueList) loadPosters(e db.Engine) error {
@@ -189,7 +191,7 @@ func (issues IssueList) getMilestoneIDs() []int64 {
 			ids[issue.MilestoneID] = struct{}{}
 		}
 	}
-	return keysInt64(ids)
+	return container.KeysInt64(ids)
 }
 
 func (issues IssueList) loadMilestones(e db.Engine) error {
@@ -198,7 +200,7 @@ func (issues IssueList) loadMilestones(e db.Engine) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
 		limit := defaultMaxInSize

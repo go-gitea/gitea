@@ -6,6 +6,7 @@
 package repo
 
 import (
+	stdCtx "context"
 	"errors"
 	"net/http"
 
@@ -58,7 +59,7 @@ func ListIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -150,7 +151,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TimelineList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
@@ -183,7 +184,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx.Doer, comment, issue.RepoID) {
+		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
 			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.Doer))
 		}
@@ -193,16 +194,16 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
-func isXRefCommentAccessible(user *user_model.User, c *models.Comment, issueRepoID int64) bool {
+func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *models.Comment, issueRepoID int64) bool {
 	// Remove comments that the user has no permissions to see
 	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
-		c.RefRepo, err = repo_model.GetRepositoryByID(c.RefRepoID)
+		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
 		if err != nil {
 			return false
 		}
-		perm, err := models.GetUserRepoPermission(c.RefRepo, user)
+		perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}
@@ -253,7 +254,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/CommentList"
 
-	before, since, err := utils.GetQueryBeforeSince(ctx)
+	before, since, err := context.GetQueryBeforeSince(ctx.Context)
 	if err != nil {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return

@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -112,11 +111,10 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 		if arg != "" {
 			args = append(args, arg)
 		}
-		err := NewCommand(ctx, args...).RunWithContext(&RunContext{
-			Timeout: -1,
-			Dir:     repoPath,
-			Stdout:  stdoutWriter,
-			Stderr:  stderrBuilder,
+		err := NewCommand(ctx, args...).Run(&RunOpts{
+			Dir:    repoPath,
+			Stdout: stdoutWriter,
+			Stderr: stderrBuilder,
 		})
 		if err != nil {
 			if stderrBuilder.Len() == 0 {
@@ -191,4 +189,16 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 		}
 	}
 	return i, nil
+}
+
+// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
+func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+	var revList []string
+	_, err := walkShowRef(repo.Ctx, repo.Path, "", 0, 0, func(walkSha, refname string) error {
+		if walkSha == sha && strings.HasPrefix(refname, prefix) {
+			revList = append(revList, refname)
+		}
+		return nil
+	})
+	return revList, err
 }

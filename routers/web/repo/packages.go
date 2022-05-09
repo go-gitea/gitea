@@ -32,10 +32,10 @@ func Packages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID:   ctx.ContextUser.ID,
-		RepoID:    ctx.Repo.Repository.ID,
-		QueryName: query,
-		Type:      packageType,
+		OwnerID: ctx.ContextUser.ID,
+		RepoID:  ctx.Repo.Repository.ID,
+		Type:    packages.Type(packageType),
+		Name:    packages.SearchValue{Value: query},
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -62,6 +62,7 @@ func Packages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
+	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")

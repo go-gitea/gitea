@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !windows
-// +build !windows
 
 package graceful
 
@@ -18,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -73,7 +73,7 @@ func (g *Manager) start(ctx context.Context) {
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)
-	go g.handleSignals(ctx)
+	go g.handleSignals(g.managerCtx)
 
 	// Handle clean up of unused provided listeners	and delayed start-up
 	startupDone := make(chan struct{})
@@ -112,6 +112,9 @@ func (g *Manager) start(ctx context.Context) {
 }
 
 func (g *Manager) handleSignals(ctx context.Context) {
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Graceful: HandleSignals", process.SystemProcessType, true)
+	defer finished()
+
 	signalChannel := make(chan os.Signal, 1)
 
 	signal.Notify(

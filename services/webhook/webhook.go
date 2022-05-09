@@ -12,10 +12,11 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/sync"
 	"code.gitea.io/gitea/modules/util"
 
 	"github.com/gobwas/glob"
@@ -80,7 +81,7 @@ func IsValidHookTaskType(name string) bool {
 }
 
 // hookQueue is a global queue of web hooks
-var hookQueue = sync.NewUniqueQueue(setting.Webhook.QueueLength)
+var hookQueue queue.UniqueQueue
 
 // getPayloadBranch returns branch for hook event, if applicable.
 func getPayloadBranch(p api.Payloader) string {
@@ -107,14 +108,36 @@ type EventSource struct {
 	Owner      *user_model.User
 }
 
+// handle delivers all undelivered tasks
+func handle(data ...queue.Data) []queue.Data {
+	tasks, err := webhook_model.FindUndeliveredHookTasks()
+	if err != nil {
+		log.Error("Get undelivered hook tasks: %v", err)
+		return nil
+	}
+	for _, t := range tasks {
+		if err = Deliver(graceful.GetManager().HammerContext(), t); err != nil {
+			log.Error("deliver: %v", err)
+		}
+	}
+	return nil
+}
+
+func triggerTaskProcessing() error {
+	err := hookQueue.PushFunc("dummy", nil)
+	if err != nil && err != queue.ErrAlreadyInQueue {
+		return err
+	}
+	return nil
+}
+
 // PrepareWebhook adds special webhook to task queue for given payload.
 func PrepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_model.HookEventType, p api.Payloader) error {
 	if err := prepareWebhook(source, w, event, p); err != nil {
 		return err
 	}
 
-	go hookQueue.Add("dummy")
-	return nil
+	return triggerTaskProcessing()
 }
 
 func checkBranch(w *webhook_model.Webhook, branch string) bool {
@@ -199,8 +222,7 @@ func PrepareWebhooks(source EventSource, event webhook_model.HookEventType, p ap
 		return err
 	}
 
-	go hookQueue.Add("dummy")
-	return nil
+	return triggerTaskProcessing()
 }
 
 func prepareWebhooks(source EventSource, event webhook_model.HookEventType, p api.Payloader) error {
@@ -258,7 +280,5 @@ func ReplayHookTask(w *webhook_model.Webhook, uuid string) error {
 		return err
 	}
 
-	go hookQueue.Add("dummy")
-
-	return nil
+	return triggerTaskProcessing()
 }

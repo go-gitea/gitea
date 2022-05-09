@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "Maven"
-    weight: 50
+    weight: 60
     identifier: "maven"
 ---
 

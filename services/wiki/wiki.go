@@ -27,7 +27,8 @@ import (
 
 var (
 	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	wikiWorkingPool   = sync.NewExclusivePool()
+	// TODO: use clustered lock (unique queue? or *abuse* cache)
+	wikiWorkingPool = sync.NewExclusivePool()
 )
 
 func nameAllowed(name string) error {
@@ -81,7 +82,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
-	} else if _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunInDir(repo.WikiPath()); err != nil {
+	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil

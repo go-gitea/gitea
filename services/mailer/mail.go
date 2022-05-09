@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -366,6 +367,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
 		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
+		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
 		"X-Gitea-Recipient":         recipient.DisplayName(),
@@ -404,7 +406,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 		return nil
 	}
 
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}

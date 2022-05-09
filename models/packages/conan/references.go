@@ -65,14 +65,14 @@ func findPropertyValues(ctx context.Context, propertyName string, ownerID int64,
 	in2 := builder.
 		Select("package_file.id").
 		From("package_file").
-		Join("INNER", "package_version", "package_version.id = package_file.version_id").
-		Join("INNER", "package", "package.id = package_version.package_id").
+		InnerJoin("package_version", "package_version.id = package_file.version_id").
+		InnerJoin("package", "package.id = package_version.package_id").
 		Where(cond)
 
 	query := builder.
 		Select("package_property.value, MAX(package_file.created_unix) AS created_unix").
 		From("package_property").
-		Join("INNER", "package_file", "package_file.id = package_property.ref_id").
+		InnerJoin("package_file", "package_file.id = package_property.ref_id").
 		Where(builder.Eq{"package_property.name": propertyName}.And(builder.In("package_property.ref_id", in2))).
 		GroupBy("package_property.value").
 		OrderBy("created_unix DESC")

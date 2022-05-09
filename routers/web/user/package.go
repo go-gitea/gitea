@@ -43,9 +43,9 @@ func ListPackages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID:   ctx.ContextUser.ID,
-		Type:      packageType,
-		QueryName: query,
+		OwnerID: ctx.ContextUser.ID,
+		Type:    packages_model.Type(packageType),
+		Name:    packages_model.SearchValue{Value: query},
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -56,6 +56,23 @@ func ListPackages(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
+	}
+
+	repositoryAccessMap := make(map[int64]bool)
+	for _, pd := range pds {
+		if pd.Repository == nil {
+			continue
+		}
+		if _, has := repositoryAccessMap[pd.Repository.ID]; has {
+			continue
+		}
+
+		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
 	}
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
@@ -72,6 +89,7 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
+	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")
@@ -157,6 +175,17 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
 
+	hasRepositoryAccess := false
+	if pd.Repository != nil {
+		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		hasRepositoryAccess = permission.HasAccess()
+	}
+	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
+
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
 
@@ -219,9 +248,12 @@ func ListPackageVersions(ctx *context.Context) {
 		}
 	default:
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			Paginator:    pagination,
-			PackageID:    p.ID,
-			QueryVersion: query,
+			Paginator: pagination,
+			PackageID: p.ID,
+			Version: packages_model.SearchValue{
+				ExactMatch: false,
+				Value:      query,
+			},
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -256,7 +288,8 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["PackageDescriptor"] = pd
 
 	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
-		Actor: pd.Owner,
+		Actor:   pd.Owner,
+		Private: true,
 	})
 	ctx.Data["Repos"] = repos
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
@@ -331,7 +364,6 @@ func DownloadPackageFile(ctx *context.Context) {
 
 	s, _, err := packages_service.GetPackageFileStream(
 		ctx,
-		ctx.Package.Descriptor.Version,
 		pf,
 	)
 	if err != nil {

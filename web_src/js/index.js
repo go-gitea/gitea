@@ -36,9 +36,14 @@ import {
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
+  initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
-import {initRepoEllipsisButton, initRepoCommitLastCommitLoader} from './features/repo-commit.js';
+import {
+  initRepoEllipsisButton,
+  initRepoCommitLastCommitLoader,
+  initCommitStatuses,
+} from './features/repo-commit.js';
 import {
   checkAppUrl,
   initFootLanguageMenu,
@@ -65,6 +70,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
+import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
@@ -154,6 +160,7 @@ $(document).ready(() => {
   initRepoMigrationStatusChecker();
   initRepoProject();
   initRepoPullRequestMergeInstruction();
+  initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
   initRepoReleaseEditor();
@@ -165,11 +172,13 @@ $(document).ready(() => {
   initRepoWikiForm();
   initRepository();
 
+  initCommitStatuses();
+
   initUserAuthLinkAccountView();
   initUserAuthOauth2();
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-
+  initViewedCheckboxListenerFor();
   checkAppUrl();
 });

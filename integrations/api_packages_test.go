@@ -9,11 +9,15 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
+	"time"
 
-	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/db"
+	packages_model "code.gitea.io/gitea/models/packages"
+	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	packages_service "code.gitea.io/gitea/services/packages"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -43,7 +47,7 @@ func TestPackageAPI(t *testing.T) {
 		DecodeJSON(t, resp, &apiPackages)
 
 		assert.Len(t, apiPackages, 1)
-		assert.Equal(t, string(packages.TypeGeneric), apiPackages[0].Type)
+		assert.Equal(t, string(packages_model.TypeGeneric), apiPackages[0].Type)
 		assert.Equal(t, packageName, apiPackages[0].Name)
 		assert.Equal(t, packageVersion, apiPackages[0].Version)
 		assert.NotNil(t, apiPackages[0].Creator)
@@ -62,11 +66,49 @@ func TestPackageAPI(t *testing.T) {
 		var p *api.Package
 		DecodeJSON(t, resp, &p)
 
-		assert.Equal(t, string(packages.TypeGeneric), p.Type)
+		assert.Equal(t, string(packages_model.TypeGeneric), p.Type)
 		assert.Equal(t, packageName, p.Name)
 		assert.Equal(t, packageVersion, p.Version)
 		assert.NotNil(t, p.Creator)
 		assert.Equal(t, user.Name, p.Creator.UserName)
+
+		t.Run("RepositoryLink", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			p, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+			assert.NoError(t, err)
+
+			// no repository link
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var ap1 *api.Package
+			DecodeJSON(t, resp, &ap1)
+			assert.Nil(t, ap1.Repository)
+
+			// link to public repository
+			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			var ap2 *api.Package
+			DecodeJSON(t, resp, &ap2)
+			assert.NotNil(t, ap2.Repository)
+			assert.EqualValues(t, 1, ap2.Repository.ID)
+
+			// link to private repository
+			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			var ap3 *api.Package
+			DecodeJSON(t, resp, &ap3)
+			assert.Nil(t, ap3.Repository)
+
+			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, 2))
+		})
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {
@@ -99,4 +141,27 @@ func TestPackageAPI(t *testing.T) {
 		req = NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNoContent)
 	})
+}
+
+func TestPackageCleanup(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	time.Sleep(time.Second)
+
+	pbs, err := packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
+	assert.NoError(t, err)
+	assert.NotEmpty(t, pbs)
+
+	_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+	assert.NoError(t, err)
+
+	err = packages_service.Cleanup(nil, time.Duration(0))
+	assert.NoError(t, err)
+
+	pbs, err = packages_model.FindExpiredUnreferencedBlobs(db.DefaultContext, time.Duration(0))
+	assert.NoError(t, err)
+	assert.Empty(t, pbs)
+
+	_, err = packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, 2, packages_model.TypeContainer, "test", container_model.UploadVersion)
+	assert.ErrorIs(t, err, packages_model.ErrPackageNotExist)
 }

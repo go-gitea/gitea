@@ -66,6 +66,38 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 	return
 }
 
+// UserIDCount is a simple coalition of UserID and Count
+type UserStopwatch struct {
+	UserID      int64
+	StopWatches []*Stopwatch
+}
+
+// GetUIDsAndNotificationCounts between the two provided times
+func GetUIDsAndStopwatch() ([]*UserStopwatch, error) {
+	sws := []*Stopwatch{}
+	if err := db.GetEngine(db.DefaultContext).Find(&sws); err != nil {
+		return nil, err
+	}
+	if len(sws) == 0 {
+		return []*UserStopwatch{}, nil
+	}
+
+	lastUserID := int64(-1)
+	res := []*UserStopwatch{}
+	for _, sw := range sws {
+		if lastUserID == sw.UserID {
+			lastUserStopwatch := res[len(res)-1]
+			lastUserStopwatch.StopWatches = append(lastUserStopwatch.StopWatches, sw)
+		} else {
+			res = append(res, &UserStopwatch{
+				UserID:      sw.UserID,
+				StopWatches: []*Stopwatch{sw},
+			})
+		}
+	}
+	return res, nil
+}
+
 // GetUserStopwatches return list of all stopwatches of a user
 func GetUserStopwatches(userID int64, listOptions db.ListOptions) ([]*Stopwatch, error) {
 	sws := make([]*Stopwatch, 0, 8)
@@ -157,11 +189,11 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:    user,
 		Issue:   issue,
 		Repo:    issue.Repo,
@@ -178,7 +210,7 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
 	e := db.GetEngine(ctx)
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
@@ -208,11 +240,11 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Doer:  user,
 		Issue: issue,
 		Repo:  issue.Repo,
@@ -249,11 +281,11 @@ func cancelStopwatch(ctx context.Context, user *user_model.User, issue *Issue) e
 			return err
 		}
 
-		if err := issue.loadRepo(ctx); err != nil {
+		if err := issue.LoadRepo(ctx); err != nil {
 			return err
 		}
 
-		if _, err := createComment(ctx, &CreateCommentOptions{
+		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 			Doer:  user,
 			Issue: issue,
 			Repo:  issue.Repo,

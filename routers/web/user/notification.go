@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 const (
@@ -190,4 +191,9 @@ func NotificationPurgePost(c *context.Context) {
 	}
 
 	c.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+}
+
+// NewAvailable returns the notification counts
+func NewAvailable(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx.Doer)})
 }

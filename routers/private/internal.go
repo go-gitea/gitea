@@ -70,6 +70,7 @@ func Routes() *web.Route {
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
+	r.Get("/manager/processes", Processes)
 	r.Post("/mail/send", SendEmail)
 	r.Post("/restore_repo", RestoreRepo)
 

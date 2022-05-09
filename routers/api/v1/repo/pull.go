@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -27,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
@@ -110,11 +113,11 @@ func ListPullRequests(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "LoadAttributes", err)
 			return
 		}
-		if err = prs[i].LoadBaseRepo(); err != nil {
+		if err = prs[i].LoadBaseRepoCtx(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 			return
 		}
-		if err = prs[i].LoadHeadRepo(); err != nil {
+		if err = prs[i].LoadHeadRepoCtx(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 			return
 		}
@@ -166,11 +169,11 @@ func GetPullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
@@ -342,9 +345,9 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if form.Milestone > 0 {
-		milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, form.Milestone)
+		milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, form.Milestone)
 		if err != nil {
-			if models.IsErrMilestoneNotExist(err) {
+			if issues_model.IsErrMilestoneNotExist(err) {
 				ctx.NotFound()
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetMilestoneByRepoID", err)
@@ -615,6 +618,18 @@ func EditPullRequest(ctx *context.APIContext) {
 		notification.NotifyPullRequestChangeTargetBranch(ctx.Doer, pr, form.Base)
 	}
 
+	// update allow edits
+	if form.AllowMaintainerEdit != nil {
+		if err := pull_service.SetAllowEdits(ctx, ctx.Doer, pr, *form.AllowMaintainerEdit); err != nil {
+			if errors.Is(pull_service.ErrUserHasNoPermissionForAction, err) {
+				ctx.Error(http.StatusForbidden, "SetAllowEdits", fmt.Sprintf("SetAllowEdits: %s", err))
+				return
+			}
+			ctx.ServerError("SetAllowEdits", err)
+			return
+		}
+	}
+
 	// Refetch from database
 	pr, err = models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pr.Index)
 	if err != nil {
@@ -713,7 +728,8 @@ func MergePullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+
+	pr, err := models.GetPullRequestByIndexCtx(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -723,13 +739,12 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
-	err = pr.LoadIssue()
-	if err != nil {
+	if err := pr.LoadIssueCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssue", err)
 		return
 	}
@@ -737,35 +752,40 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = pr.Issue.ReadBy(ctx.Doer.ID); err != nil {
+		if err = pr.Issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReadBy", err)
 			return
 		}
 	}
 
-	if pr.Issue.IsClosed {
-		ctx.NotFound()
-		return
-	}
+	manuallMerge := repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged
+	force := form.ForceMerge != nil && *form.ForceMerge
 
-	allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.Repo.Permission, ctx.Doer)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "IsUSerAllowedToMerge", err)
-		return
-	}
-	if !allowedMerge {
-		ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
-		return
-	}
-
-	if pr.HasMerged {
-		ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+	// start with merging by checking
+	if err := pull_service.CheckPullMergable(ctx, ctx.Doer, &ctx.Repo.Permission, pr, manuallMerge, force); err != nil {
+		if errors.Is(err, pull_service.ErrIsClosed) {
+			ctx.NotFound()
+		} else if errors.Is(err, pull_service.ErrUserNotAllowedToMerge) {
+			ctx.Error(http.StatusMethodNotAllowed, "Merge", "User not allowed to merge PR")
+		} else if errors.Is(err, pull_service.ErrHasMerged) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR already merged", "")
+		} else if errors.Is(err, pull_service.ErrIsWorkInProgress) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
+		} else if errors.Is(err, pull_service.ErrNotMergableState) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+		} else if models.IsErrDisallowedToMerge(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+		} else if asymkey_service.IsErrWontSign(err) {
+			ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
+		} else {
+			ctx.InternalServerError(err)
+		}
 		return
 	}
 
 	// handle manually-merged mark
-	if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleManuallyMerged {
-		if err = pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
+	if manuallMerge {
+		if err := pull_service.MergedManually(pr, ctx.Doer, ctx.Repo.GitRepo, form.MergeCommitID); err != nil {
 			if models.IsErrInvalidMergeStyle(err) {
 				ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
 				return
@@ -781,66 +801,31 @@ func MergePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if !pr.CanAutoMerge() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR not in mergeable state", "Please try again later")
+	// set defaults to propagate needed fields
+	if err := form.SetDefaults(ctx, pr); err != nil {
+		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
 		return
 	}
 
-	if pr.IsWorkInProgress() {
-		ctx.Error(http.StatusMethodNotAllowed, "PR is a work in progress", "Work in progress PRs cannot be merged")
-		return
-	}
-
-	if err := pull_service.CheckPRReadyToMerge(ctx, pr, false); err != nil {
-		if !models.IsErrNotAllowedToMerge(err) {
-			ctx.Error(http.StatusInternalServerError, "CheckPRReadyToMerge", err)
-			return
-		}
-		if form.ForceMerge != nil && *form.ForceMerge {
-			if isRepoAdmin, err := models.IsUserRepoAdmin(pr.BaseRepo, ctx.Doer); err != nil {
-				ctx.Error(http.StatusInternalServerError, "IsUserRepoAdmin", err)
+	if form.MergeWhenChecksSucceed {
+		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), form.MergeTitleField)
+		if err != nil {
+			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
+				ctx.Error(http.StatusConflict, "ScheduleAutoMerge", err)
 				return
-			} else if !isRepoAdmin {
-				ctx.Error(http.StatusMethodNotAllowed, "Merge", "Only repository admin can merge if not all checks are ok (force merge)")
 			}
-		} else {
-			ctx.Error(http.StatusMethodNotAllowed, "PR is not ready to be merged", err)
+			ctx.Error(http.StatusInternalServerError, "ScheduleAutoMerge", err)
+			return
+		} else if scheduled {
+			// nothing more to do ...
+			ctx.Status(http.StatusCreated)
 			return
 		}
 	}
 
-	if _, err := pull_service.IsSignedIfRequired(ctx, pr, ctx.Doer); err != nil {
-		if !asymkey_service.IsErrWontSign(err) {
-			ctx.Error(http.StatusInternalServerError, "IsSignedIfRequired", err)
-			return
-		}
-		ctx.Error(http.StatusMethodNotAllowed, fmt.Sprintf("Protected branch %s requires signed commits but this merge would not be signed", pr.BaseBranch), err)
-		return
-	}
-
-	if len(form.Do) == 0 {
-		form.Do = string(repo_model.MergeStyleMerge)
-	}
-
-	message := strings.TrimSpace(form.MergeTitleField)
-	if len(message) == 0 {
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleMerge {
-			message = pr.GetDefaultMergeMessage()
-		}
-		if repo_model.MergeStyle(form.Do) == repo_model.MergeStyleSquash {
-			message = pr.GetDefaultSquashMessage()
-		}
-	}
-
-	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
-	if len(form.MergeMessageField) > 0 {
-		message += "\n\n" + form.MergeMessageField
-	}
-
-	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
+	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Error(http.StatusMethodNotAllowed, "Invalid merge style", fmt.Errorf("%s is not allowed an allowed merge style for this repository", repo_model.MergeStyle(form.Do)))
-			return
 		} else if models.IsErrMergeConflicts(err) {
 			conflictError := err.(models.ErrMergeConflicts)
 			ctx.JSON(http.StatusConflict, conflictError)
@@ -852,28 +837,25 @@ func MergePullRequest(ctx *context.APIContext) {
 			ctx.JSON(http.StatusConflict, conflictError)
 		} else if git.IsErrPushOutOfDate(err) {
 			ctx.Error(http.StatusConflict, "Merge", "merge push out of date")
-			return
 		} else if models.IsErrSHADoesNotMatch(err) {
 			ctx.Error(http.StatusConflict, "Merge", "head out of date")
-			return
 		} else if git.IsErrPushRejected(err) {
 			errPushRej := err.(*git.ErrPushRejected)
 			if len(errPushRej.Message) == 0 {
 				ctx.Error(http.StatusConflict, "Merge", "PushRejected without remote error message")
-				return
+			} else {
+				ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
 			}
-			ctx.Error(http.StatusConflict, "Merge", "PushRejected with remote message: "+errPushRej.Message)
-			return
+		} else {
+			ctx.Error(http.StatusInternalServerError, "Merge", err)
 		}
-		ctx.Error(http.StatusInternalServerError, "Merge", err)
 		return
 	}
-
 	log.Trace("Pull request merged: %d", pr.ID)
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when there are other PR's that use this branch as head branch.
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(pr.HeadRepoID, pr.HeadBranch)
+		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
@@ -907,7 +889,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		if err := models.AddDeletePRBranchComment(ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+		if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 			// Do not fail here as branch has already been deleted
 			log.Error("DeleteBranch: %v", err)
 		}
@@ -989,7 +971,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.Doer)
+	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
@@ -1008,7 +990,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read headrepo's codes
-	permHead, err := models.GetUserRepoPermission(headRepo, ctx.Doer)
+	permHead, err := models.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
@@ -1109,18 +1091,18 @@ func UpdatePullRequest(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.LoadBaseRepo(); err != nil {
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadBaseRepo", err)
 		return
 	}
-	if err = pr.LoadHeadRepo(); err != nil {
+	if err = pr.LoadHeadRepoCtx(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadHeadRepo", err)
 		return
 	}
 
 	rebase := ctx.FormString("style") == "rebase"
 
-	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(pr, ctx.Doer)
+	allowedUpdateByMerge, allowedUpdateByRebase, err := pull_service.IsUserAllowedToUpdate(ctx, pr, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsUserAllowedToMerge", err)
 		return
@@ -1147,6 +1129,78 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	}
 
 	ctx.Status(http.StatusOK)
+}
+
+// MergePullRequest cancel an auto merge scheduled for a given PullRequest by index
+func CancelScheduledAutoMerge(ctx *context.APIContext) {
+	// swagger:operation DELETE /repos/{owner}/{repo}/pulls/{index}/merge repository repoCancelScheduledAutoMerge
+	// ---
+	// summary: Cancel the scheduled auto merge for the given pull request
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: index
+	//   in: path
+	//   description: index of the pull request to merge
+	//   type: integer
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	pullIndex := ctx.ParamsInt64(":index")
+	pull, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, pullIndex)
+	if err != nil {
+		if models.IsErrPullRequestNotExist(err) {
+			ctx.NotFound()
+			return
+		}
+		ctx.InternalServerError(err)
+		return
+	}
+
+	exist, autoMerge, err := pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+	if !exist {
+		ctx.NotFound()
+		return
+	}
+
+	if ctx.Doer.ID != autoMerge.DoerID {
+		allowed, err := models.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
+		if err != nil {
+			ctx.InternalServerError(err)
+			return
+		}
+		if !allowed {
+			ctx.Error(http.StatusForbidden, "No permission to cancel", "user has no permission to cancel the scheduled auto merge")
+			return
+		}
+	}
+
+	if err := pull_model.RemoveScheduledAutoMerge(ctx, ctx.Doer, pull.ID, true); err != nil {
+		ctx.InternalServerError(err)
+	} else {
+		ctx.Status(http.StatusNoContent)
+	}
 }
 
 // GetPullRequestCommits gets all commits associated with a given PR
@@ -1197,7 +1251,7 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

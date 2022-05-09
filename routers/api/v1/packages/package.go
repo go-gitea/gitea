@@ -40,7 +40,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [composer, conan, generic, maven, npm, nuget, pypi, rubygems]
+	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pypi, rubygems]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -56,8 +56,8 @@ func ListPackages(ctx *context.APIContext) {
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
 		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packageType,
-		QueryName: query,
+		Type:      packages.Type(packageType),
+		Name:      packages.SearchValue{Value: query},
 		Paginator: &listOptions,
 	})
 	if err != nil {
@@ -73,7 +73,12 @@ func ListPackages(ctx *context.APIContext) {
 
 	apiPackages := make([]*api.Package, 0, len(pds))
 	for _, pd := range pds {
-		apiPackages = append(apiPackages, convert.ToPackage(pd))
+		apiPackage, err := convert.ToPackage(ctx, pd, ctx.Doer)
+		if err != nil {
+			ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+			return
+		}
+		apiPackages = append(apiPackages, apiPackage)
 	}
 
 	ctx.SetLinkHeader(int(count), listOptions.PageSize)
@@ -115,7 +120,13 @@ func GetPackage(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ctx.JSON(http.StatusOK, convert.ToPackage(ctx.Package.Descriptor))
+	apiPackage, err := convert.ToPackage(ctx, ctx.Package.Descriptor, ctx.Doer)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Error converting package for api", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiPackage)
 }
 
 // DeletePackage deletes a package

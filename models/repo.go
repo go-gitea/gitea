@@ -19,6 +19,7 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
@@ -53,12 +54,12 @@ func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitT
 }
 
 func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	if user.IsAdmin {
+	if user != nil && user.IsAdmin {
 		return true
 	}
-	perm, err := getUserRepoPermission(ctx, repo, user)
+	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
-		log.Error("getUserRepoPermission(): %v", err)
+		log.Error("GetUserRepoPermission(): %v", err)
 		return false
 	}
 
@@ -197,7 +198,7 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 		return nil, nil
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(repo.OwnerID, repo.ID, perm.AccessModeRead)
+	teams, err := organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
 	if err != nil {
 		return nil, err
 	}
@@ -454,8 +455,8 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := isUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("isUserRepoAdmin: %v", err)
+		if isAdmin, err := IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
@@ -707,7 +708,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&DeletedBranch{RepoID: repoID},
 		&LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
-		&Milestone{RepoID: repoID},
+		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
@@ -954,10 +955,6 @@ func labelStatsCorrectNumClosedIssuesRepo(ctx context.Context, id int64) error {
 
 var milestoneStatsQueryNumIssues = "SELECT `milestone`.id FROM `milestone` WHERE `milestone`.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id AND `issue`.is_closed=?) OR `milestone`.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE `issue`.milestone_id=`milestone`.id)"
 
-func milestoneStatsCorrectNumIssues(ctx context.Context, id int64) error {
-	return updateMilestoneCounters(ctx, id)
-}
-
 func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	e := db.GetEngine(ctx)
 	results, err := e.Query(milestoneStatsQueryNumIssues+" AND `milestone`.repo_id = ?", true, id)
@@ -966,7 +963,7 @@ func milestoneStatsCorrectNumIssuesRepo(ctx context.Context, id int64) error {
 	}
 	for _, result := range results {
 		id, _ := strconv.ParseInt(string(result["id"]), 10, 64)
-		err = milestoneStatsCorrectNumIssues(ctx, id)
+		err = issues_model.UpdateMilestoneCounters(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -1058,7 +1055,7 @@ func CheckRepoStats(ctx context.Context) error {
 		// Milestone.Num{,Closed}Issues
 		{
 			statsQuery(milestoneStatsQueryNumIssues, true),
-			milestoneStatsCorrectNumIssues,
+			issues_model.UpdateMilestoneCounters,
 			"milestone count 'num_closed_issues' and 'num_issues'",
 		},
 		// User.NumRepos
@@ -1227,7 +1224,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := isUserRepoAdmin(ctx, repo, doer)
+		has, err := IsUserRepoAdminCtx(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

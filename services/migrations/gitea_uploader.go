@@ -7,6 +7,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -78,7 +80,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	case "comment":
 		return db.MaxBatchInsertSize(new(models.Comment))
 	case "milestone":
-		return db.MaxBatchInsertSize(new(models.Milestone))
+		return db.MaxBatchInsertSize(new(issues_model.Milestone))
 	case "label":
 		return db.MaxBatchInsertSize(new(models.Label))
 	case "release":
@@ -163,7 +165,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 
 // CreateMilestones creates milestones
 func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
-	mss := make([]*models.Milestone, 0, len(milestones))
+	mss := make([]*issues_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
 		if milestone.Deadline != nil {
@@ -186,7 +188,7 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 			milestone.Updated = &milestone.Created
 		}
 
-		ms := models.Milestone{
+		ms := issues_model.Milestone{
 			RepoID:       g.repo.ID,
 			Name:         milestone.Title,
 			Content:      milestone.Description,
@@ -252,7 +254,6 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			LowerTagName: strings.ToLower(release.TagName),
 			Target:       release.TargetCommitish,
 			Title:        release.Name,
-			Sha1:         release.TargetCommitish,
 			Note:         release.Body,
 			IsDraft:      release.Draft,
 			IsPrerelease: release.Prerelease,
@@ -264,15 +265,18 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			return err
 		}
 
-		// calc NumCommits if no draft
-		if !release.Draft {
+		// calc NumCommits if possible
+		if rel.TagName != "" {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
-			if err != nil {
-				return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
-			}
-			rel.NumCommits, err = commit.CommitsCount()
-			if err != nil {
-				return fmt.Errorf("CommitsCount: %v", err)
+			if !errors.Is(err, git.ErrNotExist{}) {
+				if err != nil {
+					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+				}
+				rel.Sha1 = commit.ID.String()
+				rel.NumCommits, err = commit.CommitsCount()
+				if err != nil {
+					return fmt.Errorf("CommitsCount: %v", err)
+				}
 			}
 		}
 
@@ -392,7 +396,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 		// add reactions
 		for _, reaction := range issue.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -448,7 +452,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		// add reactions
 		for _, reaction := range comment.Reactions {
-			res := models.Reaction{
+			res := issues_model.Reaction{
 				Type:        reaction.Content,
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
@@ -552,7 +556,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 			}
 
 			if ok {
-				_, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.repo.RepoPath())
+				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 				if err != nil {
 					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 				} else {
@@ -576,7 +580,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	} else {
 		head = pr.Head.Ref
 		// Ensure the closed PR SHA still points to an existing ref
-		_, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunInDir(g.repo.RepoPath())
+		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 		if err != nil {
 			if pr.Head.SHA != "" {
 				// Git update-ref remove bad references with a relative path
@@ -646,7 +650,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 
 	// add reactions
 	for _, reaction := range pr.Reactions {
-		res := models.Reaction{
+		res := issues_model.Reaction{
 			Type:        reaction.Content,
 			CreatedUnix: timeutil.TimeStampNow(),
 		}
@@ -753,13 +757,13 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_ = reader.Close()
 				_ = writer.Close()
 			}()
-			go func() {
+			go func(comment *base.ReviewComment) {
 				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
 					// We should ignore the error since the commit maybe removed when force push to the pull request
 					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
 				}
 				_ = writer.Close()
-			}()
+			}(comment)
 
 			patch, _ = git.CutDiffAroundLine(reader, int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine()), line < 0, setting.UI.CodeCommentLines)
 

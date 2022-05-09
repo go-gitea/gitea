@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
@@ -59,6 +60,9 @@ and it takes care of all the other things for you`,
 }
 
 func runHTTPRedirector() {
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: HTTP Redirector", process.SystemProcessType, true)
+	defer finished()
+
 	source := fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.PortToRedirect)
 	dest := strings.TrimSuffix(setting.AppURL, "/")
 	log.Info("Redirecting: %s to %s", source, dest)
@@ -141,8 +145,10 @@ func runWeb(ctx *cli.Context) error {
 
 	if setting.EnablePprof {
 		go func() {
+			_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
 			log.Info("Starting pprof server on localhost:6060")
 			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
+			finished()
 		}()
 	}
 
@@ -204,6 +210,8 @@ func listen(m http.Handler, handleRedirector bool) error {
 	if setting.Protocol != setting.HTTPUnix && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: Gitea Server", process.SystemProcessType, true)
+	defer finished()
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.
 	// A user may fix the configuration mistake when he sees this log.
