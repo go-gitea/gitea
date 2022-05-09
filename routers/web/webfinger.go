@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -16,8 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
-
-var webfingerRessourcePattern = regexp.MustCompile(`(?i)\A([a-z^:]+):(.*)\z`)
 
 // https://datatracker.ietf.org/doc/html/draft-ietf-appsawg-webfinger-14#section-4.4
 
@@ -39,26 +36,20 @@ type webfingerLink struct {
 // WebfingerQuery returns informations about a resource
 // https://datatracker.ietf.org/doc/html/rfc7565
 func WebfingerQuery(ctx *context.Context) {
-	resource := ctx.FormTrim("resource")
-
-	scheme := "acct"
-	uri := resource
-
-	match := webfingerRessourcePattern.FindStringSubmatch(resource)
-	if match != nil {
-		scheme = match[1]
-		uri = match[2]
-	}
-
 	appURL, _ := url.Parse(setting.AppURL)
 
-	var u *user_model.User
-	var err error
+	resource, err := url.Parse(ctx.FormTrim("resource"))
+	if err != nil {
+		ctx.Error(http.StatusBadRequest)
+		return
+	}
 
-	switch scheme {
+	var u *user_model.User
+
+	switch resource.Scheme {
 	case "acct":
 		// allow only the current host
-		parts := strings.SplitN(uri, "@", 2)
+		parts := strings.SplitN(resource.Opaque, "@", 2)
 		if len(parts) != 2 {
 			ctx.Error(http.StatusBadRequest)
 			return
@@ -70,7 +61,10 @@ func WebfingerQuery(ctx *context.Context) {
 
 		u, err = user_model.GetUserByNameCtx(ctx, parts[0])
 	case "mailto":
-		u, err = user_model.GetUserByEmailContext(ctx, uri)
+		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
+		if u != nil && u.KeepEmailPrivate {
+			err = user_model.ErrUserNotExist{}
+		}
 	default:
 		ctx.Error(http.StatusBadRequest)
 		return
@@ -79,7 +73,7 @@ func WebfingerQuery(ctx *context.Context) {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound)
 		} else {
-			log.Error("Error getting user: %v", err)
+			log.Error("Error getting user: %s Error: %v", resource.Opaque, err)
 			ctx.Error(http.StatusInternalServerError)
 		}
 		return
@@ -92,7 +86,6 @@ func WebfingerQuery(ctx *context.Context) {
 
 	aliases := []string{
 		u.HTMLURL(),
-		appURL.String() + "api/v1/activitypub/user/" + strings.ToLower(u.Name),
 	}
 	if !u.KeepEmailPrivate {
 		aliases = append(aliases, fmt.Sprintf("mailto:%s", u.Email))
@@ -107,15 +100,6 @@ func WebfingerQuery(ctx *context.Context) {
 		{
 			Rel:  "http://webfinger.net/rel/avatar",
 			Href: u.AvatarLink(),
-		},
-		{
-			Rel:  "self",
-			Type: "application/activity+json",
-			Href: appURL.String() + "api/v1/activitypub/user/" + strings.ToLower(u.Name),
-		},
-		{
-			Rel:  "http://ostatus.org/schema/1.0/subscribe",
-			Href: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
 		},
 	}
 
