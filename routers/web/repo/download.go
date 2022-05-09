@@ -86,7 +86,11 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("GetTreeEntryByPath", err)
+		if git.IsErrNotExist(err) {
+			ctx.NotFound("GetTreeEntryByPath", err)
+		} else {
+			ctx.ServerError("GetTreeEntryByPath", err)
+		}
 		return
 	}
 

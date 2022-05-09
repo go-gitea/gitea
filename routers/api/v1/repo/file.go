@@ -66,6 +66,9 @@ func GetRawFile(ctx *context.APIContext) {
 	}
 
 	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
@@ -75,7 +78,11 @@ func GetRawFile(ctx *context.APIContext) {
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
+		if git.IsErrNotExist(err) {
+			ctx.NotFound()
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
+		}
 		return
 	}
 
