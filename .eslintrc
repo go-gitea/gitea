@@ -18,7 +18,7 @@ extends:
   - plugin:vue/recommended
 
 env:
-  es2021: true
+  es2022: true
   node: true
 
 globals:
@@ -174,6 +174,7 @@ rules:
   no-confusing-arrow: [0]
   no-console: [1, {allow: [info, warn, error]}]
   no-const-assign: [2]
+  no-constant-binary-expression: [2]
   no-constant-condition: [0]
   no-constructor-return: [2]
   no-continue: [0]
@@ -384,12 +385,14 @@ rules:
   unicorn/no-thenable: [2]
   unicorn/no-this-assignment: [2]
   unicorn/no-unreadable-array-destructuring: [0]
+  unicorn/no-unreadable-iife: [2]
   unicorn/no-unsafe-regex: [0]
   unicorn/no-unused-properties: [2]
   unicorn/no-useless-fallback-in-spread: [2]
   unicorn/no-useless-length-check: [2]
   unicorn/no-useless-promise-resolve-reject: [2]
   unicorn/no-useless-spread: [2]
+  unicorn/no-useless-switch-case: [2]
   unicorn/no-useless-undefined: [0]
   unicorn/no-zero-fractions: [2]
   unicorn/number-literal-case: [0]
@@ -411,7 +414,9 @@ rules:
   unicorn/prefer-json-parse-buffer: [0]
   unicorn/prefer-math-trunc: [2]
   unicorn/prefer-modern-dom-apis: [0]
+  unicorn/prefer-modern-math-apis: [2]
   unicorn/prefer-module: [2]
+  unicorn/prefer-native-coercion-functions: [2]
   unicorn/prefer-negative-index: [2]
   unicorn/prefer-node-append: [0]
   unicorn/prefer-node-protocol: [0]
