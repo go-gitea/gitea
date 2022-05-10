@@ -1,7 +1,7 @@
 export default {
   rootDir: 'web_src',
   setupFilesAfterEnv: ['jest-extended/all'],
-  testEnvironment: 'jsdom',
+  testEnvironment: '@happy-dom/jest-environment',
   testMatch: ['<rootDir>/**/*.test.js'],
   testTimeout: 20000,
   transform: {
