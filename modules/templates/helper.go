@@ -52,7 +52,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"UseHTTPS": func() bool {
 			return strings.HasPrefix(setting.AppURL, "https")
@@ -398,7 +398,7 @@ func NewFuncMap() []template.FuncMap {
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"AppName": func() string {
 			return setting.AppName
