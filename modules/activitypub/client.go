@@ -24,7 +24,7 @@ import (
 const (
 	// ActivityStreamsContentType const
 	ActivityStreamsContentType = `application/ld+json; profile="https://www.w3.org/ns/activitystreams"`
-	httpsigExpirationTime = 60
+	httpsigExpirationTime      = 60
 )
 
 func containsRequiredHTTPHeaders(method string, headers []string) error {

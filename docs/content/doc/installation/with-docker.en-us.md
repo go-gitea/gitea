@@ -187,7 +187,7 @@ services:
 +      - db
 +
 +  db:
-+    image: postgres:13
++    image: postgres:14
 +    restart: always
 +    environment:
 +      - POSTGRES_USER=gitea
@@ -590,7 +590,7 @@ Add the following block to `/etc/ssh/sshd_config`, on the host:
 ```bash
 Match User git
   AuthorizedKeysCommandUser git
-  AuthorizedKeysCommand ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
+  AuthorizedKeysCommand /usr/bin/ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 /usr/local/bin/gitea keys -c /data/gitea/conf/app.ini -e git -u %u -t %t -k %k
 ```
 
 (From 1.16.0 you will not need to set the `-c /data/gitea/conf/app.ini` option.)

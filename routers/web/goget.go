@@ -5,6 +5,8 @@
 package web
 
 import (
+	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"path"
@@ -14,8 +16,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unknwon/com"
 )
 
 func goGet(ctx *context.Context) {
@@ -48,7 +48,7 @@ func goGet(ctx *context.Context) {
 	</body>
 </html>
 `))
-		ctx.Status(400)
+		ctx.Status(http.StatusBadRequest)
 		return
 	}
 	branchName := setting.Repository.DefaultBranch
@@ -65,23 +65,23 @@ func goGet(ctx *context.Context) {
 	if appURL.Scheme == string(setting.HTTP) {
 		insecure = "--insecure "
 	}
-	ctx.RespHeader().Set("Content-Type", "text/html")
-	ctx.Status(http.StatusOK)
-	_, _ = ctx.Write([]byte(com.Expand(`<!doctype html>
+
+	goGetImport := context.ComposeGoGetImport(ownerName, trimmedRepoName)
+	goImportContent := fmt.Sprintf("%s git %s", goGetImport, repo_model.ComposeHTTPSCloneURL(ownerName, repoName) /*CloneLink*/)
+	goSourceContent := fmt.Sprintf("%s _ %s %s", goGetImport, prefix+"{/dir}" /*GoDocDirectory*/, prefix+"{/dir}/{file}#L{line}" /*GoDocFile*/)
+	goGetCli := fmt.Sprintf("go get %s%s", insecure, goGetImport)
+
+	res := fmt.Sprintf(`<!doctype html>
 <html>
 	<head>
-		<meta name="go-import" content="{GoGetImport} git {CloneLink}">
-		<meta name="go-source" content="{GoGetImport} _ {GoDocDirectory} {GoDocFile}">
+		<meta name="go-import" content="%s">
+		<meta name="go-source" content="%s">
 	</head>
 	<body>
-		go get {Insecure}{GoGetImport}
+		%s
 	</body>
-</html>
-`, map[string]string{
-		"GoGetImport":    context.ComposeGoGetImport(ownerName, trimmedRepoName),
-		"CloneLink":      repo_model.ComposeHTTPSCloneURL(ownerName, repoName),
-		"GoDocDirectory": prefix + "{/dir}",
-		"GoDocFile":      prefix + "{/dir}/{file}#L{line}",
-		"Insecure":       insecure,
-	})))
+</html>`, html.EscapeString(goImportContent), html.EscapeString(goSourceContent), html.EscapeString(goGetCli))
+
+	ctx.RespHeader().Set("Content-Type", "text/html")
+	_, _ = ctx.Write([]byte(res))
 }

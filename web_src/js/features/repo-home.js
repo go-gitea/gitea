@@ -91,7 +91,7 @@ export function initRepoTopicBar() {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${appSubUrl}/api/v1/topics/search?q={query}`,
+      url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {

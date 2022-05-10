@@ -32,11 +32,19 @@ type CommitUser struct {
 
 // RepoCommit contains information of a commit in the context of a repository.
 type RepoCommit struct {
-	URL       string      `json:"url"`
-	Author    *CommitUser `json:"author"`
-	Committer *CommitUser `json:"committer"`
-	Message   string      `json:"message"`
-	Tree      *CommitMeta `json:"tree"`
+	URL          string                     `json:"url"`
+	Author       *CommitUser                `json:"author"`
+	Committer    *CommitUser                `json:"committer"`
+	Message      string                     `json:"message"`
+	Tree         *CommitMeta                `json:"tree"`
+	Verification *PayloadCommitVerification `json:"verification"`
+}
+
+// CommitStats is statistics for a RepoCommit
+type CommitStats struct {
+	Total     int `json:"total"`
+	Additions int `json:"additions"`
+	Deletions int `json:"deletions"`
 }
 
 // Commit contains information generated from a Git commit.
@@ -48,6 +56,7 @@ type Commit struct {
 	Committer  *User                  `json:"committer"`
 	Parents    []*CommitMeta          `json:"parents"`
 	Files      []*CommitAffectedFiles `json:"files"`
+	Stats      *CommitStats           `json:"stats"`
 }
 
 // CommitDateOptions store dates for GIT_AUTHOR_DATE and GIT_COMMITTER_DATE

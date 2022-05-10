@@ -110,7 +110,7 @@ func DeleteReleaseByTag(ctx *context.APIContext) {
 		return
 	}
 
-	if err = releaseservice.DeleteReleaseByID(ctx, release.ID, ctx.User, false); err != nil {
+	if err = releaseservice.DeleteReleaseByID(ctx, release.ID, ctx.Doer, false); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 	}
 

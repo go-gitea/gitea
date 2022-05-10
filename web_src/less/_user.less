@@ -3,12 +3,8 @@
 .user {
   &.profile {
     .ui.card {
-      .header,
-      .username {
-        display: block;
-      }
-
       .header {
+        display: block;
         font-weight: 600;
         font-size: 1.3rem;
         margin-top: -.2rem;
@@ -17,6 +13,7 @@
 
       .profile-avatar-name {
         border-top: none;
+        text-align: center;
       }
 
       .extra.content {
@@ -177,4 +174,8 @@
     width: 20%;
     max-width: 60px;
   }
+}
+
+#notification_div .tab.segment {
+  overflow-x: scroll;
 }

@@ -7,6 +7,7 @@ package pull
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -25,14 +26,25 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 )
 
-// prQueue represents a queue to handle update pull request tests
-var prQueue queue.UniqueQueue
+// prPatchCheckerQueue represents a queue to handle update pull request tests
+var prPatchCheckerQueue queue.UniqueQueue
+
+var (
+	ErrIsClosed              = errors.New("pull is closed")
+	ErrUserNotAllowedToMerge = models.ErrDisallowedToMerge{}
+	ErrHasMerged             = errors.New("has already been merged")
+	ErrIsWorkInProgress      = errors.New("work in progress PRs cannot be merged")
+	ErrIsChecking            = errors.New("cannot merge while conflict checking is in progress")
+	ErrNotMergableState      = errors.New("not in mergeable state")
+	ErrDependenciesLeft      = errors.New("is blocked by an open dependency")
+)
 
 // AddToTaskQueue adds itself to pull request test task queue.
 func AddToTaskQueue(pr *models.PullRequest) {
-	err := prQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
+	err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(pr.ID, 10), func() error {
 		pr.Status = models.PullRequestStatusChecking
 		err := pr.UpdateColsIfNotMerged("status")
 		if err != nil {
@@ -47,6 +59,85 @@ func AddToTaskQueue(pr *models.PullRequest) {
 	}
 }
 
+// CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
+func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *models.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
+	return db.WithTx(func(ctx context.Context) error {
+		if pr.HasMerged {
+			return ErrHasMerged
+		}
+
+		if err := pr.LoadIssueCtx(ctx); err != nil {
+			return err
+		} else if pr.Issue.IsClosed {
+			return ErrIsClosed
+		}
+
+		if allowedMerge, err := IsUserAllowedToMerge(ctx, pr, *perm, doer); err != nil {
+			return err
+		} else if !allowedMerge {
+			return ErrUserNotAllowedToMerge
+		}
+
+		if manuallMerge {
+			// don't check rules to "auto merge", doer is going to mark this pull as merged manually
+			return nil
+		}
+
+		if pr.IsWorkInProgress() {
+			return ErrIsWorkInProgress
+		}
+
+		if !pr.CanAutoMerge() {
+			return ErrNotMergableState
+		}
+
+		if pr.IsChecking() {
+			return ErrIsChecking
+		}
+
+		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
+			if models.IsErrDisallowedToMerge(err) {
+				if force {
+					if isRepoAdmin, err2 := models.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
+						return err2
+					} else if !isRepoAdmin {
+						return err
+					}
+				}
+			} else {
+				return err
+			}
+		}
+
+		if _, err := isSignedIfRequired(ctx, pr, doer); err != nil {
+			return err
+		}
+
+		if noDeps, err := models.IssueNoDependenciesLeft(ctx, pr.Issue); err != nil {
+			return err
+		} else if !noDeps {
+			return ErrDependenciesLeft
+		}
+
+		return nil
+	}, stdCtx)
+}
+
+// isSignedIfRequired check if merge will be signed if required
+func isSignedIfRequired(ctx context.Context, pr *models.PullRequest, doer *user_model.User) (bool, error) {
+	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+		return false, err
+	}
+
+	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+		return true, nil
+	}
+
+	sign, _, _, err := asymkey_service.SignMerge(ctx, pr, doer, pr.BaseRepo.RepoPath(), pr.BaseBranch, pr.GetGitRefName())
+
+	return sign, err
+}
+
 // checkAndUpdateStatus checks if pull request is possible to leaving checking status,
 // and set to be either conflict or mergeable.
 func checkAndUpdateStatus(pr *models.PullRequest) {
@@ -56,7 +147,7 @@ func checkAndUpdateStatus(pr *models.PullRequest) {
 	}
 
 	// Make sure there is no waiting test to process before leaving the checking status.
-	has, err := prQueue.Has(strconv.FormatInt(pr.ID, 10))
+	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
 	if err != nil {
 		log.Error("Unable to check if the queue is waiting to reprocess pr.ID %d. Error: %v", pr.ID, err)
 	}
@@ -92,8 +183,8 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 	headFile := pr.GetGitRefName()
 
 	// Check if a pull request is merged into BaseBranch
-	_, err = git.NewCommand(ctx, "merge-base", "--is-ancestor", headFile, pr.BaseBranch).
-		RunInDirWithEnv(pr.BaseRepo.RepoPath(), []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	_, _, err = git.NewCommand(ctx, "merge-base", "--is-ancestor", headFile, pr.BaseBranch).
+		RunStdString(&git.RunOpts{Dir: pr.BaseRepo.RepoPath(), Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		// Errors are signaled by a non-zero status that is not 1
 		if strings.Contains(err.Error(), "exit status 1") {
@@ -113,8 +204,8 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 	cmd := commitID[:40] + ".." + pr.BaseBranch
 
 	// Get the commit from BaseBranch where the pull request got merged
-	mergeCommit, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
-		RunInDirWithEnv("", []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()})
+	mergeCommit, _, err := git.NewCommand(ctx, "rev-list", "--ancestry-path", "--merges", "--reverse", cmd).
+		RunStdString(&git.RunOpts{Dir: "", Env: []string{"GIT_INDEX_FILE=" + indexTmpPath, "GIT_DIR=" + pr.BaseRepo.RepoPath()}})
 	if err != nil {
 		return nil, fmt.Errorf("git rev-list --ancestry-path --merges --reverse: %v", err)
 	} else if len(mergeCommit) < 40 {
@@ -122,7 +213,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 		mergeCommit = commitID[:40]
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
@@ -139,7 +230,7 @@ func getMergeCommit(ctx context.Context, pr *models.PullRequest) (*git.Commit, e
 // manuallyMerged checks if a pull request got manually merged
 // When a pull request got manually merged mark the pull request as merged
 func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("PullRequest[%d].LoadBaseRepo: %v", pr.ID, err)
 		return false
 	}
@@ -168,7 +259,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		// When the commit author is unknown set the BaseRepo owner as merger
 		if merger == nil {
 			if pr.BaseRepo.Owner == nil {
-				if err = pr.BaseRepo.GetOwner(db.DefaultContext); err != nil {
+				if err = pr.BaseRepo.GetOwner(ctx); err != nil {
 					log.Error("BaseRepo.GetOwner[%d]: %v", pr.ID, err)
 					return false
 				}
@@ -178,7 +269,7 @@ func manuallyMerged(ctx context.Context, pr *models.PullRequest) bool {
 		pr.Merger = merger
 		pr.MergerID = merger.ID
 
-		if merged, err := pr.SetMerged(); err != nil {
+		if merged, err := pr.SetMerged(ctx); err != nil {
 			log.Error("PullRequest[%d].setMerged : %v", pr.ID, err)
 			return false
 		} else if !merged {
@@ -205,7 +296,7 @@ func InitializePullRequests(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			if err := prQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
+			if err := prPatchCheckerQueue.PushFunc(strconv.FormatInt(prID, 10), func() error {
 				log.Trace("Adding PR ID: %d to the pull requests patch checking queue", prID)
 				return nil
 			}); err != nil {
@@ -226,10 +317,12 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func testPR(id int64) {
+	pullWorkingPool.CheckIn(fmt.Sprint(id))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 
-	pr, err := models.GetPullRequestByID(id)
+	pr, err := models.GetPullRequestByID(ctx, id)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", id, err)
 		return
@@ -270,13 +363,13 @@ func CheckPrsForBaseBranch(baseRepo *repo_model.Repository, baseBranchName strin
 
 // Init runs the task queue to test all the checking status pull requests
 func Init() error {
-	prQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
+	prPatchCheckerQueue = queue.CreateUniqueQueue("pr_patch_checker", handle, "")
 
-	if prQueue == nil {
+	if prPatchCheckerQueue == nil {
 		return fmt.Errorf("Unable to create pr_patch_checker Queue")
 	}
 
-	go graceful.GetManager().RunWithShutdownFns(prQueue.Run)
+	go graceful.GetManager().RunWithShutdownFns(prPatchCheckerQueue.Run)
 	go graceful.GetManager().RunWithShutdownContext(InitializePullRequests)
 	return nil
 }

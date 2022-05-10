@@ -93,7 +93,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminAuthentications"] = true
 
-	ctx.Data["type"] = auth.LDAP
+	ctx.Data["type"] = auth.LDAP.Int()
 	ctx.Data["CurrentTypeName"] = auth.Names[auth.LDAP]
 	ctx.Data["CurrentSecurityProtocol"] = ldap.SecurityProtocolNames[ldap.SecurityProtocolUnencrypted]
 	ctx.Data["smtp_auth"] = "PLAIN"
@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0]
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -253,9 +253,6 @@ func NewAuthSourcePost(ctx *context.Context) {
 	ctx.Data["SSPISeparatorReplacement"] = "_"
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
-	// FIXME: most error path to render tplAuthNew will fail and result in 500
-	// * template: admin/auth/new:17:68: executing "admin/auth/new" at <.type.Int>: can't evaluate field Int in type interface {}
-	// * template: admin/auth/source/oauth:5:93: executing "admin/auth/source/oauth" at <.oauth2_provider.Name>: can't evaluate field Name in type interface {}
 	hasTLS := false
 	var config convert.Conversion
 	switch auth.Type(form.Type) {
@@ -313,7 +310,7 @@ func NewAuthSourcePost(ctx *context.Context) {
 		return
 	}
 
-	log.Trace("Authentication created by admin(%s): %s", ctx.User.Name, form.Name)
+	log.Trace("Authentication created by admin(%s): %s", ctx.Doer.Name, form.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.new_success", form.Name))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths")
@@ -416,7 +413,7 @@ func EditAuthSourcePost(ctx *context.Context) {
 		}
 		return
 	}
-	log.Trace("Authentication changed by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication changed by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.update_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/auths/" + strconv.FormatInt(form.ID, 10))
@@ -441,7 +438,7 @@ func DeleteAuthSource(ctx *context.Context) {
 		})
 		return
 	}
-	log.Trace("Authentication deleted by admin(%s): %d", ctx.User.Name, source.ID)
+	log.Trace("Authentication deleted by admin(%s): %d", ctx.Doer.Name, source.ID)
 
 	ctx.Flash.Success(ctx.Tr("admin.auths.deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{

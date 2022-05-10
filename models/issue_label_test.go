@@ -42,11 +42,11 @@ func TestNewLabels(t *testing.T) {
 		{RepoID: 4, Name: "labelName4", Color: "ABCDEF"},
 		{RepoID: 5, Name: "labelName5", Color: "DEF"},
 	}
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: ""}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
-	assert.Error(t, NewLabel(&Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: ""}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "#45G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "#12345G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "45G"}))
+	assert.Error(t, NewLabel(db.DefaultContext, &Label{RepoID: 3, Name: "invalid Color", Color: "12345G"}))
 	for _, label := range labels {
 		unittest.AssertNotExistsBean(t, label)
 	}
@@ -369,7 +369,12 @@ func TestDeleteIssueLabel(t *testing.T) {
 			}
 		}
 
-		assert.NoError(t, DeleteIssueLabel(issue, label, doer))
+		ctx, committer, err := db.TxContext()
+		defer committer.Close()
+		assert.NoError(t, err)
+		assert.NoError(t, DeleteIssueLabel(ctx, issue, label, doer))
+		assert.NoError(t, committer.Commit())
+
 		unittest.AssertNotExistsBean(t, &IssueLabel{IssueID: issueID, LabelID: labelID})
 		unittest.AssertExistsAndLoadBean(t, &Comment{
 			Type:     CommentTypeLabel,

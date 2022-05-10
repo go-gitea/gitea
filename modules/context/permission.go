@@ -29,6 +29,16 @@ func RequireRepoWriter(unitType unit.Type) func(ctx *Context) {
 	}
 }
 
+// CanEnableEditor checks if the user is allowed to write to the branch of the repo
+func CanEnableEditor() func(ctx *Context) {
+	return func(ctx *Context) {
+		if !ctx.Repo.Permission.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
+			ctx.NotFound("CanWriteToBranch denies permission", nil)
+			return
+		}
+	}
+}
+
 // RequireRepoWriterOr returns a middleware for requiring repository write to one of the unit permission
 func RequireRepoWriterOr(unitTypes ...unit.Type) func(ctx *Context) {
 	return func(ctx *Context) {
@@ -49,7 +59,7 @@ func RequireRepoReader(unitType unit.Type) func(ctx *Context) {
 				if ctx.IsSigned {
 					log.Trace("Permission Denied: User %-v cannot read %-v in Repo %-v\n"+
 						"User in Repo has Permissions: %-+v",
-						ctx.User,
+						ctx.Doer,
 						unitType,
 						ctx.Repo.Repository,
 						ctx.Repo.Permission)
@@ -80,7 +90,7 @@ func RequireRepoReaderOr(unitTypes ...unit.Type) func(ctx *Context) {
 			var args []interface{}
 			if ctx.IsSigned {
 				format = "Permission Denied: User %-v cannot read ["
-				args = append(args, ctx.User)
+				args = append(args, ctx.Doer)
 			} else {
 				format = "Permission Denied: Anonymous user cannot read ["
 			}
