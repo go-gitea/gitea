@@ -55,7 +55,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.15.3
 	github.com/klauspost/cpuid/v2 v2.0.12
-	github.com/lib/pq v1.10.4
+	github.com/lib/pq v1.10.5
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.69.0
 	github.com/mattn/go-isatty v0.0.14
