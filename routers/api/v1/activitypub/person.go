@@ -76,12 +76,12 @@ func Person(ctx *context.APIContext) {
 	publicKeyType.SetW3IDSecurityV1Owner(ownerProp)
 
 	publicKeyPemProp := streams.NewW3IDSecurityV1PublicKeyPemProperty()
-	if publicKeyPem, err := activitypub.GetPublicKey(user); err != nil {
+	publicKeyPem, err := activitypub.GetPublicKey(user)
+	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
 		return
-	} else {
-		publicKeyPemProp.Set(publicKeyPem)
 	}
+	publicKeyPemProp.Set(publicKeyPem)
 	publicKeyType.SetW3IDSecurityV1PublicKeyPem(publicKeyPemProp)
 
 	publicKeyProp.AppendW3IDSecurityV1PublicKey(publicKeyType)
