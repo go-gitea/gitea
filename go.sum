@@ -387,8 +387,8 @@ github.com/docker/go-units v0.4.0/go.mod h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDD
 github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5 h1:iFaUwBSo5Svw6L7HYpRu/0lE3e0BaElwnNO1qkNQxBY=
 github.com/dsnet/compress v0.0.2-0.20210315054119-f66993602bf5/go.mod h1:qssHWj60/X5sZFNxpG4HBPDHVqxNm4DfnCKgrbZOT+s=
 github.com/dsnet/golib v0.0.0-20171103203638-1ea166775780/go.mod h1:Lj+Z9rebOhdfkVLjJ8T6VcRQv3SXugXy999NBtR9aFY=
-github.com/duo-labs/webauthn v0.0.0-20220223184316-4d1cf2d34051 h1:yyZ8u8em9L9B1hz0FhumWB0CUCu7mc1tymX4YOIBlxQ=
-github.com/duo-labs/webauthn v0.0.0-20220223184316-4d1cf2d34051/go.mod h1:UMk1JMDgQDcdI2vQz+WJOIUTSjIq07qSepAVgc93rUc=
+github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499 h1:jaQHuGKk9NVcfu9VbA7ygslr/7utxdYs47i4osBhZP8=
+github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499/go.mod h1:UMk1JMDgQDcdI2vQz+WJOIUTSjIq07qSepAVgc93rUc=
 github.com/dustin/go-humanize v0.0.0-20171111073723-bb3d318650d4/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=

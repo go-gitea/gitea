@@ -20,7 +20,7 @@ require (
 	github.com/denisenkom/go-mssqldb v0.12.0
 	github.com/djherbis/buffer v1.2.0
 	github.com/djherbis/nio/v3 v3.0.1
-	github.com/duo-labs/webauthn v0.0.0-20220223184316-4d1cf2d34051
+	github.com/duo-labs/webauthn v0.0.0-20220330035159-03696f3d4499
 	github.com/dustin/go-humanize v1.0.0
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.3
 	github.com/emirpasic/gods v1.12.0
