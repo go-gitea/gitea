@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -735,13 +736,13 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *models.PullRequest) s
 }
 
 // GetIssuesLastCommitStatus returns a map of issue ID to the most recent commit's latest status
-func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (map[int64]*models.CommitStatus, error) {
+func GetIssuesLastCommitStatus(ctx context.Context, issues models.IssueList) (map[int64]*git_model.CommitStatus, error) {
 	_, lastStatus, err := GetIssuesAllCommitStatus(ctx, issues)
 	return lastStatus, err
 }
 
 // GetIssuesAllCommitStatus returns a map of issue ID to a list of all statuses for the most recent commit as well as a map of issue ID to only the commit's latest status
-func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map[int64][]*models.CommitStatus, map[int64]*models.CommitStatus, error) {
+func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map[int64][]*git_model.CommitStatus, map[int64]*git_model.CommitStatus, error) {
 	if err := issues.LoadPullRequests(); err != nil {
 		return nil, nil, err
 	}
@@ -751,8 +752,8 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map
 
 	var (
 		gitRepos = make(map[int64]*git.Repository)
-		res      = make(map[int64][]*models.CommitStatus)
-		lastRes  = make(map[int64]*models.CommitStatus)
+		res      = make(map[int64][]*git_model.CommitStatus)
+		lastRes  = make(map[int64]*git_model.CommitStatus)
 		err      error
 	)
 	defer func() {
@@ -787,14 +788,14 @@ func GetIssuesAllCommitStatus(ctx context.Context, issues models.IssueList) (map
 }
 
 // getAllCommitStatus get pr's commit statuses.
-func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statuses []*models.CommitStatus, lastStatus *models.CommitStatus, err error) {
+func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (statuses []*git_model.CommitStatus, lastStatus *git_model.CommitStatus, err error) {
 	sha, shaErr := gitRepo.GetRefCommitID(pr.GetGitRefName())
 	if shaErr != nil {
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = models.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
-	lastStatus = models.CalcCommitStatus(statuses)
+	statuses, _, err = git_model.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
+	lastStatus = git_model.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }
 

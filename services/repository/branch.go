@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -118,7 +119,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := models.RenameBranch(repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -158,7 +159,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := models.IsProtectedBranch(repo.ID, branchName)
+	isProtected, err := git_model.IsProtectedBranch(repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -196,7 +197,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		log.Error("Update: %v", err)
 	}
 
-	if err := models.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
+	if err := git_model.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 

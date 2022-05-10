@@ -6,14 +6,15 @@ package models
 
 import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 )
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
-	return ParseCommitsWithStatus(
+func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*git_model.SignCommitWithStatuses {
+	return git_model.ParseCommitsWithStatus(
 		asymkey_model.ParseCommitsWithSignature(
 			user_model.ValidateCommitsWithEmails(commits),
 			repo.GetTrustModel(),

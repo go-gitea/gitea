@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -66,7 +67,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			return err
 		}
 	} else {
-		protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, opts.OldBranch)
+		protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, opts.OldBranch)
 		if err != nil {
 			return err
 		}

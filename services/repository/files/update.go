@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/charset"
@@ -462,7 +463,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
 func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
-	protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
+	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}

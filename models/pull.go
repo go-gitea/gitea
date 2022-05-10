@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -78,9 +79,9 @@ type PullRequest struct {
 	HeadBranch          string
 	HeadCommitID        string `xorm:"-"`
 	BaseBranch          string
-	ProtectedBranch     *ProtectedBranch `xorm:"-"`
-	MergeBase           string           `xorm:"VARCHAR(40)"`
-	AllowMaintainerEdit bool             `xorm:"NOT NULL DEFAULT false"`
+	ProtectedBranch     *git_model.ProtectedBranch `xorm:"-"`
+	MergeBase           string                     `xorm:"VARCHAR(40)"`
+	AllowMaintainerEdit bool                       `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
@@ -242,7 +243,7 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 				return
 			}
 		}
-		pr.ProtectedBranch, err = GetProtectedBranchBy(ctx, pr.BaseRepo.ID, pr.BaseBranch)
+		pr.ProtectedBranch, err = git_model.GetProtectedBranchBy(ctx, pr.BaseRepo.ID, pr.BaseBranch)
 	}
 	return
 }

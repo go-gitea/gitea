@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -412,7 +413,7 @@ func DeleteTeam(t *organization.Team) error {
 
 	// update branch protections
 	{
-		protections := make([]*ProtectedBranch, 0, 10)
+		protections := make([]*git_model.ProtectedBranch, 0, 10)
 		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)

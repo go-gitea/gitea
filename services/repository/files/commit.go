@@ -8,8 +8,8 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -20,7 +20,7 @@ import (
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
-func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
+func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *git_model.CommitStatus) error {
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
@@ -36,7 +36,7 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 	}
 	gitRepo.Close()
 
-	if err := models.NewCommitStatus(models.NewCommitStatusOptions{
+	if err := git_model.NewCommitStatus(git_model.NewCommitStatusOptions{
 		Repo:         repo,
 		Creator:      creator,
 		SHA:          sha,

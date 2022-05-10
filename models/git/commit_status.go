@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git
 
 import (
 	"context"
@@ -178,7 +178,7 @@ func GetCommitStatuses(repo *repo_model.Repository, sha string, opts *CommitStat
 		opts.Page = 1
 	}
 	if opts.PageSize <= 0 {
-		opts.Page = ItemsPerPage
+		opts.Page = setting.ItemsPerPage
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)

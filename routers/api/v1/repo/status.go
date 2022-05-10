@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -56,7 +56,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "sha not given", nil)
 		return
 	}
-	status := &models.CommitStatus{
+	status := &git_model.CommitStatus{
 		State:       api.CommitStatusState(form.State),
 		TargetURL:   form.TargetURL,
 		Description: form.Description,
@@ -188,7 +188,7 @@ func getCommitStatuses(ctx *context.APIContext, sha string) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	statuses, maxResults, err := models.GetCommitStatuses(repo, sha, &models.CommitStatusOptions{
+	statuses, maxResults, err := git_model.GetCommitStatuses(repo, sha, &git_model.CommitStatusOptions{
 		ListOptions: listOptions,
 		SortType:    ctx.FormTrim("sort"),
 		State:       ctx.FormTrim("state"),
@@ -253,7 +253,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	statuses, count, err := models.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
+	statuses, count, err := git_model.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %v", repo.FullName(), sha, err))
 		return

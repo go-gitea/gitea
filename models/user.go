@@ -15,6 +15,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -125,7 +126,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	{
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
-			protections := make([]*ProtectedBranch, 0, batchSize)
+			protections := make([]*git_model.ProtectedBranch, 0, batchSize)
 			// @perf: We can't filter on DB side by u.ID, as those IDs are serialized as JSON strings.
 			//   We could filter down with `WHERE repo_id IN (reposWithPushPermission(u))`,
 			//   though that query will be quite complex and tricky to maintain (compare `getRepoAssignees()`).

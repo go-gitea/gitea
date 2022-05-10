@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -32,7 +32,7 @@ func ProtectedBranch(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsBranches"] = true
 
-	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
+	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return
@@ -111,7 +111,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + branch
 	c.Data["PageIsSettingsBranches"] = true
 
-	protectBranch, err := models.GetProtectedBranchBy(c, c.Repo.Repository.ID, branch)
+	protectBranch, err := git_model.GetProtectedBranchBy(c, c.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			c.ServerError("GetProtectBranchOfRepoByName", err)
@@ -121,7 +121,7 @@ func SettingsProtectedBranch(c *context.Context) {
 
 	if protectBranch == nil {
 		// No options found, create defaults.
-		protectBranch = &models.ProtectedBranch{
+		protectBranch = &git_model.ProtectedBranch{
 			BranchName: branch,
 		}
 	}
@@ -135,7 +135,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.WhitelistUserIDs), ",")
 	c.Data["merge_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.MergeWhitelistUserIDs), ",")
 	c.Data["approvals_whitelist_users"] = strings.Join(base.Int64sToStrings(protectBranch.ApprovalsWhitelistUserIDs), ",")
-	contexts, _ := models.FindRepoRecentCommitStatusContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
+	contexts, _ := git_model.FindRepoRecentCommitStatusContexts(c.Repo.Repository.ID, 7*24*time.Hour) // Find last week status check contexts
 	for _, ctx := range protectBranch.StatusCheckContexts {
 		var found bool
 		for i := range contexts {
@@ -184,7 +184,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch)
+	protectBranch, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			ctx.ServerError("GetProtectBranchOfRepoByName", err)
@@ -195,7 +195,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	if f.Protected {
 		if protectBranch == nil {
 			// No options found, create defaults.
-			protectBranch = &models.ProtectedBranch{
+			protectBranch = &git_model.ProtectedBranch{
 				RepoID:     ctx.Repo.Repository.ID,
 				BranchName: branch,
 			}
@@ -262,7 +262,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 		protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
-		err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+		err = git_model.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, git_model.WhitelistOptions{
 			UserIDs:          whitelistUsers,
 			TeamIDs:          whitelistTeams,
 			MergeUserIDs:     mergeWhitelistUsers,
@@ -282,7 +282,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%s", ctx.Repo.RepoLink, util.PathEscapeSegments(branch)))
 	} else {
 		if protectBranch != nil {
-			if err := models.DeleteProtectedBranch(ctx.Repo.Repository.ID, protectBranch.ID); err != nil {
+			if err := git_model.DeleteProtectedBranch(ctx.Repo.Repository.ID, protectBranch.ID); err != nil {
 				ctx.ServerError("DeleteProtectedBranch", err)
 				return
 			}
