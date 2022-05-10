@@ -5,7 +5,7 @@ export default {
   testMatch: ['<rootDir>/**/*.test.js'],
   testTimeout: 20000,
   transform: {
-    '\\.svg$': 'jest-raw-loader',
+    '\\.svg$': '<rootDir>/js/testUtils/jestRawLoader.js',
   },
   verbose: false,
 };
