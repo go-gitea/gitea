@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -246,4 +247,24 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 	}
 
 	return res.RowsAffected()
+}
+
+// CountActionCreatedUnixString count actions where created_unix is an empty string
+func CountActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+	}
+	return 0, nil
+}
+
+// FixActionCreatedUnixString set created_unix to zero if it is an empty string
+func FixActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		if err != nil {
+			return 0, err
+		}
+		return res.RowsAffected()
+	}
+	return 0, nil
 }
