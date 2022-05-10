@@ -16,8 +16,29 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
+// GenerateIssueLabels generates issue labels from a template repository
+func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateLabels, err := models.GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	for _, templateLabel := range templateLabels {
+		generateLabel := &models.Label{
+			RepoID:      generateRepo.ID,
+			Name:        templateLabel.Name,
+			Description: templateLabel.Description,
+			Color:       templateLabel.Color,
+		}
+		if err := db.Insert(ctx, generateLabel); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // GenerateRepository generates a repository from a template
-func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.Repository, opts models.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.Repository, opts repo_module.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	if !doer.IsAdmin && !owner.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: owner.MaxRepoCreation,
@@ -54,7 +75,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 
 		// Webhooks
 		if opts.Webhooks {
-			if err = models.GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
+			if err = GenerateWebhooks(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}
@@ -68,7 +89,7 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 
 		// Issue Labels
 		if opts.IssueLabels {
-			if err = models.GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
+			if err = GenerateIssueLabels(ctx, templateRepo, generateRepo); err != nil {
 				return err
 			}
 		}

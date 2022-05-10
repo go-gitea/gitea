@@ -55,7 +55,7 @@ func Code(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.Doer)
+		repoIDs, err = repo_model.FindUserAccessibleRepoIDs(ctx.Doer)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return

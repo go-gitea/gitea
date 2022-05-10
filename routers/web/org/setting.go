@@ -117,7 +117,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// update forks visibility
 	if visibilityChanged {
-		repos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 			Actor: org.AsUser(), Private: true, ListOptions: db.ListOptions{Page: 1, PageSize: org.NumRepos},
 		})
 		if err != nil {

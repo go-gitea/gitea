@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -79,6 +80,34 @@ func GenerateGitHooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 
 		generateHook.Content = templateHook.Content
 		if err := generateHook.Update(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// GenerateWebhooks generates webhooks from a template repository
+func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
+	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	if err != nil {
+		return err
+	}
+
+	for _, templateWebhook := range templateWebhooks {
+		generateWebhook := &webhook.Webhook{
+			RepoID:      generateRepo.ID,
+			URL:         templateWebhook.URL,
+			HTTPMethod:  templateWebhook.HTTPMethod,
+			ContentType: templateWebhook.ContentType,
+			Secret:      templateWebhook.Secret,
+			HookEvent:   templateWebhook.HookEvent,
+			IsActive:    templateWebhook.IsActive,
+			Type:        templateWebhook.Type,
+			OrgID:       templateWebhook.OrgID,
+			Events:      templateWebhook.Events,
+			Meta:        templateWebhook.Meta,
+		}
+		if err := webhook.CreateWebhook(ctx, generateWebhook); err != nil {
 			return err
 		}
 	}

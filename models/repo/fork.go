@@ -63,3 +63,15 @@ func GetForks(repo *Repository, listOptions db.ListOptions) ([]*Repository, erro
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
 }
+
+// IncrementRepoForkNum increment repository fork number
+func IncrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
+	return err
+}
+
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
+	return err
+}

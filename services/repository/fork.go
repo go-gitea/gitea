@@ -96,7 +96,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return err
 		}
 
-		if err = models.IncrementRepoForkNum(txCtx, opts.BaseRepo.ID); err != nil {
+		if err = repo_model.IncrementRepoForkNum(txCtx, opts.BaseRepo.ID); err != nil {
 			return err
 		}
 
@@ -173,7 +173,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 			return nil
 		}
 
-		if err := models.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
+		if err := repo_model.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
 			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
 			return err
 		}

@@ -123,7 +123,7 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
@@ -192,7 +192,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
@@ -344,7 +344,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.GenerateRepoOptions{
+	opts := repo_module.GenerateRepoOptions{
 		Name:          form.Name,
 		DefaultBranch: form.DefaultBranch,
 		Description:   form.Description,

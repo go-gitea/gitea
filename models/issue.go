@@ -1352,23 +1352,23 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	}
 	if org != nil {
 		if team != nil {
-			cond = cond.And(teamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
+			cond = cond.And(repo_model.TeamUnitsRepoCond(repoIDstr, userID, org.ID, team.ID, unitType)) // special team member repos
 		} else {
 			cond = cond.And(
 				builder.Or(
-					userOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					userOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userOwnedRepoCond(userID),                          // owned repos
-				userCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
-				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
-				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
-				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(userID),                          // owned repos
+				repo_model.UserCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
+				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
+				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
 			),
 		)
 	}
@@ -1434,7 +1434,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	opts.setupSessionNoLimit(sess)
 
-	accessCond := accessibleRepositoryCondition(user)
+	accessCond := repo_model.AccessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
 		Distinct("issue.repo_id").
 		Table("issue").
