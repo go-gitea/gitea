@@ -44,9 +44,6 @@ var ItemsPerPage = 40
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
-
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	system_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", LocalCopyPath())
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
