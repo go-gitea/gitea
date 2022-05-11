@@ -574,7 +574,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Collaborator:
+	case *repo_model.Collaborator:
 		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())

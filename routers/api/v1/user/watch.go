@@ -7,8 +7,8 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -26,7 +26,7 @@ func getWatchedRepos(user *user_model.User, private bool, listOptions db.ListOpt
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := models.AccessLevel(user, watched)
+		access, err := access_model.AccessLevel(user, watched)
 		if err != nil {
 			return nil, 0, err
 		}

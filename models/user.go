@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -69,8 +70,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 
 	if err = db.DeleteBeans(ctx,
 		&AccessToken{UID: u.ID},
-		&Collaboration{UserID: u.ID},
-		&Access{UserID: u.ID},
+		&repo_model.Collaboration{UserID: u.ID},
+		&access_model.Access{UserID: u.ID},
 		&repo_model.Watch{UserID: u.ID},
 		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
@@ -81,7 +82,6 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&user_model.UserOpenID{UID: u.ID},
 		&issues.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
-		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},

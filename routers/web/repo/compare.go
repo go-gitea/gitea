@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -412,7 +413,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
+	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -431,7 +432,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
+		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil

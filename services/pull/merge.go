@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -751,7 +752,7 @@ func getDiffTree(ctx context.Context, repoPath, baseBranch, headBranch string) (
 }
 
 // IsUserAllowedToMerge check if user is allowed to merge PR with given permissions and branch protections
-func IsUserAllowedToMerge(ctx context.Context, pr *models.PullRequest, p models.Permission, user *user_model.User) (bool, error) {
+func IsUserAllowedToMerge(ctx context.Context, pr *models.PullRequest, p access_model.Permission, user *user_model.User) (bool, error) {
 	if user == nil {
 		return false, nil
 	}

@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -402,7 +403,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 
-		valid, err := models.CanBeAssigned(assignee, repo, true)
+		valid, err := access_model.CanBeAssigned(ctx, assignee, repo, true)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "canBeAssigned", err)
 			return
@@ -983,7 +984,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read baseRepo's codes and pulls, NOT headRepo's
-	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
+	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
@@ -1002,7 +1003,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 	}
 
 	// user should have permission to read headrepo's codes
-	permHead, err := models.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
+	permHead, err := access_model.GetUserRepoPermission(ctx, headRepo, ctx.Doer)
 	if err != nil {
 		headGitRepo.Close()
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
@@ -1197,7 +1198,7 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	}
 
 	if ctx.Doer.ID != autoMerge.DoerID {
-		allowed, err := models.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
+		allowed, err := access_model.IsUserRepoAdminCtx(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

@@ -11,6 +11,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -49,13 +51,13 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	count, err := models.CountCollaborators(ctx.Repo.Repository.ID)
+	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	collaborators, err := models.GetCollaborators(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -110,7 +112,7 @@ func IsCollaborator(ctx *context.APIContext) {
 		}
 		return
 	}
-	isColab, err := models.IsCollaborator(ctx.Repo.Repository.ID, user.ID)
+	isColab, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, user.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsCollaborator", err)
 		return
@@ -178,7 +180,7 @@ func AddCollaborator(ctx *context.APIContext) {
 	}
 
 	if form.Permission != nil {
-		if err := models.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
@@ -279,7 +281,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	permission, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
+	permission, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return

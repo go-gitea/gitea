@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -58,6 +60,39 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
 		Find(&prs)
+}
+
+// CanMaintainerWriteToBranch check whether user is a matainer and could write to the branch
+func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *user_model.User) bool {
+	if p.CanWrite(unit.TypeCode) {
+		return true
+	}
+
+	if len(p.Units) < 1 {
+		return false
+	}
+
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
+	if err != nil {
+		return false
+	}
+
+	for _, pr := range prs {
+		if pr.AllowMaintainerEdit {
+			err = pr.LoadBaseRepo()
+			if err != nil {
+				continue
+			}
+			prPerm, err := access_model.GetUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
+			if err != nil {
+				continue
+			}
+			if prPerm.CanWrite(unit.TypeCode) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
