@@ -13,6 +13,7 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -87,6 +88,10 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+		return err
 	}
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&

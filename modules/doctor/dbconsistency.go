@@ -186,6 +186,15 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find action without repository
 		genericOrphanCheck("Action entries without existing repository",
 			"action", "repository", "action.repo_id=repository.id"),
+		// find OAuth2Grant without existing user
+		genericOrphanCheck("Orphaned OAuth2Grant without existing User",
+			"oauth2_grant", "user", "oauth2_grant.user_id=user.id"),
+		// find OAuth2Application without existing user
+		genericOrphanCheck("Orphaned OAuth2Application without existing User",
+			"oauth2_application", "user", "oauth2_application.uid=user.id"),
+		// find OAuth2AuthorizationCode without existing OAuth2Grant
+		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
+			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
 	)
 
 	for _, c := range consistencyChecks {
