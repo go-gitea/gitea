@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -83,7 +84,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 	if user == nil {
 		return false, false, nil
 	}
-	headRepoPerm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, user)
+	headRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
 		return false, false, err
 	}
@@ -115,7 +116,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, nil
 	}
 
-	baseRepoPerm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, user)
+	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 	if err != nil {
 		return false, false, err
 	}

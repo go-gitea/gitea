@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -959,7 +960,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				return nil, nil, 0, 0
 			}
 
-			valid, err := models.CanBeAssigned(assignee, repo, isPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
 				return nil, nil, 0, 0
@@ -1051,7 +1052,7 @@ func NewIssuePost(ctx *context.Context) {
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
-	perm, err := models.GetUserRepoPermission(ctx, repo, poster)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
 	}
@@ -1067,7 +1068,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		} else {
 
 			// Otherwise check if poster is the real repo admin.
-			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
 			if err != nil {
 				return models.RoleDescriptorNone, err
 			}
@@ -1526,7 +1527,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil {
-				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
@@ -1548,7 +1549,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
-			perm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -1978,7 +1979,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return
@@ -2941,7 +2942,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 			if err != nil {
 				return err
 			}
-			perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
 			if err != nil {
 				return err
 			}

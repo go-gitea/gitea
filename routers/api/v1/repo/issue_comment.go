@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -203,7 +204,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *model
 		if err != nil {
 			return false
 		}
-		perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}
