@@ -390,6 +390,19 @@
 					</div>
 				</div>
 
+				{{$isPackagesEnabled := .Repository.UnitEnabled $.UnitTypePackages}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.packages"}}</label>
+					{{if .UnitTypePackages.UnitGlobalDisabled}}
+					<div class="ui checkbox tooltip disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.packages_desc"}}</label>
+					</div>
+				</div>
+
 				{{if not .IsMirror}}
 					<div class="ui divider"></div>
 					{{$pullRequestEnabled := .Repository.UnitEnabled $.UnitTypePullRequests}}
@@ -446,6 +459,12 @@
 							<div class="ui checkbox">
 								<input name="enable_autodetect_manual_merge" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AutodetectManualMerge)}}checked{{end}}>
 								<label>{{.i18n.Tr "repo.settings.pulls.enable_autodetect_manual_merge"}}</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="pulls_allow_rebase_update" type="checkbox" {{if or (not $pullRequestEnabled) ($prUnit.PullRequestsConfig.AllowRebaseUpdate)}}checked{{end}}>
+								<label>{{.i18n.Tr "repo.settings.pulls.allow_rebase_update"}}</label>
 							</div>
 						</div>
 						<div class="field">

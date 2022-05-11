@@ -63,6 +63,7 @@ func EscapeControlBytes(text []byte) (EscapeStatus, []byte) {
 func EscapeControlReader(text io.Reader, output io.Writer) (escaped EscapeStatus, err error) {
 	buf := make([]byte, 4096)
 	readStart := 0
+	runeCount := 0
 	var n int
 	var writePos int
 
@@ -74,10 +75,13 @@ readingloop:
 	for err == nil {
 		n, err = text.Read(buf[readStart:])
 		bs := buf[:n+readStart]
+		n = len(bs)
 		i := 0
 
 		for i < len(bs) {
 			r, size := utf8.DecodeRune(bs[i:])
+			runeCount++
+
 			// Now handle the codepoints
 			switch {
 			case r == utf8.RuneError:
@@ -112,6 +116,8 @@ readingloop:
 				lineHasRTLScript = false
 				lineHasLTRScript = false
 
+			case runeCount == 1 && r == 0xFEFF: // UTF BOM
+				// the first BOM is safe
 			case r == '\r' || r == '\t' || r == ' ':
 				// These are acceptable control characters and space characters
 			case unicode.IsSpace(r):

@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
@@ -130,7 +132,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 				continue
 			}
 
-			perm, err := models.GetUserRepoPermission(refRepo, doer)
+			perm, err := access_model.GetUserRepoPermission(db.DefaultContext, refRepo, doer)
 			if err != nil {
 				return err
 			}

@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -41,9 +42,9 @@ func installRecovery() func(next http.Handler) http.Handler {
 						combinedErr := fmt.Sprintf("PANIC: %v\n%s", err, log.Stack(2))
 						log.Error("%s", combinedErr)
 						if setting.IsProd {
-							http.Error(w, http.StatusText(500), 500)
+							http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 						} else {
-							http.Error(w, combinedErr, 500)
+							http.Error(w, combinedErr, http.StatusInternalServerError)
 						}
 					}
 				}()
@@ -66,7 +67,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 					if !setting.IsProd {
 						store["ErrorMsg"] = combinedErr
 					}
-					err = rnd.HTML(w, 500, "status/500", templates.BaseVars().Merge(store))
+					err = rnd.HTML(w, http.StatusInternalServerError, "status/500", templates.BaseVars().Merge(store))
 					if err != nil {
 						log.Error("%v", err)
 					}
@@ -106,6 +107,7 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Get("/api/healthz", healthcheck.Check)
 
 	r.NotFound(web.Wrap(installNotFound))
 	return r

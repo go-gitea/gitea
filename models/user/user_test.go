@@ -232,7 +232,21 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, IsErrEmailInvalid(err))
+	assert.True(t, IsErrEmailCharIsNotSupported(err))
+}
+
+func TestCreateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	// add new user with user2's email
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	err := CreateUser(user)
+	assert.Error(t, err)
+	assert.True(t, IsErrEmailAlreadyUsed(err))
 }
 
 func TestGetUserIDsByNames(t *testing.T) {

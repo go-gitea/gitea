@@ -45,7 +45,7 @@ func OpenIDPost(ctx *context.Context) {
 	form.Openid = id
 	log.Trace("Normalized id: " + id)
 
-	oids, err := user_model.GetUserOpenIDs(ctx.User.ID)
+	oids, err := user_model.GetUserOpenIDs(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetUserOpenIDs", err)
 		return
@@ -89,7 +89,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 	log.Trace("Verified ID: " + id)
 
-	oid := &user_model.UserOpenID{UID: ctx.User.ID, URI: id}
+	oid := &user_model.UserOpenID{UID: ctx.Doer.ID, URI: id}
 	if err = user_model.AddUserOpenID(oid); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
@@ -98,7 +98,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 		ctx.ServerError("AddUserOpenID", err)
 		return
 	}
-	log.Trace("Associated OpenID %s to user %s", id, ctx.User.Name)
+	log.Trace("Associated OpenID %s to user %s", id, ctx.Doer.Name)
 	ctx.Flash.Success(ctx.Tr("settings.add_openid_success"))
 
 	ctx.Redirect(setting.AppSubURL + "/user/settings/security")
@@ -106,11 +106,11 @@ func settingsOpenIDVerify(ctx *context.Context) {
 
 // DeleteOpenID response for delete user's openid
 func DeleteOpenID(ctx *context.Context) {
-	if err := user_model.DeleteUserOpenID(&user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.User.ID}); err != nil {
+	if err := user_model.DeleteUserOpenID(&user_model.UserOpenID{ID: ctx.FormInt64("id"), UID: ctx.Doer.ID}); err != nil {
 		ctx.ServerError("DeleteUserOpenID", err)
 		return
 	}
-	log.Trace("OpenID address deleted: %s", ctx.User.Name)
+	log.Trace("OpenID address deleted: %s", ctx.Doer.Name)
 
 	ctx.Flash.Success(ctx.Tr("settings.openid_deletion_success"))
 	ctx.JSON(http.StatusOK, map[string]interface{}{

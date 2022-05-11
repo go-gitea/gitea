@@ -27,9 +27,9 @@ import (
 	"xorm.io/builder"
 )
 
-func iterateRepositories(each func(*repo_model.Repository) error) error {
+func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) error) error {
 	err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
@@ -50,7 +50,7 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 }
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
@@ -86,20 +86,20 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 	numRepos := 0
 	numNeedUpdate := 0
 
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+		r, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
 		if autofix {
-			_, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunStdString(&git.RunOpts{Dir: r.Path})
 			return err
 		}
 
-		value, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunInDir(r.Path)
+		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunStdString(&git.RunOpts{Dir: r.Path})
 		if err != nil {
 			return err
 		}
@@ -132,13 +132,13 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		logger.Critical("Unable to create cache: %v", err)
 		return err
 	}
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
 			repo.Owner = owner.(*user_model.User)
 		} else {
-			if err := repo.GetOwner(db.DefaultContext); err != nil {
+			if err := repo.GetOwner(ctx); err != nil {
 				return err
 			}
 			cache.Add(repo.OwnerID, repo.Owner)

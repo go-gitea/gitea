@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package pipeline
 
@@ -53,7 +52,11 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand(repo.Ctx, "rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
+		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
+			Dir:    repo.Path,
+			Stdout: revListWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {

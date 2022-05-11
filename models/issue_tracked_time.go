@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -52,7 +53,7 @@ func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 		if err != nil {
 			return
 		}
-		err = t.Issue.loadRepo(ctx)
+		err = t.Issue.LoadRepo(ctx)
 		if err != nil {
 			return
 		}
@@ -169,15 +170,15 @@ func AddTime(user *user_model.User, issue *Issue, amount int64, created time.Tim
 		return nil, err
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: SecToTime(amount),
+		Content: util.SecToTime(amount),
 		Type:    CommentTypeAddTimeManual,
 		TimeID:  t.ID,
 	}); err != nil {
@@ -226,7 +227,7 @@ func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, 
 			}
 			return nil, err
 		}
-		totalTimes[user] = SecToTime(total)
+		totalTimes[user] = util.SecToTime(total)
 	}
 	return totalTimes, nil
 }
@@ -250,17 +251,17 @@ func DeleteIssueUserTimes(issue *Issue, user *user_model.User) error {
 		return err
 	}
 	if removedTime == 0 {
-		return ErrNotExist{}
+		return db.ErrNotExist{}
 	}
 
-	if err := issue.loadRepo(ctx); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   issue,
 		Repo:    issue.Repo,
 		Doer:    user,
-		Content: "- " + SecToTime(removedTime),
+		Content: "- " + util.SecToTime(removedTime),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -285,11 +286,11 @@ func DeleteTime(t *TrackedTime) error {
 		return err
 	}
 
-	if _, err := createComment(ctx, &CreateCommentOptions{
+	if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Issue:   t.Issue,
 		Repo:    t.Issue.Repo,
 		Doer:    t.User,
-		Content: "- " + SecToTime(t.Time),
+		Content: "- " + util.SecToTime(t.Time),
 		Type:    CommentTypeDeleteTimeManual,
 	}); err != nil {
 		return err
@@ -310,7 +311,7 @@ func deleteTimes(e db.Engine, opts FindTrackedTimesOptions) (removedTime int64, 
 
 func deleteTime(e db.Engine, t *TrackedTime) error {
 	if t.Deleted {
-		return ErrNotExist{ID: t.ID}
+		return db.ErrNotExist{ID: t.ID}
 	}
 	t.Deleted = true
 	_, err := e.ID(t.ID).Cols("deleted").Update(t)
@@ -324,7 +325,7 @@ func GetTrackedTimeByID(id int64) (*TrackedTime, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrNotExist{ID: id}
+		return nil, db.ErrNotExist{ID: id}
 	}
 	return time, nil
 }

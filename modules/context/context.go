@@ -10,6 +10,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"html"
 	"html/template"
 	"io"
@@ -21,6 +22,7 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -31,13 +33,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth"
 
 	"gitea.com/go-chi/cache"
 	"gitea.com/go-chi/session"
 	chi "github.com/go-chi/chi/v5"
-	"github.com/unknwon/com"
 	"github.com/unrolled/render"
 	"golang.org/x/crypto/pbkdf2"
 )
@@ -57,18 +59,30 @@ type Context struct {
 	Render   Render
 	translation.Locale
 	Cache   cache.Cache
-	csrf    CSRF
+	csrf    CSRFProtector
 	Flash   *middleware.Flash
 	Session session.Store
 
 	Link        string // current request URL
 	EscapedLink string
-	User        *user_model.User
+	Doer        *user_model.User
 	IsSigned    bool
 	IsBasicAuth bool
 
-	Repo *Repository
-	Org  *Organization
+	ContextUser *user_model.User
+	Repo        *Repository
+	Org         *Organization
+	Package     *Package
+}
+
+// Close frees all resources hold by Context
+func (ctx *Context) Close() error {
+	var err error
+	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
+		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+	}
+	// TODO: close opened repo, and more
+	return err
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
@@ -88,7 +102,7 @@ func (ctx *Context) GetData() map[string]interface{} {
 
 // IsUserSiteAdmin returns true if current user is a site admin
 func (ctx *Context) IsUserSiteAdmin() bool {
-	return ctx.IsSigned && ctx.User.IsAdmin
+	return ctx.IsSigned && ctx.Doer.IsAdmin
 }
 
 // IsUserRepoOwner returns true if current user owns current repo
@@ -139,7 +153,7 @@ func RedirectToUser(ctx *Context, userName string, redirectUserID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
 // HasAPIError returns true if error occurs in form validation.
@@ -181,6 +195,12 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 			continue
 		}
 
+		// Unfortunately browsers consider a redirect Location with preceding "//" and "/\" as meaning redirect to "http(s)://REST_OF_PATH"
+		// Therefore we should ignore these redirect locations to prevent open redirects
+		if len(loc) > 1 && loc[0] == '/' && (loc[1] == '/' || loc[1] == '\\') {
+			continue
+		}
+
 		u, err := url.Parse(loc)
 		if err != nil || ((u.Scheme != "" || u.Host != "") && !strings.HasPrefix(strings.ToLower(loc), strings.ToLower(setting.AppURL))) {
 			continue
@@ -197,7 +217,10 @@ func (ctx *Context) RedirectToFirst(location ...string) {
 func (ctx *Context) HTML(status int, name base.TplName) {
 	log.Debug("Template: %s", name)
 	tmplStartTime := time.Now()
-	ctx.Data["TmplLoadTimes"] = func() string {
+	if !setting.IsProd {
+		ctx.Data["TemplateName"] = name
+	}
+	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
 	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
@@ -212,7 +235,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 // RenderToString renders the template content to a string
 func (ctx *Context) RenderToString(name base.TplName, data map[string]interface{}) (string, error) {
 	var buf strings.Builder
-	err := ctx.Render.HTML(&buf, 200, string(name), data)
+	err := ctx.Render.HTML(&buf, http.StatusOK, string(name), data)
 	return buf.String(), err
 }
 
@@ -266,7 +289,7 @@ func (ctx *Context) ServerError(logMsg string, logErr error) {
 func (ctx *Context) serverErrorInternal(logMsg string, logErr error) {
 	if logErr != nil {
 		log.ErrorWithSkip(2, "%s: %v", logMsg, logErr)
-		if errors.Is(logErr, &net.OpError{}) {
+		if _, ok := logErr.(*net.OpError); ok || errors.Is(logErr, &net.OpError{}) {
 			// This is an error within the underlying connection
 			// and further rendering will not work so just return
 			return
@@ -321,6 +344,18 @@ func (ctx *Context) RespHeader() http.Header {
 	return ctx.Resp.Header()
 }
 
+// SetServeHeaders sets necessary content serve headers
+func (ctx *Context) SetServeHeaders(filename string) {
+	ctx.Resp.Header().Set("Content-Description", "File Transfer")
+	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
+	ctx.Resp.Header().Set("Expires", "0")
+	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
+	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+}
+
 // ServeContent serves content to http request
 func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
 	modTime := time.Now()
@@ -330,14 +365,7 @@ func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interfa
 			modTime = v
 		}
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
-	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
+	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
 }
 
@@ -349,29 +377,39 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	} else {
 		name = path.Base(file)
 	}
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
 }
 
 // ServeStream serves file via io stream
 func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+name)
-	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
-	ctx.Resp.Header().Set("Expires", "0")
-	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
-	ctx.Resp.Header().Set("Pragma", "public")
+	ctx.SetServeHeaders(name)
 	_, err := io.Copy(ctx.Resp, rd)
 	if err != nil {
 		ctx.ServerError("Download file failed", err)
 	}
+}
+
+// UploadStream returns the request body or the first form file
+// Only form files need to get closed.
+func (ctx *Context) UploadStream() (rd io.ReadCloser, needToClose bool, err error) {
+	contentType := strings.ToLower(ctx.Req.Header.Get("Content-Type"))
+	if strings.HasPrefix(contentType, "application/x-www-form-urlencoded") || strings.HasPrefix(contentType, "multipart/form-data") {
+		if err := ctx.Req.ParseMultipartForm(32 << 20); err != nil {
+			return nil, false, err
+		}
+		if ctx.Req.MultipartForm.File == nil {
+			return nil, false, http.ErrMissingFile
+		}
+		for _, files := range ctx.Req.MultipartForm.File {
+			if len(files) > 0 {
+				r, err := files[0].Open()
+				return r, true, err
+			}
+		}
+		return nil, false, http.ErrMissingFile
+	}
+	return ctx.Req.Body, false, nil
 }
 
 // Error returned an error to web browser
@@ -394,7 +432,7 @@ func (ctx *Context) JSON(status int, content interface{}) {
 
 // Redirect redirects the request
 func (ctx *Context) Redirect(location string, status ...int) {
-	code := http.StatusFound
+	code := http.StatusSeeOther
 	if len(status) == 1 {
 		code = status[0]
 	}
@@ -449,7 +487,7 @@ func (ctx *Context) CookieDecrypt(secret, val string) (string, bool) {
 	}
 
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err = com.AESGCMDecrypt(key, text)
+	text, err = util.AESGCMDecrypt(key, text)
 	return string(text), err == nil
 }
 
@@ -463,7 +501,7 @@ func (ctx *Context) SetSuperSecureCookie(secret, name, value string, expiry int)
 // CookieEncrypt encrypts a given value using the provided secret
 func (ctx *Context) CookieEncrypt(secret, value string) string {
 	key := pbkdf2.Key([]byte(secret), []byte(secret), 1000, 16, sha256.New)
-	text, err := com.AESGCMEncrypt(key, []byte(value))
+	text, err := util.AESGCMEncrypt(key, []byte(value))
 	if err != nil {
 		panic("error encrypting cookie: " + err.Error())
 	}
@@ -551,6 +589,22 @@ func (ctx *Context) Value(key interface{}) interface{} {
 	return ctx.Req.Context().Value(key)
 }
 
+// SetTotalCountHeader set "X-Total-Count" header
+func (ctx *Context) SetTotalCountHeader(total int64) {
+	ctx.RespHeader().Set("X-Total-Count", fmt.Sprint(total))
+	ctx.AppendAccessControlExposeHeaders("X-Total-Count")
+}
+
+// AppendAccessControlExposeHeaders append headers by name to "Access-Control-Expose-Headers" header
+func (ctx *Context) AppendAccessControlExposeHeaders(names ...string) {
+	val := ctx.RespHeader().Get("Access-Control-Expose-Headers")
+	if len(val) != 0 {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", fmt.Sprintf("%s, %s", val, strings.Join(names, ", ")))
+	} else {
+		ctx.RespHeader().Set("Access-Control-Expose-Headers", strings.Join(names, ", "))
+	}
+}
+
 // Handler represents a custom handler
 type Handler func(*Context)
 
@@ -571,10 +625,10 @@ func GetContext(req *http.Request) *Context {
 // GetContextUser returns context user
 func GetContextUser(req *http.Request) *user_model.User {
 	if apiContext, ok := req.Context().Value(apiContextKey).(*APIContext); ok {
-		return apiContext.User
+		return apiContext.Doer
 	}
 	if ctx, ok := req.Context().Value(contextKey).(*Context); ok {
-		return ctx.User
+		return ctx.Doer
 	}
 	return nil
 }
@@ -596,18 +650,18 @@ func getCsrfOpts() CsrfOptions {
 // Auth converts auth.Auth as a middleware
 func Auth(authMethod auth.Method) func(*Context) {
 	return func(ctx *Context) {
-		ctx.User = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
-		if ctx.User != nil {
-			if ctx.Locale.Language() != ctx.User.Language {
+		ctx.Doer = authMethod.Verify(ctx.Req, ctx.Resp, ctx, ctx.Session)
+		if ctx.Doer != nil {
+			if ctx.Locale.Language() != ctx.Doer.Language {
 				ctx.Locale = middleware.Locale(ctx.Resp, ctx.Req)
 			}
 			ctx.IsBasicAuth = ctx.Data["AuthedMethod"].(string) == auth.BasicMethodName
 			ctx.IsSigned = true
 			ctx.Data["IsSigned"] = ctx.IsSigned
-			ctx.Data["SignedUser"] = ctx.User
-			ctx.Data["SignedUserID"] = ctx.User.ID
-			ctx.Data["SignedUserName"] = ctx.User.Name
-			ctx.Data["IsAdmin"] = ctx.User.IsAdmin
+			ctx.Data["SignedUser"] = ctx.Doer
+			ctx.Data["SignedUserID"] = ctx.Doer.ID
+			ctx.Data["SignedUserName"] = ctx.Doer.Name
+			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
 		} else {
 			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""
@@ -622,7 +676,9 @@ func Auth(authMethod auth.Method) func(*Context) {
 func Contexter() func(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
 	csrfOpts := getCsrfOpts()
-
+	if !setting.IsProd {
+		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
+	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(resp, req)
@@ -647,13 +703,15 @@ func Contexter() func(next http.Handler) http.Handler {
 					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			defer ctx.Close()
+
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
 			ctx.Data["Context"] = &ctx
 
 			ctx.Req = WithContext(req, &ctx)
-			ctx.csrf = Csrfer(csrfOpts, &ctx)
+			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
@@ -711,7 +769,7 @@ func Contexter() func(next http.Handler) http.Handler {
 
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
-			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
+			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
 			ctx.Data["CsrfTokenHtml"] = template.HTML(`<input type="hidden" name="_csrf" value="` + ctx.Data["CsrfToken"].(string) + `">`)
 
 			// FIXME: do we really always need these setting? There should be someway to have to avoid having to always set these
@@ -753,4 +811,22 @@ func Contexter() func(next http.Handler) http.Handler {
 			}
 		})
 	}
+}
+
+// SearchOrderByMap represents all possible search order
+var SearchOrderByMap = map[string]map[string]db.SearchOrderBy{
+	"asc": {
+		"alpha":   db.SearchOrderByAlphabetically,
+		"created": db.SearchOrderByOldest,
+		"updated": db.SearchOrderByLeastUpdated,
+		"size":    db.SearchOrderBySize,
+		"id":      db.SearchOrderByID,
+	},
+	"desc": {
+		"alpha":   db.SearchOrderByAlphabeticallyReverse,
+		"created": db.SearchOrderByNewest,
+		"updated": db.SearchOrderByRecentUpdated,
+		"size":    db.SearchOrderBySizeReverse,
+		"id":      db.SearchOrderByIDReverse,
+	},
 }

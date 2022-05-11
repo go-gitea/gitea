@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
@@ -31,6 +32,10 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.
 
 // NotifyIssueChangeStatus places a place holder function
 func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+}
+
+// NotifyDeleteIssue notify when some issue deleted
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
 }
 
 // NotifyNewPullRequest places a place holder function
@@ -168,4 +173,12 @@ func (*NullNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_model
 
 // NotifyRepoPendingTransfer places a place holder function
 func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
+}
+
+// NotifyPackageCreate places a place holder function
+func (*NullNotifier) NotifyPackageCreate(doer *user_model.User, pd *packages_model.PackageDescriptor) {
+}
+
+// NotifyPackageDelete places a place holder function
+func (*NullNotifier) NotifyPackageDelete(doer *user_model.User, pd *packages_model.PackageDescriptor) {
 }

@@ -16,7 +16,7 @@ import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoClone,
+  initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -423,18 +423,6 @@ export function initRepository() {
   }
 
 
-  // Commit statuses
-  $('.commit-statuses-trigger').each(function () {
-    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
-    const popupPosition = positionRight ? 'right center' : 'left center';
-    $(this)
-      .popup({
-        on: 'click',
-        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
-        position: popupPosition,
-      });
-  });
-
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
@@ -498,7 +486,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoClone();
+  initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 

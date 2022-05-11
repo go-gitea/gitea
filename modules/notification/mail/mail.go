@@ -29,7 +29,8 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyCreateIssueComment Issue[%d] #%d in [%d]", issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 
@@ -124,7 +125,7 @@ func (m *mailNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comm
 
 func (m *mailNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
 	// mail only sent to added assignees and not self-assignee
-	if !removed && doer.ID != assignee.ID && assignee.EmailNotifications() == user_model.EmailNotificationsEnabled {
+	if !removed && doer.ID != assignee.ID && (assignee.EmailNotifications() == user_model.EmailNotificationsEnabled || assignee.EmailNotifications() == user_model.EmailNotificationsOnMention) {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
 		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*user_model.User{assignee}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to assignee[%d]: %v", issue.ID, assignee.ID, err)
@@ -133,7 +134,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *m
 }
 
 func (m *mailNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment) {
-	if isRequest && doer.ID != reviewer.ID && reviewer.EmailNotifications() == user_model.EmailNotificationsEnabled {
+	if isRequest && doer.ID != reviewer.ID && (reviewer.EmailNotifications() == user_model.EmailNotificationsEnabled || reviewer.EmailNotifications() == user_model.EmailNotificationsOnMention) {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
 			log.Error("Error in SendIssueAssignedMail for issue[%d] to reviewer[%d]: %v", issue.ID, reviewer.ID, err)
@@ -160,7 +161,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.LoadIssue: %v", err)
 		return
 	}
-	if err = comment.Issue.LoadRepo(); err != nil {
+	if err = comment.Issue.LoadRepo(ctx); err != nil {
 		log.Error("comment.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -168,7 +169,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.Issue.LoadPullRequest: %v", err)
 		return
 	}
-	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+	if err = comment.Issue.PullRequest.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}

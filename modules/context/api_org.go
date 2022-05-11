@@ -4,12 +4,10 @@
 
 package context
 
-import (
-	"code.gitea.io/gitea/models"
-)
+import "code.gitea.io/gitea/models/organization"
 
 // APIOrganization contains organization and team
 type APIOrganization struct {
-	Organization *models.Organization
-	Team         *models.Team
+	Organization *organization.Organization
+	Team         *organization.Team
 }

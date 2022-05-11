@@ -82,6 +82,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
+		t.Run("AutoMerge", doAutoPRMerge(&httpContext, dstPath))
 		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
@@ -160,9 +161,9 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			return
 		}
 		prefix := "lfs-data-file-"
-		_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").RunInDir(dstPath)
+		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
-		_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunInDir(dstPath)
+		_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("track", prefix+"*").RunStdString(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
 		err = git.AddChanges(dstPath, false, ".gitattributes")
 		assert.NoError(t, err)
@@ -292,20 +293,20 @@ func lockTest(t *testing.T, repoPath string) {
 }
 
 func lockFileTest(t *testing.T, filename, repoPath string) {
-	_, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("lock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("locks").RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunInDir(repoPath)
+	_, _, err = git.NewCommand(git.DefaultContext, "lfs").AddArguments("unlock", filename).RunStdString(&git.RunOpts{Dir: repoPath})
 	assert.NoError(t, err)
 }
 
 func doCommitAndPush(t *testing.T, size int, repoPath, prefix string) string {
 	name, err := generateCommitWithNewData(size, repoPath, "user2@example.com", "User Two", prefix)
 	assert.NoError(t, err)
-	_, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunInDir(repoPath) // Push
+	_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "master").RunStdString(&git.RunOpts{Dir: repoPath}) // Push
 	assert.NoError(t, err)
 	return name
 }
@@ -435,7 +436,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 				"protected":                 "on",
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
-			ctx.Session.MakeRequest(t, req, http.StatusFound)
+			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 		} else {
 			user, err := user_model.GetUserByName(userToWhitelist)
 			assert.NoError(t, err)
@@ -448,7 +449,7 @@ func doProtectBranch(ctx APITestContext, branch, userToWhitelist, unprotectedFil
 				"whitelist_users":           strconv.FormatInt(user.ID, 10),
 				"unprotected_file_patterns": unprotectedFilePatterns,
 			})
-			ctx.Session.MakeRequest(t, req, http.StatusFound)
+			ctx.Session.MakeRequest(t, req, http.StatusSeeOther)
 		}
 		// Check if master branch has been locked successfully
 		flashCookie := ctx.Session.GetCookie("macaron_flash")
@@ -615,6 +616,88 @@ func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testin
 	}
 }
 
+func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+
+		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
+		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected3"))
+		var pr api.PullRequest
+		var err error
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected3")(t)
+			assert.NoError(t, err)
+		})
+
+		// Request repository commits page
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", baseCtx.Username, baseCtx.Reponame, pr.Index))
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		// Get first commit URL
+		commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Last().Attr("href")
+		assert.True(t, exists)
+		assert.NotEmpty(t, commitURL)
+
+		commitID := path.Base(commitURL)
+
+		// Call API to add Pending status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusPending))
+
+		// Cancel not existing auto merge
+		ctx.ExpectedCode = http.StatusNotFound
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Can not create schedule twice
+		ctx.ExpectedCode = http.StatusConflict
+		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Cancel auto merge request
+		ctx.ExpectedCode = http.StatusNoContent
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Check pr status
+		ctx.ExpectedCode = 0
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.False(t, pr.HasMerged)
+
+		// Call API to add Failure status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
+
+		// Check pr status
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.False(t, pr.HasMerged)
+
+		// Call API to add Success status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
+
+		// wait to let gitea merge stuff
+		time.Sleep(time.Second)
+
+		// test pr status
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.True(t, pr.HasMerged)
+	}
+}
+
 func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headBranch string) func(t *testing.T) {
 	return func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -624,7 +707,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		gitRepo, err := git.OpenRepository(dstPath)
+		gitRepo, err := git.OpenRepository(git.DefaultContext, dstPath)
 		if !assert.NoError(t, err) {
 			return
 		}
@@ -671,7 +754,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -692,7 +775,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Contains(t, "Testing commit 1", prMsg.Body)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -745,7 +828,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		})
 
 		t.Run("Push2", func(t *testing.T) {
-			_, err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).RunInDir(dstPath)
+			err := git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master", "-o", "topic="+headBranch).Run(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}
@@ -757,7 +840,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			assert.Equal(t, false, prMsg.HasMerged)
 			assert.Equal(t, commit, prMsg.Head.Sha)
 
-			_, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "origin", "HEAD:refs/for/master/test/"+headBranch).RunStdString(&git.RunOpts{Dir: dstPath})
 			if !assert.NoError(t, err) {
 				return
 			}

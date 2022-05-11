@@ -140,15 +140,6 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	c.repoAfter = repoAfter
 	c.dirAfter = filepath.Join(c.basePath, repoAfter.OwnerName, repoAfter.Name)
 
-	for _, filename := range []string{"repo.yml", "label.yml"} {
-		beforeBytes, err := os.ReadFile(filepath.Join(c.dirBefore, filename))
-		assert.NoError(c.t, err)
-		before := c.replaceRepoName(string(beforeBytes))
-		after, err := os.ReadFile(filepath.Join(c.dirAfter, filename))
-		assert.NoError(c.t, err)
-		assert.EqualValues(c.t, before, string(after))
-	}
-
 	//
 	// base.Repository
 	//
@@ -187,7 +178,9 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	assert.GreaterOrEqual(c.t, len(issues), 1)
 	for _, issue := range issues {
 		filename := filepath.Join("comments", fmt.Sprintf("%d.yml", issue.Number))
-		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{}).([]*base.Comment)
+		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{
+			"Index": {ignore: true},
+		}).([]*base.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
 			assert.EqualValues(c.t, issue.Number, comment.IssueIndex)
