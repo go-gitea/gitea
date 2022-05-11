@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
