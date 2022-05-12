@@ -8,7 +8,7 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete,
   initRepoIssueReferenceIssue, initRepoIssueStatusButton,
   initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
@@ -28,6 +28,7 @@ import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
@@ -507,9 +508,10 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoPullRequestMerge();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+
+    initRepoPullRequestMergeForm();
   }
 
   // Pull request

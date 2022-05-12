@@ -19,9 +19,9 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -182,7 +182,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			p, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
