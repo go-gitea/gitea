@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -153,7 +154,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DefaultBranch:                           "master",
+		DefaultBranch:                           "main",
 
 		// Repository editor settings
 		Editor: struct {
@@ -278,6 +279,10 @@ func newRepository() {
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 
+	if _, err := exec.LookPath(ScriptType); err != nil {
+		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
+	}
+
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
 	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
@@ -288,6 +293,10 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(false) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
 	// Handle default trustmodel settings

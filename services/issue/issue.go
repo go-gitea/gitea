@@ -5,8 +5,11 @@
 package issue
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -26,7 +29,7 @@ func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
@@ -47,7 +50,7 @@ func ChangeTitle(issue *models.Issue, doer *user_model.User, title string) (err 
 	oldTitle := issue.Title
 	issue.Title = title
 
-	if err = issue.ChangeTitle(doer, oldTitle); err != nil {
+	if err = models.ChangeIssueTitle(issue, doer, oldTitle); err != nil {
 		return
 	}
 
@@ -61,7 +64,7 @@ func ChangeIssueRef(issue *models.Issue, doer *user_model.User, ref string) erro
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issue.ChangeRef(doer, oldRef); err != nil {
+	if err := models.ChangeIssueRef(issue, doer, oldRef); err != nil {
 		return err
 	}
 
@@ -125,6 +128,33 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 	return
 }
 
+// DeleteIssue deletes an issue
+func DeleteIssue(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue) error {
+	// load issue before deleting it
+	if err := issue.LoadAttributes(); err != nil {
+		return err
+	}
+	if err := issue.LoadPullRequest(); err != nil {
+		return err
+	}
+
+	// delete entries in database
+	if err := models.DeleteIssue(issue); err != nil {
+		return err
+	}
+
+	// delete pull request related git data
+	if issue.IsPull {
+		if err := gitRepo.RemoveReference(fmt.Sprintf("%s%d", git.PullPrefix, issue.PullRequest.Index)); err != nil {
+			return err
+		}
+	}
+
+	notification.NotifyDeleteIssue(doer, issue)
+
+	return nil
+}
+
 // AddAssigneeIfNotAssigned adds an assignee only if he isn't already assigned to the issue.
 // Also checks for access of assigned user
 func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assigneeID int64) (err error) {
@@ -143,7 +173,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 		return nil
 	}
 
-	valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+	valid, err := access_model.CanBeAssigned(db.DefaultContext, assignee, issue.Repo, issue.IsPull)
 	if err != nil {
 		return err
 	}
@@ -162,8 +192,8 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 // GetRefEndNamesAndURLs retrieves the ref end names (e.g. refs/heads/branch-name -> branch-name)
 // and their respective URLs.
 func GetRefEndNamesAndURLs(issues []*models.Issue, repoLink string) (map[int64]string, map[int64]string) {
-	var issueRefEndNames = make(map[int64]string, len(issues))
-	var issueRefURLs = make(map[int64]string, len(issues))
+	issueRefEndNames := make(map[int64]string, len(issues))
+	issueRefURLs := make(map[int64]string, len(issues))
 	for _, issue := range issues {
 		if issue.Ref != "" {
 			issueRefEndNames[issue.ID] = git.RefEndName(issue.Ref)

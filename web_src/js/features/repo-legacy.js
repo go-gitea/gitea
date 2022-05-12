@@ -1,4 +1,5 @@
-import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/CommentEasyMDE.js';
+import $ from 'jquery';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
@@ -7,14 +8,15 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete,
   initRepoIssueReferenceIssue, initRepoIssueStatusButton,
   initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
+import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
 import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoClone,
+  initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -26,6 +28,7 @@ import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
@@ -63,10 +66,13 @@ export function initRepoCommentForm() {
     });
   }
 
-  createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+  (async () => {
+    await createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
+    initCompImagePaste($('.comment.form'));
+  })();
+
   initBranchSelector();
   initCompMarkupContentPreviewTab($('.comment.form'));
-  initCompImagePaste($('.comment.form'));
 
   // List submits
   function initListSubmits(selector, outerSelector) {
@@ -256,6 +262,7 @@ export function initRepoCommentForm() {
 
 async function onEditContent(event) {
   event.preventDefault();
+
   $(this).closest('.dropdown').find('.menu').toggle('visible');
   const $segment = $(this).closest('.header').next();
   const $editContentZone = $segment.find('.edit-content-zone');
@@ -341,7 +348,7 @@ async function onEditContent(event) {
     $tabMenu.find('.preview.item').attr('data-tab', $editContentZone.data('preview'));
     $editContentForm.find('.write').attr('data-tab', $editContentZone.data('write'));
     $editContentForm.find('.preview').attr('data-tab', $editContentZone.data('preview'));
-    easyMDE = createCommentEasyMDE($textarea);
+    easyMDE = await createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
     if ($dropzone.length === 1) {
@@ -417,20 +424,8 @@ export function initRepository() {
   }
 
 
-  // Commit statuses
-  $('.commit-statuses-trigger').each(function () {
-    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
-    const popupPosition = positionRight ? 'right center' : 'left center';
-    $(this)
-      .popup({
-        on: 'click',
-        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
-        position: popupPosition,
-      });
-  });
-
   // File list and commits
-  if ($('.repository.file.list').length > 0 ||
+  if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
     initRepoBranchTagDropdown('.choose.reference .dropdown');
   }
@@ -492,7 +487,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoClone();
+  initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
@@ -513,9 +508,10 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoPullRequestMerge();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+
+    initRepoPullRequestMergeForm();
   }
 
   // Pull request
@@ -532,6 +528,8 @@ export function initRepository() {
       easyMDE.codemirror.refresh();
     });
   }
+
+  initUnicodeEscapeButton();
 }
 
 function initRepoIssueCommentEdit() {

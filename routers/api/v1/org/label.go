@@ -99,7 +99,7 @@ func CreateLabel(ctx *context.APIContext) {
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
-	if err := models.NewLabel(label); err != nil {
+	if err := models.NewLabel(ctx, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}

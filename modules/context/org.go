@@ -8,9 +8,10 @@ package context
 import (
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Organization contains organization context
@@ -19,12 +20,12 @@ type Organization struct {
 	IsMember         bool
 	IsTeamMember     bool // Is member of team.
 	IsTeamAdmin      bool // In owner team or team that has admin permission level.
-	Organization     *models.Organization
+	Organization     *organization.Organization
 	OrgLink          string
 	CanCreateOrgRepo bool
 
-	Team  *models.Team
-	Teams []*models.Team
+	Team  *organization.Team
+	Teams []*organization.Team
 }
 
 // HandleOrgAssignment handles organization assignment
@@ -51,9 +52,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	orgName := ctx.Params(":org")
 
 	var err error
-	ctx.Org.Organization, err = models.GetOrgByName(orgName)
+	ctx.Org.Organization, err = organization.GetOrgByName(orgName)
 	if err != nil {
-		if user_model.IsErrUserNotExist(err) {
+		if organization.IsErrOrgNotExist(err) {
 			redirectUserID, err := user_model.LookupUserRedirect(orgName)
 			if err == nil {
 				RedirectToUser(ctx, orgName, redirectUserID)
@@ -68,23 +69,18 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		return
 	}
 	org := ctx.Org.Organization
+	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
-	teams, err := org.LoadTeams()
-	if err != nil {
-		ctx.ServerError("LoadTeams", err)
-	}
-	ctx.Data["OrgTeams"] = teams
-
 	// Admin has super access.
-	if ctx.IsSigned && ctx.User.IsAdmin {
+	if ctx.IsSigned && ctx.Doer.IsAdmin {
 		ctx.Org.IsOwner = true
 		ctx.Org.IsMember = true
 		ctx.Org.IsTeamMember = true
 		ctx.Org.IsTeamAdmin = true
 		ctx.Org.CanCreateOrgRepo = true
 	} else if ctx.IsSigned {
-		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("IsOwnedBy", err)
 			return
@@ -96,12 +92,12 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			ctx.Org.IsTeamAdmin = true
 			ctx.Org.CanCreateOrgRepo = true
 		} else {
-			ctx.Org.IsMember, err = org.IsOrgMember(ctx.User.ID)
+			ctx.Org.IsMember, err = org.IsOrgMember(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("IsOrgMember", err)
 				return
 			}
-			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.User.ID)
+			ctx.Org.CanCreateOrgRepo, err = org.CanCreateOrgRepo(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("CanCreateOrgRepo", err)
 				return
@@ -118,8 +114,9 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 	}
 	ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 	ctx.Data["IsOrganizationMember"] = ctx.Org.IsMember
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsPublicMember"] = func(uid int64) bool {
-		is, _ := models.IsPublicMembership(ctx.Org.Organization.ID, uid)
+		is, _ := organization.IsPublicMembership(ctx.Org.Organization.ID, uid)
 		return is
 	}
 	ctx.Data["CanCreateOrgRepo"] = ctx.Org.CanCreateOrgRepo
@@ -129,14 +126,30 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 
 	// Team.
 	if ctx.Org.IsMember {
+		shouldSeeAllTeams := false
 		if ctx.Org.IsOwner {
+			shouldSeeAllTeams = true
+		} else {
+			teams, err := org.GetUserTeams(ctx.Doer.ID)
+			if err != nil {
+				ctx.ServerError("GetUserTeams", err)
+				return
+			}
+			for _, team := range teams {
+				if team.IncludesAllRepositories && team.AccessMode >= perm.AccessModeAdmin {
+					shouldSeeAllTeams = true
+					break
+				}
+			}
+		}
+		if shouldSeeAllTeams {
 			ctx.Org.Teams, err = org.LoadTeams()
 			if err != nil {
 				ctx.ServerError("LoadTeams", err)
 				return
 			}
 		} else {
-			ctx.Org.Teams, err = org.GetUserTeams(ctx.User.ID)
+			ctx.Org.Teams, err = org.GetUserTeams(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("GetUserTeams", err)
 				return
@@ -168,7 +181,7 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 			return
 		}
 
-		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.Authorize >= perm.AccessModeAdmin
+		ctx.Org.IsTeamAdmin = ctx.Org.Team.IsOwnerTeam() || ctx.Org.Team.AccessMode >= perm.AccessModeAdmin
 		ctx.Data["IsTeamAdmin"] = ctx.Org.IsTeamAdmin
 		if requireTeamAdmin && !ctx.Org.IsTeamAdmin {
 			ctx.NotFound("OrgAssignment", err)

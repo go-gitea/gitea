@@ -43,8 +43,9 @@ func TestContentHistory(t *testing.T) {
 		when the refactor of models are done, this test will be possible to be run then with a real `User` model.
 	*/
 	type User struct {
-		ID   int64
-		Name string
+		ID       int64
+		Name     string
+		FullName string
 	}
 	_ = dbEngine.Sync2(&User{})
 

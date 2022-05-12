@@ -16,6 +16,17 @@
   }
 }
 
+.lines-escape a.toggle-escape-button::before {
+  visibility: visible;
+  content: '⚠️';
+  font-family: var(--fonts-emoji);
+  color: var(--color-red);
+}
+
+.repository .diff-file-box .code-diff td.lines-escape {
+  padding-left: 0 !important;
+}
+
 .diff-file-box .lines-code:hover .ui.button.add-code-comment {
   opacity: 1;
 }
@@ -39,8 +50,8 @@
 
 .show-outdated,
 .hide-outdated {
+  &:extend(.unselectable);
   display: block !important;
-  user-select: none !important;
 
   &:hover {
     text-decoration: underline;
@@ -186,6 +197,13 @@ a.blob-excerpt:hover {
   color: #fff;
 }
 
+// See the comment of createCommentEasyMDE() for the review editor
+// EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set minHeight in JS code
+#review-box .CodeMirror-scroll {
+  min-height: 80px;
+  max-height: calc(100vh - 360px);
+}
+
 @media @mediaSm {
   #review-box > .menu {
     > .ui.segment {
@@ -224,10 +242,41 @@ a.blob-excerpt:hover {
   border: none !important;
 }
 
+#review-box .review-comments-counter {
+  background-color: var(--color-primary-light-4);
+  color: #fff;
+}
+
+#review-box:hover .review-comments-counter {
+  background-color: var(--color-primary-light-5);
+}
+
+#review-box .review-comments-counter[data-pending-comment-number="0"] {
+  display: none;
+}
+
 .pull.files.diff [id] {
   scroll-margin-top: 99px;
 
   @media @mediaMdAndDown {
     scroll-margin-top: 130px;
   }
+}
+
+.changed-since-last-review {
+  margin: 0 5px;
+  padding: 0 3px;
+  border: 2px var(--color-primary-light-3) solid;
+  background-color: var(--color-primary-alpha-30);
+  border-radius: 7px;
+}
+
+.viewed-file-form {
+  margin: 0 3px;
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.viewed-file-checked-form {
+  background-color: var(--color-primary-light-4);
 }

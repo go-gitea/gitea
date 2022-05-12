@@ -76,9 +76,7 @@ func GetLanguages(ctx *context.APIContext) {
 	}
 
 	resp := make(languageResponse, len(langs))
-	for i, v := range langs {
-		resp[i] = v
-	}
+	copy(resp, langs)
 
 	ctx.JSON(http.StatusOK, resp)
 }

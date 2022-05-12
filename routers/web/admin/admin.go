@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/updatechecker"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
@@ -35,10 +36,11 @@ import (
 )
 
 const (
-	tplDashboard base.TplName = "admin/dashboard"
-	tplConfig    base.TplName = "admin/config"
-	tplMonitor   base.TplName = "admin/monitor"
-	tplQueue     base.TplName = "admin/queue"
+	tplDashboard  base.TplName = "admin/dashboard"
+	tplConfig     base.TplName = "admin/config"
+	tplMonitor    base.TplName = "admin/monitor"
+	tplStacktrace base.TplName = "admin/stacktrace"
+	tplQueue      base.TplName = "admin/queue"
 )
 
 var sysStatus struct {
@@ -149,7 +151,7 @@ func DashboardPost(ctx *context.Context) {
 	if form.Op != "" {
 		task := cron.GetTask(form.Op)
 		if task != nil {
-			go task.RunWithUser(ctx.User, nil)
+			go task.RunWithUser(ctx.Doer, nil)
 			ctx.Flash.Success(ctx.Tr("admin.dashboard.task.started", ctx.Tr("admin.dashboard."+form.Op)))
 		} else {
 			ctx.Flash.Error(ctx.Tr("admin.dashboard.task.unknown", form.Op))
@@ -209,7 +211,7 @@ func shadowPassword(provider, cfgItem string) string {
 	case "redis":
 		return shadowPasswordKV(cfgItem, ",")
 	case "mysql":
-		//root:@tcp(localhost:3306)/macaron?charset=utf8
+		// root:@tcp(localhost:3306)/macaron?charset=utf8
 		atIdx := strings.Index(cfgItem, "@")
 		if atIdx > 0 {
 			colonIdx := strings.Index(cfgItem[:atIdx], ":")
@@ -244,7 +246,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
+	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}
@@ -326,10 +328,31 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes(true)
+	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+
 	ctx.HTML(http.StatusOK, tplMonitor)
+}
+
+// GoroutineStacktrace show admin monitor goroutines page
+func GoroutineStacktrace(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+
+	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	if err != nil {
+		ctx.ServerError("GoroutineStacktrace", err)
+		return
+	}
+
+	ctx.Data["ProcessStacks"] = processStacks
+
+	ctx.Data["GoroutineCount"] = goroutineCount
+	ctx.Data["ProcessCount"] = processCount
+
+	ctx.HTML(http.StatusOK, tplStacktrace)
 }
 
 // MonitorCancel cancels a process
@@ -346,7 +369,7 @@ func Queue(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	ctx.Data["Title"] = ctx.Tr("admin.monitor.queue", mq.Name)
@@ -361,7 +384,7 @@ func WorkerCancel(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	pid := ctx.ParamsInt64("pid")
@@ -377,7 +400,7 @@ func Flush(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	timeout, err := time.ParseDuration(ctx.FormString("timeout"))
@@ -394,12 +417,36 @@ func Flush(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
 }
 
+// Pause pauses a queue
+func Pause(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Pause()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
+// Resume resumes a queue
+func Resume(ctx *context.Context) {
+	qid := ctx.ParamsInt64("qid")
+	mq := queue.GetManager().GetManagedQueue(qid)
+	if mq == nil {
+		ctx.Status(404)
+		return
+	}
+	mq.Resume()
+	ctx.Redirect(setting.AppSubURL + "/admin/monitor/queue/" + strconv.FormatInt(qid, 10))
+}
+
 // AddWorkers adds workers to a worker group
 func AddWorkers(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	number := ctx.FormInt("number")
@@ -429,7 +476,7 @@ func SetQueueSettings(ctx *context.Context) {
 	qid := ctx.ParamsInt64("qid")
 	mq := queue.GetManager().GetManagedQueue(qid)
 	if mq == nil {
-		ctx.Status(404)
+		ctx.Status(http.StatusNotFound)
 		return
 	}
 	if _, ok := mq.Managed.(queue.ManagedPool); !ok {

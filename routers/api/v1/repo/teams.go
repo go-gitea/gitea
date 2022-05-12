@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -40,7 +41,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	teams, err := models.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx.Repo.Repository)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -96,7 +97,7 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if team.HasRepository(ctx.Repo.Repository.ID) {
+	if models.HasRepository(team, ctx.Repo.Repository.ID) {
 		apiTeam, err := convert.ToTeam(team)
 		if err != nil {
 			ctx.InternalServerError(err)
@@ -191,20 +192,20 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := team.HasRepository(ctx.Repo.Repository.ID)
+	repoHasTeam := models.HasRepository(team, ctx.Repo.Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = team.AddRepository(ctx.Repo.Repository)
+		err = models.AddRepository(team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = team.RemoveRepository(ctx.Repo.Repository.ID)
+		err = models.RemoveRepository(team, ctx.Repo.Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -214,10 +215,10 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getTeamByParam(ctx *context.APIContext) *models.Team {
-	team, err := models.GetTeam(ctx.Repo.Owner.ID, ctx.Params(":team"))
+func getTeamByParam(ctx *context.APIContext) *organization.Team {
+	team, err := organization.GetTeam(ctx.Repo.Owner.ID, ctx.Params(":team"))
 	if err != nil {
-		if models.IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			ctx.Error(http.StatusNotFound, "TeamNotExit", err)
 			return nil
 		}

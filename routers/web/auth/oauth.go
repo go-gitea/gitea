@@ -16,7 +16,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -25,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
@@ -34,7 +34,7 @@ import (
 	user_service "code.gitea.io/gitea/services/user"
 
 	"gitea.com/go-chi/binding"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
 )
 
@@ -106,6 +106,16 @@ func (err AccessTokenError) Error() string {
 	return fmt.Sprintf("%s: %s", err.ErrorCode, err.ErrorDescription)
 }
 
+// errCallback represents a oauth2 callback error
+type errCallback struct {
+	Code        string
+	Description string
+}
+
+func (err errCallback) Error() string {
+	return err.Description
+}
+
 // TokenType specifies the kind of token
 type TokenType string
 
@@ -139,8 +149,8 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	accessToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Type:    oauth2.TypeAccessToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: expirationDate.AsTime().Unix(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 		},
 	}
 	signedAccessToken, err := accessToken.SignToken(serverKey)
@@ -152,13 +162,13 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	}
 
 	// generate refresh token to request an access token after it expired later
-	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime().Unix()
+	refreshExpirationDate := timeutil.TimeStampNow().Add(setting.OAuth2.RefreshTokenExpirationTime * 60 * 60).AsTime()
 	refreshToken := &oauth2.Token{
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		StandardClaims: jwt.StandardClaims{
-			ExpiresAt: refreshExpirationDate,
+		RegisteredClaims: jwt.RegisteredClaims{ // nolint
+			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
 	signedRefreshToken, err := refreshToken.SignToken(serverKey)
@@ -195,10 +205,10 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 		}
 
 		idToken := &oauth2.OIDCToken{
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: expirationDate.AsTime().Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(expirationDate.AsTime()),
 				Issuer:    setting.AppURL,
-				Audience:  app.ClientID,
+				Audience:  []string{app.ClientID},
 				Subject:   fmt.Sprint(grant.UserID),
 			},
 			Nonce: grant.Nonce,
@@ -257,21 +267,21 @@ type userInfoResponse struct {
 
 // InfoOAuth manages request for userinfo endpoint
 func InfoOAuth(ctx *context.Context) {
-	if ctx.User == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
+	if ctx.Doer == nil || ctx.Data["AuthedMethod"] != (&auth_service.OAuth2{}).Name() {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
 	}
 
 	response := &userInfoResponse{
-		Sub:      fmt.Sprint(ctx.User.ID),
-		Name:     ctx.User.FullName,
-		Username: ctx.User.Name,
-		Email:    ctx.User.Email,
-		Picture:  ctx.User.AvatarLink(),
+		Sub:      fmt.Sprint(ctx.Doer.ID),
+		Name:     ctx.Doer.FullName,
+		Username: ctx.Doer.Name,
+		Email:    ctx.Doer.Email,
+		Picture:  ctx.Doer.AvatarLink(),
 	}
 
-	groups, err := getOAuthGroupsForUser(ctx.User)
+	groups, err := getOAuthGroupsForUser(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("Oauth groups for user", err)
 		return
@@ -307,7 +317,7 @@ func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
 
 // IntrospectOAuth introspects an oauth token
 func IntrospectOAuth(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.Resp.Header().Set("WWW-Authenticate", `Bearer realm=""`)
 		ctx.PlainText(http.StatusUnauthorized, "no valid authorization")
 		return
@@ -316,7 +326,7 @@ func IntrospectOAuth(ctx *context.Context) {
 	var response struct {
 		Active bool   `json:"active"`
 		Scope  string `json:"scope,omitempty"`
-		jwt.StandardClaims
+		jwt.RegisteredClaims
 	}
 
 	form := web.GetForm(ctx).(*forms.IntrospectTokenForm)
@@ -330,7 +340,7 @@ func IntrospectOAuth(ctx *context.Context) {
 					response.Active = true
 					response.Scope = grant.Scope
 					response.Issuer = setting.AppURL
-					response.Audience = app.ClientID
+					response.Audience = []string{app.ClientID}
 					response.Subject = fmt.Sprint(grant.UserID)
 				}
 			}
@@ -428,7 +438,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	grant, err := app.GetGrantByUserID(ctx.User.ID)
+	grant, err := app.GetGrantByUserID(ctx.Doer.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -453,7 +463,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 				log.Error("Unable to update nonce: %v", err)
 			}
 		}
-		ctx.Redirect(redirect.String(), 302)
+		ctx.Redirect(redirect.String())
 		return
 	}
 
@@ -463,7 +473,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	ctx.Data["State"] = form.State
 	ctx.Data["Scope"] = form.Scope
 	ctx.Data["Nonce"] = form.Nonce
-	ctx.Data["ApplicationUserLink"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
+	ctx.Data["ApplicationUserLinkHTML"] = "<a href=\"" + html.EscapeString(user.HTMLURL()) + "\">@" + html.EscapeString(user.Name) + "</a>"
 	ctx.Data["ApplicationRedirectDomainHTML"] = "<strong>" + html.EscapeString(form.RedirectURI) + "</strong>"
 	// TODO document SESSION <=> FORM
 	err = ctx.Session.Set("client_id", app.ClientID)
@@ -505,7 +515,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.User.ID, form.Scope)
+	grant, err := app.CreateGrant(ctx.Doer.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
@@ -535,7 +545,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
 	}
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // OIDCWellKnown generates JSON so OIDC clients know Gitea's capabilities
@@ -743,7 +753,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	if redirectURI == "" {
 		log.Warn("Authorization failed: %v", authErr.ErrorDescription)
 		ctx.Data["Error"] = authErr
-		ctx.HTML(400, tplGrantError)
+		ctx.HTML(http.StatusBadRequest, tplGrantError)
 		return
 	}
 	redirect, err := url.Parse(redirectURI)
@@ -756,7 +766,7 @@ func handleAuthorizeError(ctx *context.Context, authErr AuthorizeError, redirect
 	q.Set("error_description", authErr.ErrorDescription)
 	q.Set("state", authErr.State)
 	redirect.RawQuery = q.Encode()
-	ctx.Redirect(redirect.String(), 302)
+	ctx.Redirect(redirect.String(), http.StatusSeeOther)
 }
 
 // SignInOAuth handles the OAuth2 login buttons
@@ -810,13 +820,25 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	u, gothUser, err := oAuth2UserLoginCallback(authSource, ctx.Req, ctx.Resp)
-
 	if err != nil {
 		if user_model.IsErrUserProhibitLogin(err) {
-			uplerr := err.(*user_model.ErrUserProhibitLogin)
+			uplerr := err.(user_model.ErrUserProhibitLogin)
 			log.Info("Failed authentication attempt for %s from %s: %v", uplerr.Name, ctx.RemoteAddr(), err)
 			ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 			ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
+			return
+		}
+		if callbackErr, ok := err.(errCallback); ok {
+			log.Info("Failed OAuth callback: (%v) %v", callbackErr.Code, callbackErr.Description)
+			switch callbackErr.Code {
+			case "access_denied":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.access_denied"))
+			case "temporarily_unavailable":
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error.temporarily_unavailable"))
+			default:
+				ctx.Flash.Error(ctx.Tr("auth.oauth.signin.error"))
+			}
+			ctx.Redirect(setting.AppSubURL + "/user/login")
 			return
 		}
 		ctx.ServerError("UserSignIn", err)
@@ -846,19 +868,21 @@ func SignInOAuthCallback(ctx *context.Context) {
 				return
 			}
 			u = &user_model.User{
-				Name:         getUserName(&gothUser),
-				FullName:     gothUser.Name,
-				Email:        gothUser.Email,
-				IsActive:     !setting.OAuth2Client.RegisterEmailConfirm,
-				LoginType:    auth.OAuth2,
-				LoginSource:  authSource.ID,
-				LoginName:    gothUser.UserID,
-				IsRestricted: setting.Service.DefaultUserIsRestricted,
+				Name:        getUserName(&gothUser),
+				FullName:    gothUser.Name,
+				Email:       gothUser.Email,
+				LoginType:   auth.OAuth2,
+				LoginSource: authSource.ID,
+				LoginName:   gothUser.UserID,
+			}
+
+			overwriteDefault := &user_model.CreateUserOverwriteOptions{
+				IsActive: util.OptionalBoolOf(!setting.OAuth2Client.RegisterEmailConfirm),
 			}
 
 			setUserGroupClaims(authSource, u, &gothUser)
 
-			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
+			if !createAndHandleCreatedUser(ctx, base.TplName(""), nil, u, overwriteDefault, &gothUser, setting.OAuth2Client.AccountLinking != setting.OAuth2AccountLinkingDisabled) {
 				// error already handled
 				return
 			}
@@ -878,6 +902,10 @@ func claimValueToStringSlice(claimValue interface{}) []string {
 	switch rawGroup := claimValue.(type) {
 	case []string:
 		groups = rawGroup
+	case []interface{}:
+		for _, group := range rawGroup {
+			groups = append(groups, fmt.Sprintf("%s", group))
+		}
 	default:
 		str := fmt.Sprintf("%s", rawGroup)
 		groups = strings.Split(str, ",")
@@ -982,7 +1010,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			log.Error("Error storing session: %v", err)
 		}
 
-		// Clear whatever CSRF has right now, force to generate a new one
+		// Clear whatever CSRF cookie has right now, force to generate a new one
 		middleware.DeleteCSRFCookie(ctx.Resp)
 
 		// Register last login
@@ -995,7 +1023,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 			cols = append(cols, "is_admin", "is_restricted")
 		}
 
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, cols...); err != nil {
+		if err := user_model.UpdateUserCols(ctx, u, cols...); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -1022,7 +1050,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 
 	changed := setUserGroupClaims(source, u, &gothUser)
 	if changed {
-		if err := user_model.UpdateUserCols(db.DefaultContext, u, "is_admin", "is_restricted"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, u, "is_admin", "is_restricted"); err != nil {
 			ctx.ServerError("UpdateUserCols", err)
 			return
 		}
@@ -1044,10 +1072,10 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 		log.Error("Error storing session: %v", err)
 	}
 
-	// If U2F is enrolled -> Redirect to U2F instead
-	regs, err := auth.GetU2FRegistrationsByUID(u.ID)
+	// If WebAuthn is enrolled -> Redirect to WebAuthn instead
+	regs, err := auth.GetWebAuthnCredentialsByUID(u.ID)
 	if err == nil && len(regs) > 0 {
-		ctx.Redirect(setting.AppSubURL + "/user/u2f")
+		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
 	}
 
@@ -1064,6 +1092,18 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
+		}
+		// goth does not provide the original error message
+		// https://github.com/markbates/goth/issues/348
+		if strings.Contains(err.Error(), "server response missing access_token") || strings.Contains(err.Error(), "could not find a matching session for this request") {
+			errorCode := request.FormValue("error")
+			errorDescription := request.FormValue("error_description")
+			if errorCode != "" || errorDescription != "" {
+				return nil, goth.User{}, errCallback{
+					Code:        errorCode,
+					Description: errorDescription,
+				}
+			}
 		}
 		return nil, goth.User{}, err
 	}
@@ -1120,5 +1160,4 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 
 	// no user found to login
 	return nil, gothUser, nil
-
 }

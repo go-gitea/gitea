@@ -15,10 +15,8 @@ import (
 	"xorm.io/xorm"
 )
 
-var (
-	// ErrPushMirrorNotExist mirror does not exist error
-	ErrPushMirrorNotExist = errors.New("PushMirror does not exist")
-)
+// ErrPushMirrorNotExist mirror does not exist error
+var ErrPushMirrorNotExist = errors.New("PushMirror does not exist")
 
 // PushMirror represents mirror information of a repository.
 type PushMirror struct {
@@ -103,10 +101,11 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
-func PushMirrorsIterate(f func(idx int, bean interface{}) error) error {
+func PushMirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 	return db.GetEngine(db.DefaultContext).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
 		OrderBy("last_update ASC").
+		Limit(limit).
 		Iterate(new(PushMirror), f)
 }

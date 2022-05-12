@@ -17,12 +17,12 @@ import (
 
 func TestAddLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args   []string
 		source *auth.Source
 		errMsg string
@@ -243,12 +243,12 @@ func TestAddLdapBindDn(t *testing.T) {
 
 func TestAddLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args       []string
 		authSource *auth.Source
 		errMsg     string
@@ -474,12 +474,12 @@ func TestAddLdapSimpleAuth(t *testing.T) {
 
 func TestUpdateLdapBindDn(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
@@ -907,12 +907,12 @@ func TestUpdateLdapBindDn(t *testing.T) {
 
 func TestUpdateLdapSimpleAuth(t *testing.T) {
 	// Mock cli functions to do not exit on error
-	var osExiter = cli.OsExiter
+	osExiter := cli.OsExiter
 	defer func() { cli.OsExiter = osExiter }()
 	cli.OsExiter = func(code int) {}
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		args               []string
 		id                 int64
 		existingAuthSource *auth.Source
@@ -1161,7 +1161,6 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			authSource: &auth.Source{
 				Type: auth.DLDAP,
 				Cfg: &ldap.Source{
-
 					AttributeMail: "mail",
 				},
 			},

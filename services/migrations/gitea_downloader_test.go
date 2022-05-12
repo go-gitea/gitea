@@ -25,7 +25,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 	}
 
 	resp, err := http.Get("https://gitea.com/gitea")
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't reach https://gitea.com, skipping %s", t.Name())
 	}
 
@@ -198,9 +198,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: base.BasicIssueContext(4),
-	})
+	comments, _, err := downloader.GetComments(&base.Issue{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -265,7 +263,7 @@ func TestGiteaDownloadRepo(t *testing.T) {
 		PatchURL:       "https://gitea.com/gitea/test_repo/pulls/12.patch",
 	}, prs[1])
 
-	reviews, err := downloader.GetReviews(base.BasicIssueContext(7))
+	reviews, err := downloader.GetReviews(&base.Issue{Number: 7, ForeignIndex: 7})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

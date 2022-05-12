@@ -5,6 +5,7 @@
 package files
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
@@ -13,19 +14,22 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/automerge"
 )
 
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
 // NOTE: All text-values will be trimmed from whitespaces.
 // Requires: Repo, Creator, SHA
-func CreateCommitStatus(repo *repo_model.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
+func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creator *user_model.User, sha string, status *models.CommitStatus) error {
 	repoPath := repo.RepoPath()
 
 	// confirm that commit is exist
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
+	defer closer.Close()
+
 	if _, err := gitRepo.GetCommit(sha); err != nil {
 		gitRepo.Close()
 		return fmt.Errorf("GetCommit[%s]: %v", sha, err)
@@ -41,12 +45,18 @@ func CreateCommitStatus(repo *repo_model.Repository, creator *user_model.User, s
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
 	}
 
+	if status.State.IsSuccess() {
+		if err := automerge.MergeScheduledPullRequest(ctx, sha, repo); err != nil {
+			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
+		}
+	}
+
 	return nil
 }
 
 // CountDivergingCommits determines how many commits a branch is ahead or behind the repository's base branch
-func CountDivergingCommits(repo *repo_model.Repository, branch string) (*git.DivergeObject, error) {
-	divergence, err := git.GetDivergingCommits(repo.RepoPath(), repo.DefaultBranch, branch)
+func CountDivergingCommits(ctx context.Context, repo *repo_model.Repository, branch string) (*git.DivergeObject, error) {
+	divergence, err := git.GetDivergingCommits(ctx, repo.RepoPath(), repo.DefaultBranch, branch)
 	if err != nil {
 		return nil, err
 	}

@@ -456,3 +456,20 @@ func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
 	}
 	return nil
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Release) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.PublisherID = userID
+	return nil
+}
+
+// UserID ExternalUserRemappable interface
+func (r *Release) GetUserID() int64 { return r.PublisherID }
+
+// ExternalName ExternalUserRemappable interface
+func (r *Release) GetExternalName() string { return r.OriginalAuthor }
+
+// ExternalID ExternalUserRemappable interface
+func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }

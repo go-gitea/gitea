@@ -16,11 +16,13 @@
 				{{end}}
 				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.normal_view"}}</a>
 				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.file_history"}}</a>
+				<a class="ui tiny button unescape-button">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
+				<a class="ui tiny button escape-button" style="display: none;">{{.i18n.Tr "repo.escape_control_characters"}}</a>
 			</div>
 		</div>
 	</h4>
 	<div class="ui attached table unstackable segment">
-		<div class="file-view code-view">
+		<div class="file-view code-view unicode-escaped">
 			<table>
 				<tbody>
 					{{range $row := .BlameRows}}
@@ -52,6 +54,9 @@
 							<td class="lines-num">
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
+							{{if $.EscapeStatus.Escaped}}
+								<td class="lines-escape">{{if $row.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+							{{end}}
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner pl-3">{{$row.Code}}</code>
 							</td>

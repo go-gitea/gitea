@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -18,7 +17,7 @@ import (
 
 // ResolveReference resolves a name to a reference
 func (repo *Repository) ResolveReference(name string) (string, error) {
-	stdout, err := NewCommandContext(repo.Ctx, "show-ref", "--hash", name).RunInDir(repo.Path)
+	stdout, _, err := NewCommand(repo.Ctx, "show-ref", "--hash", name).RunStdString(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		if strings.Contains(err.Error(), "not a valid ref") {
 			return "", ErrNotExist{name, ""}
@@ -51,19 +50,19 @@ func (repo *Repository) GetRefCommitID(name string) (string, error) {
 
 // SetReference sets the commit ID string of given reference (e.g. branch or tag).
 func (repo *Repository) SetReference(name, commitID string) error {
-	_, err := NewCommandContext(repo.Ctx, "update-ref", name, commitID).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "update-ref", name, commitID).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // RemoveReference removes the given reference (e.g. branch or tag).
 func (repo *Repository) RemoveReference(name string) error {
-	_, err := NewCommandContext(repo.Ctx, "update-ref", "--no-deref", "-d", name).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "update-ref", "--no-deref", "-d", name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err
 }
 
 // IsCommitExist returns true if given commit exists in current repository.
 func (repo *Repository) IsCommitExist(name string) bool {
-	_, err := NewCommandContext(repo.Ctx, "cat-file", "-e", name).RunInDir(repo.Path)
+	_, _, err := NewCommand(repo.Ctx, "cat-file", "-e", name).RunStdString(&RunOpts{Dir: repo.Path})
 	return err == nil
 }
 
@@ -103,9 +102,8 @@ func (repo *Repository) getCommitFromBatchReader(rd *bufio.Reader, id SHA1) (*Co
 		if err != nil {
 			return nil, err
 		}
-		tag.repo = repo
 
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(repo)
 		if err != nil {
 			return nil, err
 		}

@@ -121,7 +121,7 @@ func ListRepoNotifications(ctx *context.APIContext) {
 		return
 	}
 	err = nl.LoadAttributes()
-	if err != nil && !models.IsErrCommentNotExist(err) {
+	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -193,7 +193,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 	}
 
 	opts := &models.FindNotificationOptions{
-		UserID:            ctx.User.ID,
+		UserID:            ctx.Doer.ID,
 		RepoID:            ctx.Repo.Repository.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
@@ -214,10 +214,10 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	changed := make([]*structs.NotificationThread, len(nl))
+	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+		notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

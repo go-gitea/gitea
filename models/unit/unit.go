@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -17,14 +18,16 @@ type Type int
 
 // Enumerate all the unit types
 const (
-	TypeCode            Type = iota + 1 // 1 code
-	TypeIssues                          // 2 issues
-	TypePullRequests                    // 3 PRs
-	TypeReleases                        // 4 Releases
-	TypeWiki                            // 5 Wiki
-	TypeExternalWiki                    // 6 ExternalWiki
-	TypeExternalTracker                 // 7 ExternalTracker
-	TypeProjects                        // 8 Kanban board
+	TypeInvalid         Type = iota // 0 invalid
+	TypeCode                        // 1 code
+	TypeIssues                      // 2 issues
+	TypePullRequests                // 3 PRs
+	TypeReleases                    // 4 Releases
+	TypeWiki                        // 5 Wiki
+	TypeExternalWiki                // 6 ExternalWiki
+	TypeExternalTracker             // 7 ExternalTracker
+	TypeProjects                    // 8 Kanban board
+	TypePackages                    // 9 Packages
 )
 
 // Value returns integer value for unit type
@@ -50,6 +53,8 @@ func (u Type) String() string {
 		return "TypeExternalTracker"
 	case TypeProjects:
 		return "TypeProjects"
+	case TypePackages:
+		return "TypePackages"
 	}
 	return fmt.Sprintf("Unknown Type %d", u)
 }
@@ -72,6 +77,7 @@ var (
 		TypeExternalWiki,
 		TypeExternalTracker,
 		TypeProjects,
+		TypePackages,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -82,6 +88,7 @@ var (
 		TypeReleases,
 		TypeWiki,
 		TypeProjects,
+		TypePackages,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
@@ -170,11 +177,12 @@ func (u *Type) CanBeDefault() bool {
 
 // Unit is a section of one repository
 type Unit struct {
-	Type    Type
-	NameKey string
-	URI     string
-	DescKey string
-	Idx     int
+	Type          Type
+	NameKey       string
+	URI           string
+	DescKey       string
+	Idx           int
+	MaxAccessMode perm.AccessMode // The max access mode of the unit. i.e. Read means this unit can only be read.
 }
 
 // CanDisable returns if this unit could be disabled.
@@ -190,6 +198,14 @@ func (u Unit) IsLessThan(unit Unit) bool {
 	return u.Idx < unit.Idx
 }
 
+// MaxPerm returns the max perms of this unit
+func (u Unit) MaxPerm() perm.AccessMode {
+	if u.Type == TypeExternalTracker || u.Type == TypeExternalWiki {
+		return perm.AccessModeRead
+	}
+	return perm.AccessModeAdmin
+}
+
 // Enumerate all the units
 var (
 	UnitCode = Unit{
@@ -198,6 +214,7 @@ var (
 		"/",
 		"repo.code.desc",
 		0,
+		perm.AccessModeOwner,
 	}
 
 	UnitIssues = Unit{
@@ -206,6 +223,7 @@ var (
 		"/issues",
 		"repo.issues.desc",
 		1,
+		perm.AccessModeOwner,
 	}
 
 	UnitExternalTracker = Unit{
@@ -214,6 +232,7 @@ var (
 		"/issues",
 		"repo.ext_issues.desc",
 		1,
+		perm.AccessModeRead,
 	}
 
 	UnitPullRequests = Unit{
@@ -222,6 +241,7 @@ var (
 		"/pulls",
 		"repo.pulls.desc",
 		2,
+		perm.AccessModeOwner,
 	}
 
 	UnitReleases = Unit{
@@ -230,6 +250,7 @@ var (
 		"/releases",
 		"repo.releases.desc",
 		3,
+		perm.AccessModeOwner,
 	}
 
 	UnitWiki = Unit{
@@ -238,6 +259,7 @@ var (
 		"/wiki",
 		"repo.wiki.desc",
 		4,
+		perm.AccessModeOwner,
 	}
 
 	UnitExternalWiki = Unit{
@@ -246,6 +268,7 @@ var (
 		"/wiki",
 		"repo.ext_wiki.desc",
 		4,
+		perm.AccessModeRead,
 	}
 
 	UnitProjects = Unit{
@@ -254,6 +277,16 @@ var (
 		"/projects",
 		"repo.projects.desc",
 		5,
+		perm.AccessModeOwner,
+	}
+
+	UnitPackages = Unit{
+		TypePackages,
+		"repo.packages",
+		"/packages",
+		"repo.packages.desc",
+		6,
+		perm.AccessModeRead,
 	}
 
 	// Units contains all the units
@@ -266,18 +299,60 @@ var (
 		TypeWiki:            UnitWiki,
 		TypeExternalWiki:    UnitExternalWiki,
 		TypeProjects:        UnitProjects,
+		TypePackages:        UnitPackages,
 	}
 )
 
-// FindUnitTypes give the unit key name and return unit
+// FindUnitTypes give the unit key names and return unit
 func FindUnitTypes(nameKeys ...string) (res []Type) {
 	for _, key := range nameKeys {
+		var found bool
 		for t, u := range Units {
 			if strings.EqualFold(key, u.NameKey) {
 				res = append(res, t)
+				found = true
 				break
 			}
 		}
+		if !found {
+			res = append(res, TypeInvalid)
+		}
 	}
 	return
+}
+
+// TypeFromKey give the unit key name and return unit
+func TypeFromKey(nameKey string) Type {
+	for t, u := range Units {
+		if strings.EqualFold(nameKey, u.NameKey) {
+			return t
+		}
+	}
+	return TypeInvalid
+}
+
+// AllUnitKeyNames returns all unit key names
+func AllUnitKeyNames() []string {
+	res := make([]string, 0, len(Units))
+	for _, u := range Units {
+		res = append(res, u.NameKey)
+	}
+	return res
+}
+
+// MinUnitAccessMode returns the minial permission of the permission map
+func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
+	res := perm.AccessModeNone
+	for t, mode := range unitsMap {
+		// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
+		if t == TypeExternalTracker || t == TypeExternalWiki {
+			continue
+		}
+
+		// get the minial permission great than AccessModeNone except all are AccessModeNone
+		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
+			res = mode
+		}
+	}
+	return res
 }
