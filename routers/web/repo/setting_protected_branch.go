@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -125,7 +126,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 	}
 
-	users, err := models.GetRepoReaders(c.Repo.Repository)
+	users, err := access_model.GetRepoReaders(c.Repo.Repository)
 	if err != nil {
 		c.ServerError("Repo.Repository.GetReaders", err)
 		return

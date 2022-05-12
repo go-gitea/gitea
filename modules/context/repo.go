@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -54,7 +55,7 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	models.Permission
+	access_model.Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
@@ -77,9 +78,14 @@ type Repository struct {
 	PullRequest *PullRequest
 }
 
+// CanWriteToBranch checks if the branch is writable by the user
+func (r *Repository) CanWriteToBranch(user *user_model.User, branch string) bool {
+	return models.CanMaintainerWriteToBranch(r.Permission, branch, user)
+}
+
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor(user *user_model.User) bool {
-	return r.IsViewBranch && r.Permission.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
+	return r.IsViewBranch && r.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -285,7 +291,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -351,7 +357,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return

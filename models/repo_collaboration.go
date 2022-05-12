@@ -12,31 +12,16 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
-// Collaboration represent the relation between an individual and a repository.
-type Collaboration struct {
-	ID          int64              `xorm:"pk autoincr"`
-	RepoID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	UserID      int64              `xorm:"UNIQUE(s) INDEX NOT NULL"`
-	Mode        perm.AccessMode    `xorm:"DEFAULT 2 NOT NULL"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-}
-
-func init() {
-	db.RegisterModel(new(Collaboration))
-}
-
 func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
-	collaboration := &Collaboration{
+	collaboration := &repo_model.Collaboration{
 		RepoID: repo.ID,
 		UserID: u.ID,
 	}
@@ -54,7 +39,7 @@ func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 		return err
 	}
 
-	return recalculateUserAccess(ctx, repo, u.ID)
+	return access_model.RecalculateUserAccess(ctx, repo, u.ID)
 }
 
 // AddCollaborator adds new collaboration to a repository with default access mode.
@@ -72,132 +57,9 @@ func AddCollaborator(repo *repo_model.Repository, u *user_model.User) error {
 	return committer.Commit()
 }
 
-func getCollaborations(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
-	if listOptions.Page == 0 {
-		collaborations := make([]*Collaboration, 0, 8)
-		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
-	}
-
-	e = db.SetEnginePagination(e, &listOptions)
-
-	collaborations := make([]*Collaboration, 0, listOptions.PageSize)
-	return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
-}
-
-// Collaborator represents a user with collaboration details.
-type Collaborator struct {
-	*user_model.User
-	Collaboration *Collaboration
-}
-
-func getCollaborators(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	collaborations, err := getCollaborations(e, repoID, listOptions)
-	if err != nil {
-		return nil, fmt.Errorf("getCollaborations: %v", err)
-	}
-
-	collaborators := make([]*Collaborator, 0, len(collaborations))
-	for _, c := range collaborations {
-		user, err := user_model.GetUserByIDEngine(e, c.UserID)
-		if err != nil {
-			if user_model.IsErrUserNotExist(err) {
-				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
-				user = user_model.NewGhostUser()
-			} else {
-				return nil, err
-			}
-		}
-		collaborators = append(collaborators, &Collaborator{
-			User:          user,
-			Collaboration: c,
-		})
-	}
-	return collaborators, nil
-}
-
-// GetCollaborators returns the collaborators for a repository
-func GetCollaborators(repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	return getCollaborators(db.GetEngine(db.DefaultContext), repoID, listOptions)
-}
-
-// CountCollaborators returns total number of collaborators for a repository
-func CountCollaborators(repoID int64) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("repo_id = ? ", repoID).Count(&Collaboration{})
-}
-
-func getCollaboration(e db.Engine, repoID, uid int64) (*Collaboration, error) {
-	collaboration := &Collaboration{
-		RepoID: repoID,
-		UserID: uid,
-	}
-	has, err := e.Get(collaboration)
-	if !has {
-		collaboration = nil
-	}
-	return collaboration, err
-}
-
-func isCollaborator(e db.Engine, repoID, userID int64) (bool, error) {
-	return e.Get(&Collaboration{RepoID: repoID, UserID: userID})
-}
-
-// IsCollaborator check if a user is a collaborator of a repository
-func IsCollaborator(repoID, userID int64) (bool, error) {
-	return isCollaborator(db.GetEngine(db.DefaultContext), repoID, userID)
-}
-
-func changeCollaborationAccessMode(e db.Engine, repo *repo_model.Repository, uid int64, mode perm.AccessMode) error {
-	// Discard invalid input
-	if mode <= perm.AccessModeNone || mode > perm.AccessModeOwner {
-		return nil
-	}
-
-	collaboration := &Collaboration{
-		RepoID: repo.ID,
-		UserID: uid,
-	}
-	has, err := e.Get(collaboration)
-	if err != nil {
-		return fmt.Errorf("get collaboration: %v", err)
-	} else if !has {
-		return nil
-	}
-
-	if collaboration.Mode == mode {
-		return nil
-	}
-	collaboration.Mode = mode
-
-	if _, err = e.
-		ID(collaboration.ID).
-		Cols("mode").
-		Update(collaboration); err != nil {
-		return fmt.Errorf("update collaboration: %v", err)
-	} else if _, err = e.Exec("UPDATE access SET mode = ? WHERE user_id = ? AND repo_id = ?", mode, uid, repo.ID); err != nil {
-		return fmt.Errorf("update access table: %v", err)
-	}
-
-	return nil
-}
-
-// ChangeCollaborationAccessMode sets new access mode for the collaboration.
-func ChangeCollaborationAccessMode(repo *repo_model.Repository, uid int64, mode perm.AccessMode) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := changeCollaborationAccessMode(db.GetEngine(ctx), repo, uid, mode); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
 // DeleteCollaboration removes collaboration relation between the user and repository.
 func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
-	collaboration := &Collaboration{
+	collaboration := &repo_model.Collaboration{
 		RepoID: repo.ID,
 		UserID: uid,
 	}
@@ -210,7 +72,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 
 	if has, err := db.GetEngine(ctx).Delete(collaboration); err != nil || has == 0 {
 		return err
-	} else if err = recalculateAccesses(ctx, repo); err != nil {
+	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		return err
 	}
 
@@ -236,7 +98,7 @@ func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 		return err
 	}
 
-	if canAssigned, err := canBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
+	if canAssigned, err := access_model.CanBeAssigned(ctx, user, repo, true); err != nil || canAssigned {
 		return err
 	}
 
@@ -249,7 +111,7 @@ func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 }
 
 func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int64) error {
-	if has, err := hasAccess(ctx, uid, repo); err != nil || has {
+	if has, err := access_model.HasAccess(ctx, uid, repo); err != nil || has {
 		return err
 	}
 	if err := repo_model.WatchRepoCtx(ctx, uid, repo.ID, false); err != nil {
@@ -277,5 +139,5 @@ func IsOwnerMemberCollaborator(repo *repo_model.Repository, userID int64) (bool,
 		return true, nil
 	}
 
-	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
+	return db.GetEngine(db.DefaultContext).Get(&repo_model.Collaboration{RepoID: repo.ID, UserID: userID})
 }

@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
@@ -547,7 +548,7 @@ func GetTeamRepos(ctx *context.APIContext) {
 	}
 	repos := make([]*api.Repository, len(teamRepos))
 	for i, repo := range teamRepos {
-		access, err := models.AccessLevel(ctx.Doer, repo)
+		access, err := access_model.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 			return
@@ -598,7 +599,7 @@ func GetTeamRepo(ctx *context.APIContext) {
 		return
 	}
 
-	access, err := models.AccessLevel(ctx.Doer, repo)
+	access, err := access_model.AccessLevel(ctx.Doer, repo)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTeamRepos", err)
 		return
@@ -655,7 +656,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
@@ -705,7 +706,7 @@ func RemoveTeamRepository(ctx *context.APIContext) {
 	if ctx.Written() {
 		return
 	}
-	if access, err := models.AccessLevel(ctx.Doer, repo); err != nil {
+	if access, err := access_model.AccessLevel(ctx.Doer, repo); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
 	} else if access < perm.AccessModeAdmin {
