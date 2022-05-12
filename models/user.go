@@ -13,6 +13,7 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -83,6 +84,11 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 	// ***** END: Follow *****
 
+	if _, err := db.GetEngine(ctx).In("grant_id", builder.Select("id").From("oauth2_grant").Where(builder.Eq{"oauth2_grant.user_id": u.ID})).
+		Delete(&auth_model.OAuth2AuthorizationCode{}); err != nil {
+		return err
+	}
+
 	if err = deleteBeans(e,
 		&AccessToken{UID: u.ID},
 		&Collaboration{UserID: u.ID},
@@ -100,6 +106,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
+		&auth_model.OAuth2Application{UID: u.ID},
+		&auth_model.OAuth2Grant{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
