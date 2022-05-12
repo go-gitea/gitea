@@ -22,6 +22,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -43,9 +44,6 @@ var ItemsPerPage = 40
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
-
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", LocalCopyPath())
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
@@ -57,7 +55,7 @@ func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	if user != nil && user.IsAdmin {
 		return true
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		log.Error("GetUserRepoPermission(): %v", err)
 		return false
@@ -305,38 +303,6 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 	return false, nil
 }
 
-// getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
-		return nil, err
-	}
-
-	e := db.GetEngine(ctx)
-	accesses := make([]*Access, 0, 10)
-	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).Find(&accesses); err != nil {
-		return nil, err
-	}
-
-	// Leave a seat for owner itself to append later, but if owner is an organization
-	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(accesses)+1)
-	if len(accesses) > 0 {
-		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
-			userIDs[i] = accesses[i].UserID
-		}
-
-		if err = e.In("id", userIDs).Find(&users); err != nil {
-			return nil, err
-		}
-	}
-	if !repo.Owner.IsOrganization() {
-		users = append(users, repo.Owner)
-	}
-
-	return users, nil
-}
-
 // SetRepoReadBy sets repo to be visited by given user.
 func SetRepoReadBy(repoID, userID int64) error {
 	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repoID)
@@ -455,18 +421,18 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+		if isAdmin, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
 			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}
-			if err = changeCollaborationAccessMode(db.GetEngine(ctx), repo, doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
-	} else if err = recalculateAccesses(ctx, repo); err != nil {
+	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
@@ -527,7 +493,8 @@ func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
 	return err
 }
 
-func updateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+// UpdateRepositoryCtx updates a repository with db context
+func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
 	if utf8.RuneCountInString(repo.Description) > 255 {
@@ -553,7 +520,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
-			if err = recalculateTeamAccesses(ctx, repo, 0); err != nil {
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
 		}
@@ -579,18 +546,13 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
-			if err = updateRepository(ctx, forkRepos[i], true); err != nil {
+			if err = UpdateRepositoryCtx(ctx, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
 		}
 	}
 
 	return nil
-}
-
-// UpdateRepositoryCtx updates a repository with db context
-func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) error {
-	return updateRepository(ctx, repo, visibilityChanged)
 }
 
 // UpdateRepository updates a repository
@@ -601,7 +563,7 @@ func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err 
 	}
 	defer committer.Close()
 
-	if err = updateRepository(ctx, repo, visibilityChanged); err != nil {
+	if err = UpdateRepositoryCtx(ctx, repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
@@ -666,7 +628,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 			return err
 		}
 		for _, t := range teams {
-			if !hasRepository(ctx, t, repoID) {
+			if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID) {
 				continue
 			} else if err = removeRepository(ctx, t, repo, false); err != nil {
 				return err
@@ -690,9 +652,9 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	if err := db.DeleteBeans(ctx,
-		&Access{RepoID: repo.ID},
+		&access_model.Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Collaboration{RepoID: repoID},
+		&repo_model.Collaboration{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
@@ -1219,7 +1181,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := IsUserRepoAdminCtx(ctx, repo, doer)
+		has, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

@@ -37,10 +37,8 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".ui.form." + string(mergeStyle) + "-fields > form").Attr("action")
-	assert.True(t, exists, "The template has changed")
+	link := path.Join(user, repo, "pulls", pullnum, "merge")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
@@ -57,7 +55,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
-	assert.True(t, exists, "The template has changed")
+	assert.True(t, exists, "The template has changed, can not find delete button url")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})

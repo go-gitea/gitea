@@ -9,13 +9,16 @@ import (
 	"encoding/base64"
 	"fmt"
 	"net/http"
+	"path"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -62,18 +65,50 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
+	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+	}
+}
+
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+			ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx.Context, blob); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+
+	if entry.IsDir() || entry.IsSubModule() {
+		ctx.NotFound("getBlobForEntry", nil)
+		return
 	}
+
+	var c *git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
+	}
+
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommitsInfo", err)
+		return
+	}
+
+	if len(info) == 1 {
+		// Not Modified
+		lastModified = info[0].Commit.Committer.When
+	}
+	blob = entry.Blob()
+
+	return
 }
 
 // GetArchive get archive of a repository
@@ -174,7 +209,7 @@ func GetEditorconfig(ctx *context.APIContext) {
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
 func canWriteFiles(ctx *context.APIContext, branch string) bool {
-	return ctx.Repo.Permission.CanWriteToBranch(ctx.Doer, branch) &&
+	return ctx.Repo.CanWriteToBranch(ctx.Doer, branch) &&
 		!ctx.Repo.Repository.IsMirror &&
 		!ctx.Repo.Repository.IsArchived
 }

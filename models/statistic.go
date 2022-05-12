@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -56,7 +57,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Action, _ = e.Count(new(Action))
-	stats.Counter.Access, _ = e.Count(new(Access))
+	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {
 		Count    int64
