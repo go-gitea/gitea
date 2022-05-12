@@ -257,7 +257,5 @@ func Init() error {
 	}
 	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
 
-	triggerTaskProcessing()
-
-	return nil
+	return triggerTaskProcessing()
 }
