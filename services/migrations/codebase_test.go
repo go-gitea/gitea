@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"fmt"
 	"net/url"
 	"os"
 	"testing"
@@ -40,7 +39,7 @@ func TestCodebaseDownloadRepo(t *testing.T) {
 		AuthPassword: apiPassword,
 	})
 	if err != nil {
-		t.Fatal(fmt.Sprintf("Error creating Codebase downloader: %v", err))
+		t.Fatalf("Error creating Codebase downloader: %v", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
