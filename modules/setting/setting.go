@@ -583,6 +583,12 @@ func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	}
 }
 
+func deprecatedSettingDB(oldSection, oldKey string) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated `[%s]` `%s` present which has been copied to database table sys_setting", oldSection, oldKey)
+	}
+}
+
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
 func loadFromConf(allowEmpty bool, extraConfig string) {

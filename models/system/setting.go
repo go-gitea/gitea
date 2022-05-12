@@ -7,18 +7,23 @@ package system
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
 
 // Setting is a key value store of user settings
 type Setting struct {
-	ID           int64  `xorm:"pk autoincr"`
-	SettingKey   string `xorm:"varchar(255) unique"` // ensure key is always lowercase
-	SettingValue string `xorm:"text"`
+	ID           int64              `xorm:"pk autoincr"`
+	SettingKey   string             `xorm:"varchar(255) unique"` // ensure key is always lowercase
+	SettingValue string             `xorm:"text"`
+	Version      int                `xorm:"version"` // prevent to override
+	Created      timeutil.TimeStamp `xorm:"created"`
+	Updated      timeutil.TimeStamp `xorm:"updated"`
 }
 
 // TableName sets the table name for the settings struct
@@ -43,6 +48,22 @@ func (err ErrSettingIsNotExist) Error() string {
 // IsErrSettingIsNotExist return true if err is ErrSettingIsNotExist
 func IsErrSettingIsNotExist(err error) bool {
 	_, ok := err.(ErrSettingIsNotExist)
+	return ok
+}
+
+// ErrDataExpired represents an error that update a record which has been updated by another thread
+type ErrDataExpired struct {
+	Key string
+}
+
+// Error implements error
+func (err ErrDataExpired) Error() string {
+	return fmt.Sprintf("System setting[%s] has been updated by another thread", err.Key)
+}
+
+// IsErrDataExpired return true if err is ErrDataExpired
+func IsErrDataExpired(err error) bool {
+	_, ok := err.(ErrDataExpired)
 	return ok
 }
 
@@ -73,8 +94,22 @@ func GetSettings(keys []string) (map[string]*Setting, error) {
 	return settingsMap, nil
 }
 
+type AllSettings map[string]*Setting
+
+func (settings AllSettings) Get(key string) Setting {
+	if v, ok := settings[key]; ok {
+		return *v
+	}
+	return Setting{}
+}
+
+func (settings AllSettings) GetBool(key string) bool {
+	b, _ := strconv.ParseBool(settings.Get(key).SettingValue)
+	return b
+}
+
 // GetAllSettings returns all settings from user
-func GetAllSettings() (map[string]*Setting, error) {
+func GetAllSettings() (AllSettings, error) {
 	settings := make([]*Setting, 0, 5)
 	if err := db.GetEngine(db.DefaultContext).
 		Find(&settings); err != nil {
@@ -98,10 +133,10 @@ func SetSetting(setting *Setting) error {
 	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
 		return fmt.Errorf("setting key should be lowercase")
 	}
-	return upsertSettingValue(setting.SettingKey, setting.SettingValue)
+	return upsertSettingValue(setting.SettingKey, setting.SettingValue, setting.Version)
 }
 
-func upsertSettingValue(key, value string) error {
+func upsertSettingValue(key, value string, version int) error {
 	return db.WithTx(func(ctx context.Context) error {
 		e := db.GetEngine(ctx)
 
@@ -115,7 +150,7 @@ func upsertSettingValue(key, value string) error {
 		// to optimize the SELECT in step 2, we can use an extra column like `revision=revision+1`
 		//    to make sure the UPDATE always returns a non-zero value for existing (unchanged) records.
 
-		res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=?", value, key)
+		res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=? AND version=?", value, key, version)
 		if err != nil {
 			return err
 		}
@@ -131,7 +166,7 @@ func upsertSettingValue(key, value string) error {
 			return err
 		}
 		if has {
-			return nil
+			return ErrDataExpired{Key: key}
 		}
 
 		// if no existing row, insert a new row

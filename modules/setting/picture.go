@@ -69,8 +69,12 @@ func newPictureService() {
 	default:
 		GravatarSource = source
 	}
+
 	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
+	deprecatedSettingDB("", "DISABLE_GRAVATAR")
 	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
+	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
+
 	if OfflineMode {
 		DisableGravatar = true
 		EnableFederatedAvatar = false
