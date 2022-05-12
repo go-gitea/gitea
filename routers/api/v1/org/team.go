@@ -223,7 +223,7 @@ func CreateTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(ctx.Org.Team)
+	apiTeam, err := convert.ToTeam(team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -306,7 +306,7 @@ func EditTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeam, err := convert.ToTeam(ctx.Org.Team)
+	apiTeam, err := convert.ToTeam(team)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
