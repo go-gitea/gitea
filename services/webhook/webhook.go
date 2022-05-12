@@ -200,13 +200,7 @@ func prepareWebhook(source EventSource, w *webhook_model.Webhook, event webhook_
 		payloader = p
 	}
 
-	repoID := int64(0)
-	if source.Repository != nil {
-		repoID = source.Repository.ID
-	}
-
 	if err = webhook_model.CreateHookTask(&webhook_model.HookTask{
-		RepoID:    repoID,
 		HookID:    w.ID,
 		Payloader: payloader,
 		EventType: event,
