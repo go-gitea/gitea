@@ -48,6 +48,7 @@
     "eslint": "8.15.0",
     "eslint-plugin-html": "6.2.0",
     "eslint-plugin-import": "2.26.0",
+    "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-unicorn": "42.0.0",
     "eslint-plugin-vue": "8.7.1",
     "jest": "28.1.0",
