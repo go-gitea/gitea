@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -926,7 +927,7 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 		}
 	}
 
-	u, err := url.Parse(remoteURL)
+	u, err := giturl.Parse(remoteURL)
 	if err != nil {
 		log.Error("giturl.Parse %v", err)
 		return a
