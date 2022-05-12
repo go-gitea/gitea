@@ -307,7 +307,7 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 // ToTeam convert models.Team to api.Team
 func ToTeam(team *organization.Team) (*api.Team, error) {
 	teams, err := ToTeams([]*organization.Team{team})
-	if err != nil {
+	if err != nil || len(teams) == 0 {
 		return nil, err
 	}
 	return teams[0], nil
