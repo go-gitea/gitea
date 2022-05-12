@@ -58,7 +58,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -97,7 +97,7 @@ func ListUserTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams)
+	apiTeams, err := convert.ToTeams(teams, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ConvertToTeams", err)
 		return
@@ -775,7 +775,7 @@ func SearchTeam(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

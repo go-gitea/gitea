@@ -356,7 +356,7 @@ func SearchTeam(ctx *context.Context) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		log.Error("convert ToTeams failed: %v", err)
 		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{

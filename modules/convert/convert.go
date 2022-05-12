@@ -305,8 +305,8 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 }
 
 // ToTeam convert models.Team to api.Team
-func ToTeam(team *organization.Team) (*api.Team, error) {
-	teams, err := ToTeams([]*organization.Team{team})
+func ToTeam(team *organization.Team, loadOrg ...bool) (*api.Team, error) {
+	teams, err := ToTeams([]*organization.Team{team}, len(loadOrg) != 0 && loadOrg[0])
 	if err != nil || len(teams) == 0 {
 		return nil, err
 	}
@@ -314,7 +314,7 @@ func ToTeam(team *organization.Team) (*api.Team, error) {
 }
 
 // ToTeams convert models.Team list to api.Team list
-func ToTeams(teams []*organization.Team) ([]*api.Team, error) {
+func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 	if len(teams) == 0 || teams[0] == nil {
 		return nil, nil
 	}
@@ -322,28 +322,32 @@ func ToTeams(teams []*organization.Team) ([]*api.Team, error) {
 	cache := make(map[int64]*api.Organization)
 	apiTeams := make([]*api.Team, len(teams))
 	for i := range teams {
-		apiOrg, ok := cache[teams[i].OrgID]
-		if !ok {
-			org, err := organization.GetOrgByID(teams[i].OrgID)
-			if err != nil {
-				return nil, err
-			}
-			apiOrg = ToOrganization(org)
-			cache[teams[i].OrgID] = apiOrg
-		}
 		if err := teams[i].GetUnits(); err != nil {
 			return nil, err
 		}
+
 		apiTeams[i] = &api.Team{
 			ID:                      teams[i].ID,
 			Name:                    teams[i].Name,
-			Organization:            apiOrg, // todo!!!
 			Description:             teams[i].Description,
 			IncludesAllRepositories: teams[i].IncludesAllRepositories,
 			CanCreateOrgRepo:        teams[i].CanCreateOrgRepo,
 			Permission:              teams[i].AccessMode.String(),
 			Units:                   teams[i].GetUnitNames(),
 			UnitsMap:                teams[i].GetUnitsMap(),
+		}
+
+		if loadOrgs {
+			apiOrg, ok := cache[teams[i].OrgID]
+			if !ok {
+				org, err := organization.GetOrgByID(teams[i].OrgID)
+				if err != nil {
+					return nil, err
+				}
+				apiOrg = ToOrganization(org)
+				cache[teams[i].OrgID] = apiOrg
+			}
+			apiTeams[i].Organization = apiOrg
 		}
 	}
 	return apiTeams, nil

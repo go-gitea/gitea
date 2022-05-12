@@ -47,7 +47,7 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams, err := convert.ToTeams(teams)
+	apiTeams, err := convert.ToTeams(teams, false)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
