@@ -651,14 +651,9 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		return err
 	}
 
-	hooks, err := webhook.ListWebhooksByOptsCtx(ctx, &webhook.ListWebhookOptions{RepoID: repoID})
-	if err != nil {
+	if _, err := db.GetEngine(ctx).In("hook_id", builder.Select("id").From("webhook").Where(builder.Eq{"webhook.repo_id": repo.ID})).
+		Delete(&webhook.HookTask{}); err != nil {
 		return err
-	}
-	for _, hook := range hooks {
-		if err := db.DeleteBeans(ctx, &webhook.HookTask{HookID: hook.ID}); err != nil {
-			return err
-		}
 	}
 
 	if err := db.DeleteBeans(ctx,
@@ -684,6 +679,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
+		&webhook.HookTask{RepoID: repoID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
 	}
