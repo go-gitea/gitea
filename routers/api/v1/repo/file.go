@@ -18,7 +18,11 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -72,6 +76,118 @@ func GetRawFile(ctx *context.APIContext) {
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+	}
+}
+
+// GetRawFileOrLFS get a file by repo's path redirecting to LFS if necessary
+func GetRawFileOrLFS(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
+	// ---
+	// summary: Get a file or it's LFS object from a repository
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file to get
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   200:
+	//     description: Returns raw file content.
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound()
+		return
+	}
+
+	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+		return
+	}
+
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+	closed := false
+	defer func() {
+		if closed {
+			return
+		}
+		if err = dataRc.Close(); err != nil {
+			log.Error("ServeBlobOrLFS: Close: %v", err)
+		}
+	}()
+
+	pointer, _ := lfs.ReadPointer(dataRc)
+	if pointer.IsValid() {
+		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+		if meta == nil {
+			if err = dataRc.Close(); err != nil {
+				log.Error("ServeBlobOrLFS: Close: %v", err)
+			}
+			closed = true
+			if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+				ctx.ServerError("ServeBlob", err)
+				return
+			}
+		}
+		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+			return
+		}
+
+		if setting.LFS.ServeDirect {
+			// If we have a signed url (S3, object storage), redirect to this directly.
+			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+			if u != nil && err == nil {
+				ctx.Redirect(u.String())
+				return
+			}
+		}
+
+		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+		if err != nil {
+			ctx.ServerError("ReadMetaObject", err)
+			return
+		}
+		defer func() {
+			if err = lfsDataRc.Close(); err != nil {
+				log.Error("ServeBlobOrLFS: Close: %v", err)
+			}
+		}()
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
+			ctx.ServerError("ServeData", err)
+		}
+		return
+	}
+	if err = dataRc.Close(); err != nil {
+		log.Error("ServeBlobOrLFS: Close: %v", err)
+	}
+	closed = true
+
+	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+		ctx.ServerError("ServeBlob", err)
 	}
 }
 
