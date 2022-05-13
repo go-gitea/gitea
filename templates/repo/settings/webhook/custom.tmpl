@@ -10,7 +10,16 @@
 		{{range .CustomHook.Form}}
 		<div class="field {{if .Required}}required{{end}} {{if ne (index $ (printf "Err_%s" .ID)) nil}}error{{end}}">
 			<label for="{{.ID}}">{{.Label}}</label>
-			<input id="{{.ID}}" name="{{.ID}}" type="{{.InputType}}" value="{{if eq .InputType "checkbox"}}true{{else}}{{index $ (printf "CustomHook_%s" .ID)}}{{end}}" {{if and (eq .InputType "checkbox") (eq (printf "%v" (index $ (printf "CustomHook_%s" .ID))) "true")}}checked{{end}} {{if .Default}}placeholder="{{.Default}}" {{end}} {{if .Required}}required{{end}}>
+			<input
+				id="{{.ID}}"
+				name="{{.ID}}"
+				type="{{.InputType}}"
+				value="{{if eq .InputType "checkbox"}}true{{else}}{{index $ (printf "CustomHook_%s" .ID)}}{{end}}"
+				{{if and (eq .InputType "checkbox") (eq (printf "%v" (index $ (printf "CustomHook_%s" .ID))) "true")}}checked{{end}}
+				{{if .Default}}placeholder="{{.Default}}" {{end}}
+				{{if .Pattern}}pattern="{{.Pattern}}"{{end}}
+				{{if .Required}}required{{end}}
+			>
 		</div>
 		{{end}}
 		<div class="field {{if .Err_Secret}}error{{end}}">

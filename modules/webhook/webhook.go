@@ -46,6 +46,7 @@ type Form struct {
 	Type     string `yaml:"type"`
 	Required bool   `yaml:"required"`
 	Default  string `yaml:"default"`
+	Pattern  string `yaml:"pattern"`
 }
 
 // InputType returns the HTML input type of a Form.Type
