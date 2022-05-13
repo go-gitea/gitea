@@ -21,7 +21,7 @@ var Webhooks = make(map[string]*Webhook)
 type Webhook struct {
 	ID    string   `yaml:"id"`
 	Label string   `yaml:"label"`
-	URL   string   `yaml:"url"`
+	Docs  string   `yaml:"docs"`
 	HTTP  string   `yaml:"http"`
 	Exec  []string `yaml:"exec"`
 	Form  []Form   `yaml:"form"`

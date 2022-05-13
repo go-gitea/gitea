@@ -1,5 +1,5 @@
 {{if .CustomHook}}
-	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" .CustomHook.URL .CustomHook.Label | Str2html}}</p>
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" .CustomHook.Docs .CustomHook.Label | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/{{.CustomHook.ID}}/{{or .Webhook.ID "new"}}" method="post">
 		{{template "base/disable_form_autofill"}}
 		{{.CsrfTokenHtml}}
