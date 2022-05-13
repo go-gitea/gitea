@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://gitea.com/gitea/gitea/modules/webhook/schema.json",
+  "title": "Custom webhook configuration",
+  "description": "A custom webhook for Gitea",
+  "type": "object",
+  "required": ["id", "label", "docs", "form"],
+  "oneOf": [
+    {
+      "required": ["exec"]
+    },
+    {
+      "required": ["http"]
+    }
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "description": "Webhook ID",
+      "type": "string"
+    },
+    "label": {
+      "description": "Webhook Label",
+      "type": "string"
+    },
+    "docs": {
+      "description": "Webhook Docs URL",
+      "type": "string"
+    },
+    "http": {
+      "description": "HTTP Endpoint",
+      "type": "string"
+    },
+    "exec": {
+      "description": "Command to execute",
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "form": {
+      "description": "Webhook form",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "label", "type"],
+        "properties": {
+          "id": {
+            "description": "Form ID",
+            "type": "string"
+          },
+          "label": {
+            "description": "Form label",
+            "type": "string"
+          },
+          "type": {
+            "description": "Form type",
+            "type": "string",
+            "enum": ["text", "number", "bool", "secret"]
+          },
+          "required": {
+            "description": "Input required",
+            "type": "boolean"
+          },
+          "default": {
+            "description": "Input default",
+            "type": "string"
+          },
+          "pattern": {
+            "description": "Input pattern",
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
