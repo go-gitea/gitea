@@ -120,25 +120,28 @@ var (
 								Name:  "filename, f",
 								Usage: "Filename for the logger - this must be set.",
 							},
-							&cli.BoolTFlag{
+							&cli.BoolFlag{
 								Name:  "rotate, r",
 								Usage: "Rotate logs",
+								Value: true,
 							},
 							&cli.Int64Flag{
 								Name:  "max-size, s",
 								Usage: "Maximum size in bytes before rotation",
 							},
-							&cli.BoolTFlag{
+							&cli.BoolFlag{
 								Name:  "daily, d",
 								Usage: "Rotate logs daily",
+								Value: true,
 							},
 							&cli.IntFlag{
 								Name:  "max-days, D",
 								Usage: "Maximum number of daily logs to keep",
 							},
-							&cli.BoolTFlag{
+							&cli.BoolFlag{
 								Name:  "compress, z",
 								Usage: "Compress rotated logs",
+								Value: true,
 							},
 							&cli.IntFlag{
 								Name:  "compression-level, Z",
