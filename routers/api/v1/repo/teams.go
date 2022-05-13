@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ListTeams list a repository's teams
@@ -48,14 +47,10 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
-			return
-		}
-
-		apiTeams[i] = convert.ToTeam(teams[i])
+	apiTeams, err := convert.ToTeams(teams, false)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, apiTeams)
@@ -103,11 +98,11 @@ func IsTeam(ctx *context.APIContext) {
 	}
 
 	if models.HasRepository(team, ctx.Repo.Repository.ID) {
-		if err := team.GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
+		apiTeam, err := convert.ToTeam(team)
+		if err != nil {
+			ctx.InternalServerError(err)
 			return
 		}
-		apiTeam := convert.ToTeam(team)
 		ctx.JSON(http.StatusOK, apiTeam)
 		return
 	}

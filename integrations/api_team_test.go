@@ -69,7 +69,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusCreated)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+	checkTeamResponse(t, "CreateTeam1", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		teamToCreate.Permission, teamToCreate.Units, nil)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		teamToCreate.Permission, teamToCreate.Units, nil)
@@ -90,7 +90,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, "EditTeam1", &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
@@ -102,7 +102,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, "EditTeam1_DescOnly", &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		teamToEdit.Permission, unit.AllUnitKeyNames(), nil)
@@ -114,7 +114,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
+	checkTeamResponse(t, "ReadTeam1", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
@@ -135,7 +135,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusCreated)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
+	checkTeamResponse(t, "CreateTeam2", &apiTeam, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		"read", nil, teamToCreate.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToCreate.Name, teamToCreate.Description, teamToCreate.IncludesAllRepositories,
 		"read", nil, teamToCreate.UnitsMap)
@@ -156,7 +156,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, "EditTeam2", &apiTeam, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		"read", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEdit.Description, *teamToEdit.IncludesAllRepositories,
 		"read", nil, teamToEdit.UnitsMap)
@@ -168,7 +168,7 @@ func TestAPITeam(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
-	checkTeamResponse(t, &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
+	checkTeamResponse(t, "EditTeam2_DescOnly", &apiTeam, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		"read", nil, teamToEdit.UnitsMap)
 	checkTeamBean(t, apiTeam.ID, teamToEdit.Name, *teamToEditDesc.Description, *teamToEdit.IncludesAllRepositories,
 		"read", nil, teamToEdit.UnitsMap)
@@ -180,7 +180,7 @@ func TestAPITeam(t *testing.T) {
 	apiTeam = api.Team{}
 	DecodeJSON(t, resp, &apiTeam)
 	assert.NoError(t, teamRead.GetUnits())
-	checkTeamResponse(t, &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
+	checkTeamResponse(t, "ReadTeam2", &apiTeam, teamRead.Name, *teamToEditDesc.Description, teamRead.IncludesAllRepositories,
 		teamRead.AccessMode.String(), teamRead.GetUnitNames(), teamRead.GetUnitsMap())
 
 	// Delete team.
@@ -189,8 +189,8 @@ func TestAPITeam(t *testing.T) {
 	unittest.AssertNotExistsBean(t, &organization.Team{ID: teamID})
 }
 
-func checkTeamResponse(t *testing.T, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
-	t.Run(name+description, func(t *testing.T) {
+func checkTeamResponse(t *testing.T, testName string, apiTeam *api.Team, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
+	t.Run(testName, func(t *testing.T) {
 		assert.Equal(t, name, apiTeam.Name, "name")
 		assert.Equal(t, description, apiTeam.Description, "description")
 		assert.Equal(t, includesAllRepositories, apiTeam.IncludesAllRepositories, "includesAllRepositories")
@@ -209,7 +209,9 @@ func checkTeamResponse(t *testing.T, apiTeam *api.Team, name, description string
 func checkTeamBean(t *testing.T, id int64, name, description string, includesAllRepositories bool, permission string, units []string, unitsMap map[string]string) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: id}).(*organization.Team)
 	assert.NoError(t, team.GetUnits(), "GetUnits")
-	checkTeamResponse(t, convert.ToTeam(team), name, description, includesAllRepositories, permission, units, unitsMap)
+	apiTeam, err := convert.ToTeam(team)
+	assert.NoError(t, err)
+	checkTeamResponse(t, fmt.Sprintf("checkTeamBean/%s_%s", name, description), apiTeam, name, description, includesAllRepositories, permission, units, unitsMap)
 }
 
 type TeamSearchResults struct {
