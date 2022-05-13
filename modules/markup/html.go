@@ -21,9 +21,9 @@ import (
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	"golang.org/x/net/html"
 	"golang.org/x/net/html/atom"
 	"mvdan.cc/xurls/v2"
@@ -348,8 +348,7 @@ func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output 
 
 	// Render everything to buf.
 	for _, node := range newNodes {
-		err = html.Render(output, node)
-		if err != nil {
+		if err := html.Render(output, node); err != nil {
 			return &postProcessError{"error rendering processed HTML", err}
 		}
 	}
@@ -387,6 +386,7 @@ func visitNode(ctx *RenderContext, procs, textProcs []processor, node *html.Node
 
 					attr.Val = util.URLJoin(prefix, attr.Val)
 				}
+				attr.Val = camoHandleLink(attr.Val)
 				node.Attr[i] = attr
 			}
 		} else if node.Data == "a" {
@@ -838,7 +838,14 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
 		if exttrack && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
-			link = createLink(com.Expand(ctx.Metas["format"], ctx.Metas), reftext, "ref-issue ref-external-issue")
+
+			res, err := vars.Expand(ctx.Metas["format"], ctx.Metas)
+			if err != nil {
+				// here we could just log the error and continue the rendering
+				log.Error("unable to expand template vars for ref %s, err: %v", ref.Issue, err)
+			}
+
+			link = createLink(res, reftext, "ref-issue ref-external-issue")
 		} else {
 			// Path determines the type of link that will be rendered. It's unknown at this point whether
 			// the linked item is actually a PR or an issue. Luckily it's of no real consequence because
@@ -1079,7 +1086,7 @@ func sha1CurrentPatternProcessor(ctx *RenderContext, node *html.Node) {
 		if !inCache {
 			if ctx.GitRepo == nil {
 				var err error
-				ctx.GitRepo, err = git.OpenRepositoryCtx(ctx.Ctx, ctx.Metas["repoPath"])
+				ctx.GitRepo, err = git.OpenRepository(ctx.Ctx, ctx.Metas["repoPath"])
 				if err != nil {
 					log.Error("unable to open repository: %s Error: %v", ctx.Metas["repoPath"], err)
 					return

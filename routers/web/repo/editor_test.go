@@ -67,7 +67,7 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
 	expectedTreePath := ""

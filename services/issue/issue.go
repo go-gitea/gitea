@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -28,7 +29,7 @@ func NewIssue(repo *repo_model.Repository, issue *models.Issue, labelIDs []int64
 		}
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, issue.Poster, issue.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, issue.Poster, issue.Content)
 	if err != nil {
 		return err
 	}
@@ -49,7 +50,7 @@ func ChangeTitle(issue *models.Issue, doer *user_model.User, title string) (err 
 	oldTitle := issue.Title
 	issue.Title = title
 
-	if err = issue.ChangeTitle(doer, oldTitle); err != nil {
+	if err = models.ChangeIssueTitle(issue, doer, oldTitle); err != nil {
 		return
 	}
 
@@ -63,7 +64,7 @@ func ChangeIssueRef(issue *models.Issue, doer *user_model.User, ref string) erro
 	oldRef := issue.Ref
 	issue.Ref = ref
 
-	if err := issue.ChangeRef(doer, oldRef); err != nil {
+	if err := models.ChangeIssueRef(issue, doer, oldRef); err != nil {
 		return err
 	}
 
@@ -172,7 +173,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 		return nil
 	}
 
-	valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+	valid, err := access_model.CanBeAssigned(db.DefaultContext, assignee, issue.Repo, issue.IsPull)
 	if err != nil {
 		return err
 	}

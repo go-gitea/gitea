@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -41,6 +42,15 @@ func (repos RepositoryList) Swap(i, j int) {
 	repos[i], repos[j] = repos[j], repos[i]
 }
 
+// FIXME: Remove in favor of maps.values when MIN_GO_VERSION >= 1.18
+func valuesRepository(m map[int64]*repo_model.Repository) []*repo_model.Repository {
+	values := make([]*repo_model.Repository, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
+}
+
 // RepositoryListOfMap make list from values of map
 func RepositoryListOfMap(repoMap map[int64]*repo_model.Repository) RepositoryList {
 	return RepositoryList(valuesRepository(repoMap))
@@ -62,7 +72,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := e.
 		Where("id > 0").
-		In("id", keysInt64(set)).
+		In("id", container.KeysInt64(set)).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}

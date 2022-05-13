@@ -46,13 +46,14 @@ func TestMirrorPull(t *testing.T) {
 		Status:      repo_model.RepositoryBeingMigrated,
 	})
 	assert.NoError(t, err)
+	assert.True(t, mirrorRepo.IsMirror, "expected pull-mirror repo to be marked as a mirror immediately after its creation")
 
 	ctx := context.Background()
 
 	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

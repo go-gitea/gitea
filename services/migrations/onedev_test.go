@@ -6,7 +6,6 @@ package migrations
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/url"
 	"testing"
@@ -19,14 +18,14 @@ import (
 
 func TestOneDevDownloadRepo(t *testing.T) {
 	resp, err := http.Get("https://code.onedev.io/projects/go-gitea-test_repo")
-	if err != nil || resp.StatusCode != 200 {
+	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Skipf("Can't access test repo, skipping %s", t.Name())
 	}
 
 	u, _ := url.Parse("https://code.onedev.io")
 	downloader := NewOneDevDownloader(context.Background(), u, "", "", "go-gitea-test_repo")
 	if err != nil {
-		t.Fatal(fmt.Sprintf("NewOneDevDownloader is nil: %v", err))
+		t.Fatalf("NewOneDevDownloader is nil: %v", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)
@@ -74,11 +73,8 @@ func TestOneDevDownloadRepo(t *testing.T) {
 					Name: "Improvement",
 				},
 			},
-			Context: onedevIssueContext{
-				foreignID:     398,
-				localID:       4,
-				IsPullRequest: false,
-			},
+			ForeignIndex: 398,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		},
 		{
 			Number:     3,
@@ -94,20 +90,15 @@ func TestOneDevDownloadRepo(t *testing.T) {
 					Name: "New Feature",
 				},
 			},
-			Context: onedevIssueContext{
-				foreignID:     397,
-				localID:       3,
-				IsPullRequest: false,
-			},
+			ForeignIndex: 397,
+			Context:      onedevIssueContext{IsPullRequest: false},
 		},
 	}, issues)
 
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: onedevIssueContext{
-			foreignID:     398,
-			localID:       4,
-			IsPullRequest: false,
-		},
+	comments, _, err := downloader.GetComments(&base.Issue{
+		Number:       4,
+		ForeignIndex: 398,
+		Context:      onedevIssueContext{IsPullRequest: false},
 	})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
@@ -141,18 +132,12 @@ func TestOneDevDownloadRepo(t *testing.T) {
 				SHA:      "f32b0a9dfd09a60f616f29158f772cedd89942d2",
 				RepoName: "go-gitea-test_repo",
 			},
-			Context: onedevIssueContext{
-				foreignID:     186,
-				localID:       5,
-				IsPullRequest: true,
-			},
+			ForeignIndex: 186,
+			Context:      onedevIssueContext{IsPullRequest: true},
 		},
 	}, prs)
 
-	rvs, err := downloader.GetReviews(onedevIssueContext{
-		foreignID: 186,
-		localID:   5,
-	})
+	rvs, err := downloader.GetReviews(&base.PullRequest{Number: 5, ForeignIndex: 186})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{

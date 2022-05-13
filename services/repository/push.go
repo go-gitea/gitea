@@ -89,13 +89,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	repoPath := repo.RepoPath()
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
 		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
-	if err = models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
+	if err = models.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -222,7 +222,34 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
-				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
+
+				oldCommitID := opts.OldCommitID
+				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
+					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
+					if err != nil && !git.IsErrNotExist(err) {
+						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
+					}
+					if oldCommit != nil {
+						for i := 0; i < oldCommit.ParentCount(); i++ {
+							commitID, _ := oldCommit.ParentID(i)
+							if !commitID.IsZero() {
+								oldCommitID = commitID.String()
+								break
+							}
+						}
+					}
+				}
+
+				if oldCommitID == git.EmptySHA && repo.DefaultBranch != branch {
+					oldCommitID = repo.DefaultBranch
+				}
+
+				if oldCommitID != git.EmptySHA {
+					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
+				} else {
+					commits.CompareURL = ""
+				}
+
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
 				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {

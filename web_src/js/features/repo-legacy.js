@@ -8,7 +8,7 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete,
   initRepoIssueReferenceIssue, initRepoIssueStatusButton,
   initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
@@ -16,7 +16,7 @@ import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoClone,
+  initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -28,6 +28,7 @@ import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
@@ -423,18 +424,6 @@ export function initRepository() {
   }
 
 
-  // Commit statuses
-  $('.commit-statuses-trigger').each(function () {
-    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
-    const popupPosition = positionRight ? 'right center' : 'left center';
-    $(this)
-      .popup({
-        on: 'click',
-        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
-        position: popupPosition,
-      });
-  });
-
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
     $('.repository.commits').length > 0 || $('.repository.release').length > 0) {
@@ -498,7 +487,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoClone();
+  initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
@@ -519,9 +508,10 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoPullRequestMerge();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+
+    initRepoPullRequestMergeForm();
   }
 
   // Pull request

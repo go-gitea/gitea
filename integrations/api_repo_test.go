@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -205,7 +207,7 @@ func TestAPISearchRepo(t *testing.T) {
 					assert.Len(t, repoNames, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
-						hasAccess, err := models.HasAccess(userID, r)
+						hasAccess, err := access_model.HasAccess(db.DefaultContext, userID, r)
 						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
 						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
 
@@ -403,6 +405,27 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		DecodeJSON(t, resp, &respJSON)
 		assert.Equal(t, "The repository with the same name already exists.", respJSON["message"])
 	})
+}
+
+// mirror-sync must fail with "400 (Bad Request)" when an attempt is made to
+// sync a non-mirror repository.
+func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	token := getTokenForLoggedInUser(t, session)
+
+	var repo api.Repository
+	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1")
+	resp := MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &repo)
+	assert.EqualValues(t, false, repo.Mirror)
+
+	req = NewRequestf(t, "POST", "/api/v1/repos/user2/repo1/mirror-sync?token=%s", token)
+	resp = session.MakeRequest(t, req, http.StatusBadRequest)
+	errRespJSON := map[string]string{}
+	DecodeJSON(t, resp, &errRespJSON)
+	assert.Equal(t, "Repository is not a mirror", errRespJSON["message"])
 }
 
 func TestAPIOrgRepoCreate(t *testing.T) {

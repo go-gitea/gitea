@@ -9,8 +9,8 @@ import (
 	"net/url"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/markup"
@@ -38,7 +38,7 @@ func Milestones(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 
 	isShowClosed := ctx.FormString("state") == "closed"
-	stats, err := models.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
+	stats, err := issues_model.GetMilestonesStatsByRepoCond(builder.And(builder.Eq{"id": ctx.Repo.Repository.ID}))
 	if err != nil {
 		ctx.ServerError("MilestoneStats", err)
 		return
@@ -60,7 +60,7 @@ func Milestones(ctx *context.Context) {
 		state = structs.StateClosed
 	}
 
-	miles, total, err := models.GetMilestones(models.GetMilestonesOption{
+	miles, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: setting.UI.IssuePagingNum,
@@ -143,7 +143,7 @@ func NewMilestonePost(ctx *context.Context) {
 	}
 
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
-	if err = models.NewMilestone(&models.Milestone{
+	if err = issues_model.NewMilestone(&issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
 		Name:         form.Title,
 		Content:      form.Content,
@@ -163,9 +163,9 @@ func EditMilestone(ctx *context.Context) {
 	ctx.Data["PageIsMilestones"] = true
 	ctx.Data["PageIsEditMilestone"] = true
 
-	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
+		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetMilestoneByRepoID", err)
@@ -203,9 +203,9 @@ func EditMilestonePost(ctx *context.Context) {
 	}
 
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
-	m, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	m, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
+		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", nil)
 		} else {
 			ctx.ServerError("GetMilestoneByRepoID", err)
@@ -215,7 +215,7 @@ func EditMilestonePost(ctx *context.Context) {
 	m.Name = form.Title
 	m.Content = form.Content
 	m.DeadlineUnix = timeutil.TimeStamp(deadline.Unix())
-	if err = models.UpdateMilestone(m, m.IsClosed); err != nil {
+	if err = issues_model.UpdateMilestone(m, m.IsClosed); err != nil {
 		ctx.ServerError("UpdateMilestone", err)
 		return
 	}
@@ -237,8 +237,8 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 	}
 	id := ctx.ParamsInt64(":id")
 
-	if err := models.ChangeMilestoneStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
-		if models.IsErrMilestoneNotExist(err) {
+	if err := issues_model.ChangeMilestoneStatusByRepoIDAndID(ctx.Repo.Repository.ID, id, toClose); err != nil {
+		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("", err)
 		} else {
 			ctx.ServerError("ChangeMilestoneStatusByIDAndRepoID", err)
@@ -250,7 +250,7 @@ func ChangeMilestoneStatus(ctx *context.Context) {
 
 // DeleteMilestone delete a milestone
 func DeleteMilestone(ctx *context.Context) {
-	if err := models.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteMilestoneByRepoID(ctx.Repo.Repository.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteMilestoneByRepoID: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.milestones.deletion_success"))
@@ -264,9 +264,9 @@ func DeleteMilestone(ctx *context.Context) {
 // MilestoneIssuesAndPulls lists all the issues and pull requests of the milestone
 func MilestoneIssuesAndPulls(ctx *context.Context) {
 	milestoneID := ctx.ParamsInt64(":id")
-	milestone, err := models.GetMilestoneByRepoID(ctx.Repo.Repository.ID, milestoneID)
+	milestone, err := issues_model.GetMilestoneByRepoID(ctx, ctx.Repo.Repository.ID, milestoneID)
 	if err != nil {
-		if models.IsErrMilestoneNotExist(err) {
+		if issues_model.IsErrMilestoneNotExist(err) {
 			ctx.NotFound("GetMilestoneByID", err)
 			return
 		}
