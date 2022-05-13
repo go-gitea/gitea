@@ -115,7 +115,7 @@ var (
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "restricted",
 				Usage: "Make a restricted user account",
 			},
@@ -168,16 +168,16 @@ var (
 		Name:  "generate-access-token",
 		Usage: "Generate a access token for a specific user",
 		Flags: []cli.Flag{
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "username,u",
 				Usage: "Username",
 			},
-			cli.StringFlag{
+			&cli.StringFlag{
 				Name:  "token-name,t",
 				Usage: "Token name",
 				Value: "gitea-admin",
 			},
-			cli.BoolFlag{
+			&cli.BoolFlag{
 				Name:  "raw",
 				Usage: "Display only the token value",
 			},

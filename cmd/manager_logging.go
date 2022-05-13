@@ -17,31 +17,39 @@ import (
 
 var (
 	defaultLoggingFlags = []cli.Flag{
-		cli.StringFlag{
+		&cli.StringFlag{
 			Name:  "group, g",
 			Usage: "Group to add logger to - will default to \"default\"",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "name, n",
 			Usage: "Name of the new logger - will default to mode",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "level, l",
 			Usage: "Logging level for the new logger",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "stacktrace-level, L",
 			Usage: "Stacktrace logging level",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "flags, F",
 			Usage: "Flags for the logger",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "expression, e",
 			Usage: "Matching expression for the logger",
-		}, cli.StringFlag{
+		},
+		&cli.StringFlag{
 			Name:  "prefix, p",
 			Usage: "Prefix for the logger",
-		}, cli.BoolFlag{
+		},
+		&cli.BoolFlag{
 			Name:  "color",
 			Usage: "Use color in the logs",
-		}, cli.BoolFlag{
+		},
+		&cli.BoolFlag{
 			Name: "debug",
 		},
 	}
@@ -49,12 +57,12 @@ var (
 	subcmdLogging = cli.Command{
 		Name:  "logging",
 		Usage: "Adjust logging commands",
-		Subcommands: []cli.Command{
+		Subcommands: []*cli.Command{
 			{
 				Name:  "pause",
 				Usage: "Pause logging (Gitea will buffer logs up to a certain point and will drop them after that point)",
 				Flags: []cli.Flag{
-					cli.BoolFlag{
+					&cli.BoolFlag{
 						Name: "debug",
 					},
 				},
@@ -63,7 +71,7 @@ var (
 				Name:  "resume",
 				Usage: "Resume logging",
 				Flags: []cli.Flag{
-					cli.BoolFlag{
+					&cli.BoolFlag{
 						Name: "debug",
 					},
 				},
@@ -72,7 +80,7 @@ var (
 				Name:  "release-and-reopen",
 				Usage: "Cause Gitea to release and re-open files used for logging",
 				Flags: []cli.Flag{
-					cli.BoolFlag{
+					&cli.BoolFlag{
 						Name: "debug",
 					},
 				},
@@ -82,9 +90,10 @@ var (
 				Usage:     "Remove a logger",
 				ArgsUsage: "[name] Name of logger to remove",
 				Flags: []cli.Flag{
-					cli.BoolFlag{
+					&cli.BoolFlag{
 						Name: "debug",
-					}, cli.StringFlag{
+					},
+					&cli.StringFlag{
 						Name:  "group, g",
 						Usage: "Group to add logger to - will default to \"default\"",
 					},
@@ -93,12 +102,12 @@ var (
 			}, {
 				Name:  "add",
 				Usage: "Add a logger",
-				Subcommands: []cli.Command{
+				Subcommands: []*cli.Command{
 					{
 						Name:  "console",
 						Usage: "Add a console logger",
 						Flags: append(defaultLoggingFlags,
-							cli.BoolFlag{
+							&cli.BoolFlag{
 								Name:  "stderr",
 								Usage: "Output console logs to stderr - only relevant for console",
 							}),
@@ -107,25 +116,31 @@ var (
 						Name:  "file",
 						Usage: "Add a file logger",
 						Flags: append(defaultLoggingFlags, []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "filename, f",
 								Usage: "Filename for the logger - this must be set.",
-							}, cli.BoolTFlag{
+							},
+							&cli.BoolTFlag{
 								Name:  "rotate, r",
 								Usage: "Rotate logs",
-							}, cli.Int64Flag{
+							},
+							&cli.Int64Flag{
 								Name:  "max-size, s",
 								Usage: "Maximum size in bytes before rotation",
-							}, cli.BoolTFlag{
+							},
+							&cli.BoolTFlag{
 								Name:  "daily, d",
 								Usage: "Rotate logs daily",
-							}, cli.IntFlag{
+							},
+							&cli.IntFlag{
 								Name:  "max-days, D",
 								Usage: "Maximum number of daily logs to keep",
-							}, cli.BoolTFlag{
+							},
+							&cli.BoolTFlag{
 								Name:  "compress, z",
 								Usage: "Compress rotated logs",
-							}, cli.IntFlag{
+							},
+							&cli.IntFlag{
 								Name:  "compression-level, Z",
 								Usage: "Compression level to use",
 							},
@@ -135,16 +150,19 @@ var (
 						Name:  "conn",
 						Usage: "Add a net conn logger",
 						Flags: append(defaultLoggingFlags, []cli.Flag{
-							cli.BoolFlag{
+							&cli.BoolFlag{
 								Name:  "reconnect-on-message, R",
 								Usage: "Reconnect to host for every message",
-							}, cli.BoolFlag{
+							},
+							&cli.BoolFlag{
 								Name:  "reconnect, r",
 								Usage: "Reconnect to host when connection is dropped",
-							}, cli.StringFlag{
+							},
+							&cli.StringFlag{
 								Name:  "protocol, P",
 								Usage: "Set protocol to use: tcp, unix, or udp (defaults to tcp)",
-							}, cli.StringFlag{
+							},
+							&cli.StringFlag{
 								Name:  "address, a",
 								Usage: "Host address and port to connect to (defaults to :7020)",
 							},
@@ -154,19 +172,23 @@ var (
 						Name:  "smtp",
 						Usage: "Add an SMTP logger",
 						Flags: append(defaultLoggingFlags, []cli.Flag{
-							cli.StringFlag{
+							&cli.StringFlag{
 								Name:  "username, u",
 								Usage: "Mail server username",
-							}, cli.StringFlag{
+							},
+							&cli.StringFlag{
 								Name:  "password, P",
 								Usage: "Mail server password",
-							}, cli.StringFlag{
+							},
+							&cli.StringFlag{
 								Name:  "host, H",
 								Usage: "Mail server host (defaults to: 127.0.0.1:25)",
-							}, cli.StringSliceFlag{
+							},
+							&cli.StringSliceFlag{
 								Name:  "send-to, s",
 								Usage: "Email address(es) to send to",
-							}, cli.StringFlag{
+							},
+							&cli.StringFlag{
 								Name:  "subject, S",
 								Usage: "Subject header of sent emails",
 							},
