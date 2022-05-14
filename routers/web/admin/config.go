@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/mailer"
 	"gitea.com/go-chi/session"
@@ -196,22 +197,23 @@ func Config(ctx *context.Context) {
 func ChangeConfig(ctx *context.Context) {
 	key := strings.TrimSpace(ctx.FormString("key"))
 	if key == "" {
-		ctx.JSON(http.StatusOK, map[string]string{})
+		ctx.JSON(http.StatusOK, map[string]string{
+			"redirect": ctx.Req.URL.String(),
+		})
 		return
 	}
 	value := ctx.FormString("value")
+	version := ctx.FormInt("version")
 
-	theSetting, err := system_model.GetSetting(key)
-	if err != nil {
-		ctx.JSON(http.StatusOK, map[string]string{})
-		return
-	}
-	theSetting.SettingValue = value
-
-	if err := system_model.SetSetting(theSetting); err != nil {
-		ctx.JSON(http.StatusOK, map[string]string{})
+	if err := system_module.SetSetting(key, value, version); err != nil {
+		log.Error("set setting failed: %v", err)
+		ctx.JSON(http.StatusOK, map[string]string{
+			"err": ctx.Tr("admin.config.set_setting_failed", key),
+		})
 		return
 	}
 
-	ctx.Redirect(ctx.Req.URL.String(), 302)
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"version": version + 1,
+	})
 }

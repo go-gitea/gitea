@@ -13,6 +13,7 @@ import (
 	"sync"
 
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
@@ -72,7 +73,7 @@ func GetEmailForHash(md5Sum string) (string, error) {
 // LibravatarURL returns the URL for the given email. Slow due to the DNS lookup.
 // This function should only be called if a federated avatar service is enabled.
 func LibravatarURL(email string) (*url.URL, error) {
-	urlStr, err := setting.LibravatarService.FromEmail(email)
+	urlStr, err := system_model.LibravatarService.FromEmail(email)
 	if err != nil {
 		log.Error("LibravatarService.FromEmail(email=%s): error %v", email, err)
 		return nil, err
@@ -150,7 +151,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 	}
 
 	var err error
-	if setting.EnableFederatedAvatar && setting.LibravatarService != nil {
+	if setting.EnableFederatedAvatar && system_model.LibravatarService != nil {
 		emailHash := saveEmailHash(email)
 		if final {
 			// for final link, we can spend more time on slow external query
@@ -166,11 +167,14 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 			urlStr += "?size=" + strconv.Itoa(size)
 		}
 		return urlStr
-	} else if !setting.DisableGravatar {
-		// copy GravatarSourceURL, because we will modify its Path.
-		avatarURLCopy := *setting.GravatarSourceURL
-		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
-		return generateRecognizedAvatarURL(avatarURLCopy, size)
+	} else {
+		disableGravatar, _ := system_model.GetSetting("disable_gravatar")
+		if !disableGravatar.GetValueBool() {
+			// copy GravatarSourceURL, because we will modify its Path.
+			avatarURLCopy := *system_model.GravatarSourceURL
+			avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
+			return generateRecognizedAvatarURL(avatarURLCopy, size)
+		}
 	}
 	return DefaultAvatarLink()
 }

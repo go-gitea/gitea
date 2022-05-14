@@ -6,12 +6,16 @@ package system
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"strk.kbt.io/projects/go/libravatar"
 
 	"xorm.io/builder"
 )
@@ -29,6 +33,11 @@ type Setting struct {
 // TableName sets the table name for the settings struct
 func (s *Setting) TableName() string {
 	return "system_setting"
+}
+
+func (s *Setting) GetValueBool() bool {
+	b, _ := strconv.ParseBool(s.SettingValue)
+	return b
 }
 
 func init() {
@@ -108,6 +117,10 @@ func (settings AllSettings) GetBool(key string) bool {
 	return b
 }
 
+func (settings AllSettings) GetVersion(key string) int {
+	return settings.Get(key).Version
+}
+
 // GetAllSettings returns all settings from user
 func GetAllSettings() (AllSettings, error) {
 	settings := make([]*Setting, 0, 5)
@@ -128,12 +141,31 @@ func DeleteSetting(setting *Setting) error {
 	return err
 }
 
+func SetSettingNoVersion(key, value string) error {
+	s, err := GetSetting(key)
+	if errors.Is(err, ErrSettingIsNotExist{}) {
+		return SetSetting(&Setting{
+			SettingKey:   key,
+			SettingValue: value,
+		})
+	}
+	if err != nil {
+		return err
+	}
+	s.SettingValue = value
+	return SetSetting(s)
+}
+
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
 	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
 		return fmt.Errorf("setting key should be lowercase")
 	}
-	return upsertSettingValue(setting.SettingKey, setting.SettingValue, setting.Version)
+	if err := upsertSettingValue(setting.SettingKey, setting.SettingValue, setting.Version); err != nil {
+		return err
+	}
+	setting.Version++
+	return nil
 }
 
 func upsertSettingValue(key, value string, version int) error {
@@ -150,7 +182,7 @@ func upsertSettingValue(key, value string, version int) error {
 		// to optimize the SELECT in step 2, we can use an extra column like `revision=revision+1`
 		//    to make sure the UPDATE always returns a non-zero value for existing (unchanged) records.
 
-		res, err := e.Exec("UPDATE system_setting SET setting_value=? WHERE setting_key=? AND version=?", value, key, version)
+		res, err := e.Exec("UPDATE system_setting SET setting_value=?, version = version+1 WHERE setting_key=? AND version=?", value, key, version)
 		if err != nil {
 			return err
 		}
@@ -173,4 +205,50 @@ func upsertSettingValue(key, value string, version int) error {
 		_, err = e.Insert(&Setting{SettingKey: key, SettingValue: value})
 		return err
 	})
+}
+
+var (
+	GravatarSourceURL *url.URL
+	LibravatarService *libravatar.Libravatar
+)
+
+func Init() error {
+	var disableGravatar bool
+	disableGravatarSetting, err := GetSetting("disable_gravatar")
+	if IsErrSettingIsNotExist(err) {
+		disableGravatar = setting.GetDefaultDisableGravatar()
+		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
+	} else if err != nil {
+		return err
+	} else {
+		disableGravatar = disableGravatarSetting.GetValueBool()
+	}
+
+	enableFederatedAvatarSetting, err := GetSetting("enable_federated_avatar")
+	if IsErrSettingIsNotExist(err) {
+		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(setting.GetDefaultEnableFederatedAvatar(disableGravatar))}
+	}
+	if err != nil {
+		return err
+	}
+
+	if enableFederatedAvatarSetting.GetValueBool() || !disableGravatarSetting.GetValueBool() {
+		var err error
+		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
+		if err != nil {
+			return fmt.Errorf("Failed to parse Gravatar URL(%s): %v", setting.GravatarSource, err)
+		}
+	}
+
+	if enableFederatedAvatarSetting.GetValueBool() {
+		LibravatarService = libravatar.New()
+		if GravatarSourceURL.Scheme == "https" {
+			LibravatarService.SetUseHTTPS(true)
+			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
+		} else {
+			LibravatarService.SetUseHTTPS(false)
+			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
+		}
+	}
+	return nil
 }

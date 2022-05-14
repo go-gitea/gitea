@@ -4,14 +4,6 @@
 
 package setting
 
-import (
-	"net/url"
-
-	"code.gitea.io/gitea/modules/log"
-
-	"strk.kbt.io/projects/go/libravatar"
-)
-
 // settings
 var (
 	// Picture settings
@@ -29,11 +21,9 @@ var (
 		RenderedSizeFactor: 3,
 	}
 
+	DisableGravatar       bool // Depreciated: migrated to database
+	EnableFederatedAvatar bool // Depreciated: migrated to database
 	GravatarSource        string
-	GravatarSourceURL     *url.URL
-	DisableGravatar       bool
-	EnableFederatedAvatar bool
-	LibravatarService     *libravatar.Libravatar
 
 	RepoAvatar = struct {
 		Storage
@@ -70,39 +60,27 @@ func newPictureService() {
 		GravatarSource = source
 	}
 
-	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool()
+	DisableGravatar = sec.Key("DISABLE_GRAVATAR").MustBool(GetDefaultDisableGravatar())
 	deprecatedSettingDB("", "DISABLE_GRAVATAR")
-	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(!InstallLock)
+	EnableFederatedAvatar = sec.Key("ENABLE_FEDERATED_AVATAR").MustBool(GetDefaultEnableFederatedAvatar(DisableGravatar))
 	deprecatedSettingDB("", "ENABLE_FEDERATED_AVATAR")
 
-	if OfflineMode {
-		DisableGravatar = true
-		EnableFederatedAvatar = false
-	}
-	if DisableGravatar {
-		EnableFederatedAvatar = false
-	}
-	if EnableFederatedAvatar || !DisableGravatar {
-		var err error
-		GravatarSourceURL, err = url.Parse(GravatarSource)
-		if err != nil {
-			log.Fatal("Failed to parse Gravatar URL(%s): %v",
-				GravatarSource, err)
-		}
-	}
-
-	if EnableFederatedAvatar {
-		LibravatarService = libravatar.New()
-		if GravatarSourceURL.Scheme == "https" {
-			LibravatarService.SetUseHTTPS(true)
-			LibravatarService.SetSecureFallbackHost(GravatarSourceURL.Host)
-		} else {
-			LibravatarService.SetUseHTTPS(false)
-			LibravatarService.SetFallbackHost(GravatarSourceURL.Host)
-		}
-	}
-
 	newRepoAvatarService()
+}
+
+func GetDefaultDisableGravatar() bool {
+	return !OfflineMode
+}
+
+func GetDefaultEnableFederatedAvatar(disableGravatar bool) bool {
+	v := !InstallLock
+	if OfflineMode {
+		v = false
+	}
+	if disableGravatar {
+		v = false
+	}
+	return v
 }
 
 func newRepoAvatarService() {

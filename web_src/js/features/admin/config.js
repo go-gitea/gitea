@@ -9,15 +9,22 @@ export function initAdminConfigs() {
   $("input[type='checkbox']").on('change', (e) => {
     const $this = $(e.currentTarget);
     $.ajax({
-      type: 'POST',
       url: `${appSubUrl}/admin/config`,
+      type: 'POST',
       data: {
         _csrf: csrfToken,
-        key: $this.attr("name"),
+        key: $this.attr('name'),
         value: $this.is(':checked'),
-      },
-      success: (data, _, jqXHR) => {
-
+        version: $this.attr('version'),
+      }
+    }).done((resp) => {
+      if (resp) {
+        console.info(resp);
+        if (resp.redirect) {
+          window.location.href = resp.redirect;
+        } else if (resp.version) {
+          $this.attr('version', resp.version);
+        }
       }
     });
 

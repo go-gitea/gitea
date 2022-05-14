@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"testing"
 
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -16,15 +17,15 @@ import (
 const gravatarSource = "https://secure.gravatar.com/avatar/"
 
 func disableGravatar() {
-	setting.EnableFederatedAvatar = false
-	setting.LibravatarService = nil
-	setting.DisableGravatar = true
+	system_model.SetSettingNoVersion("enable_federated_avatar", "false")
+	system_model.SetSettingNoVersion("disable_gravatar", "true")
+	system_model.LibravatarService = nil
 }
 
 func enableGravatar(t *testing.T) {
-	setting.DisableGravatar = false
+	system_model.SetSettingNoVersion("disable_gravatar", "false")
 	var err error
-	setting.GravatarSourceURL, err = url.Parse(gravatarSource)
+	system_model.GravatarSourceURL, err = url.Parse(gravatarSource)
 	assert.NoError(t, err)
 }
 

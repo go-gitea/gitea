@@ -296,14 +296,14 @@
 				<dt>{{.i18n.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="disable_gravatar"{{if .SystemSettings.GetBool "disable_gravatar"}} checked{{end}}>
+						<input type="checkbox" name="disable_gravatar" version="{{.SystemSettings.GetVersion "disable_gravatar"}}"{{if .SystemSettings.GetBool "disable_gravatar"}} checked{{end}}>
 					</div>
 				</dd>
 				<div class="ui divider"></div>
 				<dt>{{.i18n.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>
 					<div class="ui toggle checkbox">
-						<input type="checkbox" name="enable_federated_avatar"{{if .SystemSettings.GetBool "enable_federated_avatar"}} checked{{end}}>
+						<input type="checkbox" name="enable_federated_avatar" version="{{.SystemSettings.GetVersion "enable_federated_avatar"}}"{{if .SystemSettings.GetBool "enable_federated_avatar"}} checked{{end}}>
 					</div>
 				</dd>
 			</dl>

@@ -5,6 +5,8 @@
 package system
 
 import (
+	"strconv"
+
 	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/cache"
 )
@@ -24,12 +26,19 @@ func GetSetting(key string) (string, error) {
 	})
 }
 
+func GetSetingBool(key string) bool {
+	s, _ := GetSetting(key)
+	b, _ := strconv.ParseBool(s)
+	return b
+}
+
 // SetSetting sets the setting value
-func SetSetting(key, value string) error {
+func SetSetting(key, value string, version int) error {
 	cache.Remove(genKey(key))
 
 	return system.SetSetting(&system.Setting{
 		SettingKey:   key,
 		SettingValue: value,
+		Version:      version,
 	})
 }

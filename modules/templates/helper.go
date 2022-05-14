@@ -38,6 +38,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -79,7 +80,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.Domain
 		},
 		"DisableGravatar": func() bool {
-			return setting.DisableGravatar
+			return system_module.GetSetingBool("disable_gravatar")
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
