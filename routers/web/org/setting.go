@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
@@ -96,7 +97,7 @@ func SettingsPost(ctx *context.Context) {
 	org.Name = form.Name
 	org.LowerName = strings.ToLower(form.Name)
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		org.MaxRepoCreation = form.MaxRepoCreation
 	}
 
@@ -181,6 +182,9 @@ func SettingsDelete(ctx *context.Context) {
 			if models.IsErrUserOwnRepos(err) {
 				ctx.Flash.Error(ctx.Tr("form.org_still_own_repo"))
 				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
+			} else if models.IsErrUserOwnPackages(err) {
+				ctx.Flash.Error(ctx.Tr("form.org_still_own_packages"))
+				ctx.Redirect(ctx.Org.OrgLink + "/settings/delete")
 			} else {
 				ctx.ServerError("DeleteOrganization", err)
 			}
@@ -232,6 +236,6 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsOrgSettingsLabels"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
 }

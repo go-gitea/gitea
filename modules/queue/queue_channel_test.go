@@ -34,9 +34,9 @@ func TestChannelQueue(t *testing.T) {
 				BlockTimeout: 1 * time.Second,
 				BoostTimeout: 5 * time.Minute,
 				BoostWorkers: 5,
+				Name:         "TestChannelQueue",
 			},
 			Workers: 0,
-			Name:    "TestChannelQueue",
 		}, &testData{})
 	assert.NoError(t, err)
 
@@ -128,6 +128,8 @@ func TestChannelQueue_Pause(t *testing.T) {
 	queueShutdown := []func(){}
 	queueTerminate := []func(){}
 
+	terminated := make(chan struct{})
+
 	queue, err = NewChannelQueue(handle,
 		ChannelQueueConfiguration{
 			WorkerPoolConfiguration: WorkerPoolConfiguration{
@@ -142,15 +144,18 @@ func TestChannelQueue_Pause(t *testing.T) {
 		}, &testData{})
 	assert.NoError(t, err)
 
-	go queue.Run(func(shutdown func()) {
-		lock.Lock()
-		defer lock.Unlock()
-		queueShutdown = append(queueShutdown, shutdown)
-	}, func(terminate func()) {
-		lock.Lock()
-		defer lock.Unlock()
-		queueTerminate = append(queueTerminate, terminate)
-	})
+	go func() {
+		queue.Run(func(shutdown func()) {
+			lock.Lock()
+			defer lock.Unlock()
+			queueShutdown = append(queueShutdown, shutdown)
+		}, func(terminate func()) {
+			lock.Lock()
+			defer lock.Unlock()
+			queueTerminate = append(queueTerminate, terminate)
+		})
+		close(terminated)
+	}()
 
 	// Shutdown and Terminate in defer
 	defer func() {
@@ -278,4 +283,30 @@ func TestChannelQueue_Pause(t *testing.T) {
 	}
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
+
+	lock.Lock()
+	callbacks := make([]func(), len(queueShutdown))
+	copy(callbacks, queueShutdown)
+	queueShutdown = queueShutdown[:0]
+	lock.Unlock()
+	// Now shutdown the queue
+	for _, callback := range callbacks {
+		callback()
+	}
+
+	// terminate the queue
+	lock.Lock()
+	callbacks = make([]func(), len(queueTerminate))
+	copy(callbacks, queueTerminate)
+	queueShutdown = queueTerminate[:0]
+	lock.Unlock()
+	for _, callback := range callbacks {
+		callback()
+	}
+	select {
+	case <-terminated:
+	case <-time.After(10 * time.Second):
+		assert.Fail(t, "Queue should have terminated")
+		return
+	}
 }

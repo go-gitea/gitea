@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -37,7 +38,7 @@ func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_mo
 		log.Error("issue.LoadPoster: %v", err)
 		return
 	}
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
 	}
@@ -130,7 +131,7 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions
 		log.Error("pull.LoadIssue: %v", err)
 		return
 	}
-	if err := pull.Issue.LoadRepo(); err != nil {
+	if err := pull.Issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("pull.Issue.LoadRepo: %v", err)
 		return
 	}

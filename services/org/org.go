@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/storage"
@@ -16,7 +18,7 @@ import (
 )
 
 // DeleteOrganization completely and permanently deletes everything of organization.
-func DeleteOrganization(org *models.Organization) error {
+func DeleteOrganization(org *organization.Organization) error {
 	ctx, commiter, err := db.TxContext()
 	if err != nil {
 		return err
@@ -31,7 +33,14 @@ func DeleteOrganization(org *models.Organization) error {
 		return models.ErrUserOwnRepos{UID: org.ID}
 	}
 
-	if err := models.DeleteOrganization(ctx, org); err != nil {
+	// Check ownership of packages.
+	if ownsPackages, err := packages_model.HasOwnerPackages(ctx, org.ID); err != nil {
+		return fmt.Errorf("HasOwnerPackages: %v", err)
+	} else if ownsPackages {
+		return models.ErrUserOwnPackages{UID: org.ID}
+	}
+
+	if err := organization.DeleteOrganization(ctx, org); err != nil {
 		return fmt.Errorf("DeleteOrganization: %v", err)
 	}
 

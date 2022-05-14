@@ -29,8 +29,7 @@ func TestGoGet(t *testing.T) {
 	<body>
 		go get --insecure %[1]s:%[2]s/blah/glah
 	</body>
-</html>
-`, setting.Domain, setting.HTTPPort, setting.AppURL)
+</html>`, setting.Domain, setting.HTTPPort, setting.AppURL)
 
 	assert.Equal(t, expected, resp.Body.String())
 }

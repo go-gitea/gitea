@@ -24,7 +24,7 @@ func GetUserSettings(ctx *context.APIContext) {
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/UserSettings"
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.User))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
 }
 
 // UpdateUserSettings returns user settings
@@ -46,38 +46,38 @@ func UpdateUserSettings(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.UserSettingsOptions)
 
 	if form.FullName != nil {
-		ctx.User.FullName = *form.FullName
+		ctx.Doer.FullName = *form.FullName
 	}
 	if form.Description != nil {
-		ctx.User.Description = *form.Description
+		ctx.Doer.Description = *form.Description
 	}
 	if form.Website != nil {
-		ctx.User.Website = *form.Website
+		ctx.Doer.Website = *form.Website
 	}
 	if form.Location != nil {
-		ctx.User.Location = *form.Location
+		ctx.Doer.Location = *form.Location
 	}
 	if form.Language != nil {
-		ctx.User.Language = *form.Language
+		ctx.Doer.Language = *form.Language
 	}
 	if form.Theme != nil {
-		ctx.User.Theme = *form.Theme
+		ctx.Doer.Theme = *form.Theme
 	}
 	if form.DiffViewStyle != nil {
-		ctx.User.DiffViewStyle = *form.DiffViewStyle
+		ctx.Doer.DiffViewStyle = *form.DiffViewStyle
 	}
 
 	if form.HideEmail != nil {
-		ctx.User.KeepEmailPrivate = *form.HideEmail
+		ctx.Doer.KeepEmailPrivate = *form.HideEmail
 	}
 	if form.HideActivity != nil {
-		ctx.User.KeepActivityPrivate = *form.HideActivity
+		ctx.Doer.KeepActivityPrivate = *form.HideActivity
 	}
 
-	if err := user_model.UpdateUser(ctx.User, false); err != nil {
+	if err := user_model.UpdateUser(ctx.Doer, false); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.User))
+	ctx.JSON(http.StatusOK, convert.User2UserSettings(ctx.Doer))
 }

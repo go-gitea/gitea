@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -57,7 +56,7 @@ func TestEntriesCustomSort(t *testing.T) {
 }
 
 func TestFollowLink(t *testing.T) {
-	r, err := OpenRepository("tests/repos/repo1_bare")
+	r, err := openRepositoryWithDefaultContext("tests/repos/repo1_bare")
 	assert.NoError(t, err)
 	defer r.Close()
 

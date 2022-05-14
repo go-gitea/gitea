@@ -74,10 +74,10 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
   const inputField = easyMDE.codemirror.getInputField();
   inputField.classList.add('js-quick-submit');
   easyMDE.codemirror.setOption('extraKeys', {
-    Enter: () => {
+    Enter: (cm) => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
-        return window.CodeMirror.Pass;
+        cm.execCommand('newlineAndIndent');
       }
     },
     Backspace: (cm) => {

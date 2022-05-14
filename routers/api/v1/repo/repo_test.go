@@ -24,7 +24,7 @@ func TestRepoEdit(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := true
@@ -71,7 +71,7 @@ func TestRepoEditNameChange(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
 		Name: &name,

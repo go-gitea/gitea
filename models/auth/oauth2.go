@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"crypto/sha256"
 	"encoding/base32"
 	"encoding/base64"
@@ -18,6 +19,7 @@ import (
 
 	uuid "github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
@@ -245,7 +247,7 @@ func deleteOAuth2Application(sess db.Engine, id, userid int64) error {
 		"oauth2_authorization_code.grant_id = oauth2_grant.id AND oauth2_grant.application_id = ?", id).Find(&codes); err != nil {
 		return err
 	}
-	codeIDs := make([]int64, 0)
+	codeIDs := make([]int64, 0, len(codes))
 	for _, grant := range codes {
 		codeIDs = append(codeIDs, grant.ID)
 	}
@@ -575,4 +577,22 @@ func GetActiveOAuth2SourceByName(name string) (*Source, error) {
 	}
 
 	return authSource, nil
+}
+
+func DeleteOAuth2RelictsByUserID(ctx context.Context, userID int64) error {
+	deleteCond := builder.Select("id").From("oauth2_grant").Where(builder.Eq{"oauth2_grant.user_id": userID})
+
+	if _, err := db.GetEngine(ctx).In("grant_id", deleteCond).
+		Delete(&OAuth2AuthorizationCode{}); err != nil {
+		return err
+	}
+
+	if err := db.DeleteBeans(ctx,
+		&OAuth2Application{UID: userID},
+		&OAuth2Grant{UserID: userID},
+	); err != nil {
+		return fmt.Errorf("DeleteBeans: %v", err)
+	}
+
+	return nil
 }

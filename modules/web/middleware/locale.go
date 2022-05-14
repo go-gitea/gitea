@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
-	"github.com/unknwon/i18n"
 	"golang.org/x/text/language"
 )
 
@@ -28,8 +28,8 @@ func Locale(resp http.ResponseWriter, req *http.Request) translation.Locale {
 		}
 	}
 
-	// Check again in case someone modify by purpose.
-	if lang != "" && !i18n.IsExist(lang) {
+	// Check again in case someone changes the supported language list.
+	if lang != "" && !i18n.DefaultLocales.HasLang(lang) {
 		lang = ""
 		changeLang = false
 	}

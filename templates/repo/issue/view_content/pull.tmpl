@@ -322,176 +322,69 @@
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
 						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+
 							<div class="ui divider"></div>
-							{{if $prUnit.PullRequestsConfig.AllowMerge}}
-							<div class="ui form merge-fields" style="display: none">
-								<form action="{{.Link}}/merge" method="post">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
-									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
-									</div>
-									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-									</div>
-									<button class="ui green button" type="submit" name="do" value="merge">
-										{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
-									</button>
-									<button class="ui button merge-cancel">
-										{{$.i18n.Tr "cancel"}}
-									</button>
-									{{if .IsPullBranchDeletable}}
-										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
-											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
-										</div>
-									{{end}}
-								</form>
-							</div>
-							{{end}}
-							{{if $prUnit.PullRequestsConfig.AllowRebase}}
-							<div class="ui form rebase-fields" style="display: none">
-								<form action="{{.Link}}/merge" method="post">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
-									<button class="ui green button" type="submit" name="do" value="rebase">
-										{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
-									</button>
-									<button class="ui button merge-cancel">
-										{{$.i18n.Tr "cancel"}}
-									</button>
-									{{if .IsPullBranchDeletable}}
-										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
-											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
-										</div>
-									{{end}}
-								</form>
-							</div>
-							{{end}}
-							{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-							<div class="ui form rebase-merge-fields" style="display: none">
-								<form action="{{.Link}}/merge" method="post">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
-									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultMergeMessage}}">
-									</div>
-									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-									</div>
-									<button class="ui green button" type="submit" name="do" value="rebase-merge">
-										{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
-									</button>
-									<button class="ui button merge-cancel">
-										{{$.i18n.Tr "cancel"}}
-									</button>
-									{{if .IsPullBranchDeletable}}
-										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
-											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
-										</div>
-									{{end}}
-								</form>
-							</div>
-							{{end}}
-							{{if $prUnit.PullRequestsConfig.AllowSquash}}
-							<div class="ui form squash-fields" style="display: none">
-								<form action="{{.Link}}/merge" method="post">
-									{{.CsrfTokenHtml}}
-									<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
-									<div class="field">
-										<input type="text" name="merge_title_field" value="{{.Issue.PullRequest.GetDefaultSquashMessage}}">
-									</div>
-									<div class="field">
-										<textarea name="merge_message_field" rows="5" placeholder="{{$.i18n.Tr "repo.editor.commit_message_desc"}}">{{.GetCommitMessages}}Reviewed-on: {{$.Issue.HTMLURL}}&#13;&#10;{{$approvers}}</textarea>
-									</div>
-									<button class="ui green button" type="submit" name="do" value="squash">
-										{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
-									</button>
-									<button class="ui button merge-cancel">
-										{{$.i18n.Tr "cancel"}}
-									</button>
-									{{if .IsPullBranchDeletable}}
-										<div class="ui checkbox ml-2">
-											<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
-											<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
-										</div>
-									{{end}}
-								</form>
-							</div>
-							{{end}}
-							{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
-								<div class="ui form manually-merged-fields" style="display: none">
-									<form action="{{.Link}}/merge" method="post">
-										{{.CsrfTokenHtml}}
-										<input type="hidden" name="head_commit_id" value="{{.PullHeadCommitID}}">
-										<div class="field">
-											<input type="text" name="merge_commit_id"  placeholder="{{$.i18n.Tr "repo.pulls.merge_commit_id"}}">
-										</div>
-										<button class="ui red button" type="submit" name="do" value="manually-merged">
-											{{$.i18n.Tr "repo.pulls.merge_manually"}}
-										</button>
-										<button class="ui button merge-cancel">
-											{{$.i18n.Tr "cancel"}}
-										</button>
-										{{if .IsPullBranchDeletable}}
-											<div class="ui checkbox ml-2">
-												<input name="delete_branch_after_merge" type="checkbox" {{if $prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}}checked{{end}}>
-												<label>{{$.i18n.Tr "repo.branch.delete" .HeadTarget}}</label>
-											</div>
-										{{end}}
-									</form>
-								</div>
-							{{end}}
-							<div class="dib">
-								<div class="ui {{if $notAllOverridableChecksOk}}red{{else}}green{{end}} buttons merge-button">
-									<button class="ui button" data-do="{{.MergeStyle}}">
-										{{svg "octicon-git-merge"}}
-										<span class="button-text">
-										{{if eq .MergeStyle "merge"}}
-											{{$.i18n.Tr "repo.pulls.merge_pull_request"}}
-										{{end}}
-										{{if eq .MergeStyle "rebase"}}
-											{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}
-										{{end}}
-										{{if eq .MergeStyle "rebase-merge"}}
-											{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}
-										{{end}}
-										{{if eq .MergeStyle "squash"}}
-											{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}
-										{{end}}
-										{{if eq .MergeStyle "manually-merged"}}
-											{{$.i18n.Tr "repo.pulls.merge_manually"}}
-										{{end}}
-										</span>
-									</button>
-									{{if gt $prUnit.PullRequestsConfig.AllowedMergeStyleCount 1}}
-										<div class="ui dropdown icon button no-text">
-											{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-											<div class="menu">
-												{{if $prUnit.PullRequestsConfig.AllowMerge}}
-												<div class="item{{if eq .MergeStyle "merge"}} active selected{{end}}" data-do="merge">{{$.i18n.Tr "repo.pulls.merge_pull_request"}}</div>
-												{{end}}
-												{{if $prUnit.PullRequestsConfig.AllowRebase}}
-												<div class="item{{if eq .MergeStyle "rebase"}} active selected{{end}}" data-do="rebase">{{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}}</div>
-												{{end}}
-												{{if $prUnit.PullRequestsConfig.AllowRebaseMerge}}
-												<div class="item{{if eq .MergeStyle "rebase-merge"}} active selected{{end}}" data-do="rebase-merge">{{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}}</div>
-												{{end}}
-												{{if $prUnit.PullRequestsConfig.AllowSquash}}
-												<div class="item{{if eq .MergeStyle "squash"}} active selected{{end}}" data-do="squash">{{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}}</div>
-												{{end}}
-												{{if and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}}
-												<div class="item{{if eq .MergeStyle "manually-merged"}} active selected{{end}}" data-do="manually-merged">{{$.i18n.Tr "repo.pulls.merge_manually"}}</div>
-												{{end}}
-											</div>
-										</div>
-									{{end}}
-								</div>
-							</div>
+
+							<script>
+								<!-- /* eslint-disable */ -->
+								(() => {
+									const defaultMergeTitle = {{.DefaultMergeMessage}};
+									const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
+									const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
+									const mergeForm = {
+										'baseLink': {{.Link}},
+										'textCancel': {{$.i18n.Tr "cancel"}},
+										'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+
+										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+										'pullHeadCommitID': {{.PullHeadCommitID}},
+										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
+									};
+									mergeForm['mergeStyles'] = [
+										{
+											'name': 'merge',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
+											'mergeTitleFieldText': defaultMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
+										},
+										{
+											'name': 'rebase',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
+											'hideMergeMessageTexts': true,
+										},
+										{
+											'name': 'rebase-merge',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+											'mergeTitleFieldText': defaultMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
+										},
+										{
+											'name': 'squash',
+											'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
+											'mergeTitleFieldText': defaultSquashMergeTitle,
+											'mergeMessageFieldText': defaultMergeMessage,
+										},
+										{
+											'name': 'manually-merged',
+											'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
+											'hideMergeMessageTexts': true,
+										}
+									];
+									window.config.pageData.pullRequestMergeForm = mergeForm;
+								})();
+							</script>
+
+							<div id="pull-request-merge-form"></div>
+
 							{{if .ShowMergeInstructions}}
-								<div class="instruct-toggle ml-3"> {{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
+								<div class="instruct-toggle mt-3"> {{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
 								<div class="instruct-content" style="display:none">
 									<div class="ui divider"></div>
 									<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
