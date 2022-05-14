@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -280,13 +281,13 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := getCollaborators(sess, repo.ID, db.ListOptions{})
+	collaborators, err := repo_model.GetCollaborators(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
 
 	// Dummy object.
-	collaboration := &Collaboration{RepoID: repo.ID}
+	collaboration := &repo_model.Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
 		if c.IsGhost() {
 			collaboration.ID = c.Collaboration.ID
@@ -330,7 +331,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 				}
 			}
 		}
-	} else if err := recalculateAccesses(ctx, repo); err != nil {
+	} else if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}

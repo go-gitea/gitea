@@ -10,7 +10,8 @@
 		22 = REVIEW, 23 = ISSUE_LOCKED, 24 = ISSUE_UNLOCKED, 25 = TARGET_BRANCH_CHANGED,
 		26 = DELETE_TIME_MANUAL, 27 = REVIEW_REQUEST, 28 = MERGE_PULL_REQUEST,
 		29 = PULL_PUSH_EVENT, 30 = PROJECT_CHANGED, 31 = PROJECT_BOARD_CHANGED
-		32 = DISMISSED_REVIEW -->
+		32 = DISMISSED_REVIEW, 33 = COMMENT_TYPE_CHANGE_ISSUE_REF, 34 = PR_SCHEDULE_TO_AUTO_MERGE,
+		35 = CANCEL_SCHEDULED_AUTO_MERGE_PR -->
 		{{if eq .Type 0}}
 			<div class="timeline-item comment" id="{{.HashTag}}">
 			{{if .OriginalAuthor }}
@@ -835,6 +836,15 @@
 					{{else}}
 						{{$.i18n.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
 					{{end}}
+				</span>
+			</div>
+		{{else if or (eq .Type 34) (eq .Type 35)}}
+			<div class="timeline-item event" id="{{.HashTag}}">
+				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
+				<span class="text grey">
+					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
+					{{if eq .Type 34}}{{$.i18n.Tr "repo.pulls.pull_request_scheduled_auto_merge" $createdStr | Safe}}
+					{{else}}{{$.i18n.Tr "repo.pulls.pull_request_canceled_scheduled_auto_merge" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

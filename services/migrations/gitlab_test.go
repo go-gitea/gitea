@@ -34,7 +34,7 @@ func TestGitlabDownloadRepo(t *testing.T) {
 
 	downloader, err := NewGitlabDownloader(context.Background(), "https://gitlab.com", "gitea/test_repo", "", "", gitlabPersonalAccessToken)
 	if err != nil {
-		t.Fatal(fmt.Sprintf("NewGitlabDownloader is nil: %v", err))
+		t.Fatalf("NewGitlabDownloader is nil: %v", err)
 	}
 	repo, err := downloader.GetRepoInfo()
 	assert.NoError(t, err)

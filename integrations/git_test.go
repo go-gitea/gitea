@@ -82,6 +82,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("CreateAgitFlowPull", doCreateAgitFlowPull(dstPath, &httpContext, "master", "test/head"))
 		t.Run("BranchProtectMerge", doBranchProtectPRMerge(&httpContext, dstPath))
+		t.Run("AutoMerge", doAutoPRMerge(&httpContext, dstPath))
 		t.Run("CreatePRAndSetManuallyMerged", doCreatePRAndSetManuallyMerged(httpContext, httpContext, dstPath, "master", "test-manually-merge"))
 		t.Run("MergeFork", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
@@ -612,6 +613,88 @@ func doBranchDelete(ctx APITestContext, owner, repo, branch string) func(*testin
 			"_csrf": csrf,
 		})
 		ctx.Session.MakeRequest(t, req, http.StatusOK)
+	}
+}
+
+func doAutoPRMerge(baseCtx *APITestContext, dstPath string) func(t *testing.T) {
+	return func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		ctx := NewAPITestContext(t, baseCtx.Username, baseCtx.Reponame)
+
+		t.Run("CheckoutProtected", doGitCheckoutBranch(dstPath, "protected"))
+		t.Run("PullProtected", doGitPull(dstPath, "origin", "protected"))
+		t.Run("GenerateCommit", func(t *testing.T) {
+			_, err := generateCommitWithNewData(littleSize, dstPath, "user2@example.com", "User Two", "branch-data-file-")
+			assert.NoError(t, err)
+		})
+		t.Run("PushToUnprotectedBranch", doGitPushTestRepository(dstPath, "origin", "protected:unprotected3"))
+		var pr api.PullRequest
+		var err error
+		t.Run("CreatePullRequest", func(t *testing.T) {
+			pr, err = doAPICreatePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, "protected", "unprotected3")(t)
+			assert.NoError(t, err)
+		})
+
+		// Request repository commits page
+		req := NewRequest(t, "GET", fmt.Sprintf("/%s/%s/pulls/%d/commits", baseCtx.Username, baseCtx.Reponame, pr.Index))
+		resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		// Get first commit URL
+		commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Last().Attr("href")
+		assert.True(t, exists)
+		assert.NotEmpty(t, commitURL)
+
+		commitID := path.Base(commitURL)
+
+		// Call API to add Pending status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusPending))
+
+		// Cancel not existing auto merge
+		ctx.ExpectedCode = http.StatusNotFound
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Can not create schedule twice
+		ctx.ExpectedCode = http.StatusConflict
+		t.Run("AutoMergePRTwice", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Cancel auto merge request
+		ctx.ExpectedCode = http.StatusNoContent
+		t.Run("CancelAutoMergePR", doAPICancelAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Add auto merge request
+		ctx.ExpectedCode = http.StatusCreated
+		t.Run("AutoMergePR", doAPIAutoMergePullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index))
+
+		// Check pr status
+		ctx.ExpectedCode = 0
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.False(t, pr.HasMerged)
+
+		// Call API to add Failure status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusFailure))
+
+		// Check pr status
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.False(t, pr.HasMerged)
+
+		// Call API to add Success status for commit
+		t.Run("CreateStatus", doAPICreateCommitStatus(ctx, commitID, api.CommitStatusSuccess))
+
+		// wait to let gitea merge stuff
+		time.Sleep(time.Second)
+
+		// test pr status
+		pr, err = doAPIGetPullRequest(ctx, baseCtx.Username, baseCtx.Reponame, pr.Index)(t)
+		assert.NoError(t, err)
+		assert.True(t, pr.HasMerged)
 	}
 }
 

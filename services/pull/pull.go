@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -253,7 +254,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 	graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
 		// There is no sensible way to shut this down ":-("
 		// If you don't let it run all the way then you will lose data
-		// FIXME: graceful: AddTestPullRequestTask needs to become a queue!
+		// TODO: graceful: AddTestPullRequestTask needs to become a queue!
 
 		prs, err := models.GetUnmergedPullRequestsByHeadInfo(repoID, branch)
 		if err != nil {
@@ -452,7 +453,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHea
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
-		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
+		Env: repo_module.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) {
 			// This should not happen as we're using force!

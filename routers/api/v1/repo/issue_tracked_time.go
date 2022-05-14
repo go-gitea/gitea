@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -281,7 +282,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 
 	err = models.DeleteIssueUserTimes(issue, ctx.Doer)
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueUserTimes", err)
@@ -352,7 +353,7 @@ func DeleteTime(ctx *context.APIContext) {
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.NotFound(err)
 			return
 		}
