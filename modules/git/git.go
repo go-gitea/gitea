@@ -207,6 +207,10 @@ func Init(ctx context.Context) error {
 	}
 
 	if CheckGitVersionAtLeast("2.36") == nil {
+		//
+		// Disable the security check because Gitea runs the git CLI from within the
+		// repository. See https://github.com/go-gitea/gitea/issues/19455 for the full discussion.
+		//
 		if err := checkAndSetConfig("safe.directory", "*", true); err != nil {
 			return err
 		}
