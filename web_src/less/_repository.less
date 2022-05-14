@@ -3328,9 +3328,6 @@ td.blob-excerpt {
       }
     }
   }
-}
-
-@media @mediaSm {
   .commit-header-row {
     .ui.horizontal .item {
       text-align: center;
@@ -3353,6 +3350,59 @@ td.blob-excerpt {
 
     .ui.horizontal.list {
       width: 100%;
+    }
+  }
+
+  .commits-table {
+    flex-direction: column;
+
+    .commits-table-left {
+      align-items: initial !important;
+      margin-bottom: 6px;
+    }
+
+    .commits-table-right form {
+      display: flex;
+      flex-wrap: wrap;
+
+      > div:nth-child(1) {
+        order: 1;
+      }
+
+      > div:nth-child(2) {
+        order: 3;
+        margin-left: .5rem;
+        margin-top: .5rem;
+      }
+
+      > button:nth-child(3) {
+        order: 2;
+        margin-left: .25rem;
+      }
+    }
+  }
+
+  .commit-table {
+    overflow-x: scroll;
+
+    td.sha,
+    th.sha {
+      display: none !important;
+    }
+
+    .commit-list {
+      span.message-wrapper {
+        max-width: none;
+      }
+
+      tr td:last-child {
+        display: block;
+        width: max-content;
+      }
+
+      .copy-commit-sha {
+        display: none !important;
+      }
     }
   }
 }
