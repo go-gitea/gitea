@@ -79,7 +79,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
+	if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+u.LowerName) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -87,8 +87,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error("Set cache(MailResendLimit) fail: %v", err)
+	if setting.CacheService.Enabled {
+		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		}
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
