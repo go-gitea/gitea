@@ -33,13 +33,20 @@ RUN apk --no-cache add \
     ca-certificates \
     curl \
     gettext \
-    git \
     linux-pam \
     openssh \
     s6 \
     sqlite \
     su-exec \
     gnupg
+
+#
+# Only required until git > 2.36 is released in alpine because Gitea needs
+# support for *
+#
+# https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory
+#
+RUN apk add git --repository=http://dl-cdn.alpinelinux.org/alpine/edge/main
 
 RUN addgroup \
     -S -g 1000 \

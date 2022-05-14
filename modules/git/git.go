@@ -206,6 +206,12 @@ func Init(ctx context.Context) error {
 		SupportProcReceive = false
 	}
 
+	if CheckGitVersionAtLeast("2.36") == nil {
+		if err := checkAndSetConfig("safe.directory", "*", true); err != nil {
+			return err
+		}
+	}
+
 	if runtime.GOOS == "windows" {
 		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
 			return err
