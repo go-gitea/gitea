@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	system_model "code.gitea.io/gita/models/system"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -90,7 +91,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = testOpts.GiteaRootPath
 	setting.StaticRootPath = testOpts.GiteaRootPath
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
+	system_model.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
 	}

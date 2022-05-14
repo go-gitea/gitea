@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	system_model "code.gitea.io/gitea/models/system"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
@@ -61,7 +62,7 @@ func runPR() {
 	}
 	setting.AppWorkPath = curDir
 	setting.StaticRootPath = curDir
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
+	system_model.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
 		log.Fatalf("url.Parse: %v\n", err)
 	}
