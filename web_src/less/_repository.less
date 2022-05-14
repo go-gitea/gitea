@@ -3329,3 +3329,30 @@ td.blob-excerpt {
     }
   }
 }
+
+@media @mediaSm {
+  .commit-header-row {
+    .ui.horizontal .item {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+
+      > a:not(:first-of-type) {
+        margin-top: 2px;
+      }
+
+      &:last-child {
+        margin-left: auto;
+      }
+    }
+
+    .author {
+      margin: auto;
+      padding: 3px 0;
+    }
+
+    .ui.horizontal.list {
+      width: 100%;
+    }
+  }
+}
