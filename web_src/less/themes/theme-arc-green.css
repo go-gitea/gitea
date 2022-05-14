@@ -487,7 +487,7 @@
   --color-reaction-active-bg: var(--color-primary-alpha-40);
 }
 ::-webkit-calendar-picker-indicator {
-  filter: invert(0.8);
+  filter: invert(.8);
 }
 .ui.horizontal.segments > .segment {
   background-color: #383c4a;
@@ -674,7 +674,7 @@ td.blob-hunk {
   border-color: var(--color-secondary) !important;
 }
 td.blob-excerpt {
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, .15);
 }
 .lines-code.active,
 .lines-code .active {
@@ -745,7 +745,7 @@ footer .container .links > * {
   border-color: #383c4a;
 }
 .tribute-container {
-  box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.6);
+  box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .6);
 }
 .repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
   color: #2a2e3a;
@@ -757,6 +757,6 @@ img[src$="/img/matrix.svg"] {
   border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
 }
 .markup-block-error {
-  border: 1px solid rgba(121, 71, 66, 0.5) !important;
+  border: 1px solid rgba(121, 71, 66, .5) !important;
   border-bottom: none !important;
 }
