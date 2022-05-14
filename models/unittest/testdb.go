@@ -13,11 +13,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
-	system_model "code.gitea.io/gita/models/system"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
