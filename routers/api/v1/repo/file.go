@@ -136,7 +136,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			return
 		}
 		if err = dataRc.Close(); err != nil {
-			log.Error("ServeBlobOrLFS: Close: %v", err)
+			log.Error("Close: %v", err)
 		}
 	}()
 
@@ -145,13 +145,13 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
 			if err = dataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
+				log.Error("Close: %v", err)
 			}
 			closed = true
 			if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 				ctx.ServerError("ServeBlob", err)
-				return
 			}
+			return
 		}
 		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
 			return
@@ -173,7 +173,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 		defer func() {
 			if err = lfsDataRc.Close(); err != nil {
-				log.Error("ServeBlobOrLFS: Close: %v", err)
+				log.Error("Close: %v", err)
 			}
 		}()
 		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
@@ -182,7 +182,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 	if err = dataRc.Close(); err != nil {
-		log.Error("ServeBlobOrLFS: Close: %v", err)
+		log.Error("Close: %v", err)
 	}
 	closed = true
 
