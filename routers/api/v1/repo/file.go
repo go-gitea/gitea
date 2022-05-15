@@ -130,11 +130,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		ctx.ServerError("DataAsync", err)
 		return
 	}
-	closed := false
 	defer func() {
-		if closed {
-			return
-		}
 		if err = dataRc.Close(); err != nil {
 			log.Error("Close: %v", err)
 		}
@@ -147,7 +143,6 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 			if err = dataRc.Close(); err != nil {
 				log.Error("Close: %v", err)
 			}
-			closed = true
 			if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 				ctx.ServerError("ServeBlob", err)
 			}
@@ -181,10 +176,6 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		}
 		return
 	}
-	if err = dataRc.Close(); err != nil {
-		log.Error("Close: %v", err)
-	}
-	closed = true
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.ServerError("ServeBlob", err)
