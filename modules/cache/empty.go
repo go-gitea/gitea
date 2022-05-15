@@ -57,3 +57,8 @@ func (c noCache) Flush() error {
 func (c noCache) StartAndGC(opt mc.Options) error {
 	return nil
 }
+
+// Ping tests if the cache is alive.
+func (c noCache) Ping() error {
+	return nil
+}

@@ -72,8 +72,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
-gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea h1:Fq/f4hjigb5v5WpA5TfBCZOSavpHPBiB4Wkj/WsITYM=
-gitea.com/go-chi/cache v0.0.0-20211201020628-dcb774c4ffea/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
+gitea.com/go-chi/cache v0.2.0 h1:E0npuTfDW6CT1yD8NMDVc1SK6IeRjfmRL2zlEsCEd7w=
+gitea.com/go-chi/cache v0.2.0/go.mod h1:iQlVK2aKTZ/rE9UcHyz9pQWGvdP9i1eI2spOpzgCrtE=
 gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5 h1:J/1i8u40TbcLP/w2w2KCkgW2PelIqYkD5UOwu8IOvVU=
 gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5/go.mod h1:hQ9SYHKdOX968wJglb/NMQ+UqpOKwW4L+EYdvkWjHSo=
 gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8 h1:tJQRXgZigkLeeW9LPlps9G9aMoE6LAmqigLA+wxmd1Q=

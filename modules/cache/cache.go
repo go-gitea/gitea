@@ -5,11 +5,9 @@
 package cache
 
 import (
-	"errors"
 	"fmt"
 	"strconv"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	mc "gitea.com/go-chi/cache"
@@ -39,37 +37,12 @@ func NewContext() error {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}
-		if err = Ping(); err != nil {
+		if err = conn.Ping(); err != nil {
 			return err
 		}
 	}
 
 	return err
-}
-
-const (
-	pingTestKey = "__gitea_cache_test"
-	pingTestVal = "test-value"
-)
-
-// Ping checks if the cache service works or not, it not, it returns an error
-func Ping() error {
-	if conn == nil {
-		return errors.New("cache not available")
-	}
-	if err := conn.Put(pingTestKey, pingTestVal, 10); err != nil {
-		return err
-	}
-	val := conn.Get(pingTestKey)
-	if valStr, ok := val.(string); !ok || valStr != pingTestVal {
-		// If the cache is full, the Get may not read the expected value stored by Put.
-		// Since we have checked that Put can success, so we just show a warning here, do not return an error to panic.
-		log.Warn("cache (adapter:%s, config:%s) doesn't seem to work correctly, set test value '%v' but get '%v'",
-			setting.CacheService.Cache.Adapter, setting.CacheService.Cache.Conn,
-			pingTestVal, val,
-		)
-	}
-	return nil
 }
 
 // GetCache returns the currently configured cache
