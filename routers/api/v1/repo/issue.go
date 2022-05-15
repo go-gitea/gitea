@@ -16,8 +16,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	repo_model "code.gitea.io/gitea/models/repo"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -1033,7 +1033,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 			continue
 		}
 
-		perm, err := models.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1199,7 +1199,7 @@ func GetIssueBlocks(ctx *context.APIContext) {
 			continue
 		}
 
-		perm, err := models.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(ctx, &depMeta.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1329,7 +1329,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	}
 
 	if t == models.DependencyTypeBlockedBy {
-		perm, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1352,7 +1352,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			return
 		}
 	} else {
-		perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 			return
@@ -1416,7 +1416,7 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
