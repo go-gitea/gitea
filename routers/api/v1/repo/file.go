@@ -79,7 +79,7 @@ func GetRawFile(ctx *context.APIContext) {
 	}
 }
 
-// GetRawFileOrLFS get a file by repo's path redirecting to LFS if necessary
+// GetRawFileOrLFS get a file by repo's path, redirecting to LFS if necessary.
 func GetRawFileOrLFS(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
 	// ---
