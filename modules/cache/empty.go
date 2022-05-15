@@ -9,6 +9,11 @@ import mc "gitea.com/go-chi/cache"
 // noCache is the interface that operates the cache data.
 type noCache struct{}
 
+// newNoCache create a noop cache for chi
+func newNoCache() (mc.Cache, error) {
+	return &noCache{}, nil
+}
+
 // Put puts value into cache with key and expire time.
 func (c noCache) Put(key string, val interface{}, timeout int64) error {
 	return nil
@@ -16,6 +21,10 @@ func (c noCache) Put(key string, val interface{}, timeout int64) error {
 
 // Get gets cached value by given key.
 func (c noCache) Get(key string) interface{} {
+	// workaround until https://gitea.com/go-chi/cache/issues/3 is resolved
+	if key == pingTestKey {
+		return pingTestVal
+	}
 	return ""
 }
 
@@ -47,8 +56,4 @@ func (c noCache) Flush() error {
 // StartAndGC starts GC routine based on config string settings.
 func (c noCache) StartAndGC(opt mc.Options) error {
 	return nil
-}
-
-func newNoCache() (mc.Cache, error) {
-	return &noCache{}, nil
 }
