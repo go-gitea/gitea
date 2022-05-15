@@ -20,6 +20,10 @@ import (
 var conn mc.Cache
 
 func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
+	if !cacheConfig.Enabled {
+		return newNoCache()
+	}
+
 	return mc.NewCacher(mc.Options{
 		Adapter:       cacheConfig.Adapter,
 		AdapterConfig: cacheConfig.Conn,
@@ -31,7 +35,7 @@ func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 func NewContext() error {
 	var err error
 
-	if conn == nil && setting.CacheService.Enabled {
+	if conn == nil {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
 			return err
 		}
