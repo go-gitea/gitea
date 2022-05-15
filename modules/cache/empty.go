@@ -21,10 +21,6 @@ func (c noCache) Put(key string, val interface{}, timeout int64) error {
 
 // Get gets cached value by given key.
 func (c noCache) Get(key string) interface{} {
-	// workaround until https://gitea.com/go-chi/cache/issues/3 is resolved
-	if key == pingTestKey {
-		return pingTestVal
-	}
 	return ""
 }
 
