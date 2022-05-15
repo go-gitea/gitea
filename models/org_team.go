@@ -496,6 +496,12 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	}
 	defer committer.Close()
 
+	// check in transaction
+	isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
+	if err != nil || isAlreadyMember {
+		return err
+	}
+
 	sess := db.GetEngine(ctx)
 
 	if err := db.Insert(ctx, &organization.TeamUser{
