@@ -47,8 +47,10 @@ func NewContext() error {
 	return err
 }
 
-const pingTestKey = "__gitea_cache_test"
-const pingTestVal = "test-value"
+const (
+	pingTestKey = "__gitea_cache_test"
+	pingTestVal = "test-value"
+)
 
 // Ping checks if the cache service works or not, it not, it returns an error
 func Ping() error {
