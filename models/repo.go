@@ -915,14 +915,14 @@ func CheckRepoStats(ctx context.Context) error {
 				continue
 			}
 
-			rawResult, err := db.GetEngine(db.DefaultContext).Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
+			rawResult, err := e.Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
 			if err != nil {
 				log.Error("Select count of forks[%d]: %v", repo.ID, err)
 				continue
 			}
 			repo.NumForks = int(parseCountResult(rawResult))
 
-			if err = UpdateRepository(repo, false); err != nil {
+			if _, err = e.ID(repo.ID).Cols("num_forks").Update(repo); err != nil {
 				log.Error("UpdateRepository[%d]: %v", id, err)
 				continue
 			}
@@ -991,30 +991,6 @@ func DoctorUserStarNum() (err error) {
 	log.Debug("recalculate Stars number for all user finished")
 
 	return
-}
-
-// LinkedRepository returns the linked repo if any
-func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
-	if a.IssueID != 0 {
-		iss, err := GetIssueByID(a.IssueID)
-		if err != nil {
-			return nil, unit.TypeIssues, err
-		}
-		repo, err := repo_model.GetRepositoryByID(iss.RepoID)
-		unitType := unit.TypeIssues
-		if iss.IsPull {
-			unitType = unit.TypePullRequests
-		}
-		return repo, unitType, err
-	} else if a.ReleaseID != 0 {
-		rel, err := GetReleaseByID(db.DefaultContext, a.ReleaseID)
-		if err != nil {
-			return nil, unit.TypeReleases, err
-		}
-		repo, err := repo_model.GetRepositoryByID(rel.RepoID)
-		return repo, unit.TypeReleases, err
-	}
-	return nil, -1, nil
 }
 
 // DeleteDeployKey delete deploy keys

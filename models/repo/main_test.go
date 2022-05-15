@@ -27,6 +27,7 @@ func TestMain(m *testing.M) {
 			"repo_topic.yml",
 			"user.yml",
 			"collaboration.yml",
+			"access.yml",
 		},
 	})
 }

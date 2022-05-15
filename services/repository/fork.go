@@ -116,7 +116,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if err := models.CheckDaemonExportOK(txCtx, repo); err != nil {
+		if err := repo_module.CheckDaemonExportOK(txCtx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -139,7 +139,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	if err := models.UpdateRepoSize(ctx, repo); err != nil {
+	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
@@ -181,7 +181,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}

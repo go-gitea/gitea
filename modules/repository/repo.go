@@ -116,7 +116,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err = models.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err = CheckDaemonExportOK(ctx, repo); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
@@ -168,9 +168,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return nil, err
 	}
+	defer committer.Close()
 
 	if opts.Mirror {
 		mirrorModel := repo_model.Mirror{
@@ -208,12 +210,19 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 
 		repo.IsMirror = true
-		err = models.UpdateRepository(repo, false)
+		if err = UpdateRepository(ctx, repo, false); err != nil {
+			return nil, err
+		}
 	} else {
-		repo, err = CleanUpMigrateInfo(ctx, repo)
+		if err = UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+			return nil, err
+		}
 	}
 
-	return repo, err
+	return repo, committer.Commit()
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
@@ -253,7 +262,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	return repo, models.UpdateRepository(repo, false)
+	return repo, UpdateRepository(ctx, repo, false)
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags

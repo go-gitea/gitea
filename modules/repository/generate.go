@@ -261,7 +261,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 	if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %v", err)
 	}
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
@@ -274,7 +274,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 		return err
 	}
 
-	if err := models.UpdateRepoSize(ctx, generateRepo); err != nil {
+	if err := UpdateRepoSize(ctx, generateRepo); err != nil {
 		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
@@ -341,7 +341,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, err
 	}
 
-	if err = models.CheckDaemonExportOK(ctx, generateRepo); err != nil {
+	if err = CheckDaemonExportOK(ctx, generateRepo); err != nil {
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 

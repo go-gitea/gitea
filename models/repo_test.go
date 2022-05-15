@@ -93,7 +93,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	repo.IsPrivate = true
 
 	// Update it
-	err = UpdateRepository(repo, true)
+	_, err = db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("is_private").Update(repo)
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private

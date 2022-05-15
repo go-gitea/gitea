@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/org"
 	user_service "code.gitea.io/gitea/services/user"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -126,7 +127,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		for _, repo := range repos {
 			repo.OwnerName = org.Name
-			if err := models.UpdateRepository(repo, true); err != nil {
+			if err := repo_service.UpdateRepository(repo, true); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}

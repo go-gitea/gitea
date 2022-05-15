@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -705,4 +706,40 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
+}
+
+// FindUserOrgForks returns the forked repositories for one user from a repository
+func FindUserOrgForks(ctx context.Context, repoID, userID int64) ([]*Repository, error) {
+	cond := builder.And(
+		builder.Eq{"fork_id": repoID},
+		builder.In("owner_id",
+			builder.Select("org_id").
+				From("org_user").
+				Where(builder.Eq{"uid": userID}),
+		),
+	)
+
+	var repos []*Repository
+	return repos, db.GetEngine(ctx).Table("repository").Where(cond).Find(&repos)
+}
+
+// GetForksByUserAndOrgs return forked repos of the user and owned orgs
+func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *Repository) ([]*Repository, error) {
+	var repoList []*Repository
+	if user == nil {
+		return repoList, nil
+	}
+	forkedRepo, err := GetUserFork(ctx, repo.ID, user.ID)
+	if err != nil {
+		return repoList, err
+	}
+	if forkedRepo != nil {
+		repoList = append(repoList, forkedRepo)
+	}
+	orgForks, err := FindUserOrgForks(ctx, repo.ID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	repoList = append(repoList, orgForks...)
+	return repoList, nil
 }

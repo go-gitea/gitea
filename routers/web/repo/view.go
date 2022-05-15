@@ -39,6 +39,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 const (
@@ -905,7 +906,7 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}
-		if err = models.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
+		if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
