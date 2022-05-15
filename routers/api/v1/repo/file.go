@@ -140,9 +140,6 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	if pointer.IsValid() {
 		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
-			if err = dataRc.Close(); err != nil {
-				log.Error("Close: %v", err)
-			}
 			if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 				ctx.ServerError("ServeBlob", err)
 			}
