@@ -19,6 +19,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -489,7 +490,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 		return err
 	}
 
-	perm, err := GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -2314,7 +2315,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %v", user.ID, err)
 		}

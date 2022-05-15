@@ -2,13 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package access
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -80,17 +79,17 @@ func TestHasAccess(t *testing.T) {
 	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	assert.True(t, repo2.IsPrivate)
 
-	has, err := HasAccess(user1.ID, repo1)
+	has, err := HasAccess(db.DefaultContext, user1.ID, repo1)
 	assert.NoError(t, err)
 	assert.True(t, has)
 
-	_, err = HasAccess(user1.ID, repo2)
+	_, err = HasAccess(db.DefaultContext, user1.ID, repo2)
 	assert.NoError(t, err)
 
-	_, err = HasAccess(user2.ID, repo1)
+	_, err = HasAccess(db.DefaultContext, user2.ID, repo1)
 	assert.NoError(t, err)
 
-	_, err = HasAccess(user2.ID, repo2)
+	_, err = HasAccess(db.DefaultContext, user2.ID, repo2)
 	assert.NoError(t, err)
 }
 
@@ -100,9 +99,9 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
-	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 2, RepoID: 3})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 2, RepoID: 3})
 	assert.NoError(t, err)
-	assert.NoError(t, RecalculateAccesses(repo1))
+	assert.NoError(t, RecalculateAccesses(db.DefaultContext, repo1))
 
 	access := &Access{UserID: 2, RepoID: 3}
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
@@ -117,29 +116,11 @@ func TestRepository_RecalculateAccesses2(t *testing.T) {
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
 	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
-	_, err := db.GetEngine(db.DefaultContext).Delete(&Collaboration{UserID: 4, RepoID: 4})
+	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
-	assert.NoError(t, RecalculateAccesses(repo1))
+	assert.NoError(t, RecalculateAccesses(db.DefaultContext, repo1))
 
 	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 4, RepoID: 4})
 	assert.NoError(t, err)
 	assert.False(t, has)
-}
-
-func TestRepository_RecalculateAccesses3(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	team5 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
-	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
-
-	has, err := db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
-	assert.NoError(t, err)
-	assert.False(t, has)
-
-	// adding user29 to team5 should add an explicit access row for repo 23
-	// even though repo 23 is public
-	assert.NoError(t, AddTeamMember(team5, user29.ID))
-
-	has, err = db.GetEngine(db.DefaultContext).Get(&Access{UserID: 29, RepoID: 23})
-	assert.NoError(t, err)
-	assert.True(t, has)
 }

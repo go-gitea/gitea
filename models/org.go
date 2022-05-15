@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -142,7 +143,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		if _, err = sess.
 			Where("user_id = ?", userID).
 			In("repo_id", repoIDs).
-			Delete(new(Access)); err != nil {
+			Delete(new(access_model.Access)); err != nil {
 			return err
 		}
 	}

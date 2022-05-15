@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -60,7 +61,7 @@ func AddToTaskQueue(pr *models.PullRequest) {
 }
 
 // CheckPullMergable check if the pull mergable based on all conditions (branch protection, merge options, ...)
-func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *models.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
+func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *access_model.Permission, pr *models.PullRequest, manuallMerge, force bool) error {
 	return db.WithTx(func(ctx context.Context) error {
 		if pr.HasMerged {
 			return ErrHasMerged
@@ -98,7 +99,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *mode
 		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 			if models.IsErrDisallowedToMerge(err) {
 				if force {
-					if isRepoAdmin, err2 := models.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
+					if isRepoAdmin, err2 := access_model.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
 						return err2
 					} else if !isRepoAdmin {
 						return err
@@ -317,6 +318,8 @@ func handle(data ...queue.Data) []queue.Data {
 }
 
 func testPR(id int64) {
+	pullWorkingPool.CheckIn(fmt.Sprint(id))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(id))
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("Test PR[%d] from patch checking queue", id))
 	defer finished()
 

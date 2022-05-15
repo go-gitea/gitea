@@ -20,6 +20,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -488,7 +489,7 @@ func authenticate(ctx *context.Context, repository *repo_model.Repository, autho
 	}
 
 	// ctx.IsSigned is unnecessary here, this will be checked in perm.CanAccess
-	perm, err := models.GetUserRepoPermission(ctx, repository, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 	if err != nil {
 		log.Error("Unable to GetUserRepoPermission for user %-v in repo %-v Error: %v", ctx.Doer, repository)
 		return false

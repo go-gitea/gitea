@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -340,14 +341,16 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	}
 
 	e := db.GetEngine(ctx)
-	sess := e.Where(cond)
+	sess := e.Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
 
-	if err := sess.Desc("created_unix").Find(&actions); err != nil {
+	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
@@ -417,7 +420,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"is_private": false})
+		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
@@ -430,8 +433,8 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
 		}
 	}
 
@@ -508,7 +511,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				perm, err := GetUserRepoPermission(ctx, repo, user)
+				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

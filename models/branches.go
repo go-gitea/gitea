@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -79,7 +80,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		} else if repo, err := repo_model.GetRepositoryByID(protectBranch.RepoID); err != nil {
 			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		} else if writeAccess, err := access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -104,7 +105,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo Permission) bool {
+func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
 		return permissionInRepo.CanWrite(unit.TypeCode)
@@ -139,7 +140,7 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
+		writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -424,7 +425,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := IsRepoReader(ctx, repo, userID); err != nil {
+		if reader, err := access_model.IsRepoReader(ctx, repo, userID); err != nil {
 			return nil, err
 		} else if !reader {
 			continue
@@ -449,7 +450,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
-		perm, err := GetUserRepoPermission(ctx, repo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}

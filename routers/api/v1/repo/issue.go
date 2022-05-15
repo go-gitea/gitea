@@ -17,6 +17,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -630,7 +631,7 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 
-			valid, err := models.CanBeAssigned(assignee, ctx.Repo.Repository, false)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "canBeAssigned", err)
 				return

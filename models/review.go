@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -891,7 +892,7 @@ func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, 
 			return false, err
 		}
 
-		p, err := GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
+		p, err := access_model.GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}

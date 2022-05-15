@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -43,7 +44,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		return nil
 	}
 
-	p, err := models.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
@@ -132,7 +133,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		p, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+		p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone
