@@ -3329,27 +3329,19 @@ td.blob-excerpt {
     }
   }
   .commit-header-row {
-    .ui.horizontal .item {
-      text-align: center;
-      display: flex;
-      flex-direction: column;
+    .ui.horizontal.list {
+      width: 100%;
+      overflow-x: scroll;
+      margin-top: 2px;
 
-      > a:not(:first-of-type) {
-        margin-top: 2px;
-      }
-
-      &:last-child {
-        margin-left: auto;
+      .item {
+        align-items: center;
+        display: flex;
       }
     }
 
     .author {
-      margin: auto;
       padding: 3px 0;
-    }
-
-    .ui.horizontal.list {
-      width: 100%;
     }
   }
 
