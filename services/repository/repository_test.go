@@ -7,9 +7,10 @@ package repository
 import (
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
-	repo_model "code.gitea.io/gitea/models/repo"
+
 	"github.com/stretchr/testify/assert"
 )
 
