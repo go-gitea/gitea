@@ -71,13 +71,13 @@ steps:
     image: golang:1.16
     commands:
       - make checks-backend
-    depends_on: [lint-backend]
+#   depends_on: [lint-backend]
 
   - name: test-frontend
     image: node:14
     commands:
       - make test-frontend
-    depends_on: [lint-frontend]
+#   depends_on: [lint-frontend]
 
   - name: build-frontend
     image: node:14
