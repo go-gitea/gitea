@@ -19,9 +19,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Avoid MoreThanOne error when creating a branch whose name conflicts with other ref names (#19557) (#19591)
   * Fix sending empty notifications (#19589) (#19590)
   * Ignore DNS error when doing migration allow/block check (#19566) (#19567)
-  * Add finalizers to ensure that repos are closed and blobreaders are closed (#19495) (#19496)
 * MISC
-  * Revert "Add finalizers to ensure that repos are closed and blobreaders are closed (#19495)" (#19659)
   * Fix issue overview for teams (#19652) (#19653)
 
 ## [1.16.7](https://github.com/go-gitea/gitea/releases/tag/v1.16.7) - 2022-05-02
