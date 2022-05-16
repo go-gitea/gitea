@@ -15,7 +15,7 @@ trigger:
 steps:
   - name: deps-frontend
     pull: always
-    image: node:14
+    image: node:15
     commands:
       - make node_modules
 
