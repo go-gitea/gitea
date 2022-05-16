@@ -138,10 +138,14 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 
 	pointer, _ := lfs.ReadPointer(dataRc)
 	if pointer.IsValid() {
-		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-		if meta == nil {
-			if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
-				ctx.ServerError("ServeBlob", err)
+		meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+		if err != nil {
+			if err == models.ErrLFSObjectNotExist {
+				if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+					ctx.ServerError("ServeBlob", err)
+				}
+			} else {
+				ctx.ServerError("GetLFSMetaObjectByOid", err)
 			}
 			return
 		}
