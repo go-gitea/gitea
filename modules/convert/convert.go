@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -44,16 +45,16 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 		var canPush bool
 		var err error
 		if user != nil {
-			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite)
+			hasPerm, err = access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
 
-			perms, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
+			perms, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 			if err != nil {
 				return nil, err
 			}
-			canPush = perms.CanWriteToBranch(user, b.Name)
+			canPush = models.CanMaintainerWriteToBranch(perms, b.Name, user)
 		}
 
 		return &api.Branch{
@@ -82,7 +83,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 	}
 
 	if user != nil {
-		permission, err := models.GetUserRepoPermission(db.DefaultContext, repo, user)
+		permission, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 		if err != nil {
 			return nil, err
 		}
@@ -303,22 +304,53 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 	}
 }
 
-// ToTeam convert organization.Team to api.Team
-func ToTeam(team *organization.Team) *api.Team {
-	if team == nil {
-		return nil
+// ToTeam convert models.Team to api.Team
+func ToTeam(team *organization.Team, loadOrg ...bool) (*api.Team, error) {
+	teams, err := ToTeams([]*organization.Team{team}, len(loadOrg) != 0 && loadOrg[0])
+	if err != nil || len(teams) == 0 {
+		return nil, err
+	}
+	return teams[0], nil
+}
+
+// ToTeams convert models.Team list to api.Team list
+func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
+	if len(teams) == 0 || teams[0] == nil {
+		return nil, nil
 	}
 
-	return &api.Team{
-		ID:                      team.ID,
-		Name:                    team.Name,
-		Description:             team.Description,
-		IncludesAllRepositories: team.IncludesAllRepositories,
-		CanCreateOrgRepo:        team.CanCreateOrgRepo,
-		Permission:              team.AccessMode.String(),
-		Units:                   team.GetUnitNames(),
-		UnitsMap:                team.GetUnitsMap(),
+	cache := make(map[int64]*api.Organization)
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
+			return nil, err
+		}
+
+		apiTeams[i] = &api.Team{
+			ID:                      teams[i].ID,
+			Name:                    teams[i].Name,
+			Description:             teams[i].Description,
+			IncludesAllRepositories: teams[i].IncludesAllRepositories,
+			CanCreateOrgRepo:        teams[i].CanCreateOrgRepo,
+			Permission:              teams[i].AccessMode.String(),
+			Units:                   teams[i].GetUnitNames(),
+			UnitsMap:                teams[i].GetUnitsMap(),
+		}
+
+		if loadOrgs {
+			apiOrg, ok := cache[teams[i].OrgID]
+			if !ok {
+				org, err := organization.GetOrgByID(teams[i].OrgID)
+				if err != nil {
+					return nil, err
+				}
+				apiOrg = ToOrganization(org)
+				cache[teams[i].OrgID] = apiOrg
+			}
+			apiTeams[i].Organization = apiOrg
+		}
 	}
+	return apiTeams, nil
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag

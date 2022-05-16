@@ -12,14 +12,16 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // PullRequestType defines pull request type
@@ -93,6 +95,25 @@ type PullRequest struct {
 
 func init() {
 	db.RegisterModel(new(PullRequest))
+}
+
+func deletePullsByBaseRepoID(sess db.Engine, repoID int64) error {
+	deleteCond := builder.Select("id").From("pull_request").Where(builder.Eq{"pull_request.base_repo_id": repoID})
+
+	// Delete scheduled auto merges
+	if _, err := sess.In("pull_id", deleteCond).
+		Delete(&pull_model.AutoMerge{}); err != nil {
+		return err
+	}
+
+	// Delete review states
+	if _, err := sess.In("pull_id", deleteCond).
+		Delete(&pull_model.ReviewState{}); err != nil {
+		return err
+	}
+
+	_, err := sess.Delete(&PullRequest{BaseRepoID: repoID})
+	return err
 }
 
 // MustHeadUserName returns the HeadRepo's username if failed return blank
@@ -226,34 +247,6 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 	return
 }
 
-// GetDefaultMergeMessage returns default message used when merging pull request
-func (pr *PullRequest) GetDefaultMergeMessage(ctx context.Context) (string, error) {
-	if pr.HeadRepo == nil {
-		var err error
-		pr.HeadRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.HeadRepoID)
-		if err != nil {
-			return "", fmt.Errorf("GetRepositoryById[%d]: %v", pr.HeadRepoID, err)
-		}
-	}
-	if err := pr.LoadIssueCtx(ctx); err != nil {
-		return "", fmt.Errorf("Cannot load issue %d for PR id %d: Error: %v", pr.IssueID, pr.ID, err)
-	}
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadBaseRepo: %v", err)
-	}
-
-	issueReference := "#"
-	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
-		issueReference = "!"
-	}
-
-	if pr.BaseRepoID == pr.HeadRepoID {
-		return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadBranch, pr.BaseBranch), nil
-	}
-
-	return fmt.Sprintf("Merge pull request '%s' (%s%d) from %s:%s into %s", pr.Issue.Title, issueReference, pr.Issue.Index, pr.HeadRepo.FullName(), pr.HeadBranch, pr.BaseBranch), nil
-}
-
 // ReviewCount represents a count of Reviews
 type ReviewCount struct {
 	IssueID int64
@@ -334,20 +327,6 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		reviewersWritten++
 	}
 	return committer.Commit()
-}
-
-// GetDefaultSquashMessage returns default message used when squash and merging pull request
-func (pr *PullRequest) GetDefaultSquashMessage(ctx context.Context) (string, error) {
-	if err := pr.LoadIssueCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadIssue: %v", err)
-	}
-	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-		return "", fmt.Errorf("LoadBaseRepo: %v", err)
-	}
-	if pr.BaseRepo.UnitEnabledCtx(ctx, unit.TypeExternalTracker) {
-		return fmt.Sprintf("%s (!%d)", pr.Issue.Title, pr.Issue.Index), nil
-	}
-	return fmt.Sprintf("%s (#%d)", pr.Issue.Title, pr.Issue.Index), nil
 }
 
 // GetGitRefName returns git ref for hidden pull request branch
@@ -673,6 +652,18 @@ func (pr *PullRequest) updateCommitDivergence(e db.Engine, ahead, behind int) er
 // IsSameRepo returns true if base repo and head repo is the same
 func (pr *PullRequest) IsSameRepo() bool {
 	return pr.BaseRepoID == pr.HeadRepoID
+}
+
+// GetPullRequestsByHeadBranch returns all prs by head branch
+// Since there could be multiple prs with the same head branch, this function returns a slice of prs
+func GetPullRequestsByHeadBranch(ctx context.Context, headBranch string, headRepoID int64) ([]*PullRequest, error) {
+	log.Trace("GetPullRequestsByHeadBranch: headBranch: '%s', headRepoID: '%d'", headBranch, headRepoID)
+	prs := make([]*PullRequest, 0, 2)
+	if err := db.GetEngine(ctx).Where(builder.Eq{"head_branch": headBranch, "head_repo_id": headRepoID}).
+		Find(&prs); err != nil {
+		return nil, err
+	}
+	return prs, nil
 }
 
 // GetBaseBranchHTMLURL returns the HTML URL of the base branch

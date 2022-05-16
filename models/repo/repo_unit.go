@@ -150,31 +150,11 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	return MergeStyleMerge
 }
 
-// AllowedMergeStyleCount returns the total count of allowed merge styles for the PullRequestsConfig
-func (cfg *PullRequestsConfig) AllowedMergeStyleCount() int {
-	count := 0
-	if cfg.AllowMerge {
-		count++
-	}
-	if cfg.AllowRebase {
-		count++
-	}
-	if cfg.AllowRebaseMerge {
-		count++
-	}
-	if cfg.AllowSquash {
-		count++
-	}
-	return count
-}
-
 // BeforeSet is invoked from XORM before setting the value of a field of this object.
 func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 	switch colName {
 	case "type":
 		switch unit.Type(db.Cell2Int64(val)) {
-		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects:
-			r.Config = new(UnitConfig)
 		case unit.TypeExternalWiki:
 			r.Config = new(ExternalWikiConfig)
 		case unit.TypeExternalTracker:
@@ -183,8 +163,10 @@ func (r *RepoUnit) BeforeSet(colName string, val xorm.Cell) {
 			r.Config = new(PullRequestsConfig)
 		case unit.TypeIssues:
 			r.Config = new(IssuesConfig)
+		case unit.TypeCode, unit.TypeReleases, unit.TypeWiki, unit.TypeProjects, unit.TypePackages:
+			fallthrough
 		default:
-			panic(fmt.Sprintf("unrecognized repo unit type: %v", *val))
+			r.Config = new(UnitConfig)
 		}
 	}
 }

@@ -295,6 +295,10 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(false) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
+	}
+
 	// Handle default trustmodel settings
 	Repository.Signing.DefaultTrustModel = strings.ToLower(strings.TrimSpace(Repository.Signing.DefaultTrustModel))
 	if Repository.Signing.DefaultTrustModel == "default" {

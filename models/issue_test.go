@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -287,6 +288,20 @@ func TestGetUserIssueStats(t *testing.T) {
 				ClosedCount:           0,
 			},
 		},
+		{
+			UserIssueStatsOptions{
+				UserID:     2,
+				Org:        unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).(*organization.Organization),
+				Team:       unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}).(*organization.Team),
+				FilterMode: FilterModeAll,
+			},
+			IssueStats{
+				YourRepositoriesCount: 2,
+				AssignCount:           1,
+				CreateCount:           1,
+				OpenCount:             2,
+			},
+		},
 	} {
 		t.Run(fmt.Sprintf("%#v", test.Opts), func(t *testing.T) {
 			stats, err := GetUserIssueStats(test.Opts)
@@ -341,7 +356,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 			IssuesOptions{
 				AssigneeID: 2,
 			},
-			[]int64{3},
+			[]int64{3, 32},
 		},
 		{
 			IssuesOptions{
@@ -595,5 +610,5 @@ func TestCountIssues(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	count, err := CountIssues(&IssuesOptions{})
 	assert.NoError(t, err)
-	assert.EqualValues(t, 15, count)
+	assert.EqualValues(t, 17, count)
 }

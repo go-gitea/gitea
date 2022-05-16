@@ -594,6 +594,12 @@ func AddOrgUser(orgID, uid int64) error {
 	}
 	defer committer.Close()
 
+	// check in transaction
+	isAlreadyMember, err = IsOrganizationMember(ctx, orgID, uid)
+	if err != nil || isAlreadyMember {
+		return err
+	}
+
 	ou := &OrgUser{
 		UID:      uid,
 		OrgID:    orgID,

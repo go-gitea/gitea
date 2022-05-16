@@ -443,12 +443,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllLimited: false,
 	}
 
-	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-		repoOpts.TeamID = ctx.Org.Team.ID
+	if team != nil {
+		repoOpts.TeamID = team.ID
 	}
 
 	switch filterMode {
 	case models.FilterModeAll:
+	case models.FilterModeYourRepositories:
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctx.Doer.ID
 	case models.FilterModeCreate:
@@ -457,13 +458,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
-	case models.FilterModeYourRepositories:
-		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-			// Fixes a issue whereby the user's ID would be used
-			// to check if it's in the team(which possible isn't the case).
-			opts.User = nil
-		}
-		opts.RepoCond = models.SearchRepositoryCondition(repoOpts)
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -595,13 +589,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if filterMode == models.FilterModeYourRepositories {
-			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
-		}
-		// Detect when we only should search by team.
-		if opts.User == nil {
-			statsOpts.UserID = 0
-		}
+
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)

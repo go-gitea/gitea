@@ -23,7 +23,9 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -711,8 +713,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 }
 
 func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	var bytes []byte
-
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
@@ -733,7 +733,7 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 		return "", false
 	}
 	defer r.Close()
-	bytes, err = io.ReadAll(r)
+	bytes, err := io.ReadAll(r)
 	if err != nil {
 		return "", false
 	}
@@ -960,7 +960,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				return nil, nil, 0, 0
 			}
 
-			valid, err := models.CanBeAssigned(assignee, repo, isPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
 				return nil, nil, 0, 0
@@ -1052,7 +1052,7 @@ func NewIssuePost(ctx *context.Context) {
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
-	perm, err := models.GetUserRepoPermission(ctx, repo, poster)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
 	}
@@ -1068,7 +1068,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		} else {
 
 			// Otherwise check if poster is the real repo admin.
-			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
 			if err != nil {
 				return models.RoleDescriptorNone, err
 			}
@@ -1527,7 +1527,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil {
-				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
@@ -1549,7 +1549,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
-			perm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -1573,26 +1573,42 @@ func ViewIssue(ctx *context.Context) {
 		}
 		prConfig := prUnit.PullRequestsConfig()
 
+		var mergeStyle repo_model.MergeStyle
 		// Check correct values and select default
 		if ms, ok := ctx.Data["MergeStyle"].(repo_model.MergeStyle); !ok ||
 			!prConfig.IsMergeStyleAllowed(ms) {
 			defaultMergeStyle := prConfig.GetDefaultMergeStyle()
 			if prConfig.IsMergeStyleAllowed(defaultMergeStyle) && !ok {
-				ctx.Data["MergeStyle"] = defaultMergeStyle
+				mergeStyle = defaultMergeStyle
 			} else if prConfig.AllowMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleMerge
+				mergeStyle = repo_model.MergeStyleMerge
 			} else if prConfig.AllowRebase {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebase
+				mergeStyle = repo_model.MergeStyleRebase
 			} else if prConfig.AllowRebaseMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleRebaseMerge
+				mergeStyle = repo_model.MergeStyleRebaseMerge
 			} else if prConfig.AllowSquash {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleSquash
+				mergeStyle = repo_model.MergeStyleSquash
 			} else if prConfig.AllowManualMerge {
-				ctx.Data["MergeStyle"] = repo_model.MergeStyleManuallyMerged
-			} else {
-				ctx.Data["MergeStyle"] = ""
+				mergeStyle = repo_model.MergeStyleManuallyMerged
 			}
 		}
+
+		ctx.Data["MergeStyle"] = mergeStyle
+
+		defaultMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, mergeStyle)
+		if err != nil {
+			ctx.ServerError("GetDefaultMergeMessage", err)
+			return
+		}
+		ctx.Data["DefaultMergeMessage"] = defaultMergeMessage
+
+		defaultSquashMergeMessage, err := pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pull, repo_model.MergeStyleSquash)
+		if err != nil {
+			ctx.ServerError("GetDefaultSquashMergeMessage", err)
+			return
+		}
+		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
+
 		if err = pull.LoadProtectedBranch(); err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
@@ -1662,6 +1678,13 @@ func ViewIssue(ctx *context.Context) {
 		}
 
 		ctx.Data["StillCanManualMerge"] = stillCanManualMerge()
+
+		// Check if there is a pending pr merge
+		ctx.Data["HasPendingPullRequestMerge"], ctx.Data["PendingPullRequestMerge"], err = pull_model.GetScheduledMergeByPullID(ctx, pull.ID)
+		if err != nil {
+			ctx.ServerError("GetScheduledMergeByPullID", err)
+			return
+		}
 	}
 
 	// Get Dependencies
@@ -1956,7 +1979,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return
@@ -2919,7 +2942,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 			if err != nil {
 				return err
 			}
-			perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
 			if err != nil {
 				return err
 			}
