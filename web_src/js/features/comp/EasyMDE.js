@@ -71,9 +71,12 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
         title: 'Revert to simple textarea',
       },
     ], ...easyMDEOptions});
+
   const inputField = easyMDE.codemirror.getInputField();
-  inputField.classList.add('js-quick-submit');
+
   easyMDE.codemirror.setOption('extraKeys', {
+    'Cmd-Enter': codeMirrorQuickSubmit,
+    'Ctrl-Enter': codeMirrorQuickSubmit,
     Enter: (cm) => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
@@ -148,4 +151,20 @@ export function validateTextareaNonEmpty($textarea) {
   }
   $mdeInputField.prop('required', false);
   return true;
+}
+
+/**
+ * @param {CodeMirror.EditorFromTextArea} codeMirror
+ */
+export function codeMirrorQuickSubmit(codeMirror) {
+  const textarea = codeMirror.getTextArea();
+  const form = textarea.closest('form');
+  // the same logic as the global `.js-quick-submit` handler.
+  if (form) {
+    // here must use jQuery to trigger the submit event, otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
+    $(form).trigger('submit');
+  } else {
+    // if no form, then the editor is for an AJAX request, we dispatch an event to the textarea, let the textarea's event handler to do the AJAX request.
+    textarea.dispatchEvent(new CustomEvent('ce-quick-submit'));
+  }
 }

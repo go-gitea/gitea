@@ -44,9 +44,17 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $('.js-quick-submit').on('keydown', function (e) {
+  $(document).on('keydown', '.js-quick-submit', function (e) {
     if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').trigger('submit');
+      const $form = $(this).closest('form');
+      // the same logic as `codeMirrorQuickSubmit` function
+      if ($form.length) {
+        // here must use jQuery to trigger the submit event, otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
+        $form.trigger('submit');
+      } else {
+        // if no form, then the editor is for an AJAX request, we dispatch an event to the target, let the target's event handler to do the AJAX request.
+        $(e.target).trigger('ce-quick-submit');
+      }
     }
   });
 }
