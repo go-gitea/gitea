@@ -4,6 +4,23 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.8](https://github.com/go-gitea/gitea/releases/tag/v1.16.8) - 2022-05-16
+
+* ENHANCEMENTS
+  * Add doctor check/fix for bogus action rows (#19656) (#19669)
+  * Make .cs highlighting legible on dark themes. (#19604) (#19605)
+* BUGFIXES
+  * Fix oauth setting list bug (#19681)
+  * Delete user related oauth stuff on user deletion too (#19677) (#19680)
+  * Fix new release from tags list UI (#19670) (#19673)
+  * Prevent NPE when checking repo units if the user is nil (#19625) (#19630)
+  * GetFeeds must always discard actions with dangling repo_id (#19598) (#19629)
+  * Call MultipartForm.RemoveAll when request finishes (#19606) (#19607)
+  * Avoid MoreThanOne error when creating a branch whose name conflicts with other ref names (#19557) (#19591)
+  * Fix sending empty notifications (#19589) (#19590)
+  * Ignore DNS error when doing migration allow/block check (#19566) (#19567)
+  * Fix issue overview for teams (#19652) (#19653)
+
 ## [1.16.7](https://github.com/go-gitea/gitea/releases/tag/v1.16.7) - 2022-05-02
 
 * SECURITY
