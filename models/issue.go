@@ -1346,9 +1346,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.User != nil {
-		sess.And(
-			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
-		)
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 }
 
@@ -1413,7 +1411,6 @@ func CountIssuesByRepo(opts *IssuesOptions) (map[int64]int64, error) {
 	e := db.GetEngine(db.DefaultContext)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-
 	opts.setupSessionNoLimit(sess)
 
 	countsSlice := make([]*struct {
@@ -1440,7 +1437,6 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 	e := db.GetEngine(db.DefaultContext)
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
-
 	opts.setupSessionNoLimit(sess)
 
 	accessCond := accessibleRepositoryCondition(user)
@@ -1485,6 +1481,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
+
 	if err := sess.Find(&countsSlice); err != nil {
 		return 0, fmt.Errorf("unable to CountIssues: %w", err)
 	}

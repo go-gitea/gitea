@@ -233,14 +233,28 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 		builder.Select("repo_id").From("team_repo").Where(
 			builder.Eq{
 				"team_id": teamID,
-			}.And(
+			}.And(builder.Or(
+				// Check if the user is member of the team.
 				builder.In(
 					"team_id", builder.Select("team_id").From("team_user").Where(
 						builder.Eq{
 							"uid": userID,
 						},
 					),
-				)).And(
+				),
+				// Check if the user is in the owner team of the organisation.
+				builder.Exists(builder.Select("team_id").From("team_user").
+					Where(builder.Eq{
+						"org_id": orgID,
+						"team_id": builder.Select("id").From("team").Where(
+							builder.Eq{
+								"org_id":     orgID,
+								"lower_name": strings.ToLower(ownerTeamName),
+							}),
+						"uid": userID,
+					}),
+				),
+			)).And(
 				builder.In(
 					"team_id", builder.Select("team_id").From("team_unit").Where(
 						builder.Eq{
