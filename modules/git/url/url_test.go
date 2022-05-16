@@ -34,7 +34,7 @@ func TestParseGitURLs(t *testing.T) {
 				URL: &url.URL{
 					Scheme: "ssh",
 					User:   url.User("git"),
-					Host:   "[fe80:14fc:cec5:c174:d88%2510]",
+					Host:   "[fe80:14fc:cec5:c174:d88%10]",
 					Path:   "go-gitea/gitea.git",
 				},
 				extraMark: 1,
@@ -131,6 +131,18 @@ func TestParseGitURLs(t *testing.T) {
 				extraMark: 0,
 			},
 		},
+		{
+			kase: "https://[fe80:14fc:cec5:c174:d88%2510]:20/go-gitea/gitea.git",
+			expected: &GitURL{
+				URL: &url.URL{
+					Scheme: "https",
+					Host:   "[fe80:14fc:cec5:c174:d88%10]:20",
+					Path:   "/go-gitea/gitea.git",
+				},
+				extraMark: 0,
+			},
+		},
+
 		{
 			kase: "git://github.com/go-gitea/gitea.git",
 			expected: &GitURL{

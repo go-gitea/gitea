@@ -61,7 +61,7 @@ func Parse(remote string) (*GitURL, error) {
 				lastIndex = i + 1
 			case ':':
 				if !squareBrackets {
-					url.Host = remote[lastIndex:i]
+					url.Host = strings.Replace(remote[lastIndex:i], "%25", "%", -1)
 					if len(remote) <= i+1 {
 						return nil, ErrWrongURLFormat{URL: remote}
 					}
