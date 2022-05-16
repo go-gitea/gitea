@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -75,8 +74,14 @@ func Commits(ctx *context.Context) {
 		ctx.ServerError("CommitsByRange", err)
 		return
 	}
-	ctx.Data["Commits"] = models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
 
+	gitCommits, err := models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CommitsByRange", err)
+		return
+	}
+
+	ctx.Data["Commits"] = gitCommits
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["CommitCount"] = commitsCount
@@ -194,8 +199,12 @@ func SearchCommits(ctx *context.Context) {
 		return
 	}
 	ctx.Data["CommitCount"] = len(commits)
-	ctx.Data["Commits"] = models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
-
+	gitCommits, err := models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return
+	}
+	ctx.Data["Commits"] = gitCommits
 	ctx.Data["Keyword"] = query
 	if all {
 		ctx.Data["All"] = "checked"
@@ -235,8 +244,14 @@ func FileHistory(ctx *context.Context) {
 		ctx.ServerError("CommitsByFileAndRange", err)
 		return
 	}
-	ctx.Data["Commits"] = models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
 
+	gitCommits, err := models.ConvertFromGitCommit(commits, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return
+	}
+
+	ctx.Data["Commits"] = gitCommits
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	ctx.Data["FileName"] = fileName
@@ -345,11 +360,11 @@ func Diff(ctx *context.Context) {
 
 	verification := asymkey_model.ParseCommitWithSignature(commit)
 	ctx.Data["Verification"] = verification
-	ctx.Data["Author"] = user_model.ValidateCommitWithEmail(commit)
+	ctx.Data["Author"] = asymkey_model.ValidateCommitWithEmail(commit)
 	ctx.Data["Parents"] = parents
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
-	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *asymkey_model.User) (bool, error) {
 		return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
@@ -361,7 +376,7 @@ func Diff(ctx *context.Context) {
 	if err == nil {
 		ctx.Data["Note"] = string(charset.ToUTF8WithFallback(note.Message))
 		ctx.Data["NoteCommit"] = note.Commit
-		ctx.Data["NoteAuthor"] = user_model.ValidateCommitWithEmail(note.Commit)
+		ctx.Data["NoteAuthor"] = asymkey_model.ValidateCommitWithEmail(note.Commit)
 	}
 
 	ctx.Data["BranchName"], err = commit.GetBranchName()

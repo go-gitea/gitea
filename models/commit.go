@@ -7,20 +7,23 @@ package models
 import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 )
 
 // ConvertFromGitCommit converts git commits into SignCommitWithStatuses
-func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) ([]*SignCommitWithStatuses, error) {
+	userCommits, err := asymkey_model.ValidateCommitsWithEmails(commits)
+	if err != nil {
+		return nil, err
+	}
 	return ParseCommitsWithStatus(
 		asymkey_model.ParseCommitsWithSignature(
-			user_model.ValidateCommitsWithEmails(commits),
+			userCommits,
 			repo.GetTrustModel(),
-			func(user *user_model.User) (bool, error) {
+			func(user *asymkey_model.User) (bool, error) {
 				return IsOwnerMemberCollaborator(repo, user.ID)
 			},
 		),
 		repo,
-	)
+	), nil
 }

@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -142,9 +142,9 @@ func RefBlame(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBlame)
 }
 
-func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*user_model.UserCommit, map[string]string) {
+func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[string]*asymkey_model.UserCommit, map[string]string) {
 	// store commit data by SHA to look up avatar info etc
-	commitNames := make(map[string]*user_model.UserCommit)
+	commitNames := make(map[string]*asymkey_model.UserCommit)
 	// previousCommits contains links from SHA to parent SHA,
 	// if parent also contains the current TreePath.
 	previousCommits := make(map[string]string)
@@ -197,15 +197,20 @@ func processBlameParts(ctx *context.Context, blameParts []git.BlamePart) (map[st
 		commits = append(commits, commit)
 	}
 
-	// populate commit email addresses to later look up avatars.
-	for _, c := range user_model.ValidateCommitsWithEmails(commits) {
-		commitNames[c.ID.String()] = c
+	validatedCommits, err := asymkey_model.ValidateCommitsWithEmails(commits)
+	if err != nil {
+		ctx.ServerError("ValidateCommitsWithEmails", err)
+		return nil, nil
 	}
 
+	// populate commit email addresses to later look up avatars.
+	for _, c := range validatedCommits {
+		commitNames[c.ID.String()] = c
+	}
 	return commitNames, previousCommits
 }
 
-func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*user_model.UserCommit, previousCommits map[string]string) {
+func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames map[string]*asymkey_model.UserCommit, previousCommits map[string]string) {
 	repoLink := ctx.Repo.RepoLink
 
 	language := ""

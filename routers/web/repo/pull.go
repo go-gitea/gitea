@@ -627,7 +627,11 @@ func ViewPullCommits(ctx *context.Context) {
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 	ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 
-	commits := models.ConvertFromGitCommit(prInfo.Commits, ctx.Repo.Repository)
+	commits, err := models.ConvertFromGitCommit(prInfo.Commits, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return
+	}
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 

@@ -116,7 +116,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 
 		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
-		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *asymkey_model.User) (bool, error) {
 			return models.IsOwnerMemberCollaborator(repository, user.ID)
 		}, &keyMap)
 

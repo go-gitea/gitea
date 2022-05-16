@@ -1128,49 +1128,6 @@ func GetUsersBySource(s *auth.Source) ([]*User, error) {
 	return users, err
 }
 
-// UserCommit represents a commit with validation of user.
-type UserCommit struct { //revive:disable-line:exported
-	User *User
-	*git.Commit
-}
-
-// ValidateCommitWithEmail check if author's e-mail of commit is corresponding to a user.
-func ValidateCommitWithEmail(c *git.Commit) *User {
-	if c.Author == nil {
-		return nil
-	}
-	u, err := GetUserByEmail(c.Author.Email)
-	if err != nil {
-		return nil
-	}
-	return u
-}
-
-// ValidateCommitsWithEmails checks if authors' e-mails of commits are corresponding to users.
-func ValidateCommitsWithEmails(oldCommits []*git.Commit) []*UserCommit {
-	var (
-		emails     = make(map[string]*User)
-		newCommits = make([]*UserCommit, 0, len(oldCommits))
-	)
-	for _, c := range oldCommits {
-		var u *User
-		if c.Author != nil {
-			if v, ok := emails[c.Author.Email]; !ok {
-				u, _ = GetUserByEmail(c.Author.Email)
-				emails[c.Author.Email] = u
-			} else {
-				u = v
-			}
-		}
-
-		newCommits = append(newCommits, &UserCommit{
-			User:   u,
-			Commit: c,
-		})
-	}
-	return newCommits
-}
-
 // GetUserByEmail returns the user object by given e-mail if exists.
 func GetUserByEmail(email string) (*User, error) {
 	return GetUserByEmailContext(db.DefaultContext, email)

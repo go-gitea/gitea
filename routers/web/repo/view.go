@@ -829,14 +829,14 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 
 		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
-		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *asymkey_model.User) (bool, error) {
 			return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
 		ctx.Data["LatestCommitVerification"] = verification
-		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
+		ctx.Data["LatestCommitUser"] = asymkey_model.ValidateCommitWithEmail(latestCommit)
 	}
 
 	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})

@@ -636,7 +636,11 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := models.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
+	commits, err := models.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
+	if err != nil {
+		ctx.ServerError("ConvertFromGitCommit", err)
+		return false
+	}
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 

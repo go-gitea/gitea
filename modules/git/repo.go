@@ -24,10 +24,9 @@ import (
 
 // GPGSettings represents the default GPG settings for this repository
 type GPGSettings struct {
-	Sign             bool
-	KeyID            string
-	Email            string
-	Name             string
+	Sign  bool
+	KeyID string
+	Signature
 	PublicKeyContent string
 }
 

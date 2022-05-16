@@ -761,11 +761,14 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		}
 		defer closer.Close()
 
-		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits, err = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		if err != nil {
+			return err
+		}
 		c.CommitsNum = int64(len(c.Commits))
 	}
 
-	return err
+	return nil
 }
 
 // CreateCommentCtx creates comment with context
