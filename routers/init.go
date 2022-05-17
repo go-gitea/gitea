@@ -103,7 +103,7 @@ func GlobalInitInstalled(ctx context.Context) {
 	}
 
 	mustInitCtx(ctx, git.Init)
-	log.Info(git.VersionInfo())
+	log.Info("Git Version: %s (config: %s)", git.VersionInfo(), git.GlobalConfigFile)
 
 	git.CheckLFSVersion()
 	log.Info("AppPath: %s", setting.AppPath)

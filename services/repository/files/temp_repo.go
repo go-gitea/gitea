@@ -229,11 +229,6 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	err := git.LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,

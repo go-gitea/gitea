@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -105,6 +106,10 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
+
+	if err = git.Init(context.Background()); err != nil {
+		fatalTestError("git.Init: %v\n", err)
+	}
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
@@ -198,6 +203,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
+	assert.NoError(t, git.Init(context.Background()))
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)

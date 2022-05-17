@@ -28,11 +28,6 @@ type CheckAttributeOpts struct {
 
 // CheckAttribute return the Blame object of file
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return nil, fmt.Errorf("git version missing: %v", err)
-	}
-
 	env := []string{}
 
 	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {

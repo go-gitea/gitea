@@ -8,10 +8,12 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 	"unsafe"
@@ -148,13 +150,21 @@ func (c *Command) Run(opts *RunOpts) error {
 		cmd.Env = opts.Env
 	}
 
+	if GlobalConfigFile == "" {
+		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
+		// at the moment, we just use a temp gitconfig to prevent from conflicting with user's gitconfig
+		// in future, the git module should be initialized first before use.
+		GlobalConfigFile = filepath.Join(os.TempDir(), "/gitea-temp-gitconfig")
+		log.Warn("GlobalConfigFile is empty, the git module is not initialized correctly, using a temp gitconfig (%s) temporarily", GlobalConfigFile)
+	}
+
 	cmd.Env = append(
 		cmd.Env,
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		// avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_TERMINAL_PROMPT=0",
-		// ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_NO_REPLACE_OBJECTS=1",
+		"GIT_TERMINAL_PROMPT=0",               // avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_NO_REPLACE_OBJECTS=1",            // ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_CONFIG_NOSYSTEM=1",               // https://git-scm.com/docs/git-config
+		"GIT_CONFIG_GLOBAL="+GlobalConfigFile, // make Gitea use internal git config only, to prevent conflicts with user's git config
 	)
 
 	cmd.Dir = opts.Dir
@@ -183,7 +193,9 @@ func (c *Command) Run(opts *RunOpts) error {
 
 type RunStdError interface {
 	error
+	Unwrap() error
 	Stderr() string
+	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -206,6 +218,14 @@ func (r *runStdError) Unwrap() error {
 
 func (r *runStdError) Stderr() string {
 	return r.stderr
+}
+
+func (r *runStdError) IsExitCode(code int) bool {
+	var exitError *exec.ExitError
+	if errors.As(r.err, &exitError) {
+		return exitError.ExitCode() == code
+	}
+	return false
 }
 
 func bytesToString(b []byte) string {
