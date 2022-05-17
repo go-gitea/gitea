@@ -1,11 +1,6 @@
 import $ from 'jquery';
 import {initMarkupContent} from '../markup/content.js';
-import {
-  attachEasyMDEToElements,
-  codeMirrorQuickSubmit,
-  importEasyMDE,
-  validateTextareaNonEmpty,
-} from './comp/EasyMDE.js';
+import {attachEasyMDEToElements, codeMirrorQuickSubmit, importEasyMDE, validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {csrfToken} = window.config;

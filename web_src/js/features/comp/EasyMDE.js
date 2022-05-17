@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import attachTribute from '../tribute.js';
+import {handleGlobalEnterQuickSubmit} from '../common-global.js';
 
 /**
  * @returns {EasyMDE}
@@ -154,17 +155,10 @@ export function validateTextareaNonEmpty($textarea) {
 }
 
 /**
+ * there is no guarantee that the CodeMirror object is inside the same form as the textarea,
+ * so can not call handleGlobalEnterQuickSubmit directly.
  * @param {CodeMirror.EditorFromTextArea} codeMirror
  */
 export function codeMirrorQuickSubmit(codeMirror) {
-  const textarea = codeMirror.getTextArea();
-  const form = textarea.closest('form');
-  // the same logic as the global `.js-quick-submit` handler.
-  if (form) {
-    // here must use jQuery to trigger the submit event, otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
-    $(form).trigger('submit');
-  } else {
-    // if no form, then the editor is for an AJAX request, we dispatch an event to the textarea, let the textarea's event handler to do the AJAX request.
-    textarea.dispatchEvent(new CustomEvent('ce-quick-submit'));
-  }
+  handleGlobalEnterQuickSubmit(codeMirror.getTextArea());
 }
