@@ -250,17 +250,6 @@ func runServ(c *cli.Context) error {
 		}
 		return fail("Internal Server Error", "%s", err.Error())
 	}
-	os.Setenv(repo_module.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
-	os.Setenv(repo_module.EnvRepoName, results.RepoName)
-	os.Setenv(repo_module.EnvRepoUsername, results.OwnerName)
-	os.Setenv(repo_module.EnvPusherName, results.UserName)
-	os.Setenv(repo_module.EnvPusherEmail, results.UserEmail)
-	os.Setenv(repo_module.EnvPusherID, strconv.FormatInt(results.UserID, 10))
-	os.Setenv(repo_module.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
-	os.Setenv(repo_module.EnvPRID, fmt.Sprintf("%d", 0))
-	os.Setenv(repo_module.EnvDeployKeyID, fmt.Sprintf("%d", results.DeployKeyID))
-	os.Setenv(repo_module.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
-	os.Setenv(repo_module.EnvAppURL, setting.AppURL)
 
 	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
@@ -315,7 +304,22 @@ func runServ(c *cli.Context) error {
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr
+	gitcmd.Env = append(gitcmd.Env, os.Environ()...) // FIXME: the legacy code passes the whole env. in the future, should only pass the env which are really needed
+	gitcmd.Env = append(gitcmd.Env,
+		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
+		repo_module.EnvRepoName+"="+results.RepoName,
+		repo_module.EnvRepoUsername+"="+results.OwnerName,
+		repo_module.EnvPusherName+"="+results.UserName,
+		repo_module.EnvPusherEmail+"="+results.UserEmail,
+		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
+		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
+		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
+		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvAppURL+"="+setting.AppURL,
+	)
 	gitcmd.Env = append(gitcmd.Env, git.CommonEnvs()...)
+
 	if err = gitcmd.Run(); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)
 	}
