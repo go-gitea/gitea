@@ -278,7 +278,7 @@ func configSet(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key, value).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
