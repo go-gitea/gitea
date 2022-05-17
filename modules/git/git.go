@@ -180,7 +180,9 @@ func InitWithConfigSync(ctx context.Context) error {
 		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
-	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
+	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
+	// TODO: need to confirm whether users really need to change these values manually. It seems that these values are dummy only and not really used.
+	// If these values are not really used, then they can be set (overwritten) directly without considering about existence.
 	for configKey, defaultValue := range map[string]string{
 		"user.name":  "Gitea",
 		"user.email": "gitea@fake.local",
