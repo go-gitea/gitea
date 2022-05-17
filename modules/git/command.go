@@ -109,10 +109,10 @@ type RunOpts struct {
 func CommonEnvs() []string {
 	return []string{
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		"GIT_TERMINAL_PROMPT=0",                 // avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_NO_REPLACE_OBJECTS=1",              // ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_CONFIG_NOSYSTEM=1",                 // https://git-scm.com/docs/git-config
-		"GIT_CONFIG_GLOBAL=" + GlobalConfigFile, // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"GIT_TERMINAL_PROMPT=0",    // avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_CONFIG_NOSYSTEM=1",    // https://git-scm.com/docs/git-config, and GIT_CONFIG_GLOBAL, they require git >= 2.32
+		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
 	}
 }
 
@@ -160,12 +160,12 @@ func (c *Command) Run(opts *RunOpts) error {
 		cmd.Env = opts.Env
 	}
 
-	if GlobalConfigFile == "" {
+	if HomeDir == "" {
 		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
-		// at the moment, we just use a temp gitconfig to prevent from conflicting with user's gitconfig
+		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
 		// in future, the git module should be initialized first before use.
-		GlobalConfigFile = filepath.Join(os.TempDir(), "/gitea-temp-gitconfig")
-		log.Warn("GlobalConfigFile is empty, the git module is not initialized correctly, using a temp gitconfig (%s) temporarily", GlobalConfigFile)
+		HomeDir = filepath.Join(os.TempDir(), "/gitea-temp-home")
+		log.Warn("Git's HomeDir is empty, the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", HomeDir)
 	}
 
 	cmd.Env = append(cmd.Env, CommonEnvs()...)

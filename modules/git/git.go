@@ -31,8 +31,8 @@ var (
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
 
-	// GlobalConfigFile is the global config file used by Gitea internally
-	GlobalConfigFile string
+	// HomeDir is the home dir for git to store the global config file used by Gitea internally
+	HomeDir string
 
 	// DefaultContext is the default context to run git commands in
 	// will be overwritten by InitWithConfigSync with HammerContext
@@ -142,7 +142,7 @@ func InitSimple(ctx context.Context) error {
 		return errors.New("RepoRootPath is empty, git module needs that setting before initialization")
 	}
 
-	GlobalConfigFile = setting.RepoRootPath + "/gitconfig"
+	HomeDir = setting.RepoRootPath
 
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
