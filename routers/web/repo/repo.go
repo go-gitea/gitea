@@ -146,7 +146,6 @@ func Create(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
@@ -158,8 +157,17 @@ func Create(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	canCreateRepo := ctx.Doer.CanCreateRepo()
+	if !canCreateRepo && ctx.Doer.ID == ctxUser.ID {
+		orgs, has := ctx.Data["Orgs"].([]*organization.Organization)
+		if has && len(orgs) > 0 {
+			ctxUser = orgs[0].AsUser()
+		}
+	}
+
+	ctx.Data["CanCreateRepo"] = canCreateRepo
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
+	ctx.Data["ContextUser"] = ctxUser
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }

@@ -14,7 +14,7 @@
 						<p class="ui center">{{.i18n.Tr "repo.new_repo_helper" ((printf "%s%s" AppSubUrl "/repo/migrate")|Escape) | Safe}}</p>
 					{{end}}
 
-					{{if not .CanCreateRepo}}
+					{{if and (not .CanCreateRepo) (not .Orgs)}}
 						<div class="ui negative message">
 							<p>{{.i18n.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
 						</div>
@@ -29,10 +29,12 @@
 							</span>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							<div class="menu">
-								<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
-									{{avatar .SignedUser 28 "mini"}}
-									<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
-								</div>
+								{{if .CanCreateRepo}}
+									<div class="item truncated-item-container" data-value="{{.SignedUser.ID}}" title="{{.SignedUser.Name}}">
+										{{avatar .SignedUser 28 "mini"}}
+										<span class="truncated-item-name">{{.SignedUser.ShortName 40}}</span>
+									</div>
+								{{end}}
 								{{range .Orgs}}
 									<div class="item truncated-item-container" data-value="{{.ID}}" title="{{.Name}}">
 										{{avatar . 28 "mini"}}
@@ -216,7 +218,7 @@
 					<br/>
 					<div class="inline field">
 						<label></label>
-						<button class="ui green button{{if not .CanCreateRepo}} disabled{{end}}">
+						<button class="ui green button{{if and (not .CanCreateRepo) (not .Orgs)}} disabled{{end}}">
 							{{.i18n.Tr "repo.create_repo"}}
 						</button>
 						<a class="ui button" href="{{AppSubUrl}}/">{{.i18n.Tr "cancel"}}</a>
