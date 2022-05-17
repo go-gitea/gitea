@@ -181,8 +181,11 @@ func InitWithConfigSync(ctx context.Context) error {
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
-	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if err := configSet(configKey, defaultValue); err != nil {
+	for configKey, defaultValue := range map[string]string{
+		"user.name":  "Gitea",
+		"user.email": "gitea@fake.local",
+	} {
+		if err := configSetNonExist(configKey, defaultValue); err != nil {
 			return err
 		}
 	}
