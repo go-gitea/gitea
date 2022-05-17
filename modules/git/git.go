@@ -35,7 +35,7 @@ var (
 	GlobalConfigFile string
 
 	// DefaultContext is the default context to run git commands in
-	// will be overwritten by Init with HammerContext
+	// will be overwritten by InitWithConfigSync with HammerContext
 	DefaultContext = context.Background()
 
 	// SupportProcReceive version >= 2.29.0
@@ -129,8 +129,9 @@ func VersionInfo() string {
 	return fmt.Sprintf(format, args...)
 }
 
-// Init initializes git module
-func Init(ctx context.Context) error {
+// InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
+// This method doesn't change anything to filesystem
+func InitSimple(ctx context.Context) error {
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
@@ -141,9 +142,6 @@ func Init(ctx context.Context) error {
 		return errors.New("RepoRootPath is empty, git module needs that setting before initialization")
 	}
 
-	if err := os.MkdirAll(setting.RepoRootPath, os.ModePerm); err != nil {
-		return fmt.Errorf("unable to create directory %s, err:%w", setting.RepoRootPath, err)
-	}
 	GlobalConfigFile = setting.RepoRootPath + "/gitconfig"
 
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
@@ -152,6 +150,20 @@ func Init(ctx context.Context) error {
 
 	// force cleanup args
 	globalCommandArgs = []string{}
+
+	return nil
+}
+
+// InitWithConfigSync initializes git module. This method may create directories or write files into filesystem
+func InitWithConfigSync(ctx context.Context) error {
+	err := InitSimple(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(setting.RepoRootPath, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create directory %s, err:%w", setting.RepoRootPath, err)
+	}
 
 	if CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
@@ -223,13 +235,11 @@ func Init(ctx context.Context) error {
 		if err := configSet("core.longpaths", "true"); err != nil {
 			return err
 		}
-	}
-	if setting.Git.DisableCoreProtectNTFS {
-		if err := configSet("core.protectntfs", "false"); err != nil {
-			return err
+		if setting.Git.DisableCoreProtectNTFS {
+			globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
 		}
-		globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
 	}
+
 	return nil
 }
 

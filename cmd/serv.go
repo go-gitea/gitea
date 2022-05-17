@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -64,6 +65,19 @@ func setup(logPath string, debug bool) {
 	if debug {
 		setting.RunMode = "dev"
 	}
+
+	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
+	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
+	if _, err := os.Stat(setting.RepoRootPath); err != nil {
+		if os.IsNotExist(err) {
+			_ = fail("Incorrect configuration.", "Directory `[repository].ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.")
+			return
+		}
+	}
+
+	if err := git.InitSimple(context.Background()); err != nil {
+		_ = fail("Failed to init git", "Failed to init git")
+	}
 }
 
 var (
@@ -79,8 +93,8 @@ var (
 func fail(userMessage, logMessage string, args ...interface{}) error {
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
-	fmt.Fprintln(os.Stdout, "")
-	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	_, _ = fmt.Fprintln(os.Stdout, "")
+	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
 		if !setting.IsProd {
@@ -297,19 +311,11 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.CommandContext(ctx, verb, repoPath)
 	}
 
-	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
-	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
-	if _, err := os.Stat(setting.RepoRootPath); err != nil {
-		if os.IsNotExist(err) {
-			return fail("Incorrect configuration.",
-				"Directory `[repository]` `ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository]` `ROOT` an absolute value.")
-		}
-	}
-
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr
+	gitcmd.Env = append(gitcmd.Env, git.CommonEnvs()...)
 	if err = gitcmd.Run(); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)
 	}

@@ -121,7 +121,7 @@ type CheckAttributeReader struct {
 	cancel      context.CancelFunc
 }
 
-// Init initializes the cmd
+// InitWithConfigSync initializes the cmd
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	cmdArgs := []string{"check-attr", "--stdin", "-z"}
 

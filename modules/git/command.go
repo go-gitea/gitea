@@ -106,6 +106,16 @@ type RunOpts struct {
 	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
+func CommonEnvs() []string {
+	return []string{
+		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
+		"GIT_TERMINAL_PROMPT=0",                 // avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_NO_REPLACE_OBJECTS=1",              // ignore replace references (https://git-scm.com/docs/git-replace)
+		"GIT_CONFIG_NOSYSTEM=1",                 // https://git-scm.com/docs/git-config
+		"GIT_CONFIG_GLOBAL=" + GlobalConfigFile, // make Gitea use internal git config only, to prevent conflicts with user's git config
+	}
+}
+
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
 	if opts == nil {
@@ -158,15 +168,7 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Warn("GlobalConfigFile is empty, the git module is not initialized correctly, using a temp gitconfig (%s) temporarily", GlobalConfigFile)
 	}
 
-	cmd.Env = append(
-		cmd.Env,
-		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		"GIT_TERMINAL_PROMPT=0",               // avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_NO_REPLACE_OBJECTS=1",            // ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_CONFIG_NOSYSTEM=1",               // https://git-scm.com/docs/git-config
-		"GIT_CONFIG_GLOBAL="+GlobalConfigFile, // make Gitea use internal git config only, to prevent conflicts with user's git config
-	)
-
+	cmd.Env = append(cmd.Env, CommonEnvs()...)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr

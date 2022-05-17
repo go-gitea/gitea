@@ -28,7 +28,7 @@ func testRun(m *testing.M) error {
 	defer util.RemoveAll(repoRootPath)
 	setting.RepoRootPath = repoRootPath
 
-	if err = Init(context.Background()); err != nil {
+	if err = InitWithConfigSync(context.Background()); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
 	}
 
