@@ -278,14 +278,14 @@ func configSet(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--get", key, value).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--fixed-value", "--get", key, value).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
 	}
 	if err.IsExitCode(1) {
 		// not exist, add new config
-		_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add", key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to set git global config %s, err:%w", key, err)
 		}
@@ -294,11 +294,11 @@ func configAddNonExist(key, value string) error {
 	return fmt.Errorf("failed to get git config %s, err:%w", key, err)
 }
 
-func configUnsetAll(key, valueRegex string) error {
+func configUnsetAll(key, value string) error {
 	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all", key, valueRegex).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--fixed-value", "--unset-all", key, value).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err:%w", key, err)
 		}
