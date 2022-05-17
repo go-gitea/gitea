@@ -55,8 +55,12 @@ func TestGitConfig(t *testing.T) {
 	}
 
 	assert.False(t, gitConfigContains("key-a"))
-	assert.NoError(t, configSet("test.key-a", "val-a"))
+
+	assert.NoError(t, configSetNonExist("test.key-a", "val-a"))
 	assert.True(t, gitConfigContains("key-a = val-a"))
+
+	assert.NoError(t, configSetNonExist("test.key-a", "val-a-changed"))
+	assert.False(t, gitConfigContains("key-a = val-a-changed"))
 
 	assert.NoError(t, configSet("test.key-a", "val-a-changed"))
 	assert.True(t, gitConfigContains("key-a = val-a-changed"))

@@ -277,6 +277,24 @@ func configSet(key, value string) error {
 	return nil
 }
 
+func configSetNonExist(key, value string) error {
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	if err == nil {
+		// already exist
+		return nil
+	}
+	if err.IsExitCode(1) {
+		// not exist, set new config
+		_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+		if err != nil {
+			return fmt.Errorf("failed to set git global config %s, err:%w", key, err)
+		}
+		return nil
+	}
+
+	return fmt.Errorf("failed to get git config %s, err:%w", key, err)
+}
+
 func configAddNonExist(key, value string) error {
 	_, _, err := NewCommand(DefaultContext, "config", "--fixed-value", "--get", key, value).RunStdString(nil)
 	if err == nil {
@@ -287,7 +305,7 @@ func configAddNonExist(key, value string) error {
 		// not exist, add new config
 		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add", key, value).RunStdString(nil)
 		if err != nil {
-			return fmt.Errorf("failed to set git global config %s, err:%w", key, err)
+			return fmt.Errorf("failed to add git global config %s, err:%w", key, err)
 		}
 		return nil
 	}
