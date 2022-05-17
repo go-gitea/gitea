@@ -70,13 +70,15 @@ func setup(logPath string, debug bool) {
 	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
 		if os.IsNotExist(err) {
-			_ = fail("Incorrect configuration.", "Directory `[repository].ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.")
-			return
+			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.")
+		} else {
+			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` is inaccessible. err:%v", err)
 		}
+		return
 	}
 
 	if err := git.InitSimple(context.Background()); err != nil {
-		_ = fail("Failed to init git", "Failed to init git")
+		_ = fail("Failed to init git", "Failed to init git, err:%v", err)
 	}
 }
 
@@ -98,7 +100,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 
 	if len(logMessage) > 0 {
 		if !setting.IsProd {
-			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
+			_, _ = fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
 	ctx, cancel := installSignals()
