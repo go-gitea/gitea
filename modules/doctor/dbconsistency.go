@@ -107,7 +107,7 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 			"pull_request", "issue", "pull_request.issue_id=issue.id"),
 		// find pull requests without base repository
 		genericOrphanCheck("Pull request entries without existing base repository",
-			"pull", "repository", "pull.base_repo_id=repository.id"),
+			"pull_request", "repository", "pull_request.base_repo_id=repository.id"),
 		// find tracked times without existing issues/pulls
 		genericOrphanCheck("Orphaned TrackedTimes without existing issue",
 			"tracked_time", "issue", "tracked_time.issue_id=issue.id"),
