@@ -972,7 +972,7 @@ func MergePullRequest(ctx *context.Context) {
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
 		if err != nil {
 			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success_already_scheduled"))
+				ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_already_scheduled"))
 				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 				return
 			}
@@ -980,7 +980,7 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		} else if scheduled {
 			// nothing more to do ...
-			ctx.Flash.Success(ctx.Tr("repo.pulls.merge_on_status_success"))
+			ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_newly_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
 			return
 		}
@@ -1099,14 +1099,14 @@ func CancelAutoMergePullRequest(ctx *context.Context) {
 
 	if err := automerge.RemoveScheduledAutoMerge(ctx, ctx.Doer, issue.PullRequest); err != nil {
 		if db.IsErrNotExist(err) {
-			ctx.Flash.Error(ctx.Tr("repo.pulls.pull_request_not_scheduled"))
+			ctx.Flash.Error(ctx.Tr("repo.pulls.auto_merge_not_scheduled"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 			return
 		}
 		ctx.ServerError("RemoveScheduledAutoMerge", err)
 		return
 	}
-	ctx.Flash.Success(ctx.Tr("repo.pulls.pull_request_schedule_canceled"))
+	ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_canceled_schedule"))
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, issue.Index))
 }
 

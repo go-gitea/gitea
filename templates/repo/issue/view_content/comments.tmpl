@@ -843,8 +843,8 @@
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if eq .Type 34}}{{$.i18n.Tr "repo.pulls.pull_request_scheduled_auto_merge" $createdStr | Safe}}
-					{{else}}{{$.i18n.Tr "repo.pulls.pull_request_canceled_scheduled_auto_merge" $createdStr | Safe}}{{end}}
+					{{if eq .Type 34}}{{$.i18n.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
+					{{else}}{{$.i18n.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

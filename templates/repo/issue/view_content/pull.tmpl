@@ -323,8 +323,18 @@
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
 						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
 
-							<div class="ui divider"></div>
+							{{$latestCommitStatusState := ""}}
+							{{if .LatestCommitStatus}}
+								{{/* "success" or others */}}
+								{{$latestCommitStatusState = .LatestCommitStatus.State}}
+							{{end}}
 
+							{{$hasPendingPullRequestMergeTip := ""}}
+							{{if .HasPendingPullRequestMerge}}
+								{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.i18n.Lang}}
+								{{$hasPendingPullRequestMergeTip = $.i18n.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
+							{{end}}
+							<div class="ui divider"></div>
 							<script>
 								<!-- /* eslint-disable */ -->
 								(() => {
@@ -335,12 +345,19 @@
 										'baseLink': {{.Link}},
 										'textCancel': {{$.i18n.Tr "cancel"}},
 										'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+										'textAutoMergeButtonTitle': {{$.i18n.Tr "repo.pulls.auto_merge_button_title"}},
+										'textAutoMergeWhenSucceed': {{$.i18n.Tr "repo.pulls.auto_merge_when_succeed"}},
+										'textAutoMergeCancelSchedule': {{$.i18n.Tr "repo.pulls.auto_merge_cancel_schedule"}},
 
 										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
 										'pullHeadCommitID': {{.PullHeadCommitID}},
 										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
 										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
+
+										'latestCommitStatusState': {{$latestCommitStatusState}},
+										'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
+										'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
 									};
 									mergeForm['mergeStyles'] = [
 										{
@@ -375,6 +392,7 @@
 											'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
 											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
 											'hideMergeMessageTexts': true,
+											'hideAutoMerge': true,
 										}
 									];
 									window.config.pageData.pullRequestMergeForm = mergeForm;
