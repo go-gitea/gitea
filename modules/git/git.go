@@ -241,7 +241,12 @@ func InitWithConfigSync(ctx context.Context) error {
 			return err
 		}
 		if setting.Git.DisableCoreProtectNTFS {
-			globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
+			err = configSet("core.protectNTFS", "false")
+		} else {
+			err = configUnsetAll("core.protectNTFS", "false")
+		}
+		if err != nil {
+			return err
 		}
 	}
 
