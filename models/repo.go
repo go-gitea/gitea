@@ -1003,8 +1003,6 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		return fmt.Errorf("GetDeployKeyByID: %v", err)
 	}
 
-	sess := db.GetEngine(ctx)
-
 	// Check if user has access to delete this key.
 	if !doer.IsAdmin {
 		repo, err := repo_model.GetRepositoryByIDCtx(ctx, key.RepoID)
@@ -1023,14 +1021,14 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		}
 	}
 
-	if _, err = sess.ID(key.ID).Delete(new(asymkey_model.DeployKey)); err != nil {
+	if _, err := db.DeleteByBean(ctx, &asymkey_model.DeployKey{
+		ID: key.ID,
+	}); err != nil {
 		return fmt.Errorf("delete deploy key [%d]: %v", key.ID, err)
 	}
 
 	// Check if this is the last reference to same key content.
-	has, err := sess.
-		Where("key_id = ?", key.KeyID).
-		Get(new(asymkey_model.DeployKey))
+	has, err := asymkey_model.IsDeployKeyExistByKeyID(ctx, key.KeyID)
 	if err != nil {
 		return err
 	} else if !has {
