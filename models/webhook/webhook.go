@@ -454,8 +454,8 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	return cond
 }
 
-func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := e.Where(opts.toCond())
+func listWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -471,7 +471,7 @@ func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, erro
 
 // ListWebhooksByOpts return webhooks based on options
 func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
-	return listWebhooksByOpts(db.GetEngine(db.DefaultContext), opts)
+	return listWebhooksByOpts(db.DefaultContext, opts)
 }
 
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
@@ -507,17 +507,17 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 
 // GetSystemWebhooks returns all admin system webhooks.
 func GetSystemWebhooks(isActive util.OptionalBool) ([]*Webhook, error) {
-	return getSystemWebhooks(db.GetEngine(db.DefaultContext), isActive)
+	return getSystemWebhooks(db.DefaultContext, isActive)
 }
 
-func getSystemWebhooks(e db.Engine, isActive util.OptionalBool) ([]*Webhook, error) {
+func getSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	if isActive.IsNone() {
-		return webhooks, e.
+		return webhooks, db.GetEngine(ctx).
 			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
 			Find(&webhooks)
 	}
-	return webhooks, e.
+	return webhooks, db.GetEngine(ctx).
 		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }

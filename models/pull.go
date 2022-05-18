@@ -97,22 +97,22 @@ func init() {
 	db.RegisterModel(new(PullRequest))
 }
 
-func deletePullsByBaseRepoID(sess db.Engine, repoID int64) error {
+func deletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	deleteCond := builder.Select("id").From("pull_request").Where(builder.Eq{"pull_request.base_repo_id": repoID})
 
 	// Delete scheduled auto merges
-	if _, err := sess.In("pull_id", deleteCond).
+	if _, err := db.GetEngine(ctx).In("pull_id", deleteCond).
 		Delete(&pull_model.AutoMerge{}); err != nil {
 		return err
 	}
 
 	// Delete review states
-	if _, err := sess.In("pull_id", deleteCond).
+	if _, err := db.GetEngine(ctx).In("pull_id", deleteCond).
 		Delete(&pull_model.ReviewState{}); err != nil {
 		return err
 	}
 
-	_, err := sess.Delete(&PullRequest{BaseRepoID: repoID})
+	_, err := db.DeleteByBean(ctx, &PullRequest{BaseRepoID: repoID})
 	return err
 }
 
@@ -133,9 +133,9 @@ func (pr *PullRequest) MustHeadUserName() string {
 }
 
 // Note: don't try to get Issue because will end up recursive querying.
-func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
+func (pr *PullRequest) loadAttributes(ctx context.Context) (err error) {
 	if pr.HasMerged && pr.Merger == nil {
-		pr.Merger, err = user_model.GetUserByIDEngine(e, pr.MergerID)
+		pr.Merger, err = user_model.GetUserByIDCtx(ctx, pr.MergerID)
 		if user_model.IsErrUserNotExist(err) {
 			pr.MergerID = -1
 			pr.Merger = user_model.NewGhostUser()
@@ -149,7 +149,7 @@ func (pr *PullRequest) loadAttributes(e db.Engine) (err error) {
 
 // LoadAttributes loads pull request attributes from database
 func (pr *PullRequest) LoadAttributes() error {
-	return pr.loadAttributes(db.GetEngine(db.DefaultContext))
+	return pr.loadAttributes(db.DefaultContext)
 }
 
 // LoadHeadRepoCtx loads the head repository
@@ -218,7 +218,7 @@ func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 		return nil
 	}
 
-	pr.Issue, err = getIssueByID(db.GetEngine(ctx), pr.IssueID)
+	pr.Issue, err = getIssueByID(ctx, pr.IssueID)
 	if err == nil {
 		pr.Issue.PullRequest = pr
 	}
@@ -242,7 +242,7 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 				return
 			}
 		}
-		pr.ProtectedBranch, err = getProtectedBranchBy(db.GetEngine(ctx), pr.BaseRepo.ID, pr.BaseBranch)
+		pr.ProtectedBranch, err = getProtectedBranchBy(ctx, pr.BaseRepo.ID, pr.BaseBranch)
 	}
 	return
 }
@@ -257,12 +257,12 @@ type ReviewCount struct {
 // GetApprovalCounts returns the approval counts by type
 // FIXME: Only returns official counts due to double counting of non-official counts
 func (pr *PullRequest) GetApprovalCounts() ([]*ReviewCount, error) {
-	return pr.getApprovalCounts(db.GetEngine(db.DefaultContext))
+	return pr.getApprovalCounts(db.DefaultContext)
 }
 
-func (pr *PullRequest) getApprovalCounts(e db.Engine) ([]*ReviewCount, error) {
+func (pr *PullRequest) getApprovalCounts(ctx context.Context) ([]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 6)
-	sess := e.Where("issue_id = ?", pr.IssueID)
+	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID)
 	return rCounts, sess.Select("issue_id, type, count(id) as `count`").Where("official = ? AND dismissed = ?", true, false).GroupBy("issue_id, type").Table("review").Find(&rCounts)
 }
 
@@ -289,10 +289,9 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
-	reviews, err := findReviews(sess, FindReviewOptions{
+	reviews, err := findReviews(ctx, FindReviewOptions{
 		Type:         ReviewTypeApprove,
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,
@@ -309,7 +308,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 			break
 		}
 
-		if err := review.loadReviewer(sess); err != nil && !user_model.IsErrUserNotExist(err) {
+		if err := review.loadReviewer(ctx); err != nil && !user_model.IsErrUserNotExist(err) {
 			log.Error("Unable to LoadReviewer[%d] for PR ID %d : %v", review.ReviewerID, pr.ID, err)
 			return err
 		} else if review.Reviewer == nil {
@@ -374,7 +373,7 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 		return false, err
 	}
 
-	if tmpPr, err := getPullRequestByID(sess, pr.ID); err != nil {
+	if tmpPr, err := getPullRequestByID(ctx, pr.ID); err != nil {
 		return false, err
 	} else if tmpPr.HasMerged {
 		if pr.Issue.IsClosed {
@@ -505,7 +504,7 @@ func GetPullRequestByIndexCtx(ctx context.Context, repoID, index int64) (*PullRe
 		return nil, ErrPullRequestNotExist{0, 0, 0, repoID, "", ""}
 	}
 
-	if err = pr.loadAttributes(db.GetEngine(ctx)); err != nil {
+	if err = pr.loadAttributes(ctx); err != nil {
 		return nil, err
 	}
 	if err = pr.LoadIssueCtx(ctx); err != nil {
@@ -515,20 +514,20 @@ func GetPullRequestByIndexCtx(ctx context.Context, repoID, index int64) (*PullRe
 	return pr, nil
 }
 
-func getPullRequestByID(e db.Engine, id int64) (*PullRequest, error) {
+func getPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
 	pr := new(PullRequest)
-	has, err := e.ID(id).Get(pr)
+	has, err := db.GetEngine(ctx).ID(id).Get(pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{id, 0, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(e)
+	return pr, pr.loadAttributes(ctx)
 }
 
 // GetPullRequestByID returns a pull request by given ID.
 func GetPullRequestByID(ctx context.Context, id int64) (*PullRequest, error) {
-	return getPullRequestByID(db.GetEngine(ctx), id)
+	return getPullRequestByID(ctx, id)
 }
 
 // GetPullRequestByIssueIDWithNoAttributes returns pull request with no attributes loaded by given issue ID.
@@ -544,17 +543,17 @@ func GetPullRequestByIssueIDWithNoAttributes(issueID int64) (*PullRequest, error
 	return &pr, nil
 }
 
-func getPullRequestByIssueID(e db.Engine, issueID int64) (*PullRequest, error) {
+func getPullRequestByIssueID(ctx context.Context, issueID int64) (*PullRequest, error) {
 	pr := &PullRequest{
 		IssueID: issueID,
 	}
-	has, err := e.Get(pr)
+	has, err := db.GetByBean(ctx, pr)
 	if err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrPullRequestNotExist{0, issueID, 0, 0, "", ""}
 	}
-	return pr, pr.loadAttributes(e)
+	return pr, pr.loadAttributes(ctx)
 }
 
 // GetAllUnmergedAgitPullRequestByPoster get all unmerged agit flow pull request
@@ -573,7 +572,7 @@ func GetAllUnmergedAgitPullRequestByPoster(uid int64) ([]*PullRequest, error) {
 
 // GetPullRequestByIssueID returns pull request by given issue ID.
 func GetPullRequestByIssueID(issueID int64) (*PullRequest, error) {
-	return getPullRequestByIssueID(db.GetEngine(db.DefaultContext), issueID)
+	return getPullRequestByIssueID(db.DefaultContext, issueID)
 }
 
 // Update updates all fields of pull request.
@@ -636,16 +635,16 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 
 // UpdateCommitDivergence update Divergence of a pull request
 func (pr *PullRequest) UpdateCommitDivergence(ahead, behind int) error {
-	return pr.updateCommitDivergence(db.GetEngine(db.DefaultContext), ahead, behind)
+	return pr.updateCommitDivergence(db.DefaultContext, ahead, behind)
 }
 
-func (pr *PullRequest) updateCommitDivergence(e db.Engine, ahead, behind int) error {
+func (pr *PullRequest) updateCommitDivergence(ctx context.Context, ahead, behind int) error {
 	if pr.ID == 0 {
 		return fmt.Errorf("pull ID is 0")
 	}
 	pr.CommitsAhead = ahead
 	pr.CommitsBehind = behind
-	_, err := e.ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr)
+	_, err := db.GetEngine(ctx).ID(pr.ID).Cols("commits_ahead", "commits_behind").Update(pr)
 	return err
 }
 

@@ -105,7 +105,7 @@ func TestWatchIfAuto(t *testing.T) {
 	assert.Len(t, watchers, prevCount+1)
 
 	// Should remove watch, inhibit from adding auto
-	assert.NoError(t, WatchRepo(12, 1, false))
+	assert.NoError(t, WatchRepo(db.DefaultContext, 12, 1, false))
 	watchers, err = GetRepoWatchers(repo.ID, db.ListOptions{Page: 1})
 	assert.NoError(t, err)
 	assert.Len(t, watchers, prevCount)

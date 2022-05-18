@@ -509,11 +509,11 @@ func SetEmailNotifications(u *User, set string) error {
 	return nil
 }
 
-func isUserExist(e db.Engine, uid int64, name string) (bool, error) {
+func isUserExist(ctx context.Context, uid int64, name string) (bool, error) {
 	if len(name) == 0 {
 		return false, nil
 	}
-	return e.
+	return db.GetEngine(ctx).
 		Where("id!=?", uid).
 		Get(&User{LowerName: strings.ToLower(name)})
 }
@@ -523,7 +523,7 @@ func isUserExist(e db.Engine, uid int64, name string) (bool, error) {
 // If uid is presented, then check will rule out that one,
 // it is used when update a user name in settings page.
 func IsUserExist(uid int64, name string) (bool, error) {
-	return isUserExist(db.GetEngine(db.DefaultContext), uid, name)
+	return isUserExist(db.DefaultContext, uid, name)
 }
 
 // Note: As of the beginning of 2022, it is recommended to use at least
@@ -691,9 +691,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
-	isExist, err := isUserExist(sess, 0, u.Name)
+	isExist, err := isUserExist(ctx, 0, u.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -811,16 +809,15 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	isExist, err := isUserExist(sess, 0, newUserName)
+	isExist, err := isUserExist(ctx, 0, newUserName)
 	if err != nil {
 		return err
 	} else if isExist {
 		return ErrUserAlreadyExist{newUserName}
 	}
 
-	if _, err = sess.Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
+	if _, err = db.GetEngine(ctx).Exec("UPDATE `repository` SET owner_name=? WHERE owner_name=?", newUserName, oldUserName); err != nil {
 		return fmt.Errorf("Change repo owner name: %v", err)
 	}
 
@@ -845,9 +842,9 @@ func ChangeUserName(u *User, newUserName string) (err error) {
 }
 
 // checkDupEmail checks whether there are the same email with the user
-func checkDupEmail(e db.Engine, u *User) error {
+func checkDupEmail(ctx context.Context, u *User) error {
 	u.Email = strings.ToLower(u.Email)
-	has, err := e.
+	has, err := db.GetEngine(ctx).
 		Where("id!=?", u.ID).
 		And("type=?", u.Type).
 		And("email=?", u.Email).
@@ -939,20 +936,11 @@ func UpdateUser(u *User, emailChanged bool, cols ...string) error {
 
 // UpdateUserCols update user according special columns
 func UpdateUserCols(ctx context.Context, u *User, cols ...string) error {
-	return updateUserCols(db.GetEngine(ctx), u, cols...)
-}
-
-// UpdateUserColsEngine update user according special columns
-func UpdateUserColsEngine(e db.Engine, u *User, cols ...string) error {
-	return updateUserCols(e, u, cols...)
-}
-
-func updateUserCols(e db.Engine, u *User, cols ...string) error {
 	if err := validateUser(u); err != nil {
 		return err
 	}
 
-	_, err := e.ID(u.ID).Cols(cols...).Update(u)
+	_, err := db.GetEngine(ctx).ID(u.ID).Cols(cols...).Update(u)
 	return err
 }
 
@@ -965,7 +953,7 @@ func UpdateUserSetting(u *User) (err error) {
 	defer committer.Close()
 
 	if !u.IsOrganization() {
-		if err = checkDupEmail(db.GetEngine(ctx), u); err != nil {
+		if err = checkDupEmail(ctx, u); err != nil {
 			return err
 		}
 	}
@@ -994,18 +982,6 @@ func UserPath(userName string) string { //revive:disable-line:exported
 	return filepath.Join(setting.RepoRootPath, strings.ToLower(userName))
 }
 
-// GetUserByIDEngine returns the user object by given ID if exists.
-func GetUserByIDEngine(e db.Engine, id int64) (*User, error) {
-	u := new(User)
-	has, err := e.ID(id).Get(u)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrUserNotExist{id, "", 0}
-	}
-	return u, nil
-}
-
 // GetUserByID returns the user object by given ID if exists.
 func GetUserByID(id int64) (*User, error) {
 	return GetUserByIDCtx(db.DefaultContext, id)
@@ -1013,7 +989,14 @@ func GetUserByID(id int64) (*User, error) {
 
 // GetUserByIDCtx returns the user object by given ID if exists.
 func GetUserByIDCtx(ctx context.Context, id int64) (*User, error) {
-	return GetUserByIDEngine(db.GetEngine(ctx), id)
+	u := new(User)
+	has, err := db.GetEngine(ctx).ID(id).Get(u)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrUserNotExist{id, "", 0}
+	}
+	return u, nil
 }
 
 // GetUserByName returns user by given name.
@@ -1255,10 +1238,10 @@ func GetAdminUser() (*User, error) {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(u, viewer *User) bool {
-	return isUserVisibleToViewer(db.GetEngine(db.DefaultContext), u, viewer)
+	return isUserVisibleToViewer(db.DefaultContext, u, viewer)
 }
 
-func isUserVisibleToViewer(e db.Engine, u, viewer *User) bool {
+func isUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
 		return true
 	}
@@ -1283,7 +1266,7 @@ func isUserVisibleToViewer(e db.Engine, u, viewer *User) bool {
 		}
 
 		// Now we need to check if they in some organization together
-		count, err := e.Table("team_user").
+		count, err := db.GetEngine(ctx).Table("team_user").
 			Where(
 				builder.And(
 					builder.Eq{"uid": viewer.ID},

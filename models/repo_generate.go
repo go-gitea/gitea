@@ -98,7 +98,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
+	templateLabels, err := getLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}

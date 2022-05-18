@@ -289,7 +289,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.Units, err = getUnitsByRepoID(db.GetEngine(ctx), repo.ID)
+	repo.Units, err = getUnitsByRepoID(ctx, repo.ID)
 	if log.IsTrace() {
 		unitTypeStrings := make([]string, len(repo.Units))
 		for i, unit := range repo.Units {
@@ -383,7 +383,7 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.Owner, err = user_model.GetUserByIDEngine(db.GetEngine(ctx), repo.OwnerID)
+	repo.Owner, err = user_model.GetUserByIDCtx(ctx, repo.OwnerID)
 	return err
 }
 
@@ -454,15 +454,15 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
-	return repo.getBaseRepo(db.GetEngine(db.DefaultContext))
+	return repo.getBaseRepo(db.DefaultContext)
 }
 
-func (repo *Repository) getBaseRepo(e db.Engine) (err error) {
+func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
 
-	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
+	repo.BaseRepo, err = getRepositoryByID(ctx, repo.ForkID)
 	return err
 }
 
@@ -669,9 +669,9 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
-func getRepositoryByID(e db.Engine, id int64) (*Repository, error) {
+func getRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
-	has, err := e.ID(id).Get(repo)
+	has, err := db.GetEngine(ctx).ID(id).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -682,12 +682,12 @@ func getRepositoryByID(e db.Engine, id int64) (*Repository, error) {
 
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(id int64) (*Repository, error) {
-	return getRepositoryByID(db.GetEngine(db.DefaultContext), id)
+	return getRepositoryByID(db.DefaultContext, id)
 }
 
 // GetRepositoryByIDCtx returns the repository by given id if exists.
 func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
-	return getRepositoryByID(db.GetEngine(ctx), id)
+	return getRepositoryByID(ctx, id)
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
@@ -718,15 +718,15 @@ func IsRepositoryExist(u *user_model.User, repoName string) (bool, error) {
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)
 func GetTemplateRepo(repo *Repository) (*Repository, error) {
-	return getTemplateRepo(db.GetEngine(db.DefaultContext), repo)
+	return getTemplateRepo(db.DefaultContext, repo)
 }
 
-func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
+func getTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
 		return nil, nil
 	}
 
-	return getRepositoryByID(e, repo.TemplateID)
+	return getRepositoryByID(ctx, repo.TemplateID)
 }
 
 // TemplateRepo returns the repository, which is template of this repository

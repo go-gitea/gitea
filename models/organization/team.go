@@ -346,8 +346,8 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	return teamNames, err
 }
 
-func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, e.
+func getRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
+	return teams, db.GetEngine(ctx).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
 		And("team_repo.repo_id=?", repo.ID).
@@ -357,5 +357,5 @@ func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err 
 
 // GetRepoTeams gets the list of teams that has access to the repository
 func GetRepoTeams(repo *repo_model.Repository) ([]*Team, error) {
-	return getRepoTeams(db.GetEngine(db.DefaultContext), repo)
+	return getRepoTeams(db.DefaultContext, repo)
 }

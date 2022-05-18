@@ -343,13 +343,13 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
-	if err := repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
+	if err := repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := repo_model.WatchRepoCtx(ctx, oldOwner.ID, repo.ID, false); err != nil {
+		if err := repo_model.WatchRepo(ctx, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
 		}
 	}

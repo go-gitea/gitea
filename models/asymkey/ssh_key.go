@@ -75,7 +75,7 @@ func (key *PublicKey) AuthorizedString() string {
 	return AuthorizedStringForKey(key)
 }
 
-func addKey(e db.Engine, key *PublicKey) (err error) {
+func addKey(ctx context.Context, key *PublicKey) (err error) {
 	if len(key.Fingerprint) == 0 {
 		key.Fingerprint, err = calcFingerprint(key.Content)
 		if err != nil {
@@ -84,7 +84,7 @@ func addKey(e db.Engine, key *PublicKey) (err error) {
 	}
 
 	// Save SSH key.
-	if _, err = e.Insert(key); err != nil {
+	if err = db.Insert(ctx, key); err != nil {
 		return err
 	}
 
@@ -105,14 +105,13 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 		return nil, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
-	if err := checkKeyFingerprint(sess, fingerprint); err != nil {
+	if err := checkKeyFingerprint(ctx, fingerprint); err != nil {
 		return nil, err
 	}
 
 	// Key name of same user cannot be duplicated.
-	has, err := sess.
+	has, err := db.GetEngine(ctx).
 		Where("owner_id = ? AND name = ?", ownerID, name).
 		Get(new(PublicKey))
 	if err != nil {
@@ -130,7 +129,7 @@ func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*Pub
 		Type:          KeyTypeUser,
 		LoginSourceID: authSourceID,
 	}
-	if err = addKey(sess, key); err != nil {
+	if err = addKey(ctx, key); err != nil {
 		return nil, fmt.Errorf("addKey: %v", err)
 	}
 
@@ -151,9 +150,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-func searchPublicKeyByContentWithEngine(e db.Engine, content string) (*PublicKey, error) {
+func searchPublicKeyByContentWithEngine(ctx context.Context, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := e.
+	has, err := db.GetEngine(ctx).
 		Where("content like ?", content+"%").
 		Get(key)
 	if err != nil {
@@ -167,12 +166,12 @@ func searchPublicKeyByContentWithEngine(e db.Engine, content string) (*PublicKey
 // SearchPublicKeyByContent searches content as prefix (leak e-mail part)
 // and returns public key found.
 func SearchPublicKeyByContent(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentWithEngine(db.GetEngine(db.DefaultContext), content)
+	return searchPublicKeyByContentWithEngine(db.DefaultContext, content)
 }
 
-func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*PublicKey, error) {
+func searchPublicKeyByContentExactWithEngine(ctx context.Context, content string) (*PublicKey, error) {
 	key := new(PublicKey)
-	has, err := e.
+	has, err := db.GetEngine(ctx).
 		Where("content = ?", content).
 		Get(key)
 	if err != nil {
@@ -186,7 +185,7 @@ func searchPublicKeyByContentExactWithEngine(e db.Engine, content string) (*Publ
 // SearchPublicKeyByContentExact searches content
 // and returns public key found.
 func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentExactWithEngine(db.GetEngine(db.DefaultContext), content)
+	return searchPublicKeyByContentExactWithEngine(db.DefaultContext, content)
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -335,12 +334,11 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 		return false, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
 	for _, KeyToDelete := range keys {
-		key, err := searchPublicKeyByContentWithEngine(sess, KeyToDelete)
+		key, err := searchPublicKeyByContentWithEngine(ctx, KeyToDelete)
 		if err != nil {
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue

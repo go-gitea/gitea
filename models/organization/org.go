@@ -544,11 +544,11 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
 func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(db.GetEngine(db.DefaultContext), opts)
+	return getOrgUsersByOrgID(db.DefaultContext, opts)
 }
 
-func getOrgUsersByOrgID(e db.Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	sess := e.Where("org_id=?", opts.OrgID)
+func getOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
@@ -664,9 +664,9 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 	return err
 }
 
-func (org *Organization) getUserTeams(e db.Engine, userID int64, cols ...string) ([]*Team, error) {
+func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
-	return teams, e.
+	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
 		Join("INNER", "`user`", "`user`.id=team_user.uid").
@@ -700,7 +700,7 @@ func (org *Organization) GetUserTeamIDs(userID int64) ([]int64, error) {
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
 func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
-	return org.getUserTeams(db.GetEngine(db.DefaultContext), userID)
+	return org.getUserTeams(db.DefaultContext, userID)
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are

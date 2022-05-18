@@ -26,15 +26,15 @@ func init() {
 
 // LoadAssignees load assignees of this issue.
 func (issue *Issue) LoadAssignees() error {
-	return issue.loadAssignees(db.GetEngine(db.DefaultContext))
+	return issue.loadAssignees(db.DefaultContext)
 }
 
 // This loads all assignees of an issue
-func (issue *Issue) loadAssignees(e db.Engine) (err error) {
+func (issue *Issue) loadAssignees(ctx context.Context) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*user_model.User{}
 
-	err = e.Table("`user`").
+	err = db.GetEngine(ctx).Table("`user`").
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
@@ -65,11 +65,11 @@ func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 
 // GetAssigneesByIssue returns everyone assigned to that issue
 func GetAssigneesByIssue(issue *Issue) (assignees []*user_model.User, err error) {
-	return getAssigneesByIssue(db.GetEngine(db.DefaultContext), issue)
+	return getAssigneesByIssue(db.DefaultContext, issue)
 }
 
-func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*user_model.User, err error) {
-	err = issue.loadAssignees(e)
+func getAssigneesByIssue(ctx context.Context, issue *Issue) (assignees []*user_model.User, err error) {
+	err = issue.loadAssignees(ctx)
 	if err != nil {
 		return assignees, err
 	}
@@ -79,11 +79,11 @@ func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*user_model.Use
 
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
 func IsUserAssignedToIssue(issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return isUserAssignedToIssue(db.GetEngine(db.DefaultContext), issue, user)
+	return isUserAssignedToIssue(db.DefaultContext, issue, user)
 }
 
-func isUserAssignedToIssue(e db.Engine, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
+func isUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
+	return db.GetByBean(ctx, &IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
 // ClearAssigneeByUserID deletes all assignments of an user
@@ -113,8 +113,7 @@ func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) 
 }
 
 func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
-	sess := db.GetEngine(ctx)
-	removed, err = toggleUserAssignee(sess, issue, assigneeID)
+	removed, err = toggleUserAssignee(ctx, issue, assigneeID)
 	if err != nil {
 		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
@@ -147,9 +146,9 @@ func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // toggles user assignee state in database
-func toggleUserAssignee(e db.Engine, issue *Issue, assigneeID int64) (removed bool, err error) {
+func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := user_model.GetUserByIDEngine(e, assigneeID)
+	assignee, err := user_model.GetUserByIDCtx(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
@@ -167,14 +166,13 @@ func toggleUserAssignee(e db.Engine, issue *Issue, assigneeID int64) (removed bo
 	toBeDeleted := i < len(issue.Assignees)
 	if toBeDeleted {
 		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
-		_, err = e.Delete(assigneeIn)
+		_, err = db.DeleteByBean(ctx, &assigneeIn)
 		if err != nil {
 			return toBeDeleted, err
 		}
 	} else {
 		issue.Assignees = append(issue.Assignees, assignee)
-		_, err = e.Insert(assigneeIn)
-		if err != nil {
+		if err = db.Insert(ctx, &assigneeIn); err != nil {
 			return toBeDeleted, err
 		}
 	}

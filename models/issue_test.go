@@ -87,7 +87,7 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 	checkParticipants := func(issueID int64, userIDs []int) {
 		issue, err := GetIssueByID(issueID)
 		assert.NoError(t, err)
-		participants, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
+		participants, err := issue.getParticipantIDsByIssue(db.DefaultContext)
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
 			for i, uid := range participants {
@@ -317,7 +317,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
-	assert.NoError(t, ms.loadTotalTimes(db.GetEngine(db.DefaultContext)))
+	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 

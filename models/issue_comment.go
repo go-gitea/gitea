@@ -298,7 +298,7 @@ func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = getIssueByID(db.GetEngine(ctx), c.IssueID)
+	c.Issue, err = getIssueByID(ctx, c.IssueID)
 	return
 }
 
@@ -329,12 +329,12 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 	}
 }
 
-func (c *Comment) loadPoster(e db.Engine) (err error) {
+func (c *Comment) loadPoster(ctx context.Context) (err error) {
 	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
-	c.Poster, err = user_model.GetUserByIDEngine(e, c.PosterID)
+	c.Poster, err = user_model.GetUserByIDCtx(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1
@@ -525,7 +525,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	return c.loadPoster(db.GetEngine(db.DefaultContext))
+	return c.loadPoster(db.DefaultContext)
 }
 
 // LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
@@ -624,7 +624,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = getIssueByID(db.GetEngine(db.DefaultContext), c.DependentIssueID)
+	c.DependentIssue, err = getIssueByID(db.DefaultContext, c.DependentIssueID)
 	return err
 }
 
@@ -661,9 +661,9 @@ func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
 	return c.loadReactions(db.DefaultContext, repo)
 }
 
-func (c *Comment) loadReview(e db.Engine) (err error) {
+func (c *Comment) loadReview(ctx context.Context) (err error) {
 	if c.Review == nil {
-		if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+		if c.Review, err = getReviewByID(ctx, c.ReviewID); err != nil {
 			return err
 		}
 	}
@@ -673,7 +673,7 @@ func (c *Comment) loadReview(e db.Engine) (err error) {
 
 // LoadReview loads the associated review
 func (c *Comment) LoadReview() error {
-	return c.loadReview(db.GetEngine(db.DefaultContext))
+	return c.loadReview(db.DefaultContext)
 }
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -830,13 +830,12 @@ func CreateCommentCtx(ctx context.Context, opts *CreateCommentOptions) (_ *Comme
 }
 
 func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
-	e := db.GetEngine(ctx)
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
+				if err := comment.loadReview(ctx); err != nil {
 					return err
 				}
 			}
@@ -846,7 +845,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
 		fallthrough
@@ -861,7 +860,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -1032,12 +1031,12 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 
 // GetCommentByID returns the comment by given ID.
 func GetCommentByID(id int64) (*Comment, error) {
-	return getCommentByID(db.GetEngine(db.DefaultContext), id)
+	return getCommentByID(db.DefaultContext, id)
 }
 
-func getCommentByID(e db.Engine, id int64) (*Comment, error) {
+func getCommentByID(ctx context.Context, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := e.ID(id).Get(c)
+	has, err := db.GetEngine(ctx).ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1088,9 +1087,9 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
+func findComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	sess := e.Where(opts.toConds())
+	sess := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1109,7 +1108,7 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 
 // FindComments returns all comments according options
 func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
-	return findComments(db.GetEngine(db.DefaultContext), opts)
+	return findComments(db.DefaultContext, opts)
 }
 
 // CountComments count all comments according options by ignoring pagination
@@ -1167,7 +1166,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if _, err := e.Delete(&issues_model.ContentHistory{
+	if _, err := db.DeleteByBean(ctx, &issues_model.ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
@@ -1182,7 +1181,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(e); err != nil {
+	if err := comment.neuterCrossReferences(ctx); err != nil {
 		return err
 	}
 
@@ -1242,7 +1241,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(e); err != nil {
+	if err := CommentList(comments).loadPosters(ctx); err != nil {
 		return nil, err
 	}
 
