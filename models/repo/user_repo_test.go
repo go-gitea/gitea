@@ -37,24 +37,25 @@ func TestRepoGetReviewers(t *testing.T) {
 	// test public repo
 	repo1 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
 
-	reviewers, err := GetReviewers(repo1, 2, 2)
+	ctx := db.DefaultContext
+	reviewers, err := GetReviewers(ctx, repo1, 2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
 	// should include doer if doer is not PR poster.
-	reviewers, err = GetReviewers(repo1, 11, 2)
+	reviewers, err = GetReviewers(ctx, repo1, 11, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 4)
 
 	// should not include PR poster, if PR poster would be otherwise eligible
-	reviewers, err = GetReviewers(repo1, 11, 4)
+	reviewers, err = GetReviewers(ctx, repo1, 11, 4)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 3)
 
 	// test private user repo
 	repo2 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 2}).(*Repository)
 
-	reviewers, err = GetReviewers(repo2, 2, 4)
+	reviewers, err = GetReviewers(ctx, repo2, 2, 4)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 1)
 	assert.EqualValues(t, reviewers[0].ID, 2)
@@ -62,11 +63,11 @@ func TestRepoGetReviewers(t *testing.T) {
 	// test private org repo
 	repo3 := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 3}).(*Repository)
 
-	reviewers, err = GetReviewers(repo3, 2, 1)
+	reviewers, err = GetReviewers(ctx, repo3, 2, 1)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 2)
 
-	reviewers, err = GetReviewers(repo3, 2, 2)
+	reviewers, err = GetReviewers(ctx, repo3, 2, 2)
 	assert.NoError(t, err)
 	assert.Len(t, reviewers, 1)
 }

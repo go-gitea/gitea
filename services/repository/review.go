@@ -5,6 +5,8 @@
 package repository
 
 import (
+	"fmt"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -17,13 +19,8 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 		return nil, err
 	}
 	if !repo.Owner.IsOrganization() {
-		return nil, nil
+		return nil, fmt.Errorf("repo is not owned by an organization")
 	}
 
-	teams, err := organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
-	if err != nil {
-		return nil, err
-	}
-
-	return teams, err
+	return organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
 }

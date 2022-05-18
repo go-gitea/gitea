@@ -23,18 +23,16 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 		return err
 	}
 
+	newLabels := make([]*models.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {
-		generateLabel := &models.Label{
+		newLabels = append(newLabels, &models.Label{
 			RepoID:      generateRepo.ID,
 			Name:        templateLabel.Name,
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
-		}
-		if err := db.Insert(ctx, generateLabel); err != nil {
-			return err
-		}
+		})
 	}
-	return nil
+	return db.Insert(ctx, newLabels)
 }
 
 // GenerateRepository generates a repository from a template

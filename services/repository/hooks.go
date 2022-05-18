@@ -93,8 +93,9 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 		return err
 	}
 
+	ws := make([]*webhook.Webhook, 0, len(templateWebhooks))
 	for _, templateWebhook := range templateWebhooks {
-		generateWebhook := &webhook.Webhook{
+		ws = append(ws, &webhook.Webhook{
 			RepoID:      generateRepo.ID,
 			URL:         templateWebhook.URL,
 			HTTPMethod:  templateWebhook.HTTPMethod,
@@ -106,10 +107,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 			OrgID:       templateWebhook.OrgID,
 			Events:      templateWebhook.Events,
 			Meta:        templateWebhook.Meta,
-		}
-		if err := webhook.CreateWebhook(ctx, generateWebhook); err != nil {
-			return err
-		}
+		})
 	}
-	return nil
+	return webhook.CreateWebhooks(ctx, ws)
 }
