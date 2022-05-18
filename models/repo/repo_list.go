@@ -481,6 +481,15 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			likes := builder.NewCond()
 			for _, v := range strings.Split(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+
+				// If the string looks like "org/repo", match against that pattern too
+				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {
+					pieces := strings.Split(opts.Keyword, "/")
+					ownerName := pieces[0]
+					repoName := pieces[1]
+					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+				}
+
 				if opts.IncludeDescription {
 					likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
 				}
@@ -532,7 +541,8 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
-	sess, count, err := searchRepositoryByCondition(opts, cond)
+	ctx := db.DefaultContext
+	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -559,7 +569,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	return repos, count, nil
 }
 
-func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
+func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -568,11 +578,18 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
+	args := make([]interface{}, 0)
 	if opts.PriorityOwnerID > 0 {
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
+		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
+		args = append(args, opts.PriorityOwnerID)
+	} else if strings.Count(opts.Keyword, "/") == 1 {
+		// With "owner/repo" search times, prioritise results which match the owner field
+		orgName := strings.Split(opts.Keyword, "/")[0]
+		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", opts.OrderBy))
+		args = append(args, orgName)
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -585,7 +602,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 		}
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String(), args...)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
@@ -642,7 +659,7 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 
 	cond := SearchRepositoryCondition(opts)
 
-	sess, count, err := searchRepositoryByCondition(opts, cond)
+	sess, count, err := searchRepositoryByCondition(db.DefaultContext, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}
