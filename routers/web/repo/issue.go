@@ -390,7 +390,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
-		ctx.Data["ShowBranchesOnPrList"] = setting.UI.ShowBranchesOnPrList
+		ctx.Data["ShowBranchesOnPRList"] = setting.UI.ShowBranchesOnPRList
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {

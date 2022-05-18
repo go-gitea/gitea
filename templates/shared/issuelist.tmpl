@@ -59,10 +59,10 @@
 					{{else}}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
-					{{if and .IsPull $.ShowBranchesOnPrList}}
+					{{if and .IsPull $.ShowBranchesOnPRList}}
 						<div class="branches">
 							<div class="branch">
-								<a style="font-weight: bold;" href="/{{if .PullRequest.BaseRepo}}{{.PullRequest.BaseRepo.OwnerName}}/{{.PullRequest.BaseRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.BaseBranch}}">
+								<a href="/{{if .PullRequest.BaseRepo}}{{.PullRequest.BaseRepo.OwnerName}}/{{.PullRequest.BaseRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.BaseBranch}}">
 									{{if ne .RepoID .PullRequest.BaseRepoID}}
 										<div class="truncated-name dib vb">{{.PullRequest.BaseRepo.OwnerName}}</div><div class="truncated-name dib vb">:</div>
 									{{end}}
@@ -73,7 +73,7 @@
 								{{svg "gitea-double-chevron-left" 13  }}
 							</div>
 							<div class="branch">
-								<a style="font-weight: bold;" href="/{{if .PullRequest.HeadRepo}}{{.PullRequest.HeadRepo.OwnerName}}/{{.PullRequest.HeadRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.HeadBranch}}">
+								<a href="/{{if .PullRequest.HeadRepo}}{{.PullRequest.HeadRepo.OwnerName}}/{{.PullRequest.HeadRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.HeadBranch}}">
 									{{if ne .RepoID .PullRequest.HeadRepoID}}
 										<div class="truncated-name dib vb">{{.PullRequest.HeadRepo.OwnerName}}</div><div class="truncated-name dib vb">:</div>
 									{{end}}
