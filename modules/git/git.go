@@ -266,7 +266,7 @@ func CheckGitVersionAtLeast(atLeast string) error {
 func configSet(key, value string) error {
 	stdout, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
 	if err != nil && !err.IsExitCode(1) {
-		return fmt.Errorf("failed to get git config %s, err:%w", key, err)
+		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
 
 	currValue := strings.TrimSpace(stdout)
