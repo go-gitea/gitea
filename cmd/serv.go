@@ -72,7 +72,7 @@ func setup(logPath string, debug bool) {
 		if os.IsNotExist(err) {
 			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.")
 		} else {
-			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` is inaccessible. err:%v", err)
+			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` is inaccessible. err: %v", err)
 		}
 		return
 	}
