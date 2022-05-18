@@ -27,11 +27,17 @@ const (
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		if issue.Repo != nil {
-			continue
+		// Check if Repo not initialized
+		if issue.Repo == nil {
+			if _, ok := repoIDs[issue.RepoID]; !ok {
+				repoIDs[issue.RepoID] = struct{}{}
+			}
 		}
-		if _, ok := repoIDs[issue.RepoID]; !ok {
-			repoIDs[issue.RepoID] = struct{}{}
+		// Add Head repo for Pull Request (only if different)
+		if (issue.PullRequest != nil) && (issue.PullRequest.HeadRepoID != issue.RepoID) {
+			if _, ok := repoIDs[issue.PullRequest.HeadRepoID]; !ok {
+				repoIDs[issue.PullRequest.HeadRepoID] = struct{}{}
+			}
 		}
 	}
 	return container.KeysInt64(repoIDs)
@@ -66,8 +72,13 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository,
 		} else {
 			repoMaps[issue.RepoID] = issue.Repo
 		}
-		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
-			issue.PullRequest.BaseRepo = issue.Repo
+		if issue.PullRequest != nil {
+			if issue.PullRequest.BaseRepo == nil {
+				issue.PullRequest.BaseRepo = issue.Repo
+			}
+			if issue.PullRequest.HeadRepo == nil {
+				issue.PullRequest.HeadRepo = repoMaps[issue.PullRequest.HeadRepoID]
+			}
 		}
 	}
 	return valuesRepository(repoMaps), nil

@@ -615,6 +615,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
+	ctx.Data["ShowBranchesOnPrList"] = setting.UI.ShowBranchesOnPrList
+
 	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
