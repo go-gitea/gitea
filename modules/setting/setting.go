@@ -612,7 +612,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	Cfg.NameMapper = ini.SnackCase
 
-	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	homeDir, err := util.HomeDir()
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
