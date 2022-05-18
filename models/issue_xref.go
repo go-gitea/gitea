@@ -295,6 +295,7 @@ func CommentTypeIsRef(t CommentType) bool {
 
 // RefCommentHTMLURL returns the HTML URL for the comment that created this reference
 func (comment *Comment) RefCommentHTMLURL() string {
+	// Edge case for when the reference is inside the title or the description of the referring issue
 	if comment.RefCommentID == 0 {
 		return comment.RefIssueHTMLURL()
 	}
