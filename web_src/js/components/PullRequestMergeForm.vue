@@ -74,6 +74,7 @@
       </form>
     </div>
 
+    <!-- eslint-disable -->
     <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" style="margin-top: 10px;"></div>
   </div>
 </template>
