@@ -1349,9 +1349,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.User != nil {
-		sess.And(
-			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
-		)
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 }
 
@@ -1463,6 +1461,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionWithLimit(sess)
+
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
@@ -1484,6 +1483,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
+
 	return sess.Count()
 }
 

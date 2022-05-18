@@ -66,10 +66,7 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		authenticate := []string{
-			`Bearer realm="` + setting.AppURL + `v2/token"`,
-			`Basic`,
-		}
+		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
