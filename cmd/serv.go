@@ -78,7 +78,7 @@ func setup(logPath string, debug bool) {
 	}
 
 	if err := git.InitSimple(context.Background()); err != nil {
-		_ = fail("Failed to init git", "Failed to init git, err:%v", err)
+		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
 	}
 }
 
