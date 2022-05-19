@@ -173,7 +173,7 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 	}
 
 	// Update indexer status
-	if err = updateIndexerStatus(ctx, repo, RepoIndexerTypeStats, commitID); err != nil {
+	if err = UpdateIndexerStatus(ctx, repo, RepoIndexerTypeStats, commitID); err != nil {
 		return err
 	}
 
@@ -200,7 +200,7 @@ func CopyLanguageStat(originalRepo, destRepo *Repository) error {
 		}
 		// update destRepo's indexer status
 		tmpCommitID := RepoLang[0].CommitID
-		if err := updateIndexerStatus(ctx, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
+		if err := UpdateIndexerStatus(ctx, destRepo, RepoIndexerTypeStats, tmpCommitID); err != nil {
 			return err
 		}
 		if err := db.Insert(ctx, &RepoLang); err != nil {

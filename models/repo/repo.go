@@ -481,16 +481,6 @@ func (repo *Repository) RepoPath() string {
 	return RepoPath(repo.OwnerName, repo.Name)
 }
 
-// GitConfigPath returns the path to a repository's git config/ directory
-func GitConfigPath(repoPath string) string {
-	return filepath.Join(repoPath, "config")
-}
-
-// GitConfigPath returns the repository git config path
-func (repo *Repository) GitConfigPath() string {
-	return GitConfigPath(repo.RepoPath())
-}
-
 // Link returns the repository link
 func (repo *Repository) Link() string {
 	return setting.AppSubURL + "/" + url.PathEscape(repo.OwnerName) + "/" + url.PathEscape(repo.Name)
@@ -696,8 +686,8 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryExistCtx returns true if the repository with given name under user has already existed.
-func IsRepositoryExistCtx(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+// IsRepositoryExist returns true if the repository with given name under user has already existed.
+func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
 	has, err := db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
@@ -707,11 +697,6 @@ func IsRepositoryExistCtx(ctx context.Context, u *user_model.User, repoName stri
 	}
 	isDir, err := util.IsDir(RepoPath(u.Name, repoName))
 	return has && isDir, err
-}
-
-// IsRepositoryExist returns true if the repository with given name under user has already existed.
-func IsRepositoryExist(u *user_model.User, repoName string) (bool, error) {
-	return IsRepositoryExistCtx(db.DefaultContext, u, repoName)
 }
 
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and

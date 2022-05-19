@@ -207,7 +207,8 @@ func IsEmailUsed(ctx context.Context, email string) (bool, error) {
 	return db.GetEngine(ctx).Where("lower_email=?", strings.ToLower(email)).Get(&EmailAddress{})
 }
 
-func addEmailAddress(ctx context.Context, email *EmailAddress) error {
+// AddEmailAddress adds an email address to given user.
+func AddEmailAddress(ctx context.Context, email *EmailAddress) error {
 	email.Email = strings.TrimSpace(email.Email)
 	used, err := IsEmailUsed(ctx, email.Email)
 	if err != nil {
@@ -221,11 +222,6 @@ func addEmailAddress(ctx context.Context, email *EmailAddress) error {
 	}
 
 	return db.Insert(ctx, email)
-}
-
-// AddEmailAddress adds an email address to given user.
-func AddEmailAddress(email *EmailAddress) error {
-	return addEmailAddress(db.DefaultContext, email)
 }
 
 // AddEmailAddresses adds an email address to given user.

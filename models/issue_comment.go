@@ -535,7 +535,7 @@ func (c *Comment) LoadAttachments() error {
 	}
 
 	var err error
-	c.Attachments, err = repo_model.GetAttachmentsByCommentIDCtx(db.DefaultContext, c.ID)
+	c.Attachments, err = repo_model.GetAttachmentsByCommentID(db.DefaultContext, c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -557,7 +557,7 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = c.IssueID
 		attachments[i].CommentID = c.ID
-		if err := repo_model.UpdateAttachmentCtx(ctx, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -1030,11 +1030,7 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 }
 
 // GetCommentByID returns the comment by given ID.
-func GetCommentByID(id int64) (*Comment, error) {
-	return getCommentByID(db.DefaultContext, id)
-}
-
-func getCommentByID(ctx context.Context, id int64) (*Comment, error) {
+func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 	c := new(Comment)
 	has, err := db.GetEngine(ctx).ID(id).Get(c)
 	if err != nil {

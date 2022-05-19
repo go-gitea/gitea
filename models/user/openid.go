@@ -65,8 +65,9 @@ func (err ErrOpenIDAlreadyUsed) Error() string {
 	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
 }
 
+// AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.
 // NOTE: make sure openid.URI is normalized already
-func addUserOpenID(ctx context.Context, openid *UserOpenID) error {
+func AddUserOpenID(ctx context.Context, openid *UserOpenID) error {
 	used, err := isOpenIDUsed(ctx, openid.URI)
 	if err != nil {
 		return err
@@ -75,11 +76,6 @@ func addUserOpenID(ctx context.Context, openid *UserOpenID) error {
 	}
 
 	return db.Insert(ctx, openid)
-}
-
-// AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.
-func AddUserOpenID(openid *UserOpenID) error {
-	return addUserOpenID(db.DefaultContext, openid)
 }
 
 // DeleteUserOpenID deletes an openid address of given user.

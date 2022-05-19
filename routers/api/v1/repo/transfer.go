@@ -57,7 +57,7 @@ func Transfer(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.TransferRepoOption)
 
-	newOwner, err := user_model.GetUserByName(opts.NewOwner)
+	newOwner, err := user_model.GetUserByName(ctx, opts.NewOwner)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")

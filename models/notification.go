@@ -426,7 +426,7 @@ func (n *Notification) loadIssue(ctx context.Context) (err error) {
 
 func (n *Notification) loadComment(ctx context.Context) (err error) {
 	if n.Comment == nil && n.CommentID != 0 {
-		n.Comment, err = getCommentByID(ctx, n.CommentID)
+		n.Comment, err = GetCommentByID(ctx, n.CommentID)
 		if err != nil {
 			if IsErrCommentNotExist(err) {
 				return ErrCommentNotExist{

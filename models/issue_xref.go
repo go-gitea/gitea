@@ -271,7 +271,7 @@ func (comment *Comment) LoadRefComment() (err error) {
 	if comment.RefComment != nil {
 		return nil
 	}
-	comment.RefComment, err = GetCommentByID(comment.RefCommentID)
+	comment.RefComment, err = GetCommentByID(db.DefaultContext, comment.RefCommentID)
 	return
 }
 

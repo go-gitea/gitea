@@ -107,7 +107,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	action := ctx.FormString("action")
 	commentID := ctx.FormInt64("comment_id")
 
-	comment, err := models.GetCommentByID(commentID)
+	comment, err := models.GetCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return

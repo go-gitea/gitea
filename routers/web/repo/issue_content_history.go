@@ -130,7 +130,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	var comment *models.Comment
 	if history.CommentID != 0 {
 		var err error
-		if comment, err = models.GetCommentByID(history.CommentID); err != nil {
+		if comment, err = models.GetCommentByID(ctx, history.CommentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}
@@ -190,7 +190,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	var history *issuesModel.ContentHistory
 	var err error
 	if commentID != 0 {
-		if comment, err = models.GetCommentByID(commentID); err != nil {
+		if comment, err = models.GetCommentByID(ctx, commentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}

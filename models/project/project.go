@@ -121,12 +121,7 @@ type SearchOptions struct {
 }
 
 // GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(opts SearchOptions) ([]*Project, int64, error) {
-	return GetProjectsCtx(db.DefaultContext, opts)
-}
-
-// GetProjectsCtx returns a list of all projects that have been created in the repository
-func GetProjectsCtx(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
 	e := db.GetEngine(ctx)
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
@@ -199,11 +194,7 @@ func NewProject(p *Project) error {
 }
 
 // GetProjectByID returns the projects in a repository
-func GetProjectByID(id int64) (*Project, error) {
-	return getProjectByID(db.DefaultContext, id)
-}
-
-func getProjectByID(ctx context.Context, id int64) (*Project, error) {
+func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	p := new(Project)
 
 	has, err := db.GetEngine(ctx).ID(id).Get(p)
@@ -217,11 +208,7 @@ func getProjectByID(ctx context.Context, id int64) (*Project, error) {
 }
 
 // UpdateProject updates project properties
-func UpdateProject(p *Project) error {
-	return updateProject(db.DefaultContext, p)
-}
-
-func updateProject(ctx context.Context, p *Project) error {
+func UpdateProject(ctx context.Context, p *Project) error {
 	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
@@ -321,7 +308,7 @@ func DeleteProjectByID(id int64) error {
 
 // DeleteProjectByIDCtx deletes a project from a repository.
 func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
-	p, err := getProjectByID(ctx, id)
+	p, err := GetProjectByID(ctx, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
 			return nil

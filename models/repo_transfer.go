@@ -130,7 +130,7 @@ func CancelRepositoryTransfer(repo *repo_model.Repository) error {
 	defer committer.Close()
 
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -172,12 +172,12 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 	}
 
 	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
+	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -250,14 +250,14 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 
 	sess := db.GetEngine(ctx)
 
-	newOwner, err := user_model.GetUserByNameCtx(ctx, newOwnerName)
+	newOwner, err := user_model.GetUserByName(ctx, newOwnerName)
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
+	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -410,7 +410,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return fmt.Errorf("deleteRepositoryTransfer: %v", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 

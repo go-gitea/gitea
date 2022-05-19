@@ -435,7 +435,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.EqualValues(t, 4, len(issueIDs))
 
 	// check attachment removal
-	attachments, err := repo_model.GetAttachmentsByIssueID(4)
+	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 4)
 	assert.NoError(t, err)
 	issue, err = GetIssueByID(4)
 	assert.NoError(t, err)
@@ -443,7 +443,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(attachments))
 	for i := range attachments {
-		attachment, err := repo_model.GetAttachmentByUUID(attachments[i].UUID)
+		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
 		assert.Error(t, err)
 		assert.True(t, repo_model.IsErrAttachmentNotExist(err))
 		assert.Nil(t, attachment)

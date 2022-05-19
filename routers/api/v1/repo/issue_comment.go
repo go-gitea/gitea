@@ -399,7 +399,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -526,7 +526,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -629,7 +629,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)

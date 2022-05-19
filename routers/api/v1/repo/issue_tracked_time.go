@@ -94,7 +94,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := user_model.GetUserByName(qUser)
+		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
@@ -203,7 +203,7 @@ func AddTime(ctx *context.APIContext) {
 	if form.User != "" {
 		if (ctx.IsUserRepoAdmin() && ctx.Doer.Name != form.User) || ctx.Doer.IsAdmin {
 			// allow only RepoAdmin, Admin and User to add time
-			user, err = user_model.GetUserByName(form.User)
+			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
@@ -415,7 +415,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	user, err := user_model.GetUserByName(ctx.Params(":timetrackingusername"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":timetrackingusername"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound(err)
@@ -512,7 +512,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// Filters
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := user_model.GetUserByName(qUser)
+		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {

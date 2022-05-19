@@ -369,7 +369,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return

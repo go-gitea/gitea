@@ -223,7 +223,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = getCommentByID(ctx, a.CommentID)
+		a.Comment, _ = GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()

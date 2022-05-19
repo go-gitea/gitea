@@ -116,7 +116,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := user_model.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":user"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()

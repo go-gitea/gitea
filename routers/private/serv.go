@@ -109,7 +109,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
-	owner, err := user_model.GetUserByName(results.OwnerName)
+	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			// User is fetching/cloning a non-existent repository
@@ -345,7 +345,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// We already know we aren't using a deploy key
 	if !repoExist {
-		owner, err := user_model.GetUserByName(ownerName)
+		owner, err := user_model.GetUserByName(ctx, ownerName)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,

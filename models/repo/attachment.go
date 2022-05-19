@@ -60,11 +60,6 @@ func (a *Attachment) DownloadURL() string {
 	return setting.AppURL + "attachments/" + url.PathEscape(a.UUID)
 }
 
-// GetAttachmentByID returns attachment by given id
-func GetAttachmentByID(id int64) (*Attachment, error) {
-	return getAttachmentByID(db.DefaultContext, id)
-}
-
 //    _____   __    __                .__                           __
 //   /  _  \_/  |__/  |______    ____ |  |__   _____   ____   _____/  |_
 //  /  /_\  \   __\   __\__  \ _/ ___\|  |  \ /     \_/ __ \ /    \   __\
@@ -88,7 +83,8 @@ func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }
 
-func getAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
+// GetAttachmentByID returns attachment by given id
+func GetAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	attach := &Attachment{}
 	if has, err := db.GetEngine(ctx).ID(id).Get(attach); err != nil {
 		return nil, err
@@ -98,7 +94,8 @@ func getAttachmentByID(ctx context.Context, id int64) (*Attachment, error) {
 	return attach, nil
 }
 
-func getAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) {
+// GetAttachmentByUUID returns attachment by given UUID.
+func GetAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) {
 	attach := &Attachment{}
 	has, err := db.GetEngine(ctx).Where("uuid=?", uuid).Get(attach)
 	if err != nil {
@@ -111,10 +108,6 @@ func getAttachmentByUUID(ctx context.Context, uuid string) (*Attachment, error) 
 
 // GetAttachmentsByUUIDs returns attachment by given UUID list.
 func GetAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, error) {
-	return getAttachmentsByUUIDs(ctx, uuids)
-}
-
-func getAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, error) {
 	if len(uuids) == 0 {
 		return []*Attachment{}, nil
 	}
@@ -124,45 +117,25 @@ func getAttachmentsByUUIDs(ctx context.Context, uuids []string) ([]*Attachment, 
 	return attachments, db.GetEngine(ctx).In("uuid", uuids).Find(&attachments)
 }
 
-// GetAttachmentByUUID returns attachment by given UUID.
-func GetAttachmentByUUID(uuid string) (*Attachment, error) {
-	return getAttachmentByUUID(db.DefaultContext, uuid)
-}
-
 // ExistAttachmentsByUUID returns true if attachment is exist by given UUID
 func ExistAttachmentsByUUID(uuid string) (bool, error) {
 	return db.GetEngine(db.DefaultContext).Where("`uuid`=?", uuid).Exist(new(Attachment))
 }
 
-// GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
-func GetAttachmentByReleaseIDFileName(releaseID int64, fileName string) (*Attachment, error) {
-	return getAttachmentByReleaseIDFileName(db.DefaultContext, releaseID, fileName)
-}
-
-// GetAttachmentsByIssueIDCtx returns all attachments of an issue.
-func GetAttachmentsByIssueIDCtx(ctx context.Context, issueID int64) ([]*Attachment, error) {
+// GetAttachmentsByIssueID returns all attachments of an issue.
+func GetAttachmentsByIssueID(ctx context.Context, issueID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("issue_id = ? AND comment_id = 0", issueID).Find(&attachments)
 }
 
-// GetAttachmentsByIssueID returns all attachments of an issue.
-func GetAttachmentsByIssueID(issueID int64) ([]*Attachment, error) {
-	return GetAttachmentsByIssueIDCtx(db.DefaultContext, issueID)
-}
-
 // GetAttachmentsByCommentID returns all attachments if comment by given ID.
-func GetAttachmentsByCommentID(commentID int64) ([]*Attachment, error) {
-	return GetAttachmentsByCommentIDCtx(db.DefaultContext, commentID)
-}
-
-// GetAttachmentsByCommentIDCtx returns all attachments if comment by given ID.
-func GetAttachmentsByCommentIDCtx(ctx context.Context, commentID int64) ([]*Attachment, error) {
+func GetAttachmentsByCommentID(ctx context.Context, commentID int64) ([]*Attachment, error) {
 	attachments := make([]*Attachment, 0, 10)
 	return attachments, db.GetEngine(ctx).Where("comment_id=?", commentID).Find(&attachments)
 }
 
-// getAttachmentByReleaseIDFileName return a file based on the the following infos:
-func getAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
+// GetAttachmentByReleaseIDFileName returns attachment by given releaseId and fileName.
+func GetAttachmentByReleaseIDFileName(ctx context.Context, releaseID int64, fileName string) (*Attachment, error) {
 	attach := &Attachment{ReleaseID: releaseID, Name: fileName}
 	has, err := db.GetEngine(ctx).Get(attach)
 	if err != nil {
@@ -207,7 +180,7 @@ func DeleteAttachments(ctx context.Context, attachments []*Attachment, remove bo
 
 // DeleteAttachmentsByIssue deletes all attachments associated with the given issue.
 func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByIssueID(issueID)
+	attachments, err := GetAttachmentsByIssueID(db.DefaultContext, issueID)
 	if err != nil {
 		return 0, err
 	}
@@ -217,17 +190,12 @@ func DeleteAttachmentsByIssue(issueID int64, remove bool) (int, error) {
 
 // DeleteAttachmentsByComment deletes all attachments associated with the given comment.
 func DeleteAttachmentsByComment(commentID int64, remove bool) (int, error) {
-	attachments, err := GetAttachmentsByCommentID(commentID)
+	attachments, err := GetAttachmentsByCommentID(db.DefaultContext, commentID)
 	if err != nil {
 		return 0, err
 	}
 
 	return DeleteAttachments(db.DefaultContext, attachments, remove)
-}
-
-// UpdateAttachment updates the given attachment in database
-func UpdateAttachment(atta *Attachment) error {
-	return UpdateAttachmentCtx(db.DefaultContext, atta)
 }
 
 // UpdateAttachmentByUUID Updates attachment via uuid
@@ -239,8 +207,8 @@ func UpdateAttachmentByUUID(ctx context.Context, attach *Attachment, cols ...str
 	return err
 }
 
-// UpdateAttachmentCtx updates the given attachment in database
-func UpdateAttachmentCtx(ctx context.Context, atta *Attachment) error {
+// UpdateAttachment updates the given attachment in database
+func UpdateAttachment(ctx context.Context, atta *Attachment) error {
 	sess := db.GetEngine(ctx).Cols("name", "issue_id", "release_id", "comment_id", "download_count")
 	if atta.ID != 0 && atta.UUID == "" {
 		sess = sess.ID(atta.ID)

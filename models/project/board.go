@@ -147,7 +147,7 @@ func DeleteBoardByID(boardID int64) error {
 }
 
 func deleteBoardByID(ctx context.Context, boardID int64) error {
-	board, err := getBoard(ctx, boardID)
+	board, err := GetBoard(ctx, boardID)
 	if err != nil {
 		if IsErrProjectBoardNotExist(err) {
 			return nil
@@ -172,11 +172,7 @@ func deleteBoardByProjectID(ctx context.Context, projectID int64) error {
 }
 
 // GetBoard fetches the current board of a project
-func GetBoard(boardID int64) (*Board, error) {
-	return getBoard(db.DefaultContext, boardID)
-}
-
-func getBoard(ctx context.Context, boardID int64) (*Board, error) {
+func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 	board := new(Board)
 
 	has, err := db.GetEngine(ctx).ID(boardID).Get(board)

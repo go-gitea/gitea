@@ -373,10 +373,6 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
 func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
-	return pushUpdateDeleteTags(ctx, repo, tags)
-}
-
-func pushUpdateDeleteTags(ctx context.Context, repo *repo_model.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}

@@ -63,8 +63,8 @@ func GetUnindexedRepos(indexerType RepoIndexerType, maxRepoID int64, page, pageS
 	return ids, err
 }
 
-// getIndexerStatus loads repo codes indxer status
-func getIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
+// GetIndexerStatus loads repo codes indxer status
+func GetIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
 	switch indexerType {
 	case RepoIndexerTypeCode:
 		if repo.CodeIndexerStatus != nil {
@@ -91,14 +91,9 @@ func getIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoInd
 	return status, nil
 }
 
-// GetIndexerStatus loads repo codes indxer status
-func GetIndexerStatus(repo *Repository, indexerType RepoIndexerType) (*RepoIndexerStatus, error) {
-	return getIndexerStatus(db.DefaultContext, repo, indexerType)
-}
-
-// updateIndexerStatus updates indexer status
-func updateIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType, sha string) error {
-	status, err := getIndexerStatus(ctx, repo, indexerType)
+// UpdateIndexerStatus updates indexer status
+func UpdateIndexerStatus(ctx context.Context, repo *Repository, indexerType RepoIndexerType, sha string) error {
+	status, err := GetIndexerStatus(ctx, repo, indexerType)
 	if err != nil {
 		return fmt.Errorf("UpdateIndexerStatus: Unable to getIndexerStatus for repo: %s Error: %v", repo.FullName(), err)
 	}
@@ -117,9 +112,4 @@ func updateIndexerStatus(ctx context.Context, repo *Repository, indexerType Repo
 		return fmt.Errorf("UpdateIndexerStatus: Unable to update repoIndexerStatus for repo: %s Sha: %s Error: %v", repo.FullName(), sha, err)
 	}
 	return nil
-}
-
-// UpdateIndexerStatus updates indexer status
-func UpdateIndexerStatus(repo *Repository, indexerType RepoIndexerType, sha string) error {
-	return updateIndexerStatus(db.DefaultContext, repo, indexerType, sha)
 }

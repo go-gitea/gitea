@@ -100,7 +100,7 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 
 	// Loop through all assignees to add them
 	for _, assigneeName := range multipleAssignees {
-		assignee, err := user_model.GetUserByName(assigneeName)
+		assignee, err := user_model.GetUserByName(db.DefaultContext, assigneeName)
 		if err != nil {
 			return err
 		}

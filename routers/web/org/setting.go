@@ -66,7 +66,7 @@ func SettingsPost(ctx *context.Context) {
 
 	// Check if organization name has been changed.
 	if org.LowerName != strings.ToLower(form.Name) {
-		isExist, err := user_model.IsUserExist(org.ID, form.Name)
+		isExist, err := user_model.IsUserExist(ctx, org.ID, form.Name)
 		if err != nil {
 			ctx.ServerError("IsUserExist", err)
 			return
@@ -110,7 +110,7 @@ func SettingsPost(ctx *context.Context) {
 	visibilityChanged := form.Visibility != org.Visibility
 	org.Visibility = form.Visibility
 
-	if err := user_model.UpdateUser(org.AsUser(), false); err != nil {
+	if err := user_model.UpdateUser(ctx, org.AsUser(), false); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

@@ -938,7 +938,7 @@ func parseCompareInfo(ctx *context.APIContext, form api.CreatePullRequestOption)
 		headBranch = headInfos[0]
 
 	} else if len(headInfos) == 2 {
-		headUser, err = user_model.GetUserByName(headInfos[0])
+		headUser, err = user_model.GetUserByName(ctx, headInfos[0])
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.NotFound("GetUserByName")

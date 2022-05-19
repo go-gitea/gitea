@@ -171,7 +171,8 @@ func GetRepoWatchers(repoID int64, opts db.ListOptions) ([]*user_model.User, err
 	return users, sess.Find(&users)
 }
 
-func watchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error {
+// WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
+func WatchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error {
 	if !isWrite || !setting.Service.AutoWatchOnChanges {
 		return nil
 	}
@@ -183,9 +184,4 @@ func watchIfAuto(ctx context.Context, userID, repoID int64, isWrite bool) error 
 		return nil
 	}
 	return watchRepoMode(ctx, watch, WatchModeAuto)
-}
-
-// WatchIfAuto subscribes to repo if AutoWatchOnChanges is set
-func WatchIfAuto(userID, repoID int64, isWrite bool) error {
-	return watchIfAuto(db.DefaultContext, userID, repoID, isWrite)
 }

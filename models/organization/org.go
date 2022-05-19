@@ -248,7 +248,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		return err
 	}
 
-	isExist, err := user_model.IsUserExist(0, org.Name)
+	isExist, err := user_model.IsUserExist(db.DefaultContext, 0, org.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -281,7 +281,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	if err = user_model.GenerateRandomAvatarCtx(ctx, org.AsUser()); err != nil {
+	if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}
 

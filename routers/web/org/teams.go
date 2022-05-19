@@ -122,7 +122,7 @@ func TeamsAction(ctx *context.Context) {
 		}
 		uname := utils.RemoveUsernameParameterSuffix(strings.ToLower(ctx.FormString("uname")))
 		var u *user_model.User
-		u, err = user_model.GetUserByName(uname)
+		u, err = user_model.GetUserByName(ctx, uname)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Flash.Error(ctx.Tr("form.user_not_exist"))

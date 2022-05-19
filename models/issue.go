@@ -331,7 +331,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 	}
 
 	if issue.Attachments == nil {
-		issue.Attachments, err = repo_model.GetAttachmentsByIssueIDCtx(ctx, issue.ID)
+		issue.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -800,7 +800,7 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = issueID
-		if err := repo_model.UpdateAttachmentCtx(ctx, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}

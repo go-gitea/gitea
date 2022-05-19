@@ -210,11 +210,7 @@ func CountTopics(opts *FindTopicOptions) (int64, error) {
 }
 
 // GetRepoTopicByName retrieves topic from name for a repo if it exist
-func GetRepoTopicByName(repoID int64, topicName string) (*Topic, error) {
-	return getRepoTopicByName(db.DefaultContext, repoID, topicName)
-}
-
-func getRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
+func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*Topic, error) {
 	cond := builder.NewCond()
 	var topic Topic
 	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.name": topicName})
@@ -236,7 +232,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	topic, err := getRepoTopicByName(ctx, repoID, topicName)
+	topic, err := GetRepoTopicByName(ctx, repoID, topicName)
 	if err != nil {
 		return nil, err
 	}
@@ -268,7 +264,7 @@ func AddTopic(repoID int64, topicName string) (*Topic, error) {
 
 // DeleteTopic removes a topic name from a repository (if it has it)
 func DeleteTopic(repoID int64, topicName string) (*Topic, error) {
-	topic, err := GetRepoTopicByName(repoID, topicName)
+	topic, err := GetRepoTopicByName(db.DefaultContext, repoID, topicName)
 	if err != nil {
 		return nil, err
 	}

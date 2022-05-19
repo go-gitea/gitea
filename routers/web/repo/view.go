@@ -901,7 +901,7 @@ func renderCode(ctx *context.Context) {
 		// it's possible for a repository to be non-empty by that flag but still 500
 		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
 		ctx.Repo.Repository.IsEmpty = false
-		if err = repo_model.UpdateRepositoryCols(ctx.Repo.Repository, "is_empty"); err != nil {
+		if err = repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty"); err != nil {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}

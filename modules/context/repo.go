@@ -453,7 +453,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
 		owner = ctx.Doer
 	} else {
-		owner, err = user_model.GetUserByName(userName)
+		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if ctx.FormString("go-get") == "1" {

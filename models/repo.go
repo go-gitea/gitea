@@ -334,7 +334,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExistCtx(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -716,7 +716,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := project_model.GetProjectsCtx(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
