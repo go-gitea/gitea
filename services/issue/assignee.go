@@ -16,9 +16,10 @@ import (
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
 func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
+	oriAssignes := make([]*user_model.User, len(issue.Assignees))
+	_ = copy(oriAssignes, issue.Assignees)
 
-	for _, assignee := range issue.Assignees {
-
+	for _, assignee := range oriAssignes {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
