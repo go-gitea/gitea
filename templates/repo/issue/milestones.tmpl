@@ -61,10 +61,13 @@
 		<div class="milestone list">
 			{{range .Milestones}}
 				<li class="item">
-					{{svg "octicon-milestone" 16 "mr-2"}} <a href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
-					<div class="ui right green progress" data-percent="{{.Completeness}}">
-						<div class="bar" {{if not .Completeness}}style="background-color: transparent"{{end}}>
-							<div class="progress"></div>
+					<div class="df ac sb">
+						<h2 class="df ac m-0 fw">
+							{{svg "octicon-milestone" 16 "mr-3"}}<a class="muted" href="{{$.RepoLink}}/milestone/{{.ID}}">{{.Name}}</a>
+						</h2>
+						<div class="df ac">
+							<span class="mr-3">{{.Completeness}}%</span>
+							<progress value="{{.Completeness}}" max="100"></progress>
 						</div>
 					</div>
 					<div class="meta">
