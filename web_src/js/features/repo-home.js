@@ -84,8 +84,6 @@ export function initRepoTopicBar() {
       transition: 'horizontal flip',
       duration: 200,
       variation: false,
-      blue: true,
-      basic: true,
     },
     className: {
       label: 'ui small label'
