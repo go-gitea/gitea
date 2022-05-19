@@ -128,7 +128,7 @@ func TestGetOrgByName(t *testing.T) {
 
 func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&user_model.User{})
+	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&Organization{})
 	assert.NoError(t, err)
 	cnt, err := CountOrgs(FindOrgOptions{IncludePrivate: true})
 	assert.NoError(t, err)
