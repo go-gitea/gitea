@@ -1,5 +1,12 @@
 <template>
+  <!--
+  if this component is shown, either the user is admin (can do merge without checks), or they is a writer who has the permission to do merge
+  if the user is a writer and can't do merge now (canMergeNow==false), then only show the Auto Merge for them
+  -->
   <div>
+    <!-- eslint-disable -->
+    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message" style="margin-top: 10px;"></div>
+
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
         <input type="hidden" name="_csrf" :value="csrfToken">
@@ -49,17 +56,30 @@
           <svg-icon name="octicon-triangle-down" :size="14"/>
           <div class="menu" :class="{'show':showMergeStyleMenu}">
             <template v-for="msd in mergeForm.mergeStyles">
-              <div class="item" v-if="msd.allowed" :key="msd.name" @click.stop="switchMergeStyle(msd.name)">
+              <!-- if can merge now, show one action "merge now", and an action "auto merge when succeed" -->
+              <div class="item" v-if="msd.allowed && mergeForm.canMergeNow" :key="msd.name" @click.stop="switchMergeStyle(msd.name)">
                 <div class="action-text">
                   {{ msd.textDoMerge }}
                 </div>
-                <div v-if="!msd.hideAutoMerge" class="auto-merge" @click.stop="switchMergeStyle(msd.name, true)">
+                <div v-if="!msd.hideAutoMerge" class="auto-merge-small" @click.stop="switchMergeStyle(msd.name, true)">
                   <svg-icon name="octicon-clock" :size="14"/>
                   <div class="auto-merge-tip">
                     {{ mergeForm.textAutoMergeWhenSucceed }}
                   </div>
                 </div>
               </div>
+
+              <!-- if can NOT merge now, only show one action "auto merge when succeed" -->
+              <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchMergeStyle(msd.name, true)">
+                <div class="action-text">
+                  {{ msd.textDoMerge }}
+                </div>
+                <div class="auto-merge-full">
+                  <svg-icon name="octicon-clock" :size="14"/>
+                  <span class="auto-merge-text">{{ mergeForm.textAutoMergeWhenSucceed }}</span>
+                </div>
+              </div>
+
             </template>
           </div>
         </div>
@@ -73,9 +93,6 @@
         </button>
       </form>
     </div>
-
-    <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" style="margin-top: 10px;"></div>
   </div>
 </template>
 
@@ -120,7 +137,7 @@ export default {
 
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-    this.mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+    this.switchMergeStyle(this.mergeForm.mergeStyles.find((e) => e.allowed)?.name, !this.mergeForm.canMergeNow);
   },
 
   mounted() {
@@ -152,6 +169,14 @@ export default {
 
 <style scoped>
 /* to keep UI the same, at the moment we are still using some Fomantic UI styles, but we do not use their scripts, so we need to fine tune some styles */
+.ui.dropdown .menu.show {
+  display: block;
+}
+.ui.checkbox label {
+  cursor: pointer;
+}
+
+/* make the dropdown list left-aligned */
 .ui.merge-button {
   position: relative;
 }
@@ -162,29 +187,35 @@ export default {
   left: 0;
   right: auto;
 }
-.ui.merge-button .ui.dropdown .menu.show {
-  display: block;
-}
 .ui.merge-button .ui.dropdown .menu > .item {
   display: flex;
   align-items: stretch;
   padding: 0 !important; /* polluted by semantic.css: .ui.dropdown .menu > .item { !important } */
 }
 
+/* merge style list item */
 .action-text {
   padding: 0.8rem;
   flex: 1
 }
-.auto-merge {
+.auto-merge-full {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.auto-merge-full .auto-merge-text {
+  padding: 0 1rem 0 0.25rem;
+}
+.auto-merge-small {
   width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   position: relative;
 }
-.auto-merge .auto-merge-tip {
+.auto-merge-small .auto-merge-tip {
   display: none;
-  left: 38px;;
+  left: 38px;
   top: -1px;
   bottom: -1px;
   position: absolute;
@@ -196,17 +227,14 @@ export default {
   padding-right: 1rem;
 }
 
-.auto-merge:hover {
+.auto-merge-small:hover {
   color: var(--color-warning-text);
   background-color: var(--color-warning-bg);
   border: 1px solid var(--color-warning-border);
 }
 
-.auto-merge:hover .auto-merge-tip {
+.auto-merge-small:hover .auto-merge-tip {
   display: flex;
 }
 
-.ui.checkbox label {
-  cursor: pointer;
-}
 </style>
