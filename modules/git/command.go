@@ -107,11 +107,11 @@ type RunOpts struct {
 }
 
 func CommonEnvs() []string {
+	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	return []string{
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		"GIT_TERMINAL_PROMPT=0",    // avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_CONFIG_NOSYSTEM=1",    // https://git-scm.com/docs/git-config, and GIT_CONFIG_GLOBAL, they require git >= 2.32
 		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
 	}
 }
