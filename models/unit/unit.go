@@ -284,7 +284,7 @@ var (
 		TypePackages,
 		"repo.packages",
 		"/packages",
-		"repo.packages.desc",
+		"packages.desc",
 		6,
 		perm.AccessModeRead,
 	}
