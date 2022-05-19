@@ -596,7 +596,7 @@ func (issue *Issue) ReadBy(ctx context.Context, userID int64) error {
 		return err
 	}
 
-	return setIssueNotificationStatusReadIfUnread(db.DefaultContext, userID, issue.ID)
+	return setIssueNotificationStatusReadIfUnread(ctx, userID, issue.ID)
 }
 
 // UpdateIssueCols updates cols of issue

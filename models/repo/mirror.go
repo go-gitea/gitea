@@ -81,7 +81,8 @@ func (m *Mirror) ScheduleNextUpdate() {
 	}
 }
 
-func getMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
+// GetMirrorByRepoID returns mirror information of a repository.
+func GetMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 	m := &Mirror{RepoID: repoID}
 	has, err := db.GetEngine(ctx).Get(m)
 	if err != nil {
@@ -92,19 +93,10 @@ func getMirrorByRepoID(ctx context.Context, repoID int64) (*Mirror, error) {
 	return m, nil
 }
 
-// GetMirrorByRepoID returns mirror information of a repository.
-func GetMirrorByRepoID(repoID int64) (*Mirror, error) {
-	return getMirrorByRepoID(db.DefaultContext, repoID)
-}
-
-func updateMirror(ctx context.Context, m *Mirror) error {
+// UpdateMirror updates the mirror
+func UpdateMirror(ctx context.Context, m *Mirror) error {
 	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
 	return err
-}
-
-// UpdateMirror updates the mirror
-func UpdateMirror(m *Mirror) error {
-	return updateMirror(db.DefaultContext, m)
 }
 
 // TouchMirror updates the mirror updatedUnix

@@ -363,8 +363,7 @@ func getLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 		return nil, ErrRepoLabelNotExist{0, repoID}
 	}
 	labels := make([]*Label, 0, 10)
-	e := db.GetEngine(ctx)
-	sess := e.Where("repo_id = ?", repoID)
+	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
 
 	switch sortType {
 	case "reversealphabetically":

@@ -195,7 +195,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
 			ctx.Repo.Mirror.ScheduleNextUpdate()
-			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -241,7 +241,7 @@ func SettingsPost(ctx *context.Context) {
 
 		ctx.Repo.Mirror.LFS = form.LFS
 		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}

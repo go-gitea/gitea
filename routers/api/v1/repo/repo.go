@@ -962,7 +962,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	// get the mirror from the repo
-	mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+	mirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 	if err != nil {
 		log.Error("Failed to get mirror: %s", err)
 		ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
@@ -1000,7 +1000,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	// finally update the mirror in the DB
-	if err := repo_model.UpdateMirror(mirror); err != nil {
+	if err := repo_model.UpdateMirror(ctx, mirror); err != nil {
 		log.Error("Failed to Set Mirror Interval: %s", err)
 		ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
 		return err

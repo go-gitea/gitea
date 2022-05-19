@@ -385,11 +385,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 			return
 		}
 		if finishedMigrating {
-			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
 			if err != nil {
 				ctx.ServerError("GetMirrorByRepoID", err)
 				return
 			}
+			ctx.Repo.Mirror.Repo = ctx.Repo.Repository
 			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
 			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
 			ctx.Data["Mirror"] = ctx.Repo.Mirror

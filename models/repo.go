@@ -542,7 +542,7 @@ func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visib
 
 		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
 		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+			return fmt.Errorf("GetRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
