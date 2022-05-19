@@ -203,7 +203,7 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 
 // FindOrgMembers loads organization members according conditions
 func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
-	ous, err := GetOrgUsersByOrgID(opts)
+	ous, err := GetOrgUsersByOrgID(db.DefaultContext, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -350,14 +350,6 @@ func GetOrgByName(name string) (*Organization, error) {
 	return u, nil
 }
 
-// CountOrganizations returns number of organizations.
-func CountOrganizations() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).
-		Where("type=1").
-		Count(new(Organization))
-	return count
-}
-
 // DeleteOrganization deletes models associated to an organization.
 func DeleteOrganization(ctx context.Context, org *Organization) error {
 	if org.Type != user_model.UserTypeOrganization {
@@ -425,7 +417,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	cond := builder.NewCond()
+	var cond builder.Cond = builder.Eq{"`user`.`type`=?": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
@@ -451,7 +443,7 @@ func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
 func CountOrgs(opts FindOrgOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
-		Count(new(user_model.User))
+		Count(new(Organization))
 }
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
@@ -521,11 +513,7 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 }
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(db.DefaultContext, opts)
-}
-
-func getOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
 	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
@@ -593,8 +581,8 @@ func AddOrgUser(orgID, uid int64) error {
 	return committer.Commit()
 }
 
-// GetOrgByIDCtx returns the user object by given ID if exists.
-func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
+// GetOrgByID returns the user object by given ID if exists.
+func GetOrgByID(ctx context.Context, id int64) (*Organization, error) {
 	u := new(Organization)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -607,11 +595,6 @@ func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
 		}
 	}
 	return u, nil
-}
-
-// GetOrgByID returns the user object by given ID if exists.
-func GetOrgByID(id int64) (*Organization, error) {
-	return GetOrgByIDCtx(db.DefaultContext, id)
 }
 
 // RemoveOrgRepo removes all team-repository relations of organization.

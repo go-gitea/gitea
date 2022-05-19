@@ -130,7 +130,9 @@ func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&user_model.User{})
 	assert.NoError(t, err)
-	assert.Equal(t, expected, CountOrganizations())
+	cnt, err := CountOrgs(FindOrgOptions{IncludePrivate: true})
+	assert.NoError(t, err)
+	assert.Equal(t, expected, cnt)
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
@@ -237,7 +239,7 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgUsers, err := GetOrgUsersByOrgID(&FindOrgMembersOpts{
+	orgUsers, err := GetOrgUsersByOrgID(db.DefaultContext, &FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       3,
 		PublicOnly:  false,
@@ -258,7 +260,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 		}, *orgUsers[1])
 	}
 
-	orgUsers, err = GetOrgUsersByOrgID(&FindOrgMembersOpts{
+	orgUsers, err = GetOrgUsersByOrgID(db.DefaultContext, &FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       unittest.NonexistentID,
 		PublicOnly:  false,

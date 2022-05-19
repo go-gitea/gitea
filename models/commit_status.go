@@ -231,12 +231,7 @@ type CommitStatusIndex struct {
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	return GetLatestCommitStatusCtx(db.DefaultContext, repoID, sha, listOptions)
-}
-
-// GetLatestCommitStatusCtx returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatusCtx(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
+func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
 	ids := make([]int64, 0, 10)
 	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
@@ -341,7 +336,7 @@ func ParseCommitsWithStatus(oldCommits []*asymkey_model.SignCommit, repo *repo_m
 		commit := &SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, _, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
+		statuses, _, err := GetLatestCommitStatus(db.DefaultContext, repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

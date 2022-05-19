@@ -793,7 +793,7 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	statuses, _, err = models.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
 	lastStatus = models.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }
