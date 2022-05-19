@@ -22,7 +22,7 @@
           </div>
         </template>
 
-        <button class="ui button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" type="submit" name="do" :value="mergeStyle">
+        <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
             ({{ mergeForm.textAutoMergeButtonTitle }})
@@ -42,7 +42,7 @@
 
     <div v-if="!showActionForm" style="display: flex;">
       <!-- the merge button -->
-      <div class="ui buttons merge-button" :class="[mergeForm.allOverridableChecksOk?'green':'red']" @click="toggleActionForm(true)" >
+      <div class="ui buttons merge-button" :class="mergeButtonStyleClass" @click="toggleActionForm(true)" >
         <button class="ui button">
           <svg-icon name="octicon-git-merge"/>
           <span class="button-text">
@@ -128,6 +128,13 @@ export default {
     showMergeStyleMenu: false,
     showActionForm: false,
   }),
+
+  computed: {
+    mergeButtonStyleClass() {
+      if (this.mergeForm.allOverridableChecksOk) return 'green';
+      return this.autoMergeWhenSucceed ? 'blue' : 'red';
+    }
+  },
 
   watch: {
     mergeStyle(val) {
@@ -220,17 +227,17 @@ export default {
   bottom: -1px;
   position: absolute;
   align-items: center;
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-border);
+  color: var(--color-info-text);
+  background-color: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
   border-left: none;
   padding-right: 1rem;
 }
 
 .auto-merge-small:hover {
-  color: var(--color-warning-text);
-  background-color: var(--color-warning-bg);
-  border: 1px solid var(--color-warning-border);
+  color: var(--color-info-text);
+  background-color: var(--color-info-bg);
+  border: 1px solid var(--color-info-border);
 }
 
 .auto-merge-small:hover .auto-merge-tip {
