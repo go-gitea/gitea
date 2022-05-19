@@ -124,13 +124,15 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 	}
 
 	// Check if the submitted user is already assigned, if yes delete him otherwise add him
-	i := -1
-	for i = 0; i < len(issue.Assignees); i++ {
+	found := false
+	i := 0
+	for ; i < len(issue.Assignees); i++ {
 		if issue.Assignees[i].ID == assigneeID {
+			found = true
 			break
 		}
 	}
-	if i == -1 {
+	if !found {
 		return
 	}
 
