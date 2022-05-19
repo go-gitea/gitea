@@ -165,7 +165,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(ctx, issue.ID)
+		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -453,7 +453,7 @@ func (issue *Issue) getLabels(ctx context.Context) (err error) {
 		return nil
 	}
 
-	issue.Labels, err = getLabelsByIssueID(ctx, issue.ID)
+	issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
 		return fmt.Errorf("getLabelsByIssueID: %v", err)
 	}

@@ -1191,7 +1191,8 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
-func fetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
 	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
 }
 
@@ -1299,11 +1300,6 @@ func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *use
 		Line:     line,
 	}
 	return findCodeComments(ctx, opts, issue, currentUser, nil)
-}
-
-// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(ctx, issue, currentUser)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id

@@ -6,7 +6,6 @@ package issue
 
 import (
 	"context"
-	"fmt"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -47,7 +46,6 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleAssignee(issue *models.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *models.Comment, err error) {
-	fmt.Println("11-----")
 	removed, comment, err = models.ToggleIssueAssignee(issue, doer, assigneeID)
 	if err != nil {
 		return
