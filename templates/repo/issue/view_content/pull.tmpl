@@ -251,8 +251,13 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
+
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+
+				{{$canMergeNow := and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+				{{$canAutoMerge = true}}
+
+				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item">
 							<i class="icon icon-octicon">{{svg "octicon-dot-fill"}}</i>
@@ -277,7 +282,6 @@
 					{{end}}
 				{{end}}
 
-				{{$canAutoMerge = true}}
 				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
 					<div class="ui divider"></div>
 					<div class="item item-section">
@@ -317,8 +321,8 @@
 					</div>
 				{{end}}
 
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-					{{if .AllowMerge}}
+				{{if $canMergeNow}}
+					{{if .AllowMerge}} {{/* user is allowed to merge */}}
 						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 						{{$approvers := .Issue.PullRequest.GetApprovers}}
 						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
@@ -402,27 +406,10 @@
 							<div id="pull-request-merge-form"></div>
 
 							{{if .ShowMergeInstructions}}
-								<div class="instruct-toggle mt-3"> {{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
-								<div class="instruct-content" style="display:none">
-									<div class="ui divider"></div>
-									<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
-									<div class="ui secondary segment">
-										{{if eq .Issue.PullRequest.Flow 0}}
-											<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
-											<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
-										{{else}}
-											<div>git fetch origin {{.Issue.PullRequest.GetGitRefName}}:{{.Issue.PullRequest.HeadBranch}}</div>
-										{{end}}
-									</div>
-									<div><h3 class="di">{{$.i18n.Tr "step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
-									<div class="ui secondary segment">
-										<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
-										<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
-										<div>git push origin {{.Issue.PullRequest.BaseBranch}}</div>
-									</div>
-								</div>
+								{{template "repo/issue/view_content/pull_merge_instruction" (dict "i18n" .i18n "Issue" .Issue)}}
 							{{end}}
 						{{else}}
+							{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 							<div class="ui divider"></div>
 							<div class="item text red">
 								{{svg "octicon-x"}}
@@ -432,15 +419,16 @@
 								{{svg "octicon-info"}}
 								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 							</div>
-						{{end}}
+						{{end}} {{/* end if the repo was set to use any merge style */}}
 					{{else}}
+						{{/* user is not allowed to merge */}}
 						<div class="ui divider"></div>
 						<div class="item">
 							{{svg "octicon-info"}}
 							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
 						</div>
-					{{end}}
-				{{end}}
+					{{end}} {{/* end if user is allowed to merge or not */}}
+				{{end}} {{/* end if IsRepoAdmin or ChecksPassed */}}
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
