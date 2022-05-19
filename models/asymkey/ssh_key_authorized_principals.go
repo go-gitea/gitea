@@ -101,11 +101,6 @@ func rewriteAllPrincipalKeys(ctx context.Context) error {
 	return util.Rename(tmpPath, fPath)
 }
 
-// RegeneratePrincipalKeys regenerates the authorized_principals file
-func RegeneratePrincipalKeys(t io.StringWriter) error {
-	return regeneratePrincipalKeys(db.DefaultContext, t)
-}
-
 func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
 	if err := db.GetEngine(ctx).Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())

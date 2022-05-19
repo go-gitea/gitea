@@ -6,6 +6,7 @@ package issue
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -21,9 +22,10 @@ import (
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
 func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
+	oriAssignes := make([]*user_model.User, len(issue.Assignees), len(issue.Assignees))
+	_ = copy(oriAssignes, issue.Assignees)
 
-	for _, assignee := range issue.Assignees {
-
+	for _, assignee := range oriAssignes {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
@@ -45,6 +47,7 @@ func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assigne
 
 // ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
 func ToggleAssignee(issue *models.Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *models.Comment, err error) {
+	fmt.Println("11-----")
 	removed, comment, err = models.ToggleIssueAssignee(issue, doer, assigneeID)
 	if err != nil {
 		return

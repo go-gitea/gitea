@@ -67,7 +67,8 @@ func (stats LanguageStatList) getLanguagePercentages() map[string]float32 {
 	return langPerc
 }
 
-func getLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, error) {
+// GetLanguageStats returns the language statistics for a repository
+func GetLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, error) {
 	stats := make(LanguageStatList, 0, 6)
 	if err := db.GetEngine(ctx).Where("`repo_id` = ?", repo.ID).Desc("`size`").Find(&stats); err != nil {
 		return nil, err
@@ -75,14 +76,9 @@ func getLanguageStats(ctx context.Context, repo *Repository) (LanguageStatList, 
 	return stats, nil
 }
 
-// GetLanguageStats returns the language statistics for a repository
-func GetLanguageStats(repo *Repository) (LanguageStatList, error) {
-	return getLanguageStats(db.DefaultContext, repo)
-}
-
 // GetTopLanguageStats returns the top language statistics for a repository
 func GetTopLanguageStats(repo *Repository, limit int) (LanguageStatList, error) {
-	stats, err := getLanguageStats(db.DefaultContext, repo)
+	stats, err := GetLanguageStats(db.DefaultContext, repo)
 	if err != nil {
 		return nil, err
 	}
@@ -121,7 +117,7 @@ func UpdateLanguageStats(repo *Repository, commitID string, stats map[string]int
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 
-	oldstats, err := getLanguageStats(ctx, repo)
+	oldstats, err := GetLanguageStats(ctx, repo)
 	if err != nil {
 		return err
 	}

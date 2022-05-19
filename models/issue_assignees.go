@@ -28,12 +28,12 @@ func init() {
 func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*user_model.User{}
+	issue.Assignee = nil
 
 	err = db.GetEngine(ctx).Table("`user`").
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
-
 	if err != nil {
 		return err
 	}
@@ -42,7 +42,6 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	if len(issue.Assignees) > 0 {
 		issue.Assignee = issue.Assignees[0]
 	}
-
 	return
 }
 
@@ -125,18 +124,21 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 	}
 
 	// Check if the submitted user is already assigned, if yes delete him otherwise add him
-	var i int
+	i := -1
 	for i = 0; i < len(issue.Assignees); i++ {
 		if issue.Assignees[i].ID == assigneeID {
 			break
 		}
+	}
+	if i == -1 {
+		return
 	}
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
 
 	toBeDeleted := i < len(issue.Assignees)
 	if toBeDeleted {
-		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
+		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i+1:]...)
 		_, err = db.DeleteByBean(ctx, &assigneeIn)
 		if err != nil {
 			return toBeDeleted, err
