@@ -417,7 +417,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"`user`.`type`=?": user_model.UserTypeOrganization}
+	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
