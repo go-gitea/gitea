@@ -12,7 +12,7 @@
 					<div class="ui divider"></div>
 					{{range .Repos}}
 						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic primary button{{end}}{{end}} repo name item" href="{{$.Link}}?repos=[
 								{{- with $include := true -}}
 										{{- range $.RepoIDs -}}
 											{{- if eq . $Repo.ID -}}
@@ -55,7 +55,7 @@
 								<input type="hidden" name="sort" value="{{$.SortType}}"/>
 								<input type="hidden" name="state" value="{{$.State}}"/>
 								<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+								<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
 							</div>
 						</form>
 					</div>

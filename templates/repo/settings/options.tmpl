@@ -98,7 +98,7 @@
 								<form method="post" style="display: inline-block">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
-									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
 						</tr>
@@ -183,7 +183,7 @@
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
 						</tr>
