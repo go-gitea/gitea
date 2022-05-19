@@ -155,31 +155,26 @@ func toggleUserAssignee(e db.Engine, issue *Issue, assigneeID int64) (removed bo
 	}
 
 	// Check if the submitted user is already assigned, if yes delete him otherwise add him
-	var i int
-	for i = 0; i < len(issue.Assignees); i++ {
+	found := false
+	i := 0
+	for ; i < len(issue.Assignees); i++ {
 		if issue.Assignees[i].ID == assigneeID {
+			found = true
 			break
 		}
 	}
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
 
-	toBeDeleted := i < len(issue.Assignees)
-	if toBeDeleted {
-		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
+	if found {
+		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i+1:]...)
 		_, err = e.Delete(assigneeIn)
-		if err != nil {
-			return toBeDeleted, err
-		}
 	} else {
 		issue.Assignees = append(issue.Assignees, assignee)
 		_, err = e.Insert(assigneeIn)
-		if err != nil {
-			return toBeDeleted, err
-		}
 	}
 
-	return toBeDeleted, nil
+	return found, err
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
