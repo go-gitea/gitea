@@ -150,7 +150,9 @@ func GetPublicKeyByID(keyID int64) (*PublicKey, error) {
 	return key, nil
 }
 
-func searchPublicKeyByContentWithEngine(ctx context.Context, content string) (*PublicKey, error) {
+// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// and returns public key found.
+func SearchPublicKeyByContent(ctx context.Context, content string) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
 		Where("content like ?", content+"%").
@@ -163,13 +165,9 @@ func searchPublicKeyByContentWithEngine(ctx context.Context, content string) (*P
 	return key, nil
 }
 
-// SearchPublicKeyByContent searches content as prefix (leak e-mail part)
+// SearchPublicKeyByContentExact searches content
 // and returns public key found.
-func SearchPublicKeyByContent(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentWithEngine(db.DefaultContext, content)
-}
-
-func searchPublicKeyByContentExactWithEngine(ctx context.Context, content string) (*PublicKey, error) {
+func SearchPublicKeyByContentExact(ctx context.Context, content string) (*PublicKey, error) {
 	key := new(PublicKey)
 	has, err := db.GetEngine(ctx).
 		Where("content = ?", content).
@@ -180,12 +178,6 @@ func searchPublicKeyByContentExactWithEngine(ctx context.Context, content string
 		return nil, ErrKeyNotExist{}
 	}
 	return key, nil
-}
-
-// SearchPublicKeyByContentExact searches content
-// and returns public key found.
-func SearchPublicKeyByContentExact(content string) (*PublicKey, error) {
-	return searchPublicKeyByContentExactWithEngine(db.DefaultContext, content)
 }
 
 // SearchPublicKey returns a list of public keys matching the provided arguments.
@@ -338,7 +330,7 @@ func deleteKeysMarkedForDeletion(keys []string) (bool, error) {
 	// Delete keys marked for deletion
 	var sshKeysNeedUpdate bool
 	for _, KeyToDelete := range keys {
-		key, err := searchPublicKeyByContentWithEngine(ctx, KeyToDelete)
+		key, err := SearchPublicKeyByContent(ctx, KeyToDelete)
 		if err != nil {
 			log.Error("SearchPublicKeyByContent: %v", err)
 			continue

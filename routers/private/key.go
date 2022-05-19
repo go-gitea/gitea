@@ -52,7 +52,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 func AuthorizedPublicKeyByContent(ctx *context.PrivateContext) {
 	content := ctx.FormString("content")
 
-	publicKey, err := asymkey_model.SearchPublicKeyByContent(content)
+	publicKey, err := asymkey_model.SearchPublicKeyByContent(ctx, content)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
