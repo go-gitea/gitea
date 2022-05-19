@@ -25,7 +25,7 @@ import (
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
 	Usage:       "Diagnose and optionally fix problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or the data storage.",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Action:      runDoctor,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
