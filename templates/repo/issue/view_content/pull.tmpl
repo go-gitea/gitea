@@ -357,6 +357,8 @@
 									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
 									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
 								};
+
+								const generalHideAutoMerge = mergeForm.canMergeNow; // if this PR can be merged now, then hide the auto merge
 								mergeForm['mergeStyles'] = [
 									{
 										'name': 'merge',
@@ -364,12 +366,14 @@
 										'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
 										'mergeTitleFieldText': defaultMergeTitle,
 										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
 										'name': 'rebase',
 										'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
 										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
 										'hideMergeMessageTexts': true,
+										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
 										'name': 'rebase-merge',
@@ -377,6 +381,7 @@
 										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
 										'mergeTitleFieldText': defaultMergeTitle,
 										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
 										'name': 'squash',
@@ -384,6 +389,7 @@
 										'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
 										'mergeTitleFieldText': defaultSquashMergeTitle,
 										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
 										'name': 'manually-merged',
