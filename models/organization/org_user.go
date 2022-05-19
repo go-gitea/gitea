@@ -83,7 +83,7 @@ func CanCreateOrgRepo(orgID, uid int64) (bool, error) {
 		Exist(new(Team))
 }
 
-// IsUserOrgOwner returns true if user is in the owner team of given
+// IsUserOrgOwner returns true if user is in the owner team of given organization.
 func IsUserOrgOwner(users user_model.UserList, orgID int64) map[int64]bool {
 	results := make(map[int64]bool, len(users))
 	for _, user := range users {
