@@ -152,7 +152,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 		comment.Assignee = ToUser(c.Assignee, nil)
 	}
 	if c.AssigneeTeam != nil {
-		comment.AssigneeTeam = ToTeam(c.AssigneeTeam)
+		comment.AssigneeTeam, _ = ToTeam(c.AssigneeTeam)
 	}
 
 	if c.ResolveDoer != nil {

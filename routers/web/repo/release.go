@@ -279,7 +279,9 @@ func NewRelease(ctx *context.Context) {
 			}
 
 			ctx.Data["tag_name"] = rel.TagName
-			ctx.Data["tag_target"] = rel.Target
+			if rel.Target != "" {
+				ctx.Data["tag_target"] = rel.Target
+			}
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
 			ctx.Data["attachments"] = rel.Attachments

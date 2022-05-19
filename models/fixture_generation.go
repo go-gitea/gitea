@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 )
 
@@ -22,14 +23,14 @@ func GetYamlFixturesAccess() (string, error) {
 
 	for _, repo := range repos {
 		repo.MustOwner()
-		if err := RecalculateAccesses(repo); err != nil {
+		if err := access_model.RecalculateAccesses(db.DefaultContext, repo); err != nil {
 			return "", err
 		}
 	}
 
 	var b strings.Builder
 
-	accesses := make([]*Access, 0, 200)
+	accesses := make([]*access_model.Access, 0, 200)
 	if err := db.GetEngine(db.DefaultContext).OrderBy("user_id, repo_id").Find(&accesses); err != nil {
 		return "", err
 	}

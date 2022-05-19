@@ -19,6 +19,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -489,7 +490,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 		return err
 	}
 
-	perm, err := GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -1348,9 +1349,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if opts.User != nil {
-		sess.And(
-			issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()),
-		)
+		sess.And(issuePullAccessibleRepoCond("issue.repo_id", opts.User.ID, opts.Org, opts.Team, opts.IsPull.IsTrue()))
 	}
 }
 
@@ -1462,6 +1461,7 @@ func Issues(opts *IssuesOptions) ([]*Issue, error) {
 
 	sess := e.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionWithLimit(sess)
+
 	sortIssuesSession(sess, opts.SortType, opts.PriorityRepoID)
 
 	issues := make([]*Issue, 0, opts.ListOptions.PageSize)
@@ -1483,6 +1483,7 @@ func CountIssues(opts *IssuesOptions) (int64, error) {
 	sess := e.Select("COUNT(issue.id) AS count").Table("issue")
 	sess.Join("INNER", "repository", "`issue`.repo_id = `repository`.id")
 	opts.setupSessionNoLimit(sess)
+
 	return sess.Count()
 }
 
@@ -2314,7 +2315,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 			continue
 		}
 		// Normal users must have read access to the referencing issue
-		perm, err := GetUserRepoPermission(ctx, issue.Repo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission [%d]: %v", user.ID, err)
 		}

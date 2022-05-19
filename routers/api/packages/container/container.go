@@ -113,7 +113,6 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil {
 		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token"`)
-		ctx.Resp.Header().Add("WWW-Authenticate", `Basic`)
 		apiErrorDefined(ctx, errUnauthorized)
 	}
 }

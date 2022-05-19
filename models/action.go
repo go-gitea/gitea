@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -340,7 +341,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	}
 
 	e := db.GetEngine(ctx)
-	sess := e.Where(cond).Join("INNER", "repository", "`repository`.id = `action`.repo_id")
+	sess := e.Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
@@ -508,7 +511,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 					permPR[i] = false
 					continue
 				}
-				perm, err := GetUserRepoPermission(ctx, repo, user)
+				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -33,7 +34,7 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 
 	t.NumRepos++
 
-	if err = recalculateTeamAccesses(ctx, repo, 0); err != nil {
+	if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
@@ -62,7 +63,7 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 	}
 
 	for _, repo := range orgRepos {
-		if !hasRepository(ctx, t, repo.ID) {
+		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 			if err := addRepository(ctx, t, &repo); err != nil {
 				return fmt.Errorf("addRepository: %v", err)
 			}
@@ -108,11 +109,6 @@ func AddRepository(t *organization.Team, repo *repo_model.Repository) (err error
 	return committer.Commit()
 }
 
-// HasRepository returns true if given repository belong to team.
-func HasRepository(t *organization.Team, repoID int64) bool {
-	return hasRepository(db.DefaultContext, t, repoID)
-}
-
 // RemoveAllRepositories removes all repositories from team and recalculates access
 func RemoveAllRepositories(t *organization.Team) (err error) {
 	if t.IncludesAllRepositories {
@@ -138,13 +134,13 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 	e := db.GetEngine(ctx)
 	// Delete all accesses.
 	for _, repo := range t.Repos {
-		if err := recalculateTeamAccesses(ctx, repo, t.ID); err != nil {
+		if err := access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
 			return err
 		}
 
 		// Remove watches from all users and now unaccessible repos
 		for _, user := range t.Members {
-			has, err := hasAccess(ctx, user.ID, repo)
+			has, err := access_model.HasAccess(ctx, user.ID, repo)
 			if err != nil {
 				return err
 			} else if has {
@@ -177,8 +173,9 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 	return nil
 }
 
-func hasRepository(ctx context.Context, t *organization.Team, repoID int64) bool {
-	return organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID)
+// HasRepository returns true if given repository belong to team.
+func HasRepository(t *organization.Team, repoID int64) bool {
+	return organization.HasTeamRepo(db.DefaultContext, t.OrgID, t.ID, repoID)
 }
 
 // removeRepository removes a repository from a team and recalculates access
@@ -196,7 +193,7 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 
 	// Don't need to recalculate when delete a repository from organization.
 	if recalculate {
-		if err = recalculateTeamAccesses(ctx, repo, t.ID); err != nil {
+		if err = access_model.RecalculateTeamAccesses(ctx, repo, t.ID); err != nil {
 			return err
 		}
 	}
@@ -206,7 +203,7 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 		return fmt.Errorf("getTeamUsersByTeamID: %v", err)
 	}
 	for _, teamUser := range teamUsers {
-		has, err := hasAccess(ctx, teamUser.UID, repo)
+		has, err := access_model.HasAccess(ctx, teamUser.UID, repo)
 		if err != nil {
 			return err
 		} else if has {
@@ -378,7 +375,7 @@ func UpdateTeam(t *organization.Team, authChanged, includeAllChanged bool) (err 
 		}
 
 		for _, repo := range t.Repos {
-			if err = recalculateTeamAccesses(ctx, repo, 0); err != nil {
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
 		}
@@ -499,6 +496,12 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 	}
 	defer committer.Close()
 
+	// check in transaction
+	isAlreadyMember, err = organization.IsTeamMember(ctx, team.OrgID, team.ID, userID)
+	if err != nil || isAlreadyMember {
+		return err
+	}
+
 	sess := db.GetEngine(ctx)
 
 	if err := db.Insert(ctx, &organization.TeamUser{
@@ -522,7 +525,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		In("repo_id", subQuery).
 		And("mode < ?", team.AccessMode).
 		SetExpr("mode", team.AccessMode).
-		Update(new(Access)); err != nil {
+		Update(new(access_model.Access)); err != nil {
 		return fmt.Errorf("update user accesses: %v", err)
 	}
 
@@ -533,9 +536,9 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		return fmt.Errorf("select id accesses: %v", err)
 	}
 
-	accesses := make([]*Access, 0, 100)
+	accesses := make([]*access_model.Access, 0, 100)
 	for i, repoID := range repoIDs {
-		accesses = append(accesses, &Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
+		accesses = append(accesses, &access_model.Access{RepoID: repoID, UserID: userID, Mode: team.AccessMode})
 		if (i%100 == 0 || i == len(repoIDs)-1) && len(accesses) > 0 {
 			if err = db.Insert(ctx, accesses); err != nil {
 				return fmt.Errorf("insert new user accesses: %v", err)
@@ -595,7 +598,7 @@ func removeTeamMember(ctx context.Context, team *organization.Team, userID int64
 
 	// Delete access to team repositories.
 	for _, repo := range team.Repos {
-		if err := recalculateUserAccess(ctx, repo, userID); err != nil {
+		if err := access_model.RecalculateUserAccess(ctx, repo, userID); err != nil {
 			return err
 		}
 

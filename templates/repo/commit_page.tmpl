@@ -17,8 +17,8 @@
 				{{$class = (printf "%s%s" $class " isWarning")}}
 			{{end}}
 		{{end}}
-		<div class="ui top attached header clearing segment pr {{$class}}">
-			<div class="df mb-4">
+		<div class="ui top attached header clearing segment pr commit-header {{$class}}">
+			<div class="df mb-4 fw">
 				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="ui">
@@ -143,8 +143,8 @@
 				<span class="text grey mr-3">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</span>
 			{{end}}
 		</div>
-		<div class="ui attached segment df ac sb py-2 commit-header-row {{$class}}">
-				<div class="df ac">
+		<div class="ui attached segment df ac sb py-2 commit-header-row fw {{$class}}">
+				<div class="df ac author">
 					{{if .Author}}
 						{{avatar .Author 28 "mr-3"}}
 						{{if .Author.FullName}}
@@ -171,9 +171,7 @@
 				<div class="ui horizontal list df ac">
 					{{if .Parents}}
 						<div class="item">
-							{{.i18n.Tr "repo.diff.parent"}}
-						</div>
-						<div class="item">
+							<span>{{.i18n.Tr "repo.diff.parent"}}</span>
 							{{range .Parents}}
 								{{if $.PageIsWiki}}
 									<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
@@ -183,13 +181,14 @@
 							{{end}}
 						</div>
 					{{end}}
-					<div class="mobile-only"></div>
-					<div class="item">{{.i18n.Tr "repo.diff.commit"}}</div>
-					<div class="item"><span class="ui blue sha label">{{ShortSha .CommitID}}</span></div>
+					<div class="item">
+						<span>{{.i18n.Tr "repo.diff.commit"}}</span>
+						<span class="ui blue sha label">{{ShortSha .CommitID}}</span>
+					</div>
 				</div>
 		</div>
 		{{if .Commit.Signature}}
-			<div class="ui bottom attached message tl df ac sb commit-header-row {{$class}}">
+			<div class="ui bottom attached message tl df ac sb commit-header-row fw {{$class}}">
 				<div class="df ac">
 					{{if .Verification.Verified}}
 						{{if ne .Verification.SigningUser.ID 0}}
@@ -204,8 +203,8 @@
 							{{avatar .Verification.SigningUser 28}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
-							<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog"}}</span>
-							<span class="ui text">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+							<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>
+							<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
 							{{avatarByEmail .Verification.SigningEmail "" 28}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}

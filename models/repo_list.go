@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -40,6 +41,15 @@ func (repos RepositoryList) Less(i, j int) bool {
 
 func (repos RepositoryList) Swap(i, j int) {
 	repos[i], repos[j] = repos[j], repos[i]
+}
+
+// FIXME: Remove in favor of maps.values when MIN_GO_VERSION >= 1.18
+func valuesRepository(m map[int64]*repo_model.Repository) []*repo_model.Repository {
+	values := make([]*repo_model.Repository, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
 }
 
 // RepositoryListOfMap make list from values of map
@@ -237,11 +247,26 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 			builder.Eq{
 				"team_id": teamID,
 			}.And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_user").Where(
-						builder.Eq{
+				builder.Or(
+					// Check if the user is member of the team.
+					builder.In(
+						"team_id", builder.Select("team_id").From("team_user").Where(
+							builder.Eq{
+								"uid": userID,
+							},
+						),
+					),
+					// Check if the user is in the owner team of the organisation.
+					builder.Exists(builder.Select("team_id").From("team_user").
+						Where(builder.Eq{
+							"org_id": orgID,
+							"team_id": builder.Select("id").From("team").Where(
+								builder.Eq{
+									"org_id":     orgID,
+									"lower_name": strings.ToLower(organization.OwnerTeamName),
+								}),
 							"uid": userID,
-						},
+						}),
 					),
 				)).And(
 				builder.In(

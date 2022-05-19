@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -215,7 +216,7 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}
@@ -294,8 +295,9 @@ func CommentTypeIsRef(t CommentType) bool {
 
 // RefCommentHTMLURL returns the HTML URL for the comment that created this reference
 func (comment *Comment) RefCommentHTMLURL() string {
+	// Edge case for when the reference is inside the title or the description of the referring issue
 	if comment.RefCommentID == 0 {
-		return ""
+		return comment.RefIssueHTMLURL()
 	}
 	if err := comment.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefComment(%d): %v", comment.RefCommentID, err)
