@@ -458,6 +458,15 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			likes := builder.NewCond()
 			for _, v := range strings.Split(opts.Keyword, ",") {
 				likes = likes.Or(builder.Like{"lower_name", strings.ToLower(v)})
+
+				// If the string looks like "org/repo", match against that pattern too
+				if opts.TeamID == 0 && strings.Count(opts.Keyword, "/") == 1 {
+					var pieces = strings.Split(opts.Keyword, "/")
+					var ownerName = pieces[0]
+					var repoName = pieces[1]
+					likes = likes.Or(builder.And(builder.Like{"owner_name", strings.ToLower(ownerName)}, builder.Like{"lower_name", strings.ToLower(repoName)}))
+				}
+
 				if opts.IncludeDescription {
 					likes = likes.Or(builder.Like{"LOWER(description)", strings.ToLower(v)})
 				}
