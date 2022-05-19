@@ -207,7 +207,7 @@ func init() {
 		Priority:  6,
 	})
 	Register(&Check{
-		Title:     "Enable push options",
+		Title:     "Check that all git repositories have receive.advertisePushOptions set to true",
 		Name:      "enable-push-options",
 		IsDefault: false,
 		Run:       checkEnablePushOptions,
