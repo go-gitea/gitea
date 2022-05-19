@@ -71,10 +71,25 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
-  --color-black: #1b1c1d;
   --color-gold: #a1882b;
+  /* color variants */
+  --color-red-light: #e45e5e;
+  --color-orange-light: #f59555;
+  --color-yellow-light: #fcce46;
+  --color-olive-light: #d3e942;
+  --color-green-light: #46de6a;
+  --color-teal-light: #08fff4;
+  --color-blue-light: #51a5e3;
+  --color-violet-light: #8b67d7;
+  --color-purple-light: #bb64d8;
+  --color-pink-light: #e86bb1;
+  --color-brown-light: #c58b66;
+  --color-grey-light: #989898;
+  --color-black-light: #525558;
+  --color-gold-light: #cfb34a;
+  /* other colors */
+  --color-black: #1b1c1d;
   --color-white: #ffffff;
-  --color-blue-dark: #3876b3;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
   --color-diff-removed-row-bg: #ffeef0;
@@ -888,7 +903,7 @@ a.ui.card:hover,
         color: inherit !important;
 
         &:hover {
-          color: #e67777 !important;
+          color: var(--color-red-light) !important;
         }
       }
     }
@@ -900,7 +915,7 @@ a.ui.card:hover,
         color: inherit !important;
 
         &:hover {
-          color: var(--color-blue-dark) !important;
+          color: var(--color-blue-light) !important;
         }
       }
     }
@@ -1083,7 +1098,7 @@ a.ui.card:hover,
     }
 
     &.black {
-      background-color: #444444;
+      background-color: var(--color-black) !important;
     }
 
     &.grey {
@@ -1138,7 +1153,7 @@ a.ui.card:hover,
     }
 
     &.black {
-      border-color: #444444;
+      border-color: var(--color-black) !important;
     }
 
     &.grey {
