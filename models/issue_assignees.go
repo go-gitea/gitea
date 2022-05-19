@@ -25,12 +25,7 @@ func init() {
 }
 
 // LoadAssignees load assignees of this issue.
-func (issue *Issue) LoadAssignees() error {
-	return issue.loadAssignees(db.DefaultContext)
-}
-
-// This loads all assignees of an issue
-func (issue *Issue) loadAssignees(ctx context.Context) (err error) {
+func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	// Reset maybe preexisting assignees
 	issue.Assignees = []*user_model.User{}
 
@@ -63,33 +58,9 @@ func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 		Find(&userIDs)
 }
 
-// GetAssigneesByIssue returns everyone assigned to that issue
-func GetAssigneesByIssue(issue *Issue) (assignees []*user_model.User, err error) {
-	return getAssigneesByIssue(db.DefaultContext, issue)
-}
-
-func getAssigneesByIssue(ctx context.Context, issue *Issue) (assignees []*user_model.User, err error) {
-	err = issue.loadAssignees(ctx)
-	if err != nil {
-		return assignees, err
-	}
-
-	return issue.Assignees, nil
-}
-
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
-func IsUserAssignedToIssue(issue *Issue, user *user_model.User) (isAssigned bool, err error) {
-	return isUserAssignedToIssue(db.DefaultContext, issue, user)
-}
-
-func isUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
+func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
 	return db.GetByBean(ctx, &IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
-}
-
-// ClearAssigneeByUserID deletes all assignments of an user
-func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
-	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
-	return
 }
 
 // ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.

@@ -321,7 +321,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadAssignees(ctx); err != nil {
+	if err = issue.LoadAssignees(ctx); err != nil {
 		return
 	}
 

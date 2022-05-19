@@ -739,26 +739,27 @@ func (repo *Repository) TemplateRepo() *Repository {
 	return repo
 }
 
-func countRepositories(userID int64, private bool) int64 {
-	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
-
-	if userID > 0 {
-		sess.And("owner_id = ?", userID)
-	}
-	if !private {
-		sess.And("is_private=?", false)
-	}
-
-	count, err := sess.Count(new(Repository))
-	if err != nil {
-		log.Error("countRepositories: %v", err)
-	}
-	return count
+type CountRepositoryOptions struct {
+	OwnerID int64
+	Private util.OptionalBool
 }
 
 // CountRepositories returns number of repositories.
 // Argument private only takes effect when it is false,
 // set it true to count all repositories.
-func CountRepositories(private bool) int64 {
-	return countRepositories(-1, private)
+func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where("id > 0")
+
+	if opts.OwnerID > 0 {
+		sess.And("owner_id = ?", opts.OwnerID)
+	}
+	if !opts.Private.IsNone() {
+		sess.And("is_private=?", opts.Private.IsTrue())
+	}
+
+	count, err := sess.Count(new(Repository))
+	if err != nil {
+		return 0, fmt.Errorf("countRepositories: %v", err)
+	}
+	return count, nil
 }

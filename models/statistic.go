@@ -53,7 +53,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.User = user_model.CountUsers(nil)
 	stats.Counter.Org = organization.CountOrganizations()
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
-	stats.Counter.Repo = repo_model.CountRepositories(true)
+	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
 	stats.Counter.Action, _ = e.Count(new(Action))

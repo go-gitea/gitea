@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -25,7 +26,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := models.IsUserAssignedToIssue(issue, user1)
+	isAssigned, err := models.IsUserAssignedToIssue(db.DefaultContext, issue, user1)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 
@@ -34,7 +35,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check they're gone
-	assignees, err := models.GetAssigneesByIssue(issue)
+	err = issue.LoadAssignees(db.DefaultContext)
 	assert.NoError(t, err)
-	assert.Empty(t, assignees)
+	assert.Empty(t, issue.Assignee)
 }

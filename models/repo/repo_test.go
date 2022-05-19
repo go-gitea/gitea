@@ -9,17 +9,24 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
-	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
+)
+
+var (
+	countRepospts        = CountRepositoryOptions{OwnerID: 10}
+	countReposptsPublic  = CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolFalse}
+	countReposptsPrivate = CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolTrue}
 )
 
 func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err1 := GetRepositoryCount(db.DefaultContext, 10)
-	privateCount, err2 := GetPrivateRepositoryCount(&user_model.User{ID: int64(10)})
-	publicCount, err3 := GetPublicRepositoryCount(&user_model.User{ID: int64(10)})
+	ctx := db.DefaultContext
+	count, err1 := CountRepositories(ctx, countRepospts)
+	privateCount, err2 := CountRepositories(ctx, countReposptsPrivate)
+	publicCount, err3 := CountRepositories(ctx, countReposptsPublic)
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 	assert.NoError(t, err3)
@@ -30,7 +37,7 @@ func TestGetRepositoryCount(t *testing.T) {
 func TestGetPublicRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := GetPublicRepositoryCount(&user_model.User{ID: int64(10)})
+	count, err := CountRepositories(db.DefaultContext, countReposptsPublic)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
@@ -38,7 +45,7 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := GetPrivateRepositoryCount(&user_model.User{ID: int64(10)})
+	count, err := CountRepositories(db.DefaultContext, countReposptsPrivate)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }

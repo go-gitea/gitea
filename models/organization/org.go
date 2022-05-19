@@ -454,17 +454,6 @@ func CountOrgs(opts FindOrgOptions) (int64, error) {
 		Count(new(user_model.User))
 }
 
-func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	return orgs, sess.
-		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
-		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where("`team_user`.uid=?", userID).
-		And("`team`.authorize=?", perm.AccessModeOwner).
-		Asc("`user`.name").
-		Find(&orgs)
-}
-
 // HasOrgOrUserVisible tells if the given user can see the given org or user
 func HasOrgOrUserVisible(ctx context.Context, orgOrUser, user *user_model.User) bool {
 	// Not SignedUser
@@ -494,17 +483,6 @@ func HasOrgsVisible(orgs []*Organization, user *user_model.User) bool {
 		}
 	}
 	return false
-}
-
-// GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
-func GetOwnedOrgsByUserID(userID int64) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-// GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
-// given user ID, ordered descending by the given condition.
-func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext).Desc(desc), userID)
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID

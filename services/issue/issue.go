@@ -164,7 +164,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 	}
 
 	// Check if the user is already assigned
-	isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
+	isAssigned, err := models.IsUserAssignedToIssue(db.DefaultContext, issue, assignee)
 	if err != nil {
 		return err
 	}
