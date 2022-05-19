@@ -87,7 +87,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		IssueID:     pr.IssueID,
 	}
 
-	allReviews, err := models.FindReviews(opts)
+	allReviews, err := models.FindReviews(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -536,7 +536,7 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 		return nil, nil, true
 	}
 
-	review, err := models.GetReviewByID(ctx.ParamsInt64(":id"))
+	review, err := models.GetReviewByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrReviewNotExist(err) {
 			ctx.NotFound("GetReviewByID", err)
@@ -892,7 +892,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 		return
 	}
 
-	if review, err = models.GetReviewByID(review.ID); err != nil {
+	if review, err = models.GetReviewByID(ctx, review.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
 		return
 	}

@@ -28,16 +28,16 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_, exists, err := GetIssueWatch(9, 1)
+	_, exists, err := GetIssueWatch(db.DefaultContext, 9, 1)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 
-	iw, exists, err := GetIssueWatch(2, 2)
+	iw, exists, err := GetIssueWatch(db.DefaultContext, 2, 2)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 	assert.False(t, iw.IsWatching)
 
-	_, exists, err = GetIssueWatch(3, 1)
+	_, exists, err = GetIssueWatch(db.DefaultContext, 3, 1)
 	assert.False(t, exists)
 	assert.NoError(t, err)
 }

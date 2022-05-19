@@ -99,6 +99,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
+	_ = m.GetRepository()
+
 	m.LastError = ""
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing PushMirror %s/%s to %s", m.Repo.OwnerName, m.Repo.Name, m.RemoteName))

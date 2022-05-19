@@ -32,7 +32,7 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := getIssueWatch(db.DefaultContext, userID, issueID)
+	iw, exists, err := GetIssueWatch(db.DefaultContext, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -59,12 +59,7 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
 // the current Web-UI need iw object for watchers AND explicit non-watchers
-func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
-	return getIssueWatch(db.DefaultContext, userID, issueID)
-}
-
-// Return watcher AND explicit non-watcher if entry in db exist
-func getIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
+func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
 	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
@@ -76,7 +71,7 @@ func getIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, 
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
 func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
-	iw, exist, err := getIssueWatch(db.DefaultContext, user.ID, issue.ID)
+	iw, exist, err := GetIssueWatch(db.DefaultContext, user.ID, issue.ID)
 	if err != nil {
 		return false, err
 	}

@@ -1277,7 +1277,7 @@ func ViewIssue(ctx *context.Context) {
 	if issue.IsPull {
 		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
 		if !canChooseReviewer && ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer, err = models.IsOfficialReviewer(issue, ctx.Doer)
+			canChooseReviewer, err = models.IsOfficialReviewer(ctx, issue, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("IsOfficialReviewer", err)
 				return
@@ -1312,7 +1312,7 @@ func ViewIssue(ctx *context.Context) {
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
 				var sw *models.Stopwatch
-				if exists, sw, err = models.HasUserStopwatch(ctx.Doer.ID); err != nil {
+				if exists, sw, err = models.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
@@ -1767,7 +1767,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		}
 		issueIDs = append(issueIDs, issueID)
 	}
-	issues, err := models.GetIssuesByIDs(issueIDs)
+	issues, err := models.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil

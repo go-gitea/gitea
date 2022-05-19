@@ -622,7 +622,7 @@ func MoveIssues(ctx *context.Context) {
 		issueIDs = append(issueIDs, issue.IssueID)
 		sortedIssueIDs[issue.Sorting] = issue.IssueID
 	}
-	movedIssues, err := models.GetIssuesByIDs(issueIDs)
+	movedIssues, err := models.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		if models.IsErrIssueNotExist(err) {
 			ctx.NotFound("IssueNotExisting", nil)

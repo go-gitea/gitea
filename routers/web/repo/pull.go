@@ -767,7 +767,7 @@ func ViewPullFiles(ctx *context.Context) {
 		return
 	}
 
-	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
+	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return

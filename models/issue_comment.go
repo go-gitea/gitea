@@ -663,7 +663,7 @@ func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
 
 func (c *Comment) loadReview(ctx context.Context) (err error) {
 	if c.Review == nil {
-		if c.Review, err = getReviewByID(ctx, c.ReviewID); err != nil {
+		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
 			return err
 		}
 	}

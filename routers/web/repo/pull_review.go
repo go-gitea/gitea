@@ -31,7 +31,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
+	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return

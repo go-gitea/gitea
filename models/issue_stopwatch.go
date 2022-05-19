@@ -125,11 +125,7 @@ func StopwatchExists(userID, issueID int64) bool {
 }
 
 // HasUserStopwatch returns true if the user has a stopwatch
-func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
-	return hasUserStopwatch(db.DefaultContext, userID)
-}
-
-func hasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
+func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
 	sw = new(Stopwatch)
 	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
@@ -214,7 +210,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}
 
 	// if another stopwatch is running: stop it
-	exists, sw, err := hasUserStopwatch(ctx, user.ID)
+	exists, sw, err := HasUserStopwatch(ctx, user.ID)
 	if err != nil {
 		return err
 	}

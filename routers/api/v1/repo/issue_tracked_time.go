@@ -128,7 +128,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -439,7 +439,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -547,7 +547,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -609,7 +609,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return

@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -32,7 +33,7 @@ func TestNotificationsForUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	statuses := []NotificationStatus{NotificationStatusRead, NotificationStatusUnread}
-	notfs, err := NotificationsForUser(user, statuses, 1, 10)
+	notfs, err := NotificationsForUser(db.DefaultContext, user, statuses, 1, 10)
 	assert.NoError(t, err)
 	if assert.Len(t, notfs, 3) {
 		assert.EqualValues(t, 5, notfs[0].ID)

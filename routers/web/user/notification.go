@@ -93,7 +93,7 @@ func getNotifications(c *context.Context) {
 	}
 
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
-	notifications, err := models.NotificationsForUser(c.Doer, statuses, page, perPage)
+	notifications, err := models.NotificationsForUser(c, c.Doer, statuses, page, perPage)
 	if err != nil {
 		c.ServerError("ErrNotificationsForUser", err)
 		return
@@ -195,5 +195,5 @@ func NotificationPurgePost(c *context.Context) {
 
 // NewAvailable returns the notification counts
 func NewAvailable(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx.Doer)})
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx, ctx.Doer.ID)})
 }

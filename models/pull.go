@@ -291,7 +291,7 @@ func (pr *PullRequest) getReviewedByLines(writer io.Writer) error {
 	defer committer.Close()
 
 	// Note: This doesn't page as we only expect a very limited number of reviews
-	reviews, err := findReviews(ctx, FindReviewOptions{
+	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Type:         ReviewTypeApprove,
 		IssueID:      pr.IssueID,
 		OfficialOnly: setting.Repository.PullRequest.DefaultMergeMessageOfficialApproversOnly,

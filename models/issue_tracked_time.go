@@ -127,14 +127,10 @@ func (opts *FindTrackedTimesOptions) toSession(e db.Engine) db.Engine {
 	return sess
 }
 
-func getTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
+// GetTrackedTimes returns all tracked times that fit to the given options.
+func GetTrackedTimes(ctx context.Context, options *FindTrackedTimesOptions) (trackedTimes TrackedTimeList, err error) {
 	err = options.toSession(db.GetEngine(ctx)).Find(&trackedTimes)
 	return
-}
-
-// GetTrackedTimes returns all tracked times that fit to the given options.
-func GetTrackedTimes(opts *FindTrackedTimesOptions) (TrackedTimeList, error) {
-	return getTrackedTimes(db.DefaultContext, opts)
 }
 
 // CountTrackedTimes returns count of tracked times that fit to the given options.
@@ -146,13 +142,9 @@ func CountTrackedTimes(opts *FindTrackedTimesOptions) (int64, error) {
 	return sess.Count(&TrackedTime{})
 }
 
-func getTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
-	return opts.toSession(db.GetEngine(ctx)).SumInt(&TrackedTime{}, "time")
-}
-
 // GetTrackedSeconds return sum of seconds
-func GetTrackedSeconds(opts FindTrackedTimesOptions) (int64, error) {
-	return getTrackedSeconds(db.DefaultContext, opts)
+func GetTrackedSeconds(ctx context.Context, opts FindTrackedTimesOptions) (trackedSeconds int64, err error) {
+	return opts.toSession(db.GetEngine(ctx)).SumInt(&TrackedTime{}, "time")
 }
 
 // AddTime will add the given time (in seconds) to the issue
@@ -201,7 +193,7 @@ func addTime(ctx context.Context, user *user_model.User, issue *Issue, amount in
 
 // TotalTimes returns the spent time for each user by an issue
 func TotalTimes(options *FindTrackedTimesOptions) (map[*user_model.User]string, error) {
-	trackedTimes, err := GetTrackedTimes(options)
+	trackedTimes, err := GetTrackedTimes(db.DefaultContext, options)
 	if err != nil {
 		return nil, err
 	}
@@ -293,7 +285,7 @@ func DeleteTime(t *TrackedTime) error {
 }
 
 func deleteTimes(ctx context.Context, opts FindTrackedTimesOptions) (removedTime int64, err error) {
-	removedTime, err = getTrackedSeconds(ctx, opts)
+	removedTime, err = GetTrackedSeconds(ctx, opts)
 	if err != nil || removedTime == 0 {
 		return
 	}

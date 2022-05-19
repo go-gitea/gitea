@@ -127,14 +127,10 @@ func (opts *FindNotificationOptions) ToSession(ctx context.Context) *xorm.Sessio
 	return sess
 }
 
-func getNotifications(ctx context.Context, options *FindNotificationOptions) (nl NotificationList, err error) {
+// GetNotifications returns all notifications that fit to the given options.
+func GetNotifications(ctx context.Context, options *FindNotificationOptions) (nl NotificationList, err error) {
 	err = options.ToSession(ctx).OrderBy("notification.updated_unix DESC").Find(&nl)
 	return
-}
-
-// GetNotifications returns all notifications that fit to the given options.
-func GetNotifications(opts *FindNotificationOptions) (NotificationList, error) {
-	return getNotifications(db.DefaultContext, opts)
 }
 
 // CountNotifications count all notifications that fit to the given options and ignore pagination.
@@ -358,11 +354,7 @@ func getIssueNotification(ctx context.Context, userID, issueID int64) (*Notifica
 }
 
 // NotificationsForUser returns notifications for a given user and status
-func NotificationsForUser(user *user_model.User, statuses []NotificationStatus, page, perPage int) (NotificationList, error) {
-	return notificationsForUser(db.DefaultContext, user, statuses, page, perPage)
-}
-
-func notificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications []*Notification, err error) {
+func NotificationsForUser(ctx context.Context, user *user_model.User, statuses []NotificationStatus, page, perPage int) (notifications NotificationList, err error) {
 	if len(statuses) == 0 {
 		return
 	}
@@ -381,11 +373,7 @@ func notificationsForUser(ctx context.Context, user *user_model.User, statuses [
 }
 
 // CountUnread count unread notifications for a user
-func CountUnread(user *user_model.User) int64 {
-	return countUnread(db.DefaultContext, user.ID)
-}
-
-func countUnread(ctx context.Context, userID int64) int64 {
+func CountUnread(ctx context.Context, userID int64) int64 {
 	exist, err := db.GetEngine(ctx).Where("user_id = ?", userID).And("status = ?", NotificationStatusUnread).Count(new(Notification))
 	if err != nil {
 		log.Error("countUnread", err)

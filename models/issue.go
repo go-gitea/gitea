@@ -1142,25 +1142,17 @@ func GetIssueByID(id int64) (*Issue, error) {
 	return getIssueByID(db.DefaultContext, id)
 }
 
-func getIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+// GetIssuesByIDs return issues with the given IDs.
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
 	issues := make([]*Issue, 0, 10)
 	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
 }
 
-func getIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
 	ids := make([]int64, 0, 10)
 	err := db.GetEngine(ctx).Table("issue").Cols("id").Where("repo_id = ?", repoID).Find(&ids)
 	return ids, err
-}
-
-// GetIssueIDsByRepoID returns all issue ids by repo id
-func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
-	return getIssueIDsByRepoID(db.DefaultContext, repoID)
-}
-
-// GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
-	return getIssuesByIDs(db.DefaultContext, issueIDs)
 }
 
 // IssuesOptions represents options of an issue.

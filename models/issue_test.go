@@ -52,7 +52,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 func Test_GetIssueIDsByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ids, err := GetIssueIDsByRepoID(1)
+	ids, err := GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, ids, 5)
 }
@@ -69,7 +69,7 @@ func TestIssueAPIURL(t *testing.T) {
 func TestGetIssuesByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
-		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
+		issues, err := GetIssuesByIDs(db.DefaultContext, append(expectedIssueIDs, nonExistentIssueIDs...))
 		assert.NoError(t, err)
 		actualIssueIDs := make([]int64, len(issues))
 		for i, issue := range issues {
@@ -419,7 +419,7 @@ func TestIssue_InsertIssue(t *testing.T) {
 func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issueIDs, err := GetIssueIDsByRepoID(1)
+	issueIDs, err := GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, len(issueIDs))
 
@@ -430,7 +430,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	err = DeleteIssue(issue)
 	assert.NoError(t, err)
-	issueIDs, err = GetIssueIDsByRepoID(1)
+	issueIDs, err = GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, len(issueIDs))
 
