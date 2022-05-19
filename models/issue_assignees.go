@@ -132,27 +132,22 @@ func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (re
 			break
 		}
 	}
-	if !found {
-		return
-	}
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
-
-	toBeDeleted := i < len(issue.Assignees)
-	if toBeDeleted {
+	if found {
 		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i+1:]...)
 		_, err = db.DeleteByBean(ctx, &assigneeIn)
 		if err != nil {
-			return toBeDeleted, err
+			return found, err
 		}
 	} else {
 		issue.Assignees = append(issue.Assignees, assignee)
 		if err = db.Insert(ctx, &assigneeIn); err != nil {
-			return toBeDeleted, err
+			return found, err
 		}
 	}
 
-	return toBeDeleted, nil
+	return found, nil
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
