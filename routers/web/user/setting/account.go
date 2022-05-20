@@ -181,7 +181,7 @@ func EmailPost(ctx *context.Context) {
 		Email:       form.Email,
 		IsActivated: !setting.Service.RegisterEmailConfirm,
 	}
-	if err := user_model.AddEmailAddress(email); err != nil {
+	if err := user_model.AddEmailAddress(ctx, email); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 

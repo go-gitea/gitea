@@ -198,16 +198,16 @@ func parseGPGKey(ownerID int64, e *openpgp.Entity, verified bool) (*GPGKey, erro
 }
 
 // deleteGPGKey does the actual key deletion
-func deleteGPGKey(e db.Engine, keyID string) (int64, error) {
+func deleteGPGKey(ctx context.Context, keyID string) (int64, error) {
 	if keyID == "" {
 		return 0, fmt.Errorf("empty KeyId forbidden") // Should never happen but just to be sure
 	}
 	// Delete imported key
-	n, err := e.Where("key_id=?", keyID).Delete(new(GPGKeyImport))
+	n, err := db.GetEngine(ctx).Where("key_id=?", keyID).Delete(new(GPGKeyImport))
 	if err != nil {
 		return n, err
 	}
-	return e.Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
+	return db.GetEngine(ctx).Where("key_id=?", keyID).Or("primary_key_id=?", keyID).Delete(new(GPGKey))
 }
 
 // DeleteGPGKey deletes GPG key information in database.
@@ -231,7 +231,7 @@ func DeleteGPGKey(doer *user_model.User, id int64) (err error) {
 	}
 	defer committer.Close()
 
-	if _, err = deleteGPGKey(db.GetEngine(ctx), key.KeyID); err != nil {
+	if _, err = deleteGPGKey(ctx, key.KeyID); err != nil {
 		return err
 	}
 

@@ -4,13 +4,13 @@
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
-	<link rel="manifest" href="data:{{.ManifestData}}"/>
+	<link rel="manifest" href="data:{{.ManifestData}}">
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
-	<meta name="default-theme" content="{{DefaultTheme}}" />
-	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}" />
-	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}" />
+	<meta name="default-theme" content="{{DefaultTheme}}">
+	<meta name="author" content="{{if .Repository}}{{.Owner.Name}}{{else}}{{MetaAuthor}}{{end}}">
+	<meta name="description" content="{{if .Repository}}{{.Repository.Name}}{{if .Repository.Description}} - {{.Repository.Description}}{{end}}{{else}}{{MetaDescription}}{{end}}">
 	<meta name="keywords" content="{{MetaKeywords}}">
-	<meta name="referrer" content="no-referrer" />
+	<meta name="referrer" content="no-referrer">
 {{if .GoGetImport}}
 	<meta name="go-import" content="{{.GoGetImport}} git {{.RepoCloneLink.HTTPS}}">
 	<meta name="go-source" content="{{.GoGetImport}} _ {{.GoDocDirectory}} {{.GoDocFile}}">
@@ -22,9 +22,7 @@
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/logo.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
-
 	{{template "base/head_script" .}}
-
 	<noscript>
 		<style>
 			.dropdown:hover > .menu { display: block; }
@@ -32,41 +30,41 @@
 		</style>
 	</noscript>
 {{if .PageIsUserProfile}}
-	<meta property="og:title" content="{{.Owner.DisplayName}}" />
-	<meta property="og:type" content="profile" />
-	<meta property="og:image" content="{{.Owner.AvatarLink}}" />
-	<meta property="og:url" content="{{.Owner.HTMLURL}}" />
+	<meta property="og:title" content="{{.Owner.DisplayName}}">
+	<meta property="og:type" content="profile">
+	<meta property="og:image" content="{{.Owner.AvatarLink}}">
+	<meta property="og:url" content="{{.Owner.HTMLURL}}">
 	{{if .Owner.Description}}
 		<meta property="og:description" content="{{.Owner.Description}}">
 	{{end}}
 {{else if .Repository}}
 	{{if .Issue}}
-		<meta property="og:title" content="{{.Issue.Title}}" />
-		<meta property="og:url" content="{{.Issue.HTMLURL}}" />
+		<meta property="og:title" content="{{.Issue.Title}}">
+		<meta property="og:url" content="{{.Issue.HTMLURL}}">
 		{{if .Issue.Content}}
-			<meta property="og:description" content="{{.Issue.Content}}" />
+			<meta property="og:description" content="{{.Issue.Content}}">
 		{{end}}
 	{{else}}
-		<meta property="og:title" content="{{.Repository.Name}}" />
-		<meta property="og:url" content="{{.Repository.HTMLURL}}" />
+		<meta property="og:title" content="{{.Repository.Name}}">
+		<meta property="og:url" content="{{.Repository.HTMLURL}}">
 		{{if .Repository.Description}}
-			<meta property="og:description" content="{{.Repository.Description}}" />
+			<meta property="og:description" content="{{.Repository.Description}}">
 		{{end}}
 	{{end}}
-	<meta property="og:type" content="object" />
+	<meta property="og:type" content="object">
 	{{if .Repository.AvatarLink}}
-		<meta property="og:image" content="{{.Repository.AvatarLink}}" />
+		<meta property="og:image" content="{{.Repository.AvatarLink}}">
 	{{else}}
-		<meta property="og:image" content="{{.Repository.Owner.AvatarLink}}" />
+		<meta property="og:image" content="{{.Repository.Owner.AvatarLink}}">
 	{{end}}
 {{else}}
 	<meta property="og:title" content="{{AppName}}">
-	<meta property="og:type" content="website" />
-	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png" />
-	<meta property="og:url" content="{{AppUrl}}" />
+	<meta property="og:type" content="website">
+	<meta property="og:image" content="{{AssetUrlPrefix}}/img/logo.png">
+	<meta property="og:url" content="{{AppUrl}}">
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
-<meta property="og:site_name" content="{{AppName}}" />
+<meta property="og:site_name" content="{{AppName}}">
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
 		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">

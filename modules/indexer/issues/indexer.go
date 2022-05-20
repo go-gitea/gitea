@@ -362,7 +362,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 	var ids []int64
-	ids, err := models.GetIssueIDsByRepoID(repo.ID)
+	ids, err := models.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
 	if err != nil {
 		log.Error("getIssueIDsByRepoID failed: %v", err)
 		return

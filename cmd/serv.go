@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
@@ -235,17 +236,17 @@ func runServ(c *cli.Context) error {
 		}
 		return fail("Internal Server Error", "%s", err.Error())
 	}
-	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
-	os.Setenv(models.EnvRepoName, results.RepoName)
-	os.Setenv(models.EnvRepoUsername, results.OwnerName)
-	os.Setenv(models.EnvPusherName, results.UserName)
-	os.Setenv(models.EnvPusherEmail, results.UserEmail)
-	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
-	os.Setenv(models.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
-	os.Setenv(models.EnvPRID, fmt.Sprintf("%d", 0))
-	os.Setenv(models.EnvDeployKeyID, fmt.Sprintf("%d", results.DeployKeyID))
-	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
-	os.Setenv(models.EnvAppURL, setting.AppURL)
+	os.Setenv(repo_module.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
+	os.Setenv(repo_module.EnvRepoName, results.RepoName)
+	os.Setenv(repo_module.EnvRepoUsername, results.OwnerName)
+	os.Setenv(repo_module.EnvPusherName, results.UserName)
+	os.Setenv(repo_module.EnvPusherEmail, results.UserEmail)
+	os.Setenv(repo_module.EnvPusherID, strconv.FormatInt(results.UserID, 10))
+	os.Setenv(repo_module.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
+	os.Setenv(repo_module.EnvPRID, fmt.Sprintf("%d", 0))
+	os.Setenv(repo_module.EnvDeployKeyID, fmt.Sprintf("%d", results.DeployKeyID))
+	os.Setenv(repo_module.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
+	os.Setenv(repo_module.EnvAppURL, setting.AppURL)
 
 	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
