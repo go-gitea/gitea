@@ -4,10 +4,10 @@
   if the user is a writer and can't do merge now (canMergeNow==false), then only show the Auto Merge for them
   How to test the UI manually:
   * Method 1: manually set some variables in pull.tmpl, eg: {{$notAllOverridableChecksOk = true}} {{$canMergeNow = false}}
-  * Method 2: make a protected branch, then set $state=pending :
-    curl -X POST http://${rootURL}/api/v1/repos/${owner}/${repo}/statuses/${sha} \
+  * Method 2: make a protected branch, then set state=pending/success :
+    curl -X POST ${root_url}/api/v1/repos/${owner}/${repo}/statuses/${sha} \
       -H "accept: application/json" -H "authorization: Basic $base64_auth" -H "Content-Type: application/json" \
-      -d '{"context": "test/context", "description": "description", "state": "'${state}'", "target_url": "http://localhost"}'
+      -d '{"context": "test/context", "description": "description", "state": "${state}", "target_url": "http://localhost"}'
   -->
   <div>
     <!-- eslint-disable -->
