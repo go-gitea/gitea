@@ -33,7 +33,7 @@
           {{ mergeForm.textCancel }}
         </button>
 
-        <div class="ui checkbox ml-2" v-if="mergeForm.isPullBranchDeletable">
+        <div class="ui checkbox ml-2" v-if="mergeForm.isPullBranchDeletable && !autoMergeWhenSucceed">
           <input name="delete_branch_after_merge" type="checkbox" v-model="deleteBranchAfterMerge" id="delete-branch-after-merge">
           <label for="delete-branch-after-merge">{{ mergeForm.textDeleteBranch }}</label>
         </div>
