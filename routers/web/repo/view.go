@@ -684,7 +684,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
+			if err := models.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}

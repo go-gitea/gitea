@@ -590,7 +590,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 		}
 
 		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = organization.GetTeamByID(c.AssigneeTeamID)
+			c.AssigneeTeam, err = organization.GetTeamByID(db.DefaultContext, c.AssigneeTeamID)
 			if err != nil && !organization.IsErrTeamNotExist(err) {
 				return err
 			}
@@ -1083,7 +1083,8 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
+// FindComments returns all comments according options
+func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
 	sess := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.RepoID > 0 {
@@ -1100,11 +1101,6 @@ func findComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, e
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments)
-}
-
-// FindComments returns all comments according options
-func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
-	return findComments(db.DefaultContext, opts)
 }
 
 // CountComments count all comments according options by ignoring pagination

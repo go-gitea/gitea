@@ -176,11 +176,7 @@ func GetDeployKeyByID(ctx context.Context, id int64) (*DeployKey, error) {
 }
 
 // GetDeployKeyByRepo returns deploy key by given public key ID and repository ID.
-func GetDeployKeyByRepo(keyID, repoID int64) (*DeployKey, error) {
-	return getDeployKeyByRepo(db.DefaultContext, keyID, repoID)
-}
-
-func getDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
+func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, error) {
 	key := &DeployKey{
 		KeyID:  keyID,
 		RepoID: repoID,

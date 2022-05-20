@@ -702,11 +702,7 @@ func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string)
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)
-func GetTemplateRepo(repo *Repository) (*Repository, error) {
-	return getTemplateRepo(db.DefaultContext, repo)
-}
-
-func getTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
+func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
 		return nil, nil
 	}
@@ -716,7 +712,7 @@ func getTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 
 // TemplateRepo returns the repository, which is template of this repository
 func (repo *Repository) TemplateRepo() *Repository {
-	repo, err := GetTemplateRepo(repo)
+	repo, err := GetTemplateRepo(db.DefaultContext, repo)
 	if err != nil {
 		log.Error("TemplateRepo: %v", err)
 		return nil

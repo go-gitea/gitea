@@ -66,11 +66,11 @@ func TestNotification_GetIssue(t *testing.T) {
 func TestGetNotificationCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	cnt, err := GetNotificationCount(user, NotificationStatusRead)
+	cnt, err := GetNotificationCount(db.DefaultContext, user, NotificationStatusRead)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, cnt)
 
-	cnt, err = GetNotificationCount(user, NotificationStatusUnread)
+	cnt, err = GetNotificationCount(db.DefaultContext, user, NotificationStatusUnread)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, cnt)
 }

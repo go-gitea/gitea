@@ -34,7 +34,7 @@ func GetNotificationCount(c *context.Context) {
 	}
 
 	c.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := models.GetNotificationCount(c.Doer, models.NotificationStatusUnread)
+		count, err := models.GetNotificationCount(c, c.Doer, models.NotificationStatusUnread)
 		if err != nil {
 			c.ServerError("GetNotificationCount", err)
 			return -1
@@ -79,7 +79,7 @@ func getNotifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
-	total, err := models.GetNotificationCount(c.Doer, status)
+	total, err := models.GetNotificationCount(c, c.Doer, status)
 	if err != nil {
 		c.ServerError("ErrGetNotificationCount", err)
 		return

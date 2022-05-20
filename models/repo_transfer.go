@@ -51,7 +51,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := organization.GetTeamByID(v)
+			team, err := organization.GetTeamByID(db.DefaultContext, v)
 			if err != nil {
 				return err
 			}

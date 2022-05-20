@@ -154,7 +154,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
-	pr, err = getPullRequestByIssueID(db.DefaultContext, issue.ID)
+	pr, err = GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -196,7 +196,7 @@ func (issue *Issue) loadPoster(ctx context.Context) (err error) {
 
 func (issue *Issue) loadPullRequest(ctx context.Context) (err error) {
 	if issue.IsPull && issue.PullRequest == nil {
-		issue.PullRequest, err = getPullRequestByIssueID(ctx, issue.ID)
+		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
 		if err != nil {
 			if IsErrPullRequestNotExist(err) {
 				return err
@@ -226,7 +226,7 @@ func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err
 	if issue.Comments != nil {
 		return nil
 	}
-	issue.Comments, err = findComments(ctx, &FindCommentsOptions{
+	issue.Comments, err = FindComments(ctx, &FindCommentsOptions{
 		IssueID: issue.ID,
 		Type:    tp,
 	})
@@ -2116,8 +2116,8 @@ func (issue *Issue) getParticipantIDsByIssue(ctx context.Context) ([]int64, erro
 	return userIDs, nil
 }
 
-// Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (issue *Issue) getBlockedByDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
+// BlockedByDependencies finds all Dependencies an issue is blocked by
+func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
 	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
@@ -2134,8 +2134,8 @@ func (issue *Issue) getBlockedByDependencies(ctx context.Context) (issueDeps []*
 	return issueDeps, err
 }
 
-// Get Blocking Dependencies, aka all issues this issue blocks.
-func (issue *Issue) getBlockingDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
+// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
+func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
 	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
@@ -2150,16 +2150,6 @@ func (issue *Issue) getBlockingDependencies(ctx context.Context) (issueDeps []*D
 	}
 
 	return issueDeps, err
-}
-
-// BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockedByDependencies(db.DefaultContext)
-}
-
-// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
-func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockingDependencies(db.DefaultContext)
 }
 
 func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {

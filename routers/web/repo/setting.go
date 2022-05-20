@@ -840,7 +840,7 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := organization.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -983,7 +983,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.GetTeamByID(ctx.FormInt64("id"))
+	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetTeamByID", err)
 		return

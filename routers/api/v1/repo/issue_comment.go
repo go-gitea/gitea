@@ -79,7 +79,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		Type:    models.CommentTypeComment,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
@@ -172,7 +172,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		Type:        models.CommentTypeUnknown,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
@@ -269,7 +269,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		Before:      before,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return

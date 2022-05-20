@@ -102,7 +102,7 @@ func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
 }
 
 func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
-	return getTeam(ctx, org.ID, name)
+	return GetTeam(ctx, org.ID, name)
 }
 
 // GetTeam returns named team of organization.

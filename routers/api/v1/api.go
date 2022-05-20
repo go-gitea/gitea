@@ -467,7 +467,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()

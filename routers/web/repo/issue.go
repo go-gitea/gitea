@@ -255,7 +255,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	issueList := models.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts()
+	approvalCounts, err := issueList.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -1688,12 +1688,12 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
-	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
 	}
-	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockingDependencies", err)
 		return
@@ -2047,7 +2047,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			team, err := organization.GetTeamByID(-reviewID)
+			team, err := organization.GetTeamByID(ctx, -reviewID)
 			if err != nil {
 				ctx.ServerError("GetTeamByID", err)
 				return
@@ -2179,7 +2179,7 @@ func SearchIssues(ctx *context.Context) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err.Error())

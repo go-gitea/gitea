@@ -121,7 +121,7 @@ func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
 		return
 	}
 
-	r.ReviewerTeam, err = organization.GetTeamByIDCtx(ctx, r.ReviewerTeamID)
+	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
 	return
 }
 
@@ -222,7 +222,7 @@ type CreateReviewOptions struct {
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
-	pr, err := getPullRequestByIssueID(ctx, issue.ID)
+	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
 	}
@@ -245,7 +245,7 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 
 // IsOfficialReviewerTeam check if reviewer in this team can make official reviews in issue (counts towards required approvals)
 func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organization.Team) (bool, error) {
-	pr, err := getPullRequestByIssueID(ctx, issue.ID)
+	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
 	}

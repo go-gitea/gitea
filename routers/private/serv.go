@@ -230,7 +230,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
 		var err error
-		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepo(ctx, key.ID, repo.ID)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.JSON(http.StatusNotFound, private.ErrServCommand{

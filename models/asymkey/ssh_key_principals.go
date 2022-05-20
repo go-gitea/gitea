@@ -60,7 +60,7 @@ func AddPrincipalKey(ownerID int64, content string, authSourceID int64) (*Public
 
 	committer.Close()
 
-	return key, RewriteAllPrincipalKeys()
+	return key, RewriteAllPrincipalKeys(db.DefaultContext)
 }
 
 // CheckPrincipalKeyString strips spaces and returns an error if the given principal contains newlines

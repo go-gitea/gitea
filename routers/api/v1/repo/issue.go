@@ -164,7 +164,7 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)

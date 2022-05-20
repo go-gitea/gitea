@@ -186,11 +186,7 @@ func GetBoard(ctx context.Context, boardID int64) (*Board, error) {
 }
 
 // UpdateBoard updates a project board
-func UpdateBoard(board *Board) error {
-	return updateBoard(db.DefaultContext, board)
-}
-
-func updateBoard(ctx context.Context, board *Board) error {
+func UpdateBoard(ctx context.Context, board *Board) error {
 	var fieldToUpdate []string
 
 	if board.Sorting != 0 {
@@ -213,11 +209,7 @@ func updateBoard(ctx context.Context, board *Board) error {
 
 // GetBoards fetches all boards related to a project
 // if no default board set, first board is a temporary "Uncategorized" board
-func GetBoards(projectID int64) (BoardList, error) {
-	return getBoards(db.DefaultContext, projectID)
-}
-
-func getBoards(ctx context.Context, projectID int64) ([]*Board, error) {
+func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
 	boards := make([]*Board, 0, 5)
 
 	if err := db.GetEngine(ctx).Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").Find(&boards); err != nil {

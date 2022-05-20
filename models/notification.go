@@ -214,7 +214,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		toNotify[receiverID] = struct{}{}
 	} else {
 		toNotify = make(map[int64]struct{}, 32)
-		issueWatches, err := getIssueWatchersIDs(ctx, issueID, true)
+		issueWatches, err := GetIssueWatchersIDs(ctx, issueID, true)
 		if err != nil {
 			return err
 		}
@@ -241,7 +241,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 		// dont notify user who cause notification
 		delete(toNotify, notificationAuthorID)
 		// explicit unwatch on issue
-		issueUnWatches, err := getIssueWatchersIDs(ctx, issueID, false)
+		issueUnWatches, err := GetIssueWatchersIDs(ctx, issueID, false)
 		if err != nil {
 			return err
 		}
@@ -724,11 +724,7 @@ func (nl NotificationList) LoadComments() ([]int, error) {
 }
 
 // GetNotificationCount returns the notification count for user
-func GetNotificationCount(user *user_model.User, status NotificationStatus) (int64, error) {
-	return getNotificationCount(db.DefaultContext, user, status)
-}
-
-func getNotificationCount(ctx context.Context, user *user_model.User, status NotificationStatus) (count int64, err error) {
+func GetNotificationCount(ctx context.Context, user *user_model.User, status NotificationStatus) (count int64, err error) {
 	count, err = db.GetEngine(ctx).
 		Where("user_id = ?", user.ID).
 		And("status = ?", status).
@@ -768,7 +764,8 @@ func setIssueNotificationStatusReadIfUnread(ctx context.Context, userID, issueID
 	return err
 }
 
-func setRepoNotificationStatusReadIfUnread(ctx context.Context, userID, repoID int64) error {
+// SetRepoReadBy sets repo to be visited by given user.
+func SetRepoReadBy(ctx context.Context, userID, repoID int64) error {
 	_, err := db.GetEngine(ctx).Where(builder.Eq{
 		"user_id": userID,
 		"status":  NotificationStatusUnread,

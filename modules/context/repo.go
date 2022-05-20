@@ -117,7 +117,7 @@ type CanCommitToBranchResults struct {
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+	protectedBranch, err := models.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
@@ -279,7 +279,7 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 // RetrieveTemplateRepo retrieves template repository used to generate this repository
 func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-generated repository will not return error in this method.
-	templateRepo, err := repo_model.GetTemplateRepo(repo)
+	templateRepo, err := repo_model.GetTemplateRepo(ctx, repo)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repo.TemplateID = 0
@@ -589,7 +589,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.IsSigned {
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
 	if repo.IsFork {

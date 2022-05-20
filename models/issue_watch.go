@@ -88,11 +88,7 @@ func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
-	return getIssueWatchersIDs(db.DefaultContext, issueID, watching)
-}
-
-func getIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]int64, error) {
+func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
 	return ids, db.GetEngine(ctx).Table("issue_watch").
 		Where("issue_id=?", issueID).
@@ -102,11 +98,7 @@ func getIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]i
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
-	return getIssueWatchers(db.DefaultContext, issueID, listOptions)
-}
-
-func getIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
+func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
 	sess := db.GetEngine(ctx).
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
@@ -124,11 +116,7 @@ func getIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOpt
 }
 
 // CountIssueWatchers count watchers/unwatchers of a given issue
-func CountIssueWatchers(issueID int64) (int64, error) {
-	return countIssueWatchers(db.DefaultContext, issueID)
-}
-
-func countIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
+func CountIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
 	return db.GetEngine(ctx).
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).

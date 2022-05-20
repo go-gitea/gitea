@@ -135,7 +135,7 @@ func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_mo
 	head := pr.GetGitRefName()
 	if line > 0 {
 		if reviewID != 0 {
-			first, err := models.FindComments(&models.FindCommentsOptions{
+			first, err := models.FindComments(ctx, &models.FindCommentsOptions{
 				ReviewID: reviewID,
 				Line:     line,
 				TreePath: treePath,

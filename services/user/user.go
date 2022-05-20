@@ -78,7 +78,7 @@ func DeleteUser(u *user_model.User) error {
 	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
 		return err
 	}
 

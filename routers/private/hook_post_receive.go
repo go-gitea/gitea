@@ -141,7 +141,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetPullRequestByIndex(repo.ID, pullIndex)
+			pr, err := models.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{

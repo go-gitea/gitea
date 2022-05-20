@@ -540,11 +540,7 @@ func (issues IssueList) LoadPullRequests() error {
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
 // FIXME: only returns official counts due to double counting of non-official approvals
-func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
-	return issues.getApprovalCounts(db.DefaultContext)
-}
-
-func (issues IssueList) getApprovalCounts(ctx context.Context) (map[int64][]*ReviewCount, error) {
+func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 2*len(issues))
 	ids := make([]int64, len(issues))
 	for i, issue := range issues {

@@ -204,7 +204,8 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 	return teams, err
 }
 
-func updateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
@@ -218,11 +219,6 @@ func updateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 	repo.Size = size + lfsSize
 	_, err = db.GetEngine(ctx).ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
-}
-
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
-func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	return updateRepoSize(ctx, repo)
 }
 
 // CanUserForkRepo returns true if specified user can fork repository.
@@ -301,11 +297,6 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 	}
 
 	return false, nil
-}
-
-// SetRepoReadBy sets repo to be visited by given user.
-func SetRepoReadBy(repoID, userID int64) error {
-	return setRepoNotificationStatusReadIfUnread(db.DefaultContext, userID, repoID)
 }
 
 // CreateRepoOptions contains the create repository options
@@ -421,7 +412,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
 			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
@@ -510,7 +501,7 @@ func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visib
 		return fmt.Errorf("update: %v", err)
 	}
 
-	if err = updateRepoSize(ctx, repo); err != nil {
+	if err = UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -1181,7 +1172,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer)
+		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

@@ -25,7 +25,7 @@ func UpdatePublicKeyInRepo(ctx *context.PrivateContext) {
 		return
 	}
 
-	deployKey, err := asymkey_model.GetDeployKeyByRepo(keyID, repoID)
+	deployKey, err := asymkey_model.GetDeployKeyByRepo(ctx, keyID, repoID)
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.PlainText(http.StatusOK, "success")

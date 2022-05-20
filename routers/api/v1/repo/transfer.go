@@ -84,7 +84,7 @@ func Transfer(ctx *context.APIContext) {
 
 		org := convert.ToOrganization(organization.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
-			team, err := organization.GetTeamByID(tID)
+			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
 				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
 				return

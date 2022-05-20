@@ -61,7 +61,7 @@ func ListPullReviews(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -307,7 +307,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -526,7 +526,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 
 // prepareSingleReview return review, related pull and false or nil, nil and true if an error happen
 func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullRequest, bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -648,7 +648,7 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 }
 
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -727,7 +727,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
 		for _, t := range opts.TeamReviewers {
 			var teamReviewer *organization.Team
-			teamReviewer, err = organization.GetTeam(ctx.Repo.Owner.ID, t)
+			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))

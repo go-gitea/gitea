@@ -1354,7 +1354,7 @@ func DownloadPullPatch(ctx *context.Context) {
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
 func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -1447,7 +1447,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 func SetAllowEdits(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
 
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)

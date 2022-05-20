@@ -70,7 +70,7 @@ func (r *Release) loadAttributes(ctx context.Context) error {
 			}
 		}
 	}
-	return getReleaseAttachments(ctx, r)
+	return GetReleaseAttachments(ctx, r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
@@ -282,11 +282,7 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 }
 
 // GetReleaseAttachments retrieves the attachments for releases
-func GetReleaseAttachments(rels ...*Release) (err error) {
-	return getReleaseAttachments(db.DefaultContext, rels...)
-}
-
-func getReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
+func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}

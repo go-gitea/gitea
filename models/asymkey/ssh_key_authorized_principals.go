@@ -43,11 +43,7 @@ const authorizedPrincipalsFile = "authorized_principals"
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
 // Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
-func RewriteAllPrincipalKeys() error {
-	return rewriteAllPrincipalKeys(db.DefaultContext)
-}
-
-func rewriteAllPrincipalKeys(ctx context.Context) error {
+func RewriteAllPrincipalKeys(ctx context.Context) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
 		return nil

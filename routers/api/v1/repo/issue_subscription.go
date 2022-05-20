@@ -263,7 +263,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx))
+	iwl, err := models.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
@@ -284,7 +284,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
 	}
 
-	count, err := models.CountIssueWatchers(issue.ID)
+	count, err := models.CountIssueWatchers(ctx, issue.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
 		return

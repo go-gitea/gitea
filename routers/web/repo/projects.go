@@ -286,7 +286,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project_model.GetBoards(project.ID)
+	boards, err := project_model.GetBoards(ctx, project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
@@ -523,7 +523,7 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Sorting = form.Sorting
 	}
 
-	if err := project_model.UpdateBoard(board); err != nil {
+	if err := project_model.UpdateBoard(ctx, board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
 		return
 	}
