@@ -202,7 +202,7 @@
 		</div>
 		<div class="field">
 			<div class="ui bottom active tab write">
-				<textarea tabindex="1" name="content"></textarea>
+				<textarea tabindex="1" name="content" class="js-quick-submit"></textarea>
 			</div>
 			<div class="ui bottom tab preview markup">
 				{{$.i18n.Tr "loading"}}
@@ -215,8 +215,8 @@
 		{{end}}
 		<div class="field footer">
 			<div class="text right edit">
-				<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-				<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+				<div class="ui basic secondary cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div class="ui primary save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
 			</div>
 		</div>
 	</div>
