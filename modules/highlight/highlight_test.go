@@ -53,8 +53,6 @@ steps:
 				`</span></span><span class="line"><span class="cl"><span class="w">	</span>- <span class="l">go build -v</span>`,
 				`</span></span><span class="line"><span class="cl"><span class="w">	</span>- <span class="l">go test -v -race -coverprofile=coverage.txt -covermode=atomic</span><span class="w">
 </span></span></span>`,
-				`<span class="w">
-</span>`,
 			},
 		},
 		{

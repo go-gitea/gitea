@@ -190,10 +190,6 @@ func File(numLines int, fileName, language string, code []byte) []string {
 	}
 
 	htmlw.Flush()
-	finalNewLine := false
-	if len(code) > 0 {
-		finalNewLine = code[len(code)-1] == '\n'
-	}
 
 	m := make([]string, 0, numLines)
 	for _, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
@@ -207,9 +203,6 @@ func File(numLines int, fileName, language string, code []byte) []string {
 		content = strings.TrimSuffix(content, `<span class="w">`)
 		content = strings.TrimPrefix(content, `</span>`)
 		m = append(m, content)
-	}
-	if finalNewLine {
-		m = append(m, "<span class=\"w\">\n</span>")
 	}
 
 	return m
