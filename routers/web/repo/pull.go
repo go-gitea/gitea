@@ -969,13 +969,11 @@ func MergePullRequest(ctx *context.Context) {
 	}
 
 	if form.MergeWhenChecksSucceed {
+		// delete all scheduled auto merges
+		_ = pull_model.DeleteScheduledAutoMerge(ctx, pr.ID)
+		// schedule auto merge
 		scheduled, err := automerge.ScheduleAutoMerge(ctx, ctx.Doer, pr, repo_model.MergeStyle(form.Do), message)
 		if err != nil {
-			if pull_model.IsErrAlreadyScheduledToAutoMerge(err) {
-				ctx.Flash.Success(ctx.Tr("repo.pulls.auto_merge_already_scheduled"))
-				ctx.Redirect(fmt.Sprintf("%s/pulls/%d", ctx.Repo.RepoLink, pr.Index))
-				return
-			}
 			ctx.ServerError("ScheduleAutoMerge", err)
 			return
 		} else if scheduled {
