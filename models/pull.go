@@ -100,7 +100,6 @@ func init() {
 func deletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	deleteCond := builder.Select("id").From("pull_request").Where(builder.Eq{"pull_request.base_repo_id": repoID})
 
-	sess := db.GetEngine(ctx)
 	// Delete scheduled auto merges
 	if _, err := db.GetEngine(ctx).In("pull_id", deleteCond).
 		Delete(&pull_model.AutoMerge{}); err != nil {

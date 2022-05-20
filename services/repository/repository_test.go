@@ -7,6 +7,7 @@ package repository
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -29,7 +30,7 @@ func TestLinkedRepository(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			attach, err := repo_model.GetAttachmentByID(tc.attachID)
+			attach, err := repo_model.GetAttachmentByID(db.DefaultContext, tc.attachID)
 			assert.NoError(t, err)
 			repo, unitType, err := LinkedRepository(attach)
 			assert.NoError(t, err)
