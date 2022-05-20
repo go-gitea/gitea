@@ -24,8 +24,8 @@ import (
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
+	Usage:       "Diagnose and optionally fix problems",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Action:      runDoctor,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
