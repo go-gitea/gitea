@@ -55,7 +55,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -242,7 +242,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -257,7 +257,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
@@ -300,7 +300,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return

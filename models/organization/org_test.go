@@ -128,9 +128,11 @@ func TestGetOrgByName(t *testing.T) {
 
 func TestCountOrganizations(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&user_model.User{})
+	expected, err := db.GetEngine(db.DefaultContext).Where("type=?", user_model.UserTypeOrganization).Count(&Organization{})
 	assert.NoError(t, err)
-	assert.Equal(t, expected, CountOrganizations())
+	cnt, err := CountOrgs(FindOrgOptions{IncludePrivate: true})
+	assert.NoError(t, err)
+	assert.Equal(t, expected, cnt)
 }
 
 func TestIsOrganizationOwner(t *testing.T) {
@@ -204,35 +206,6 @@ func TestFindOrgs(t *testing.T) {
 	assert.EqualValues(t, 1, total)
 }
 
-func TestGetOwnedOrgsByUserID(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	orgs, err := GetOwnedOrgsByUserID(2)
-	assert.NoError(t, err)
-	if assert.Len(t, orgs, 1) {
-		assert.EqualValues(t, 3, orgs[0].ID)
-	}
-
-	orgs, err = GetOwnedOrgsByUserID(4)
-	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
-}
-
-func TestGetOwnedOrgsByUserIDDesc(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	orgs, err := GetOwnedOrgsByUserIDDesc(5, "id")
-	assert.NoError(t, err)
-	if assert.Len(t, orgs, 2) {
-		assert.EqualValues(t, 7, orgs[0].ID)
-		assert.EqualValues(t, 6, orgs[1].ID)
-	}
-
-	orgs, err = GetOwnedOrgsByUserIDDesc(4, "id")
-	assert.NoError(t, err)
-	assert.Len(t, orgs, 0)
-}
-
 func TestGetOrgUsersByUserID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -266,7 +239,7 @@ func TestGetOrgUsersByUserID(t *testing.T) {
 func TestGetOrgUsersByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	orgUsers, err := GetOrgUsersByOrgID(&FindOrgMembersOpts{
+	orgUsers, err := GetOrgUsersByOrgID(db.DefaultContext, &FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       3,
 		PublicOnly:  false,
@@ -287,7 +260,7 @@ func TestGetOrgUsersByOrgID(t *testing.T) {
 		}, *orgUsers[1])
 	}
 
-	orgUsers, err = GetOrgUsersByOrgID(&FindOrgMembersOpts{
+	orgUsers, err = GetOrgUsersByOrgID(db.DefaultContext, &FindOrgMembersOpts{
 		ListOptions: db.ListOptions{},
 		OrgID:       unittest.NonexistentID,
 		PublicOnly:  false,

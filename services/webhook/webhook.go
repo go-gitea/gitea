@@ -5,10 +5,12 @@
 package webhook
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
@@ -218,15 +220,15 @@ func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event
 
 // PrepareWebhooks adds new webhooks to task queue for given payload.
 func PrepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	if err := prepareWebhooks(repo, event, p); err != nil {
+	if err := prepareWebhooks(db.DefaultContext, repo, event, p); err != nil {
 		return err
 	}
 
 	return addToTask(repo.ID)
 }
 
-func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
-	ws, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+func prepareWebhooks(ctx context.Context, repo *repo_model.Repository, event webhook_model.HookEventType, p api.Payloader) error {
+	ws, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
 		RepoID:   repo.ID,
 		IsActive: util.OptionalBoolTrue,
 	})
@@ -237,7 +239,7 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	// check if repo belongs to org and append additional webhooks
 	if repo.MustOwner().IsOrganization() {
 		// get hooks for org
-		orgHooks, err := webhook_model.ListWebhooksByOpts(&webhook_model.ListWebhookOptions{
+		orgHooks, err := webhook_model.ListWebhooksByOpts(ctx, &webhook_model.ListWebhookOptions{
 			OrgID:    repo.OwnerID,
 			IsActive: util.OptionalBoolTrue,
 		})
@@ -248,7 +250,7 @@ func prepareWebhooks(repo *repo_model.Repository, event webhook_model.HookEventT
 	}
 
 	// Add any admin-defined system webhooks
-	systemHooks, err := webhook_model.GetSystemWebhooks(util.OptionalBoolTrue)
+	systemHooks, err := webhook_model.GetSystemWebhooks(ctx, util.OptionalBoolTrue)
 	if err != nil {
 		return fmt.Errorf("GetSystemWebhooks: %v", err)
 	}

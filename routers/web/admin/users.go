@@ -389,7 +389,7 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := user_model.UpdateUser(u, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)

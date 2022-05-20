@@ -52,7 +52,7 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-func (r *Release) loadAttributes(e db.Engine) error {
+func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
 		r.Repo, err = repo_model.GetRepositoryByID(r.RepoID)
@@ -61,7 +61,7 @@ func (r *Release) loadAttributes(e db.Engine) error {
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = user_model.GetUserByIDEngine(e, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				r.Publisher = user_model.NewGhostUser()
@@ -70,12 +70,12 @@ func (r *Release) loadAttributes(e db.Engine) error {
 			}
 		}
 	}
-	return getReleaseAttachments(e, r)
+	return GetReleaseAttachments(ctx, r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
+	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -282,11 +282,7 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 }
 
 // GetReleaseAttachments retrieves the attachments for releases
-func GetReleaseAttachments(rels ...*Release) (err error) {
-	return getReleaseAttachments(db.GetEngine(db.DefaultContext), rels...)
-}
-
-func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
+func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
@@ -306,7 +302,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	sort.Sort(sortedRels)
 
 	// Select attachments
-	err = e.
+	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, repo_model.Attachment{})
@@ -373,10 +369,6 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
 func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
-	return pushUpdateDeleteTags(db.GetEngine(ctx), repo, tags)
-}
-
-func pushUpdateDeleteTags(e db.Engine, repo *repo_model.Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -385,14 +377,14 @@ func pushUpdateDeleteTags(e db.Engine, repo *repo_model.Repository, tags []strin
 		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
-	if _, err := e.
+	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
 		In("lower_tag_name", lowerTags).
 		Delete(new(Release)); err != nil {
 		return fmt.Errorf("Delete: %v", err)
 	}
 
-	if _, err := e.
+	if _, err := db.GetEngine(ctx).
 		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
 		In("lower_tag_name", lowerTags).
 		Cols("is_draft", "num_commits", "sha1").
