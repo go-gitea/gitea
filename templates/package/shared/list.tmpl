@@ -17,7 +17,7 @@
 				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
 			</select>
-			<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+			<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
 		</div>
 	</form>
 	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">

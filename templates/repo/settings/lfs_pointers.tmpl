@@ -56,7 +56,7 @@
 								</span>
 							</td>
 							<td>
-								<a class="ui blue show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
+								<a class="ui primary show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>
 							<td>{{if .InRepo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .Exists}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>

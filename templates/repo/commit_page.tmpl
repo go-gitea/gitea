@@ -22,11 +22,11 @@
 				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="ui">
-						<a class="ui blue tiny button" href="{{.SourcePath}}">
+						<a class="ui primary tiny button" href="{{.SourcePath}}">
 							{{.i18n.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui blue tiny floating dropdown icon button">{{.i18n.Tr "repo.commit.actions"}}
+							<div class="ui primary tiny floating dropdown icon button">{{.i18n.Tr "repo.commit.actions"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}<span class="sr-mobile-only">{{.i18n.Tr "repo.commit.actions"}}</span>
 								<div class="menu">
 									<div class="ui header">{{.i18n.Tr "repo.commit.actions"}}</div>
@@ -174,16 +174,16 @@
 							<span>{{.i18n.Tr "repo.diff.parent"}}</span>
 							{{range .Parents}}
 								{{if $.PageIsWiki}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
+									<a class="ui primary sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 								{{else}}
-									<a class="ui blue sha label" href="{{$.RepoLink}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
+									<a class="ui primary sha label" href="{{$.RepoLink}}/commit/{{PathEscape .}}">{{ShortSha .}}</a>
 								{{end}}
 							{{end}}
 						</div>
 					{{end}}
 					<div class="item">
 						<span>{{.i18n.Tr "repo.diff.commit"}}</span>
-						<span class="ui blue sha label">{{ShortSha .CommitID}}</span>
+						<span class="ui primary sha label">{{ShortSha .CommitID}}</span>
 					</div>
 				</div>
 		</div>
