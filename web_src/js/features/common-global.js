@@ -116,9 +116,6 @@ export function initGlobalCommon() {
     fullTextSearch: 'exact'
   });
   $('.ui.checkbox').checkbox();
-  $('.ui.progress').progress({
-    showActivity: false
-  });
 
   // init popups
   $('.tooltip').each((_, el) => {

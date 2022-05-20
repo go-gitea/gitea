@@ -207,6 +207,22 @@ details summary > * {
   display: inline;
 }
 
+progress {
+  background: var(--color-secondary);
+  border-radius: 6px;
+  border: none;
+  overflow: hidden;
+}
+progress::-webkit-progress-bar {
+  background: var(--color-secondary);
+}
+progress::-webkit-progress-value {
+  background-color: var(--color-secondary-dark-3);
+}
+progress::-moz-progress-bar {
+  background: var(--color-secondary-dark-3);
+}
+
 * {
   scrollbar-color: var(--color-primary) transparent;
   caret-color: var(--color-caret);
@@ -618,10 +634,6 @@ a.ui.card:hover,
 .ui.comments .comment .actions a.active,
 .ui.comments .comment .actions a:hover {
   color: var(--color-primary);
-}
-
-.ui.progress[data-percent="0"] .bar .progress {
-  color: var(--color-text);
 }
 
 .ui.attached.table {
