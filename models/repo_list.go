@@ -607,7 +607,7 @@ func accessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 	}
 
 	if user != nil {
-		// 2. Be able to see all repositories that we have access to
+		// 2. Be able to see all repositories that we have direct access to
 		// 3. Be able to see all repositories through team membership(s)
 		if unitType == unit.TypeInvalid {
 			// Regardless of UnitType
@@ -618,7 +618,7 @@ func accessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 		} else {
 			// For a specific UnitType
 			cond = cond.Or(
-				userAccessRepoCond("`repository`.id", user.ID),
+				userCollaborationRepoCond("`repository`.id", user.ID),
 				userOrgTeamUnitRepoCond("`repository`.id", user.ID, unitType),
 			)
 		}
@@ -672,7 +672,7 @@ func AccessibleRepoIDsQuery(user *user_model.User) *builder.Builder {
 	return builder.Select("id").From("repository").Where(accessibleRepositoryCondition(user, unit.TypeInvalid))
 }
 
-// FindUserCodeAccessibleRepoIDs find all accessible repositories' ID by user's id
+// FindUserCodeAccessibleRepoIDs finds all at Code level accessible repositories' ID by the user's id
 func FindUserCodeAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
 	if err := db.GetEngine(db.DefaultContext).
