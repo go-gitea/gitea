@@ -78,11 +78,11 @@ func TestOAuth2Application_TableName(t *testing.T) {
 func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
-	grant, err := app.GetGrantByUserID(1)
+	grant, err := app.GetGrantByUserID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), grant.UserID)
 
-	grant, err = app.GetGrantByUserID(34923458)
+	grant, err = app.GetGrantByUserID(db.DefaultContext, 34923458)
 	assert.NoError(t, err)
 	assert.Nil(t, grant)
 }
@@ -90,7 +90,7 @@ func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 func TestOAuth2Application_CreateGrant(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
-	grant, err := app.CreateGrant(2, "")
+	grant, err := app.CreateGrant(db.DefaultContext, 2, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, grant)
 	assert.Equal(t, int64(2), grant.UserID)

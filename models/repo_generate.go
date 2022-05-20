@@ -70,7 +70,7 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	templateWebhooks, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}

@@ -39,7 +39,7 @@ func (m *PushMirror) GetRepository() *Repository {
 		return m.Repo
 	}
 	var err error
-	m.Repo, err = getRepositoryByID(db.DefaultContext, m.RepoID)
+	m.Repo, err = GetRepositoryByIDCtx(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}

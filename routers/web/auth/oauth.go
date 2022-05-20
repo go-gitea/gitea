@@ -439,7 +439,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	grant, err := app.GetGrantByUserID(ctx.Doer.ID)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -516,7 +516,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.Doer.ID, form.Scope)
+	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,

@@ -462,7 +462,7 @@ func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.BaseRepo, err = getRepositoryByID(ctx, repo.ForkID)
+	repo.BaseRepo, err = GetRepositoryByIDCtx(ctx, repo.ForkID)
 	return err
 }
 
@@ -659,7 +659,8 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
-func getRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
+// GetRepositoryByIDCtx returns the repository by given id if exists.
+func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
 	has, err := db.GetEngine(ctx).ID(id).Get(repo)
 	if err != nil {
@@ -672,12 +673,7 @@ func getRepositoryByID(ctx context.Context, id int64) (*Repository, error) {
 
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(id int64) (*Repository, error) {
-	return getRepositoryByID(db.DefaultContext, id)
-}
-
-// GetRepositoryByIDCtx returns the repository by given id if exists.
-func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
-	return getRepositoryByID(ctx, id)
+	return GetRepositoryByIDCtx(db.DefaultContext, id)
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
@@ -707,7 +703,7 @@ func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error)
 		return nil, nil
 	}
 
-	return getRepositoryByID(ctx, repo.TemplateID)
+	return GetRepositoryByIDCtx(ctx, repo.TemplateID)
 }
 
 // TemplateRepo returns the repository, which is template of this repository

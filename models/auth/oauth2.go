@@ -92,11 +92,7 @@ func (app *OAuth2Application) ValidateClientSecret(secret []byte) bool {
 }
 
 // GetGrantByUserID returns a OAuth2Grant by its user and application ID
-func (app *OAuth2Application) GetGrantByUserID(userID int64) (*OAuth2Grant, error) {
-	return app.getGrantByUserID(db.DefaultContext, userID)
-}
-
-func (app *OAuth2Application) getGrantByUserID(ctx context.Context, userID int64) (grant *OAuth2Grant, err error) {
+func (app *OAuth2Application) GetGrantByUserID(ctx context.Context, userID int64) (grant *OAuth2Grant, err error) {
 	grant = new(OAuth2Grant)
 	if has, err := db.GetEngine(ctx).Where("user_id = ? AND application_id = ?", userID, app.ID).Get(grant); err != nil {
 		return nil, err
@@ -107,11 +103,7 @@ func (app *OAuth2Application) getGrantByUserID(ctx context.Context, userID int64
 }
 
 // CreateGrant generates a grant for an user
-func (app *OAuth2Application) CreateGrant(userID int64, scope string) (*OAuth2Grant, error) {
-	return app.createGrant(db.DefaultContext, userID, scope)
-}
-
-func (app *OAuth2Application) createGrant(ctx context.Context, userID int64, scope string) (*OAuth2Grant, error) {
+func (app *OAuth2Application) CreateGrant(ctx context.Context, userID int64, scope string) (*OAuth2Grant, error) {
 	grant := &OAuth2Grant{
 		ApplicationID: app.ID,
 		UserID:        userID,
