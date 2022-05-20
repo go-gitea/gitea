@@ -77,7 +77,7 @@
 					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
 						{{svg "octicon-issue-opened"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
-						<span class="ui label blue stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
+						<span class="ui primary label stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
 						</span>
 					</a>
