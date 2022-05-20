@@ -87,7 +87,7 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := models.HasUserStopwatch(ctx.Doer.ID)
+	_, sw, err := models.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return

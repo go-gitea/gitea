@@ -50,7 +50,7 @@ func MirrorSync(ctx *context.APIContext) {
 		return
 	}
 
-	if _, err := repo_model.GetMirrorByRepoID(repo.ID); err != nil {
+	if _, err := repo_model.GetMirrorByRepoID(ctx, repo.ID); err != nil {
 		if errors.Is(err, repo_model.ErrMirrorNotExist) {
 			ctx.Error(http.StatusBadRequest, "MirrorSync", "Repository is not a mirror")
 			return

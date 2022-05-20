@@ -156,7 +156,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 // PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
-func (prs PullRequestList) loadAttributes(e db.Engine) error {
+func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -164,7 +164,7 @@ func (prs PullRequestList) loadAttributes(e db.Engine) error {
 	// Load issues.
 	issueIDs := prs.getIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("id > 0").
 		In("id", issueIDs).
 		Find(&issues); err != nil {
@@ -191,7 +191,7 @@ func (prs PullRequestList) getIssueIDs() []int64 {
 
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
-	return prs.loadAttributes(db.GetEngine(db.DefaultContext))
+	return prs.loadAttributes(db.DefaultContext)
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change

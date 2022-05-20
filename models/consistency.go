@@ -117,7 +117,7 @@ func DeleteOrphanedIssues() error {
 
 	var attachmentPaths []string
 	for i := range ids {
-		paths, err := deleteIssuesByRepoID(db.GetEngine(ctx), ids[i])
+		paths, err := deleteIssuesByRepoID(ctx, ids[i])
 		if err != nil {
 			return err
 		}
