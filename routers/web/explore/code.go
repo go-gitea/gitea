@@ -61,7 +61,7 @@ func Code(ctx *context.Context) {
 				return
 			}
 		}
-		
+
 		var (
 			total                 int
 			searchResults         []*code_indexer.Result
