@@ -11,7 +11,7 @@
   -->
   <div>
     <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message" style="margin-top: 10px;"></div>
+    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"></div>
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
@@ -46,7 +46,7 @@
       </form>
     </div>
 
-    <div v-if="!showActionForm" style="display: flex;">
+    <div v-if="!showActionForm" class="df">
       <!-- the merge button -->
       <div class="ui buttons merge-button" :class="mergeButtonStyleClass" @click="toggleActionForm(true)" >
         <button class="ui button">
@@ -92,7 +92,7 @@
       </div>
 
       <!-- the cancel auto merge button -->
-      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" style="margin-left: 20px;">
+      <form v-if="mergeForm.hasPendingPullRequestMerge" :action="mergeForm.baseLink+'/cancel_auto_merge'" method="post" class="ml-4">
         <input type="hidden" name="_csrf" :value="csrfToken">
         <button class="ui button">
           {{ mergeForm.textAutoMergeCancelSchedule }}
