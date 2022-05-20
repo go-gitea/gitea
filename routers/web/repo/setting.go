@@ -1214,8 +1214,8 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 	}
 
 	for _, m := range pushMirrors {
-		m.Repo = repo
 		if m.ID == id {
+			m.Repo = repo
 			return m, nil
 		}
 	}
