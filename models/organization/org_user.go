@@ -54,7 +54,7 @@ func IsOrganizationOwner(ctx context.Context, orgID, uid int64) (bool, error) {
 	return IsTeamMember(ctx, orgID, ownerTeam.ID, uid)
 }
 
-// IsOrganizationMember returns true if given user is member of
+// IsOrganizationMember returns true if given user is member of organization.
 func IsOrganizationMember(ctx context.Context, orgID, uid int64) (bool, error) {
 	return db.GetEngine(ctx).
 		Where("uid=?", uid).
