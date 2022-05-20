@@ -100,7 +100,7 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 
 	// Loop through all assignees to add them
 	for _, assigneeName := range multipleAssignees {
-		assignee, err := user_model.GetUserByName(assigneeName)
+		assignee, err := user_model.GetUserByName(db.DefaultContext, assigneeName)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 	}
 
 	// Check if the user is already assigned
-	isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
+	isAssigned, err := models.IsUserAssignedToIssue(db.DefaultContext, issue, assignee)
 	if err != nil {
 		return err
 	}

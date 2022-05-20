@@ -71,7 +71,7 @@ func TestGetTeam(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(orgID int64, name string) {
-		team, err := GetTeam(orgID, name)
+		team, err := GetTeam(db.DefaultContext, orgID, name)
 		assert.NoError(t, err)
 		assert.EqualValues(t, orgID, team.OrgID)
 		assert.Equal(t, name, team.Name)
@@ -79,9 +79,9 @@ func TestGetTeam(t *testing.T) {
 	testSuccess(3, "Owners")
 	testSuccess(3, "team1")
 
-	_, err := GetTeam(3, "nonexistent")
+	_, err := GetTeam(db.DefaultContext, 3, "nonexistent")
 	assert.Error(t, err)
-	_, err = GetTeam(unittest.NonexistentID, "Owners")
+	_, err = GetTeam(db.DefaultContext, unittest.NonexistentID, "Owners")
 	assert.Error(t, err)
 }
 
@@ -89,7 +89,7 @@ func TestGetTeamByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testSuccess := func(teamID int64) {
-		team, err := GetTeamByID(teamID)
+		team, err := GetTeamByID(db.DefaultContext, teamID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, teamID, team.ID)
 	}
@@ -98,7 +98,7 @@ func TestGetTeamByID(t *testing.T) {
 	testSuccess(3)
 	testSuccess(4)
 
-	_, err := GetTeamByID(unittest.NonexistentID)
+	_, err := GetTeamByID(db.DefaultContext, unittest.NonexistentID)
 	assert.Error(t, err)
 }
 

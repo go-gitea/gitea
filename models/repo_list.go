@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -57,7 +58,7 @@ func RepositoryListOfMap(repoMap map[int64]*repo_model.Repository) RepositoryLis
 	return RepositoryList(valuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(e db.Engine) error {
+func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -71,7 +72,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 	// Load owners.
 	users := make(map[int64]*user_model.User, len(set))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("id > 0").
 		In("id", container.KeysInt64(set)).
 		Find(&users); err != nil {
@@ -83,7 +84,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 	// Load primary language.
 	stats := make(repo_model.LanguageStatList, 0, len(repos))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
 		In("`repo_id`", repoIDs).
 		Find(&stats); err != nil {
@@ -104,7 +105,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
+	return repos.loadAttributes(db.DefaultContext)
 }
 
 // SearchRepoOptions holds the search options
@@ -509,7 +510,8 @@ func SearchRepository(opts *SearchRepoOptions) (RepositoryList, int64, error) {
 
 // SearchRepositoryByCondition search repositories by condition
 func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loadAttributes bool) (RepositoryList, int64, error) {
-	sess, count, err := searchRepositoryByCondition(opts, cond)
+	ctx := db.DefaultContext
+	sess, count, err := searchRepositoryByCondition(ctx, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -528,7 +530,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(sess); err != nil {
+		if err := repos.loadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
 	}
@@ -536,7 +538,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	return repos, count, nil
 }
 
-func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
+func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, cond builder.Cond) (db.Engine, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
 	}
@@ -549,7 +551,7 @@ func searchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond) (db
 		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
 	}
 
-	sess := db.GetEngine(db.DefaultContext)
+	sess := db.GetEngine(ctx)
 
 	var count int64
 	if opts.PageSize > 0 {
@@ -619,7 +621,7 @@ func SearchRepositoryIDs(opts *SearchRepoOptions) ([]int64, int64, error) {
 
 	cond := SearchRepositoryCondition(opts)
 
-	sess, count, err := searchRepositoryByCondition(opts, cond)
+	sess, count, err := searchRepositoryByCondition(db.DefaultContext, opts, cond)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -107,9 +107,9 @@ func init() {
 	db.RegisterModel(new(IssueIndex))
 }
 
-func (issue *Issue) loadTotalTimes(e db.Engine) (err error) {
+func (issue *Issue) loadTotalTimes(ctx context.Context) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
-	issue.TotalTrackedTime, err = opts.toSession(e).SumInt(&TrackedTime{}, "time")
+	issue.TotalTrackedTime, err = opts.toSession(db.GetEngine(ctx)).SumInt(&TrackedTime{}, "time")
 	if err != nil {
 		return err
 	}
@@ -154,7 +154,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 		return nil, fmt.Errorf("Issue is not a pull request")
 	}
 
-	pr, err = getPullRequestByIssueID(db.GetEngine(db.DefaultContext), issue.ID)
+	pr, err = GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -165,7 +165,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 // LoadLabels loads labels
 func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 	if issue.Labels == nil {
-		issue.Labels, err = getLabelsByIssueID(db.GetEngine(ctx), issue.ID)
+		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
 		}
@@ -175,12 +175,12 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 
 // LoadPoster loads poster
 func (issue *Issue) LoadPoster() error {
-	return issue.loadPoster(db.GetEngine(db.DefaultContext))
+	return issue.loadPoster(db.DefaultContext)
 }
 
-func (issue *Issue) loadPoster(e db.Engine) (err error) {
+func (issue *Issue) loadPoster(ctx context.Context) (err error) {
 	if issue.Poster == nil {
-		issue.Poster, err = user_model.GetUserByIDEngine(e, issue.PosterID)
+		issue.Poster, err = user_model.GetUserByIDCtx(ctx, issue.PosterID)
 		if err != nil {
 			issue.PosterID = -1
 			issue.Poster = user_model.NewGhostUser()
@@ -194,9 +194,9 @@ func (issue *Issue) loadPoster(e db.Engine) (err error) {
 	return
 }
 
-func (issue *Issue) loadPullRequest(e db.Engine) (err error) {
+func (issue *Issue) loadPullRequest(ctx context.Context) (err error) {
 	if issue.IsPull && issue.PullRequest == nil {
-		issue.PullRequest, err = getPullRequestByIssueID(e, issue.ID)
+		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
 		if err != nil {
 			if IsErrPullRequestNotExist(err) {
 				return err
@@ -210,23 +210,23 @@ func (issue *Issue) loadPullRequest(e db.Engine) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest() error {
-	return issue.loadPullRequest(db.GetEngine(db.DefaultContext))
+	return issue.loadPullRequest(db.DefaultContext)
 }
 
-func (issue *Issue) loadComments(e db.Engine) (err error) {
-	return issue.loadCommentsByType(e, CommentTypeUnknown)
+func (issue *Issue) loadComments(ctx context.Context) (err error) {
+	return issue.loadCommentsByType(ctx, CommentTypeUnknown)
 }
 
 // LoadDiscussComments loads discuss comments
 func (issue *Issue) LoadDiscussComments() error {
-	return issue.loadCommentsByType(db.GetEngine(db.DefaultContext), CommentTypeComment)
+	return issue.loadCommentsByType(db.DefaultContext, CommentTypeComment)
 }
 
-func (issue *Issue) loadCommentsByType(e db.Engine, tp CommentType) (err error) {
+func (issue *Issue) loadCommentsByType(ctx context.Context, tp CommentType) (err error) {
 	if issue.Comments != nil {
 		return nil
 	}
-	issue.Comments, err = findComments(e, &FindCommentsOptions{
+	issue.Comments, err = FindComments(ctx, &FindCommentsOptions{
 		IssueID: issue.ID,
 		Type:    tp,
 	})
@@ -301,12 +301,11 @@ func (issue *Issue) loadMilestone(ctx context.Context) (err error) {
 }
 
 func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
-	e := db.GetEngine(ctx)
 	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
-	if err = issue.loadPoster(e); err != nil {
+	if err = issue.loadPoster(ctx); err != nil {
 		return
 	}
 
@@ -318,27 +317,27 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadProject(e); err != nil {
+	if err = issue.loadProject(ctx); err != nil {
 		return
 	}
 
-	if err = issue.loadAssignees(e); err != nil {
+	if err = issue.LoadAssignees(ctx); err != nil {
 		return
 	}
 
-	if err = issue.loadPullRequest(e); err != nil && !IsErrPullRequestNotExist(err) {
+	if err = issue.loadPullRequest(ctx); err != nil && !IsErrPullRequestNotExist(err) {
 		// It is possible pull request is not yet created.
 		return err
 	}
 
 	if issue.Attachments == nil {
-		issue.Attachments, err = repo_model.GetAttachmentsByIssueIDCtx(ctx, issue.ID)
+		issue.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByIssueID [%d]: %v", issue.ID, err)
 		}
 	}
 
-	if err = issue.loadComments(e); err != nil {
+	if err = issue.loadComments(ctx); err != nil {
 		return err
 	}
 
@@ -346,7 +345,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 	if issue.isTimetrackerEnabled(ctx) {
-		if err = issue.loadTotalTimes(e); err != nil {
+		if err = issue.loadTotalTimes(ctx); err != nil {
 			return err
 		}
 	}
@@ -449,12 +448,12 @@ func (issue *Issue) IsPoster(uid int64) bool {
 	return issue.OriginalAuthorID == 0 && issue.PosterID == uid
 }
 
-func (issue *Issue) getLabels(e db.Engine) (err error) {
+func (issue *Issue) getLabels(ctx context.Context) (err error) {
 	if len(issue.Labels) > 0 {
 		return nil
 	}
 
-	issue.Labels, err = getLabelsByIssueID(e, issue.ID)
+	issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
 		return fmt.Errorf("getLabelsByIssueID: %v", err)
 	}
@@ -462,7 +461,7 @@ func (issue *Issue) getLabels(e db.Engine) (err error) {
 }
 
 func clearIssueLabels(ctx context.Context, issue *Issue, doer *user_model.User) (err error) {
-	if err = issue.getLabels(db.GetEngine(ctx)); err != nil {
+	if err = issue.getLabels(ctx); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
@@ -486,7 +485,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
-	} else if err = issue.loadPullRequest(db.GetEngine(ctx)); err != nil {
+	} else if err = issue.loadPullRequest(ctx); err != nil {
 		return err
 	}
 
@@ -597,7 +596,7 @@ func (issue *Issue) ReadBy(ctx context.Context, userID int64) error {
 		return err
 	}
 
-	return setIssueNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, issue.ID)
+	return setIssueNotificationStatusReadIfUnread(ctx, userID, issue.ID)
 }
 
 // UpdateIssueCols updates cols of issue
@@ -610,7 +609,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 
 func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
-	currentIssue, err := getIssueByID(db.GetEngine(ctx), issue.ID)
+	currentIssue, err := getIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +631,6 @@ func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 }
 
 func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isMergePull bool) (*Comment, error) {
-	e := db.GetEngine(ctx)
 	// Check for open dependencies
 	if issue.IsClosed && issue.Repo.IsDependenciesEnabledCtx(ctx) {
 		// only check if dependencies are enabled and we're about to close an issue, otherwise reopening an issue would fail when there are unsatisfied dependencies
@@ -657,11 +655,11 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 	}
 
 	// Update issue count of labels
-	if err := issue.getLabels(e); err != nil {
+	if err := issue.getLabels(ctx); err != nil {
 		return nil, err
 	}
 	for idx := range issue.Labels {
-		if err := updateLabelCols(e, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
+		if err := updateLabelCols(ctx, issue.Labels[idx], "num_issues", "num_closed_issue"); err != nil {
 			return nil, err
 		}
 	}
@@ -698,7 +696,7 @@ func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User,
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
-	if err := issue.loadPoster(db.GetEngine(ctx)); err != nil {
+	if err := issue.loadPoster(ctx); err != nil {
 		return nil, err
 	}
 
@@ -774,7 +772,7 @@ func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err err
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
 func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issueID int64, branchName string) error {
-	issue, err := getIssueByID(db.GetEngine(ctx), issueID)
+	issue, err := getIssueByID(ctx, issueID)
 	if err != nil {
 		return err
 	}
@@ -802,7 +800,7 @@ func UpdateIssueAttachments(issueID int64, uuids []string) (err error) {
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = issueID
-		if err := repo_model.UpdateAttachmentCtx(ctx, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -822,7 +820,7 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 		return fmt.Errorf("HasIssueContentHistory: %v", err)
 	}
 	if !hasContentHistory {
-		if err = issues_model.SaveIssueContentHistory(db.GetEngine(ctx), issue.PosterID, issue.ID, 0,
+		if err = issues_model.SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
 			issue.CreatedUnix, issue.Content, true); err != nil {
 			return fmt.Errorf("SaveIssueContentHistory: %v", err)
 		}
@@ -834,7 +832,7 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issues_model.SaveIssueContentHistory(db.GetEngine(ctx), doer.ID, issue.ID, 0,
+	if err = issues_model.SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
 		timeutil.TimeStampNow(), issue.Content, false); err != nil {
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}
@@ -973,7 +971,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 			return fmt.Errorf("find all labels [label_ids: %v]: %v", opts.LabelIDs, err)
 		}
 
-		if err = opts.Issue.loadPoster(e); err != nil {
+		if err = opts.Issue.loadPoster(ctx); err != nil {
 			return err
 		}
 
@@ -1119,9 +1117,9 @@ func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	return issue, issue.LoadAttributes()
 }
 
-func getIssueByID(e db.Engine, id int64) (*Issue, error) {
+func getIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	issue := new(Issue)
-	has, err := e.ID(id).Get(issue)
+	has, err := db.GetEngine(ctx).ID(id).Get(issue)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1132,7 +1130,7 @@ func getIssueByID(e db.Engine, id int64) (*Issue, error) {
 
 // GetIssueWithAttrsByID returns an issue with attributes by given ID.
 func GetIssueWithAttrsByID(id int64) (*Issue, error) {
-	issue, err := getIssueByID(db.GetEngine(db.DefaultContext), id)
+	issue, err := getIssueByID(db.DefaultContext, id)
 	if err != nil {
 		return nil, err
 	}
@@ -1141,28 +1139,20 @@ func GetIssueWithAttrsByID(id int64) (*Issue, error) {
 
 // GetIssueByID returns an issue by given ID.
 func GetIssueByID(id int64) (*Issue, error) {
-	return getIssueByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getIssuesByIDs(e db.Engine, issueIDs []int64) ([]*Issue, error) {
-	issues := make([]*Issue, 0, 10)
-	return issues, e.In("id", issueIDs).Find(&issues)
-}
-
-func getIssueIDsByRepoID(e db.Engine, repoID int64) ([]int64, error) {
-	ids := make([]int64, 0, 10)
-	err := e.Table("issue").Cols("id").Where("repo_id = ?", repoID).Find(&ids)
-	return ids, err
-}
-
-// GetIssueIDsByRepoID returns all issue ids by repo id
-func GetIssueIDsByRepoID(repoID int64) ([]int64, error) {
-	return getIssueIDsByRepoID(db.GetEngine(db.DefaultContext), repoID)
+	return getIssueByID(db.DefaultContext, id)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
-func GetIssuesByIDs(issueIDs []int64) ([]*Issue, error) {
-	return getIssuesByIDs(db.GetEngine(db.DefaultContext), issueIDs)
+func GetIssuesByIDs(ctx context.Context, issueIDs []int64) ([]*Issue, error) {
+	issues := make([]*Issue, 0, 10)
+	return issues, db.GetEngine(ctx).In("id", issueIDs).Find(&issues)
+}
+
+// GetIssueIDsByRepoID returns all issue ids by repo id
+func GetIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
+	ids := make([]int64, 0, 10)
+	err := db.GetEngine(ctx).Table("issue").Cols("id").Where("repo_id = ?", repoID).Find(&ids)
+	return ids, err
 }
 
 // IssuesOptions represents options of an issue.
@@ -1502,7 +1492,7 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
 func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
-	userIDs, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
+	userIDs, err := issue.getParticipantIDsByIssue(db.DefaultContext)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -1912,19 +1902,18 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 		return nil, false, err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, false, fmt.Errorf("loadRepo: %v", err)
 	}
 
 	// Reload the issue
-	currentIssue, err := getIssueByID(sess, issue.ID)
+	currentIssue, err := getIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if _, err := sess.ID(issue.ID).Cols(
+	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(
 		"name", "content", "milestone_id", "priority",
 		"deadline_unix", "updated_unix", "is_locked").
 		Update(issue); err != nil {
@@ -2000,7 +1989,8 @@ func DeleteIssue(issue *Issue) error {
 	return committer.Commit()
 }
 
-func deleteInIssue(e db.Engine, issueID int64, beans ...interface{}) error {
+func deleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) error {
+	e := db.GetEngine(ctx)
 	for _, bean := range beans {
 		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
 			return err
@@ -2061,7 +2051,7 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 	}
 
 	// delete all database data still assigned to this issue
-	if err := deleteInIssue(e, issue.ID,
+	if err := deleteInIssue(ctx, issue.ID,
 		&issues_model.ContentHistory{},
 		&Comment{},
 		&IssueLabel{},
@@ -2105,12 +2095,12 @@ type DependencyInfo struct {
 }
 
 // getParticipantIDsByIssue returns all userIDs who are participated in comments of an issue and issue author
-func (issue *Issue) getParticipantIDsByIssue(e db.Engine) ([]int64, error) {
+func (issue *Issue) getParticipantIDsByIssue(ctx context.Context) ([]int64, error) {
 	if issue == nil {
 		return nil, nil
 	}
 	userIDs := make([]int64, 0, 5)
-	if err := e.Table("comment").Cols("poster_id").
+	if err := db.GetEngine(ctx).Table("comment").Cols("poster_id").
 		Where("`comment`.issue_id = ?", issue.ID).
 		And("`comment`.type in (?,?,?)", CommentTypeComment, CommentTypeCode, CommentTypeReview).
 		And("`user`.is_active = ?", true).
@@ -2126,9 +2116,9 @@ func (issue *Issue) getParticipantIDsByIssue(e db.Engine) ([]int64, error) {
 	return userIDs, nil
 }
 
-// Get Blocked By Dependencies, aka all issues this issue is blocked by.
-func (issue *Issue) getBlockedByDependencies(e db.Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.
+// BlockedByDependencies finds all Dependencies an issue is blocked by
+func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
+	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
@@ -2144,9 +2134,9 @@ func (issue *Issue) getBlockedByDependencies(e db.Engine) (issueDeps []*Dependen
 	return issueDeps, err
 }
 
-// Get Blocking Dependencies, aka all issues this issue blocks.
-func (issue *Issue) getBlockingDependencies(e db.Engine) (issueDeps []*DependencyInfo, err error) {
-	err = e.
+// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
+func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*DependencyInfo, err error) {
+	err = db.GetEngine(ctx).
 		Table("issue").
 		Join("INNER", "repository", "repository.id = issue.repo_id").
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
@@ -2160,16 +2150,6 @@ func (issue *Issue) getBlockingDependencies(e db.Engine) (issueDeps []*Dependenc
 	}
 
 	return issueDeps, err
-}
-
-// BlockedByDependencies finds all Dependencies an issue is blocked by
-func (issue *Issue) BlockedByDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockedByDependencies(db.GetEngine(db.DefaultContext))
-}
-
-// BlockingDependencies returns all blocking dependencies, aka all other issues a given issue blocks
-func (issue *Issue) BlockingDependencies() ([]*DependencyInfo, error) {
-	return issue.getBlockingDependencies(db.GetEngine(db.DefaultContext))
 }
 
 func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {
@@ -2354,9 +2334,10 @@ func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, original
 	return err
 }
 
-func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []string, err error) {
+func deleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
 
+	sess := db.GetEngine(ctx)
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
 		Delete(&issues_model.ContentHistory{}); err != nil {
@@ -2431,7 +2412,7 @@ func deleteIssuesByRepoID(sess db.Engine, repoID int64) (attachmentPaths []strin
 		return
 	}
 
-	if _, err = sess.Delete(&Issue{RepoID: repoID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &Issue{RepoID: repoID}); err != nil {
 		return
 	}
 

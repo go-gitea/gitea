@@ -108,7 +108,7 @@ func sudo() func(ctx *context.APIContext) {
 
 		if len(sudo) > 0 {
 			if ctx.IsSigned && ctx.Doer.IsAdmin {
-				user, err := user_model.GetUserByName(sudo)
+				user, err := user_model.GetUserByName(ctx, sudo)
 				if err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						ctx.NotFound()
@@ -143,7 +143,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
 			owner = ctx.Doer
 		} else {
-			owner, err = user_model.GetUserByName(userName)
+			owner, err = user_model.GetUserByName(ctx, userName)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
@@ -467,7 +467,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()

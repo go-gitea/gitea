@@ -31,7 +31,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
+	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
@@ -107,7 +107,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	action := ctx.FormString("action")
 	commentID := ctx.FormInt64("comment_id")
 
-	comment, err := models.GetCommentByID(commentID)
+	comment, err := models.GetCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return

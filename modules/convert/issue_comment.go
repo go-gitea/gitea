@@ -6,6 +6,7 @@ package convert
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -113,7 +114,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 	}
 
 	if c.RefCommentID != 0 {
-		com, err := models.GetCommentByID(c.RefCommentID)
+		com, err := models.GetCommentByID(db.DefaultContext, c.RefCommentID)
 		if err != nil {
 			log.Error("GetCommentByID(%d): %v", c.RefCommentID, err)
 			return nil

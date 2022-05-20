@@ -37,15 +37,14 @@ type Collaborator struct {
 
 // GetCollaborators returns the collaborators for a repository
 func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	e := db.GetEngine(ctx)
-	collaborations, err := getCollaborations(e, repoID, listOptions)
+	collaborations, err := getCollaborations(ctx, repoID, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := user_model.GetUserByIDEngine(e, c.UserID)
+		user, err := user_model.GetUserByIDCtx(ctx, c.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
@@ -85,11 +84,13 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
 }
 
-func getCollaborations(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
+func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)
-		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
+		return collaborations, db.GetEngine(ctx).Find(&collaborations, &Collaboration{RepoID: repoID})
 	}
+
+	e := db.GetEngine(ctx)
 
 	e = db.SetEnginePagination(e, &listOptions)
 

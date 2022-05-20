@@ -91,7 +91,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 }
 
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(orgID)
+	org, err := GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	_, membersIsPublic, err := org.GetMembers()
 	assert.NoError(t, err)
@@ -118,7 +118,7 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 }
 
 func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(orgID)
+	org, err := GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	members, _, err := org.GetMembers()
 	assert.NoError(t, err)
