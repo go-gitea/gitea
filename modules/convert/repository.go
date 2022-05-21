@@ -104,7 +104,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+		repo.Mirror, err = repo_model.GetMirrorByRepoID(db.DefaultContext, repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()

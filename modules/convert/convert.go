@@ -340,7 +340,7 @@ func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
 		if loadOrgs {
 			apiOrg, ok := cache[teams[i].OrgID]
 			if !ok {
-				org, err := organization.GetOrgByID(teams[i].OrgID)
+				org, err := organization.GetOrgByID(db.DefaultContext, teams[i].OrgID)
 				if err != nil {
 					return nil, err
 				}
