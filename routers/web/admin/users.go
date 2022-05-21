@@ -125,8 +125,12 @@ func NewUserPost(ctx *context.Context) {
 		Name:      form.UserName,
 		Email:     form.Email,
 		Passwd:    form.Password,
-		IsActive:  true,
 		LoginType: auth.Plain,
+	}
+
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:   util.OptionalBoolTrue,
+		Visibility: &form.Visibility,
 	}
 
 	if len(form.LoginType) > 0 {
@@ -163,7 +167,7 @@ func NewUserPost(ctx *context.Context) {
 		u.MustChangePassword = form.MustChangePassword
 	}
 
-	if err := user_model.CreateUser(u, &user_model.CreateUserOverwriteOptions{Visibility: form.Visibility}); err != nil {
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
 			ctx.Data["Err_UserName"] = true
@@ -385,7 +389,7 @@ func EditUserPost(ctx *context.Context) {
 		u.ProhibitLogin = form.ProhibitLogin
 	}
 
-	if err := user_model.UpdateUser(u, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, u, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			ctx.Data["Err_Email"] = true
 			ctx.RenderWithErr(ctx.Tr("form.email_been_used"), tplUserEdit, &form)
@@ -409,6 +413,15 @@ func DeleteUser(ctx *context.Context) {
 	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
 		ctx.ServerError("GetUserByID", err)
+		return
+	}
+
+	// admin should not delete themself
+	if u.ID == ctx.Doer.ID {
+		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
+		ctx.JSON(http.StatusOK, map[string]interface{}{
+			"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
+		})
 		return
 	}
 

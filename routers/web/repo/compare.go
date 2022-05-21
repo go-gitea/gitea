@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -143,6 +144,11 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file from base commit"}
+		}
+
 		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, Filename: diffFile.Name}, headCommit)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
@@ -150,13 +156,17 @@ func setCsvCompareContext(ctx *context.Context) {
 		if err == errTooLarge {
 			return CsvDiffResult{nil, err.Error()}
 		}
+		if err != nil {
+			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file from head commit"}
+		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
 		if err != nil {
 			errMessage, err := csv_module.FormatError(err, ctx.Locale)
 			if err != nil {
-				log.Error("RenderCsvDiff failed: %v", err)
-				return CsvDiffResult{nil, ""}
+				log.Error("CreateCsvDiff FormatError failed: %v", err)
+				return CsvDiffResult{nil, "unknown csv diff error"}
 			}
 			return CsvDiffResult{nil, errMessage}
 		}
@@ -244,7 +254,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(headInfos[0])
+			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
@@ -398,11 +408,12 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	}
 
 	ctx.Data["HeadRepo"] = ci.HeadRepo
+	ctx.Data["BaseCompareRepo"] = ctx.Repo.Repository
 
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(baseRepo, ctx.Doer)
+	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -421,7 +432,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ci.HeadRepo, ctx.Doer)
+		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
@@ -436,6 +447,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 			ctx.NotFound("ParseCompareInfo", nil)
 			return nil
 		}
+		ctx.Data["CanWriteToHeadRepo"] = permHead.CanWrite(unit.TypeCode)
 	}
 
 	// If we have a rootRepo and it's different from:
@@ -863,7 +875,7 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 	ctx.Data["section"] = section
-	ctx.Data["fileName"] = filePath
+	ctx.Data["FileNameHash"] = base.EncodeSha1(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)

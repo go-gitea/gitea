@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -41,27 +42,27 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// by Issue
-	times, err := GetTrackedTimes(&FindTrackedTimesOptions{IssueID: 1})
+	times, err := GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 1)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{IssueID: -1})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{IssueID: -1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by User
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{UserID: 1})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{UserID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{UserID: 3})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{UserID: 3})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by Repo
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 2})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(1), times[0].Time)
@@ -69,11 +70,11 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, issue.RepoID, int64(2))
 
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 1})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 5)
 
-	times, err = GetTrackedTimes(&FindTrackedTimesOptions{RepositoryID: 10})
+	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 10})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 }

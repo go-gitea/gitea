@@ -11,6 +11,9 @@ import (
 	"math/big"
 	"strconv"
 	"strings"
+
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 // OptionalBool a boolean that can be "null"
@@ -180,4 +183,11 @@ func ToUpperASCII(s string) string {
 		}
 	}
 	return string(b)
+}
+
+var titleCaser = cases.Title(language.English)
+
+// ToTitleCase returns s with all english words capitalized
+func ToTitleCase(s string) string {
+	return titleCaser.String(s)
 }

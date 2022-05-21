@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -112,6 +112,13 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	os.Unsetenv("GIT_AUTHOR_NAME")
+	os.Unsetenv("GIT_AUTHOR_EMAIL")
+	os.Unsetenv("GIT_AUTHOR_DATE")
+	os.Unsetenv("GIT_COMMITTER_NAME")
+	os.Unsetenv("GIT_COMMITTER_EMAIL")
+	os.Unsetenv("GIT_COMMITTER_DATE")
+
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -166,7 +173,7 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	_ = util.RemoveAll(models.LocalCopyPath())
+	_ = util.RemoveAll(repo_module.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {

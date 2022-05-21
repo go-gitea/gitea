@@ -12,6 +12,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/mailer"
 
@@ -62,7 +63,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
 			log.Error("GetUserByName: %v", err)
@@ -105,11 +106,15 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 	}
 
 	user := &user_model.User{
-		Name:     username,
-		Email:    email,
-		IsActive: true,
+		Name:  username,
+		Email: email,
 	}
-	if err := user_model.CreateUser(user); err != nil {
+
+	overwriteDefault := user_model.CreateUserOverwriteOptions{
+		IsActive: util.OptionalBoolTrue,
+	}
+
+	if err := user_model.CreateUser(user, &overwriteDefault); err != nil {
 		// FIXME: should I create a system notice?
 		log.Error("CreateUser: %v", err)
 		return nil

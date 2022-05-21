@@ -160,6 +160,16 @@ export function initRepoIssueCommentDelete() {
         _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
+
+        // Check if this was a pending comment.
+        if ($conversationHolder.find('.pending-label').length) {
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
+        }
+
         $(`#${$this.data('comment-id')}`).remove();
         if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
           const path = $conversationHolder.data('path');
@@ -224,32 +234,6 @@ export function initRepoIssueStatusButton() {
   });
 }
 
-export function initRepoPullRequestMerge() {
-  // Pull Request merge button
-  const $mergeButton = $('.merge-button > button');
-  $mergeButton.on('click', function (e) {
-    e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
-    $(this).parent().hide();
-    $('.instruct-toggle').hide();
-    $('.instruct-content').hide();
-  });
-  $('.merge-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
-        $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
-      }
-    }
-  });
-  $('.merge-cancel').on('click', function (e) {
-    e.preventDefault();
-    $(this).closest('.form').hide();
-    $mergeButton.parent().show();
-    $('.instruct-toggle').show();
-  });
-}
-
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
@@ -285,6 +269,39 @@ export function initRepoPullRequestUpdate() {
 export function initRepoPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
     $('.instruct-content').toggle();
+  });
+}
+
+export function initRepoPullRequestAllowMaintainerEdit() {
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+  $checkbox.popup({content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
+        error: () => {
+          $checkbox.popup({
+            content: promptError,
+            onHidden: () => {
+              // the error popup should be shown only once, then we restore the popup to the default message
+              $checkbox.popup({content: promptTip});
+            },
+          });
+          $checkbox.popup('show');
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
   });
 }
 

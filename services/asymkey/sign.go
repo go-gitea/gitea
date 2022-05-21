@@ -271,7 +271,7 @@ Loop:
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
 func SignMerge(ctx context.Context, pr *models.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err
 	}
@@ -310,14 +310,14 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case approved:
-			protectedBranch, err := models.GetProtectedBranchBy(repo.ID, pr.BaseBranch)
+			protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
 				return false, "", nil, err
 			}
 			if protectedBranch == nil {
 				return false, "", nil, &ErrWontSign{approved}
 			}
-			if protectedBranch.GetGrantedApprovalsCount(pr) < 1 {
+			if protectedBranch.GetGrantedApprovalsCount(ctx, pr) < 1 {
 				return false, "", nil, &ErrWontSign{approved}
 			}
 		case baseSigned:

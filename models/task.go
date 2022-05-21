@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -51,15 +52,15 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.GetEngine(db.DefaultContext))
+	return task.loadRepo(db.DefaultContext)
 }
 
-func (task *Task) loadRepo(e db.Engine) error {
+func (task *Task) loadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}
 	var repo repo_model.Repository
-	has, err := e.ID(task.RepoID).Get(&repo)
+	has, err := db.GetEngine(ctx).ID(task.RepoID).Get(&repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -181,6 +182,14 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// HasFinishedMigratingTask returns if a finished migration task exists for the repo.
+func HasFinishedMigratingTask(repoID int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where("repo_id=? AND type=? AND status=?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
+		Table("task").
+		Exist()
+}
+
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
@@ -225,12 +234,7 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(db.GetEngine(db.DefaultContext), task)
-}
-
-func createTask(e db.Engine, task *Task) error {
-	_, err := e.Insert(task)
-	return err
+	return db.Insert(db.DefaultContext, task)
 }
 
 // FinishMigrateTask updates database when migrate task finished

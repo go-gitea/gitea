@@ -13,21 +13,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 )
 
-// ErrNotExist represents a non-exist error.
-type ErrNotExist struct {
-	ID int64
-}
-
-// IsErrNotExist checks if an error is an ErrNotExist
-func IsErrNotExist(err error) bool {
-	_, ok := err.(ErrNotExist)
-	return ok
-}
-
-func (err ErrNotExist) Error() string {
-	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
-}
-
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
 type ErrUserOwnRepos struct {
 	UID int64
@@ -296,7 +281,6 @@ type ErrInvalidCloneAddr struct {
 	IsProtocolInvalid  bool
 	IsPermissionDenied bool
 	LocalPath          bool
-	NotResolvedIP      bool
 }
 
 // IsErrInvalidCloneAddr checks if an error is a ErrInvalidCloneAddr.
@@ -306,9 +290,6 @@ func IsErrInvalidCloneAddr(err error) bool {
 }
 
 func (err *ErrInvalidCloneAddr) Error() string {
-	if err.NotResolvedIP {
-		return fmt.Sprintf("migration/cloning from '%s' is not allowed: unknown hostname", err.Host)
-	}
 	if err.IsInvalidPath {
 		return fmt.Sprintf("migration/cloning from '%s' is not allowed: the provided path is invalid", err.Host)
 	}

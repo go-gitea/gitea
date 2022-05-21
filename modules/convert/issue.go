@@ -24,7 +24,7 @@ import (
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(issue *models.Issue) *api.Issue {
-	if err := issue.LoadLabels(); err != nil {
+	if err := issue.LoadLabels(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadPoster(); err != nil {
@@ -72,7 +72,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
-	if err := issue.LoadAssignees(); err != nil {
+	if err := issue.LoadAssignees(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if len(issue.Assignees) > 0 {

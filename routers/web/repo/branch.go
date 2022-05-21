@@ -129,7 +129,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
 		Remote: ctx.Repo.Repository.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
-		Env:    models.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
+		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			log.Debug("RestoreBranch: Can't restore branch '%s', since one with same name already exist", deletedBranch.Name)
@@ -279,7 +279,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
-		} else if err := pr.LoadBaseRepo(); err != nil {
+		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 			ctx.ServerError("pr.LoadBaseRepo", err)
 			return nil
 		} else {

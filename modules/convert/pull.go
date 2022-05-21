@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -33,17 +34,17 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	apiIssue := ToAPIIssue(pr.Issue)
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
 
-	if err := pr.LoadHeadRepo(); err != nil {
+	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("GetRepositoryById[%d]: %v", pr.ID, err)
 		return nil
 	}
 
-	p, err := models.GetUserRepoPermission(pr.BaseRepo, doer)
+	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
@@ -72,6 +73,8 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		Deadline:  apiIssue.Deadline,
 		Created:   pr.Issue.CreatedUnix.AsTimePtr(),
 		Updated:   pr.Issue.UpdatedUnix.AsTimePtr(),
+
+		AllowMaintainerEdit: pr.AllowMaintainerEdit,
 
 		Base: &api.PRBranchInfo{
 			Name:       pr.BaseBranch,
@@ -130,7 +133,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 	}
 
 	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		p, err := models.GetUserRepoPermission(pr.HeadRepo, doer)
+		p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone

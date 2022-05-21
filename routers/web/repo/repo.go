@@ -285,9 +285,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
@@ -369,7 +369,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -590,26 +590,28 @@ func SearchRepo(ctx *context.Context) {
 		return
 	}
 
-	results := make([]*api.Repository, len(repos))
-	for i, repo := range repos {
-		if err = repo.GetOwner(ctx); err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-			return
-		}
-		accessMode, err := models.AccessLevel(ctx.Doer, repo)
-		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, api.SearchError{
-				OK:    false,
-				Error: err.Error(),
-			})
-		}
-		results[i] = convert.ToRepo(repo, accessMode)
+	ctx.SetTotalCountHeader(count)
+
+	// To improve performance when only the count is requested
+	if ctx.FormBool("count_only") {
+		return
 	}
 
-	ctx.SetTotalCountHeader(count)
+	results := make([]*api.Repository, len(repos))
+	for i, repo := range repos {
+		results[i] = &api.Repository{
+			ID:       repo.ID,
+			FullName: repo.FullName(),
+			Fork:     repo.IsFork,
+			Private:  repo.IsPrivate,
+			Template: repo.IsTemplate,
+			Mirror:   repo.IsMirror,
+			Stars:    repo.NumStars,
+			HTMLURL:  repo.HTMLURL(),
+			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		}
+	}
+
 	ctx.JSON(http.StatusOK, api.SearchResults{
 		OK:   true,
 		Data: results,

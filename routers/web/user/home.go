@@ -443,12 +443,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllLimited: false,
 	}
 
-	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-		repoOpts.TeamID = ctx.Org.Team.ID
+	if team != nil {
+		repoOpts.TeamID = team.ID
 	}
 
 	switch filterMode {
 	case models.FilterModeAll:
+	case models.FilterModeYourRepositories:
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctx.Doer.ID
 	case models.FilterModeCreate:
@@ -457,19 +458,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
-	case models.FilterModeYourRepositories:
-		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-			// Fixes a issue whereby the user's ID would be used
-			// to check if it's in the team(which possible isn't the case).
-			opts.User = nil
-		}
-		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
-		if err != nil {
-			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
-			return
-		}
-
-		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -533,7 +521,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
 	if len(repoIDs) > 0 {
-		opts.RepoIDs = repoIDs
+		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
 	}
 
 	// ------------------------------
@@ -579,7 +567,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
@@ -601,13 +589,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if filterMode == models.FilterModeYourRepositories {
-			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
-		}
-		// Detect when we only should search by team.
-		if opts.User == nil {
-			statsOpts.UserID = 0
-		}
+
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
@@ -633,7 +615,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
-	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -656,7 +638,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		return 0
 	}
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = issueStats

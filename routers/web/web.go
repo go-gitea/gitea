@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
@@ -191,6 +192,8 @@ func Routes() *web.Route {
 		rw.WriteHeader(http.StatusOK)
 	})
 
+	routes.Get("/api/healthz", healthcheck.Check)
+
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
@@ -279,6 +282,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	federationEnabled := func(ctx *context.Context) {
+		if !setting.Federation.Enabled {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -286,9 +296,10 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/", Home)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
-		if setting.Federation.Enabled {
+		m.Group("", func() {
 			m.Get("/nodeinfo", NodeInfoLinks)
-		}
+			m.Get("/webfinger", WebfingerQuery)
+		}, federationEnabled)
 		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
 		})
@@ -574,6 +585,7 @@ func RegisterRoutes(m *web.Route) {
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)
+	canEnableEditor := context.CanEnableEditor()
 	reqRepoCodeReader := context.RequireRepoReader(unit.TypeCode)
 	reqRepoReleaseWriter := context.RequireRepoWriter(unit.TypeReleases)
 	reqRepoReleaseReader := context.RequireRepoReader(unit.TypeReleases)
@@ -845,6 +857,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
+				m.Post("/viewed-files", repo.UpdateViewedFiles)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)
@@ -925,12 +938,12 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
 				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
 					Post(bindIgnErr(forms.CherryPickForm{}), repo.CherryPickPost)
-			}, context.RepoRefByType(context.RepoRefBranch), repo.MustBeEditable)
+			}, repo.MustBeEditable)
 			m.Group("", func() {
 				m.Post("/upload-file", repo.UploadFileToServer)
 				m.Post("/upload-remove", bindIgnErr(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
-			}, context.RepoRef(), repo.MustBeEditable, repo.MustBeAbleToUpload)
-		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
+			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
+		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
@@ -1105,6 +1118,7 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
 			m.Post("/merge", context.RepoMustNotBeArchived(), bindIgnErr(forms.MergePullRequestForm{}), repo.MergePullRequest)
 			m.Post("/update", repo.UpdatePullRequest)
+			m.Post("/set_allow_maintainer_edit", bindIgnErr(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
 			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
 			m.Group("/files", func() {
 				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)

@@ -104,7 +104,7 @@ var (
 func InitIssueIndexer(syncReindex bool) {
 	ctx, _, finished := process.GetManager().AddTypedContext(context.Background(), "Service: IssueIndexer", process.SystemProcessType, false)
 
-	waitChannel := make(chan time.Duration)
+	waitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
 	switch setting.Indexer.IssueType {
@@ -321,7 +321,7 @@ func populateIssueIndexer(ctx context.Context) {
 // UpdateRepoIndexer add/update all issues of the repositories
 func UpdateRepoIndexer(repo *repo_model.Repository) {
 	is, err := models.Issues(&models.IssuesOptions{
-		RepoIDs:  []int64{repo.ID},
+		RepoID:   repo.ID,
 		IsClosed: util.OptionalBoolNone,
 		IsPull:   util.OptionalBoolNone,
 	})
@@ -362,7 +362,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 	var ids []int64
-	ids, err := models.GetIssueIDsByRepoID(repo.ID)
+	ids, err := models.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
 	if err != nil {
 		log.Error("getIssueIDsByRepoID failed: %v", err)
 		return

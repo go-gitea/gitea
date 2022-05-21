@@ -24,12 +24,12 @@
 						<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 						<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
 					</select>
-					<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+					<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
 		<div class="ui attached table segment">
-			<table class="ui very basic striped table">
+			<table class="ui very basic striped table unstackable">
 				<thead>
 					<tr>
 						<th>ID</th>
