@@ -67,6 +67,8 @@ async function initRepoWikiFormEditor() {
     indentWithTabs: false,
     tabSize: 4,
     spellChecker: false,
+    inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
+    nativeSpellcheck: true,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
       {
