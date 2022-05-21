@@ -7,7 +7,7 @@
 			{{.i18n.Tr "settings.orgs"}}
 			{{if .SignedUser.CanCreateOrganization}}
 			<div class="ui right">
-				<a class="ui blue tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/org/create">{{.i18n.Tr "admin.orgs.new_orga"}}</a>
 			</div>
 			{{end}}
 		</h4>
@@ -19,7 +19,7 @@
 						<div class="right floated content">
 							<form method="post" action="{{.OrganisationLink}}/members/action/leave">
 								{{$.CsrfTokenHtml}}
-								<button type="submit" class="ui blue small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
+								<button type="submit" class="ui primary small button" name="uid" value="{{.ID}}">{{$.i18n.Tr "org.members.leave"}}</button>
 							</form>
 						</div>
 						{{avatar . 28 "mini"}}

@@ -71,7 +71,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -98,7 +98,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}

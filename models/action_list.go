@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -26,14 +27,14 @@ func (actions ActionList) getUserIDs() []int64 {
 	return container.KeysInt64(userIDs)
 }
 
-func (actions ActionList) loadUsers(e db.Engine) (map[int64]*user_model.User, error) {
+func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.User, error) {
 	if len(actions) == 0 {
 		return nil, nil
 	}
 
 	userIDs := actions.getUserIDs()
 	userMaps := make(map[int64]*user_model.User, len(userIDs))
-	err := e.
+	err := db.GetEngine(ctx).
 		In("id", userIDs).
 		Find(&userMaps)
 	if err != nil {
@@ -56,14 +57,14 @@ func (actions ActionList) getRepoIDs() []int64 {
 	return container.KeysInt64(repoIDs)
 }
 
-func (actions ActionList) loadRepositories(e db.Engine) error {
+func (actions ActionList) loadRepositories(ctx context.Context) error {
 	if len(actions) == 0 {
 		return nil
 	}
 
 	repoIDs := actions.getRepoIDs()
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
-	err := e.In("id", repoIDs).Find(&repoMaps)
+	err := db.GetEngine(ctx).In("id", repoIDs).Find(&repoMaps)
 	if err != nil {
 		return fmt.Errorf("find repository: %v", err)
 	}
@@ -74,7 +75,7 @@ func (actions ActionList) loadRepositories(e db.Engine) error {
 	return nil
 }
 
-func (actions ActionList) loadRepoOwner(e db.Engine, userMap map[int64]*user_model.User) (err error) {
+func (actions ActionList) loadRepoOwner(ctx context.Context, userMap map[int64]*user_model.User) (err error) {
 	if userMap == nil {
 		userMap = make(map[int64]*user_model.User)
 	}
@@ -85,7 +86,7 @@ func (actions ActionList) loadRepoOwner(e db.Engine, userMap map[int64]*user_mod
 		}
 		repoOwner, ok := userMap[action.Repo.OwnerID]
 		if !ok {
-			repoOwner, err = user_model.GetUserByID(action.Repo.OwnerID)
+			repoOwner, err = user_model.GetUserByIDCtx(ctx, action.Repo.OwnerID)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					continue
@@ -101,15 +102,15 @@ func (actions ActionList) loadRepoOwner(e db.Engine, userMap map[int64]*user_mod
 }
 
 // loadAttributes loads all attributes
-func (actions ActionList) loadAttributes(e db.Engine) error {
-	userMap, err := actions.loadUsers(e)
+func (actions ActionList) loadAttributes(ctx context.Context) error {
+	userMap, err := actions.loadUsers(ctx)
 	if err != nil {
 		return err
 	}
 
-	if err := actions.loadRepositories(e); err != nil {
+	if err := actions.loadRepositories(ctx); err != nil {
 		return err
 	}
 
-	return actions.loadRepoOwner(e, userMap)
+	return actions.loadRepoOwner(ctx, userMap)
 }

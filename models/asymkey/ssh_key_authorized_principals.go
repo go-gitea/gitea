@@ -6,6 +6,7 @@ package asymkey
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -42,11 +43,7 @@ const authorizedPrincipalsFile = "authorized_principals"
 // RewriteAllPrincipalKeys removes any authorized principal and rewrite all keys from database again.
 // Note: db.GetEngine(db.DefaultContext).Iterate does not get latest data after insert/delete, so we have to call this function
 // outside any session scope independently.
-func RewriteAllPrincipalKeys() error {
-	return rewriteAllPrincipalKeys(db.GetEngine(db.DefaultContext))
-}
-
-func rewriteAllPrincipalKeys(e db.Engine) error {
+func RewriteAllPrincipalKeys(ctx context.Context) error {
 	// Don't rewrite key if internal server
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedPrincipalsFile {
 		return nil
@@ -92,7 +89,7 @@ func rewriteAllPrincipalKeys(e db.Engine) error {
 		}
 	}
 
-	if err := regeneratePrincipalKeys(e, t); err != nil {
+	if err := regeneratePrincipalKeys(ctx, t); err != nil {
 		return err
 	}
 
@@ -100,13 +97,8 @@ func rewriteAllPrincipalKeys(e db.Engine) error {
 	return util.Rename(tmpPath, fPath)
 }
 
-// RegeneratePrincipalKeys regenerates the authorized_principals file
-func RegeneratePrincipalKeys(t io.StringWriter) error {
-	return regeneratePrincipalKeys(db.GetEngine(db.DefaultContext), t)
-}
-
-func regeneratePrincipalKeys(e db.Engine, t io.StringWriter) error {
-	if err := e.Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+func regeneratePrincipalKeys(ctx context.Context, t io.StringWriter) error {
+	if err := db.GetEngine(ctx).Where("type = ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {

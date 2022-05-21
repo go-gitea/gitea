@@ -2,11 +2,11 @@
 	{{.i18n.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
 		{{if not .DisableSSH }}
-			<div id="add-ssh-button" class="ui blue tiny show-panel button" data-panel="#add-ssh-key-panel">
+			<div id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
 				{{.i18n.Tr "settings.add_key"}}
 			</div>
 		{{else}}
-			<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
+			<div class="ui primary tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
 		{{end}}
 	</div>
 </h4>
@@ -20,7 +20,7 @@
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
 				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui green button">
@@ -42,7 +42,7 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
-						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.ssh_key_verify"}}</a>
+						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
 
 				</div>
@@ -81,7 +81,7 @@
 						</div>
 						<div class="field">
 							<label for="signature">{{$.i18n.Tr "settings.ssh_token_signature"}}</label>
-							<textarea id="ssh-key-signature" name="signature" placeholder="{{$.i18n.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.i18n.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
 						<button class="ui green button">

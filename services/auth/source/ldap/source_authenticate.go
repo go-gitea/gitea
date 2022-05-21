@@ -34,11 +34,11 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
 
 	// Update User admin flag if exist
-	if isExist, err := user_model.IsUserExist(0, sr.Username); err != nil {
+	if isExist, err := user_model.IsUserExist(db.DefaultContext, 0, sr.Username); err != nil {
 		return nil, err
 	} else if isExist {
 		if user == nil {
-			user, err = user_model.GetUserByName(sr.Username)
+			user, err = user_model.GetUserByName(db.DefaultContext, sr.Username)
 			if err != nil {
 				return nil, err
 			}
