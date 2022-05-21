@@ -25,9 +25,8 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 		isOwner, err := organization.OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
 		if err != nil {
 			return false, err
-		} else if isOwner {
-			return true, nil
 		}
+		return isOwner, nil
 	}
 
 	return false, nil
