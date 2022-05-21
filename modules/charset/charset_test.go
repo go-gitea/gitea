@@ -5,6 +5,8 @@
 package charset
 
 import (
+	"bytes"
+	"io"
 	"strings"
 	"testing"
 
@@ -307,6 +309,19 @@ func bytesMustStartWith(t *testing.T, expected, value []byte) {
 
 func TestToUTF8WithFallbackReader(t *testing.T) {
 	resetDefaultCharsetsOrder()
+
+	for testLen := 0; testLen < 2048; testLen++ {
+		pattern := "    test { () }\n"
+		input := ""
+		for len(input) < testLen {
+			input += pattern
+		}
+		input = input[:testLen]
+		input += "// Выключаем"
+		rd := ToUTF8WithFallbackReader(bytes.NewReader([]byte(input)))
+		r, _ := io.ReadAll(rd)
+		assert.EqualValuesf(t, input, string(r), "testing string len=%d", testLen)
+	}
 
 	truncatedOneByteExtension := failFastBytes
 	encoding, _ := DetectEncoding(truncatedOneByteExtension)
