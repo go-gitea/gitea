@@ -21,9 +21,10 @@ import (
 // DeleteNotPassedAssignee deletes all assignees who aren't passed via the "assignees" array
 func DeleteNotPassedAssignee(issue *models.Issue, doer *user_model.User, assignees []*user_model.User) (err error) {
 	var found bool
+	oriAssignes := make([]*user_model.User, len(issue.Assignees))
+	_ = copy(oriAssignes, issue.Assignees)
 
-	for _, assignee := range issue.Assignees {
-
+	for _, assignee := range oriAssignes {
 		found = false
 		for _, alreadyAssignee := range assignees {
 			if assignee.ID == alreadyAssignee.ID {
@@ -110,7 +111,7 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 		}
 	}
 
-	lastreview, err := models.GetReviewByIssueIDAndUserID(issue.ID, reviewer.ID)
+	lastreview, err := models.GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		return err
 	}
@@ -132,7 +133,7 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 
 		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
 		if !pemResult {
-			pemResult, err = models.IsOfficialReviewer(issue, doer)
+			pemResult, err = models.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				return err
 			}
@@ -201,7 +202,7 @@ func IsValidTeamReviewRequest(ctx context.Context, reviewer *organization.Team, 
 
 		doerCanWrite := permission.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
 		if !doerCanWrite {
-			official, err := models.IsOfficialReviewer(issue, doer)
+			official, err := models.IsOfficialReviewer(ctx, issue, doer)
 			if err != nil {
 				log.Error("Unable to Check if IsOfficialReviewer for %-v in %-v#%d", doer, issue.Repo, issue.Index)
 				return err

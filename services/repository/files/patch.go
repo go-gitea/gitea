@@ -66,7 +66,7 @@ func (opts *ApplyDiffPatchOptions) Validate(ctx context.Context, repo *repo_mode
 			return err
 		}
 	} else {
-		protectedBranch, err := models.GetProtectedBranchBy(repo.ID, opts.OldBranch)
+		protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, opts.OldBranch)
 		if err != nil {
 			return err
 		}
