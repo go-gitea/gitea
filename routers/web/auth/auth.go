@@ -417,7 +417,7 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration
 
 	ctx.HTML(http.StatusOK, tplSignUp)
@@ -438,7 +438,7 @@ func SignUpPost(ctx *context.Context) {
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["PageIsSignUp"] = true
 
-	//Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
+	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
 	if setting.Service.DisableRegistration || setting.Service.AllowOnlyExternalRegistration {
 		ctx.Error(http.StatusForbidden)
 		return
@@ -632,8 +632,10 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 		ctx.HTML(http.StatusOK, TplActivate)
 
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		return
 	}
@@ -653,14 +655,15 @@ func Activate(ctx *context.Context) {
 		}
 		// Resend confirmation email.
 		if setting.Service.RegisterEmailConfirm {
-			if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
+			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.User.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
 				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.User)
-
-				if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-					log.Error("Set cache(MailResendLimit) fail: %v", err)
+				if setting.CacheService.Enabled {
+					if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+						log.Error("Set cache(MailResendLimit) fail: %v", err)
+					}
 				}
 			}
 		} else {
@@ -789,7 +792,7 @@ func ActivateEmail(ctx *context.Context) {
 
 		if u, err := user_model.GetUserByID(email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
-		} else {
+		} else if setting.CacheService.Enabled {
 			// Allow user to validate more emails
 			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
 		}

@@ -106,7 +106,7 @@ func EmailPost(ctx *context.Context) {
 	// Send activation Email
 	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
-		if ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName) {
+		if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.User.LowerName) {
 			log.Error("Send activation: activation still pending")
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
@@ -142,8 +142,10 @@ func EmailPost(ctx *context.Context) {
 		}
 		address = email.Email
 
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -202,8 +204,10 @@ func EmailPost(ctx *context.Context) {
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
 		mailer.SendActivateEmailMail(ctx.User, email)
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+ctx.User.LowerName, ctx.User.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
@@ -271,7 +275,7 @@ func loadAccountData(ctx *context.Context) {
 		user_model.EmailAddress
 		CanBePrimary bool
 	}
-	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.User.LowerName)
+	pendingActivation := setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.User.LowerName)
 	emails := make([]*UserEmail, len(emlist))
 	for i, em := range emlist {
 		var email UserEmail
