@@ -265,12 +265,12 @@ func TestSearchRepository(t *testing.T) {
 		},
 		{
 			name:  "OwnerSlashRepoSearch",
-			opts:  &SearchRepoOptions{Keyword: "user/repo2", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
+			opts:  &repo_model.SearchRepoOptions{Keyword: "user/repo2", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
 			count: 3,
 		},
 		{
 			name:  "OwnerSlashSearch",
-			opts:  &SearchRepoOptions{Keyword: "user20/", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
+			opts:  &repo_model.SearchRepoOptions{Keyword: "user20/", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
 			count: 4,
 		},
 	}
