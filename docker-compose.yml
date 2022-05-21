@@ -1,7 +1,6 @@
-version: '3'
+version: "3"
 
 services:
-
   gitea:
     build: .
     volumes:
@@ -21,7 +20,7 @@ services:
     restart: always
 
   mysql:
-    image: mariadb:10.3.9
+    image: mariadb:latest
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: password
