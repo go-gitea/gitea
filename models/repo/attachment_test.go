@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package repo_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +17,7 @@ import (
 func TestIncreaseDownloadCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attachment, err := GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
+	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 
@@ -24,7 +25,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 	err = attachment.IncreaseDownloadCount()
 	assert.NoError(t, err)
 
-	attachment, err = GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
+	attachment, err = repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), attachment.DownloadCount)
 }
@@ -33,11 +34,11 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// count of attachments from issue ID
-	attachments, err := GetAttachmentsByIssueID(db.DefaultContext, 1)
+	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 1)
 
-	attachments, err = GetAttachmentsByCommentID(db.DefaultContext, 1)
+	attachments, err = repo_model.GetAttachmentsByCommentID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 2)
 }
@@ -45,33 +46,33 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 func TestDeleteAttachments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := DeleteAttachmentsByIssue(4, false)
+	count, err := repo_model.DeleteAttachmentsByIssue(4, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 
-	count, err = DeleteAttachmentsByComment(2, false)
+	count, err = repo_model.DeleteAttachmentsByComment(2, false)
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 
-	err = DeleteAttachment(&Attachment{ID: 8}, false)
+	err = repo_model.DeleteAttachment(&repo_model.Attachment{ID: 8}, false)
 	assert.NoError(t, err)
 
-	attachment, err := GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
+	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
 	assert.Error(t, err)
-	assert.True(t, IsErrAttachmentNotExist(err))
+	assert.True(t, repo_model.IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)
 }
 
 func TestGetAttachmentByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attach, err := GetAttachmentByID(db.DefaultContext, 1)
+	attach, err := repo_model.GetAttachmentByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
 }
 
 func TestAttachment_DownloadURL(t *testing.T) {
-	attach := &Attachment{
+	attach := &repo_model.Attachment{
 		UUID: "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11",
 		ID:   1,
 	}
@@ -81,20 +82,20 @@ func TestAttachment_DownloadURL(t *testing.T) {
 func TestUpdateAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attach, err := GetAttachmentByID(db.DefaultContext, 1)
+	attach, err := repo_model.GetAttachmentByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
 
 	attach.Name = "new_name"
-	assert.NoError(t, UpdateAttachment(db.DefaultContext, attach))
+	assert.NoError(t, repo_model.UpdateAttachment(db.DefaultContext, attach))
 
-	unittest.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{Name: "new_name"})
 }
 
 func TestGetAttachmentsByUUIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attachList, err := GetAttachmentsByUUIDs(db.DefaultContext, []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
+	attachList, err := repo_model.GetAttachmentsByUUIDs(db.DefaultContext, []string{"a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a17", "not-existing-uuid"})
 	assert.NoError(t, err)
 	assert.Len(t, attachList, 2)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attachList[0].UUID)
