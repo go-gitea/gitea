@@ -295,7 +295,7 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
 	}
 
-	if !Cfg.Section("packages").Key("ENABLED").MustBool(false) {
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(true) {
 		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 

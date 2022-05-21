@@ -145,7 +145,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 				continue
 			}
 
-			p, err := models.GetPullRequestByIndexCtx(ctx, repo.ID, prIndex)
+			p, err := models.GetPullRequestByIndex(ctx, repo.ID, prIndex)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {

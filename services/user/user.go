@@ -44,7 +44,7 @@ func DeleteUser(u *user_model.User) error {
 	//	cannot perform delete operation.
 
 	// Check ownership of repository.
-	count, err := repo_model.GetRepositoryCount(ctx, u.ID)
+	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {
@@ -78,7 +78,7 @@ func DeleteUser(u *user_model.User) error {
 	if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 		return err
 	}
-	if err = asymkey_model.RewriteAllPrincipalKeys(); err != nil {
+	if err = asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext); err != nil {
 		return err
 	}
 

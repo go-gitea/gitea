@@ -66,7 +66,7 @@
 							<tbody>
 								{{range .ProtectedBranches}}
 									<tr>
-										<td><div class="ui basic label blue">{{.BranchName}}</div></td>
+										<td><div class="ui basic primary label">{{.BranchName}}</div></td>
 										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName | PathEscapeSegments}}">{{$.i18n.Tr "repo.settings.edit_protected_branch"}}</a></td>
 									</tr>
 								{{else}}

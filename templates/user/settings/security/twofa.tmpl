@@ -8,7 +8,7 @@
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/regenerate_scratch" method="post" enctype="multipart/form-data">
 		{{.CsrfTokenHtml}}
 		<p>{{.i18n.Tr "settings.regenerate_scratch_token_desc"}}</p>
-		<button class="ui blue button">{{$.i18n.Tr "settings.twofa_scratch_token_regenerate"}}</button>
+		<button class="ui primary button">{{$.i18n.Tr "settings.twofa_scratch_token_regenerate"}}</button>
 	</form>
 	<form class="ui form" action="{{AppSubUrl}}/user/settings/security/two_factor/disable" method="post" enctype="multipart/form-data" id="disable-form">
 		{{.CsrfTokenHtml}}

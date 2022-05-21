@@ -111,7 +111,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + branch
 	c.Data["PageIsSettingsBranches"] = true
 
-	protectBranch, err := models.GetProtectedBranchBy(c.Repo.Repository.ID, branch)
+	protectBranch, err := models.GetProtectedBranchBy(c, c.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			c.ServerError("GetProtectBranchOfRepoByName", err)
@@ -184,7 +184,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			ctx.ServerError("GetProtectBranchOfRepoByName", err)

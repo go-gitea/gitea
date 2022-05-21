@@ -51,7 +51,7 @@ func ListHooks(ctx *context.APIContext) {
 		return
 	}
 
-	orgHooks, err := webhook.ListWebhooksByOpts(opts)
+	orgHooks, err := webhook.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

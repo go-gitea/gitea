@@ -27,7 +27,7 @@ func (comments CommentList) getPosterIDs() []int64 {
 	return container.KeysInt64(posterIDs)
 }
 
-func (comments CommentList) loadPosters(e db.Engine) error {
+func (comments CommentList) loadPosters(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -40,7 +40,7 @@ func (comments CommentList) loadPosters(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", posterIDs[:limit]).
 			Find(&posterMaps)
 		if err != nil {
@@ -80,7 +80,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadLabels(e db.Engine) error {
+func (comments CommentList) loadLabels(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -93,7 +93,7 @@ func (comments CommentList) loadLabels(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.
+		rows, err := db.GetEngine(ctx).
 			In("id", labelIDs[:limit]).
 			Rows(new(Label))
 		if err != nil {
@@ -130,7 +130,7 @@ func (comments CommentList) getMilestoneIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadMilestones(e db.Engine) error {
+func (comments CommentList) loadMilestones(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -147,7 +147,7 @@ func (comments CommentList) loadMilestones(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", milestoneIDs[:limit]).
 			Find(&milestoneMaps)
 		if err != nil {
@@ -173,7 +173,7 @@ func (comments CommentList) getOldMilestoneIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadOldMilestones(e db.Engine) error {
+func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -190,7 +190,7 @@ func (comments CommentList) loadOldMilestones(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", milestoneIDs[:limit]).
 			Find(&milestoneMaps)
 		if err != nil {
@@ -216,7 +216,7 @@ func (comments CommentList) getAssigneeIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadAssignees(e db.Engine) error {
+func (comments CommentList) loadAssignees(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -229,7 +229,7 @@ func (comments CommentList) loadAssignees(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.
+		rows, err := db.GetEngine(ctx).
 			In("id", assigneeIDs[:limit]).
 			Rows(new(user_model.User))
 		if err != nil {
@@ -290,7 +290,7 @@ func (comments CommentList) Issues() IssueList {
 	return issueList
 }
 
-func (comments CommentList) loadIssues(e db.Engine) error {
+func (comments CommentList) loadIssues(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -303,7 +303,7 @@ func (comments CommentList) loadIssues(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.
+		rows, err := db.GetEngine(ctx).
 			In("id", issueIDs[:limit]).
 			Rows(new(Issue))
 		if err != nil {
@@ -397,7 +397,7 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	return nil
 }
 
-func (comments CommentList) loadAttachments(e db.Engine) (err error) {
+func (comments CommentList) loadAttachments(ctx context.Context) (err error) {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -410,7 +410,7 @@ func (comments CommentList) loadAttachments(e db.Engine) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table("attachment").
+		rows, err := db.GetEngine(ctx).Table("attachment").
 			Join("INNER", "comment", "comment.id = attachment.comment_id").
 			In("comment.id", commentsIDs[:limit]).
 			Rows(new(repo_model.Attachment))
@@ -449,7 +449,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadReviews(e db.Engine) error {
+func (comments CommentList) loadReviews(ctx context.Context) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -462,7 +462,7 @@ func (comments CommentList) loadReviews(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.
+		rows, err := db.GetEngine(ctx).
 			In("id", reviewIDs[:limit]).
 			Rows(new(Review))
 		if err != nil {
@@ -493,36 +493,35 @@ func (comments CommentList) loadReviews(e db.Engine) error {
 
 // loadAttributes loads all attributes
 func (comments CommentList) loadAttributes(ctx context.Context) (err error) {
-	e := db.GetEngine(ctx)
-	if err = comments.loadPosters(e); err != nil {
+	if err = comments.loadPosters(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadLabels(e); err != nil {
+	if err = comments.loadLabels(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadMilestones(e); err != nil {
+	if err = comments.loadMilestones(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadOldMilestones(e); err != nil {
+	if err = comments.loadOldMilestones(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadAssignees(e); err != nil {
+	if err = comments.loadAssignees(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadAttachments(e); err != nil {
+	if err = comments.loadAttachments(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadReviews(e); err != nil {
+	if err = comments.loadReviews(ctx); err != nil {
 		return
 	}
 
-	if err = comments.loadIssues(e); err != nil {
+	if err = comments.loadIssues(ctx); err != nil {
 		return
 	}
 
@@ -541,15 +540,15 @@ func (comments CommentList) LoadAttributes() error {
 
 // LoadAttachments loads attachments
 func (comments CommentList) LoadAttachments() error {
-	return comments.loadAttachments(db.GetEngine(db.DefaultContext))
+	return comments.loadAttachments(db.DefaultContext)
 }
 
 // LoadPosters loads posters
 func (comments CommentList) LoadPosters() error {
-	return comments.loadPosters(db.GetEngine(db.DefaultContext))
+	return comments.loadPosters(db.DefaultContext)
 }
 
 // LoadIssues loads issues of comments
 func (comments CommentList) LoadIssues() error {
-	return comments.loadIssues(db.GetEngine(db.DefaultContext))
+	return comments.loadIssues(db.DefaultContext)
 }

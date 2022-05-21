@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -248,7 +249,7 @@ func TestRelease_Update(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, []string{attach.UUID}, nil, nil))
-	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
@@ -259,7 +260,7 @@ func TestRelease_Update(t *testing.T) {
 		attach.UUID: "test2.txt",
 	}))
 	release.Attachments = nil
-	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Len(t, release.Attachments, 1)
 	assert.EqualValues(t, attach.UUID, release.Attachments[0].UUID)
 	assert.EqualValues(t, release.ID, release.Attachments[0].ReleaseID)
@@ -268,7 +269,7 @@ func TestRelease_Update(t *testing.T) {
 	// delete the attachment
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, []string{attach.UUID}, nil))
 	release.Attachments = nil
-	assert.NoError(t, models.GetReleaseAttachments(release))
+	assert.NoError(t, models.GetReleaseAttachments(db.DefaultContext, release))
 	assert.Empty(t, release.Attachments)
 }
 
