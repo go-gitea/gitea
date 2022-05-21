@@ -145,7 +145,7 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
@@ -164,7 +164,7 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
@@ -502,7 +502,7 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 		return 0
 	}
 
-	user, err := user_model.GetUserByName(userName)
+	user, err := user_model.GetUserByName(ctx, userName)
 	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0

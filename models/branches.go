@@ -306,13 +306,9 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
-	return getProtectedBranchBy(db.GetEngine(db.DefaultContext), repoID, branchName)
-}
-
-func getProtectedBranchBy(e db.Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
+func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
-	has, err := e.Get(rel)
+	has, err := db.GetByBean(ctx, rel)
 	if err != nil {
 		return nil, err
 	}
@@ -632,7 +628,7 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 	}
 
 	// 2. Update protected branch if needed
-	protectedBranch, err := getProtectedBranchBy(sess, repo.ID, from)
+	protectedBranch, err := GetProtectedBranchBy(ctx, repo.ID, from)
 	if err != nil {
 		return err
 	}

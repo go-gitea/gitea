@@ -166,7 +166,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** END: Branch Protections *****
 
 	// ***** START: PublicKey *****
-	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
 	// ***** END: PublicKey *****
@@ -178,17 +178,17 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
-		if _, err = e.Delete(&asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
+		if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
 			return fmt.Errorf("deleteGPGKeyImports: %v", err)
 		}
 	}
-	if _, err = e.Delete(&asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
 	// ***** END: GPGPublicKey *****
 
 	// Clear assignee.
-	if err = clearAssigneeByUserID(e, u.ID); err != nil {
+	if _, err = db.DeleteByBean(ctx, &IssueAssignees{AssigneeID: u.ID}); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 

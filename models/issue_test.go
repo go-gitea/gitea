@@ -52,7 +52,7 @@ func TestIssue_ReplaceLabels(t *testing.T) {
 func Test_GetIssueIDsByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	ids, err := GetIssueIDsByRepoID(1)
+	ids, err := GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, ids, 5)
 }
@@ -69,7 +69,7 @@ func TestIssueAPIURL(t *testing.T) {
 func TestGetIssuesByIDs(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	testSuccess := func(expectedIssueIDs, nonExistentIssueIDs []int64) {
-		issues, err := GetIssuesByIDs(append(expectedIssueIDs, nonExistentIssueIDs...))
+		issues, err := GetIssuesByIDs(db.DefaultContext, append(expectedIssueIDs, nonExistentIssueIDs...))
 		assert.NoError(t, err)
 		actualIssueIDs := make([]int64, len(issues))
 		for i, issue := range issues {
@@ -87,7 +87,7 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 	checkParticipants := func(issueID int64, userIDs []int) {
 		issue, err := GetIssueByID(issueID)
 		assert.NoError(t, err)
-		participants, err := issue.getParticipantIDsByIssue(db.GetEngine(db.DefaultContext))
+		participants, err := issue.getParticipantIDsByIssue(db.DefaultContext)
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
 			for i, uid := range participants {
@@ -317,7 +317,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ms, err := GetIssueByID(2)
 	assert.NoError(t, err)
-	assert.NoError(t, ms.loadTotalTimes(db.GetEngine(db.DefaultContext)))
+	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
@@ -419,7 +419,7 @@ func TestIssue_InsertIssue(t *testing.T) {
 func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issueIDs, err := GetIssueIDsByRepoID(1)
+	issueIDs, err := GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 5, len(issueIDs))
 
@@ -430,12 +430,12 @@ func TestIssue_DeleteIssue(t *testing.T) {
 
 	err = DeleteIssue(issue)
 	assert.NoError(t, err)
-	issueIDs, err = GetIssueIDsByRepoID(1)
+	issueIDs, err = GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 4, len(issueIDs))
 
 	// check attachment removal
-	attachments, err := repo_model.GetAttachmentsByIssueID(4)
+	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 4)
 	assert.NoError(t, err)
 	issue, err = GetIssueByID(4)
 	assert.NoError(t, err)
@@ -443,7 +443,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(attachments))
 	for i := range attachments {
-		attachment, err := repo_model.GetAttachmentByUUID(attachments[i].UUID)
+		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
 		assert.Error(t, err)
 		assert.True(t, repo_model.IsErrAttachmentNotExist(err))
 		assert.Nil(t, attachment)

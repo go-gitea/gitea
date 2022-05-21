@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -206,9 +207,9 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
-func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) {
+func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
-	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
 		return nil, err
 	}
 
