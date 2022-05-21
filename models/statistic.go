@@ -56,7 +56,7 @@ func GetStatistic(ctx context.Context, metrics bool) (stats Statistic) {
 	e := db.GetEngine(ctx)
 
 	stats.Counter.User = user_model.CountUsers(nil)
-	stats.Counter.Org = organization.CountOrganizations(organization.FindOrgOptions{IncludePrivate: true})
+	stats.Counter.Org, _ = organization.CountOrgs(organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.Repo, _ = db.EstimateCount(ctx, new(repo_model.Repository))
 	stats.Counter.PublicKey, _ = db.EstimateCount(ctx, new(asymkey_model.PublicKey))
 	stats.Counter.Watch, _ = db.EstimateCount(ctx, new(repo_model.Watch))
