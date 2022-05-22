@@ -8,11 +8,7 @@ package models
 import (
 	"context"
 	"fmt"
-	"os"
-	"path"
 	"strconv"
-	"strings"
-	"unicode/utf8"
 
 	_ "image/jpeg" // Needed for jpeg support
 
@@ -314,114 +310,6 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 	}
 
 	return nil
-}
-
-// CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
-func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
-	if err := repo.GetOwner(ctx); err != nil {
-		return err
-	}
-
-	// Create/Remove git-daemon-export-ok for git-daemon...
-	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
-
-	isExist, err := util.IsExist(daemonExportFile)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
-		return err
-	}
-
-	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
-	if !isPublic && isExist {
-		if err = util.Remove(daemonExportFile); err != nil {
-			log.Error("Failed to remove %s: %v", daemonExportFile, err)
-		}
-	} else if isPublic && !isExist {
-		if f, err := os.Create(daemonExportFile); err != nil {
-			log.Error("Failed to create %s: %v", daemonExportFile, err)
-		} else {
-			f.Close()
-		}
-	}
-
-	return nil
-}
-
-// UpdateRepositoryCtx updates a repository with db context
-func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	repo.LowerName = strings.ToLower(repo.Name)
-
-	if utf8.RuneCountInString(repo.Description) > 255 {
-		repo.Description = string([]rune(repo.Description)[:255])
-	}
-	if utf8.RuneCountInString(repo.Website) > 255 {
-		repo.Website = string([]rune(repo.Website)[:255])
-	}
-
-	e := db.GetEngine(ctx)
-
-	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
-		return fmt.Errorf("update: %v", err)
-	}
-
-	if err = UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
-	}
-
-	if visibilityChanged {
-		if err = repo.GetOwner(ctx); err != nil {
-			return fmt.Errorf("getOwner: %v", err)
-		}
-		if repo.Owner.IsOrganization() {
-			// Organization repository need to recalculate access table when visibility is changed.
-			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
-				return fmt.Errorf("recalculateTeamAccesses: %v", err)
-			}
-		}
-
-		// If repo has become private, we need to set its actions to private.
-		if repo.IsPrivate {
-			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&Action{
-				IsPrivate: true,
-			})
-			if err != nil {
-				return err
-			}
-		}
-
-		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(ctx, repo); err != nil {
-			return err
-		}
-
-		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
-		if err != nil {
-			return fmt.Errorf("GetRepositoriesByForkID: %v", err)
-		}
-		for i := range forkRepos {
-			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
-			if err = UpdateRepositoryCtx(ctx, forkRepos[i], true); err != nil {
-				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
-			}
-		}
-	}
-
-	return nil
-}
-
-// UpdateRepository updates a repository
-func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err error) {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = UpdateRepositoryCtx(ctx, repo, visibilityChanged); err != nil {
-		return fmt.Errorf("updateRepository: %v", err)
-	}
-
-	return committer.Commit()
 }
 
 // DeleteRepository deletes a repository for a user or organization.

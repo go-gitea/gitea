@@ -84,26 +84,6 @@ func TestMetas(t *testing.T) {
 	assert.Equal(t, ",owners,team1,", metas["teams"])
 }
 
-func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	// Get sample repo and change visibility
-	repo, err := repo_model.GetRepositoryByID(9)
-	assert.NoError(t, err)
-	repo.IsPrivate = true
-
-	// Update it
-	_, err = db.GetEngine(db.DefaultContext).ID(repo.ID).Cols("is_private").Update(repo)
-	assert.NoError(t, err)
-
-	// Check visibility of action has become private
-	act := Action{}
-	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
-
-	assert.NoError(t, err)
-	assert.True(t, act.IsPrivate)
-}
-
 func TestDoctorUserStarNum(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
