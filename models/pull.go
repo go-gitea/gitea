@@ -609,7 +609,7 @@ func (pr *PullRequest) GetWorkInProgressPrefix() string {
 	}
 
 	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
-		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), prefix) {
+		if strings.HasPrefix(strings.ToUpper(pr.Issue.Title), strings.ToUpper(prefix)) {
 			return pr.Issue.Title[0:len(prefix)]
 		}
 	}
