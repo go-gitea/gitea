@@ -43,11 +43,7 @@ func NewRepoContext() {
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
-func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	return checkRepoUnitUser(db.DefaultContext, repo, user, unitType)
-}
-
-func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
+func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
 	if user != nil && user.IsAdmin {
 		return true
 	}
@@ -58,116 +54,6 @@ func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	}
 
 	return perm.CanRead(unitType)
-}
-
-// GetReviewerTeams get all teams can be requested to review
-func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error) {
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
-		return nil, err
-	}
-	if !repo.Owner.IsOrganization() {
-		return nil, nil
-	}
-
-	teams, err := organization.GetTeamsWithAccessToRepo(db.DefaultContext, repo.OwnerID, repo.ID, perm.AccessModeRead)
-	if err != nil {
-		return nil, err
-	}
-
-	return teams, err
-}
-
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
-func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	size, err := util.GetDirectorySize(repo.RepoPath())
-	if err != nil {
-		return fmt.Errorf("updateSize: %v", err)
-	}
-
-	lfsSize, err := GetRepoLFSSize(ctx, repo.ID)
-	if err != nil {
-		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
-	}
-
-	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
-}
-
-// CanUserForkRepo returns true if specified user can fork repository.
-func CanUserForkRepo(user *user_model.User, repo *repo_model.Repository) (bool, error) {
-	if user == nil {
-		return false, nil
-	}
-	if repo.OwnerID != user.ID && !repo_model.HasForkedRepo(user.ID, repo.ID) {
-		return true, nil
-	}
-	ownedOrgs, err := organization.GetOrgsCanCreateRepoByUserID(user.ID)
-	if err != nil {
-		return false, err
-	}
-	for _, org := range ownedOrgs {
-		if repo.OwnerID != org.ID && !repo_model.HasForkedRepo(org.ID, repo.ID) {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// FindUserOrgForks returns the forked repositories for one user from a repository
-func FindUserOrgForks(ctx context.Context, repoID, userID int64) ([]*repo_model.Repository, error) {
-	cond := builder.And(
-		builder.Eq{"fork_id": repoID},
-		builder.In("owner_id",
-			builder.Select("org_id").
-				From("org_user").
-				Where(builder.Eq{"uid": userID}),
-		),
-	)
-
-	var repos []*repo_model.Repository
-	return repos, db.GetEngine(ctx).Table("repository").Where(cond).Find(&repos)
-}
-
-// GetForksByUserAndOrgs return forked repos of the user and owned orgs
-func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *repo_model.Repository) ([]*repo_model.Repository, error) {
-	var repoList []*repo_model.Repository
-	if user == nil {
-		return repoList, nil
-	}
-	forkedRepo, err := repo_model.GetUserFork(ctx, repo.ID, user.ID)
-	if err != nil {
-		return repoList, err
-	}
-	if forkedRepo != nil {
-		repoList = append(repoList, forkedRepo)
-	}
-	orgForks, err := FindUserOrgForks(ctx, repo.ID, user.ID)
-	if err != nil {
-		return nil, err
-	}
-	repoList = append(repoList, orgForks...)
-	return repoList, nil
-}
-
-// CanUserDelete returns true if user could delete the repository
-func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	if user.IsAdmin || user.ID == repo.OwnerID {
-		return true, nil
-	}
-
-	if err := repo.GetOwner(db.DefaultContext); err != nil {
-		return false, err
-	}
-
-	if repo.Owner.IsOrganization() {
-		isOwner, err := organization.OrgFromUser(repo.Owner).IsOwnedBy(user.ID)
-		if err != nil {
-			return false, err
-		} else if isOwner {
-			return true, nil
-		}
-	}
-
-	return false, nil
 }
 
 // CreateRepoOptions contains the create repository options
