@@ -588,7 +588,7 @@ func (pr *PullRequest) IsWorkInProgress() bool {
 // HasWorkInProgressPrefix determines if the given PR title has a Work In Progress prefix
 func HasWorkInProgressPrefix(title string) bool {
 	for _, prefix := range setting.Repository.PullRequest.WorkInProgressPrefixes {
-		if strings.HasPrefix(strings.ToUpper(title), prefix) {
+		if strings.HasPrefix(strings.ToUpper(title), strings.ToUpper(prefix)) {
 			return true
 		}
 	}
