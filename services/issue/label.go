@@ -80,7 +80,7 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
 func ReplaceLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
-	old, err := models.GetLabelsByIssueID(issue.ID)
+	old, err := models.GetLabelsByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return err
 	}

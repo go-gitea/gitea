@@ -76,7 +76,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 		return err
 	}
 
-	if err = repo_model.WatchRepoCtx(ctx, uid, repo.ID, false); err != nil {
+	if err = repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
 		return err
 	}
 
@@ -93,7 +93,7 @@ func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
 }
 
 func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Repository, uid int64) error {
-	user, err := user_model.GetUserByIDEngine(db.GetEngine(ctx), uid)
+	user, err := user_model.GetUserByIDCtx(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -114,12 +114,12 @@ func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int
 	if has, err := access_model.HasAccess(ctx, uid, repo); err != nil || has {
 		return err
 	}
-	if err := repo_model.WatchRepoCtx(ctx, uid, repo.ID, false); err != nil {
+	if err := repo_model.WatchRepo(ctx, uid, repo.ID, false); err != nil {
 		return err
 	}
 
 	// Remove all IssueWatches a user has subscribed to in the repository
-	return removeIssueWatchersByRepoID(db.GetEngine(ctx), uid, repo.ID)
+	return removeIssueWatchersByRepoID(ctx, uid, repo.ID)
 }
 
 // IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository

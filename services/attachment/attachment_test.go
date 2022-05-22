@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -39,7 +40,7 @@ func TestUploadAttachment(t *testing.T) {
 	}, f)
 	assert.NoError(t, err)
 
-	attachment, err := repo_model.GetAttachmentByUUID(attach.UUID)
+	attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attach.UUID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, user.ID, attachment.UploaderID)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
