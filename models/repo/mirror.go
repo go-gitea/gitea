@@ -168,3 +168,12 @@ func (repos MirrorRepositoryList) loadAttributes(ctx context.Context) error {
 func (repos MirrorRepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(db.DefaultContext)
 }
+
+// GetUserMirrorRepositories returns a list of mirror repositories of given user.
+func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
+	repos := make([]*Repository, 0, 10)
+	return repos, db.GetEngine(db.DefaultContext).
+		Where("owner_id = ?", userID).
+		And("is_mirror = ?", true).
+		Find(&repos)
+}

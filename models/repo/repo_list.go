@@ -21,15 +21,6 @@ import (
 	"xorm.io/builder"
 )
 
-// GetUserMirrorRepositories returns a list of mirror repositories of given user.
-func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ?", userID).
-		And("is_mirror = ?", true).
-		Find(&repos)
-}
-
 // IterateRepository iterate repositories
 func IterateRepository(f func(repo *Repository) error) error {
 	var start int
@@ -95,7 +86,7 @@ func RepositoryListOfMap(repoMap map[int64]*Repository) RepositoryList {
 	return RepositoryList(ValuesRepository(repoMap))
 }
 
-func (repos RepositoryList) loadAttributes(e db.Engine) error {
+func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	if len(repos) == 0 {
 		return nil
 	}
@@ -109,7 +100,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 	// Load owners.
 	users := make(map[int64]*user_model.User, len(set))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("id > 0").
 		In("id", container.KeysInt64(set)).
 		Find(&users); err != nil {
@@ -121,7 +112,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 	// Load primary language.
 	stats := make(LanguageStatList, 0, len(repos))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("`is_primary` = ? AND `language` != ?", true, "other").
 		In("`repo_id`", repoIDs).
 		Find(&stats); err != nil {
@@ -142,7 +133,7 @@ func (repos RepositoryList) loadAttributes(e db.Engine) error {
 
 // LoadAttributes loads the attributes for the given RepositoryList
 func (repos RepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.GetEngine(db.DefaultContext))
+	return repos.loadAttributes(db.DefaultContext)
 }
 
 // SearchRepoOptions holds the search options
@@ -276,33 +267,6 @@ func UserMentionedRepoCond(id string, userID int64) builder.Cond {
 				}),
 		),
 	)
-}
-
-// TeamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
-func TeamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
-	return builder.In(id,
-		builder.Select("repo_id").From("team_repo").Where(
-			builder.Eq{
-				"team_id": teamID,
-			}.And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_user").Where(
-						builder.Eq{
-							"uid": userID,
-						},
-					),
-				)).And(
-				builder.In(
-					"team_id", builder.Select("team_id").From("team_unit").Where(
-						builder.Eq{
-							"`team_unit`.org_id": orgID,
-						}.And(
-							builder.In("`team_unit`.type", units),
-						),
-					),
-				),
-			),
-		))
 }
 
 // UserCollaborationRepoCond returns user as collabrators repositories list
@@ -561,7 +525,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	}
 
 	if loadAttributes {
-		if err := repos.loadAttributes(sess); err != nil {
+		if err := repos.loadAttributes(ctx); err != nil {
 			return nil, 0, fmt.Errorf("LoadAttributes: %v", err)
 		}
 	}
@@ -723,40 +687,4 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
-}
-
-// FindUserOrgForks returns the forked repositories for one user from a repository
-func FindUserOrgForks(ctx context.Context, repoID, userID int64) ([]*Repository, error) {
-	cond := builder.And(
-		builder.Eq{"fork_id": repoID},
-		builder.In("owner_id",
-			builder.Select("org_id").
-				From("org_user").
-				Where(builder.Eq{"uid": userID}),
-		),
-	)
-
-	var repos []*Repository
-	return repos, db.GetEngine(ctx).Table("repository").Where(cond).Find(&repos)
-}
-
-// GetForksByUserAndOrgs return forked repos of the user and owned orgs
-func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *Repository) ([]*Repository, error) {
-	var repoList []*Repository
-	if user == nil {
-		return repoList, nil
-	}
-	forkedRepo, err := GetUserFork(ctx, repo.ID, user.ID)
-	if err != nil {
-		return repoList, err
-	}
-	if forkedRepo != nil {
-		repoList = append(repoList, forkedRepo)
-	}
-	orgForks, err := FindUserOrgForks(ctx, repo.ID, user.ID)
-	if err != nil {
-		return nil, err
-	}
-	repoList = append(repoList, orgForks...)
-	return repoList, nil
 }
