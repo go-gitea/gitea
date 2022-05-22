@@ -182,21 +182,18 @@ func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 	e := GetEngine(ctx)
 	e.Context(ctx)
 
+	var rows int64
+	var err error
 	tablename := TableName(bean)
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
-		var rows int64
-		_, err := e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
-		return rows, err
+		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
 	case schemas.POSTGRES:
-		var rows int64
-		_, err := e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
-		return rows, err
+		_, err = e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
 	case schemas.MSSQL:
-		var rows int64
-		_, err := e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
-		return rows, err
+		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
 	default:
 		return e.Context(ctx).Count(tablename)
 	}
+	return rows, err
 }
