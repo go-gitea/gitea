@@ -36,7 +36,7 @@ func GetStatistic(statisticsTTL time.Duration, full bool) <-chan *models.Statist
 		}
 		if stats != nil && stats.Time.Add(statisticsTTL).After(time.Now()) {
 			// Found a valid cached statistic for these params, so unlock and send this down the channel
-			statisticsLock.Unlock() // Unlock from line 24
+			statisticsLock.Unlock() // Unlock from above
 
 			ourChan <- stats
 			close(ourChan)
@@ -97,7 +97,7 @@ func GetStatistic(statisticsTTL time.Duration, full bool) <-chan *models.Statist
 		}()
 	}
 
-	statisticsLock.Unlock() // Unlock from line 24
+	statisticsLock.Unlock() // Unlock from above
 
 	// Create our goroutine for the channel waiting for the statistics to be generated
 	go func() {
