@@ -284,18 +284,9 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	if !conflict {
-		var treeHash string
-		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
-		if err != nil {
-			return false, err
-		}
-		treeHash = strings.TrimSpace(treeHash)
-		baseTree, err := gitRepo.GetTree("base")
-		if err != nil {
-			return false, err
-		}
-		if treeHash == baseTree.ID.String() {
-			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
+		log.Info("PullRequest[%d]: Head SHA: %s, Merge base SHA: %s", pr.ID, pr.HeadCommitID, pr.MergeBase)
+		if pr.HeadCommitID == pr.MergeBase {
+			log.Debug("PullRequest[%d]: Commits are equal - ignoring", pr.ID)
 			pr.Status = issues_model.PullRequestStatusEmpty
 		}
 
