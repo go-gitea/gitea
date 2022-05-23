@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-fed/activity/pub"
 	"github.com/go-fed/httpsig"
 )
 
@@ -46,7 +45,6 @@ func containsRequiredHTTPHeaders(method string, headers []string) error {
 
 // Client struct
 type Client struct {
-	clock       pub.Clock
 	client      *http.Client
 	algs        []httpsig.Algorithm
 	digestAlg   httpsig.DigestAlgorithm
@@ -67,10 +65,6 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 	for i, algo := range setting.Federation.Algorithms {
 		algos[i] = httpsig.Algorithm(algo)
 	}
-	clock, err := NewClock()
-	if err != nil {
-		return
-	}
 
 	priv, err := GetPrivateKey(user)
 	if err != nil {
@@ -83,7 +77,6 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 	}
 
 	c = &Client{
-		clock: clock,
 		client: &http.Client{
 			Transport: &http.Transport{
 				Proxy: proxy.Proxy(),
@@ -108,7 +101,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
-	req.Header.Add("Date", fmt.Sprintf("%s GMT", c.clock.Now().UTC().Format(time.RFC1123)))
+	req.Header.Add("Date", fmt.Sprintf("%s GMT", time.Now().UTC().Format(time.RFC1123)))
 
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {

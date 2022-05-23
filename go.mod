@@ -26,10 +26,10 @@ require (
 	github.com/emirpasic/gods v1.12.0
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/gliderlabs/ssh v0.3.3
+	github.com/go-ap/activitypub v0.0.0-20220420091113-4837641dc83b
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.0
 	github.com/go-enry/go-enry/v2 v2.8.0
-	github.com/go-fed/activity v1.0.1-0.20220119073622-b14b50eecad0
 	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
@@ -106,6 +106,7 @@ require (
 
 require (
 	cloud.google.com/go v0.99.0 // indirect
+	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20200411073322-f0bcc40f0bf2 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
@@ -158,6 +159,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/fullstorydev/grpcurl v1.8.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
+	github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.3 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -251,6 +253,7 @@ require (
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
+	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect

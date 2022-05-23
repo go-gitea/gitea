@@ -16,9 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-fed/activity/pub"
-	"github.com/go-fed/activity/streams"
-	"github.com/go-fed/activity/streams/vocab"
+	"github.com/go-ap/activitypub"
 	"github.com/stretchr/testify/assert"
 )
 

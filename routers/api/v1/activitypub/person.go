@@ -6,7 +6,6 @@ package activitypub
 
 import (
 	"net/http"
-	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/modules/activitypub"
@@ -14,7 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
 
-	"github.com/go-fed/activity/streams"
+	ap "github.com/go-ap/activitypub"
 )
 
 // Person function
@@ -39,59 +38,34 @@ func Person(ctx *context.APIContext) {
 		return
 	}
 	username := ctx.Params("username")
-
-	person := streams.NewActivityStreamsPerson()
-
-	id := streams.NewJSONLDIdProperty()
+	
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
-	idIRI, _ := url.Parse(link)
-	id.SetIRI(idIRI)
-	person.SetJSONLDId(id)
+	person := ap.PersonNew(ap.IRI(link))
 
-	name := streams.NewActivityStreamsNameProperty()
-	name.AppendXMLSchemaString(username)
-	person.SetActivityStreamsName(name)
+	name := ap.NaturalLanguageValuesNew()
+	name.Set("en", ap.Content(username))
+	person.Name = name
 
-	ibox := streams.NewActivityStreamsInboxProperty()
-	urlObject, _ := url.Parse(link + "/inbox")
-	ibox.SetIRI(urlObject)
-	person.SetActivityStreamsInbox(ibox)
+	person.Inbox = ap.Item(ap.IRI(link + "/inbox"))
+	person.Outbox = ap.Item(ap.IRI(link + "/outbox"))
 
-	obox := streams.NewActivityStreamsOutboxProperty()
-	urlObject, _ = url.Parse(link + "/outbox")
-	obox.SetIRI(urlObject)
-	person.SetActivityStreamsOutbox(obox)
-
-	publicKeyProp := streams.NewW3IDSecurityV1PublicKeyProperty()
-
-	publicKeyType := streams.NewW3IDSecurityV1PublicKey()
-
-	pubKeyIDProp := streams.NewJSONLDIdProperty()
-	pubKeyIRI, _ := url.Parse(link + "#main-key")
-	pubKeyIDProp.SetIRI(pubKeyIRI)
-	publicKeyType.SetJSONLDId(pubKeyIDProp)
-
-	ownerProp := streams.NewW3IDSecurityV1OwnerProperty()
-	ownerProp.SetIRI(idIRI)
-	publicKeyType.SetW3IDSecurityV1Owner(ownerProp)
-
-	publicKeyPemProp := streams.NewW3IDSecurityV1PublicKeyPemProperty()
+	person.PublicKey.ID = ap.IRI(link + "#main-key")
+	person.PublicKey.Owner = ap.IRI(link)
+	
 	publicKeyPem, err := activitypub.GetPublicKey(user)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
 		return
 	}
-	publicKeyPemProp.Set(publicKeyPem)
-	publicKeyType.SetW3IDSecurityV1PublicKeyPem(publicKeyPemProp)
+	person.PublicKey.PublicKeyPem = publicKeyPem
 
-	publicKeyProp.AppendW3IDSecurityV1PublicKey(publicKeyType)
-	person.SetW3IDSecurityV1PublicKey(publicKeyProp)
-
-	jsonmap, err := streams.Serialize(person)
+	binary, err := person.MarshalJSON()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-	ctx.JSON(http.StatusOK, jsonmap)
+	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
+	ctx.Write(binary)
+	ctx.Status(http.StatusOK)
 }
 
 // PersonInbox function
