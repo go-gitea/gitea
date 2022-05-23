@@ -310,7 +310,7 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case approved:
-			protectedBranch, err := models.GetProtectedBranchBy(repo.ID, pr.BaseBranch)
+			protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
 				return false, "", nil, err
 			}

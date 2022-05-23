@@ -2,7 +2,7 @@
 	<div class="issue-title" id="issue-title-wrapper">
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-button">
-				<div id="edit-title" class="ui basic green not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
+				<div id="edit-title" class="ui basic secondary not-in-edit button">{{.i18n.Tr "repo.issues.edit"}}</div>
 			</div>
 		{{end}}
 		<h1>
@@ -14,8 +14,8 @@
 		</h1>
 		{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .Repository.IsArchived)}}
 			<div class="edit-buttons">
-				<div id="cancel-edit-title" class="ui basic blue in-edit button" style="display: none">{{.i18n.Tr "repo.issues.cancel"}}</div>
-				<div id="save-edit-title" class="ui green in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.i18n.Tr "repo.issues.save"}}</div>
+				<div id="cancel-edit-title" class="ui basic secondary in-edit button" style="display: none">{{.i18n.Tr "repo.issues.cancel"}}</div>
+				<div id="save-edit-title" class="ui primary in-edit button" style="display: none" data-update-url="{{$.RepoLink}}/issues/{{.Issue.Index}}/title" {{if .Issue.IsPull}}data-target-update-url="{{$.RepoLink}}/pull/{{.Issue.Index}}/target_branch"{{end}}>{{.i18n.Tr "repo.issues.save"}}</div>
 			</div>
 		{{end}}
 	</div>

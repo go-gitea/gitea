@@ -26,12 +26,7 @@ func (u *User) CustomAvatarRelativePath() string {
 }
 
 // GenerateRandomAvatar generates a random avatar for user.
-func GenerateRandomAvatar(u *User) error {
-	return GenerateRandomAvatarCtx(db.DefaultContext, u)
-}
-
-// GenerateRandomAvatarCtx generates a random avatar for user.
-func GenerateRandomAvatarCtx(ctx context.Context, u *User) error {
+func GenerateRandomAvatar(ctx context.Context, u *User) error {
 	seed := u.Email
 	if len(seed) == 0 {
 		seed = u.Name
@@ -82,7 +77,7 @@ func (u *User) AvatarLinkWithSize(size int) string {
 
 	if useLocalAvatar {
 		if u.Avatar == "" && autoGenerateAvatar {
-			if err := GenerateRandomAvatar(u); err != nil {
+			if err := GenerateRandomAvatar(db.DefaultContext, u); err != nil {
 				log.Error("GenerateRandomAvatar: %v", err)
 			}
 		}

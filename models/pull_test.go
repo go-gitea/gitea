@@ -140,16 +140,16 @@ func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 
 func TestGetPullRequestByIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByIndex(1, 2)
+	pr, err := GetPullRequestByIndex(db.DefaultContext, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.BaseRepoID)
 	assert.Equal(t, int64(2), pr.Index)
 
-	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	_, err = GetPullRequestByIndex(db.DefaultContext, 9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 
-	_, err = GetPullRequestByIndex(1, 0)
+	_, err = GetPullRequestByIndex(db.DefaultContext, 1, 0)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
@@ -168,11 +168,11 @@ func TestGetPullRequestByID(t *testing.T) {
 
 func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByIssueID(2)
+	pr, err := GetPullRequestByIssueID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	_, err = GetPullRequestByIssueID(9223372036854775807)
+	_, err = GetPullRequestByIssueID(db.DefaultContext, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }

@@ -103,7 +103,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	user, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -159,7 +159,7 @@ func AddCollaborator(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -218,7 +218,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -271,7 +271,7 @@ func GetRepoPermissions(ctx *context.APIContext) {
 		return
 	}
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetUserByName", err)

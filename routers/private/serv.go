@@ -109,7 +109,7 @@ func ServCommand(ctx *context.PrivateContext) {
 		results.RepoName = repoName[:len(repoName)-5]
 	}
 
-	owner, err := user_model.GetUserByName(results.OwnerName)
+	owner, err := user_model.GetUserByName(ctx, results.OwnerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			// User is fetching/cloning a non-existent repository
@@ -230,7 +230,7 @@ func ServCommand(ctx *context.PrivateContext) {
 	var user *user_model.User
 	if key.Type == asymkey_model.KeyTypeDeploy {
 		var err error
-		deployKey, err = asymkey_model.GetDeployKeyByRepo(key.ID, repo.ID)
+		deployKey, err = asymkey_model.GetDeployKeyByRepo(ctx, key.ID, repo.ID)
 		if err != nil {
 			if asymkey_model.IsErrDeployKeyNotExist(err) {
 				ctx.JSON(http.StatusNotFound, private.ErrServCommand{
@@ -345,7 +345,7 @@ func ServCommand(ctx *context.PrivateContext) {
 
 	// We already know we aren't using a deploy key
 	if !repoExist {
-		owner, err := user_model.GetUserByName(ownerName)
+		owner, err := user_model.GetUserByName(ctx, ownerName)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, private.ErrServCommand{
 				Results: results,
