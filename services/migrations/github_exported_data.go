@@ -1039,6 +1039,10 @@ func (r *GithubExportedDataRestorer) getIssueEvents() ([]*base.Comment, error) {
 	return comments, nil
 }
 
+func (r *GithubExportedDataRestorer) GetAllComments(page, perPage int) ([]*base.Comment, bool, error) {
+	return r.GetComments(base.GetCommentOptions{})
+}
+
 // GetComments returns comments according issueNumber
 func (r *GithubExportedDataRestorer) GetComments(opts base.GetCommentOptions) ([]*base.Comment, bool, error) {
 	comments := make([]*base.Comment, 0, 10)
@@ -1165,26 +1169,19 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 			if pr.MergedAt != nil || pr.ClosedAt != nil {
 				state = "closed"
 			}
-			isFork := !(pr.Head.User == pr.Base.User && pr.Head.Repo == pr.Base.Repo)
+			_, headUser, _ := r.getUserInfo(pr.Head.User)
 			head := base.PullRequestBranch{
-				Ref: pr.Head.Ref,
-				SHA: pr.Head.Sha,
+				Ref:       pr.Head.Ref,
+				SHA:       pr.Head.Sha,
+				RepoName:  pr.Head.Repo,
+				OwnerName: headUser,
 			}
-			if isFork {
-				if pr.Head.User != "" {
-					fields := strings.Split(pr.Head.User, "/")
-					if pr.Head.Ref == "" {
-						pr.Head.Ref = fmt.Sprintf("%d", pr.Index())
-					}
-					head.Ref = fmt.Sprintf("%s/%s", fields[len(fields)-1], pr.Head.Ref)
-				} else {
-					head.Ref = fmt.Sprintf("pr/%d", pr.Index())
-				}
-			}
+
 			var milestone string
 			if pr.Milestone != "" {
 				milestone = r.milestones[pr.Milestone].Title
 			}
+			_, baseUser, _ := r.getUserInfo(pr.Base.User)
 			pulls = append(pulls, &base.PullRequest{
 				Number:       pr.Index(),
 				Title:        pr.Title,
@@ -1204,8 +1201,10 @@ func (r *GithubExportedDataRestorer) GetPullRequests(page, perPage int) ([]*base
 				MergedTime:   pr.MergedAt,
 				Head:         head,
 				Base: base.PullRequestBranch{
-					Ref: pr.Base.Ref,
-					SHA: pr.Base.Sha,
+					Ref:       pr.Base.Ref,
+					SHA:       pr.Base.Sha,
+					RepoName:  pr.Base.Repo,
+					OwnerName: baseUser,
 				},
 				Assignees: pr.Assignees,
 			})

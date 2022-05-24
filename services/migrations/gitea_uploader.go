@@ -652,6 +652,28 @@ func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error 
 	return nil
 }
 
+func getHeadBranch(pr *base.PullRequest) string {
+	if pr.IsForkPullRequest() {
+		return pr.Head.OwnerName + "/" + pr.Head.Ref
+	}
+	return pr.Head.Ref
+}
+
+func (g *GiteaLocalUploader) createHeadBranch(pr *base.PullRequest) error {
+	branchName := getHeadBranch(pr)
+	headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", branchName)
+	if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+		return err
+	}
+	b, err := os.Create(headBranch)
+	if err != nil {
+		return err
+	}
+	_, err = b.WriteString(pr.Head.SHA)
+	b.Close()
+	return err
+}
+
 func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
 	// download patch file
 	err = func() error {
@@ -695,41 +717,55 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		return "", err
 	}
 
-	head = "unknown repository"
-	if pr.IsForkPullRequest() && pr.State != "closed" {
-		if pr.Head.OwnerName != "" {
-			remote := pr.Head.OwnerName
-			_, ok := g.prHeadCache[remote]
-			if !ok {
-				// git remote add
-				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-				if err != nil {
-					log.Error("AddRemote failed: %s", err)
-				} else {
-					g.prHeadCache[remote] = struct{}{}
-					ok = true
-				}
-			}
+	// create branch directly if commit exists in the repository
+	_, err = g.gitRepo.GetCommit(pr.Head.SHA)
+	if git.IsErrNotExist(err) {
+	} else if err != nil {
+		return "", err
+	} else {
+		if err := g.createHeadBranch(pr); err != nil {
+			return "", err
+		}
+		return getHeadBranch(pr), nil
+	}
 
-			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-				if err != nil {
-					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				} else {
-					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
-					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return "", err
-					}
-					b, err := os.Create(headBranch)
+	head = pullHead
+	if pr.IsForkPullRequest() {
+		if pr.State != "closed" {
+			if pr.Head.OwnerName != "" {
+				remote := pr.Head.OwnerName
+				_, ok := g.prHeadCache[remote]
+				if !ok {
+					// git remote add
+					err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
 					if err != nil {
-						return "", err
+						log.Error("AddRemote[%s] failed: %s", pr.Head.CloneURL, err)
+					} else {
+						g.prHeadCache[remote] = struct{}{}
+						ok = true
 					}
-					_, err = b.WriteString(pr.Head.SHA)
-					b.Close()
+				}
+
+				if ok {
+					_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 					if err != nil {
-						return "", err
+						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+					} else {
+						headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
+						if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
+							return "", err
+						}
+						b, err := os.Create(headBranch)
+						if err != nil {
+							return "", err
+						}
+						_, err = b.WriteString(pr.Head.SHA)
+						b.Close()
+						if err != nil {
+							return "", err
+						}
+						head = pr.Head.OwnerName + "/" + pr.Head.Ref
 					}
-					head = pr.Head.OwnerName + "/" + pr.Head.Ref
 				}
 			}
 		}
