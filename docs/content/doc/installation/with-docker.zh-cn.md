@@ -301,7 +301,7 @@ volumes:
 sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 ```
 
-在下一步中，需要在主机上创建一个名为 `/user/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/user/local/bin`：
+在下一步中，需要在主机上创建一个名为 `/user/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/user/local/bin/gitea`：
 
 ```bash
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
