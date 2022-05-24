@@ -1,5 +1,23 @@
 <h4 class="ui top attached header">
 	{{.i18n.Tr "settings.manage_account_links"}}
+	<div class="ui right">
+		<div class="ui floating1 jump dropdown">
+			<div class="ui blue tiny button">Link Account</div>
+			<div class="menu">
+				{{range $key := .OrderedOAuth2Names}}
+					{{$provider := index $.OAuth2Providers $key}}
+					<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+						<img
+							alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
+							title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
+							class="{{$provider.Name}} oauth-login-image"
+							src="{{AppSubUrl}}{{$provider.Image}}"
+							width="20" height="20">{{$provider.Name}}
+					</a>
+				{{end}}
+			</div>
+		</div>
+	</div>
 </h4>
 <div class="ui attached segment">
 	<div class="ui key list">
