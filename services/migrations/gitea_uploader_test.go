@@ -346,7 +346,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		},
 		{
 			name: "fork, invalid Head.Ref",
-			head: "unknown repository",
+			head: "user10/INVALID",
 			pr: base.PullRequest{
 				PatchURL: "",
 				Number:   1,
