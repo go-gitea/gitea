@@ -372,7 +372,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 		},
 		{
 			name: "invalid fork CloneURL",
-			head: "unknown repository",
+			head: "WRONG/branch2",
 			pr: base.PullRequest{
 				PatchURL: "",
 				Number:   1,
