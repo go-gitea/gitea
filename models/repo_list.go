@@ -282,7 +282,7 @@ func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Typ
 		))
 }
 
-// userAccessRepoCond returns a condition for selecting all repositories a user has access to
+// userAccessRepoCond returns a condition for selecting all repositories a user has unit independent access to
 func userAccessRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
@@ -425,7 +425,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 				builder.Neq{"owner_id": opts.OwnerID},
 				// 2. But we can see because of:
 				builder.Or(
-					// A. We have access
+					// A. We have unit independent access
 					userAccessRepoCond("`repository`.id", opts.OwnerID),
 					// B. We are in a team for
 					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
@@ -607,7 +607,7 @@ func accessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 	}
 
 	if user != nil {
-		// 2. Be able to see all repositories that we have direct access to
+		// 2. Be able to see all repositories that we have unit independent access to
 		// 3. Be able to see all repositories through team membership(s)
 		if unitType == unit.TypeInvalid {
 			// Regardless of UnitType

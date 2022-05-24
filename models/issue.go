@@ -1375,7 +1375,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 		cond = cond.And(
 			builder.Or(
 				userOwnedRepoCond(userID),                          // owned repos
-				userAccessRepoCond(repoIDstr, userID),              // collaboration repos
+				userAccessRepoCond(repoIDstr, userID),              // user can access repo in a unit independent way
 				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
 				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
 				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
