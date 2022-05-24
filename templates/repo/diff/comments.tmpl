@@ -37,7 +37,7 @@
 			<div class="comment-header-right actions df ac">
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
-						<div class="ui label basic small yellow">
+						<div class="ui label basic small yellow pending-label tooltip" data-content="{{$.root.i18n.Tr "repo.issues.review.pending.tooltip" ($.root.i18n.Tr "repo.diff.review") ($.root.i18n.Tr "repo.diff.review.approve") ($.root.i18n.Tr "repo.diff.review.comment") ($.root.i18n.Tr "repo.diff.review.reject")}}">
 						{{$.root.i18n.Tr "repo.issues.review.pending"}}
 						</div>
 					{{else}}

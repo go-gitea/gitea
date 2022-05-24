@@ -29,7 +29,8 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyCreateIssueComment Issue[%d] #%d in [%d]", issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 
@@ -160,7 +161,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.LoadIssue: %v", err)
 		return
 	}
-	if err = comment.Issue.LoadRepo(); err != nil {
+	if err = comment.Issue.LoadRepo(ctx); err != nil {
 		log.Error("comment.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -168,7 +169,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 		log.Error("comment.Issue.LoadPullRequest: %v", err)
 		return
 	}
-	if err = comment.Issue.PullRequest.LoadBaseRepo(); err != nil {
+	if err = comment.Issue.PullRequest.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("comment.Issue.PullRequest.LoadBaseRepo: %v", err)
 		return
 	}

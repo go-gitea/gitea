@@ -13,6 +13,7 @@
 					<a href="{{.Owner.HomeLink}}">{{.Owner.Name}}</a>
 					<div class="mx-2">/</div>
 					<a href="{{$.RepoLink}}">{{.Name}}</a>
+					<a href="{{$.RepoLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{$.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 18}}</i></a>
 					<div class="labels df ac fw">
 						{{if .IsTemplate}}
 							{{if .IsPrivate}}
@@ -157,7 +158,7 @@
 					<a class="{{if .PageIsIssueList}}active{{end}} item" href="{{.RepoLink}}/issues">
 						{{svg "octicon-issue-opened"}} {{.i18n.Tr "repo.issues"}}
 						{{if .Repository.NumOpenIssues}}
-							<span class="ui blue small label">{{CountFmt .Repository.NumOpenIssues}}</span>
+							<span class="ui primary small label">{{CountFmt .Repository.NumOpenIssues}}</span>
 						{{end}}
 					</a>
 				{{end}}
@@ -172,8 +173,14 @@
 					<a class="{{if .PageIsPullList}}active{{end}} item" href="{{.RepoLink}}/pulls">
 						{{svg "octicon-git-pull-request"}} {{.i18n.Tr "repo.pulls"}}
 						{{if .Repository.NumOpenPulls}}
-							<span class="ui blue small label">{{CountFmt .Repository.NumOpenPulls}}</span>
+							<span class="ui primary small label">{{CountFmt .Repository.NumOpenPulls}}</span>
 						{{end}}
+					</a>
+				{{end}}
+
+				{{if .Permission.CanRead $.UnitTypePackages}}
+					<a href="{{.RepoLink}}/packages" class="{{ if .IsPackagesPage }}active{{end}} item">
+						{{svg "octicon-package"}} {{.i18n.Tr "packages.title"}}
 					</a>
 				{{end}}
 
@@ -181,7 +188,7 @@
 					<a href="{{.RepoLink}}/projects" class="{{ if .IsProjectsPage }}active{{end}} item">
 						{{svg "octicon-project"}} {{.i18n.Tr "repo.project_board"}}
 						{{if .Repository.NumOpenProjects}}
-							<span class="ui blue small label">{{CountFmt .Repository.NumOpenProjects}}</span>
+							<span class="ui primary small label">{{CountFmt .Repository.NumOpenProjects}}</span>
 						{{end}}
 					</a>
 				{{ end }}
@@ -190,7 +197,7 @@
 				<a class="{{if .PageIsReleaseList}}active{{end}} item" href="{{.RepoLink}}/releases">
 					{{svg "octicon-tag"}} {{.i18n.Tr "repo.releases"}}
 					{{if .NumReleases}}
-						<span class="ui blue small label">{{CountFmt .NumReleases}}</span>
+						<span class="ui primary small label">{{CountFmt .NumReleases}}</span>
 					{{end}}
 				</a>
 				{{end}}

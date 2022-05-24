@@ -110,7 +110,7 @@ func TestSessionFileCreation(t *testing.T) {
 			"user_name": "user2",
 			"password":  userPassword,
 		})
-		resp = MakeRequest(t, req, http.StatusFound)
+		resp = MakeRequest(t, req, http.StatusSeeOther)
 		sessionID = getSessionID(t, resp)
 
 		assert.FileExists(t, sessionFile(tmpDir, sessionID))

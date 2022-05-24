@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -97,6 +98,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 
 // Run starts to run the queue
 func (q *ChannelUniqueQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("ChannelUniqueQueue: %s Starting", q.name)
@@ -226,6 +228,7 @@ func (q *ChannelUniqueQueue) Terminate() {
 	default:
 	}
 	q.terminateCtxCancel()
+	q.baseCtxFinished()
 	log.Debug("ChannelUniqueQueue: %s Terminated", q.name)
 }
 

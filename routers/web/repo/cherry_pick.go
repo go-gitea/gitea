@@ -47,10 +47,8 @@ func CherryPick(ctx *context.Context) {
 		ctx.Data["commit_message"] = splits[1]
 	}
 
-	ctx.Data["RequireHighlightJS"] = true
-
 	canCommit := renderCommitRights(ctx)
-	ctx.Data["TreePath"] = "patch"
+	ctx.Data["TreePath"] = ""
 
 	if canCommit {
 		ctx.Data["commit_choice"] = frmCommitChoiceDirect
@@ -77,7 +75,6 @@ func CherryPickPost(ctx *context.Context) {
 		ctx.Data["CherryPickType"] = "cherry-pick"
 	}
 
-	ctx.Data["RequireHighlightJS"] = true
 	canCommit := renderCommitRights(ctx)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {
@@ -127,7 +124,7 @@ func CherryPickPost(ctx *context.Context) {
 
 	// First lets try the simple plain read-tree -m approach
 	opts.Content = sha
-	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.User, form.Revert, opts); err != nil {
+	if _, err := files.CherryPick(ctx, ctx.Repo.Repository, ctx.Doer, form.Revert, opts); err != nil {
 		if models.IsErrBranchAlreadyExists(err) {
 			// User has specified a branch that already exists
 			branchErr := err.(models.ErrBranchAlreadyExists)
@@ -151,7 +148,7 @@ func CherryPickPost(ctx *context.Context) {
 				return
 			}
 		} else {
-			if err := git.GetRawDiff(ctx, ctx.Repo.Repository.RepoPath(), sha, git.RawDiffType("patch"), buf); err != nil {
+			if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, git.RawDiffType("patch"), buf); err != nil {
 				if git.IsErrNotExist(err) {
 					ctx.NotFound("GetRawDiff", errors.New("commit "+ctx.Params(":sha")+" does not exist."))
 					return
@@ -164,7 +161,7 @@ func CherryPickPost(ctx *context.Context) {
 		opts.Content = buf.String()
 		ctx.Data["FileContent"] = opts.Content
 
-		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.User, opts); err != nil {
+		if _, err := files.ApplyDiffPatch(ctx, ctx.Repo.Repository, ctx.Doer, opts); err != nil {
 			if models.IsErrBranchAlreadyExists(err) {
 				// User has specified a branch that already exists
 				branchErr := err.(models.ErrBranchAlreadyExists)

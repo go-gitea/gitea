@@ -7,9 +7,7 @@ package cron
 import (
 	"time"
 
-	user_model "code.gitea.io/gitea/models/user"
-
-	"github.com/unknwon/i18n"
+	"code.gitea.io/gitea/modules/translation/i18n"
 )
 
 // Config represents a basic configuration interface that cron task
@@ -17,7 +15,7 @@ type Config interface {
 	IsEnabled() bool
 	DoRunAtStart() bool
 	GetSchedule() string
-	FormatMessage(name, status string, doer *user_model.User, args ...interface{}) string
+	FormatMessage(locale, name, status, doer string, args ...interface{}) string
 	DoNoticeOnSuccess() bool
 }
 
@@ -26,7 +24,7 @@ type BaseConfig struct {
 	Enabled         bool
 	RunAtStart      bool
 	Schedule        string
-	NoSuccessNotice bool
+	NoticeOnSuccess bool
 }
 
 // OlderThanConfig represents a cron task with OlderThan setting
@@ -66,23 +64,24 @@ func (b *BaseConfig) DoRunAtStart() bool {
 
 // DoNoticeOnSuccess returns whether a success notice should be posted
 func (b *BaseConfig) DoNoticeOnSuccess() bool {
-	return !b.NoSuccessNotice
+	return b.NoticeOnSuccess
 }
 
 // FormatMessage returns a message for the task
-func (b *BaseConfig) FormatMessage(name, status string, doer *user_model.User, args ...interface{}) string {
+// Please note the `status` string will be concatenated with `admin.dashboard.cron.` and `admin.dashboard.task.` to provide locale messages. Similarly `name` will be composed with `admin.dashboard.` to provide the locale name for the task.
+func (b *BaseConfig) FormatMessage(locale, name, status, doer string, args ...interface{}) string {
 	realArgs := make([]interface{}, 0, len(args)+2)
-	realArgs = append(realArgs, i18n.Tr("en-US", "admin.dashboard."+name))
-	if doer == nil {
+	realArgs = append(realArgs, i18n.Tr(locale, "admin.dashboard."+name))
+	if doer == "" {
 		realArgs = append(realArgs, "(Cron)")
 	} else {
-		realArgs = append(realArgs, doer.Name)
+		realArgs = append(realArgs, doer)
 	}
 	if len(args) > 0 {
 		realArgs = append(realArgs, args...)
 	}
-	if doer == nil || (doer.ID == -1 && doer.Name == "(Cron)") {
-		return i18n.Tr("en-US", "admin.dashboard.cron."+status, realArgs...)
+	if doer == "" {
+		return i18n.Tr(locale, "admin.dashboard.cron."+status, realArgs...)
 	}
-	return i18n.Tr("en-US", "admin.dashboard.task."+status, realArgs...)
+	return i18n.Tr(locale, "admin.dashboard.task."+status, realArgs...)
 }

@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
@@ -219,9 +222,8 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	e := db.GetEngine(ctx)
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = getCommentByID(e, a.CommentID)
+		a.Comment, _ = GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -236,12 +238,12 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	issue, err := getIssueByID(e, issueID)
+	issue, err := getIssueByID(ctx, issueID)
 	if err != nil {
 		return "#"
 	}
 
-	if err = issue.loadRepo(ctx); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return "#"
 	}
 
@@ -315,19 +317,21 @@ func (a *Action) GetIssueContent() string {
 
 // GetFeedsOptions options for retrieving feeds
 type GetFeedsOptions struct {
-	RequestedUser   *user_model.User // the user we want activity for
-	RequestedTeam   *Team            // the team we want activity for
-	Actor           *user_model.User // the user viewing the activity
-	IncludePrivate  bool             // include private actions
-	OnlyPerformedBy bool             // only actions performed by requested user
-	IncludeDeleted  bool             // include deleted actions
-	Date            string           // the day we want activity for: YYYY-MM-DD
+	db.ListOptions
+	RequestedUser   *user_model.User       // the user we want activity for
+	RequestedTeam   *organization.Team     // the team we want activity for
+	RequestedRepo   *repo_model.Repository // the repo we want activity for
+	Actor           *user_model.User       // the user viewing the activity
+	IncludePrivate  bool                   // include private actions
+	OnlyPerformedBy bool                   // only actions performed by requested user
+	IncludeDeleted  bool                   // include deleted actions
+	Date            string                 // the day we want activity for: YYYY-MM-DD
 }
 
 // GetFeeds returns actions according to the provided options
-func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
-	if !activityReadable(opts.RequestedUser, opts.Actor) {
-		return make([]*Action, 0), nil
+func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
+	if opts.RequestedUser == nil && opts.RequestedTeam == nil && opts.RequestedRepo == nil {
+		return nil, fmt.Errorf("need at least one of these filters: RequestedUser, RequestedTeam, RequestedRepo")
 	}
 
 	cond, err := activityQueryCondition(opts)
@@ -335,13 +339,20 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 		return nil, err
 	}
 
-	actions := make([]*Action, 0, setting.UI.FeedPagingNum)
+	sess := db.GetEngine(ctx).Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
-	if err := db.GetEngine(db.DefaultContext).Limit(setting.UI.FeedPagingNum).Desc("created_unix").Where(cond).Find(&actions); err != nil {
+	opts.SetDefaultValues()
+	sess = db.SetSessionPagination(sess, &opts)
+
+	actions := make([]*Action, 0, opts.PageSize)
+
+	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	if err := ActionList(actions).LoadAttributes(); err != nil {
+	if err := ActionList(actions).loadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
@@ -349,45 +360,48 @@ func GetFeeds(opts GetFeedsOptions) ([]*Action, error) {
 }
 
 func activityReadable(user, doer *user_model.User) bool {
-	var doerID int64
-	if doer != nil {
-		doerID = doer.ID
-	}
-	if doer == nil || !doer.IsAdmin {
-		if user.KeepActivityPrivate && doerID != user.ID {
-			return false
-		}
-	}
-	return true
+	return !user.KeepActivityPrivate ||
+		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
 
 func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	cond := builder.NewCond()
 
-	var repoIDs []int64
-	var actorID int64
-	if opts.Actor != nil {
-		actorID = opts.Actor.ID
+	if opts.RequestedTeam != nil && opts.RequestedUser == nil {
+		org, err := user_model.GetUserByID(opts.RequestedTeam.OrgID)
+		if err != nil {
+			return nil, err
+		}
+		opts.RequestedUser = org
+	}
+
+	// check activity visibility for actor ( similar to activityReadable() )
+	if opts.Actor == nil {
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false, "visibility": structs.VisibleTypePublic},
+			).From("`user`"),
+		))
+	} else if !opts.Actor.IsAdmin {
+		cond = cond.And(builder.In("act_user_id",
+			builder.Select("`user`.id").Where(
+				builder.Eq{"keep_activity_private": false}.
+					And(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))).
+				Or(builder.Eq{"id": opts.Actor.ID}).From("`user`"),
+		))
 	}
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		if opts.RequestedUser.IsOrganization() {
-			env, err := OrgFromUser(opts.RequestedUser).AccessibleReposEnv(actorID)
-			if err != nil {
-				return nil, fmt.Errorf("AccessibleReposEnv: %v", err)
-			}
-			if repoIDs, err = env.RepoIDs(1, opts.RequestedUser.NumRepos); err != nil {
-				return nil, fmt.Errorf("GetUserRepositories: %v", err)
-			}
-			cond = cond.And(builder.In("repo_id", repoIDs))
-		} else {
-			cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
-		}
+		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+	}
+
+	if opts.RequestedRepo != nil {
+		cond = cond.And(builder.Eq{"repo_id": opts.RequestedRepo.ID})
 	}
 
 	if opts.RequestedTeam != nil {
-		env := OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
+		env := organization.OrgFromUser(opts.RequestedUser).AccessibleTeamReposEnv(opts.RequestedTeam)
 		teamRepoIDs, err := env.RepoIDs(1, opts.RequestedUser.NumRepos)
 		if err != nil {
 			return nil, fmt.Errorf("GetTeamRepositories: %v", err)
@@ -395,13 +409,16 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		cond = cond.And(builder.In("repo_id", teamRepoIDs))
 	}
 
-	cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
+	if opts.RequestedUser != nil {
+		cond = cond.And(builder.Eq{"user_id": opts.RequestedUser.ID})
 
-	if opts.OnlyPerformedBy {
-		cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		if opts.OnlyPerformedBy {
+			cond = cond.And(builder.Eq{"act_user_id": opts.RequestedUser.ID})
+		}
 	}
+
 	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"is_private": false})
+		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
@@ -414,8 +431,8 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
 		}
 	}
 
@@ -485,14 +502,14 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByIDEngine(e, watcher.UserID)
+				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
 					permPR[i] = false
 					continue
 				}
-				perm, err := getUserRepoPermission(ctx, repo, user)
+				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

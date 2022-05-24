@@ -76,7 +76,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	err := repo_service.CreateNewBranch(git.DefaultContext, user2, repo1, repo1.DefaultBranch, newBranch)
 	assert.NoError(t, err)
 	// Get the commit ID of the default branch
-	gitRepo, err := git.OpenRepository(repo1.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo1.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

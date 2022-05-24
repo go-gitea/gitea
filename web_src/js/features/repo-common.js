@@ -43,26 +43,56 @@ export function initRepoArchiveLinks() {
   });
 }
 
-export function initRepoClone() {
-  // Quick start and repository home
-  $('#repo-clone-ssh').on('click', function () {
-    $('.clone-url').text($(this).data('link'));
-    $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('primary');
-    $('#repo-clone-https').removeClass('primary');
-    localStorage.setItem('repo-clone-protocol', 'ssh');
-  });
-  $('#repo-clone-https').on('click', function () {
-    $('.clone-url').text($(this).data('link'));
-    $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('primary');
-    if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('primary');
-      localStorage.setItem('repo-clone-protocol', 'https');
+export function initRepoCloneLink() {
+  const defaultGitProtocol = 'https'; // ssh or https
+
+  const $repoCloneSsh = $('#repo-clone-ssh');
+  const $repoCloneHttps = $('#repo-clone-https');
+  const $inputLink = $('#repo-clone-url');
+
+  if ((!$repoCloneSsh.length && !$repoCloneHttps.length) || !$inputLink.length) {
+    return;
+  }
+
+  const updateUi = () => {
+    let isSSH = (localStorage.getItem('repo-clone-protocol') || defaultGitProtocol) === 'ssh';
+    // there must be at least one clone button (by context/repo.go). if no ssh, then there must be https.
+    if (isSSH && $repoCloneSsh.length === 0) {
+      isSSH = false;
+    } else if (!isSSH && $repoCloneHttps.length === 0) {
+      isSSH = true;
     }
+    const cloneLink = (isSSH ? $repoCloneSsh : $repoCloneHttps).attr('data-link');
+    $inputLink.val(cloneLink);
+    if (isSSH) {
+      $repoCloneSsh.addClass('primary');
+      $repoCloneHttps.removeClass('primary');
+    } else {
+      $repoCloneSsh.removeClass('primary');
+      $repoCloneHttps.addClass('primary');
+    }
+    // the empty repo guide
+    $('.quickstart .empty-repo-guide .clone-url').text(cloneLink);
+  };
+  updateUi();
+
+  setTimeout(() => {
+    // restore animation after first init
+    $repoCloneSsh.removeClass('no-transition');
+    $repoCloneHttps.removeClass('no-transition');
+  }, 100);
+
+  $repoCloneSsh.on('click', () => {
+    localStorage.setItem('repo-clone-protocol', 'ssh');
+    updateUi();
   });
-  $('#repo-clone-url').on('click', function () {
-    $(this).select();
+  $repoCloneHttps.on('click', () => {
+    localStorage.setItem('repo-clone-protocol', 'https');
+    updateUi();
+  });
+
+  $inputLink.on('click', () => {
+    $inputLink.select();
   });
 }
 

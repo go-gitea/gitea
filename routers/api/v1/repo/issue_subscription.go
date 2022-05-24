@@ -116,7 +116,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := user_model.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":user"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -128,8 +128,8 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	// only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.User.Name, user.Name))
+	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 
@@ -197,7 +197,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := models.CheckIssueWatch(ctx.User, issue)
+	watching, err := models.CheckIssueWatch(ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -263,7 +263,7 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx))
+	iwl, err := models.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
@@ -281,10 +281,10 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
 	}
 
-	count, err := models.CountIssueWatchers(issue.ID)
+	count, err := models.CountIssueWatchers(ctx, issue.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
 		return

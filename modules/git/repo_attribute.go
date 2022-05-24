@@ -76,12 +76,11 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 
 	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
-	if err := cmd.RunWithContext(&RunContext{
-		Env:     env,
-		Timeout: -1,
-		Dir:     repo.Path,
-		Stdout:  stdOut,
-		Stderr:  stdErr,
+	if err := cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdout: stdOut,
+		Stderr: stdErr,
 	}); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
@@ -125,12 +124,10 @@ type CheckAttributeReader struct {
 	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc
-	running     chan struct{}
 }
 
 // Init initializes the cmd
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	c.running = make(chan struct{})
 	cmdArgs := []string{"check-attr", "--stdin", "-z"}
 
 	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
@@ -185,25 +182,22 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
 	defer func() {
-		_ = c.Close()
+		_ = c.stdinReader.Close()
+		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunWithContext(&RunContext{
-		Env:     c.env,
-		Timeout: -1,
-		Dir:     c.Repo.Path,
-		Stdin:   c.stdinReader,
-		Stdout:  c.stdOut,
-		Stderr:  stdErr,
-		PipelineFunc: func(_ context.Context, _ context.CancelFunc) error {
-			close(c.running)
-			return nil
-		},
+	err := c.cmd.Run(&RunOpts{
+		Env:    c.env,
+		Dir:    c.Repo.Path,
+		Stdin:  c.stdinReader,
+		Stdout: c.stdOut,
+		Stderr: stdErr,
 	})
-	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
+	if err != nil && //                      If there is an error we need to return but:
+		c.ctx.Err() != err && //             1. Ignore the context error if the context is cancelled or exceeds the deadline (RunWithContext could return c.ctx.Err() which is Canceled or DeadlineExceeded)
+		err.Error() != "signal: killed" { // 2. We should not pass up errors due to the program being killed
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
-
 	return nil
 }
 
@@ -218,7 +212,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 	select {
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-c.running:
+	default:
 	}
 
 	if _, err = c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
@@ -243,15 +237,8 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
-	err := c.stdinWriter.Close()
-	_ = c.stdinReader.Close()
-	_ = c.stdOut.Close()
 	c.cancel()
-	select {
-	case <-c.running:
-	default:
-		close(c.running)
-	}
+	err := c.stdinWriter.Close()
 	return err
 }
 

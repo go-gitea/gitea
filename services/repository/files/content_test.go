@@ -8,7 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 
@@ -16,7 +18,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func getExpectedReadmeContentsResponse() *api.ContentsResponse {
@@ -203,10 +207,10 @@ func TestGetContentsOrListErrors(t *testing.T) {
 
 func TestGetContentsOrListOfEmptyRepos(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	ctx := test.MockContext(t, "user2/repo15")
-	ctx.SetParams(":id", "15")
-	test.LoadRepo(t, ctx, 15)
-	test.LoadUser(t, ctx, 2)
+	ctx := test.MockContext(t, "user30/empty")
+	ctx.SetParams(":id", "52")
+	test.LoadRepo(t, ctx, 52)
+	test.LoadUser(t, ctx, 30)
 	test.LoadGitRepo(t, ctx)
 	defer ctx.Repo.GitRepo.Close()
 
@@ -232,7 +236,12 @@ func TestGetBlobBySHA(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
-	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, ctx.Params(":sha"))
+	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name))
+	if err != nil {
+		t.Fail()
+	}
+
+	gbr, err := GetBlobBySHA(ctx, ctx.Repo.Repository, gitRepo, ctx.Params(":sha"))
 	expectedGBR := &api.GitBlobResponse{
 		Content:  "dHJlZSAyYTJmMWQ0NjcwNzI4YTJlMTAwNDllMzQ1YmQ3YTI3NjQ2OGJlYWI2CmF1dGhvciB1c2VyMSA8YWRkcmVzczFAZXhhbXBsZS5jb20+IDE0ODk5NTY0NzkgLTA0MDAKY29tbWl0dGVyIEV0aGFuIEtvZW5pZyA8ZXRoYW50a29lbmlnQGdtYWlsLmNvbT4gMTQ4OTk1NjQ3OSAtMDQwMAoKSW5pdGlhbCBjb21taXQK",
 		Encoding: "base64",

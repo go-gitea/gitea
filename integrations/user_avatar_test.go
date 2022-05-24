@@ -70,7 +70,7 @@ func TestUserAvatar(t *testing.T) {
 		req.Header.Add("X-Csrf-Token", csrf)
 		req.Header.Add("Content-Type", writer.FormDataContentType())
 
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of the repo3, is an org
 

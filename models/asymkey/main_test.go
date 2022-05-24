@@ -18,12 +18,15 @@ func init() {
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."),
-		"gpg_key.yml",
-		"public_key.yml",
-		"deploy_key.yml",
-		"gpg_key_import.yml",
-		"user.yml",
-		"email_address.yml",
-	)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles: []string{
+			"gpg_key.yml",
+			"public_key.yml",
+			"deploy_key.yml",
+			"gpg_key_import.yml",
+			"user.yml",
+			"email_address.yml",
+		},
+	})
 }

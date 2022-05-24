@@ -43,7 +43,7 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
+	labels, err := models.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByOrgID", err)
 		return
@@ -99,7 +99,7 @@ func CreateLabel(ctx *context.APIContext) {
 		OrgID:       ctx.Org.Organization.ID,
 		Description: form.Description,
 	}
-	if err := models.NewLabel(label); err != nil {
+	if err := models.NewLabel(ctx, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
@@ -136,9 +136,9 @@ func GetLabel(ctx *context.APIContext) {
 	)
 	strID := ctx.Params(":id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = models.GetLabelInOrgByName(ctx.Org.Organization.ID, strID)
+		label, err = models.GetLabelInOrgByName(ctx, ctx.Org.Organization.ID, strID)
 	} else {
-		label, err = models.GetLabelInOrgByID(ctx.Org.Organization.ID, intID)
+		label, err = models.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, intID)
 	}
 	if err != nil {
 		if models.IsErrOrgLabelNotExist(err) {
@@ -183,7 +183,7 @@ func EditLabel(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	label, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
+	label, err := models.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrOrgLabelNotExist(err) {
 			ctx.NotFound()

@@ -75,7 +75,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	nl, err := models.GetNotifications(opts)
+	nl, err := models.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -141,14 +141,14 @@ func ReadNotifications(ctx *context.APIContext) {
 		}
 	}
 	opts := &models.FindNotificationOptions{
-		UserID:            ctx.User.ID,
+		UserID:            ctx.Doer.ID,
 		UpdatedBeforeUnix: lastRead,
 	}
 	if !ctx.FormBool("all") {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
-	nl, err := models.GetNotifications(opts)
+	nl, err := models.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -162,7 +162,7 @@ func ReadNotifications(ctx *context.APIContext) {
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+		notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

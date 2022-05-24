@@ -14,7 +14,7 @@ import (
 
 func TestRepository_GetCodeActivityStats(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	bareRepo1, err := OpenRepository(bareRepo1Path)
+	bareRepo1, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
 	defer bareRepo1.Close()
 
