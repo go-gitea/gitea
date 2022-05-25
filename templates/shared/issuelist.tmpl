@@ -59,7 +59,7 @@
 					{{else}}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
-					{{if and .IsPull}}
+					{{if .IsPull}}
 						<div class="branches">
 							<div class="branch">
 								<a class="bold" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
