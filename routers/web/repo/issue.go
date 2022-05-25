@@ -390,6 +390,7 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.pulls")
 		ctx.Data["PageIsPullList"] = true
+		ctx.Data["AppSubURL"] = setting.AppSubURL
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {

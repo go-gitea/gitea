@@ -62,7 +62,7 @@
 					{{if and .IsPull}}
 						<div class="branches">
 							<div class="branch">
-								<a href="/{{if .PullRequest.BaseRepo}}{{.PullRequest.BaseRepo.OwnerName}}/{{.PullRequest.BaseRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.BaseBranch}}">
+								<a href="{{$.AppSubURL}}/{{if .PullRequest.BaseRepo}}{{.PullRequest.BaseRepo.OwnerName}}/{{.PullRequest.BaseRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.BaseBranch}}">
 									{{if ne .RepoID .PullRequest.BaseRepoID}}
 										<div class="truncated-name dib vb">{{.PullRequest.BaseRepo.OwnerName}}</div><div class="truncated-name dib vb">:</div>
 									{{end}}
@@ -70,10 +70,10 @@
 								</a>
 							</div>
 							<div class="pointer">
-								{{svg "gitea-double-chevron-left" 13  }}
+								{{svg "gitea-double-chevron-left" 14  }}
 							</div>
 							<div class="branch">
-								<a href="/{{if .PullRequest.HeadRepo}}{{.PullRequest.HeadRepo.OwnerName}}/{{.PullRequest.HeadRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.HeadBranch}}">
+								<a href="{{$.AppSubURL}}/{{if .PullRequest.HeadRepo}}{{.PullRequest.HeadRepo.OwnerName}}/{{.PullRequest.HeadRepo.LowerName}}{{end}}/src/branch/{{.PullRequest.HeadBranch}}">
 									{{if ne .RepoID .PullRequest.HeadRepoID}}
 										<div class="truncated-name dib vb">{{.PullRequest.HeadRepo.OwnerName}}</div><div class="truncated-name dib vb">:</div>
 									{{end}}
