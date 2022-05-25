@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -35,7 +36,7 @@ func GetNotificationCount(c *context.Context) {
 	c.Data["NotificationUnreadCount"] = func() int64 {
 		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
 		if err != nil {
-			c.ServerError("GetNotificationCount", err)
+			log.Error("Unable to GetNotificationCount for user:%-v: %v", c.User, err)
 			return -1
 		}
 
