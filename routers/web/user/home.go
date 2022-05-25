@@ -615,8 +615,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
-	ctx.Data["AppSubURL"] = setting.AppSubURL
-
 	approvalCounts, err := models.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
