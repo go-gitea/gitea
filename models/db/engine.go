@@ -293,3 +293,25 @@ func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
 }
+
+// QuoteString quotes the string for SQLs. In most cases, SQL should use the ORM builder.
+// This function could only be used in rare cases when there is no other choices.
+// It panics if the database is not supported to avoid corrupted data
+func QuoteString(ctx context.Context, s string) string {
+	e, ok := GetEngine(ctx).(*xorm.Engine)
+	if !ok {
+		panic("can not get the real database engine")
+	}
+
+	switch e.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		s = strings.ReplaceAll(s, "\\", "\\\\")
+		s = strings.ReplaceAll(s, "'", "''")
+		return "'" + s + "'"
+	case schemas.SQLITE, schemas.POSTGRES, schemas.MSSQL:
+		s = strings.ReplaceAll(s, "'", "''")
+		return "'" + s + "'"
+	default:
+		panic("unsupported database type: " + e.Dialect().URI().DBType)
+	}
+}
