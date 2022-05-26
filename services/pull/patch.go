@@ -284,8 +284,13 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 	}
 
 	if !conflict {
-		log.Info("PullRequest[%d]: Head SHA: %s, Merge base SHA: %s", pr.ID, pr.HeadCommitID, pr.MergeBase)
+		log.Debug("PullRequest[%d]: Head SHA: %s, Merge base SHA: %s", pr.ID, pr.HeadCommitID, pr.MergeBase)
 		if pr.HeadCommitID == pr.MergeBase {
+			// Merge must continue if commits SHA are different, even if content is same
+			// Reason: gitflow and merging master back into develop, where is high possiblity, there are no changes
+			// but just commit saying "Merge branch". And this meta commit can be also tagged,
+			// so we need to have this meta commit also in develop branch.
+
 			log.Debug("PullRequest[%d]: Commits are equal - ignoring", pr.ID)
 			pr.Status = issues_model.PullRequestStatusEmpty
 		}
