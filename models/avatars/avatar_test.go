@@ -5,7 +5,6 @@
 package avatars
 
 import (
-	"net/url"
 	"testing"
 
 	system_model "code.gitea.io/gitea/models/system"
@@ -16,17 +15,19 @@ import (
 
 const gravatarSource = "https://secure.gravatar.com/avatar/"
 
-func disableGravatar() {
-	system_model.SetSettingNoVersion("enable_federated_avatar", "false")
-	system_model.SetSettingNoVersion("disable_gravatar", "true")
+func disableGravatar(t *testing.T) {
+	err := system_model.SetSettingNoVersion("enable_federated_avatar", "false")
+	assert.NoError(t, err)
+	err = system_model.SetSettingNoVersion("disable_gravatar", "true")
+	assert.NoError(t, err)
 	system_model.LibravatarService = nil
 }
 
 func enableGravatar(t *testing.T) {
-	system_model.SetSettingNoVersion("disable_gravatar", "false")
-	var err error
-	system_model.GravatarSourceURL, err = url.Parse(gravatarSource)
+	err := system_model.SetSettingNoVersion("disable_gravatar", "false")
 	assert.NoError(t, err)
+	setting.GravatarSource = gravatarSource
+	system_model.Init()
 }
 
 func TestHashEmail(t *testing.T) {
@@ -43,7 +44,7 @@ func TestHashEmail(t *testing.T) {
 func TestSizedAvatarLink(t *testing.T) {
 	setting.AppSubURL = "/testsuburl"
 
-	disableGravatar()
+	disableGravatar(t)
 	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
 		GenerateEmailAvatarFastLink("gitea@example.com", 100))
 

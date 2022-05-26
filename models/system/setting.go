@@ -6,7 +6,6 @@ package system
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
@@ -90,6 +89,9 @@ func GetSetting(key string) (*Setting, error) {
 
 // GetSettings returns specific settings
 func GetSettings(keys []string) (map[string]*Setting, error) {
+	for i := 0; i < len(keys); i++ {
+		keys[i] = strings.ToLower(keys[i])
+	}
 	settings := make([]*Setting, 0, len(keys))
 	if err := db.GetEngine(db.DefaultContext).
 		Where(builder.In("setting_key", keys)).
@@ -143,7 +145,7 @@ func DeleteSetting(setting *Setting) error {
 
 func SetSettingNoVersion(key, value string) error {
 	s, err := GetSetting(key)
-	if errors.Is(err, ErrSettingIsNotExist{}) {
+	if IsErrSettingIsNotExist(err) {
 		return SetSetting(&Setting{
 			SettingKey:   key,
 			SettingValue: value,
@@ -158,10 +160,7 @@ func SetSettingNoVersion(key, value string) error {
 
 // SetSetting updates a users' setting for a specific key
 func SetSetting(setting *Setting) error {
-	if strings.ToLower(setting.SettingKey) != setting.SettingKey {
-		return fmt.Errorf("setting key should be lowercase")
-	}
-	if err := upsertSettingValue(setting.SettingKey, setting.SettingValue, setting.Version); err != nil {
+	if err := upsertSettingValue(strings.ToLower(setting.SettingKey), setting.SettingValue, setting.Version); err != nil {
 		return err
 	}
 	setting.Version++

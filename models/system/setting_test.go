@@ -5,6 +5,7 @@
 package system_test
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/system"
@@ -30,23 +31,23 @@ func TestSettings(t *testing.T) {
 	settings, err := system.GetSettings([]string{keyName})
 	assert.NoError(t, err)
 	assert.Len(t, settings, 1)
-	assert.EqualValues(t, newSetting.SettingValue, settings[keyName].SettingValue)
+	assert.EqualValues(t, newSetting.SettingValue, settings[strings.ToLower(keyName)].SettingValue)
 
 	// updated setting
-	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100"}
+	updatedSetting := &system.Setting{SettingKey: keyName, SettingValue: "100", Version: newSetting.Version}
 	err = system.SetSetting(updatedSetting)
 	assert.NoError(t, err)
 
 	// get all settings
 	settings, err = system.GetAllSettings()
 	assert.NoError(t, err)
-	assert.Len(t, settings, 1)
-	assert.EqualValues(t, updatedSetting.SettingValue, settings[updatedSetting.SettingKey].SettingValue)
+	assert.Len(t, settings, 3)
+	assert.EqualValues(t, updatedSetting.SettingValue, settings[strings.ToLower(updatedSetting.SettingKey)].SettingValue)
 
 	// delete setting
-	err = system.DeleteSetting(&system.Setting{SettingKey: keyName})
+	err = system.DeleteSetting(&system.Setting{SettingKey: strings.ToLower(keyName)})
 	assert.NoError(t, err)
 	settings, err = system.GetAllSettings()
 	assert.NoError(t, err)
-	assert.Len(t, settings, 0)
+	assert.Len(t, settings, 2)
 }
