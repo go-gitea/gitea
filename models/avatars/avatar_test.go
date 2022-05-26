@@ -27,7 +27,8 @@ func enableGravatar(t *testing.T) {
 	err := system_model.SetSettingNoVersion("disable_gravatar", "false")
 	assert.NoError(t, err)
 	setting.GravatarSource = gravatarSource
-	system_model.Init()
+	err = system_model.Init()
+	assert.NoError(t, err)
 }
 
 func TestHashEmail(t *testing.T) {

@@ -41,10 +41,10 @@ import (
 // ItemsPerPage maximum items per page in forks, watchers and stars of a repo
 var ItemsPerPage = 40
 
-// NewRepoContext creates a new repository context
-func NewRepoContext() {
+// Init initialize model
+func Init() error {
 	unit.LoadUnitConfig()
-	system_model.Init()
+	return system_model.Init()
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
