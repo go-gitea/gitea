@@ -478,6 +478,10 @@ func getWorkPath(appPath string) string {
 			workPath = appPath[:i]
 		}
 	}
+	workPath = strings.ReplaceAll(workPath, "\\", "/")
+	if !filepath.IsAbs(workPath) {
+		workPath = filepath.Join(appPath, workPath)
+	}
 	return strings.ReplaceAll(workPath, "\\", "/")
 }
 
@@ -769,6 +773,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	if !filepath.IsAbs(AppDataPath) {
+		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
