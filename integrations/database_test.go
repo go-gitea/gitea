@@ -20,9 +20,10 @@ func TestDatabase(t *testing.T) {
 	assert.Equal(t, "'it''s fine'", db.QuoteString(db.DefaultContext, "it's fine"))
 
 	// test all ASCII chars
-	b := make([]byte, 126) // no 0, no 127, then we have 1-126 ASCII chars
-	for i := 0; i < 126; i++ {
-		b[i] = byte(i + 1)
+	// Fill the slice with ASCII characters including 1 up until 126.
+	b := make([]byte, 126)
+	for i := byte(0); i < 126; i++ {
+		b[i] = i + 1
 	}
 	raw := string(b)
 	quoted := db.QuoteString(db.DefaultContext, raw)
