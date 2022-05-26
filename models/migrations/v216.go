@@ -51,11 +51,11 @@ func createSystemSettingsTable(x *xorm.Engine) error {
 	// migrate xx to database
 	sysSettings := []*SystemSetting{
 		{
-			SettingKey:   "disable_gravatar",
+			SettingKey:   "picture.disable_gravatar",
 			SettingValue: strconv.FormatBool(setting.DisableGravatar),
 		},
 		{
-			SettingKey:   "enable_federated_avatar",
+			SettingKey:   "picture.enable_federated_avatar",
 			SettingValue: strconv.FormatBool(setting.EnableFederatedAvatar),
 		},
 	}

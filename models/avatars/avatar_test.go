@@ -16,15 +16,15 @@ import (
 const gravatarSource = "https://secure.gravatar.com/avatar/"
 
 func disableGravatar(t *testing.T) {
-	err := system_model.SetSettingNoVersion("enable_federated_avatar", "false")
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureEnableFederatedAvatar, "false")
 	assert.NoError(t, err)
-	err = system_model.SetSettingNoVersion("disable_gravatar", "true")
+	err = system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "true")
 	assert.NoError(t, err)
 	system_model.LibravatarService = nil
 }
 
 func enableGravatar(t *testing.T) {
-	err := system_model.SetSettingNoVersion("disable_gravatar", "false")
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "false")
 	assert.NoError(t, err)
 	setting.GravatarSource = gravatarSource
 	err = system_model.Init()

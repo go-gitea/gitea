@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -80,7 +81,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.Domain
 		},
 		"DisableGravatar": func() bool {
-			return system_module.GetSetingBool("disable_gravatar")
+			return system_module.GetSetingBool(system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName

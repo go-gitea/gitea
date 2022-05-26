@@ -145,14 +145,14 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	disableGravatarSetting, _ := system_model.GetSetting("disable_gravatar")
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
 	if disableGravatarSetting != nil {
 		form.DisableGravatar = disableGravatarSetting.GetValueBool()
 	} else {
 		form.DisableGravatar = false
 	}
 
-	enableFederatedAvatarSetting, _ := system_model.GetSetting("enable_federated_avatar")
+	enableFederatedAvatarSetting, _ := system_model.GetSetting("")
 	if enableFederatedAvatarSetting != nil {
 		form.EnableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
 	} else {
@@ -448,7 +448,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
 	// if you are reinstalling, this maybe not right because of missing version
-	if err := system_model.SetSettingNoVersion("disable_gravatar", strconv.FormatBool(form.DisableGravatar)); err != nil {
+	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
 		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
 		return
 	}

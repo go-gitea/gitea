@@ -150,7 +150,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return DefaultAvatarLink()
 	}
 
-	enableFederatedAvatar, _ := system_model.GetSetting("enable_federated_avatar")
+	enableFederatedAvatar, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
 
 	var err error
 	if enableFederatedAvatar != nil && enableFederatedAvatar.GetValueBool() && system_model.LibravatarService != nil {
@@ -171,7 +171,7 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 		return urlStr
 	}
 
-	disableGravatar, _ := system_model.GetSetting("disable_gravatar")
+	disableGravatar, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
 	if disableGravatar != nil && !disableGravatar.GetValueBool() {
 		// copy GravatarSourceURL, because we will modify its Path.
 		avatarURLCopy := *system_model.GravatarSourceURL

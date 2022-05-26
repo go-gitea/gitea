@@ -213,7 +213,7 @@ var (
 
 func Init() error {
 	var disableGravatar bool
-	disableGravatarSetting, err := GetSetting("disable_gravatar")
+	disableGravatarSetting, err := GetSetting(KeyPictureDisableGravatar)
 	if IsErrSettingIsNotExist(err) {
 		disableGravatar = setting.GetDefaultDisableGravatar()
 		disableGravatarSetting = &Setting{SettingValue: strconv.FormatBool(disableGravatar)}
@@ -223,7 +223,7 @@ func Init() error {
 		disableGravatar = disableGravatarSetting.GetValueBool()
 	}
 
-	enableFederatedAvatarSetting, err := GetSetting("enable_federated_avatar")
+	enableFederatedAvatarSetting, err := GetSetting(KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
 		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(setting.GetDefaultEnableFederatedAvatar(disableGravatar))}
 	}
