@@ -123,8 +123,8 @@ func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 }
 
 // InsertMirror inserts a mirror to database
-func InsertMirror(mirror *Mirror) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(mirror)
+func InsertMirror(ctx context.Context, mirror *Mirror) error {
+	_, err := db.GetEngine(ctx).Insert(mirror)
 	return err
 }
 

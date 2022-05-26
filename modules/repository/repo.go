@@ -205,7 +205,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err = repo_model.InsertMirror(&mirrorModel); err != nil {
+		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 
