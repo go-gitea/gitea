@@ -21,9 +21,9 @@ var (
 		RenderedSizeFactor: 3,
 	}
 
+	GravatarSource        string
 	DisableGravatar       bool // Depreciated: migrated to database
 	EnableFederatedAvatar bool // Depreciated: migrated to database
-	GravatarSource        string
 
 	RepoAvatar = struct {
 		Storage

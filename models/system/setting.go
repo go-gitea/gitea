@@ -223,15 +223,23 @@ func Init() error {
 		disableGravatar = disableGravatarSetting.GetValueBool()
 	}
 
+	var enableFederatedAvatar bool
 	enableFederatedAvatarSetting, err := GetSetting(KeyPictureEnableFederatedAvatar)
 	if IsErrSettingIsNotExist(err) {
-		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(setting.GetDefaultEnableFederatedAvatar(disableGravatar))}
-	}
-	if err != nil {
+		enableFederatedAvatar = setting.GetDefaultEnableFederatedAvatar(disableGravatar)
+		enableFederatedAvatarSetting = &Setting{SettingValue: strconv.FormatBool(enableFederatedAvatar)}
+	} else if err != nil {
 		return err
+	} else {
+		enableFederatedAvatar = disableGravatarSetting.GetValueBool()
 	}
 
-	if enableFederatedAvatarSetting.GetValueBool() || !disableGravatarSetting.GetValueBool() {
+	if setting.OfflineMode {
+		disableGravatar = true
+		enableFederatedAvatar = false
+	}
+
+	if disableGravatar || !enableFederatedAvatar {
 		var err error
 		GravatarSourceURL, err = url.Parse(setting.GravatarSource)
 		if err != nil {

@@ -81,7 +81,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.Domain
 		},
 		"DisableGravatar": func() bool {
-			return system_module.GetSetingBool(system_model.KeyPictureDisableGravatar)
+			return system_module.GetSettingBool(system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName

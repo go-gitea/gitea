@@ -26,7 +26,7 @@ func GetSetting(key string) (string, error) {
 	})
 }
 
-func GetSetingBool(key string) bool {
+func GetSettingBool(key string) bool {
 	s, _ := GetSetting(key)
 	b, _ := strconv.ParseBool(s)
 	return b
