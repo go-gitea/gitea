@@ -2,18 +2,19 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package system
+package system_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+
+	_ "code.gitea.io/gitea/models/system" // register models of system
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles:  []string{"notice.yml"},
 	})
 }

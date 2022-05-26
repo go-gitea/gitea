@@ -25,8 +25,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unittest"
 	system_model "code.gitea.io/gitea/models/system"
+	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"

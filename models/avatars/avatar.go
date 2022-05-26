@@ -169,15 +169,16 @@ func generateEmailAvatarLink(email string, size int, final bool) string {
 			urlStr += "?size=" + strconv.Itoa(size)
 		}
 		return urlStr
-	} else {
-		disableGravatar, _ := system_model.GetSetting("disable_gravatar")
-		if disableGravatar != nil && !disableGravatar.GetValueBool() {
-			// copy GravatarSourceURL, because we will modify its Path.
-			avatarURLCopy := *system_model.GravatarSourceURL
-			avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
-			return generateRecognizedAvatarURL(avatarURLCopy, size)
-		}
 	}
+
+	disableGravatar, _ := system_model.GetSetting("disable_gravatar")
+	if disableGravatar != nil && !disableGravatar.GetValueBool() {
+		// copy GravatarSourceURL, because we will modify its Path.
+		avatarURLCopy := *system_model.GravatarSourceURL
+		avatarURLCopy.Path = path.Join(avatarURLCopy.Path, HashEmail(email))
+		return generateRecognizedAvatarURL(avatarURLCopy, size)
+	}
+
 	return DefaultAvatarLink()
 }
 
