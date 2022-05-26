@@ -2,18 +2,16 @@
 	{{.i18n.Tr "settings.manage_account_links"}}
 	{{if .OrderedOAuth2Names}}
 		<div class="ui right">
-			<div class="ui floating1 jump dropdown">
-				<div class="ui blue tiny button">Link Account</div>
+			<div class="ui dropdown">
+				<div class="ui primary tiny button">Link Account</div>
 				<div class="menu">
 					{{range $key := .OrderedOAuth2Names}}
 						{{$provider := index $.OAuth2Providers $key}}
 						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
 							<img
-								alt="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
-								title="{{$provider.DisplayName}}{{if eq $provider.Name "openidConnect"}} ({{$key}}){{end}}"
-								class="{{$provider.Name}} oauth-login-image"
+								alt="{{$provider.DisplayName}}"
 								src="{{AppSubUrl}}{{$provider.Image}}"
-								width="20" height="20">{{$provider.Name}}
+								width="20" height="20">{{$provider.DisplayName}}
 						</a>
 					{{end}}
 				</div>
