@@ -5,6 +5,7 @@
 package models
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
@@ -261,6 +262,16 @@ func TestSearchRepository(t *testing.T) {
 			opts:  &SearchRepoOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Template: util.OptionalBoolTrue},
 			count: 2,
 		},
+		{
+			name:  "OwnerSlashRepoSearch",
+			opts:  &SearchRepoOptions{Keyword: "user/repo2", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
+			count: 3,
+		},
+		{
+			name:  "OwnerSlashSearch",
+			opts:  &SearchRepoOptions{Keyword: "user20/", ListOptions: db.ListOptions{Page: 1, PageSize: 10}, Private: true, OwnerID: 0},
+			count: 4,
+		},
 	}
 
 	for _, testCase := range testCases {
@@ -285,7 +296,21 @@ func TestSearchRepository(t *testing.T) {
 					assert.NotEmpty(t, repo.Name)
 
 					if len(testCase.opts.Keyword) > 0 {
-						assert.Contains(t, repo.Name, testCase.opts.Keyword)
+						// Keyword match condition is different for search terms of form "owner/repo"
+						if strings.Count(testCase.opts.Keyword, "/") == 1 {
+							// May still match as a whole...
+							wholeMatch := strings.Contains(repo.Name, testCase.opts.Keyword)
+
+							pieces := strings.Split(testCase.opts.Keyword, "/")
+							ownerName := pieces[0]
+							repoName := pieces[1]
+							// ... or match in parts
+							splitMatch := strings.Contains(repo.OwnerName, ownerName) && strings.Contains(repo.Name, repoName)
+
+							assert.True(t, wholeMatch || splitMatch, "Keyword '%s' does not match repo '%s/%s'", testCase.opts.Keyword, repo.Owner.Name, repo.Name)
+						} else {
+							assert.Contains(t, repo.Name, testCase.opts.Keyword)
+						}
 					}
 
 					if !testCase.opts.Private {
