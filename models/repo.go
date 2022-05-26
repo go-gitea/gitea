@@ -44,6 +44,7 @@ var ItemsPerPage = 40
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
+	system_model.Init()
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
