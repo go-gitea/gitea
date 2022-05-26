@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -79,7 +80,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 		} else if repo, err := repo_model.GetRepositoryByID(protectBranch.RepoID); err != nil {
 			log.Error("repo_model.GetRepositoryByID: %v", err)
 			return false
-		} else if writeAccess, err := HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
+		} else if writeAccess, err := access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite); err != nil {
 			log.Error("HasAccessUnit: %v", err)
 			return false
 		} else {
@@ -104,7 +105,7 @@ func (protectBranch *ProtectedBranch) CanUserPush(userID int64) bool {
 }
 
 // IsUserMergeWhitelisted checks if some user is whitelisted to merge to this branch
-func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permissionInRepo Permission) bool {
+func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch, userID int64, permissionInRepo access_model.Permission) bool {
 	if !protectBranch.EnableMergeWhitelist {
 		// Then we need to fall back on whether the user has write permission
 		return permissionInRepo.CanWrite(unit.TypeCode)
@@ -118,7 +119,7 @@ func IsUserMergeWhitelisted(protectBranch *ProtectedBranch, userID int64, permis
 		return false
 	}
 
-	in, err := organization.IsUserInTeams(db.DefaultContext, userID, protectBranch.MergeWhitelistTeamIDs)
+	in, err := organization.IsUserInTeams(ctx, userID, protectBranch.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("IsUserInTeams: %v", err)
 		return false
@@ -139,7 +140,7 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 
 	if !protectBranch.EnableApprovalsWhitelist {
 		// Anyone with write access is considered official reviewer
-		writeAccess, err := hasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
+		writeAccess, err := access_model.HasAccessUnit(ctx, user, repo, unit.TypeCode, perm.AccessModeWrite)
 		if err != nil {
 			return false, err
 		}
@@ -159,16 +160,16 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 }
 
 // HasEnoughApprovals returns true if pr has enough granted approvals.
-func (protectBranch *ProtectedBranch) HasEnoughApprovals(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) HasEnoughApprovals(ctx context.Context, pr *PullRequest) bool {
 	if protectBranch.RequiredApprovals == 0 {
 		return true
 	}
-	return protectBranch.GetGrantedApprovalsCount(pr) >= protectBranch.RequiredApprovals
+	return protectBranch.GetGrantedApprovalsCount(ctx, pr) >= protectBranch.RequiredApprovals
 }
 
 // GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
-func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) int64 {
-	sess := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(ctx context.Context, pr *PullRequest) int64 {
+	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeApprove).
 		And("official = ?", true).
 		And("dismissed = ?", false)
@@ -185,11 +186,11 @@ func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(pr *PullRequest) 
 }
 
 // MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
-func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(ctx context.Context, pr *PullRequest) bool {
 	if !protectBranch.BlockOnRejectedReviews {
 		return false
 	}
-	rejectExist, err := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+	rejectExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeReject).
 		And("official = ?", true).
 		And("dismissed = ?", false).
@@ -204,11 +205,11 @@ func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(pr *PullReque
 
 // MergeBlockedByOfficialReviewRequests block merge because of some review request to official reviewer
 // of from official review
-func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(ctx context.Context, pr *PullRequest) bool {
 	if !protectBranch.BlockOnOfficialReviewRequests {
 		return false
 	}
-	has, err := db.GetEngine(db.DefaultContext).Where("issue_id = ?", pr.IssueID).
+	has, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
 		And("type = ?", ReviewTypeRequest).
 		And("official = ?", true).
 		Exist(new(Review))
@@ -305,13 +306,9 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 }
 
 // GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(repoID int64, branchName string) (*ProtectedBranch, error) {
-	return getProtectedBranchBy(db.GetEngine(db.DefaultContext), repoID, branchName)
-}
-
-func getProtectedBranchBy(e db.Engine, repoID int64, branchName string) (*ProtectedBranch, error) {
+func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
-	has, err := e.Get(rel)
+	has, err := db.GetByBean(ctx, rel)
 	if err != nil {
 		return nil, err
 	}
@@ -424,7 +421,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 
 	whitelist = make([]int64, 0, len(newWhitelist))
 	for _, userID := range newWhitelist {
-		if reader, err := IsRepoReader(ctx, repo, userID); err != nil {
+		if reader, err := access_model.IsRepoReader(ctx, repo, userID); err != nil {
 			return nil, err
 		} else if !reader {
 			continue
@@ -449,7 +446,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		if err != nil {
 			return nil, fmt.Errorf("GetUserByID [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
-		perm, err := GetUserRepoPermission(ctx, repo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 		if err != nil {
 			return nil, fmt.Errorf("GetUserRepoPermission [user_id: %d, repo_id: %d]: %v", userID, repo.ID, err)
 		}
@@ -631,7 +628,7 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 	}
 
 	// 2. Update protected branch if needed
-	protectedBranch, err := getProtectedBranchBy(sess, repo.ID, from)
+	protectedBranch, err := GetProtectedBranchBy(ctx, repo.ID, from)
 	if err != nil {
 		return err
 	}

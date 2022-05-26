@@ -9,6 +9,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -60,10 +62,43 @@ func GetUnmergedPullRequestsByHeadInfo(repoID int64, branch string) ([]*PullRequ
 		Find(&prs)
 }
 
+// CanMaintainerWriteToBranch check whether user is a matainer and could write to the branch
+func CanMaintainerWriteToBranch(p access_model.Permission, branch string, user *user_model.User) bool {
+	if p.CanWrite(unit.TypeCode) {
+		return true
+	}
+
+	if len(p.Units) < 1 {
+		return false
+	}
+
+	prs, err := GetUnmergedPullRequestsByHeadInfo(p.Units[0].RepoID, branch)
+	if err != nil {
+		return false
+	}
+
+	for _, pr := range prs {
+		if pr.AllowMaintainerEdit {
+			err = pr.LoadBaseRepo()
+			if err != nil {
+				continue
+			}
+			prPerm, err := access_model.GetUserRepoPermission(db.DefaultContext, pr.BaseRepo, user)
+			if err != nil {
+				continue
+			}
+			if prPerm.CanWrite(unit.TypeCode) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // HasUnmergedPullRequestsByHeadInfo checks if there are open and not merged pull request
 // by given head information (repo and branch)
-func HasUnmergedPullRequestsByHeadInfo(repoID int64, branch string) (bool, error) {
-	return db.GetEngine(db.DefaultContext).
+func HasUnmergedPullRequestsByHeadInfo(ctx context.Context, repoID int64, branch string) (bool, error) {
+	return db.GetEngine(ctx).
 		Where("head_repo_id = ? AND head_branch = ? AND has_merged = ? AND issue.is_closed = ? AND flow = ?",
 			repoID, branch, false, false, PullRequestFlowGithub).
 		Join("INNER", "issue", "issue.id = pull_request.issue_id").
@@ -121,7 +156,7 @@ func PullRequests(baseRepoID int64, opts *PullRequestsOptions) ([]*PullRequest, 
 // PullRequestList defines a list of pull requests
 type PullRequestList []*PullRequest
 
-func (prs PullRequestList) loadAttributes(e db.Engine) error {
+func (prs PullRequestList) loadAttributes(ctx context.Context) error {
 	if len(prs) == 0 {
 		return nil
 	}
@@ -129,7 +164,7 @@ func (prs PullRequestList) loadAttributes(e db.Engine) error {
 	// Load issues.
 	issueIDs := prs.getIssueIDs()
 	issues := make([]*Issue, 0, len(issueIDs))
-	if err := e.
+	if err := db.GetEngine(ctx).
 		Where("id > 0").
 		In("id", issueIDs).
 		Find(&issues); err != nil {
@@ -156,7 +191,7 @@ func (prs PullRequestList) getIssueIDs() []int64 {
 
 // LoadAttributes load all the prs attributes
 func (prs PullRequestList) LoadAttributes() error {
-	return prs.loadAttributes(db.GetEngine(db.DefaultContext))
+	return prs.loadAttributes(db.DefaultContext)
 }
 
 // InvalidateCodeComments will lookup the prs for code comments which got invalidated by change

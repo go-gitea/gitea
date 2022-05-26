@@ -63,7 +63,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = models.IsUserOrgOwner(members, org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(http.StatusOK, tplMembers)

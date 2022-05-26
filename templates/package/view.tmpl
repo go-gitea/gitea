@@ -10,7 +10,7 @@
 					</div>
 					<div>
 						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n.Lang}}
-						{{if .PackageDescriptor.Repository}}
+						{{if .HasRepositoryAccess}}
 							{{.i18n.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 						{{else}}
 							{{.i18n.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
@@ -35,7 +35,7 @@
 						<strong>{{.i18n.Tr "packages.details"}}</strong>
 						<div class="ui relaxed list">
 							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
-							{{if .PackageDescriptor.Repository}}
+							{{if .HasRepositoryAccess}}
 							<div class="item">{{svg "octicon-repo" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 							{{end}}
 							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
@@ -76,10 +76,10 @@
 							{{end}}
 							</div>
 						{{end}}
-						{{if or .CanWritePackages .PackageDescriptor.Repository}}
+						{{if or .CanWritePackages .HasRepositoryAccess}}
 							<div class="ui divider"></div>
 							<div class="ui relaxed list">
-								{{if .PackageDescriptor.Repository}}
+								{{if .HasRepositoryAccess}}
 								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}/issues">{{.i18n.Tr "repo.issues"}}</a></div>
 								{{end}}
 								{{if .CanWritePackages}}

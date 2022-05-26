@@ -5,6 +5,7 @@
 package asymkey
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -31,8 +32,8 @@ import (
 
 // checkKeyFingerprint only checks if key fingerprint has been used as public key,
 // it is OK to use same key as deploy key for multiple repositories/users.
-func checkKeyFingerprint(e db.Engine, fingerprint string) error {
-	has, err := e.Get(&PublicKey{
+func checkKeyFingerprint(ctx context.Context, fingerprint string) error {
+	has, err := db.GetByBean(ctx, &PublicKey{
 		Fingerprint: fingerprint,
 	})
 	if err != nil {

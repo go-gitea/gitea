@@ -22,6 +22,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -43,9 +44,6 @@ var ItemsPerPage = 40
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
-
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", LocalCopyPath())
 }
 
 // CheckRepoUnitUser check whether user could visit the unit of this repository
@@ -54,10 +52,10 @@ func CheckRepoUnitUser(repo *repo_model.Repository, user *user_model.User, unitT
 }
 
 func checkRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	if user.IsAdmin {
+	if user != nil && user.IsAdmin {
 		return true
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, user)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
 		log.Error("GetUserRepoPermission(): %v", err)
 		return false
@@ -206,25 +204,21 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 	return teams, err
 }
 
-func updateRepoSize(e db.Engine, repo *repo_model.Repository) error {
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
+	lfsSize, err := db.GetEngine(ctx).Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
+	_, err = db.GetEngine(ctx).ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
-}
-
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
-func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	return updateRepoSize(db.GetEngine(ctx), repo)
 }
 
 // CanUserForkRepo returns true if specified user can fork repository.
@@ -305,43 +299,6 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 	return false, nil
 }
 
-// getUsersWithAccessMode returns users that have at least given access mode to the repository.
-func getUsersWithAccessMode(ctx context.Context, repo *repo_model.Repository, mode perm.AccessMode) (_ []*user_model.User, err error) {
-	if err = repo.GetOwner(ctx); err != nil {
-		return nil, err
-	}
-
-	e := db.GetEngine(ctx)
-	accesses := make([]*Access, 0, 10)
-	if err = e.Where("repo_id = ? AND mode >= ?", repo.ID, mode).Find(&accesses); err != nil {
-		return nil, err
-	}
-
-	// Leave a seat for owner itself to append later, but if owner is an organization
-	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(accesses)+1)
-	if len(accesses) > 0 {
-		userIDs := make([]int64, len(accesses))
-		for i := 0; i < len(accesses); i++ {
-			userIDs[i] = accesses[i].UserID
-		}
-
-		if err = e.In("id", userIDs).Find(&users); err != nil {
-			return nil, err
-		}
-	}
-	if !repo.Owner.IsOrganization() {
-		users = append(users, repo.Owner)
-	}
-
-	return users, nil
-}
-
-// SetRepoReadBy sets repo to be visited by given user.
-func SetRepoReadBy(repoID, userID int64) error {
-	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repoID)
-}
-
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
 	Name           string
@@ -368,7 +325,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExistCtx(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -432,7 +389,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
@@ -455,24 +412,24 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := isUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("isUserRepoAdmin: %v", err)
+		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
+			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
 				return fmt.Errorf("AddCollaborator: %v", err)
 			}
-			if err = changeCollaborationAccessMode(db.GetEngine(ctx), repo, doer.ID, perm.AccessModeAdmin); err != nil {
+			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
 				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
 			}
 		}
-	} else if err = recalculateAccesses(ctx, repo); err != nil {
+	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization automatically called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
+		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
@@ -527,7 +484,8 @@ func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
 	return err
 }
 
-func updateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+// UpdateRepositoryCtx updates a repository with db context
+func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
 
 	if utf8.RuneCountInString(repo.Description) > 255 {
@@ -543,7 +501,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		return fmt.Errorf("update: %v", err)
 	}
 
-	if err = updateRepoSize(e, repo); err != nil {
+	if err = UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -553,7 +511,7 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 		if repo.Owner.IsOrganization() {
 			// Organization repository need to recalculate access table when visibility is changed.
-			if err = recalculateTeamAccesses(ctx, repo, 0); err != nil {
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
 				return fmt.Errorf("recalculateTeamAccesses: %v", err)
 			}
 		}
@@ -569,28 +527,23 @@ func updateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(db.WithEngine(ctx, e), repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 
 		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
 		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+			return fmt.Errorf("GetRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
-			if err = updateRepository(ctx, forkRepos[i], true); err != nil {
+			if err = UpdateRepositoryCtx(ctx, forkRepos[i], true); err != nil {
 				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
 			}
 		}
 	}
 
 	return nil
-}
-
-// UpdateRepositoryCtx updates a repository with db context
-func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) error {
-	return updateRepository(ctx, repo, visibilityChanged)
 }
 
 // UpdateRepository updates a repository
@@ -601,7 +554,7 @@ func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err 
 	}
 	defer committer.Close()
 
-	if err = updateRepository(ctx, repo, visibilityChanged); err != nil {
+	if err = UpdateRepositoryCtx(ctx, repo, visibilityChanged); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
@@ -619,7 +572,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
-	org, err := user_model.GetUserByIDEngine(sess, uid)
+	org, err := user_model.GetUserByIDCtx(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -666,7 +619,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 			return err
 		}
 		for _, t := range teams {
-			if !hasRepository(ctx, t, repoID) {
+			if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repoID) {
 				continue
 			} else if err = removeRepository(ctx, t, repo, false); err != nil {
 				return err
@@ -685,14 +638,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
 	if err := db.DeleteBeans(ctx,
-		&Access{RepoID: repo.ID},
+		&access_model.Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
-		&Collaboration{RepoID: repoID},
+		&repo_model.Collaboration{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
 		&CommitStatus{RepoID: repoID},
 		&DeletedBranch{RepoID: repoID},
@@ -704,7 +657,6 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Notification{RepoID: repoID},
 		&ProtectedBranch{RepoID: repoID},
 		&ProtectedTag{RepoID: repoID},
-		&PullRequest{BaseRepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
@@ -719,28 +671,33 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Labels and related objects
-	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
+	if err := deleteLabelsByRepoID(ctx, repoID); err != nil {
+		return err
+	}
+
+	// Delete Pulls and related objects
+	if err := deletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
+	if attachmentPaths, err = deleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete issue index
-	if err := db.DeleteResouceIndex(sess, "issue_index", repoID); err != nil {
+	if err := db.DeleteResouceIndex(ctx, "issue_index", repoID); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
-		if _, err := sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
@@ -750,7 +707,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := project_model.GetProjectsCtx(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
@@ -770,7 +727,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	lfsPaths := make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+		count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}
@@ -781,7 +738,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
-	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &LFSMetaObject{RepositoryID: repoID}); err != nil {
 		return err
 	}
 
@@ -797,7 +754,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		archivePaths = append(archivePaths, p)
 	}
 
-	if _, err := sess.Delete(&repo_model.RepoArchiver{RepoID: repoID}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1215,7 +1172,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := isUserRepoAdmin(ctx, repo, doer)
+		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

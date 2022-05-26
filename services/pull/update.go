@@ -9,11 +9,13 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 )
 
 // Update updates pull request with base branch.
@@ -22,6 +24,9 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		pr    *models.PullRequest
 		style repo_model.MergeStyle
 	)
+
+	pullWorkingPool.CheckIn(fmt.Sprint(pull.ID))
+	defer pullWorkingPool.CheckOut(fmt.Sprint(pull.ID))
 
 	if rebase {
 		pr = pull
@@ -79,7 +84,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 	if user == nil {
 		return false, false, nil
 	}
-	headRepoPerm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, user)
+	headRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
 		return false, false, err
 	}
@@ -111,18 +116,18 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, nil
 	}
 
-	baseRepoPerm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, user)
+	baseRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, user)
 	if err != nil {
 		return false, false, err
 	}
 
-	mergeAllowed, err = IsUserAllowedToMerge(pr, headRepoPerm, user)
+	mergeAllowed, err = IsUserAllowedToMerge(ctx, pr, headRepoPerm, user)
 	if err != nil {
 		return false, false, err
 	}
 
 	if pull.AllowMaintainerEdit {
-		mergeAllowedMaintainer, err := IsUserAllowedToMerge(pr, baseRepoPerm, user)
+		mergeAllowedMaintainer, err := IsUserAllowedToMerge(ctx, pr, baseRepoPerm, user)
 		if err != nil {
 			return false, false, err
 		}
@@ -151,7 +156,7 @@ func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObje
 		return nil, err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(tmpRepo); err != nil {
+		if err := repo_module.RemoveTemporaryPath(tmpRepo); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()

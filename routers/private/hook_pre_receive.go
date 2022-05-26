@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -30,7 +31,7 @@ type preReceiveContext struct {
 	// loadedPusher indicates that where the following information are loaded
 	loadedPusher        bool
 	user                *user_model.User // it's the org user if a DeployKey is used
-	userPerm            models.Permission
+	userPerm            access_model.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
 	canCreatePullRequest        bool
@@ -55,7 +56,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = ctx.userPerm.CanWriteToBranch(ctx.user, ctx.branchName) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = models.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -154,7 +155,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -311,7 +312,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.userPerm, ctx.user)
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
 		if err != nil {
 			log.Error("Error calculating if allowed to merge: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -343,7 +344,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
+		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
 			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
@@ -472,7 +473,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 	ctx.user = user
 
-	userPerm, err := models.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
+	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

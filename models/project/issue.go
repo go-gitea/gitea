@@ -19,14 +19,17 @@ type ProjectIssue struct { //revive:disable-line:exported
 
 	// If 0, then it has not been added to a specific board in the project
 	ProjectBoardID int64 `xorm:"INDEX"`
+
+	// the sorting order on the board
+	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
 func init() {
 	db.RegisterModel(new(ProjectIssue))
 }
 
-func deleteProjectIssuesByProjectID(e db.Engine, projectID int64) error {
-	_, err := e.Where("project_id=?", projectID).Delete(&ProjectIssue{})
+func deleteProjectIssuesByProjectID(ctx context.Context, projectID int64) error {
+	_, err := db.GetEngine(ctx).Where("project_id=?", projectID).Delete(&ProjectIssue{})
 	return err
 }
 
@@ -94,7 +97,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (pb *Board) removeIssues(e db.Engine) error {
-	_, err := e.Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+func (pb *Board) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
 	return err
 }

@@ -110,6 +110,10 @@ const (
 	CommentTypeDismissReview
 	// 33 Change issue ref
 	CommentTypeChangeIssueRef
+	// 34 pr was scheduled to auto merge when checks succeed
+	CommentTypePRScheduledToAutoMerge
+	// 35 pr was un scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge
 )
 
 var commentStrings = []string{
@@ -147,6 +151,8 @@ var commentStrings = []string{
 	"project_board",
 	"dismiss_review",
 	"change_issue_ref",
+	"pull_scheduled_merge",
+	"pull_cancel_scheduled_merge",
 }
 
 func (t CommentType) String() string {
@@ -284,14 +290,15 @@ type PushActionContent struct {
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
-	return c.loadIssue(db.GetEngine(db.DefaultContext))
+	return c.LoadIssueCtx(db.DefaultContext)
 }
 
-func (c *Comment) loadIssue(e db.Engine) (err error) {
+// LoadIssueCtx loads issue from database
+func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = getIssueByID(e, c.IssueID)
+	c.Issue, err = getIssueByID(ctx, c.IssueID)
 	return
 }
 
@@ -322,12 +329,12 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 	}
 }
 
-func (c *Comment) loadPoster(e db.Engine) (err error) {
+func (c *Comment) loadPoster(ctx context.Context) (err error) {
 	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
-	c.Poster, err = user_model.GetUserByIDEngine(e, c.PosterID)
+	c.Poster, err = user_model.GetUserByIDCtx(ctx, c.PosterID)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1
@@ -518,7 +525,7 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	return c.loadPoster(db.GetEngine(db.DefaultContext))
+	return c.loadPoster(db.DefaultContext)
 }
 
 // LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
@@ -528,7 +535,7 @@ func (c *Comment) LoadAttachments() error {
 	}
 
 	var err error
-	c.Attachments, err = repo_model.GetAttachmentsByCommentIDCtx(db.DefaultContext, c.ID)
+	c.Attachments, err = repo_model.GetAttachmentsByCommentID(db.DefaultContext, c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -550,7 +557,7 @@ func (c *Comment) UpdateAttachments(uuids []string) error {
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = c.IssueID
 		attachments[i].CommentID = c.ID
-		if err := repo_model.UpdateAttachmentCtx(ctx, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
@@ -583,7 +590,7 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 		}
 
 		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = organization.GetTeamByID(c.AssigneeTeamID)
+			c.AssigneeTeam, err = organization.GetTeamByID(db.DefaultContext, c.AssigneeTeamID)
 			if err != nil && !organization.IsErrTeamNotExist(err) {
 				return err
 			}
@@ -617,7 +624,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = getIssueByID(db.GetEngine(db.DefaultContext), c.DependentIssueID)
+	c.DependentIssue, err = getIssueByID(db.DefaultContext, c.DependentIssueID)
 	return err
 }
 
@@ -654,9 +661,9 @@ func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
 	return c.loadReactions(db.DefaultContext, repo)
 }
 
-func (c *Comment) loadReview(e db.Engine) (err error) {
+func (c *Comment) loadReview(ctx context.Context) (err error) {
 	if c.Review == nil {
-		if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
 			return err
 		}
 	}
@@ -666,7 +673,7 @@ func (c *Comment) loadReview(e db.Engine) (err error) {
 
 // LoadReview loads the associated review
 func (c *Comment) LoadReview() error {
-	return c.loadReview(db.GetEngine(db.DefaultContext))
+	return c.loadReview(db.DefaultContext)
 }
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
@@ -823,13 +830,12 @@ func CreateCommentCtx(ctx context.Context, opts *CreateCommentOptions) (_ *Comme
 }
 
 func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
-	e := db.GetEngine(ctx)
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
+				if err := comment.loadReview(ctx); err != nil {
 					return err
 				}
 			}
@@ -839,7 +845,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 		}
 		fallthrough
 	case CommentTypeComment:
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
 		fallthrough
@@ -854,7 +860,7 @@ func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
@@ -1024,13 +1030,9 @@ func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue 
 }
 
 // GetCommentByID returns the comment by given ID.
-func GetCommentByID(id int64) (*Comment, error) {
-	return getCommentByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getCommentByID(e db.Engine, id int64) (*Comment, error) {
+func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := e.ID(id).Get(c)
+	has, err := db.GetEngine(ctx).ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1081,9 +1083,10 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
+// FindComments returns all comments according options
+func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	sess := e.Where(opts.toConds())
+	sess := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1098,11 +1101,6 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 		Asc("comment.created_unix").
 		Asc("comment.id").
 		Find(&comments)
-}
-
-// FindComments returns all comments according options
-func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
-	return findComments(db.GetEngine(db.DefaultContext), opts)
 }
 
 // CountComments count all comments according options by ignoring pagination
@@ -1126,7 +1124,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-	if err := c.loadIssue(sess); err != nil {
+	if err := c.LoadIssueCtx(ctx); err != nil {
 		return err
 	}
 	if err := c.addCrossReferences(ctx, doer, true); err != nil {
@@ -1160,7 +1158,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if _, err := e.Delete(&issues_model.ContentHistory{
+	if _, err := db.DeleteByBean(ctx, &issues_model.ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
@@ -1175,7 +1173,7 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(e); err != nil {
+	if err := comment.neuterCrossReferences(ctx); err != nil {
 		return err
 	}
 
@@ -1185,7 +1183,8 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
-func fetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
 	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
 }
 
@@ -1235,7 +1234,7 @@ func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issu
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(e); err != nil {
+	if err := CommentList(comments).loadPosters(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1295,11 +1294,6 @@ func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *use
 	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
-// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeComments(ctx, issue, currentUser)
-}
-
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
 func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("comment").
@@ -1350,6 +1344,28 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 
 	comment, err = CreateComment(ops)
 
+	return
+}
+
+// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
+		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
+	}
+	if err = pr.LoadIssueCtx(ctx); err != nil {
+		return
+	}
+
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+		return
+	}
+
+	comment, err = CreateCommentCtx(ctx, &CreateCommentOptions{
+		Type:  typ,
+		Doer:  doer,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+	})
 	return
 }
 

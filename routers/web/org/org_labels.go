@@ -17,7 +17,7 @@ import (
 
 // RetrieveLabels find all the labels of an organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
+	labels, err := models.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -59,7 +59,7 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, form.ID)
+	l, err := models.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrOrgLabelNotExist(err):
