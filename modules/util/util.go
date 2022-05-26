@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lithammer/dedent"
 	"golang.org/x/text/cases"
 	"golang.org/x/text/language"
 )
@@ -190,4 +191,9 @@ var titleCaser = cases.Title(language.English)
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
 	return titleCaser.String(s)
+}
+
+// Dedent removes common indentation of a multi-line string along with whitespace around it
+func Dedent(s string) string {
+	return strings.TrimSpace(dedent.Dedent(s))
 }
