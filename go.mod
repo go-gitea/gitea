@@ -56,7 +56,6 @@ require (
 	github.com/klauspost/compress v1.15.3
 	github.com/klauspost/cpuid/v2 v2.0.12
 	github.com/lib/pq v1.10.5
-	github.com/lithammer/dedent v1.1.0
 	github.com/lunny/dingtalk_webhook v0.0.0-20171025031554-e3534c89ef96
 	github.com/markbates/goth v1.72.0
 	github.com/mattn/go-isatty v0.0.14
