@@ -293,3 +293,25 @@ func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
 }
+
+// QuoteSanitized quotes the string for SQL, it REMOVES all slashes and NUL chars.
+// In most cases, SQL should use the ORM builder, not this one.
+// This function is NOT recommended, it could ONLY be used in rare cases when there is no other choice.
+func QuoteSanitized(s string) string {
+	b := make([]byte, 0, len(s))
+	b = append(b, '\'')
+	for pos := 0; pos < len(s); pos++ {
+		c := s[pos]
+		switch c {
+		case 0, '\\': // databases may have quirks about NUL and SLASH, so remove them
+			// ignore (remove)
+		case '\'':
+			b = append(b, '\'')
+			b = append(b, '\'')
+		default:
+			b = append(b, c)
+		}
+	}
+	b = append(b, '\'')
+	return string(b)
+}

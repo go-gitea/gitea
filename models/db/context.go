@@ -180,7 +180,6 @@ func TableName(bean interface{}) string {
 // EstimateCount returns an estimate of total number of rows in table
 func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
 	e := GetEngine(ctx)
-	e.Context(ctx)
 
 	var rows int64
 	var err error
