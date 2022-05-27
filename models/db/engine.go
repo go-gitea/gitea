@@ -294,9 +294,10 @@ func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	return
 }
 
-// QuoteString quotes the string for SQLs. In most cases, SQL should use the ORM builder.
-// This function could only be used in rare cases when there is no other choices.
+// QuoteString quotes the string for SQL. In most cases, SQL should use the ORM builder, not this one.
+// This function is NOT recommended, it could ONLY be used in rare cases when there is no other choice.
 // It panics if the database is not supported to avoid corrupted data
+// At the moment it follows the behavior of convertString and convertStringSingleQuote in XORM, and is covered by tests.
 func QuoteString(ctx context.Context, s string) string {
 	e, ok := GetEngine(ctx).(*xorm.Engine)
 	if !ok {
