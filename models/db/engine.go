@@ -306,6 +306,7 @@ func QuoteString(ctx context.Context, s string) string {
 	// The NUL char doesn't need to be considered because there are undefined behaviors across databases, as long as the NUL char doesn't do harm, let it go.
 	switch e.Dialect().URI().DBType {
 	case schemas.MYSQL:
+		// at the moment, Gitea MySQL runs without NO_BACKSLASH_ESCAPES, so the slashes should be escaped. The same as XORM.convertString
 		s = strings.ReplaceAll(s, "\\", "\\\\")
 		s = strings.ReplaceAll(s, "'", "''")
 		return "'" + s + "'"
