@@ -303,7 +303,7 @@ func QuoteString(ctx context.Context, s string) string {
 	if !ok {
 		panic("can not get the real database engine")
 	}
-
+	// The NUL char doesn't need to be considered because there are undefined behaviors across databases, as long as the NUL char doesn't do harm, let it go.
 	switch e.Dialect().URI().DBType {
 	case schemas.MYSQL:
 		s = strings.ReplaceAll(s, "\\", "\\\\")
