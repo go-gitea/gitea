@@ -19,10 +19,10 @@ func TestDatabase(t *testing.T) {
 	// test a SQL string
 	assert.Equal(t, "'it''s fine'", db.QuoteString(db.DefaultContext, "it's fine"))
 
-	// test all ASCII chars
-	// Fill the slice with ASCII characters including 1 up until 126.
-	b := make([]byte, 126)
-	for i := byte(0); i < 126; i++ {
+	// Test all ASCII chars. 0 (NUL) char has undefined behaviors across databases and it does no harm, ignore it.
+	// Fill the slice with ASCII characters from 1 to 127.
+	b := make([]byte, 127)
+	for i := byte(0); i < 127; i++ {
 		b[i] = i + 1
 	}
 	raw := string(b)
