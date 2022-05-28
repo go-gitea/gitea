@@ -57,8 +57,9 @@ const (
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
-// Settings show a repository's settings page
-func Settings(ctx *context.Context) {
+// SettingsCtxData is a middleware that sets all the general context data for the
+// settings template.
+func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
@@ -92,15 +93,16 @@ func Settings(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+}
 
+// Settings show a repository's settings page
+func Settings(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsOptions"] = true
 
 	repo := ctx.Repo.Repository
 
