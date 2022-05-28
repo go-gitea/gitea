@@ -99,7 +99,7 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 		if err := CheckPullBranchProtections(ctx, pr, false); err != nil {
 			if models.IsErrDisallowedToMerge(err) {
 				if force {
-					if isRepoAdmin, err2 := access_model.IsUserRepoAdminCtx(ctx, pr.BaseRepo, doer); err2 != nil {
+					if isRepoAdmin, err2 := access_model.IsUserRepoAdmin(ctx, pr.BaseRepo, doer); err2 != nil {
 						return err2
 					} else if !isRepoAdmin {
 						return err

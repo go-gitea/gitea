@@ -125,13 +125,9 @@ func StopwatchExists(userID, issueID int64) bool {
 }
 
 // HasUserStopwatch returns true if the user has a stopwatch
-func HasUserStopwatch(userID int64) (exists bool, sw *Stopwatch, err error) {
-	return hasUserStopwatch(db.GetEngine(db.DefaultContext), userID)
-}
-
-func hasUserStopwatch(e db.Engine, userID int64) (exists bool, sw *Stopwatch, err error) {
+func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopwatch, err error) {
 	sw = new(Stopwatch)
-	exists, err = e.
+	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		Get(sw)
 	return
@@ -203,24 +199,23 @@ func FinishIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 	}); err != nil {
 		return err
 	}
-	_, err = db.GetEngine(ctx).Delete(sw)
+	_, err = db.DeleteByBean(ctx, sw)
 	return err
 }
 
 // CreateIssueStopwatch creates a stopwatch if not exist, otherwise return an error
 func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Issue) error {
-	e := db.GetEngine(ctx)
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
 	// if another stopwatch is running: stop it
-	exists, sw, err := hasUserStopwatch(e, user.ID)
+	exists, sw, err := HasUserStopwatch(ctx, user.ID)
 	if err != nil {
 		return err
 	}
 	if exists {
-		issue, err := getIssueByID(e, sw.IssueID)
+		issue, err := getIssueByID(ctx, sw.IssueID)
 		if err != nil {
 			return err
 		}

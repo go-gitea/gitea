@@ -72,14 +72,14 @@ func Settings(ctx *context.Context) {
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
-			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
+			status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
 			if err != nil {
 				ctx.ServerError("repo.indexer_status", err)
 				return
 			}
 			ctx.Data["CodeIndexerStatus"] = status
 		}
-		status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
+		status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
 		if err != nil {
 			ctx.ServerError("repo.indexer_status", err)
 			return
@@ -195,7 +195,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
 			ctx.Repo.Mirror.Interval = interval
 			ctx.Repo.Mirror.ScheduleNextUpdate()
-			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+			if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 				ctx.Data["Err_Interval"] = true
 				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
 				return
@@ -241,7 +241,7 @@ func SettingsPost(ctx *context.Context) {
 
 		ctx.Repo.Mirror.LFS = form.LFS
 		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
@@ -642,7 +642,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := user_model.GetUserByName(ctx.FormString("new_owner_name"))
+		newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -840,7 +840,7 @@ func Collaboration(ctx *context.Context) {
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := organization.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -863,7 +863,7 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	u, err := user_model.GetUserByName(name)
+	u, err := user_model.GetUserByName(ctx, name)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
@@ -983,7 +983,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.GetTeamByID(ctx.FormInt64("id"))
+	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetTeamByID", err)
 		return
@@ -1215,6 +1215,7 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 
 	for _, m := range pushMirrors {
 		if m.ID == id {
+			m.Repo = repo
 			return m, nil
 		}
 	}

@@ -290,7 +290,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						if err != nil {
 							log.Error("GetDiverging: %v", err)
 						} else {
-							err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 							if err != nil {
 								log.Error("UpdateCommitDivergence: %v", err)
 							}
@@ -336,7 +336,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("GetDiverging: %v", err)
 				}
 			} else {
-				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+				err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 				if err != nil {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
@@ -793,7 +793,7 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	statuses, _, err = models.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
 	lastStatus = models.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

@@ -28,8 +28,8 @@ func TestStarRepo(t *testing.T) {
 
 func TestIsStaring(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	assert.True(t, IsStaring(2, 4))
-	assert.False(t, IsStaring(3, 4))
+	assert.True(t, IsStaring(db.DefaultContext, 2, 4))
+	assert.False(t, IsStaring(db.DefaultContext, 3, 4))
 }
 
 func TestRepository_GetStargazers(t *testing.T) {

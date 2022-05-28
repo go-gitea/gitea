@@ -51,7 +51,7 @@
 						<div class="ui divider"></div>
 						<div class="inline field">
 							<label></label>
-							<button class="ui blue button">{{.i18n.Tr "auth.reset_password_helper"}}</button>
+							<button class="ui primary button">{{.i18n.Tr "auth.reset_password_helper"}}</button>
 							{{if and .has_two_factor (not .scratch_code)}}
 								<a href="{{.Link}}?code={{.Code}}&amp;scratch_code=true">{{.i18n.Tr "auth.use_scratch_code" | Str2html}}</a>
 							{{end}}
