@@ -242,10 +242,41 @@ a.blob-excerpt:hover {
   border: none !important;
 }
 
+#review-box .review-comments-counter {
+  background-color: var(--color-primary-light-4);
+  color: #fff;
+}
+
+#review-box:hover .review-comments-counter {
+  background-color: var(--color-primary-light-5);
+}
+
+#review-box .review-comments-counter[data-pending-comment-number="0"] {
+  display: none;
+}
+
 .pull.files.diff [id] {
   scroll-margin-top: 99px;
 
   @media @mediaMdAndDown {
     scroll-margin-top: 130px;
   }
+}
+
+.changed-since-last-review {
+  margin: 0 5px;
+  padding: 0 3px;
+  border: 2px var(--color-primary-light-3) solid;
+  background-color: var(--color-primary-alpha-30);
+  border-radius: 7px;
+}
+
+.viewed-file-form {
+  margin: 0 3px;
+  padding: 0 3px;
+  border-radius: 3px;
+}
+
+.viewed-file-checked-form {
+  background-color: var(--color-primary-light-4);
 }

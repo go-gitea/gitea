@@ -70,7 +70,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branchName)
+	branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -206,7 +206,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
+	branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -271,7 +271,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
@@ -320,7 +320,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -412,7 +412,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, form.BranchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, form.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return
@@ -523,7 +523,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	// Reload from db to get all whitelists
-	bp, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, form.BranchName)
+	bp, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, form.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -575,7 +575,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -758,7 +758,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 
 	// Reload from db to ensure get all whitelists
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
 		return
@@ -802,7 +802,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return

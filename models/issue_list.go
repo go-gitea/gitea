@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -24,20 +25,21 @@ const (
 	defaultMaxInSize = 50
 )
 
+// get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		if issue.Repo != nil {
-			continue
-		}
-		if _, ok := repoIDs[issue.RepoID]; !ok {
+		if issue.Repo == nil {
 			repoIDs[issue.RepoID] = struct{}{}
+		}
+		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
+			repoIDs[issue.PullRequest.HeadRepoID] = struct{}{}
 		}
 	}
 	return container.KeysInt64(repoIDs)
 }
 
-func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository, error) {
+func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
 	if len(issues) == 0 {
 		return nil, nil
 	}
@@ -50,7 +52,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository,
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", repoIDs[:limit]).
 			Find(&repoMaps)
 		if err != nil {
@@ -66,8 +68,11 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository,
 		} else {
 			repoMaps[issue.RepoID] = issue.Repo
 		}
-		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
+		if issue.PullRequest != nil {
 			issue.PullRequest.BaseRepo = issue.Repo
+			if issue.PullRequest.HeadRepo == nil {
+				issue.PullRequest.HeadRepo = repoMaps[issue.PullRequest.HeadRepoID]
+			}
 		}
 	}
 	return valuesRepository(repoMaps), nil
@@ -75,7 +80,7 @@ func (issues IssueList) loadRepositories(e db.Engine) ([]*repo_model.Repository,
 
 // LoadRepositories loads issues' all repositories
 func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
-	return issues.loadRepositories(db.GetEngine(db.DefaultContext))
+	return issues.loadRepositories(db.DefaultContext)
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
@@ -88,7 +93,7 @@ func (issues IssueList) getPosterIDs() []int64 {
 	return container.KeysInt64(posterIDs)
 }
 
-func (issues IssueList) loadPosters(e db.Engine) error {
+func (issues IssueList) loadPosters(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -101,7 +106,7 @@ func (issues IssueList) loadPosters(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", posterIDs[:limit]).
 			Find(&posterMaps)
 		if err != nil {
@@ -131,7 +136,7 @@ func (issues IssueList) getIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadLabels(e db.Engine) error {
+func (issues IssueList) loadLabels(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -149,7 +154,7 @@ func (issues IssueList) loadLabels(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table("label").
+		rows, err := db.GetEngine(ctx).Table("label").
 			Join("LEFT", "issue_label", "issue_label.label_id = label.id").
 			In("issue_label.issue_id", issueIDs[:limit]).
 			Asc("label.name").
@@ -194,7 +199,7 @@ func (issues IssueList) getMilestoneIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (issues IssueList) loadMilestones(e db.Engine) error {
+func (issues IssueList) loadMilestones(ctx context.Context) error {
 	milestoneIDs := issues.getMilestoneIDs()
 	if len(milestoneIDs) == 0 {
 		return nil
@@ -207,7 +212,7 @@ func (issues IssueList) loadMilestones(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		err := e.
+		err := db.GetEngine(ctx).
 			In("id", milestoneIDs[:limit]).
 			Find(&milestoneMaps)
 		if err != nil {
@@ -223,7 +228,7 @@ func (issues IssueList) loadMilestones(e db.Engine) error {
 	return nil
 }
 
-func (issues IssueList) loadAssignees(e db.Engine) error {
+func (issues IssueList) loadAssignees(ctx context.Context) error {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -241,7 +246,7 @@ func (issues IssueList) loadAssignees(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table("issue_assignees").
+		rows, err := db.GetEngine(ctx).Table("issue_assignees").
 			Join("INNER", "`user`", "`user`.id = `issue_assignees`.assignee_id").
 			In("`issue_assignees`.issue_id", issueIDs[:limit]).
 			Rows(new(AssigneeIssue))
@@ -284,7 +289,7 @@ func (issues IssueList) getPullIssueIDs() []int64 {
 	return ids
 }
 
-func (issues IssueList) loadPullRequests(e db.Engine) error {
+func (issues IssueList) loadPullRequests(ctx context.Context) error {
 	issuesIDs := issues.getPullIssueIDs()
 	if len(issuesIDs) == 0 {
 		return nil
@@ -297,7 +302,7 @@ func (issues IssueList) loadPullRequests(e db.Engine) error {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.
+		rows, err := db.GetEngine(ctx).
 			In("issue_id", issuesIDs[:limit]).
 			Rows(new(PullRequest))
 		if err != nil {
@@ -328,7 +333,7 @@ func (issues IssueList) loadPullRequests(e db.Engine) error {
 	return nil
 }
 
-func (issues IssueList) loadAttachments(e db.Engine) (err error) {
+func (issues IssueList) loadAttachments(ctx context.Context) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -341,7 +346,7 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table("attachment").
+		rows, err := db.GetEngine(ctx).Table("attachment").
 			Join("INNER", "issue", "issue.id = attachment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Rows(new(repo_model.Attachment))
@@ -373,7 +378,7 @@ func (issues IssueList) loadAttachments(e db.Engine) (err error) {
 	return nil
 }
 
-func (issues IssueList) loadComments(e db.Engine, cond builder.Cond) (err error) {
+func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (err error) {
 	if len(issues) == 0 {
 		return nil
 	}
@@ -386,7 +391,7 @@ func (issues IssueList) loadComments(e db.Engine, cond builder.Cond) (err error)
 		if left < limit {
 			limit = left
 		}
-		rows, err := e.Table("comment").
+		rows, err := db.GetEngine(ctx).Table("comment").
 			Join("INNER", "issue", "issue.id = comment.issue_id").
 			In("issue.id", issuesIDs[:limit]).
 			Where(cond).
@@ -419,7 +424,7 @@ func (issues IssueList) loadComments(e db.Engine, cond builder.Cond) (err error)
 	return nil
 }
 
-func (issues IssueList) loadTotalTrackedTimes(e db.Engine) (err error) {
+func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 	type totalTimesByIssue struct {
 		IssueID int64
 		Time    int64
@@ -444,7 +449,7 @@ func (issues IssueList) loadTotalTrackedTimes(e db.Engine) (err error) {
 		}
 
 		// select issue_id, sum(time) from tracked_time where issue_id in (<issue ids in current page>) group by issue_id
-		rows, err := e.Table("tracked_time").
+		rows, err := db.GetEngine(ctx).Table("tracked_time").
 			Where("deleted = ?", false).
 			Select("issue_id, sum(time) as time").
 			In("issue_id", ids[:limit]).
@@ -479,32 +484,32 @@ func (issues IssueList) loadTotalTrackedTimes(e db.Engine) (err error) {
 }
 
 // loadAttributes loads all attributes, expect for attachments and comments
-func (issues IssueList) loadAttributes(e db.Engine) error {
-	if _, err := issues.loadRepositories(e); err != nil {
+func (issues IssueList) loadAttributes(ctx context.Context) error {
+	if _, err := issues.loadRepositories(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadRepositories: %v", err)
 	}
 
-	if err := issues.loadPosters(e); err != nil {
+	if err := issues.loadPosters(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadPosters: %v", err)
 	}
 
-	if err := issues.loadLabels(e); err != nil {
+	if err := issues.loadLabels(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadLabels: %v", err)
 	}
 
-	if err := issues.loadMilestones(e); err != nil {
+	if err := issues.loadMilestones(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
 	}
 
-	if err := issues.loadAssignees(e); err != nil {
+	if err := issues.loadAssignees(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadAssignees: %v", err)
 	}
 
-	if err := issues.loadPullRequests(e); err != nil {
+	if err := issues.loadPullRequests(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadPullRequests: %v", err)
 	}
 
-	if err := issues.loadTotalTrackedTimes(e); err != nil {
+	if err := issues.loadTotalTrackedTimes(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadTotalTrackedTimes: %v", err)
 	}
 
@@ -514,42 +519,38 @@ func (issues IssueList) loadAttributes(e db.Engine) error {
 // LoadAttributes loads attributes of the issues, except for attachments and
 // comments
 func (issues IssueList) LoadAttributes() error {
-	return issues.loadAttributes(db.GetEngine(db.DefaultContext))
+	return issues.loadAttributes(db.DefaultContext)
 }
 
 // LoadAttachments loads attachments
 func (issues IssueList) LoadAttachments() error {
-	return issues.loadAttachments(db.GetEngine(db.DefaultContext))
+	return issues.loadAttachments(db.DefaultContext)
 }
 
 // LoadComments loads comments
 func (issues IssueList) LoadComments() error {
-	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.NewCond())
+	return issues.loadComments(db.DefaultContext, builder.NewCond())
 }
 
 // LoadDiscussComments loads discuss comments
 func (issues IssueList) LoadDiscussComments() error {
-	return issues.loadComments(db.GetEngine(db.DefaultContext), builder.Eq{"comment.type": CommentTypeComment})
+	return issues.loadComments(db.DefaultContext, builder.Eq{"comment.type": CommentTypeComment})
 }
 
 // LoadPullRequests loads pull requests
 func (issues IssueList) LoadPullRequests() error {
-	return issues.loadPullRequests(db.GetEngine(db.DefaultContext))
+	return issues.loadPullRequests(db.DefaultContext)
 }
 
 // GetApprovalCounts returns a map of issue ID to slice of approval counts
 // FIXME: only returns official counts due to double counting of non-official approvals
-func (issues IssueList) GetApprovalCounts() (map[int64][]*ReviewCount, error) {
-	return issues.getApprovalCounts(db.GetEngine(db.DefaultContext))
-}
-
-func (issues IssueList) getApprovalCounts(e db.Engine) (map[int64][]*ReviewCount, error) {
+func (issues IssueList) GetApprovalCounts(ctx context.Context) (map[int64][]*ReviewCount, error) {
 	rCounts := make([]*ReviewCount, 0, 2*len(issues))
 	ids := make([]int64, len(issues))
 	for i, issue := range issues {
 		ids[i] = issue.ID
 	}
-	sess := e.In("issue_id", ids)
+	sess := db.GetEngine(ctx).In("issue_id", ids)
 	err := sess.Select("issue_id, type, count(id) as `count`").
 		Where("official = ? AND dismissed = ?", true, false).
 		GroupBy("issue_id, type").

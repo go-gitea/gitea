@@ -10,16 +10,12 @@ import (
 	"code.gitea.io/gitea/models/db"
 )
 
-func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, e.
-		Where("fork_id=?", forkID).
-		Find(&repos)
-}
-
 // GetRepositoriesByForkID returns all repositories with given fork ID.
 func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, error) {
-	return getRepositoriesByForkID(db.GetEngine(ctx), forkID)
+	repos := make([]*Repository, 0, 10)
+	return repos, db.GetEngine(ctx).
+		Where("fork_id=?", forkID).
+		Find(&repos)
 }
 
 // GetForkedRepo checks if given user has already forked a repository with given ID.

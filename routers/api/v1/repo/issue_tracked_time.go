@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -93,7 +94,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := user_model.GetUserByName(qUser)
+		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
@@ -127,7 +128,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -202,7 +203,7 @@ func AddTime(ctx *context.APIContext) {
 	if form.User != "" {
 		if (ctx.IsUserRepoAdmin() && ctx.Doer.Name != form.User) || ctx.Doer.IsAdmin {
 			// allow only RepoAdmin, Admin and User to add time
-			user, err = user_model.GetUserByName(form.User)
+			user, err = user_model.GetUserByName(ctx, form.User)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
 			}
@@ -281,7 +282,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 
 	err = models.DeleteIssueUserTimes(issue, ctx.Doer)
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteIssueUserTimes", err)
@@ -352,7 +353,7 @@ func DeleteTime(ctx *context.APIContext) {
 
 	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.NotFound(err)
 			return
 		}
@@ -414,7 +415,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		ctx.Error(http.StatusBadRequest, "", "time tracking disabled")
 		return
 	}
-	user, err := user_model.GetUserByName(ctx.Params(":timetrackingusername"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":timetrackingusername"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound(err)
@@ -438,7 +439,7 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -511,7 +512,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 	// Filters
 	qUser := ctx.FormTrim("user")
 	if qUser != "" {
-		user, err := user_model.GetUserByName(qUser)
+		user, err := user_model.GetUserByName(ctx, qUser)
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "User does not exist", err)
 		} else if err != nil {
@@ -546,7 +547,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -608,7 +609,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(opts)
+	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return

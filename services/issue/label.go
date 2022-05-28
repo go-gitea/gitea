@@ -7,6 +7,7 @@ package issue
 import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 )
@@ -54,7 +55,7 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 		return err
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, issue.Repo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -79,7 +80,7 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
 func ReplaceLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
-	old, err := models.GetLabelsByIssueID(issue.ID)
+	old, err := models.GetLabelsByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return err
 	}

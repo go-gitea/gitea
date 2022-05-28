@@ -29,8 +29,8 @@ XGO_VERSION := go-1.18.x
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.4.0
 ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.0
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
@@ -195,6 +195,7 @@ help:
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
+	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
@@ -369,16 +370,20 @@ unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
+.PHONY: tidy
+tidy:
+	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
+	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+
 .PHONY: vendor
-vendor:
-	$(GO) mod tidy && $(GO) mod vendor
+vendor: tidy
+	$(GO) mod vendor
 
 .PHONY: gomod-check
-gomod-check:
-	@$(GO) mod tidy
+gomod-check: tidy
 	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run '$(GO) mod tidy' and commit the result:"; \
+		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi

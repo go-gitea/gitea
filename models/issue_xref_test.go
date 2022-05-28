@@ -150,7 +150,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Issue: i,
 	})
 	assert.NoError(t, err)
-	i, err = getIssueByID(db.GetEngine(ctx), i.ID)
+	i, err = getIssueByID(ctx, i.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, i.addCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())

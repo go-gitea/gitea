@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -221,9 +222,8 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	e := db.GetEngine(ctx)
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = getCommentByID(e, a.CommentID)
+		a.Comment, _ = GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -238,7 +238,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	issue, err := getIssueByID(e, issueID)
+	issue, err := getIssueByID(ctx, issueID)
 	if err != nil {
 		return "#"
 	}
@@ -339,8 +339,9 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 		return nil, err
 	}
 
-	e := db.GetEngine(ctx)
-	sess := e.Where(cond).Join("INNER", "repository", "`repository`.id = `action`.repo_id")
+	sess := db.GetEngine(ctx).Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
@@ -351,7 +352,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	if err := ActionList(actions).loadAttributes(e); err != nil {
+	if err := ActionList(actions).loadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
@@ -501,14 +502,14 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByIDEngine(e, watcher.UserID)
+				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
 					permPR[i] = false
 					continue
 				}
-				perm, err := GetUserRepoPermission(ctx, repo, user)
+				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false

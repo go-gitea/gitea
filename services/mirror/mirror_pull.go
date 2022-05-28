@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
@@ -71,7 +72,7 @@ func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error
 	}
 
 	m.Repo.OriginalURL = addr
-	return repo_model.UpdateRepositoryCols(m.Repo, "original_url")
+	return repo_model.UpdateRepositoryCols(ctx, m.Repo, "original_url")
 }
 
 // mirrorSyncResult contains information of a updated reference.
@@ -395,11 +396,12 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 		log.Error("PANIC whilst SyncMirrors[repo_id: %d] Panic: %v\nStacktrace: %s", repoID, err, log.Stack(2))
 	}()
 
-	m, err := repo_model.GetMirrorByRepoID(repoID)
+	m, err := repo_model.GetMirrorByRepoID(ctx, repoID)
 	if err != nil {
 		log.Error("SyncMirrors [repo_id: %v]: unable to GetMirrorByRepoID: %v", repoID, err)
 		return false
 	}
+	_ = m.GetRepository() // force load repository of mirror
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing Mirror %s/%s", m.Repo.OwnerName, m.Repo.Name))
 	defer finished()
@@ -415,7 +417,7 @@ func SyncPullMirror(ctx context.Context, repoID int64) bool {
 
 	log.Trace("SyncMirrors [repo: %-v]: Scheduling next update", m.Repo)
 	m.ScheduleNextUpdate()
-	if err = repo_model.UpdateMirror(m); err != nil {
+	if err = repo_model.UpdateMirror(ctx, m); err != nil {
 		log.Error("SyncMirrors [repo: %-v]: failed to UpdateMirror with next update date: %v", m.Repo, err)
 		return false
 	}
@@ -574,7 +576,7 @@ func checkAndUpdateEmptyRepository(m *repo_model.Mirror, gitRepo *git.Repository
 		}
 		m.Repo.IsEmpty = false
 		// Update the is empty and default_branch columns
-		if err := repo_model.UpdateRepositoryCols(m.Repo, "default_branch", "is_empty"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(db.DefaultContext, m.Repo, "default_branch", "is_empty"); err != nil {
 			log.Error("Failed to update default branch of repository %-v. Error: %v", m.Repo, err)
 			desc := fmt.Sprintf("Failed to uupdate default branch of repository '%s': %v", m.Repo.RepoPath(), err)
 			if err = admin_model.CreateRepositoryNotice(desc); err != nil {
