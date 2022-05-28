@@ -5,36 +5,36 @@
 		<div class="ui stackable grid">
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
-					<a class="{{if eq .ViewType "your_repositories"}}ui basic blue button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "your_repositories"}}ui basic primary button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "assigned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "assigned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "created_by"}}ui basic blue button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "created_by"}}ui basic primary button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
-					<a class="{{if eq .ViewType "mentioned"}}ui basic blue button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+					<a class="{{if eq .ViewType "mentioned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 						{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
-						<a class="{{if eq .ViewType "review_requested"}}ui basic blue button{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
+						<a class="{{if eq .ViewType "review_requested"}}ui basic primary button{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
 							{{.i18n.Tr "repo.issues.filter_type.review_requested"}}
 							<strong class="ui right">{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
 					{{end}}
 					<div class="ui divider"></div>
-					<a class="{{if not $.RepoIDs}}ui basic blue button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
+					<a class="{{if not $.RepoIDs}}ui basic primary button{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&q={{$.Keyword}}">
 						<span class="text truncate">All</span>
 						<div class="ui {{if $.IsShowClosed}}red{{else}}green{{end}} label">{{CountFmt .TotalIssueCount}}</div>
 					</a>
 					{{range .Repos}}
 						{{with $Repo := .}}
-							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic blue button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
+							<a class="{{range $.RepoIDs}}{{if eq . $Repo.ID}}ui basic primary button{{end}}{{end}} repo name item" href="{{$.Link}}?type={{$.ViewType}}&repos=[
 									{{- with $include := true -}}
 										{{- range $.RepoIDs -}}
 											{{- if eq . $Repo.ID -}}
@@ -77,7 +77,7 @@
 								<input type="hidden" name="sort" value="{{$.SortType}}"/>
 								<input type="hidden" name="state" value="{{$.State}}"/>
 								<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-								<button class="ui blue button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+								<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
 							</div>
 						</form>
 					</div>

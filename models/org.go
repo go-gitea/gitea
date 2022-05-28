@@ -95,7 +95,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		return nil
 	}
 
-	org, err := organization.GetOrgByIDCtx(ctx, orgID)
+	org, err := organization.GetOrgByID(ctx, orgID)
 	if err != nil {
 		return fmt.Errorf("GetUserByID [%d]: %v", orgID, err)
 	}
@@ -120,7 +120,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 
 	if _, err := sess.ID(ou.ID).Delete(ou); err != nil {
 		return err
-	} else if _, err = sess.Exec("UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
+	} else if _, err = db.Exec(ctx, "UPDATE `user` SET num_members=num_members-1 WHERE id=?", orgID); err != nil {
 		return err
 	}
 
@@ -134,7 +134,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		return fmt.Errorf("GetUserRepositories [%d]: %v", userID, err)
 	}
 	for _, repoID := range repoIDs {
-		if err = repo_model.WatchRepoCtx(ctx, userID, repoID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, userID, repoID, false); err != nil {
 			return err
 		}
 	}

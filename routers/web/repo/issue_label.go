@@ -56,7 +56,7 @@ func InitializeLabels(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository and organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -69,7 +69,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -127,7 +127,7 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, form.ID)
+	l, err := models.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrRepoLabelNotExist(err):
@@ -177,7 +177,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			}
 		}
 	case "attach", "detach", "toggle":
-		label, err := models.GetLabelByID(ctx.FormInt64("id"))
+		label, err := models.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if models.IsErrRepoLabelNotExist(err) {
 				ctx.Error(http.StatusNotFound, "GetLabelByID")
@@ -191,7 +191,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			// detach if any issues already have label, otherwise attach
 			action = "attach"
 			for _, issue := range issues {
-				if models.HasIssueLabel(issue.ID, label.ID) {
+				if models.HasIssueLabel(ctx, issue.ID, label.ID) {
 					action = "detach"
 					break
 				}

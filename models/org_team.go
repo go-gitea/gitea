@@ -44,7 +44,7 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 			return fmt.Errorf("getMembers: %v", err)
 		}
 		for _, u := range t.Members {
-			if err = repo_model.WatchRepoCtx(ctx, u.ID, repo.ID, true); err != nil {
+			if err = repo_model.WatchRepo(ctx, u.ID, repo.ID, true); err != nil {
 				return fmt.Errorf("watchRepo: %v", err)
 			}
 		}
@@ -147,12 +147,12 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 				continue
 			}
 
-			if err = repo_model.WatchRepoCtx(ctx, user.ID, repo.ID, false); err != nil {
+			if err = repo_model.WatchRepo(ctx, user.ID, repo.ID, false); err != nil {
 				return err
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+			if err = removeIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -210,12 +210,12 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 			continue
 		}
 
-		if err = repo_model.WatchRepoCtx(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
+		if err := removeIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -555,7 +555,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepoCtx(db.DefaultContext, userID, repo.ID, true); err != nil {
+				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

@@ -51,12 +51,12 @@ type IssueByRepositoryCount struct {
 func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
 	stats.Counter.User = user_model.CountUsers(nil)
-	stats.Counter.Org = organization.CountOrganizations()
+	stats.Counter.Org, _ = organization.CountOrgs(organization.FindOrgOptions{IncludePrivate: true})
 	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
-	stats.Counter.Repo = repo_model.CountRepositories(true)
+	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-	stats.Counter.Action, _ = e.Count(new(Action))
+	stats.Counter.Action, _ = db.EstimateCount(db.DefaultContext, new(Action))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {

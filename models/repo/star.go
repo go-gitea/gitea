@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -29,7 +31,7 @@ func StarRepo(userID, repoID int64, star bool) error {
 		return err
 	}
 	defer committer.Close()
-	staring := isStaring(db.GetEngine(ctx), userID, repoID)
+	staring := IsStaring(ctx, userID, repoID)
 
 	if star {
 		if staring {
@@ -65,12 +67,8 @@ func StarRepo(userID, repoID int64, star bool) error {
 }
 
 // IsStaring checks if user has starred given repository.
-func IsStaring(userID, repoID int64) bool {
-	return isStaring(db.GetEngine(db.DefaultContext), userID, repoID)
-}
-
-func isStaring(e db.Engine, userID, repoID int64) bool {
-	has, _ := e.Get(&Star{UID: userID, RepoID: repoID})
+func IsStaring(ctx context.Context, userID, repoID int64) bool {
+	has, _ := db.GetEngine(ctx).Get(&Star{UID: userID, RepoID: repoID})
 	return has
 }
 

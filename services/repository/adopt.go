@@ -208,7 +208,7 @@ func DeleteUnadoptedRepository(doer, u *user_model.User, repoName string) error 
 		}
 	}
 
-	if exist, err := repo_model.IsRepositoryExist(u, repoName); err != nil {
+	if exist, err := repo_model.IsRepositoryExist(db.DefaultContext, u, repoName); err != nil {
 		return err
 	} else if exist {
 		return repo_model.ErrRepoAlreadyExist{
@@ -238,7 +238,7 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	if len(repoNamesToCheck) == 0 {
 		return nil
 	}
-	ctxUser, err := user_model.GetUserByName(userName)
+	ctxUser, err := user_model.GetUserByName(db.DefaultContext, userName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("Missing user: %s", userName)

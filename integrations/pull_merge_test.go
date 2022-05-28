@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -407,7 +408,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "PR with conflict!"}).(*models.Issue)
-		conflictingPR, err := models.GetPullRequestByIssueID(issue.ID)
+		conflictingPR, err := models.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 		assert.NoError(t, err)
 
 		// Ensure conflictedFiles is populated.
