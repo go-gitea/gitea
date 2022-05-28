@@ -61,6 +61,16 @@
 							</div>
 						</form>
 					{{end}}
+					{{if $.Permission.IsAdmin}}
+					<form method="post" action="{{$.RepoLink}}/action/{{if .IsPinned}}un{{end}}pin?redirect_to={{$.Link}}">
+						{{$.CsrfTokenHtml}}
+						<div class="ui labeled button" tabindex="0">
+							<button type="submit" class="ui compact small basic button"{{if not $.IsSigned}} disabled{{end}}>
+								{{if .IsPinned}}{{svg "octicon-stop" 16}}Unpin{{else}}{{svg "octicon-pin"}}Pin{{end}}
+							</button>
+						</div>
+					</form>
+					{{end}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if $.IsWatchingRepo}}un{{end}}watch?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div class="ui labeled button{{if not $.IsSigned}} tooltip{{end}}" tabindex="0"{{if not $.IsSigned}} data-content="{{$.i18n.Tr "repo.watch_guest_user" }}" data-position="top center"{{end}}>

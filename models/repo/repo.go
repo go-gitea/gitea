@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"html/template"
 	"net"
@@ -199,6 +200,28 @@ func (repo *Repository) IsBeingCreated() bool {
 // IsBroken indicates that repository is broken
 func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
+}
+
+// IsPinned indicates that repository is pinned
+func (repo *Repository) IsPinned() bool {
+	pinstring, err := user_model.GetUserSetting(repo.OwnerID, "pinned")
+	if err != nil {
+		return false
+	}
+
+	var pinitems []int64
+	err = json.Unmarshal([]byte(pinstring), &pinitems)
+
+	if err != nil {
+		log.Warn("Couldn't deserialise pinned repos: %v", pinstring)
+		return false
+	}
+	for _, pinned := range pinitems {
+		if pinned == repo.ID {
+			return true
+		}
+	}
+	return false
 }
 
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.

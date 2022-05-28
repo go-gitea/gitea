@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -280,6 +281,16 @@ func CreatePost(ctx *context.Context) {
 	handleCreateError(ctx, ctxUser, err, "CreatePost", tplCreate, &form)
 }
 
+func canPin(ctx *context.Context) bool {
+	perm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
+
+	if err == nil && perm.IsAdmin() {
+		return true
+	} else {
+		return false
+	}
+}
+
 // Action response for actions to a repository
 func Action(ctx *context.Context) {
 	var err error
@@ -292,6 +303,18 @@ func Action(ctx *context.Context) {
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	case "pin":
+		if canPin(ctx) {
+			err = repo_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, true)
+		} else {
+			err = errors.New("User does not have permission to pin")
+		}
+	case "unpin":
+		if canPin(ctx) {
+			err = repo_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, false)
+		} else {
+			err = errors.New("User does not have permission to pin")
+		}
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":

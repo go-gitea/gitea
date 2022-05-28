@@ -103,11 +103,11 @@ func Home(ctx *context.Context) {
 	}
 
 	var (
-		repos []*repo_model.Repository
-		count int64
-		err   error
+		unpinnedrepos []*repo_model.Repository
+		unpinnedcount int64
+		err           error
 	)
-	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+	unpinnedrepos, unpinnedcount, err = models.SearchRepository(&models.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -125,6 +125,32 @@ func Home(ctx *context.Context) {
 		ctx.ServerError("SearchRepository", err)
 		return
 	}
+	var (
+		pinnedrepos []*repo_model.Repository
+		pinnedcount int64
+		pinnederr   error
+	)
+	pinnedrepos, pinnedcount, pinnederr = models.SearchRepository(&models.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			PageSize: setting.UI.User.RepoPagingNum,
+			Page:     page,
+		},
+		Keyword:            keyword,
+		OwnerID:            org.ID,
+		OrderBy:            orderBy,
+		Private:            ctx.IsSigned,
+		Actor:              ctx.Doer,
+		Language:           language,
+		IncludeDescription: setting.UI.SearchRepoDescription,
+		Pinned:             util.OptionalBoolTrue,
+	})
+	if pinnederr != nil {
+		ctx.ServerError("SearchRepository", pinnederr)
+		return
+	}
+
+	allrepos := append(pinnedrepos, unpinnedrepos...)
+	allcount := unpinnedcount + pinnedcount
 
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
@@ -154,15 +180,15 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["Owner"] = org
-	ctx.Data["Repos"] = repos
-	ctx.Data["Total"] = count
+	ctx.Data["Repos"] = allrepos
+	ctx.Data["Total"] = allcount
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
 
-	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(int(unpinnedcount), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager

@@ -7,6 +7,9 @@
 					{{if $avatar}}
 						{{$avatar}}
 					{{end}}
+					{{if .IsPinned}}
+					{{svg "octicon-pin" 16 "mr-3"}}
+					{{end}}
 					<a class="name" href="{{.Link}}">
 						{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 					</a>
