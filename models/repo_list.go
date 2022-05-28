@@ -531,7 +531,7 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 		defaultSize = opts.PageSize
 	}
 	repos := make(RepositoryList, 0, defaultSize)
-	if err := db.GetEngine(db.DefaultContext).SQL(b).Find(&repos); err != nil {
+	if err := db.GetEngine(ctx).SQL(b).Find(&repos); err != nil {
 		return nil, 0, fmt.Errorf("Repo: %v", err)
 	}
 
