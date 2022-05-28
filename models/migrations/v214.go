@@ -5,28 +5,19 @@
 package migrations
 
 import (
-	"time"
-
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
 
-func addKeypairToPushMirror(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64            `xorm:"pk autoincr"`
-		RepoID     int64            `xorm:"INDEX"`
-		Repo       *repo.Repository `xorm:"-"`
-		RemoteName string
-
-		PublicKey  string
-		PrivateKey string `xorm:"VARCHAR(400)"`
-
-		Interval       time.Duration
-		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-		LastError      string             `xorm:"text"`
+func addAutoMergeTable(x *xorm.Engine) error {
+	type MergeStyle string
+	type PullAutoMerge struct {
+		ID          int64      `xorm:"pk autoincr"`
+		PullID      int64      `xorm:"UNIQUE"`
+		DoerID      int64      `xorm:"NOT NULL"`
+		MergeStyle  MergeStyle `xorm:"varchar(30)"`
+		Message     string     `xorm:"LONGTEXT"`
+		CreatedUnix int64      `xorm:"created"`
 	}
 
-	return x.Sync2(new(PushMirror))
+	return x.Sync2(&PullAutoMerge{})
 }

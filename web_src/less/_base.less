@@ -71,8 +71,23 @@
   --color-pink: #e03997;
   --color-brown: #a5673f;
   --color-grey: #888888;
-  --color-black: #1b1c1d;
   --color-gold: #a1882b;
+  /* light variants - produced via Sass scale-color(color, $lightness: +25%) */
+  --color-red-light: #e45e5e;
+  --color-orange-light: #f59555;
+  --color-yellow-light: #fcce46;
+  --color-olive-light: #d3e942;
+  --color-green-light: #46de6a;
+  --color-teal-light: #08fff4;
+  --color-blue-light: #51a5e3;
+  --color-violet-light: #8b67d7;
+  --color-purple-light: #bb64d8;
+  --color-pink-light: #e86bb1;
+  --color-brown-light: #c58b66;
+  --color-grey-light: #a6a6a6;
+  --color-gold-light: #cfb34a;
+  /* other colors */
+  --color-black: #1b1c1d;
   --color-white: #ffffff;
   --color-diff-removed-word-bg: #fdb8c0;
   --color-diff-added-word-bg: #acf2bd;
@@ -190,6 +205,22 @@ details summary {
 
 details summary > * {
   display: inline;
+}
+
+progress {
+  background: var(--color-secondary);
+  border-radius: 6px;
+  border: none;
+  overflow: hidden;
+}
+progress::-webkit-progress-bar {
+  background: var(--color-secondary);
+}
+progress::-webkit-progress-value {
+  background-color: var(--color-secondary-dark-3);
+}
+progress::-moz-progress-bar {
+  background: var(--color-secondary-dark-3);
 }
 
 * {
@@ -605,10 +636,6 @@ a.ui.card:hover,
   color: var(--color-primary);
 }
 
-.ui.progress[data-percent="0"] .bar .progress {
-  color: var(--color-text);
-}
-
 .ui.attached.table {
   border-color: var(--color-secondary);
 }
@@ -887,19 +914,19 @@ a.ui.card:hover,
         color: inherit !important;
 
         &:hover {
-          color: #e67777 !important;
+          color: var(--color-red-light) !important;
         }
       }
     }
 
     &.blue {
-      color: var(--color-primary) !important;
+      color: var(--color-blue) !important;
 
       a {
         color: inherit !important;
 
         &:hover {
-          color: var(--color-primary-dark-1) !important;
+          color: var(--color-blue-light) !important;
         }
       }
     }
@@ -1078,11 +1105,11 @@ a.ui.card:hover,
     }
 
     &.blue {
-      background-color: var(--color-primary) !important;
+      background-color: var(--color-blue) !important;
     }
 
     &.black {
-      background-color: #444444;
+      background-color: var(--color-black) !important;
     }
 
     &.grey {
@@ -1133,11 +1160,11 @@ a.ui.card:hover,
     }
 
     &.blue {
-      border-color: var(--color-primary) !important;
+      border-color: var(--color-blue) !important;
     }
 
     &.black {
-      border-color: #444444;
+      border-color: var(--color-black) !important;
     }
 
     &.grey {
@@ -1748,59 +1775,55 @@ a.ui.label:hover {
   background: var(--color-hover);
 }
 
-.ui.blue.button,
-.ui.blue.buttons .button,
 .ui.primary.button,
 .ui.primary.buttons .button {
   background-color: var(--color-primary) !important;
 }
 
-.ui.blue.button:hover,
-.ui.blue.buttons .button:hover,
 .ui.primary.button:hover,
 .ui.primary.buttons .button:hover {
   background-color: var(--color-primary-dark-2) !important;
 }
 
-.ui.blue.button:focus,
-.ui.blue.buttons .button:focus,
 .ui.primary.button:focus,
 .ui.primary.buttons .button:focus {
   background-color: var(--color-primary-dark-3) !important;
 }
 
-.ui.basic.blue.button,
-.ui.basic.blue.buttons .button,
 .ui.basic.primary.button,
 .ui.basic.primary.buttons .button {
   box-shadow: inset 0 0 0 1px var(--color-primary) !important;
   color: #fff !important;
 }
 
-.ui.basic.blue.button:hover,
-.ui.basic.blue.buttons .button:hover,
 .ui.basic.primary.button:hover,
 .ui.basic.primary.buttons .button:hover {
   box-shadow: inset 0 0 0 1px var(--color-primary-dark-2) !important;
 }
 
-.ui.basic.blue.button:focus,
-.ui.basic.blue.buttons .button:focus,
 .ui.basic.primary.button:focus,
 .ui.basic.primary.buttons .button:focus {
   box-shadow: inset 0 0 0 1px var(--color-primary-dark-3) !important;
 }
 
-.ui.blue.label,
-.ui.blue.labels .label,
+.ui.basic.secondary.buttons .button,
+.ui.basic.secondary.button {
+  color: var(--color-secondary-dark-6) !important;
+}
+
+.ui.basic.secondary.buttons .button:hover,
+.ui.basic.secondary.button:hover,
+.ui.basic.secondary.buttons .button:active,
+.ui.basic.secondary.button:active {
+  color: var(--color-secondary-dark-8) !important;
+}
+
 .ui.primary.label,
 .ui.primary.labels .label {
   background-color: var(--color-primary) !important;
   border-color: var(--color-primary-dark-2) !important;
 }
 
-.ui.basic.labels .blue.label,
-.ui.ui.ui.basic.blue.label,
 .ui.basic.labels .primary.label,
 .ui.ui.ui.basic.primary.label {
   background: transparent !important;

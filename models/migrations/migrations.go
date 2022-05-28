@@ -384,6 +384,10 @@ var migrations = []Migration{
 	// v213 -> v214
 	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
 	// v214 -> v215
+	NewMigration("Add auto merge table", addAutoMergeTable),
+	// v215 -> v216
+	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
 	NewMigration("Add keypair fields to PushMirror struct", addKeypairToPushMirror),
 }
 

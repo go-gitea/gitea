@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -171,7 +172,7 @@ func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.
 	if err != nil {
 		return err
 	}
-	perm, err := GetUserRepoPermission(ctx, repo, u)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, u)
 	if err != nil {
 		return err
 	}

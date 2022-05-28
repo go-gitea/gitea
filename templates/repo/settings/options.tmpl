@@ -99,7 +99,7 @@
 								<form method="post" style="display: inline-block">
 									{{.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="mirror-sync">
-									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
 						</tr>
@@ -185,7 +185,7 @@
 									{{$.CsrfTokenHtml}}
 									<input type="hidden" name="action" value="push-mirror-sync">
 									<input type="hidden" name="push_mirror_id" value="{{.ID}}">
-									<button class="ui blue tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
+									<button class="ui primary tiny button inline text-thin">{{$.i18n.Tr "repo.settings.sync_mirror"}}</button>
 								</form>
 							</td>
 						</tr>
@@ -395,6 +395,19 @@
 					{{end}}
 						<input class="enable-system" name="enable_projects" type="checkbox" {{if $isProjectsEnabled}}checked{{end}}>
 						<label>{{.i18n.Tr "repo.settings.projects_desc"}}</label>
+					</div>
+				</div>
+
+				{{$isPackagesEnabled := .Repository.UnitEnabled $.UnitTypePackages}}
+				<div class="inline field">
+					<label>{{.i18n.Tr "repo.packages"}}</label>
+					{{if .UnitTypePackages.UnitGlobalDisabled}}
+					<div class="ui checkbox tooltip disabled" data-content="{{.i18n.Tr "repo.unit_disabled"}}">
+					{{else}}
+					<div class="ui checkbox">
+					{{end}}
+						<input class="enable-system" name="enable_packages" type="checkbox" {{if $isPackagesEnabled}}checked{{end}}>
+						<label>{{.i18n.Tr "repo.settings.packages_desc"}}</label>
 					</div>
 				</div>
 

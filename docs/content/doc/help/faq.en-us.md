@@ -52,7 +52,8 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 - WorkPath
   - Environment variable `GITEA_WORK_DIR`
-  - Else binary location
+  - Else `--work-path` flag
+  - Else the directory that contains the Gitea binary
 - AppDataPath (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
   - Else `%(WorkPath)/data`

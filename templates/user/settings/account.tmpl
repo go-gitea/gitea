@@ -83,7 +83,7 @@
 										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
-										<button class="ui blue tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
+										<button class="ui primary tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
 									</form>
 								</div>
 							{{end}}
@@ -95,9 +95,9 @@
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
-										<button disabled class="ui blue tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
+										<button disabled class="ui primary tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
 									{{else}}
-										<button class="ui blue tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
+										<button class="ui primary tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
 							</div>
@@ -105,7 +105,7 @@
 						<div class="content">
 							<strong>{{.Email}}</strong>
 							{{if .IsPrimary}}
-								<div class="ui blue label">{{$.i18n.Tr "settings.primary"}}</div>
+								<div class="ui primary label">{{$.i18n.Tr "settings.primary"}}</div>
 							{{end}}
 							{{if .IsActivated}}
 								<div class="ui green label">{{$.i18n.Tr "settings.activated"}}</div>

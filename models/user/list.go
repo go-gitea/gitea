@@ -5,6 +5,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/auth"
@@ -31,13 +32,13 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 		results[user.ID] = false // Set default to false
 	}
 
-	if tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext)); err == nil {
+	if tokenMaps, err := users.loadTwoFactorStatus(db.DefaultContext); err == nil {
 		for _, token := range tokenMaps {
 			results[token.UID] = true
 		}
 	}
 
-	if ids, err := users.userIDsWithWebAuthn(db.GetEngine(db.DefaultContext)); err == nil {
+	if ids, err := users.userIDsWithWebAuthn(db.DefaultContext); err == nil {
 		for _, id := range ids {
 			results[id] = true
 		}
@@ -46,25 +47,25 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	return results
 }
 
-func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*auth.TwoFactor, error) {
+func (users UserList) loadTwoFactorStatus(ctx context.Context) (map[int64]*auth.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 
 	userIDs := users.GetUserIDs()
 	tokenMaps := make(map[int64]*auth.TwoFactor, len(userIDs))
-	if err := e.In("uid", userIDs).Find(&tokenMaps); err != nil {
+	if err := db.GetEngine(ctx).In("uid", userIDs).Find(&tokenMaps); err != nil {
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return tokenMaps, nil
 }
 
-func (users UserList) userIDsWithWebAuthn(e db.Engine) ([]int64, error) {
+func (users UserList) userIDsWithWebAuthn(ctx context.Context) ([]int64, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 	ids := make([]int64, 0, len(users))
-	if err := e.Table(new(auth.WebAuthnCredential)).In("user_id", users.GetUserIDs()).Select("user_id").Distinct("user_id").Find(&ids); err != nil {
+	if err := db.GetEngine(ctx).Table(new(auth.WebAuthnCredential)).In("user_id", users.GetUserIDs()).Select("user_id").Distinct("user_id").Find(&ids); err != nil {
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return ids, nil

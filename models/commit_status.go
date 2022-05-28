@@ -49,21 +49,21 @@ func init() {
 }
 
 // upsertCommitStatusIndex the function will not return until it acquires the lock or receives an error.
-func upsertCommitStatusIndex(e db.Engine, repoID int64, sha string) (err error) {
+func upsertCommitStatusIndex(ctx context.Context, repoID int64, sha string) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
 	// that ensures that the key is actually locked.
 	switch {
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
-		_, err = e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+		_, err = db.Exec(ctx, "INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
 			"VALUES (?,?,1) ON CONFLICT (repo_id,sha) DO UPDATE SET max_index = `commit_status_index`.max_index+1",
 			repoID, sha)
 	case setting.Database.UseMySQL:
-		_, err = e.Exec("INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
+		_, err = db.Exec(ctx, "INSERT INTO `commit_status_index` (repo_id, sha, max_index) "+
 			"VALUES (?,?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1",
 			repoID, sha)
 	case setting.Database.UseMSSQL:
 		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
-		_, err = e.Exec("MERGE `commit_status_index` WITH (HOLDLOCK) as target "+
+		_, err = db.Exec(ctx, "MERGE `commit_status_index` WITH (HOLDLOCK) as target "+
 			"USING (SELECT ? AS repo_id, ? AS sha) AS src "+
 			"ON src.repo_id = target.repo_id AND src.sha = target.sha "+
 			"WHEN MATCHED THEN UPDATE SET target.max_index = target.max_index+1 "+
@@ -100,17 +100,17 @@ func getNextCommitStatusIndex(repoID int64, sha string) (int64, error) {
 	defer commiter.Close()
 
 	var preIdx int64
-	_, err = ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?", repoID, sha).Get(&preIdx)
+	_, err = db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ?", repoID, sha).Get(&preIdx)
 	if err != nil {
 		return 0, err
 	}
 
-	if err := upsertCommitStatusIndex(ctx.Engine(), repoID, sha); err != nil {
+	if err := upsertCommitStatusIndex(ctx, repoID, sha); err != nil {
 		return 0, err
 	}
 
 	var curIdx int64
-	has, err := ctx.Engine().SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ? AND max_index=?", repoID, sha, preIdx+1).Get(&curIdx)
+	has, err := db.GetEngine(ctx).SQL("SELECT max_index FROM `commit_status_index` WHERE repo_id = ? AND sha = ? AND max_index=?", repoID, sha, preIdx+1).Get(&curIdx)
 	if err != nil {
 		return 0, err
 	}
@@ -131,7 +131,7 @@ func (status *CommitStatus) loadAttributes(ctx context.Context) (err error) {
 		}
 	}
 	if status.Creator == nil && status.CreatorID > 0 {
-		status.Creator, err = user_model.GetUserByIDEngine(db.GetEngine(ctx), status.CreatorID)
+		status.Creator, err = user_model.GetUserByIDCtx(ctx, status.CreatorID)
 		if err != nil {
 			return fmt.Errorf("getUserByID [%d]: %v", status.CreatorID, err)
 		}
@@ -231,12 +231,7 @@ type CommitStatusIndex struct {
 }
 
 // GetLatestCommitStatus returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatus(repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
-	return GetLatestCommitStatusCtx(db.DefaultContext, repoID, sha, listOptions)
-}
-
-// GetLatestCommitStatusCtx returns all statuses with a unique context for a given commit.
-func GetLatestCommitStatusCtx(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
+func GetLatestCommitStatus(ctx context.Context, repoID int64, sha string, listOptions db.ListOptions) ([]*CommitStatus, int64, error) {
 	ids := make([]int64, 0, 10)
 	sess := db.GetEngine(ctx).Table(&CommitStatus{}).
 		Where("repo_id = ?", repoID).And("sha = ?", sha).
@@ -341,7 +336,7 @@ func ParseCommitsWithStatus(oldCommits []*asymkey_model.SignCommit, repo *repo_m
 		commit := &SignCommitWithStatuses{
 			SignCommit: c,
 		}
-		statuses, _, err := GetLatestCommitStatus(repo.ID, commit.ID.String(), db.ListOptions{})
+		statuses, _, err := GetLatestCommitStatus(db.DefaultContext, repo.ID, commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {

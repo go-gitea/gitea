@@ -17,6 +17,9 @@
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
 						<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
+						<div class="mt-3">
+							<a class="muted" href="{{.Owner.HomeLink}}?tab=followers">{{svg "octicon-person" 18 "mr-2"}}{{.Owner.NumFollowers}} {{.i18n.Tr "user.followers"}}</a> · <a class="muted" href="{{.Owner.HomeLink}}?tab=following">{{.Owner.NumFollowing}} {{.i18n.Tr "user.following"}}</a>
+						</div>
 					</div>
 					<div class="extra content word-break">
 						<ul>
@@ -108,18 +111,6 @@
 							{{svg "octicon-eye"}} {{.i18n.Tr "user.watched"}}
 						</a>
 					{{end}}
-					<a class='{{if eq .TabName "following"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=following">
-						{{svg "octicon-person"}} {{.i18n.Tr "user.following"}}
-						{{if .Owner.NumFollowing}}
-							<div class="ui primary label">{{.Owner.NumFollowing}}</div>
-						{{end}}
-					</a>
-					<a class='{{if eq .TabName "followers"}}active{{end}} item' href="{{.Owner.HomeLink}}?tab=followers">
-						{{svg "octicon-person"}} {{.i18n.Tr "user.followers"}}
-						{{if .Owner.NumFollowers}}
-							<div class="ui primary label">{{.Owner.NumFollowers}}</div>
-						{{end}}
-					</a>
 				</div>
 
 				{{if eq .TabName "activity"}}
