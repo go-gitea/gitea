@@ -14,9 +14,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -117,6 +119,7 @@ func Home(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		Pinned:             util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
@@ -165,4 +168,13 @@ func Home(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
+}
+
+func present(data map[string]interface{}, ix int) {
+	log.Info("ix %v", ix)
+	if _, ok := data["CanCreateOrgRepo"]; ok {
+		log.Error("It's here!!!!")
+	} else {
+		log.Info("It's not here :(")
+	}
 }

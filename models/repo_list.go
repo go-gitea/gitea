@@ -6,6 +6,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -146,6 +148,10 @@ type SearchRepoOptions struct {
 	// True -> include just archived
 	// False -> include just non-archived
 	Archived util.OptionalBool
+	// None -> include pinned AND non-pinned
+	// True -> include just pinned
+	// False -> include just non-pinned
+	Pinned util.OptionalBool
 	// only search topic name
 	TopicOnly bool
 	// only search repositories with specified primary language
@@ -379,6 +385,33 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 
 	if opts.IsPrivate != util.OptionalBoolNone {
 		cond = cond.And(builder.Eq{"is_private": opts.IsPrivate.IsTrue()})
+	}
+
+	if opts.Pinned != util.OptionalBoolNone {
+		pinnedstring, err := user_model.GetUserSetting(opts.OwnerID, "pinned")
+
+		var pinnedIds []int
+		validIds := true
+		if err == nil {
+			jsonerr := json.Unmarshal([]byte(pinnedstring), &pinnedIds)
+			if jsonerr != nil {
+				log.Error("Parsing stored pinned Repo IDs: %v", jsonerr)
+				validIds = false
+			}
+		}
+		pinargs := make([]interface{}, len(pinnedIds))
+		for i := range pinnedIds {
+			pinargs[i] = pinnedIds[i]
+		}
+
+		if validIds {
+			if opts.Pinned == util.OptionalBoolTrue {
+				cond = cond.And(builder.In("id", pinargs...))
+			} else {
+				cond = cond.And(builder.NotIn("id", pinargs...))
+			}
+		}
+
 	}
 
 	if opts.Template != util.OptionalBoolNone {
