@@ -550,14 +550,14 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 }
 
 func withDB() *builder.Builder {
-	switch setting.Database.Type {
-	case "sqlite3":
+	switch {
+	case setting.Database.UseSQLite3:
 		return builder.Dialect(builder.SQLITE)
-	case "mysql":
+	case setting.Database.UseMySQL:
 		return builder.Dialect(builder.MYSQL)
-	case "postgres":
+	case setting.Database.UsePostgreSQL:
 		return builder.Dialect(builder.POSTGRES)
-	case "mssql":
+	case setting.Database.UseMSSQL:
 		return builder.Dialect(builder.MSSQL)
 	}
 	return &builder.Builder{}
