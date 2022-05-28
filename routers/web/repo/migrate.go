@@ -6,6 +6,7 @@
 package repo
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -128,7 +129,7 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+			ctx.RenderWithErr(fmt.Sprintf("%q%s", addrErr.Host, ctx.Tr("form.url_error")), tpl, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
