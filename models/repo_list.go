@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
@@ -548,6 +549,20 @@ func SearchRepositoryByCondition(opts *SearchRepoOptions, cond builder.Cond, loa
 	return repos, count, nil
 }
 
+func withDB() *builder.Builder {
+	switch setting.Database.Type {
+	case "sqlite3":
+		return builder.Dialect(builder.SQLITE)
+	case "mysql":
+		return builder.Dialect(builder.MYSQL)
+	case "postgres":
+		return builder.Dialect(builder.POSTGRES)
+	case "mssql":
+		return builder.Dialect(builder.MSSQL)
+	}
+	return &builder.Builder{}
+}
+
 func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, selCols string, cond builder.Cond) (*builder.Builder, int64, error) {
 	if opts.Page <= 0 {
 		opts.Page = 1
@@ -579,7 +594,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, s
 		orderBy = opts.OrderBy.String()
 	}
 
-	b := builder.Select(selCols).From("repository").Where(cond).OrderBy(orderBy)
+	b := withDB().Select(selCols).From("repository").Where(cond).OrderBy(orderBy)
 	if opts.PageSize > 0 {
 		b.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
