@@ -6,7 +6,7 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import VueLoader from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {parse} from 'path';
+import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
 
@@ -14,7 +14,7 @@ const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
 const glob = (pattern) => fastGlob.sync(pattern, {
-  cwd: fileURLToPath(new URL('..', import.meta.url)),
+  cwd: dirname(fileURLToPath(new URL(import.meta.url))),
   absolute: true,
 });
 

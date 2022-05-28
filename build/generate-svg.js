@@ -17,7 +17,6 @@ function exit(err) {
 
 async function processFile(file, {prefix, fullName} = {}) {
   let name;
-
   if (fullName) {
     name = fullName;
   } else {
