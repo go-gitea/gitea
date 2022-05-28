@@ -17,8 +17,12 @@ import (
 // Use at most this many bytes to determine Content Type.
 const sniffLen = 1024
 
-// SvgMimeType MIME type of SVG images.
-const SvgMimeType = "image/svg+xml"
+const (
+	// SvgMimeType MIME type of SVG images.
+	SvgMimeType = "image/svg+xml"
+	// ApplicationOctetStream MIME type of binary files.
+	ApplicationOctetStream = "application/octet-stream"
+)
 
 var svgTagRegex = regexp.MustCompile(`(?si)\A\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
 var svgTagInXMLRegex = regexp.MustCompile(`(?si)\A<\?xml\b.*?\?>\s*(?:(<!--.*?-->|<!DOCTYPE\s+svg([\s:]+.*?>|>))\s*)*<svg[\s>\/]`)
