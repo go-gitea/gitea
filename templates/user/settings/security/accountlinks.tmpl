@@ -1,5 +1,23 @@
 <h4 class="ui top attached header">
 	{{.i18n.Tr "settings.manage_account_links"}}
+	{{if .OrderedOAuth2Names}}
+		<div class="ui right">
+			<div class="ui dropdown">
+				<div class="ui primary tiny button">Link Account</div>
+				<div class="menu">
+					{{range $key := .OrderedOAuth2Names}}
+						{{$provider := index $.OAuth2Providers $key}}
+						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+							<img
+								alt="{{$provider.DisplayName}}"
+								src="{{AppSubUrl}}{{$provider.Image}}"
+								width="20" height="20">{{$provider.DisplayName}}
+						</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
 </h4>
 <div class="ui attached segment">
 	<div class="ui key list">
