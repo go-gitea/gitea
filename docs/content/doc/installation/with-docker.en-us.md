@@ -285,7 +285,7 @@ docker-compose up -d
 
 ## Managing Deployments With Environment Variables
 
-In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__SECTION_NAME__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
+In addition to the environment variables above, any settings in `app.ini` can be set or overridden with an environment variable of the form: `GITEA__section_name__KEY_NAME`. These settings are applied each time the docker container starts. Full information [here](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini).
 
 These environment variables can be passed to the docker container in `docker-compose.yml`. The following example will enable an smtp mail server if the required env variables `GITEA__mailer__FROM`, `GITEA__mailer__HOST`, `GITEA__mailer__PASSWD` are set on the host or in a `.env` file in the same directory as `docker-compose.yml`:
 
@@ -301,6 +301,39 @@ services:
     - GITEA__mailer__IS_TLS_ENABLED=true
     - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
     - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+Any settings in `app.ini` can be set or overridden with the content of a file by defining an environment variable of the form: `GITEA__section_name__KEY_NAME__FILE` that points to a file. These settings are applied each time the docker container starts.
+
+These king of environment variables can be useful when using `docker secret` and were the secret is mounted as a file in `/run/secrets/<SECRET_NAME>`. The previous example could be refactored to use this technique:
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM__FILE=/run/secrets/gitea_mailer_from
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST__FILE=/run/secrets/gitea_mailer_host
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER__FILE=/run/secrets/gitea_mailer_user
+    - GITEA__mailer__PASSWD__FILE=/run/secrets/gitea_mailer_password
+    secrets:
+    - gitea_mailer_from
+    - gitea_mailer_host
+    - gitea_mailer_user
+    - gitea_mailer_password
+
+secrets:
+  gitea_mailer_from:
+    external: true
+  gitea_mailer_host:
+    external: true
+  gitea_mailer_user:
+    external: true
+  gitea_mailer_password:
+    external: true
 ```
 
 To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
