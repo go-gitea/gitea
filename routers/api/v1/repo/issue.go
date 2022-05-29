@@ -137,7 +137,7 @@ func SearchIssues(ctx *context.APIContext) {
 		Collaborate: util.OptionalBoolNone,
 		// This needs to be a column that is not nil in fixtures or
 		// MySQL will return different results when sorting by null in some cases
-		OrderBy: db.SearchOrderByAlphabetically,
+		OrderBy: db.SearchOrderByAlphabetically.Builder(),
 		Actor:   ctx.Doer,
 	}
 	if ctx.IsSigned {

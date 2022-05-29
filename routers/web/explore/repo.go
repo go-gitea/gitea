@@ -87,7 +87,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 			PageSize: opts.PageSize,
 		},
 		Actor:              ctx.Doer,
-		OrderBy:            orderBy,
+		OrderBy:            orderBy.Builder(),
 		Private:            opts.Private,
 		Keyword:            keyword,
 		OwnerID:            opts.OwnerID,

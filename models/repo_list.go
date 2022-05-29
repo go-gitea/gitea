@@ -116,7 +116,7 @@ type SearchRepoOptions struct {
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
-	OrderBy         db.SearchOrderBy
+	OrderBy         func(e db.Engine)
 	Private         bool // Include private repositories in results
 	StarredByID     int64
 	WatchedByID     int64
@@ -552,16 +552,28 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		opts.Page = 1
 	}
 
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = db.SearchOrderByAlphabetically
+	if opts.OrderBy == nil {
+		opts.OrderBy = db.SearchOrderByAlphabetically.Builder()
 	}
 
 	if opts.PriorityOwnerID > 0 {
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
+		oldOrderBy := opts.OrderBy
+		opts.OrderBy = func(e db.Engine) {
+			e = e.SQL("ORDER BY CASE WHEN owner_id = ? THEN 0 ELSE owner_id END", opts.PriorityOwnerID)
+			if opts.OrderBy != nil {
+				oldOrderBy(e)
+			}
+		}
 	} else if strings.Count(opts.Keyword, "/") == 1 {
+		oldOrderBy := opts.OrderBy
 		// With "owner/repo" search times, prioritise results which match the owner field
 		orgName := strings.Split(opts.Keyword, "/")[0]
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE '%s' THEN 0 ELSE 1 END, %s", orgName, opts.OrderBy))
+		opts.OrderBy = func(e db.Engine) {
+			e = e.SQL("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END", orgName)
+			if opts.OrderBy != nil {
+				oldOrderBy(e)
+			}
+		}
 	}
 
 	sess := db.GetEngine(ctx)
@@ -577,7 +589,11 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		}
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond)
+	if opts.OrderBy != nil {
+		opts.OrderBy(sess)
+	}
+
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
@@ -674,8 +690,8 @@ func FindUserAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
 
 // GetUserRepositories returns a list of repositories of given user.
 func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error) {
-	if len(opts.OrderBy) == 0 {
-		opts.OrderBy = "updated_unix DESC"
+	if opts.OrderBy == nil {
+		opts.OrderBy = db.SearchOrderByRecentUpdated.Builder()
 	}
 
 	cond := builder.NewCond()
@@ -695,7 +711,10 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond)
+	if opts.OrderBy != nil {
+		opts.OrderBy(sess)
+	}
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)
 }

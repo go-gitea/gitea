@@ -180,7 +180,7 @@ func Search(ctx *context.APIContext) {
 		}
 		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
+				opts.OrderBy = orderBy.Builder()
 			} else {
 				ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("Invalid sort mode: \"%s\"", sortMode))
 				return

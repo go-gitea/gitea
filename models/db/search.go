@@ -8,7 +8,23 @@ package db
 type SearchOrderBy string
 
 func (s SearchOrderBy) String() string {
-	return string(s)
+	switch s {
+	case SearchOrderByAlphabetically, SearchOrderByAlphabeticallyReverse, SearchOrderByLeastUpdated,
+		SearchOrderByRecentUpdated, SearchOrderByOldest, SearchOrderByNewest,
+		SearchOrderBySize, SearchOrderBySizeReverse, SearchOrderByID,
+		SearchOrderByIDReverse, SearchOrderByStars, SearchOrderByStarsReverse,
+		SearchOrderByForks, SearchOrderByForksReverse:
+		return string(s)
+	default:
+		return ""
+
+	}
+}
+
+func (s SearchOrderBy) Builder() func(e Engine) {
+	return func(e Engine) {
+		e.OrderBy(s.String())
+	}
 }
 
 // Strings for sorting result

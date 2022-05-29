@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +26,7 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		Actor:       u,
 		Private:     private,
 		ListOptions: opts,
-		OrderBy:     "id ASC",
+		OrderBy:     db.SearchOrderByID.Builder(),
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepositories", err)

@@ -112,7 +112,7 @@ func Home(ctx *context.Context) {
 		},
 		Keyword:            keyword,
 		OwnerID:            org.ID,
-		OrderBy:            orderBy,
+		OrderBy:            orderBy.Builder(),
 		Private:            ctx.IsSigned,
 		Actor:              ctx.Doer,
 		Language:           language,

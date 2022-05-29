@@ -569,7 +569,7 @@ func SearchRepo(ctx *context.Context) {
 		}
 		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
 			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
+				opts.OrderBy = orderBy.Builder()
 			} else {
 				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: \"%s\"", sortMode))
 				return
