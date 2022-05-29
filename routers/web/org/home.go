@@ -12,13 +12,13 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -103,11 +103,11 @@ func Home(ctx *context.Context) {
 	}
 
 	var (
-		unpinnedrepos []*repo_model.Repository
-		unpinnedcount int64
-		err           error
+		repos []*repo_model.Repository
+		count int64
+		err   error
 	)
-	unpinnedrepos, unpinnedcount, err = models.SearchRepository(&models.SearchRepoOptions{
+	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
@@ -119,38 +119,11 @@ func Home(ctx *context.Context) {
 		Actor:              ctx.Doer,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
-		Pinned:             util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
 		return
 	}
-	var (
-		pinnedrepos []*repo_model.Repository
-		pinnedcount int64
-		pinnederr   error
-	)
-	pinnedrepos, pinnedcount, pinnederr = models.SearchRepository(&models.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
-		},
-		Keyword:            keyword,
-		OwnerID:            org.ID,
-		OrderBy:            orderBy,
-		Private:            ctx.IsSigned,
-		Actor:              ctx.Doer,
-		Language:           language,
-		IncludeDescription: setting.UI.SearchRepoDescription,
-		Pinned:             util.OptionalBoolTrue,
-	})
-	if pinnederr != nil {
-		ctx.ServerError("SearchRepository", pinnederr)
-		return
-	}
-
-	allrepos := append(pinnedrepos, unpinnedrepos...)
-	allcount := unpinnedcount + pinnedcount
 
 	opts := &organization.FindOrgMembersOpts{
 		OrgID:       org.ID,
@@ -179,28 +152,40 @@ func Home(ctx *context.Context) {
 		return
 	}
 
+	pinnedRepoIDs, err := user_model.GetPinnedRepositoryIDs(org.ID)
+	if err != nil {
+		ctx.ServerError("GetPinnedRepositoryIDs", err)
+		return
+	}
+	var pinnedRepos []*repo_model.Repository
+	for _, id := range pinnedRepoIDs {
+		repo, err := repo_model.GetRepositoryByID(id)
+
+		if err != nil {
+			ctx.ServerError("GetRepositoryByID", err)
+			return
+		}
+		if repo.OwnerID != org.ID {
+			log.Warn("Ignoring pinned repo ID %v because it's not owned by %v", repo.ID, org.Name)
+		} else {
+			pinnedRepos = append(pinnedRepos, repo)
+		}
+	}
+
 	ctx.Data["Owner"] = org
-	ctx.Data["Repos"] = allrepos
-	ctx.Data["Total"] = allcount
+	ctx.Data["Repos"] = repos
+	ctx.Data["PinnedRepos"] = pinnedRepos
+	ctx.Data["Total"] = count
 	ctx.Data["MembersTotal"] = membersCount
 	ctx.Data["Members"] = members
 	ctx.Data["Teams"] = ctx.Org.Teams
 	ctx.Data["DisableNewPullMirrors"] = setting.Mirror.DisableNewPull
 	ctx.Data["PageIsViewRepositories"] = true
 
-	pager := context.NewPagination(int(unpinnedcount), setting.UI.User.RepoPagingNum, page, 5)
+	pager := context.NewPagination(int(count), setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "language", "Language")
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplOrgHome)
-}
-
-func present(data map[string]interface{}, ix int) {
-	log.Info("ix %v", ix)
-	if _, ok := data["CanCreateOrgRepo"]; ok {
-		log.Error("It's here!!!!")
-	} else {
-		log.Info("It's not here :(")
-	}
 }

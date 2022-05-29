@@ -1,0 +1,40 @@
+<div class="ui equal width grid">
+{{range .PinnedRepos}}
+    <div class="column">
+        <div class="ui card">
+            <div class="header">
+                <a href="{{.Link}}">{{.Name}}</a>
+            </div>
+            <div class="meta df ac">
+                {{if .PrimaryLanguage }}
+                <a
+                    href="{{$.Link}}?tab={{$.TabName}}&q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+                    <span class="text grey df ac mr-3"><i class="color-icon mr-3"
+                            style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+                </a>
+                {{end}}
+                {{if not $.DisableStars}}
+                <span class="text grey df ac mr-3">{{svg "octicon-star" 16 "mr-3"}}{{.NumStars}}</span>
+                {{end}}
+                <span class="text grey df ac mr-3">{{svg "octicon-git-branch" 16 "mr-3"}}{{.NumForks}}</span>
+            </div>
+            <div class="description">
+                {{ $description := .DescriptionHTML $.Context}}
+                {{if $description}}<p>{{$description}}</p>{{end}}
+                {{if .Topics }}
+                <div class="ui tags">
+                    {{range .Topics}}
+                    {{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1">
+                        <div class="ui small label topic">{{.}}</div>
+                    </a>{{end}}
+                    {{end}}
+                </div>
+                {{end}}
+            </div>
+            <div class="extra content">
+                <p class="time">{{$.i18n.Tr "org.repo_updated"}} {{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}</p>
+            </div>
+        </div>
+    </div>
+{{end}}
+</div>

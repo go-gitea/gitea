@@ -300,13 +300,13 @@ func Action(ctx *context.Context) {
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "pin":
 		if canPin(ctx) {
-			err = repo_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, true)
+			err = user_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID)
 		} else {
 			err = errors.New("User does not have permission to pin")
 		}
 	case "unpin":
 		if canPin(ctx) {
-			err = repo_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, false)
+			err = user_model.UnpinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID)
 		} else {
 			err = errors.New("User does not have permission to unpin")
 		}

@@ -6,7 +6,6 @@ package repo
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"html/template"
 	"net"
@@ -204,20 +203,12 @@ func (repo *Repository) IsBroken() bool {
 
 // IsPinned indicates that repository is pinned
 func (repo *Repository) IsPinned() bool {
-	pinstring, err := user_model.GetUserSetting(repo.OwnerID, "pinned")
+	pinned, err := user_model.GetPinnedRepositoryIDs(repo.OwnerID)
 	if err != nil {
 		return false
 	}
-
-	var pinitems []int64
-	err = json.Unmarshal([]byte(pinstring), &pinitems)
-
-	if err != nil {
-		log.Warn("Couldn't deserialise pinned repos: %v", pinstring)
-		return false
-	}
-	for _, pinned := range pinitems {
-		if pinned == repo.ID {
+	for _, r := range pinned {
+		if r == repo.ID {
 			return true
 		}
 	}

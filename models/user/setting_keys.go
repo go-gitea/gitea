@@ -9,4 +9,5 @@ const (
 	SettingsKeyHiddenCommentTypes = "issue.hidden_comment_types"
 	// SettingsKeyDiffWhitespaceBehavior is the setting key for whitespace behavior of diff
 	SettingsKeyDiffWhitespaceBehavior = "diff.whitespace_behaviour"
+	PinnedRepositories                = "pinned_repos"
 )
