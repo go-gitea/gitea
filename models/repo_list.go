@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm"
 )
 
 // RepositoryListDefaultPageSize is the default number of repositories
@@ -116,7 +117,7 @@ type SearchRepoOptions struct {
 	OwnerID         int64
 	PriorityOwnerID int64
 	TeamID          int64
-	OrderBy         func(e db.Engine)
+	OrderBy         func(sess *xorm.Session) *xorm.Session
 	Private         bool // Include private repositories in results
 	StarredByID     int64
 	WatchedByID     int64
@@ -557,22 +558,14 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	}
 
 	if opts.PriorityOwnerID > 0 {
-		oldOrderBy := opts.OrderBy
-		opts.OrderBy = func(e db.Engine) {
-			e = e.SQL("ORDER BY CASE WHEN owner_id = ? THEN 0 ELSE owner_id END", opts.PriorityOwnerID)
-			if opts.OrderBy != nil {
-				oldOrderBy(e)
-			}
+		opts.OrderBy = func(sess *xorm.Session) *xorm.Session {
+			return sess.SQL("ORDER BY CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, ?", opts.PriorityOwnerID, db.SearchOrderByAlphabetically.String())
 		}
 	} else if strings.Count(opts.Keyword, "/") == 1 {
-		oldOrderBy := opts.OrderBy
 		// With "owner/repo" search times, prioritise results which match the owner field
 		orgName := strings.Split(opts.Keyword, "/")[0]
-		opts.OrderBy = func(e db.Engine) {
-			e = e.SQL("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END", orgName)
-			if opts.OrderBy != nil {
-				oldOrderBy(e)
-			}
+		opts.OrderBy = func(sess *xorm.Session) *xorm.Session {
+			return sess.SQL("ORDER BY CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, ?", orgName, db.SearchOrderByAlphabetically.String())
 		}
 	}
 
@@ -589,9 +582,10 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		}
 	}
 
-	sess = sess.Where(cond)
 	if opts.OrderBy != nil {
-		opts.OrderBy(sess)
+		sess = opts.OrderBy(sess.Where(cond))
+	} else {
+		sess = sess.Where(cond)
 	}
 
 	if opts.PageSize > 0 {
@@ -711,9 +705,10 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 		return nil, 0, fmt.Errorf("Count: %v", err)
 	}
 
-	sess = sess.Where(cond)
 	if opts.OrderBy != nil {
-		opts.OrderBy(sess)
+		sess = opts.OrderBy(sess.Where(cond))
+	} else {
+		sess = sess.Where(cond)
 	}
 	repos := make(RepositoryList, 0, opts.PageSize)
 	return repos, count, db.SetSessionPagination(sess, opts).Find(&repos)

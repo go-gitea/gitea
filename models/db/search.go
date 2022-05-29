@@ -4,6 +4,8 @@
 
 package db
 
+import "xorm.io/xorm"
+
 // SearchOrderBy is used to sort the result
 type SearchOrderBy string
 
@@ -21,9 +23,9 @@ func (s SearchOrderBy) String() string {
 	}
 }
 
-func (s SearchOrderBy) Builder() func(e Engine) {
-	return func(e Engine) {
-		e.OrderBy(s.String())
+func (s SearchOrderBy) Builder() func(sess *xorm.Session) *xorm.Session {
+	return func(sess *xorm.Session) *xorm.Session {
+		return sess.OrderBy(s.String())
 	}
 }
 
