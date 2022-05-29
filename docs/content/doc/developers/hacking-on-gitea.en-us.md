@@ -192,7 +192,7 @@ Start local ElasticSearch instance using docker:
 ```sh
 mkdir -p $(pwd)/data/elasticsearch
 sudo chown -R 1000:1000 $(pwd)/data/elasticsearch
-docker run --rm -p 127.0.0.1:9200:9200 -p 127.0.0.1:9300:9300 -e "discovery.type=single-node" -v "$(pwd)/data/elasticsearch:/usr/share/elasticsearch/data" docker.elastic.co/elasticsearch/elasticsearch:7.16.3
+docker run --rm --memory="4g" -p 127.0.0.1:9200:9200 -p 127.0.0.1:9300:9300 -e "discovery.type=single-node" -v "$(pwd)/data/elasticsearch:/usr/share/elasticsearch/data" docker.elastic.co/elasticsearch/elasticsearch:7.16.3
 ```
 
 Configure `app.ini`:
