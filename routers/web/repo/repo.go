@@ -296,6 +296,10 @@ func Action(ctx *context.Context) {
 	case "pin":
 		if user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository) {
 			err = user_model.PinRepos(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID)
+			if _, ok := err.(*user_model.TooManyPinnedReposError); ok {
+				ctx.Error(http.StatusBadRequest, err.Error())
+				return
+			}
 		} else {
 			err = errors.New("user does not have permission to pin")
 		}

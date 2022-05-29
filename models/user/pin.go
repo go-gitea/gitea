@@ -43,6 +43,14 @@ func setPinnedRepositories(userID int64, repos []int64) error {
 
 }
 
+type TooManyPinnedReposError struct {
+	count int
+}
+
+func (e *TooManyPinnedReposError) Error() string {
+	return fmt.Sprintf("can pin at most %d repositories, %d pinned repositories is too much", maxPinnedRepos, e.count)
+}
+
 func PinRepos(ownerID int64, repoIDs ...int64) error {
 
 	repos, err := GetPinnedRepositoryIDs(ownerID)
@@ -67,7 +75,7 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 		}
 	}
 	if len(newrepos) > maxPinnedRepos {
-		return fmt.Errorf("can pin at most %d repositories, %d pinned repositories is too much", maxPinnedRepos, len(newrepos))
+		return &TooManyPinnedReposError{count: len(newrepos)}
 	}
 	return setPinnedRepositories(ownerID, newrepos)
 }
