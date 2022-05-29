@@ -283,12 +283,7 @@ func CreatePost(ctx *context.Context) {
 
 func canPin(ctx *context.Context) bool {
 	perm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
-
-	if err == nil && perm.IsAdmin() {
-		return true
-	} else {
-		return false
-	}
+	return err == nil && perm.IsAdmin()
 }
 
 // Action response for actions to a repository
