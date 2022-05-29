@@ -14,7 +14,7 @@ menu:
 
 # Package Registry
 
-Starting with Gitea _1.17_, the Package Registry can be used as a public or private registry for common package managers.
+Starting with Gitea **1.17**, the Package Registry can be used as a public or private registry for common package managers.
 
 **Table of Contents**
 
