@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -165,10 +166,23 @@ func Home(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
 		}
+		if err = repo.LoadAttributes(ctx); err != nil {
+			ctx.ServerError("LoadAttributes", err)
+			return
+		}
 		if repo.OwnerID != org.ID {
-			log.Warn("Ignoring pinned repo ID %v because it's not owned by %v", repo.ID, org.Name)
+			log.Warn("Ignoring pinned repo %v because it's not owned by %v", repo.FullName(), org.Name)
 		} else {
-			pinnedRepos = append(pinnedRepos, repo)
+			access, err := access.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				ctx.ServerError("GetUserRepoPermission", err)
+				return
+			}
+			if !access.HasAccess() {
+				log.Info("Ignoring pinned repo %v because it's not owned by %v", repo.FullName(), org.Name)
+			} else {
+				pinnedRepos = append(pinnedRepos, repo)
+			}
 		}
 	}
 

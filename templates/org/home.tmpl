@@ -1,36 +1,33 @@
 {{template "base/head" .}}
 <div class="page-content organization profile">
 	<div class="ui container df">
-		<div class="ui horizontal list">
-			<div class="item">
-				{{avatar .Org 140 "org-avatar"}}
+		{{avatar .Org 140 "org-avatar"}}
+		<div id="org-info">
+			<div class="ui header">
+				{{.Org.DisplayName}}
+				<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+				<span class="org-visibility">
+					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr
+						"org.settings.visibility.limited_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr
+						"org.settings.visibility.private_shortname"}}</div>{{end}}
+				</span>
 			</div>
-			<div id="org-info" class="item">
-				<div class="ui header">
-					{{.Org.DisplayName}}
-					<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
-					<span class="org-visibility">
-						{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr
-							"org.settings.visibility.limited_shortname"}}</div>{{end}}
-						{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr
-							"org.settings.visibility.private_shortname"}}</div>{{end}}
-					</span>
-				</div>
-				{{if $.RenderedDescription}}<p class="render-content markup">{{$.RenderedDescription|Str2html}}</p>
-				{{end}}
-				<div class="text grey meta">
-					{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span>
-					</div>{{end}}
-					{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank"
-							rel="noopener noreferrer" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
-				</div>
-			</div>
-			<div id="pinned_repos" class="item">
-				{{template "repo/pinned_repos" .}}
+			{{if $.RenderedDescription}}<p class="render-content markup">{{$.RenderedDescription|Str2html}}</p>
+			{{end}}
+			<div class="text grey meta">
+				{{if .Org.Location}}<div class="item">{{svg "octicon-location"}} <span>{{.Org.Location}}</span>
+				</div>{{end}}
+				{{if .Org.Website}}<div class="item">{{svg "octicon-link"}} <a target="_blank"
+						rel="noopener noreferrer" href="{{.Org.Website}}">{{.Org.Website}}</a></div>{{end}}
 			</div>
 		</div>
 	</div>
-
+	<div class="ui container">
+		<div id="pinned_repos" class="item">
+			{{template "repo/pinned_repos" .}}
+		</div>
+	</div>
 	{{template "org/menu" .}}
 
 	<div class="ui container">
