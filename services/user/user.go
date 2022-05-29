@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -180,4 +181,9 @@ func DeleteAvatar(u *user_model.User) error {
 		return fmt.Errorf("UpdateUser: %v", err)
 	}
 	return nil
+}
+
+func CanPin(ctx context.Context, u *user_model.User, r *repo_model.Repository) bool {
+	perm, err := access_model.GetUserRepoPermission(ctx, r, u)
+	return err == nil && perm.IsAdmin()
 }
