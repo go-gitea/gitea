@@ -6,11 +6,11 @@ package migrations
 
 import (
 	"code.gitea.io/gitea/modules/setting"
+
 	"xorm.io/xorm"
 )
 
 func alterIssueAndCommentTextFieldsToLongText(x *xorm.Engine) error {
-
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {

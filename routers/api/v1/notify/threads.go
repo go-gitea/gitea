@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -87,7 +88,7 @@ func ReadThread(ctx *context.APIContext) {
 		targetStatus = models.NotificationStatusRead
 	}
 
-	notif, err := models.SetNotificationStatus(n.ID, ctx.User, targetStatus)
+	notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -102,14 +103,14 @@ func ReadThread(ctx *context.APIContext) {
 func getThread(ctx *context.APIContext) *models.Notification {
 	n, err := models.GetNotificationByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)
 		} else {
 			ctx.InternalServerError(err)
 		}
 		return nil
 	}
-	if n.UserID != ctx.User.ID && !ctx.User.IsAdmin {
+	if n.UserID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
 		ctx.Error(http.StatusForbidden, "GetNotificationByID", fmt.Errorf("only user itself and admin are allowed to read/change this thread %d", n.ID))
 		return nil
 	}

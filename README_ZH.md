@@ -36,8 +36,8 @@
   <a href="https://crowdin.com/project/gitea" title="Crowdin">
     <img src="https://badges.crowdin.net/gitea/localized.svg">
   </a>
-  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea" title="TODOs">
-    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea">
+  <a href="https://www.tickgit.com/browse?repo=github.com/go-gitea/gitea&branch=main" title="TODOs">
+    <img src="https://badgen.net/https/api.tickgit.com/badgen/github.com/go-gitea/gitea/main">
   </a>
   <a href="https://img.shields.io/bountysource/team/gitea" title="Bountysource">
     <img src="https://img.shields.io/bountysource/team/gitea/activity">

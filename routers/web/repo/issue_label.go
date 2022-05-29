@@ -9,9 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -27,7 +29,7 @@ func Labels(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 	ctx.Data["PageIsLabels"] = true
 	ctx.Data["RequireTribute"] = true
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplLabels)
 }
 
@@ -39,9 +41,9 @@ func InitializeLabels(ctx *context.Context) {
 		return
 	}
 
-	if err := models.InitializeLabels(db.DefaultContext, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
-		if models.IsErrIssueLabelTemplateLoad(err) {
-			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
+	if err := repo_module.InitializeLabels(ctx, ctx.Repo.Repository.ID, form.TemplateName, false); err != nil {
+		if repo_module.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Repo.RepoLink + "/labels")
 			return
@@ -54,7 +56,7 @@ func InitializeLabels(ctx *context.Context) {
 
 // RetrieveLabels find all the labels of a repository and organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -67,7 +69,7 @@ func RetrieveLabels(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if ctx.Repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -77,18 +79,18 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 		ctx.Data["OrgLabels"] = orgLabels
 
-		org, err := models.GetOrgByName(ctx.Repo.Owner.LowerName)
+		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
 		if err != nil {
 			ctx.ServerError("GetOrgByName", err)
 			return
 		}
-		if ctx.User != nil {
-			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.User.ID)
+		if ctx.Doer != nil {
+			ctx.Org.IsOwner, err = org.IsOwnedBy(ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("org.IsOwnedBy", err)
 				return
 			}
-			ctx.Org.OrgLink = org.OrganisationLink()
+			ctx.Org.OrgLink = org.AsUser().OrganisationLink()
 			ctx.Data["IsOrganizationOwner"] = ctx.Org.IsOwner
 			ctx.Data["OrganizationLink"] = ctx.Org.OrgLink
 		}
@@ -115,7 +117,7 @@ func NewLabel(ctx *context.Context) {
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(l); err != nil {
+	if err := models.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
@@ -125,7 +127,7 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := models.GetLabelInRepoByID(ctx.Repo.Repository.ID, form.ID)
+	l, err := models.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrRepoLabelNotExist(err):
@@ -169,13 +171,13 @@ func UpdateIssueLabel(ctx *context.Context) {
 	switch action := ctx.FormString("action"); action {
 	case "clear":
 		for _, issue := range issues {
-			if err := issue_service.ClearLabels(issue, ctx.User); err != nil {
+			if err := issue_service.ClearLabels(issue, ctx.Doer); err != nil {
 				ctx.ServerError("ClearLabels", err)
 				return
 			}
 		}
 	case "attach", "detach", "toggle":
-		label, err := models.GetLabelByID(ctx.FormInt64("id"))
+		label, err := models.GetLabelByID(ctx, ctx.FormInt64("id"))
 		if err != nil {
 			if models.IsErrRepoLabelNotExist(err) {
 				ctx.Error(http.StatusNotFound, "GetLabelByID")
@@ -189,7 +191,7 @@ func UpdateIssueLabel(ctx *context.Context) {
 			// detach if any issues already have label, otherwise attach
 			action = "attach"
 			for _, issue := range issues {
-				if issue.HasLabel(label.ID) {
+				if models.HasIssueLabel(ctx, issue.ID, label.ID) {
 					action = "detach"
 					break
 				}
@@ -198,14 +200,14 @@ func UpdateIssueLabel(ctx *context.Context) {
 
 		if action == "attach" {
 			for _, issue := range issues {
-				if err = issue_service.AddLabel(issue, ctx.User, label); err != nil {
+				if err = issue_service.AddLabel(issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("AddLabel", err)
 					return
 				}
 			}
 		} else {
 			for _, issue := range issues {
-				if err = issue_service.RemoveLabel(issue, ctx.User, label); err != nil {
+				if err = issue_service.RemoveLabel(issue, ctx.Doer, label); err != nil {
 					ctx.ServerError("RemoveLabel", err)
 					return
 				}

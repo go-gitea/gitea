@@ -149,10 +149,10 @@ func PrettyNumber(v int64) string {
 }
 
 // Subtract deals with subtraction of all types of number.
-func Subtract(left interface{}, right interface{}) interface{} {
+func Subtract(left, right interface{}) interface{} {
 	var rleft, rright int64
 	var fleft, fright float64
-	var isInt = true
+	isInt := true
 	switch v := left.(type) {
 	case int:
 		rleft = int64(v)
@@ -279,7 +279,7 @@ func EntryIcon(entry *git.TreeEntry) string {
 		}
 		return "file-symlink-file"
 	case entry.IsDir():
-		return "file-directory"
+		return "file-directory-fill"
 	case entry.IsSubModule():
 		return "file-submodule"
 	}

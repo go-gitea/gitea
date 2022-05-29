@@ -10,13 +10,14 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
 
 // RetrieveLabels find all the labels of an organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByOrgID(ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
+	labels, err := models.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -34,6 +35,7 @@ func NewLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
+	ctx.Data["PageIsOrgSettings"] = true
 
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
@@ -47,7 +49,7 @@ func NewLabel(ctx *context.Context) {
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(l); err != nil {
+	if err := models.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
@@ -57,7 +59,7 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := models.GetLabelInOrgByID(ctx.Org.Organization.ID, form.ID)
+	l, err := models.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
 	if err != nil {
 		switch {
 		case models.IsErrOrgLabelNotExist(err):
@@ -95,13 +97,13 @@ func DeleteLabel(ctx *context.Context) {
 func InitializeLabels(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.InitializeLabelsForm)
 	if ctx.HasError() {
-		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
+		ctx.Redirect(ctx.Org.OrgLink + "/labels")
 		return
 	}
 
-	if err := models.InitializeLabels(db.DefaultContext, ctx.Org.Organization.ID, form.TemplateName, true); err != nil {
-		if models.IsErrIssueLabelTemplateLoad(err) {
-			originalErr := err.(models.ErrIssueLabelTemplateLoad).OriginalError
+	if err := repo_module.InitializeLabels(ctx, ctx.Org.Organization.ID, form.TemplateName, true); err != nil {
+		if repo_module.IsErrIssueLabelTemplateLoad(err) {
+			originalErr := err.(repo_module.ErrIssueLabelTemplateLoad).OriginalError
 			ctx.Flash.Error(ctx.Tr("repo.issues.label_templates.fail_to_load_file", form.TemplateName, originalErr))
 			ctx.Redirect(ctx.Org.OrgLink + "/settings/labels")
 			return

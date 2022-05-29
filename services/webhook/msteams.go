@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 )
 
 type (
@@ -64,9 +65,7 @@ func (m *MSTeamsPayload) JSONPayload() ([]byte, error) {
 	return data, nil
 }
 
-var (
-	_ PayloadConvertor = &MSTeamsPayload{}
-)
+var _ PayloadConvertor = &MSTeamsPayload{}
 
 // Create implements PayloadConvertor Create method
 func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
@@ -79,7 +78,7 @@ func (m *MSTeamsPayload) Create(p *api.CreatePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Repo.HTMLURL+"/src/"+refName,
+		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		greenColor,
 		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
 	), nil
@@ -96,7 +95,7 @@ func (m *MSTeamsPayload) Delete(p *api.DeletePayload) (api.Payloader, error) {
 		p.Sender,
 		title,
 		"",
-		p.Repo.HTMLURL+"/src/"+refName,
+		p.Repo.HTMLURL+"/src/"+util.PathEscapeSegments(refName),
 		yellowColor,
 		&MSTeamsFact{fmt.Sprintf("%s:", p.RefType), refName},
 	), nil
@@ -133,7 +132,7 @@ func (m *MSTeamsPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		titleLink = p.CompareURL
 	}
 	if titleLink == "" {
-		titleLink = p.Repo.HTMLURL + "/src/" + branchName
+		titleLink = p.Repo.HTMLURL + "/src/" + util.PathEscapeSegments(branchName)
 	}
 
 	title := fmt.Sprintf("[%s:%s] %s", p.Repo.FullName, branchName, commitDesc)

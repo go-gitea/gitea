@@ -8,14 +8,14 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
@@ -23,7 +23,7 @@ func TestPullRequest_LoadAttributes(t *testing.T) {
 
 func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
@@ -34,7 +34,7 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 
 func TestPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
@@ -45,7 +45,7 @@ func TestPullRequest_LoadBaseRepo(t *testing.T) {
 
 func TestPullRequest_LoadHeadRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.NoError(t, pr.LoadHeadRepo())
 	assert.NotNil(t, pr.HeadRepo)
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
@@ -104,6 +104,18 @@ func TestGetUnmergedPullRequest(t *testing.T) {
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
+func TestHasUnmergedPullRequestsByHeadInfo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	exist, err := HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "branch2")
+	assert.NoError(t, err)
+	assert.Equal(t, true, exist)
+
+	exist, err = HasUnmergedPullRequestsByHeadInfo(db.DefaultContext, 1, "not_exist_branch")
+	assert.NoError(t, err)
+	assert.Equal(t, false, exist)
+}
+
 func TestGetUnmergedPullRequestsByHeadInfo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	prs, err := GetUnmergedPullRequestsByHeadInfo(1, "branch2")
@@ -128,54 +140,54 @@ func TestGetUnmergedPullRequestsByBaseInfo(t *testing.T) {
 
 func TestGetPullRequestByIndex(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByIndex(1, 2)
+	pr, err := GetPullRequestByIndex(db.DefaultContext, 1, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.BaseRepoID)
 	assert.Equal(t, int64(2), pr.Index)
 
-	_, err = GetPullRequestByIndex(9223372036854775807, 9223372036854775807)
+	_, err = GetPullRequestByIndex(db.DefaultContext, 9223372036854775807, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 
-	_, err = GetPullRequestByIndex(1, 0)
+	_, err = GetPullRequestByIndex(db.DefaultContext, 1, 0)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
 func TestGetPullRequestByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByID(1)
+	pr, err := GetPullRequestByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), pr.ID)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	_, err = GetPullRequestByID(9223372036854775807)
+	_, err = GetPullRequestByID(db.DefaultContext, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
 func TestGetPullRequestByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr, err := GetPullRequestByIssueID(2)
+	pr, err := GetPullRequestByIssueID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), pr.IssueID)
 
-	_, err = GetPullRequestByIssueID(9223372036854775807)
+	_, err = GetPullRequestByIssueID(db.DefaultContext, 9223372036854775807)
 	assert.Error(t, err)
 	assert.True(t, IsErrPullRequestNotExist(err))
 }
 
 func TestPullRequest_Update(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	pr.BaseBranch = "baseBranch"
 	pr.HeadBranch = "headBranch"
 	pr.Update()
 
-	pr = db.AssertExistsAndLoadBean(t, &PullRequest{ID: pr.ID}).(*PullRequest)
+	pr = unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: pr.ID}).(*PullRequest)
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
-	CheckConsistencyFor(t, pr)
+	unittest.CheckConsistencyFor(t, pr)
 }
 
 func TestPullRequest_UpdateCols(t *testing.T) {
@@ -187,18 +199,18 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	}
 	assert.NoError(t, pr.UpdateCols("head_branch"))
 
-	pr = db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
+	pr = unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest)
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
-	CheckConsistencyFor(t, pr)
+	unittest.CheckConsistencyFor(t, pr)
 }
 
 func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	prs := []*PullRequest{
-		db.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest),
-		db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest),
+		unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 1}).(*PullRequest),
+		unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest),
 	}
 	assert.NoError(t, PullRequestList(prs).LoadAttributes())
 	for _, pr := range prs {
@@ -214,7 +226,7 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 	pr.LoadIssue()
 
 	assert.False(t, pr.IsWorkInProgress())
@@ -229,7 +241,7 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
 	pr.LoadIssue()
 
 	assert.Empty(t, pr.GetWorkInProgressPrefix())
@@ -240,37 +252,4 @@ func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 
 	pr.Issue.Title = "[wip] " + original
 	assert.Equal(t, "[wip]", pr.GetWorkInProgressPrefix())
-}
-
-func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2}).(*PullRequest)
-
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", pr.GetDefaultMergeMessage())
-
-	pr.BaseRepoID = 1
-	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
-}
-
-func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	externalTracker := RepoUnit{
-		Type: unit.TypeExternalTracker,
-		Config: &ExternalTrackerConfig{
-			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
-		},
-	}
-	baseRepo := &Repository{Name: "testRepo", ID: 1}
-	baseRepo.Owner = &User{Name: "testOwner"}
-	baseRepo.Units = []*RepoUnit{&externalTracker}
-
-	pr := db.AssertExistsAndLoadBean(t, &PullRequest{ID: 2, BaseRepo: baseRepo}).(*PullRequest)
-
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", pr.GetDefaultMergeMessage())
-
-	pr.BaseRepoID = 1
-	pr.HeadRepoID = 2
-	assert.Equal(t, "Merge pull request 'issue3' (!3) from user2/repo1:branch2 into master", pr.GetDefaultMergeMessage())
 }

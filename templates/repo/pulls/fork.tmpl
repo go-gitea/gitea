@@ -37,7 +37,7 @@
 
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.fork_from"}}</label>
-						<a href="{{AppSubUrl}}/{{.ForkFrom}}">{{.ForkFrom}}</a>
+						<a href="{{.ForkRepo.Link}}">{{.ForkRepo.FullName}}</a>
 					</div>
 					<div class="inline required field {{if .Err_RepoName}}error{{end}}">
 						<label for="repo_name">{{.i18n.Tr "repo.repo_name"}}</label>
@@ -61,7 +61,7 @@
 						<button class="ui green button">
 							{{.i18n.Tr "repo.fork_repo"}}
 						</button>
-						<a class="ui button" href="{{AppSubUrl}}/{{.ForkFrom}}">{{.i18n.Tr "cancel"}}</a>
+						<a class="ui button" href="{{.ForkRepo.Link}}">{{.i18n.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

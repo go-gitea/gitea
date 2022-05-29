@@ -38,7 +38,7 @@ func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, titl
 		"_csrf": htmlDoc.GetCSRF(),
 		"title": title,
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	return resp
 }
@@ -130,7 +130,7 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 		"_csrf":     htmlDoc.GetCSRF(),
 		"repo_name": repoName,
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func TestPullBranchDelete(t *testing.T) {
@@ -139,7 +139,7 @@ func TestPullBranchDelete(t *testing.T) {
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
-		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusFound)
+		testCreateBranch(t, session, "user1", "repo1", "branch/master", "master1", http.StatusSeeOther)
 		testEditFile(t, session, "user1", "repo1", "master1", "README.md", "Hello, World (Edited)\n")
 		resp := testPullCreate(t, session, "user1", "repo1", "master1", "This is a pull title")
 

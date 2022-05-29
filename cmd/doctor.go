@@ -5,7 +5,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	golog "log"
 	"os"
@@ -18,16 +17,15 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
-
 	"github.com/urfave/cli"
+	"xorm.io/xorm"
 )
 
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
+	Usage:       "Diagnose and optionally fix problems",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Action:      runDoctor,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -88,7 +86,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 	setting.InitDBConfig()
 
 	setting.EnableXORMLog = ctx.Bool("debug")
@@ -117,13 +115,12 @@ func runRecreateTable(ctx *cli.Context) error {
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	return db.InitEngineWithMigration(context.Background(), func(x *xorm.Engine) error {
+	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
 		}
 		return recreateTables(x)
 	})
-
 }
 
 func runDoctor(ctx *cli.Context) error {

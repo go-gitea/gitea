@@ -9,6 +9,8 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,7 +18,7 @@ func TestCreateIssueDependency(t *testing.T) {
 	// Prepare
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1, err := GetUserByID(1)
+	user1, err := user_model.GetUserByID(1)
 	assert.NoError(t, err)
 
 	issue1, err := GetIssueByID(1)
@@ -39,18 +41,18 @@ func TestCreateIssueDependency(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, IsErrCircularDependency(err))
 
-	_ = db.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
+	_ = unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddDependency, PosterID: user1.ID, IssueID: issue1.ID})
 
 	// Check if dependencies left is correct
-	left, err := IssueNoDependenciesLeft(issue1)
+	left, err := IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
 
 	// Close #2 and check again
-	_, err = issue2.ChangeStatus(user1, true)
+	_, err = ChangeIssueStatus(db.DefaultContext, issue2, user1, true)
 	assert.NoError(t, err)
 
-	left, err = IssueNoDependenciesLeft(issue1)
+	left, err = IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.True(t, left)
 

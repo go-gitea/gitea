@@ -9,21 +9,10 @@
 						{{if .Visibility.IsLimited}}<div class="ui medium orange horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
 						{{if .Visibility.IsPrivate}}<div class="ui medium red horizontal label">{{$.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 					</span>
-					<div class="ui right">
-						<div class="ui menu">
-							<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">
-								{{svg "octicon-organization"}}&nbsp;{{$.i18n.Tr "org.people"}}
-								<div class="floating ui black label">{{.NumMembers}}</div>
-							</a>
-							<a class="{{if $.PageIsOrgTeams}}active{{end}} item" href="{{$.OrgLink}}/teams">
-								{{svg "octicon-people"}}&nbsp;{{$.i18n.Tr "org.teams"}}
-								<div class="floating ui black label">{{.NumTeams}}</div>
-							</a>
-						</div>
-					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div class="ui divider"></div>
 {{end}}
+
+{{template "org/menu" .}}

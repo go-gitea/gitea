@@ -8,19 +8,19 @@
 			<div class="ui secondary menu">
 				<div class="item fitted treepath">
 					<div class="ui breadcrumb field {{if .Err_TreePath}}error{{end}}">
-						<a class="section" href="{{EscapePound $.BranchLink}}">{{.Repository.Name}}</a>
+						<a class="section" href="{{$.BranchLink}}">{{.Repository.Name}}</a>
 						{{ $n := len .TreeNames}}
 						{{ $l := Subtract $n 1}}
 						{{range $i, $v := .TreeNames}}
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
 								<input type="text" id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.add_subdir"}}" autofocus>
-								<span class="poping up" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center" data-variation="tiny inverted">{{svg "octicon-info"}}</span>
+								<span class="tooltip" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
 							{{else}}
-								<span class="section"><a href="{{EscapePound $.BranchLink}}/{{index $.TreePaths $i | EscapePound}}">{{$v}}</a></span>
+								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 							{{end}}
 						{{end}}
-						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{EscapePound $.BranchLink}}{{if not .IsNewFile}}/{{EscapePound .TreePath}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
+						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{.TreePath | PathEscapeSegments}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
 						<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 					</div>
 				</div>

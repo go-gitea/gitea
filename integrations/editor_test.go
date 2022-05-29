@@ -34,7 +34,7 @@ func TestCreateFile(t *testing.T) {
 			"content":       "Content",
 			"commit_choice": "direct",
 		})
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 	})
 }
 
@@ -48,7 +48,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"_csrf":     csrf,
 			"protected": "on",
 		})
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashCookie := session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
@@ -82,7 +82,7 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 			"_csrf":     csrf,
 			"protected": "off",
 		})
-		resp = session.MakeRequest(t, req, http.StatusFound)
+		resp = session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashCookie = session.GetCookie("macaron_flash")
 		assert.NotNil(t, flashCookie)
@@ -109,7 +109,7 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 			"commit_choice": "direct",
 		},
 	)
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", branch, filePath))
@@ -120,7 +120,6 @@ func testEditFile(t *testing.T, session *TestSession, user, repo, branch, filePa
 }
 
 func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, branch, targetBranch, filePath, newContent string) *httptest.ResponseRecorder {
-
 	// Get to the 'edit this file' page
 	req := NewRequest(t, "GET", path.Join(user, repo, "_edit", branch, filePath))
 	resp := session.MakeRequest(t, req, http.StatusOK)
@@ -140,7 +139,7 @@ func testEditFileToNewBranch(t *testing.T, session *TestSession, user, repo, bra
 			"new_branch_name": targetBranch,
 		},
 	)
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Verify the change
 	req = NewRequest(t, "GET", path.Join(user, repo, "raw/branch", targetBranch, filePath))

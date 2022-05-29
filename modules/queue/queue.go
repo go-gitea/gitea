@@ -36,10 +36,10 @@ type Type string
 type Data interface{}
 
 // HandlerFunc is a function that takes a variable amount of data and processes it
-type HandlerFunc func(...Data)
+type HandlerFunc func(...Data) (unhandled []Data)
 
 // NewQueueFunc is a function that creates a queue
-type NewQueueFunc func(handler HandlerFunc, config interface{}, exemplar interface{}) (Queue, error)
+type NewQueueFunc func(handler HandlerFunc, config, exemplar interface{}) (Queue, error)
 
 // Shutdownable represents a queue that can be shutdown
 type Shutdownable interface {
@@ -61,6 +61,12 @@ type Queue interface {
 	Push(Data) error
 }
 
+// PushBackable queues can be pushed back to
+type PushBackable interface {
+	// PushBack pushes data back to the top of the fifo
+	PushBack(Data) error
+}
+
 // DummyQueueType is the type for the dummy queue
 const DummyQueueType Type = "dummy"
 
@@ -70,8 +76,7 @@ func NewDummyQueue(handler HandlerFunc, opts, exemplar interface{}) (Queue, erro
 }
 
 // DummyQueue represents an empty queue
-type DummyQueue struct {
-}
+type DummyQueue struct{}
 
 // Run does nothing
 func (*DummyQueue) Run(_, _ func(func())) {}
@@ -191,7 +196,7 @@ func RegisteredTypesAsString() []string {
 func NewQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
 	newFn, ok := queuesMap[queueType]
 	if !ok {
-		return nil, fmt.Errorf("Unsupported queue type: %v", queueType)
+		return nil, fmt.Errorf("unsupported queue type: %v", queueType)
 	}
 	return newFn(handlerFunc, opts, exemplar)
 }

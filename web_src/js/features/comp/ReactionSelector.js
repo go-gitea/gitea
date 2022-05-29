@@ -1,3 +1,4 @@
+import $ from 'jquery';
 const {csrfToken} = window.config;
 
 export function initCompReactionSelector(parent) {
@@ -15,7 +16,7 @@ export function initCompReactionSelector(parent) {
     if ($(this).hasClass('disabled')) return;
 
     const actionURL = $(this).hasClass('item') ? $(this).closest('.select-reaction').data('action-url') : $(this).data('action-url');
-    const url = `${actionURL}/${$(this).hasClass('blue') ? 'unreact' : 'react'}`;
+    const url = `${actionURL}/${$(this).hasClass('primary') ? 'unreact' : 'react'}`;
     $.ajax({
       type: 'POST',
       url,

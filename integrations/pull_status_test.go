@@ -29,16 +29,16 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls")
 		resp := session.MakeRequest(t, req, http.StatusOK)
-		doc := NewHTMLParser(t, resp.Body)
+		NewHTMLParser(t, resp.Body)
 
 		// Request repository commits page
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1/commits")
 		resp = session.MakeRequest(t, req, http.StatusOK)
-		doc = NewHTMLParser(t, resp.Body)
+		doc := NewHTMLParser(t, resp.Body)
 
 		// Get first commit URL
 		commitURL, exists := doc.doc.Find("#commits-table tbody tr td.sha a").Last().Attr("href")
@@ -63,20 +63,13 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			api.CommitStatusWarning: "warning sign icon yellow",
 		}
 
+		testCtx := NewAPITestContext(t, "user1", "repo1")
+
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
 
 			// Call API to add status for commit
-			token := getTokenForLoggedInUser(t, session)
-			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user1/repo1/statuses/%s?token=%s", commitID, token),
-				api.CreateStatusOption{
-					State:       status,
-					TargetURL:   "http://test.ci/",
-					Description: "",
-					Context:     "testci",
-				},
-			)
-			session.MakeRequest(t, req, http.StatusCreated)
+			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, status))
 
 			req = NewRequestf(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
@@ -94,6 +87,24 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 	})
 }
 
+func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
+			api.CreateStatusOption{
+				State:       status,
+				TargetURL:   "http://test.ci/",
+				Description: "",
+				Context:     "testci",
+			},
+		)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+	}
+}
+
 func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
@@ -108,7 +119,7 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
 		resp := session.MakeRequest(t, req, http.StatusOK)

@@ -48,7 +48,7 @@
 					<label>{{.i18n.Tr "repo.release.content"}}</label>
 					<div class="ui top tabular menu" data-write="write" data-preview="preview">
 						<a class="active write item" data-tab="write">{{$.i18n.Tr "write"}}</a>
-						<a class="preview item" data-tab="preview" data-url="{{$.Repository.APIURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+						<a class="preview item" data-tab="preview" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom active tab" data-tab="write">
 						<textarea name="content">{{.content}}</textarea>
@@ -68,7 +68,7 @@
 							<input name="attachment-edit-{{.UUID}}" class="mr-3 attachment_edit" required value="{{.Name}}"/>
 							<input name="attachment-del-{{.UUID}}" type="hidden" value="false"/>
 							<span class="ui text grey mr-3">{{.Size | FileSize}}</span>
-							<span class="poping up" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
+							<span class="tooltip" data-content="{{$.i18n.Tr "repo.release.download_count" (.DownloadCount | PrettyNumber)}}">
 								{{svg "octicon-info"}}
 							</span>
 						</div>
