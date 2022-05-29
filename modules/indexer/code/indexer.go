@@ -7,6 +7,7 @@ package code
 import (
 	"context"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -106,7 +108,7 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	return repo_model.UpdateIndexerStatus(repo, repo_model.RepoIndexerTypeCode, sha)
+	return repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer
@@ -116,7 +118,7 @@ func Init() {
 		return
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel, finished := process.GetManager().AddTypedContext(context.Background(), "Service: CodeIndexer", process.SystemProcessType, false)
 
 	graceful.GetManager().RunAtTerminate(func() {
 		select {
@@ -128,9 +130,10 @@ func Init() {
 		log.Debug("Closing repository indexer")
 		indexer.Close()
 		log.Info("PID: %d Repository Indexer closed", os.Getpid())
+		finished()
 	})
 
-	waitChannel := make(chan time.Duration)
+	waitChannel := make(chan time.Duration, 1)
 
 	// Create the Queue
 	switch setting.Indexer.RepoType {
@@ -172,6 +175,7 @@ func Init() {
 	}
 
 	go func() {
+		pprof.SetGoroutineLabels(ctx)
 		start := time.Now()
 		var (
 			rIndexer Indexer
@@ -247,6 +251,7 @@ func Init() {
 
 	if setting.Indexer.StartupTimeout > 0 {
 		go func() {
+			pprof.SetGoroutineLabels(ctx)
 			timeout := setting.Indexer.StartupTimeout
 			if graceful.GetManager().IsChild() && setting.GracefulHammerTime > 0 {
 				timeout += setting.GracefulHammerTime

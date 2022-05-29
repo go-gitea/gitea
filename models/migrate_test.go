@@ -5,8 +5,12 @@
 package models
 
 import (
+	"strconv"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -19,7 +23,7 @@ func TestMigrate_InsertMilestones(t *testing.T) {
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
 	name := "milestonetest1"
-	ms := &Milestone{
+	ms := &issues_model.Milestone{
 		RepoID: repo.ID,
 		Name:   name,
 	}
@@ -29,7 +33,7 @@ func TestMigrate_InsertMilestones(t *testing.T) {
 	repoModified := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo.ID}).(*repo_model.Repository)
 	assert.EqualValues(t, repo.NumMilestones+1, repoModified.NumMilestones)
 
-	unittest.CheckConsistencyFor(t, &Milestone{})
+	unittest.CheckConsistencyFor(t, &issues_model.Milestone{})
 }
 
 func assertCreateIssues(t *testing.T, isPull bool) {
@@ -38,13 +42,14 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	label := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
-	milestone := unittest.AssertExistsAndLoadBean(t, &Milestone{ID: 1}).(*Milestone)
+	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone)
 	assert.EqualValues(t, milestone.ID, 1)
-	reaction := &Reaction{
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
 
+	foreignIndex := int64(12345)
 	title := "issuetitle1"
 	is := &Issue{
 		RepoID:      repo.ID,
@@ -57,13 +62,22 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		Poster:      owner,
 		IsClosed:    true,
 		Labels:      []*Label{label},
-		Reactions:   []*Reaction{reaction},
+		Reactions:   []*issues_model.Reaction{reaction},
+		ForeignReference: &foreignreference.ForeignReference{
+			ForeignIndex: strconv.FormatInt(foreignIndex, 10),
+			RepoID:       repo.ID,
+			Type:         foreignreference.TypeIssue,
+		},
 	}
 	err := InsertIssues(is)
 	assert.NoError(t, err)
 
 	i := unittest.AssertExistsAndLoadBean(t, &Issue{Title: title}).(*Issue)
-	unittest.AssertExistsAndLoadBean(t, &Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
+	assert.Nil(t, i.ForeignReference)
+	err = i.LoadAttributes()
+	assert.NoError(t, err)
+	assert.EqualValues(t, strconv.FormatInt(foreignIndex, 10), i.ForeignReference.ForeignIndex)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
 }
 
 func TestMigrate_CreateIssuesIsPullFalse(t *testing.T) {
@@ -77,9 +91,9 @@ func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
 func TestMigrate_InsertIssueComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
-	_ = issue.LoadRepo()
+	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
-	reaction := &Reaction{
+	reaction := &issues_model.Reaction{
 		Type:   "heart",
 		UserID: owner.ID,
 	}
@@ -89,7 +103,7 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		Poster:    owner,
 		IssueID:   issue.ID,
 		Issue:     issue,
-		Reactions: []*Reaction{reaction},
+		Reactions: []*issues_model.Reaction{reaction},
 	}
 
 	err := InsertIssueComments([]*Comment{comment})

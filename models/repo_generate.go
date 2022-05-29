@@ -20,15 +20,16 @@ import (
 
 // GenerateRepoOptions contains the template units to generate
 type GenerateRepoOptions struct {
-	Name        string
-	Description string
-	Private     bool
-	GitContent  bool
-	Topics      bool
-	GitHooks    bool
-	Webhooks    bool
-	Avatar      bool
-	IssueLabels bool
+	Name          string
+	DefaultBranch string
+	Description   string
+	Private       bool
+	GitContent    bool
+	Topics        bool
+	GitHooks      bool
+	Webhooks      bool
+	Avatar        bool
+	IssueLabels   bool
 }
 
 // IsValid checks whether at least one option is chosen for generation
@@ -69,7 +70,7 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	templateWebhooks, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
+	templateLabels, err := GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -109,7 +110,7 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
 		}
-		if err := newLabel(db.GetEngine(ctx), generateLabel); err != nil {
+		if err := db.Insert(ctx, generateLabel); err != nil {
 			return err
 		}
 	}

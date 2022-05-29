@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/mailer"
@@ -109,7 +110,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 		store.GetData()["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 		store.GetData()["EnableSSPI"] = true
 
-		err := s.rnd.HTML(w, 401, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
+		err := s.rnd.HTML(w, http.StatusUnauthorized, string(tplSignIn), templates.BaseVars().Merge(store.GetData()))
 		if err != nil {
 			log.Error("%v", err)
 		}
@@ -126,7 +127,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 	log.Info("Authenticated as %s\n", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
@@ -187,17 +188,20 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
-		Name:                         username,
-		Email:                        email,
-		KeepEmailPrivate:             true,
-		Passwd:                       gouuid.New().String(),
-		IsActive:                     cfg.AutoActivateUsers,
-		Language:                     cfg.DefaultLanguage,
-		UseCustomAvatar:              true,
-		Avatar:                       avatars.DefaultAvatarLink(),
-		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
+		Name:            username,
+		Email:           email,
+		Passwd:          gouuid.New().String(),
+		Language:        cfg.DefaultLanguage,
+		UseCustomAvatar: true,
+		Avatar:          avatars.DefaultAvatarLink(),
 	}
-	if err := user_model.CreateUser(user); err != nil {
+	emailNotificationPreference := user_model.EmailNotificationsDisabled
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
+		KeepEmailPrivate:             util.OptionalBoolTrue,
+		EmailNotificationsPreference: &emailNotificationPreference,
+	}
+	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
 
@@ -243,14 +247,4 @@ func sanitizeUsername(username string, cfg *sspi.Source) string {
 	// as the username can contain several separators: eg. "MICROSOFT\useremail@live.com"
 	username = replaceSeparators(username, cfg)
 	return username
-}
-
-// specialInit registers the SSPI auth method as the last method in the list.
-// The SSPI plugin is expected to be executed last, as it returns 401 status code if negotiation
-// fails (or if negotiation should continue), which would prevent other authentication methods
-// to execute at all.
-func specialInit() {
-	if auth.IsSSPIEnabled() {
-		Register(&SSPI{})
-	}
 }

@@ -252,6 +252,7 @@
 
 -
   id: 43
+  org_id: 3
   team_id: 7
   type: 2 # issues
   access_mode: 2

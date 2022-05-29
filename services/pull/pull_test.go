@@ -8,6 +8,12 @@ package pull
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/git"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -28,4 +34,58 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 	assert.True(t, commitMessageTrailersPattern.MatchString("No space after colon is accepted.\n\nSigned-off-by:Bob <bob@example.com>"))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Additional whitespace is accepted.\n\nSigned-off-by \t :  \tBob   <bob@example.com>   "))
 	assert.True(t, commitMessageTrailersPattern.MatchString("Folded value.\n\nFolded-trailer: This is\n a folded\n   trailer value\nOther-Trailer: Value"))
+}
+
+func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+
+	assert.NoError(t, pr.LoadBaseRepo())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from branch2 into master", mergeMessage)
+
+	pr.BaseRepoID = 1
+	pr.HeadRepoID = 2
+	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo1:branch2 into master", mergeMessage)
+}
+
+func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	externalTracker := repo_model.RepoUnit{
+		Type: unit.TypeExternalTracker,
+		Config: &repo_model.ExternalTrackerConfig{
+			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
+		},
+	}
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
+
+	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2, BaseRepo: baseRepo}).(*models.PullRequest)
+
+	assert.NoError(t, pr.LoadBaseRepo())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
+	assert.NoError(t, err)
+	defer gitRepo.Close()
+
+	mergeMessage, err := GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Merge pull request 'issue3' (!3) from branch2 into master", mergeMessage)
+
+	pr.BaseRepoID = 1
+	pr.HeadRepoID = 2
+	pr.BaseRepo = nil
+	pr.HeadRepo = nil
+	mergeMessage, err = GetDefaultMergeMessage(gitRepo, pr, "")
+	assert.NoError(t, err)
+
+	assert.Equal(t, "Merge pull request 'issue3' (#3) from user2/repo2:branch2 into master", mergeMessage)
 }

@@ -33,7 +33,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 		"repo_name":  repoName,
 		"service":    fmt.Sprintf("%d", structs.PlainGitService),
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	return resp
 }

@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/user"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/com"
 	gossh "golang.org/x/crypto/ssh"
 	ini "gopkg.in/ini.v1"
 )
@@ -89,13 +88,15 @@ var (
 	// AppDataPath is the default path for storing data.
 	// It maps to ini:"APP_DATA_PATH" and defaults to AppWorkPath + "/data"
 	AppDataPath string
+	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
+	// It maps to ini:"LOCAL_ROOT_URL"
+	LocalURL string
 
 	// Server settings
 	Protocol             Scheme
 	Domain               string
 	HTTPAddr             string
 	HTTPPort             string
-	LocalURL             string
 	RedirectOtherPort    bool
 	PortToRedirect       string
 	OfflineMode          bool
@@ -105,6 +106,7 @@ var (
 	StaticCacheTime      time.Duration
 	EnableGzip           bool
 	LandingPageURL       LandingPage
+	LandingPageCustom    string
 	UnixSocketPermission uint32
 	EnablePprof          bool
 	PprofDataPath        string
@@ -164,7 +166,7 @@ var (
 		Domain:                        "",
 		Port:                          22,
 		ServerCiphers:                 []string{"chacha20-poly1305@openssh.com", "aes128-ctr", "aes192-ctr", "aes256-ctr", "aes128-gcm@openssh.com", "aes256-gcm@openssh.com"},
-		ServerKeyExchanges:            []string{"curve25519-sha256@libssh.org", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha1"},
+		ServerKeyExchanges:            []string{"curve25519-sha256", "ecdh-sha2-nistp256", "ecdh-sha2-nistp384", "ecdh-sha2-nistp521", "diffie-hellman-group14-sha256", "diffie-hellman-group14-sha1"},
 		ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
 		KeygenPath:                    "ssh-keygen",
 		MinimumKeySizeCheck:           true,
@@ -195,6 +197,13 @@ var (
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
 
+	Camo = struct {
+		Enabled   bool
+		ServerURL string `ini:"SERVER_URL"`
+		HMACKey   string `ini:"HMAC_KEY"`
+		Allways   bool
+	}{}
+
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
@@ -203,6 +212,7 @@ var (
 		MembersPagingNum      int
 		FeedMaxCommitNum      int
 		FeedPagingNum         int
+		PackagesPagingNum     int
 		GraphMaxCommitNum     int
 		CodeCommentLines      int
 		ReactionMaxUserNum    int
@@ -255,6 +265,7 @@ var (
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
+		PackagesPagingNum:   20,
 		GraphMaxCommitNum:   100,
 		CodeCommentLines:    4,
 		ReactionMaxUserNum:  10,
@@ -601,7 +612,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	Cfg.NameMapper = ini.SnackCase
 
-	homeDir, err := com.HomeDir()
+	homeDir, err := util.HomeDir()
 	if err != nil {
 		log.Fatal("Failed to get home directory: %v", err)
 	}
@@ -747,6 +758,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
+	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
@@ -765,15 +777,19 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		PprofDataPath = filepath.Join(AppWorkPath, PprofDataPath)
 	}
 
-	switch sec.Key("LANDING_PAGE").MustString("home") {
+	landingPage := sec.Key("LANDING_PAGE").MustString("home")
+	switch landingPage {
 	case "explore":
 		LandingPageURL = LandingPageExplore
 	case "organizations":
 		LandingPageURL = LandingPageOrganizations
 	case "login":
 		LandingPageURL = LandingPageLogin
-	default:
+	case "":
+	case "home":
 		LandingPageURL = LandingPageHome
+	default:
+		LandingPageURL = LandingPage(landingPage)
 	}
 
 	if len(SSH.Domain) == 0 {
@@ -1006,6 +1022,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newPictureService()
 
+	newPackages()
+
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
@@ -1016,6 +1034,14 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		log.Fatal("Failed to map API settings: %v", err)
 	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
+	} else if err = Cfg.Section("camo").MapTo(&Camo); err != nil {
+		log.Fatal("Failed to map Camo settings: %v", err)
+	}
+
+	if Camo.Enabled {
+		if Camo.ServerURL == "" || Camo.HMACKey == "" {
+			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
+		}
 	}
 
 	u := *appURL
@@ -1042,7 +1068,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
-	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(true)
+	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {

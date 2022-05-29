@@ -84,14 +84,12 @@ export function initRepoTopicBar() {
       transition: 'horizontal flip',
       duration: 200,
       variation: false,
-      blue: true,
-      basic: true,
     },
     className: {
       label: 'ui small label'
     },
     apiSettings: {
-      url: `${appSubUrl}/api/v1/topics/search?q={query}`,
+      url: `${appSubUrl}/explore/topics/search?q={query}`,
       throttle: 500,
       cache: false,
       onResponse(res) {

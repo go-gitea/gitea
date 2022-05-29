@@ -8,7 +8,7 @@ import {
   initRepoIssueComments, initRepoIssueDependencyDelete,
   initRepoIssueReferenceIssue, initRepoIssueStatusButton,
   initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
@@ -16,7 +16,7 @@ import {svg} from '../svg.js';
 import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
-  initRepoClone,
+  initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -28,6 +28,7 @@ import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
@@ -354,6 +355,11 @@ async function onEditContent(event) {
       initEasyMDEImagePaste(easyMDE, $dropzone[0], $dropzone.find('.files'));
     }
 
+    const $saveButton = $editContentZone.find('.save.button');
+    $textarea.on('ce-quick-submit', () => {
+      $saveButton.trigger('click');
+    });
+
     $editContentZone.find('.cancel.button').on('click', () => {
       $renderContent.show();
       $editContentZone.hide();
@@ -361,7 +367,8 @@ async function onEditContent(event) {
         dz.emit('reload');
       }
     });
-    $editContentZone.find('.save.button').on('click', () => {
+
+    $saveButton.on('click', () => {
       $renderContent.show();
       $editContentZone.hide();
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
@@ -399,7 +406,7 @@ async function onEditContent(event) {
         initCommentContent();
       });
     });
-  } else {
+  } else { // use existing form
     $textarea = $segment.find('textarea');
     easyMDE = getAttachedEasyMDE($textarea);
   }
@@ -422,18 +429,6 @@ export function initRepository() {
     return;
   }
 
-
-  // Commit statuses
-  $('.commit-statuses-trigger').each(function () {
-    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
-    const popupPosition = positionRight ? 'right center' : 'left center';
-    $(this)
-      .popup({
-        on: 'click',
-        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
-        position: popupPosition,
-      });
-  });
 
   // File list and commits
   if ($('.repository.file.list').length > 0 || $('.branch-dropdown').length > 0 ||
@@ -498,7 +493,7 @@ export function initRepository() {
     initRepoCommonFilterSearchDropdown('.choose.branch .dropdown');
   }
 
-  initRepoClone();
+  initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
@@ -519,9 +514,10 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoPullRequestMerge();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+
+    initRepoPullRequestMergeForm();
   }
 
   // Pull request

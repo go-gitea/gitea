@@ -18,12 +18,14 @@ linters:
     - ineffassign
     - revive
     - gofumpt
+    - depguard
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  timeout: 3m
+  go: 1.18
+  timeout: 10m
   skip-dirs:
     - node_modules
     - public
@@ -64,7 +66,15 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.16
+    lang-version: "1.18"
+  depguard:
+    # TODO: use depguard to replace import checks in gitea-vet
+    list-type: denylist
+    # Check the list against standard lib.
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: "use gitea's modules/json instead of encoding/json"
+      - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
   exclude-rules:

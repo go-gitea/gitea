@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -88,7 +87,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					}
 				}()
 			}
-			defer cancel()
+			defer func() {
+				_ = checker.Close()
+				cancel()
+			}()
 		}
 	}
 
