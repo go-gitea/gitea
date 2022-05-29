@@ -158,7 +158,7 @@ func Home(ctx *context.Context) {
 		ctx.ServerError("GetPinnedRepositoryIDs", err)
 		return
 	}
-	var pinnedRepos []*repo_model.Repository
+	pinnedRepos := make([]*repo_model.Repository, 0, len(pinnedRepoIDs))
 	for _, id := range pinnedRepoIDs {
 		repo, err := repo_model.GetRepositoryByID(id)
 
