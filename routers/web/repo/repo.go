@@ -313,7 +313,7 @@ func Action(ctx *context.Context) {
 		if canPin(ctx) {
 			err = repo_model.PinRepo(ctx.Repo.Owner.ID, ctx.Repo.Repository.ID, false)
 		} else {
-			err = errors.New("User does not have permission to pin")
+			err = errors.New("User does not have permission to unpin")
 		}
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
