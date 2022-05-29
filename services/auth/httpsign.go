@@ -134,6 +134,11 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 		break
 	}
 
+	// validpk will be nil when we didn't find a principal matching the certificate registered in gitea
+	if validpk == nil {
+		return validpk, fmt.Errorf("no valid principal found")
+	}
+
 	verifier, err := httpsig.NewVerifier(r)
 	if err != nil {
 		return validpk, fmt.Errorf("httpsig.NewVerifier failed: %s", err)
