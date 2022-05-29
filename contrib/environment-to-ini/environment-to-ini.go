@@ -21,6 +21,9 @@ import (
 // EnvironmentPrefix environment variables prefixed with this represent ini values to write
 const EnvironmentPrefix = "GITEA"
 
+// FileBasedEnvironmentSuffix environment variables suffixed with this represent ini values to load from files
+const FileBasedEnvironmentSuffix = "FILE"
+
 func main() {
 	app := cli.NewApp()
 	app.Name = "environment-to-ini"
@@ -29,9 +32,13 @@ func main() {
 	through the environment, this command allows environment variables to
 	be mapped to values in the ini.
 
-	Environment variables of the form "GITEA__SECTION_NAME__KEY_NAME"
+	Environment variables of the form "GITEA__section_name__KEY_NAME"
 	will be mapped to the ini section "[section_name]" and the key
 	"KEY_NAME" with the value as provided.
+
+	Environment variables of the form "GITEA__section_name__KEY_NAME__FILE"
+	will be mapped to the ini section "[section_name]" and the key
+	"KEY_NAME" with the value loaded from the specified file.
 
 	Environment variables are usually restricted to a reduced character
 	set "0-9A-Z_" - in order to allow the setting of sections with
@@ -126,6 +133,11 @@ func runEnvironmentToIni(c *cli.Context) error {
 		}
 		eKey = eKey[len(prefix):]
 		sectionName, keyName := DecodeSectionKey(eKey)
+		isFileBased := false
+		if strings.HasSuffix(keyName, "__"+FileBasedEnvironmentSuffix) {
+			isFileBased = true
+			keyName = strings.TrimSuffix(keyName, "__"+FileBasedEnvironmentSuffix)
+		}
 		if len(keyName) == 0 {
 			continue
 		}
@@ -135,6 +147,21 @@ func runEnvironmentToIni(c *cli.Context) error {
 			if err != nil {
 				log.Error("Error creating section: %s : %v", sectionName, err)
 				continue
+			}
+		}
+		if isFileBased {
+			isFile, err := util.IsFile(value)
+			if err != nil {
+				log.Fatal("Unable to check if %s is a file. Error: %v", value, err)
+			}
+			if isFile {
+				if content, err := os.ReadFile(value); err == nil {
+					value = string(content)
+				} else {
+					log.Fatal("Failed to load value from file '%s': %v", value, err)
+				}
+			} else {
+				log.Fatal("File '%s' not found", value)
 			}
 		}
 		key := section.Key(keyName)
