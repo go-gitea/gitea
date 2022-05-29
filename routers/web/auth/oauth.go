@@ -847,7 +847,17 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
+		if ctx.Doer != nil {
+			// attach user to already logged in user
+			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			if err != nil {
+				ctx.ServerError("UserLinkAccount", err)
+				return
+			}
+
+			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+			return
+		} else if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var missingFields []string
 			if gothUser.UserID == "" {
