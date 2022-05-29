@@ -31,8 +31,7 @@ var (
 // HTTPSign implements the Auth interface and authenticates requests (API requests
 // only) by looking for http signature data in the "Signature" header.
 // more information can be found on https://github.com/go-fed/httpsig
-type HTTPSign struct {
-}
+type HTTPSign struct{}
 
 // Name represents the name of auth method
 func (h *HTTPSign) Name() string {
@@ -101,7 +100,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	}
 
 	for _, principal := range cert.ValidPrincipals {
-		validpk, err = asymkey_model.SearchPublicKeyByContentExact(principal)
+		validpk, err = asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
 		if err != nil {
 			if asymkey_model.IsErrKeyNotExist(err) {
 				continue
