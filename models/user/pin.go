@@ -6,7 +6,10 @@ package user
 
 import (
 	"encoding/json"
+	"fmt"
 )
+
+const maxPinnedRepos = 3
 
 func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 	pinnedstring, err := GetUserSetting(userID, PinnedRepositories)
@@ -40,29 +43,36 @@ func setPinnedRepositories(userID int64, repos []int64) error {
 
 }
 
-func PinRepo(ownerID, repoID int64) error {
+func PinRepos(ownerID int64, repoIDs ...int64) error {
 
 	repos, err := GetPinnedRepositoryIDs(ownerID)
 
 	if err != nil {
 		return err
 	}
-	alreadyPresent := false
-	for _, r := range repos {
-		if r == repoID {
-			alreadyPresent = true
-			break
+	newrepos := make([]int64, 0, len(repoIDs)+len(repos))
+
+	allrepos := append(repos, repoIDs...)
+
+	for _, toadd := range allrepos {
+		alreadypresent := false
+		for _, present := range newrepos {
+			if toadd == present {
+				alreadypresent = true
+				break
+			}
+		}
+		if !alreadypresent {
+			newrepos = append(newrepos, toadd)
 		}
 	}
-
-	if !alreadyPresent {
-		repos = append(repos, repoID)
+	if len(newrepos) > maxPinnedRepos {
+		return fmt.Errorf("can pin at most %d repositories, %d pinned repositories is too much", maxPinnedRepos, len(newrepos))
 	}
-
-	return setPinnedRepositories(ownerID, repos)
+	return setPinnedRepositories(ownerID, newrepos)
 }
 
-func UnpinRepo(ownerID, repoID int64) error {
+func UnpinRepos(ownerID int64, repoIDs ...int64) error {
 
 	prevRepos, err := GetPinnedRepositoryIDs(ownerID)
 	if err != nil {
@@ -71,7 +81,14 @@ func UnpinRepo(ownerID, repoID int64) error {
 	var nextRepos []int64
 
 	for _, r := range prevRepos {
-		if r != repoID {
+		keep := true
+		for _, unp := range repoIDs {
+			if r == unp {
+				keep = false
+				break
+			}
+		}
+		if keep {
 			nextRepos = append(nextRepos, r)
 		}
 	}
