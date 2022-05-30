@@ -52,18 +52,40 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		return nil
 	}
 
-	if len(setting.SSH.TrustedUserCAKeys) == 0 {
-		return nil
+	var (
+		u       *user_model.User
+		validpk *asymkey_model.PublicKey
+		err     error
+	)
+
+	// Handle SSH certificates
+	if len(req.Header.Get("x-ssh-certificate")) != 0 {
+		if len(setting.SSH.TrustedUserCAKeys) == 0 {
+			return nil
+		}
+
+		validpk, err = VerifyCert(req)
+		if err != nil {
+			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
+			log.Debug("Failed authentication attempt from %s: VerifyCert failed: %v", req.RemoteAddr, err)
+			return nil
+		}
+	} else {
+		keyID, err := GetKeyID(req)
+		if err != nil {
+			log.Debug("GetKeyID failed: %v", err)
+			return nil
+		}
+
+		validpk, err = VerifyPubKey(req, keyID)
+		if err != nil {
+			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
+			log.Debug("Failed authentication attempt from %s: VerifyPubKey failed: %v", req.RemoteAddr, err)
+			return nil
+		}
 	}
 
-	validpk, err := VerifyCert(req)
-	if err != nil {
-		log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-		log.Debug("Failed authentication attempt from %s: VerifyCert failed: %v", req.RemoteAddr, err)
-		return nil
-	}
-
-	u, err := user_model.GetUserByID(validpk.OwnerID)
+	u, err = user_model.GetUserByID(validpk.OwnerID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil
@@ -74,6 +96,19 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
 	return u
+}
+
+func VerifyPubKey(r *http.Request, keyID string) (*asymkey_model.PublicKey, error) {
+	validpk, err := asymkey_model.SearchPublicKey(0, keyID)
+	if err != nil {
+		return nil, err
+	}
+
+	if len(validpk) == 0 {
+		return nil, fmt.Errorf("no public key found for keyid %s", keyID)
+	}
+
+	return validpk[0], nil
 }
 
 // VerifyCert verifies the validity of the ssh certificate and returns the publickey of the signer
@@ -183,4 +218,14 @@ func doVerify(verifier httpsig.Verifier, publickeys []ssh.PublicKey) error {
 	}
 
 	return errors.New("verification failed")
+}
+
+// GetKeyID returns the keyid from the httpsignature or an error if doesn't exist
+func GetKeyID(r *http.Request) (string, error) {
+	verifier, err := httpsig.NewVerifier(r)
+	if err != nil {
+		return "", fmt.Errorf("httpsig.NewVerifier failed: %s", err)
+	}
+
+	return verifier.KeyId(), nil
 }
