@@ -398,7 +398,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		}
 	}
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return

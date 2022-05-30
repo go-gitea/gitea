@@ -88,9 +88,13 @@ func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
-func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
+func GetPushMirrorsByRepoID(repoID int64, listOptions db.ListOptions) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
-	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
+	sess := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = db.SetSessionPagination(sess, &listOptions)
+	}
+	return mirrors, sess.Find(&mirrors)
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.

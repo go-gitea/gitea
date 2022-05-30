@@ -86,7 +86,7 @@ func Settings(ctx *context.Context) {
 		}
 		ctx.Data["StatsIndexerStatus"] = status
 	}
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
@@ -1208,7 +1208,7 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 		return nil, err
 	}
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
