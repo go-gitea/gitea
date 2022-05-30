@@ -299,7 +299,6 @@ func userCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 		From("`collaboration`").
 		Where(builder.And(
 			builder.Eq{"`collaboration`.user_id": userID},
-			builder.Gt{"`collaboration`.mode": int(perm.AccessModeNone)},
 		)),
 	)
 }
