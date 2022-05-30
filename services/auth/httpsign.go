@@ -155,6 +155,7 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 	return validpk, nil
 }
 
+// doVerify iterates across the provided public keys attempting the verify the current request against each key in turn
 func doVerify(verifier httpsig.Verifier, publickeys []ssh.PublicKey) error {
 	verified := false
 
