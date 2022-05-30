@@ -173,13 +173,13 @@ func Home(ctx *context.Context) {
 		if repo.OwnerID != org.ID {
 			log.Warn("Ignoring pinned repo %v because it's not owned by %v", repo.FullName(), org.Name)
 		} else {
-			access, err := access.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			perm, err := access.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
 			}
-			if !access.HasAccess() {
-				log.Info("Ignoring pinned repo %v because it's not owned by %v", repo.FullName(), org.Name)
+			if !perm.HasAccess() {
+				log.Info("Ignoring pinned repo %v because user %v has no access to it.", repo.FullName(), ctx.Doer)
 			} else {
 				pinnedRepos = append(pinnedRepos, repo)
 			}
