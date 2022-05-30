@@ -5,7 +5,7 @@
 package user
 
 import (
-	"encoding/json"
+	"code.gitea.io/gitea/modules/json"
 	"fmt"
 )
 
