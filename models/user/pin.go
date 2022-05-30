@@ -60,9 +60,9 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 	}
 	newrepos := make([]int64, 0, len(repoIDs)+len(repos))
 
-	allrepos := append(repos, repoIDs...)
+	repos := append(repos, repoIDs...)
 
-	for _, toadd := range allrepos {
+	for _, toadd := range repos {
 		alreadypresent := false
 		for _, present := range newrepos {
 			if toadd == present {
