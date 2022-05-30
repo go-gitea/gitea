@@ -25,14 +25,15 @@ const (
 	defaultMaxInSize = 50
 )
 
+// get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
 	repoIDs := make(map[int64]struct{}, len(issues))
 	for _, issue := range issues {
-		if issue.Repo != nil {
-			continue
-		}
-		if _, ok := repoIDs[issue.RepoID]; !ok {
+		if issue.Repo == nil {
 			repoIDs[issue.RepoID] = struct{}{}
+		}
+		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
+			repoIDs[issue.PullRequest.HeadRepoID] = struct{}{}
 		}
 	}
 	return container.KeysInt64(repoIDs)
@@ -67,8 +68,11 @@ func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Rep
 		} else {
 			repoMaps[issue.RepoID] = issue.Repo
 		}
-		if issue.PullRequest != nil && issue.PullRequest.BaseRepo == nil {
+		if issue.PullRequest != nil {
 			issue.PullRequest.BaseRepo = issue.Repo
+			if issue.PullRequest.HeadRepo == nil {
+				issue.PullRequest.HeadRepo = repoMaps[issue.PullRequest.HeadRepoID]
+			}
 		}
 	}
 	return valuesRepository(repoMaps), nil
