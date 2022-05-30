@@ -42,7 +42,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 
 ## Repository (`repository`)
 
-- `ROOT`: Root path for storing all repository data. By default, it is set to %(APP_DATA_PATH)/gitea-repositories.
+- `ROOT`: **%(APP_DATA_PATH)/gitea-repositories**: Root path for storing all repository data.
    A relative path is interpreted as %(GITEA_WORK_DIR)/%(ROOT).
 - `SCRIPT_TYPE`: **bash**: The script type this server supports. Usually this is `bash`,
    but some users report that only `sh` is available.
