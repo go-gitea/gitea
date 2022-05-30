@@ -18,10 +18,10 @@ func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 		return nil, err
 	}
 
-	if len(pinnedstring) == 0 {
-		return nil, nil
-	}
 	var parsedValues []int64
+	if pinnedstring == "" {
+		return parsedValues, nil
+	}
 
 	err = json.Unmarshal([]byte(pinnedstring), &parsedValues)
 
