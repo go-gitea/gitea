@@ -3,7 +3,7 @@
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="ui five wide column">
-				<div class="ui card">
+				<div id="profile-card" class="ui card">
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-position="bottom center">
 							{{avatar .Owner 290}}
@@ -87,6 +87,11 @@
 				</div>
 			</div>
 			<div class="ui eleven wide column">
+				{{if .PinnedRepos}}
+				<div id="pinned_repos" class="item">
+					{{template "shared/pinned_repos_onewide" .}}
+				</div>
+				{{end}}
 				<div class="ui secondary stackable pointing tight menu">
 					<a class='{{if and (ne .TabName "activity") (ne .TabName "following") (ne .TabName "followers") (ne .TabName "stars") (ne .TabName "watching") (ne .TabName "projects")}}active{{end}} item' href="{{.Owner.HomeLink}}">
 						{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}

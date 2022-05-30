@@ -18,11 +18,14 @@
 			</div>
 		</div>
 	</div>
+	{{if .PinnedRepos}}
 	<div class="ui container">
+		<div class="ui divider"></div>
 		<div id="pinned_repos" class="item">
-			{{template "shared/pinned_repos" .}}
+			{{template "shared/pinned_repos_threewide" .}}
 		</div>
 	</div>
+	{{end}}
 	{{template "org/menu" .}}
 
 	<div class="ui container">

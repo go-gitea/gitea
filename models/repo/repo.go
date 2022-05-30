@@ -201,6 +201,20 @@ func (repo *Repository) IsBroken() bool {
 	return repo.Status == RepositoryBroken
 }
 
+// IsPinned indicates that repository is pinned
+func (repo *Repository) IsPinned() bool {
+	pinned, err := user_model.GetPinnedRepositoryIDs(repo.OwnerID)
+	if err != nil {
+		return false
+	}
+	for _, r := range pinned {
+		if r == repo.ID {
+			return true
+		}
+	}
+	return false
+}
+
 // AfterLoad is invoked from XORM after setting the values of all fields of this object.
 func (repo *Repository) AfterLoad() {
 	// FIXME: use models migration to solve all at once.
