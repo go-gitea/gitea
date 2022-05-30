@@ -66,7 +66,7 @@ https://github.com/loganinak/MigrateGitlabToGogs
 - RepoRootPath
   - `ROOT` in the \[repository] section of `app.ini` if absolute
   - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
-  - Else `%(AppDataPath)/gitea-repositories`
+  - Default `%(AppDataPath)/gitea-repositories`
 - INI (config file)
   - `-c` flag
   - Else `%(CustomPath)/conf/app.ini`
