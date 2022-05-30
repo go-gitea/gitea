@@ -5,8 +5,9 @@
 package user
 
 import (
-	"code.gitea.io/gitea/modules/json"
 	"fmt"
+
+	"code.gitea.io/gitea/modules/json"
 )
 
 const maxPinnedRepos = 3
@@ -60,7 +61,7 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 	}
 	newrepos := make([]int64, 0, len(repoIDs)+len(repos))
 
-	repos := append(repos, repoIDs...)
+	repos = append(repos, repoIDs...)
 
 	for _, toadd := range repos {
 		alreadypresent := false
