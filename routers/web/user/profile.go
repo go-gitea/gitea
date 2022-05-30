@@ -263,7 +263,6 @@ func Profile(ctx *context.Context) {
 			TopicOnly:          topicOnly,
 			Language:           language,
 			IncludeDescription: setting.UI.SearchRepoDescription,
-			Pinned:             util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchRepository", err)
