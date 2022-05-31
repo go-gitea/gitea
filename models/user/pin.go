@@ -12,6 +12,8 @@ import (
 
 const maxPinnedRepos = 3
 
+// Get all the repositories pinned by a user. If they've never
+// set pinned repositories, an empty array is returned.
 func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 	pinnedstring, err := GetUserSetting(userID, PinnedRepositories)
 	if err != nil {
