@@ -45,20 +45,20 @@ function filterRepoFiles(keys) {
     // Remove all tr
     $('#repo-find-files-table tbody').empty();
 
-    let hit = false;
+    let hit = 0;
     const treeLink = $('#tree-link').val();
     for (let i = 0; i < files.length; i++) {
-      if (i >= threshold) break;
+      if (hit >= threshold) break;
 
       const keysTrim = keys.trim();
       const hitIndexes = hitAllKeys(keysTrim, files[i]);
       if (hitIndexes.length > 0 && keysTrim.length === hitIndexes.length) {
         const textWithHl = addHighLightToHit(files[i], hitIndexes);
         generateTrWithHighlight(treeLink, files[i], textWithHl);
-        hit = true;
+        hit++;
       }
     }
-    if (hit) {
+    if (hit > 0) {
       $('#no-hit-prompt').hide();
     } else {
       $('#no-hit-prompt').show();
