@@ -825,7 +825,7 @@ func Routes() *web.Route {
 						Put(reqAdmin(), repo.AddTeam).
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
-				m.Get("/find/*", context.RepoRefForAPI, repo.GetRepoFiles)
+				m.Get("/find/*", context.ReferencesGitRepo(), context.RepoRefForAPI, repo.GetRepoFiles)
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
 				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).

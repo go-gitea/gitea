@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 import {svg} from '../svg.js';
 const {appSubUrl, csrf} = window.config;
 
@@ -26,7 +28,7 @@ function addHighLightToHit(entry, indexes) {
   let highLightText = '';
   for (let i = 0; i < entry.length; i++) {
     if (indexes.includes(i)) {
-      highLightText += `<b>${entry[i]}</b>`;
+      highLightText += `<span style="color: red">${entry[i]}</span>`;
     } else {
       highLightText += entry[i];
     }

@@ -15,6 +15,8 @@ import (
 	"code.gitea.io/gitea/modules/git"
 
 	"github.com/go-enry/go-enry/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 var excludedDirs = []string{
@@ -97,11 +99,13 @@ func isExcludedEntry(entry *git.TreeEntry, rx *regexp.Regexp) bool {
 func generateMatcher() *regexp.Regexp {
 	dirRegex := ""
 
+	caser := cases.Title(language.Und)
+
 	for i, dir := range excludedDirs {
 		// Matched vendor or Vendor or VENDOR directories.
 		dirRegex += fmt.Sprintf("(^%s\\/.*$)|(^%s\\/.*$)|(^%s\\/.*$)",
 			dir,
-			strings.Title(strings.ToLower(dir)),
+			caser.String(strings.ToLower(dir)),
 			strings.ToUpper(dir),
 		)
 		if i < len(excludedDirs)-1 {
