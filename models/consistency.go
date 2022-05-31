@@ -141,7 +141,7 @@ func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Count("id")
+		Count()
 }
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
