@@ -26,7 +26,7 @@ file can be unpacked and used to restore an instance.
 
 To ensure the consistency of the Gitea instance, it must be shutdown during backup.
 
-Gitea consists of a database, files and git repositories, all of which change when it is used. For instance, when a migration is in progress a transaction is created in the database while the git repository is being copied over. If the backup happens in the middle of the migration, the git repository may be incomplete although the database claims otherwise because it was dumped afterwards. The only way to avoid such race conditions is by stooping the Gitea instance during the backups.
+Gitea consists of a database, files and git repositories, all of which change when it is used. For instance, when a migration is in progress a transaction is created in the database while the git repository is being copied over. If the backup happens in the middle of the migration, the git repository may be incomplete although the database claims otherwise because it was dumped afterwards. The only way to avoid such race conditions is by stopping the Gitea instance during the backups.
 
 ## Backup Command (`dump`)
 
