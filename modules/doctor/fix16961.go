@@ -303,11 +303,10 @@ func fixBrokenRepoUnits16961(ctx context.Context, logger log.Logger, autofix boo
 
 	if !autofix {
 		if count == 0 {
-			logger.Info("Foud no broken repo_units")
-			return nil
+			logger.Info("Found no broken repo_units")
+		} else {
+			logger.Warn("Found %d broken repo_units", count)
 		}
-
-		logger.Warn("Found %d broken repo_units", count)
 		return nil
 	}
 	logger.Info("Fixed %d broken repo_units", count)
