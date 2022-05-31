@@ -66,11 +66,11 @@ func RenderFile(ctx *context.Context) {
 
 	var result bytes.Buffer
 	err = markup.Render(&markup.RenderContext{
-		Ctx:       ctx,
-		Filename:  blob.Name(),
-		URLPrefix: path.Dir(treeLink),
-		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-		GitRepo:   ctx.Repo.GitRepo,
+		Ctx:          ctx,
+		RelativePath: ctx.Repo.TreePath,
+		URLPrefix:    path.Dir(treeLink),
+		Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+		GitRepo:      ctx.Repo.GitRepo,
 	}, rd, &result)
 	if err != nil {
 		ctx.ServerError("Render", err)

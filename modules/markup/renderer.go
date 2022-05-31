@@ -37,7 +37,7 @@ func Init() {
 // RenderContext represents a render context
 type RenderContext struct {
 	Ctx           context.Context
-	Filename      string
+	RelativePath  string // relative path from tree root of the branch
 	Type          string
 	IsWiki        bool
 	URLPrefix     string
@@ -116,7 +116,7 @@ func GetRendererByType(tp string) Renderer {
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	if ctx.Type != "" {
 		return renderByType(ctx, input, output)
-	} else if ctx.Filename != "" {
+	} else if ctx.RelativePath != "" {
 		return renderFile(ctx, input, output)
 	}
 	return errors.New("Render options both filename and type missing")
@@ -144,7 +144,7 @@ onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no"
 		ctx.Metas["user"],
 		ctx.Metas["repo"],
 		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.Filename),
+		url.PathEscape(ctx.RelativePath),
 	))
 	return err
 }
@@ -225,7 +225,7 @@ func (err ErrUnsupportedRenderExtension) Error() string {
 }
 
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.Filename))
+	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
 	if renderer, ok := extRenderers[extension]; ok {
 		if renderer.DisplayInIFrame() && ctx.UseIframe {
 			return renderIFrame(ctx, renderer, input, output)
