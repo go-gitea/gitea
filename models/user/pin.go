@@ -14,7 +14,6 @@ const maxPinnedRepos = 3
 
 func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 	pinnedstring, err := GetUserSetting(userID, PinnedRepositories)
-
 	if err != nil {
 		return nil, err
 	}
@@ -35,13 +34,11 @@ func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 
 func setPinnedRepositories(userID int64, repos []int64) error {
 	stringed, err := json.Marshal(repos)
-
 	if err != nil {
 		return err
 	}
 
 	return SetUserSetting(userID, PinnedRepositories, string(stringed))
-
 }
 
 type TooManyPinnedReposError struct {
@@ -56,9 +53,7 @@ func (e *TooManyPinnedReposError) Error() string {
 // The caller must ensure all repos belong to the
 // owner.
 func PinRepos(ownerID int64, repoIDs ...int64) error {
-
 	repos, err := GetPinnedRepositoryIDs(ownerID)
-
 	if err != nil {
 		return err
 	}
@@ -86,7 +81,6 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 
 // Remove some repos from a user's pinned repositories.
 func UnpinRepos(ownerID int64, repoIDs ...int64) error {
-
 	prevRepos, err := GetPinnedRepositoryIDs(ownerID)
 	if err != nil {
 		return err

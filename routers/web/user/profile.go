@@ -282,7 +282,6 @@ func Profile(ctx *context.Context) {
 	pinnedRepos := make([]*repo_model.Repository, 0, len(pinnedRepoIDs))
 	for _, id := range pinnedRepoIDs {
 		repo, err := repo_model.GetRepositoryByID(id)
-
 		if err != nil {
 			ctx.ServerError("GetRepositoryByID", err)
 			return
