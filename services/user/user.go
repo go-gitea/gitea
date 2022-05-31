@@ -183,6 +183,7 @@ func DeleteAvatar(u *user_model.User) error {
 	return nil
 }
 
+// Verify that a user has permission to pin/unpin a repository
 func CanPin(ctx context.Context, u *user_model.User, r *repo_model.Repository) bool {
 	perm, err := access_model.GetUserRepoPermission(ctx, r, u)
 	return err == nil && perm.IsAdmin()

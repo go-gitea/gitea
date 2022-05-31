@@ -52,6 +52,9 @@ func (e *TooManyPinnedReposError) Error() string {
 	return fmt.Sprintf("can pin at most %d repositories, %d pinned repositories is too much", maxPinnedRepos, e.count)
 }
 
+// Add some repos to a user's pinned repositories.
+// The caller must ensure all repos belong to the
+// owner.
 func PinRepos(ownerID int64, repoIDs ...int64) error {
 
 	repos, err := GetPinnedRepositoryIDs(ownerID)
@@ -81,6 +84,7 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 	return setPinnedRepositories(ownerID, newrepos)
 }
 
+// Remove some repos from a user's pinned repositories.
 func UnpinRepos(ownerID int64, repoIDs ...int64) error {
 
 	prevRepos, err := GetPinnedRepositoryIDs(ownerID)
