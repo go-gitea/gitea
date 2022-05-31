@@ -5,9 +5,11 @@
 package mailer
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -19,6 +21,7 @@ func fallbackMailSubject(issue *models.Issue) string {
 }
 
 type mailCommentContext struct {
+	context.Context
 	Issue      *models.Issue
 	Doer       *user_model.User
 	ActionType models.ActionType
@@ -36,9 +39,8 @@ const (
 // 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
-
 	// Required by the mail composer; make sure to load these before calling the async function
-	if err := ctx.Issue.LoadRepo(); err != nil {
+	if err := ctx.Issue.LoadRepo(ctx); err != nil {
 		return fmt.Errorf("LoadRepo(): %v", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
@@ -69,7 +71,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -78,7 +80,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = models.GetRepoWatchersIDs(ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -96,7 +98,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -123,6 +125,10 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
+		if !user.IsActive {
+			// Exclude deactivated users
+			continue
+		}
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
@@ -139,7 +145,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !ctx.Issue.Repo.CheckUnitUser(user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -179,6 +185,7 @@ func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,

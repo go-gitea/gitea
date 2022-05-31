@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 export function initRepoEllipsisButton() {
@@ -45,5 +47,18 @@ export function initRepoCommitLastCommitLoader() {
       }
       entryMap[$(row).attr('data-entryname')].replaceWith(row);
     });
+  });
+}
+
+export function initCommitStatuses() {
+  $('.commit-statuses-trigger').each(function () {
+    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
+    const popupPosition = positionRight ? 'right center' : 'left center';
+    $(this)
+      .popup({
+        on: 'click',
+        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
+        position: popupPosition,
+      });
   });
 }

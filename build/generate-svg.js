@@ -54,5 +54,5 @@ async function main() {
   ]);
 }
 
-main().then(exit).catch(exit); // eslint-disable-line github/no-then
+main().then(exit).catch(exit);
 

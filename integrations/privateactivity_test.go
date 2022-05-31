@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -17,8 +18,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const privateActivityTestAdmin = "user1"
-const privateActivityTestUser = "user2"
+const (
+	privateActivityTestAdmin = "user1"
+	privateActivityTestUser  = "user2"
+)
 
 // user3 is an organization so it is not usable here
 const privateActivityTestOtherUser = "user4"
@@ -26,7 +29,7 @@ const privateActivityTestOtherUser = "user4"
 // activity helpers
 
 func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, privateActivityTestUser)
@@ -50,7 +53,7 @@ func testPrivateActivityHelperEnablePrivateActivity(t *testing.T) {
 		"language":              "en-US",
 		"keep_activity_private": "1",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func testPrivateActivityHelperHasVisibleActivitiesInHTMLDoc(htmlDoc *HTMLDoc) bool {

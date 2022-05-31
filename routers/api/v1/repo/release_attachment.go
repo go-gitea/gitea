@@ -55,7 +55,7 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -178,13 +178,13 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	}
 	defer file.Close()
 
-	var filename = header.Filename
+	filename := header.Filename
 	if query := ctx.FormString("name"); query != "" {
 		filename = query
 	}
 
 	// Create a new attachment and save the file
-	attach, err := attachment.UploadAttachment(file, ctx.User.ID, release.RepoID, releaseID, filename, setting.Repository.Release.AllowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.Doer.ID, release.RepoID, releaseID, filename, setting.Repository.Release.AllowedTypes)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.Error(http.StatusBadRequest, "DetectContentType", err)
@@ -242,7 +242,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
@@ -257,7 +257,7 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 		attach.Name = form.Name
 	}
 
-	if err := repo_model.UpdateAttachment(attach); err != nil {
+	if err := repo_model.UpdateAttachment(ctx, attach); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateAttachment", attach)
 	}
 	ctx.JSON(http.StatusCreated, convert.ToReleaseAttachment(attach))
@@ -300,7 +300,7 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
 	attachID := ctx.ParamsInt64(":asset")
-	attach, err := repo_model.GetAttachmentByID(attachID)
+	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return

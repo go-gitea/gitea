@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
-const unmappedColumn = -1
-const maxRowsToInspect int = 10
-const minRatioToMatch float32 = 0.8
+const (
+	unmappedColumn           = -1
+	maxRowsToInspect int     = 10
+	minRatioToMatch  float32 = 0.8
+)
 
 // TableDiffCellType represents the type of a TableDiffCell.
 type TableDiffCellType uint8
@@ -111,7 +113,7 @@ func (csv *csvReader) readNextRow() ([]string, error) {
 }
 
 // CreateCsvDiff creates a tabular diff based on two CSV readers.
-func CreateCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
+func CreateCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*TableDiffSection, error) {
 	if baseReader != nil && headReader != nil {
 		return createCsvDiff(diffFile, baseReader, headReader)
 	}
@@ -149,7 +151,7 @@ func createCsvDiffSingle(reader *csv.Reader, celltype TableDiffCellType) ([]*Tab
 	return []*TableDiffSection{{Rows: rows}}, nil
 }
 
-func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.Reader) ([]*TableDiffSection, error) {
+func createCsvDiff(diffFile *DiffFile, baseReader, headReader *csv.Reader) ([]*TableDiffSection, error) {
 	// Given the baseReader and headReader, we are going to create CSV Reader for each, baseCSVReader and b respectively
 	baseCSVReader, err := createCsvReader(baseReader, maxRowsToInspect)
 	if err != nil {
@@ -172,7 +174,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 	// createDiffTableRow takes the row # of the `a` line and `b` line of a diff (starting from 1), 0 if the line doesn't exist (undefined)
 	// in the base or head respectively.
 	// Returns a TableDiffRow which has the row index
-	createDiffTableRow := func(aLineNum int, bLineNum int) (*TableDiffRow, error) {
+	createDiffTableRow := func(aLineNum, bLineNum int) (*TableDiffRow, error) {
 		// diffTableCells is a row of the diff table. It will have a cells for added, deleted, changed, and unchanged content, thus either
 		// the same size as the head table or bigger
 		diffTableCells := make([]*TableDiffCell, numDiffTableCols)
@@ -346,7 +348,7 @@ func createCsvDiff(diffFile *DiffFile, baseReader *csv.Reader, headReader *csv.R
 }
 
 // getColumnMapping creates a mapping of columns between a and b
-func getColumnMapping(baseCSVReader *csvReader, headCSVReader *csvReader) ([]int, []int) {
+func getColumnMapping(baseCSVReader, headCSVReader *csvReader) ([]int, []int) {
 	baseRow, _ := baseCSVReader.GetRow(0)
 	headRow, _ := headCSVReader.GetRow(0)
 

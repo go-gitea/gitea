@@ -6,6 +6,7 @@
 package pull
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"regexp"
@@ -13,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -21,8 +23,7 @@ import (
 )
 
 // CreateCodeComment creates a comment on the code line
-func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, line int64, content string, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
-
+func CreateCodeComment(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, line int64, content, treePath string, isReview bool, replyReviewID int64, latestCommitID string) (*models.Comment, error) {
 	var (
 		existsReview bool
 		err          error
@@ -43,11 +44,11 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 
 	// Comments that are replies don't require a review header to show up in the issue view
 	if !isReview && existsReview {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(ctx); err != nil {
 			return nil, err
 		}
 
-		comment, err := createCodeComment(
+		comment, err := createCodeComment(ctx,
 			doer,
 			issue.Repo,
 			issue,
@@ -60,7 +61,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 			return nil, err
 		}
 
-		mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+		mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comment.Content)
 		if err != nil {
 			return nil, err
 		}
@@ -70,13 +71,13 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 		return comment, nil
 	}
 
-	review, err := models.GetCurrentReview(doer, issue)
+	review, err := models.GetCurrentReview(ctx, doer, issue)
 	if err != nil {
 		if !models.IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
-		if review, err = models.CreateReview(models.CreateReviewOptions{
+		if review, err = models.CreateReview(ctx, models.CreateReviewOptions{
 			Type:     models.ReviewTypePending,
 			Reviewer: doer,
 			Issue:    issue,
@@ -87,7 +88,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 		}
 	}
 
-	comment, err := createCodeComment(
+	comment, err := createCodeComment(ctx,
 		doer,
 		issue.Repo,
 		issue,
@@ -102,7 +103,7 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 
 	if !isReview && !existsReview {
 		// Submit the review we've just created so the comment shows up in the issue view
-		if _, _, err = SubmitReview(doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID, nil); err != nil {
+		if _, _, err = SubmitReview(ctx, doer, gitRepo, issue, models.ReviewTypeComment, "", latestCommitID, nil); err != nil {
 			return nil, err
 		}
 	}
@@ -115,26 +116,26 @@ func CreateCodeComment(doer *user_model.User, gitRepo *git.Repository, issue *mo
 var notEnoughLines = regexp.MustCompile(`exit status 128 - fatal: file .* has only \d+ lines?`)
 
 // createCodeComment creates a plain code comment at the specified line / path
-func createCodeComment(doer *user_model.User, repo *models.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
+func createCodeComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, content, treePath string, line, reviewID int64) (*models.Comment, error) {
 	var commitID, patch string
 	if err := issue.LoadPullRequest(); err != nil {
 		return nil, fmt.Errorf("GetPullRequestByIssueID: %v", err)
 	}
 	pr := issue.PullRequest
-	if err := pr.LoadBaseRepo(); err != nil {
+	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, fmt.Errorf("LoadHeadRepo: %v", err)
 	}
-	gitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, pr.BaseRepo.RepoPath())
 	if err != nil {
-		return nil, fmt.Errorf("OpenRepository: %v", err)
+		return nil, fmt.Errorf("RepositoryFromContextOrOpen: %v", err)
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	invalidated := false
 	head := pr.GetGitRefName()
 	if line > 0 {
 		if reviewID != 0 {
-			first, err := models.FindComments(&models.FindCommentsOptions{
+			first, err := models.FindComments(ctx, &models.FindCommentsOptions{
 				ReviewID: reviewID,
 				Line:     line,
 				TreePath: treePath,
@@ -151,7 +152,7 @@ func createCodeComment(doer *user_model.User, repo *models.Repository, issue *mo
 			} else if err != nil && !models.IsErrCommentNotExist(err) {
 				return nil, fmt.Errorf("Find first comment for %d line %d path %s. Error: %v", reviewID, line, treePath, err)
 			} else {
-				review, err := models.GetReviewByID(reviewID)
+				review, err := models.GetReviewByID(ctx, reviewID)
 				if err == nil && len(review.CommitID) > 0 {
 					head = review.CommitID
 				} else if err != nil && !models.IsErrReviewNotExist(err) {
@@ -217,7 +218,7 @@ func createCodeComment(doer *user_model.User, repo *models.Repository, issue *mo
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
+func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repository, issue *models.Issue, reviewType models.ReviewType, content, commitID string, attachmentUUIDs []string) (*models.Review, *models.Comment, error) {
 	pr, err := issue.GetPullRequest()
 	if err != nil {
 		return nil, nil, err
@@ -235,7 +236,7 @@ func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.
 		if headCommitID == commitID {
 			stale = false
 		} else {
-			stale, err = checkIfPRContentChanged(pr, commitID, headCommitID)
+			stale, err = checkIfPRContentChanged(ctx, pr, commitID, headCommitID)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -247,8 +248,7 @@ func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.
 		return nil, nil, err
 	}
 
-	ctx := db.DefaultContext
-	mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, comm.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, comm.Content)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -258,7 +258,7 @@ func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, codeComment := range comments {
-				mentions, err := issue.FindAndUpdateIssueMentions(ctx, doer, codeComment.Content)
+				mentions, err := models.FindAndUpdateIssueMentions(ctx, issue, doer, codeComment.Content)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -271,8 +271,8 @@ func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *models.Comment, err error) {
-	review, err := models.GetReviewByID(reviewID)
+func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *models.Comment, err error) {
+	review, err := models.GetReviewByID(ctx, reviewID)
 	if err != nil {
 		return
 	}
@@ -290,7 +290,7 @@ func DismissReview(reviewID int64, message string, doer *user_model.User, isDism
 	}
 
 	// load data for notify
-	if err = review.LoadAttributes(); err != nil {
+	if err = review.LoadAttributes(ctx); err != nil {
 		return
 	}
 	if err = review.Issue.LoadPullRequest(); err != nil {

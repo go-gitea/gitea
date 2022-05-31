@@ -8,13 +8,14 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
 // CreateIssueComment creates a plain issue comment.
-func CreateIssueComment(doer *user_model.User, repo *models.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
+func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, content string, attachments []string) (*models.Comment, error) {
 	comment, err := models.CreateComment(&models.CreateCommentOptions{
 		Type:        models.CommentTypeComment,
 		Doer:        doer,
@@ -27,7 +28,7 @@ func CreateIssueComment(doer *user_model.User, repo *models.Repository, issue *m
 		return nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +40,7 @@ func CreateIssueComment(doer *user_model.User, repo *models.Repository, issue *m
 
 // UpdateComment updates information of comment.
 func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) error {
-	var needsContentHistory = c.Content != oldContent &&
+	needsContentHistory := c.Content != oldContent &&
 		(c.Type == models.CommentTypeComment || c.Type == models.CommentTypeReview || c.Type == models.CommentTypeCode)
 	if needsContentHistory {
 		hasContentHistory, err := issues.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)
@@ -47,7 +48,7 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 			return err
 		}
 		if !hasContentHistory {
-			if err = issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), c.PosterID, c.IssueID, c.ID,
+			if err = issues.SaveIssueContentHistory(db.DefaultContext, c.PosterID, c.IssueID, c.ID,
 				c.CreatedUnix, oldContent, true); err != nil {
 				return err
 			}
@@ -59,7 +60,7 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 	}
 
 	if needsContentHistory {
-		err := issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		err := issues.SaveIssueContentHistory(db.DefaultContext, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 		if err != nil {
 			return err
 		}

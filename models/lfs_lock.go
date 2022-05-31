@@ -5,27 +5,28 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"path"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
-
-	"xorm.io/xorm"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // LFSLock represents a git lfs lock of repository.
 type LFSLock struct {
-	ID      int64       `xorm:"pk autoincr"`
-	Repo    *Repository `xorm:"-"`
-	RepoID  int64       `xorm:"INDEX NOT NULL"`
-	OwnerID int64       `xorm:"INDEX NOT NULL"`
-	Path    string      `xorm:"TEXT"`
-	Created time.Time   `xorm:"created"`
+	ID      int64     `xorm:"pk autoincr"`
+	RepoID  int64     `xorm:"INDEX NOT NULL"`
+	OwnerID int64     `xorm:"INDEX NOT NULL"`
+	Path    string    `xorm:"TEXT"`
+	Created time.Time `xorm:"created"`
 }
 
 func init() {
@@ -34,17 +35,7 @@ func init() {
 
 // BeforeInsert is invoked from XORM before inserting an object of this type.
 func (l *LFSLock) BeforeInsert() {
-	l.RepoID = l.Repo.ID
 	l.Path = cleanPath(l.Path)
-}
-
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (l *LFSLock) AfterLoad(session *xorm.Session) {
-	var err error
-	l.Repo, err = getRepositoryByID(session, l.RepoID)
-	if err != nil {
-		log.Error("LFS lock AfterLoad failed RepoId[%d] not found: %v", l.RepoID, err)
-	}
 }
 
 func cleanPath(p string) string {
@@ -52,15 +43,21 @@ func cleanPath(p string) string {
 }
 
 // CreateLFSLock creates a new lock.
-func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
-	err := CheckLFSAccessForRepo(lock.OwnerID, lock.Repo, AccessModeWrite)
+func CreateLFSLock(repo *repo_model.Repository, lock *LFSLock) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext()
 	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	if err := CheckLFSAccessForRepo(dbCtx, lock.OwnerID, repo, perm.AccessModeWrite); err != nil {
 		return nil, err
 	}
 
 	lock.Path = cleanPath(lock.Path)
+	lock.RepoID = repo.ID
 
-	l, err := GetLFSLock(lock.Repo, lock.Path)
+	l, err := GetLFSLock(dbCtx, repo, lock.Path)
 	if err == nil {
 		return l, ErrLFSLockAlreadyExist{lock.RepoID, lock.Path}
 	}
@@ -68,15 +65,18 @@ func CreateLFSLock(lock *LFSLock) (*LFSLock, error) {
 		return nil, err
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).InsertOne(lock)
-	return lock, err
+	if err := db.Insert(dbCtx, lock); err != nil {
+		return nil, err
+	}
+
+	return lock, committer.Commit()
 }
 
 // GetLFSLock returns release by given path.
-func GetLFSLock(repo *Repository, path string) (*LFSLock, error) {
+func GetLFSLock(ctx context.Context, repo *repo_model.Repository, path string) (*LFSLock, error) {
 	path = cleanPath(path)
 	rel := &LFSLock{RepoID: repo.ID}
-	has, err := db.GetEngine(db.DefaultContext).Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
+	has, err := db.GetEngine(ctx).Where("lower(path) = ?", strings.ToLower(path)).Get(rel)
 	if err != nil {
 		return nil, err
 	}
@@ -87,9 +87,9 @@ func GetLFSLock(repo *Repository, path string) (*LFSLock, error) {
 }
 
 // GetLFSLockByID returns release by given id.
-func GetLFSLockByID(id int64) (*LFSLock, error) {
+func GetLFSLockByID(ctx context.Context, id int64) (*LFSLock, error) {
 	lock := new(LFSLock)
-	has, err := db.GetEngine(db.DefaultContext).ID(id).Get(lock)
+	has, err := db.GetEngine(ctx).ID(id).Get(lock)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -112,20 +112,43 @@ func GetLFSLockByRepoID(repoID int64, page, pageSize int) ([]*LFSLock, error) {
 	return lfsLocks, e.Find(&lfsLocks, &LFSLock{RepoID: repoID})
 }
 
+// GetTreePathLock returns LSF lock for the treePath
+func GetTreePathLock(repoID int64, treePath string) (*LFSLock, error) {
+	if !setting.LFS.StartServer {
+		return nil, nil
+	}
+
+	locks, err := GetLFSLockByRepoID(repoID, 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	for _, lock := range locks {
+		if lock.Path == treePath {
+			return lock, nil
+		}
+	}
+	return nil, nil
+}
+
 // CountLFSLockByRepoID returns a count of all LFSLocks associated with a repository.
 func CountLFSLockByRepoID(repoID int64) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Count(&LFSLock{RepoID: repoID})
 }
 
 // DeleteLFSLockByID deletes a lock by given ID.
-func DeleteLFSLockByID(id int64, u *user_model.User, force bool) (*LFSLock, error) {
-	lock, err := GetLFSLockByID(id)
+func DeleteLFSLockByID(id int64, repo *repo_model.Repository, u *user_model.User, force bool) (*LFSLock, error) {
+	dbCtx, committer, err := db.TxContext()
+	if err != nil {
+		return nil, err
+	}
+	defer committer.Close()
+
+	lock, err := GetLFSLockByID(dbCtx, id)
 	if err != nil {
 		return nil, err
 	}
 
-	err = CheckLFSAccessForRepo(u.ID, lock.Repo, AccessModeWrite)
-	if err != nil {
+	if err := CheckLFSAccessForRepo(dbCtx, u.ID, repo, perm.AccessModeWrite); err != nil {
 		return nil, err
 	}
 
@@ -133,20 +156,23 @@ func DeleteLFSLockByID(id int64, u *user_model.User, force bool) (*LFSLock, erro
 		return nil, fmt.Errorf("user doesn't own lock and force flag is not set")
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).ID(id).Delete(new(LFSLock))
-	return lock, err
+	if _, err := db.GetEngine(dbCtx).ID(id).Delete(new(LFSLock)); err != nil {
+		return nil, err
+	}
+
+	return lock, committer.Commit()
 }
 
 // CheckLFSAccessForRepo check needed access mode base on action
-func CheckLFSAccessForRepo(ownerID int64, repo *Repository, mode AccessMode) error {
+func CheckLFSAccessForRepo(ctx context.Context, ownerID int64, repo *repo_model.Repository, mode perm.AccessMode) error {
 	if ownerID == 0 {
 		return ErrLFSUnauthorizedAction{repo.ID, "undefined", mode}
 	}
-	u, err := user_model.GetUserByID(ownerID)
+	u, err := user_model.GetUserByIDCtx(ctx, ownerID)
 	if err != nil {
 		return err
 	}
-	perm, err := GetUserRepoPermission(repo, u)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, u)
 	if err != nil {
 		return err
 	}

@@ -107,51 +107,71 @@ func NewQueueService() {
 	Queue.SetName = sec.Key("SET_NAME").MustString("")
 
 	// Now handle the old issue_indexer configuration
+	// FIXME: DEPRECATED to be removed in v1.18.0
 	section := Cfg.Section("queue.issue_indexer")
 	directlySet := toDirectlySetKeysMap(section)
 	if !directlySet["TYPE"] && defaultType == "" {
-		switch Indexer.IssueQueueType {
-		case LevelQueueType:
+		switch typ := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
+		case "levelqueue":
 			_, _ = section.NewKey("TYPE", "level")
-		case ChannelQueueType:
+		case "channel":
 			_, _ = section.NewKey("TYPE", "persistable-channel")
-		case RedisQueueType:
+		case "redis":
 			_, _ = section.NewKey("TYPE", "redis")
 		case "":
 			_, _ = section.NewKey("TYPE", "level")
 		default:
-			log.Fatal("Unsupported indexer queue type: %v",
-				Indexer.IssueQueueType)
+			log.Fatal("Unsupported indexer queue type: %v", typ)
 		}
 	}
-	if !directlySet["LENGTH"] && Indexer.UpdateQueueLength != 0 {
-		_, _ = section.NewKey("LENGTH", strconv.Itoa(Indexer.UpdateQueueLength))
+	if !directlySet["LENGTH"] {
+		length := Cfg.Section("indexer").Key("UPDATE_BUFFER_LEN").MustInt(0)
+		if length != 0 {
+			_, _ = section.NewKey("LENGTH", strconv.Itoa(length))
+		}
 	}
-	if !directlySet["BATCH_LENGTH"] && Indexer.IssueQueueBatchNumber != 0 {
-		_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(Indexer.IssueQueueBatchNumber))
+	if !directlySet["BATCH_LENGTH"] {
+		fallback := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
+		if fallback != 0 {
+			_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(fallback))
+		}
 	}
-	if !directlySet["DATADIR"] && Indexer.IssueQueueDir != "" {
-		_, _ = section.NewKey("DATADIR", Indexer.IssueQueueDir)
+	if !directlySet["DATADIR"] {
+		queueDir := filepath.ToSlash(Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
+		if queueDir != "" {
+			_, _ = section.NewKey("DATADIR", queueDir)
+		}
 	}
-	if !directlySet["CONN_STR"] && Indexer.IssueQueueConnStr != "" {
-		_, _ = section.NewKey("CONN_STR", Indexer.IssueQueueConnStr)
+	if !directlySet["CONN_STR"] {
+		connStr := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
+		if connStr != "" {
+			_, _ = section.NewKey("CONN_STR", connStr)
+		}
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	// - will need to set default for [queue.*)] LENGTH appropriately though though
+
 	// Handle the old mailer configuration
-	handleOldLengthConfiguration("mailer", Cfg.Section("mailer").Key("SEND_BUFFER_LEN").MustInt(100))
+	handleOldLengthConfiguration("mailer", "mailer", "SEND_BUFFER_LEN", 100)
 
 	// Handle the old test pull requests configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration("pr_patch_checker", Cfg.Section("repository").Key("PULL_REQUEST_QUEUE_LENGTH").MustInt(1000))
+	handleOldLengthConfiguration("pr_patch_checker", "repository", "PULL_REQUEST_QUEUE_LENGTH", 1000)
 
 	// Handle the old mirror queue configuration
 	// Please note this will be a unique queue
-	handleOldLengthConfiguration("mirror", Cfg.Section("repository").Key("MIRROR_QUEUE_LENGTH").MustInt(1000))
+	handleOldLengthConfiguration("mirror", "repository", "MIRROR_QUEUE_LENGTH", 1000)
 }
 
 // handleOldLengthConfiguration allows fallback to older configuration. `[queue.name]` `LENGTH` will override this configuration, but
 // if that is left unset then we should fallback to the older configuration. (Except where the new length woul be <=0)
-func handleOldLengthConfiguration(queueName string, value int) {
+func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultValue int) {
+	if Cfg.Section(oldSection).HasKey(oldKey) {
+		log.Error("Deprecated fallback for %s queue length `[%s]` `%s` present. Use `[queue.%s]` `LENGTH`. This will be removed in v1.18.0", queueName, queueName, oldSection, oldKey)
+	}
+	value := Cfg.Section(oldSection).Key(oldKey).MustInt(defaultValue)
+
 	// Don't override with 0
 	if value <= 0 {
 		return

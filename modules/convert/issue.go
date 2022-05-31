@@ -10,6 +10,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,16 +24,16 @@ import (
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
 func ToAPIIssue(issue *models.Issue) *api.Issue {
-	if err := issue.LoadLabels(); err != nil {
+	if err := issue.LoadLabels(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if err := issue.LoadPoster(); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
-	if err := issue.Repo.GetOwner(); err != nil {
+	if err := issue.Repo.GetOwner(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 
@@ -69,7 +72,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
-	if err := issue.LoadAssignees(); err != nil {
+	if err := issue.LoadAssignees(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if len(issue.Assignees) > 0 {
@@ -129,10 +132,10 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
 	issueCache := make(map[int64]*models.Issue)
-	repoCache := make(map[int64]*models.Repository)
+	repoCache := make(map[int64]*repo_model.Repository)
 	var (
 		issue *models.Issue
-		repo  *models.Repository
+		repo  *repo_model.Repository
 		ok    bool
 		err   error
 	)
@@ -147,7 +150,7 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 		}
 		repo, ok = repoCache[issue.RepoID]
 		if !ok {
-			repo, err = models.GetRepositoryByID(issue.RepoID)
+			repo, err = repo_model.GetRepositoryByID(issue.RepoID)
 			if err != nil {
 				return nil, err
 			}
@@ -176,7 +179,7 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 }
 
 // ToLabel converts Label to API format
-func ToLabel(label *models.Label, repo *models.Repository, org *user_model.User) *api.Label {
+func ToLabel(label *models.Label, repo *repo_model.Repository, org *user_model.User) *api.Label {
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
@@ -203,7 +206,7 @@ func ToLabel(label *models.Label, repo *models.Repository, org *user_model.User)
 }
 
 // ToLabelList converts list of Label to API format
-func ToLabelList(labels []*models.Label, repo *models.Repository, org *user_model.User) []*api.Label {
+func ToLabelList(labels []*models.Label, repo *repo_model.Repository, org *user_model.User) []*api.Label {
 	result := make([]*api.Label, len(labels))
 	for i := range labels {
 		result[i] = ToLabel(labels[i], repo, org)
@@ -212,7 +215,7 @@ func ToLabelList(labels []*models.Label, repo *models.Repository, org *user_mode
 }
 
 // ToAPIMilestone converts Milestone into API Format
-func ToAPIMilestone(m *models.Milestone) *api.Milestone {
+func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 	apiMilestone := &api.Milestone{
 		ID:           m.ID,
 		State:        m.State(),

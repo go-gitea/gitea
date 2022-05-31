@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
@@ -82,7 +83,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	i.Title = "title2, no mentions"
-	assert.NoError(t, i.ChangeTitle(d, title))
+	assert.NoError(t, ChangeIssueTitle(i, d, title))
 
 	ref = unittest.AssertExistsAndLoadBean(t, &Comment{IssueID: itarget.ID, RefIssueID: i.ID, RefCommentID: 0}).(*Comment)
 	assert.Equal(t, CommentTypeIssueRef, ref.Type)
@@ -97,7 +98,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
 	i3 := testCreateIssue(t, 1, 2, "title3", "content3", false)
-	_, err := i3.ChangeStatus(d, true)
+	_, err := ChangeIssueStatus(db.DefaultContext, i3, d, true)
 	assert.NoError(t, err)
 
 	pr := testCreatePR(t, 1, 2, "titlepr", fmt.Sprintf("closes #%d", i1.Index))
@@ -117,7 +118,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 	c4 := testCreateComment(t, 1, 2, pr.Issue.ID, fmt.Sprintf("closes #%d", i3.Index))
 	r4 := unittest.AssertExistsAndLoadBean(t, &Comment{IssueID: i3.ID, RefIssueID: pr.Issue.ID, RefCommentID: c4.ID}).(*Comment)
 
-	refs, err := pr.ResolveCrossReferences()
+	refs, err := pr.ResolveCrossReferences(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Len(t, refs, 3)
 	assert.Equal(t, rp.ID, refs[0].ID, "bad ref rp: %+v", refs[0])
@@ -126,7 +127,7 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 }
 
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *Issue {
-	r := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 
 	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
@@ -149,7 +150,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Issue: i,
 	})
 	assert.NoError(t, err)
-	i, err = getIssueByID(db.GetEngine(ctx), i.ID)
+	i, err = getIssueByID(ctx, i.ID)
 	assert.NoError(t, err)
 	assert.NoError(t, i.addCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())
@@ -157,11 +158,11 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 }
 
 func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRequest {
-	r := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repo}).(*Repository)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
 	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
-	assert.NoError(t, NewPullRequest(r, i, nil, nil, pr))
+	assert.NoError(t, NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
 	pr.Issue = i
 	return pr
 }

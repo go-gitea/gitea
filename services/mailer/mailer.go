@@ -7,9 +7,9 @@ package mailer
 
 import (
 	"bytes"
-	"context"
 	"crypto/tls"
 	"fmt"
+	"hash/fnv"
 	"io"
 	"net"
 	"net/smtp"
@@ -68,12 +68,27 @@ func (m *Message) ToMessage() *gomail.Message {
 		msg.SetBody("text/plain", plainBody)
 		msg.AddAlternative("text/html", m.Body)
 	}
+
+	if len(msg.GetHeader("Message-ID")) == 0 {
+		msg.SetHeader("Message-ID", m.generateAutoMessageID())
+	}
 	return msg
 }
 
 // SetHeader adds additional headers to a message
 func (m *Message) SetHeader(field string, value ...string) {
 	m.Headers[field] = value
+}
+
+func (m *Message) generateAutoMessageID() string {
+	dateMs := m.Date.UnixNano() / 1e6
+	h := fnv.New64()
+	if len(m.To) > 0 {
+		_, _ = h.Write([]byte(m.To[0]))
+	}
+	_, _ = h.Write([]byte(m.Subject))
+	_, _ = h.Write([]byte(m.Body))
+	return fmt.Sprintf("<autogen-%d-%016x@%s>", dateMs, h.Sum64(), setting.Domain)
 }
 
 // NewMessageFrom creates new mail message object with custom From header.
@@ -126,8 +141,7 @@ func (a *loginAuth) Next(fromServer []byte, more bool) ([]byte, error) {
 }
 
 // Sender SMTP mail sender
-type smtpSender struct {
-}
+type smtpSender struct{}
 
 // Send send email
 func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
@@ -239,8 +253,7 @@ func (s *smtpSender) Send(from string, to []string, msg io.WriterTo) error {
 }
 
 // Sender sendmail mail sender
-type sendmailSender struct {
-}
+type sendmailSender struct{}
 
 // Send send email
 func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
@@ -258,32 +271,36 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	args = append(args, to...)
 	log.Trace("Sending with: %s %v", setting.MailService.SendmailPath, args)
 
-	pm := process.GetManager()
 	desc := fmt.Sprintf("SendMail: %s %v", setting.MailService.SendmailPath, args)
 
-	ctx, cancel := context.WithTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout)
-	defer cancel()
+	ctx, _, finished := process.GetManager().AddContextTimeout(graceful.GetManager().HammerContext(), setting.MailService.SendmailTimeout, desc)
+	defer finished()
 
 	cmd := exec.CommandContext(ctx, setting.MailService.SendmailPath, args...)
 	pipe, err := cmd.StdinPipe()
-
 	if err != nil {
 		return err
 	}
 
 	if err = cmd.Start(); err != nil {
+		_ = pipe.Close()
 		return err
 	}
 
-	pid := pm.Add(desc, cancel)
-
-	_, err = msg.WriteTo(pipe)
+	if setting.MailService.SendmailConvertCRLF {
+		buf := &strings.Builder{}
+		_, err = msg.WriteTo(buf)
+		if err == nil {
+			_, err = strings.NewReplacer("\r\n", "\n").WriteString(pipe, buf.String())
+		}
+	} else {
+		_, err = msg.WriteTo(pipe)
+	}
 
 	// we MUST close the pipe or sendmail will hang waiting for more of the message
 	// Also we should wait on our sendmail command even if something fails
 	closeError = pipe.Close()
 	waitError = cmd.Wait()
-	pm.Remove(pid)
 	if err != nil {
 		return err
 	} else if closeError != nil {
@@ -294,8 +311,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 }
 
 // Sender sendmail mail sender
-type dummySender struct {
-}
+type dummySender struct{}
 
 // Send send email
 func (s *dummySender) Send(from string, to []string, msg io.WriterTo) error {
@@ -330,7 +346,7 @@ func NewContext() {
 		Sender = &dummySender{}
 	}
 
-	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) {
+	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) []queue.Data {
 		for _, datum := range data {
 			msg := datum.(*Message)
 			gomailMsg := msg.ToMessage()
@@ -341,6 +357,7 @@ func NewContext() {
 				log.Trace("E-mails sent %s: %s", gomailMsg.GetHeader("To"), msg.Info)
 			}
 		}
+		return nil
 	}, &Message{})
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)

@@ -7,7 +7,9 @@ package models
 import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -115,7 +117,7 @@ func DeleteOrphanedIssues() error {
 
 	var attachmentPaths []string
 	for i := range ids {
-		paths, err := deleteIssuesByRepoID(db.GetEngine(ctx), ids[i])
+		paths, err := deleteIssuesByRepoID(ctx, ids[i])
 		if err != nil {
 			return err
 		}
@@ -158,12 +160,12 @@ func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
 
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
 func CountNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(repo_model.Repository))
 }
 
 // FixNullArchivedRepository sets is_archived to false where it is null
 func FixNullArchivedRepository() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&repo_model.Repository{
 		IsArchived: false,
 	})
 }
@@ -239,10 +241,29 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 				WHERE
 					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`)
-
 	if err != nil {
 		return 0, err
 	}
 
 	return res.RowsAffected()
+}
+
+// CountActionCreatedUnixString count actions where created_unix is an empty string
+func CountActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+	}
+	return 0, nil
+}
+
+// FixActionCreatedUnixString set created_unix to zero if it is an empty string
+func FixActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		if err != nil {
+			return 0, err
+		}
+		return res.RowsAffected()
+	}
+	return 0, nil
 }

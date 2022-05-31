@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 
 export function initCommonIssue() {
@@ -19,7 +20,7 @@ export function initCommonIssue() {
     const issueIDs = $('.issue-checkbox').children('input:checked').map((_, el) => {
       return el.getAttribute('data-issue-id');
     }).get().join(',');
-    if (elementId === '0' && url.substr(-9) === '/assignee') {
+    if (elementId === '0' && url.slice(-9) === '/assignee') {
       elementId = '';
       action = 'clear';
     }
@@ -28,7 +29,7 @@ export function initCommonIssue() {
       action,
       issueIDs,
       elementId
-    ).then(() => { // eslint-disable-line github/no-then
+    ).then(() => {
       // NOTICE: This reset of checkbox state targets Firefox caching behaviour, as the
       // checkboxes stay checked after reload
       if (action === 'close' || action === 'open') {

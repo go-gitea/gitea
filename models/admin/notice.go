@@ -7,6 +7,7 @@ package admin
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
@@ -56,6 +57,7 @@ func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...inter
 
 // CreateRepositoryNotice creates new system notice with type NoticeRepository.
 func CreateRepositoryNotice(desc string, args ...interface{}) error {
+	// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 	return CreateNotice(db.DefaultContext, NoticeRepository, desc, args...)
 }
 
@@ -65,7 +67,8 @@ func RemoveAllWithNotice(ctx context.Context, title, path string) {
 	if err := util.RemoveAll(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = CreateNotice(ctx, NoticeRepository, desc); err != nil {
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = CreateNotice(db.DefaultContext, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -77,7 +80,9 @@ func RemoveStorageWithNotice(ctx context.Context, bucket storage.ObjectStorage, 
 	if err := bucket.Delete(path); err != nil {
 		desc := fmt.Sprintf("%s [%s]: %v", title, path, err)
 		log.Warn(title+" [%s]: %v", path, err)
-		if err = CreateNotice(ctx, NoticeRepository, desc); err != nil {
+
+		// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
+		if err = CreateNotice(db.DefaultContext, NoticeRepository, desc); err != nil {
 			log.Error("CreateRepositoryNotice: %v", err)
 		}
 	}
@@ -128,4 +133,14 @@ func DeleteNoticesByIDs(ids []int64) error {
 		In("id", ids).
 		Delete(new(Notice))
 	return err
+}
+
+// DeleteOldSystemNotices deletes all old system notices from database.
+func DeleteOldSystemNotices(olderThan time.Duration) (err error) {
+	if olderThan <= 0 {
+		return nil
+	}
+
+	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Notice{})
+	return
 }

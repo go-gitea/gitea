@@ -1,10 +1,29 @@
+import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
+import {initRepoIssueContentHistory} from './repo-issue-content.js';
+import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
+import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
 
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
+  const $reviewBox = $('#review-box');
+  const $counter = $reviewBox.find('.review-comments-counter');
+
   $(document).on('click', 'button[name="is_review"]', (e) => {
-    $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+    const $form = $(e.target).closest('form');
+    $form.append('<input type="hidden" name="is_review" value="true">');
+
+    // Watch for the form's submit event.
+    $form.on('submit', () => {
+      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
+      $counter.attr('data-pending-comment-number', num);
+      $counter.text(num);
+      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
+      $reviewBox.removeClass('pulse');
+      $reviewBox.width();
+      $reviewBox.addClass('pulse');
+    });
   });
 }
 
@@ -23,7 +42,13 @@ export function initRepoDiffFileViewToggle() {
 export function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
+
     const form = $(e.target);
+    const $textArea = form.find('textarea');
+    if (!validateTextareaNonEmpty($textArea)) {
+      return;
+    }
+
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
     const {path, side, idx} = newConversationHolder.data();
 
@@ -38,7 +63,7 @@ export function initRepoDiffConversationForm() {
   });
 
 
-  $('.resolve-conversation').on('click', async function (e) {
+  $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
     const comment_id = $(this).data('comment-id');
     const origin = $(this).data('origin');
@@ -80,6 +105,13 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+// Will be called when the show more (files) button has been pressed
+function onShowMoreFiles() {
+  initRepoIssueContentHistory();
+  initViewedCheckboxListenerFor();
+  countAndUpdateViewedFiles();
+}
+
 export function initRepoDiffShowMore() {
   $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
     e.preventDefault();
@@ -101,6 +133,7 @@ export function initRepoDiffShowMore() {
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
+      onShowMoreFiles();
     }).fail(() => {
       $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
@@ -126,6 +159,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
+      onShowMoreFiles();
     }).fail(() => {
       $target.removeClass('disabled');
     });

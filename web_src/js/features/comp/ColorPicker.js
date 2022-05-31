@@ -1,3 +1,4 @@
+import $ from 'jquery';
 import createColorPicker from '../colorpicker.js';
 
 export function initCompColorPicker() {

@@ -14,19 +14,24 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
-	archiver_service "code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 const (
@@ -57,14 +62,14 @@ func MustBeAbleToUpload(ctx *context.Context) {
 }
 
 func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := models.GetOrgsCanCreateRepoByUserID(ctx.User.ID)
+	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
 		return nil
 	}
 
-	if !ctx.User.IsAdmin {
-		orgsAvailable := []*models.Organization{}
+	if !ctx.Doer.IsAdmin {
+		orgsAvailable := []*organization.Organization{}
 		for i := 0; i < len(orgs); i++ {
 			if orgs[i].CanCreateRepo() {
 				orgsAvailable = append(orgsAvailable, orgs[i])
@@ -76,13 +81,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 	}
 
 	// Not equal means current user is an organization.
-	if uid == ctx.User.ID || uid == 0 {
-		return ctx.User
+	if uid == ctx.Doer.ID || uid == 0 {
+		return ctx.Doer
 	}
 
 	org, err := user_model.GetUserByID(uid)
 	if user_model.IsErrUserNotExist(err) {
-		return ctx.User
+		return ctx.Doer
 	}
 
 	if err != nil {
@@ -95,8 +100,8 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 		ctx.Error(http.StatusForbidden)
 		return nil
 	}
-	if !ctx.User.IsAdmin {
-		canCreate, err := models.OrgFromUser(org).CanCreateOrgRepo(ctx.User.ID)
+	if !ctx.Doer.IsAdmin {
+		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("CanCreateOrgRepo", err)
 			return nil
@@ -113,13 +118,13 @@ func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
 func getRepoPrivate(ctx *context.Context) bool {
 	switch strings.ToLower(setting.Repository.DefaultPrivate) {
 	case setting.RepoCreatingLastUserVisibility:
-		return ctx.User.LastRepoVisibility
+		return ctx.Doer.LastRepoVisibility
 	case setting.RepoCreatingPrivate:
 		return true
 	case setting.RepoCreatingPublic:
 		return false
 	default:
-		return ctx.User.LastRepoVisibility
+		return ctx.Doer.LastRepoVisibility
 	}
 }
 
@@ -128,10 +133,10 @@ func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
 	// Give default value for template to render.
-	ctx.Data["Gitignores"] = models.Gitignores
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.Data["Licenses"] = models.Licenses
-	ctx.Data["Readmes"] = models.Readmes
+	ctx.Data["Gitignores"] = repo_module.Gitignores
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["Licenses"] = repo_module.Licenses
+	ctx.Data["Readmes"] = repo_module.Readmes
 	ctx.Data["readme"] = "Default"
 	ctx.Data["private"] = getRepoPrivate(ctx)
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
@@ -146,27 +151,29 @@ func Create(ctx *context.Context) {
 	ctx.Data["repo_template_name"] = ctx.Tr("repo.template_select")
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
-		templateRepo, err := models.GetRepositoryByID(templateID)
-		if err == nil && templateRepo.CheckUnitUser(ctxUser, unit.TypeCode) {
+		templateRepo, err := repo_model.GetRepositoryByID(templateID)
+		if err == nil && models.CheckRepoUnitUser(templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
 	}
 
-	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctx.HTML(http.StatusOK, tplCreate)
 }
 
 func handleCreateError(ctx *context.Context, owner *user_model.User, err error, name string, tpl base.TplName, form interface{}) {
 	switch {
-	case models.IsErrReachLimitOfRepo(err):
-		ctx.RenderWithErr(ctx.Tr("repo.form.reach_limit_of_creation", owner.MaxCreationLimit()), tpl, form)
-	case models.IsErrRepoAlreadyExist(err):
+	case repo_model.IsErrReachLimitOfRepo(err):
+		maxCreationLimit := owner.MaxCreationLimit()
+		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
+		ctx.RenderWithErr(msg, tpl, form)
+	case repo_model.IsErrRepoAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("form.repo_name_been_taken"), tpl, form)
-	case models.IsErrRepoFilesAlreadyExist(err):
+	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Data["Err_RepoName"] = true
 		switch {
 		case ctx.IsUserSiteAdmin() || (setting.Repository.AllowAdoptionOfUnadoptedRepositories && setting.Repository.AllowDeleteOfUnadoptedRepositories):
@@ -194,13 +201,13 @@ func CreatePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
 	ctx.Data["Title"] = ctx.Tr("new_repo")
 
-	ctx.Data["Gitignores"] = models.Gitignores
-	ctx.Data["LabelTemplates"] = models.LabelTemplates
-	ctx.Data["Licenses"] = models.Licenses
-	ctx.Data["Readmes"] = models.Readmes
+	ctx.Data["Gitignores"] = repo_module.Gitignores
+	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
+	ctx.Data["Licenses"] = repo_module.Licenses
+	ctx.Data["Readmes"] = repo_module.Readmes
 
-	ctx.Data["CanCreateRepo"] = ctx.User.CanCreateRepo()
-	ctx.Data["MaxCreationLimit"] = ctx.User.MaxCreationLimit()
+	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
+	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
 	ctxUser := checkContextUser(ctx, form.UID)
 	if ctx.Written() {
@@ -213,7 +220,7 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	var repo *models.Repository
+	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
 		opts := models.GenerateRepoOptions{
@@ -243,14 +250,14 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 
-		repo, err = repo_service.GenerateRepository(ctx.User, ctxUser, templateRepo, opts)
+		repo, err = repo_service.GenerateRepository(ctx.Doer, ctxUser, templateRepo, opts)
 		if err == nil {
 			log.Trace("Repository generated [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
 			ctx.Redirect(repo.Link())
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -261,7 +268,7 @@ func CreatePost(ctx *context.Context) {
 			DefaultBranch: form.DefaultBranch,
 			AutoInit:      form.AutoInit,
 			IsTemplate:    form.Template,
-			TrustModel:    models.ToTrustModel(form.TrustModel),
+			TrustModel:    repo_model.ToTrustModel(form.TrustModel),
 		})
 		if err == nil {
 			log.Trace("Repository created [%d]: %s/%s", repo.ID, ctxUser.Name, repo.Name)
@@ -278,13 +285,13 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unwatch":
-		err = models.WatchRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
-		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
-		err = models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "accept_transfer":
 		err = acceptOrRejectRepoTransfer(ctx, true)
 	case "reject_transfer":
@@ -318,11 +325,16 @@ func acceptOrRejectRepoTransfer(ctx *context.Context, accept bool) error {
 		return err
 	}
 
-	if !repoTransfer.CanUserAcceptTransfer(ctx.User) {
+	if !repoTransfer.CanUserAcceptTransfer(ctx.Doer) {
 		return errors.New("user does not have enough permissions")
 	}
 
 	if accept {
+		if ctx.Repo.GitRepo != nil {
+			ctx.Repo.GitRepo.Close()
+			ctx.Repo.GitRepo = nil
+		}
+
 		if err := repo_service.TransferOwnership(repoTransfer.Doer, repoTransfer.Recipient, ctx.Repo.Repository, repoTransfer.Teams); err != nil {
 			return err
 		}
@@ -346,7 +358,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(db.DefaultContext, curRepo.ID, tagNames)
+	releases, err := models.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -357,7 +369,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -387,12 +399,12 @@ func Download(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("models.GetRepoArchiver", err)
 		return
 	}
-	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		download(ctx, aReq.GetArchiveName(), archiver)
 		return
 	}
@@ -403,7 +415,7 @@ func Download(ctx *context.Context) {
 	}
 
 	var times int
-	var t = time.NewTicker(time.Second * 1)
+	t := time.NewTicker(time.Second * 1)
 	defer t.Stop()
 
 	for {
@@ -417,12 +429,12 @@ func Download(ctx *context.Context) {
 				return
 			}
 			times++
-			archiver, err = models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 			if err != nil {
 				ctx.ServerError("archiver_service.StartArchive", err)
 				return
 			}
-			if archiver != nil && archiver.Status == models.RepoArchiverReady {
+			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 				download(ctx, aReq.GetArchiveName(), archiver)
 				return
 			}
@@ -430,7 +442,7 @@ func Download(ctx *context.Context) {
 	}
 }
 
-func download(ctx *context.Context, archiveName string, archiver *models.RepoArchiver) {
+func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
 	rPath, err := archiver.RelativePath()
@@ -440,7 +452,7 @@ func download(ctx *context.Context, archiveName string, archiver *models.RepoArc
 	}
 
 	if setting.RepoArchive.ServeDirect {
-		//If we have a signed url (S3, object storage), redirect to this directly.
+		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
 		if u != nil && err == nil {
 			ctx.Redirect(u.String())
@@ -448,7 +460,7 @@ func download(ctx *context.Context, archiveName string, archiver *models.RepoArc
 		}
 	}
 
-	//If we have matched and access to release or issue
+	// If we have matched and access to release or issue
 	fr, err := storage.RepoArchives.Open(rPath)
 	if err != nil {
 		ctx.ServerError("Open", err)
@@ -473,12 +485,12 @@ func InitiateDownload(ctx *context.Context) {
 		return
 	}
 
-	archiver, err := models.GetRepoArchiver(db.DefaultContext, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
 	if err != nil {
 		ctx.ServerError("archiver_service.StartArchive", err)
 		return
 	}
-	if archiver == nil || archiver.Status != models.RepoArchiverReady {
+	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
 		if err := archiver_service.StartArchive(aReq); err != nil {
 			ctx.ServerError("archiver_service.StartArchive", err)
 			return
@@ -486,11 +498,122 @@ func InitiateDownload(ctx *context.Context) {
 	}
 
 	var completed bool
-	if archiver != nil && archiver.Status == models.RepoArchiverReady {
+	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
 		completed = true
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"complete": completed,
+	})
+}
+
+// SearchRepo repositories via options
+func SearchRepo(ctx *context.Context) {
+	opts := &models.SearchRepoOptions{
+		ListOptions: db.ListOptions{
+			Page:     ctx.FormInt("page"),
+			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+		},
+		Actor:              ctx.Doer,
+		Keyword:            ctx.FormTrim("q"),
+		OwnerID:            ctx.FormInt64("uid"),
+		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
+		TeamID:             ctx.FormInt64("team_id"),
+		TopicOnly:          ctx.FormBool("topic"),
+		Collaborate:        util.OptionalBoolNone,
+		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
+		Template:           util.OptionalBoolNone,
+		StarredByID:        ctx.FormInt64("starredBy"),
+		IncludeDescription: ctx.FormBool("includeDesc"),
+	}
+
+	if ctx.FormString("template") != "" {
+		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
+	}
+
+	if ctx.FormBool("exclusive") {
+		opts.Collaborate = util.OptionalBoolFalse
+	}
+
+	mode := ctx.FormString("mode")
+	switch mode {
+	case "source":
+		opts.Fork = util.OptionalBoolFalse
+		opts.Mirror = util.OptionalBoolFalse
+	case "fork":
+		opts.Fork = util.OptionalBoolTrue
+	case "mirror":
+		opts.Mirror = util.OptionalBoolTrue
+	case "collaborative":
+		opts.Mirror = util.OptionalBoolFalse
+		opts.Collaborate = util.OptionalBoolTrue
+	case "":
+	default:
+		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
+		return
+	}
+
+	if ctx.FormString("archived") != "" {
+		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
+	}
+
+	if ctx.FormString("is_private") != "" {
+		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
+	}
+
+	sortMode := ctx.FormString("sort")
+	if len(sortMode) > 0 {
+		sortOrder := ctx.FormString("order")
+		if len(sortOrder) == 0 {
+			sortOrder = "asc"
+		}
+		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
+			if orderBy, ok := searchModeMap[sortMode]; ok {
+				opts.OrderBy = orderBy
+			} else {
+				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: \"%s\"", sortMode))
+				return
+			}
+		} else {
+			ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: \"%s\"", sortOrder))
+			return
+		}
+	}
+
+	var err error
+	repos, count, err := models.SearchRepository(opts)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, api.SearchError{
+			OK:    false,
+			Error: err.Error(),
+		})
+		return
+	}
+
+	ctx.SetTotalCountHeader(count)
+
+	// To improve performance when only the count is requested
+	if ctx.FormBool("count_only") {
+		return
+	}
+
+	results := make([]*api.Repository, len(repos))
+	for i, repo := range repos {
+		results[i] = &api.Repository{
+			ID:       repo.ID,
+			FullName: repo.FullName(),
+			Fork:     repo.IsFork,
+			Private:  repo.IsPrivate,
+			Template: repo.IsTemplate,
+			Mirror:   repo.IsMirror,
+			Stars:    repo.NumStars,
+			HTMLURL:  repo.HTMLURL(),
+			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
+		}
+	}
+
+	ctx.JSON(http.StatusOK, api.SearchResults{
+		OK:   true,
+		Data: results,
 	})
 }

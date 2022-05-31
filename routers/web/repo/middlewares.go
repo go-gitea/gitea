@@ -43,7 +43,7 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	var (
-		userStyle = ctx.User.DiffViewStyle
+		userStyle = ctx.Doer.DiffViewStyle
 		style     string
 	)
 
@@ -56,18 +56,36 @@ func SetDiffViewStyle(ctx *context.Context) {
 	}
 
 	ctx.Data["IsSplitStyle"] = style == "split"
-	if err := user_model.UpdateUserDiffViewStyle(ctx.User, style); err != nil {
+	if err := user_model.UpdateUserDiffViewStyle(ctx.Doer, style); err != nil {
 		ctx.ServerError("ErrUpdateDiffViewStyle", err)
 	}
 }
 
 // SetWhitespaceBehavior set whitespace behavior as render variable
 func SetWhitespaceBehavior(ctx *context.Context) {
+	const defaultWhitespaceBehavior = "show-all"
 	whitespaceBehavior := ctx.FormString("whitespace")
 	switch whitespaceBehavior {
-	case "ignore-all", "ignore-eol", "ignore-change":
-		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
+	case "", "ignore-all", "ignore-eol", "ignore-change":
+		break
 	default:
-		ctx.Data["WhitespaceBehavior"] = ""
+		whitespaceBehavior = defaultWhitespaceBehavior
+	}
+	if ctx.IsSigned {
+		userWhitespaceBehavior, err := user_model.GetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, defaultWhitespaceBehavior)
+		if err == nil {
+			if whitespaceBehavior == "" {
+				whitespaceBehavior = userWhitespaceBehavior
+			} else if whitespaceBehavior != userWhitespaceBehavior {
+				_ = user_model.SetUserSetting(ctx.Doer.ID, user_model.SettingsKeyDiffWhitespaceBehavior, whitespaceBehavior)
+			}
+		} // else: we can ignore the error safely
+	}
+
+	// these behaviors are for gitdiff.GetWhitespaceFlag
+	if whitespaceBehavior == "" {
+		ctx.Data["WhitespaceBehavior"] = defaultWhitespaceBehavior
+	} else {
+		ctx.Data["WhitespaceBehavior"] = whitespaceBehavior
 	}
 }

@@ -12,6 +12,9 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -24,8 +27,12 @@ import (
 
 type preReceiveContext struct {
 	*gitea_context.PrivateContext
-	user *user_model.User
-	perm models.Permission
+
+	// loadedPusher indicates that where the following information are loaded
+	loadedPusher        bool
+	user                *user_model.User // it's the org user if a DeployKey is used
+	userPerm            access_model.Permission
+	deployKeyAccessMode perm_model.AccessMode
 
 	canCreatePullRequest        bool
 	checkedCanCreatePullRequest bool
@@ -39,64 +46,56 @@ type preReceiveContext struct {
 	env []string
 
 	opts *private.HookOptions
+
+	branchName string
 }
 
-// User gets or loads User
-func (ctx *preReceiveContext) User() *user_model.User {
-	if ctx.user == nil {
-		ctx.user, ctx.perm = loadUserAndPermission(ctx.PrivateContext, ctx.opts.UserID)
-	}
-	return ctx.user
-}
-
-// Perm gets or loads Perm
-func (ctx *preReceiveContext) Perm() *models.Permission {
-	if ctx.user == nil {
-		ctx.user, ctx.perm = loadUserAndPermission(ctx.PrivateContext, ctx.opts.UserID)
-	}
-	return &ctx.perm
-}
-
-// CanWriteCode returns true if can write code
+// CanWriteCode returns true if pusher can write code
 func (ctx *preReceiveContext) CanWriteCode() bool {
 	if !ctx.checkedCanWriteCode {
-		ctx.canWriteCode = ctx.Perm().CanWrite(unit.TypeCode)
+		if !ctx.loadPusherAndPermission() {
+			return false
+		}
+		ctx.canWriteCode = models.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
 }
 
-// AssertCanWriteCode returns true if can write code
+// AssertCanWriteCode returns true if pusher can write code
 func (ctx *preReceiveContext) AssertCanWriteCode() bool {
 	if !ctx.CanWriteCode() {
 		if ctx.Written() {
 			return false
 		}
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "User permission denied.",
+			"err": "User permission denied for writing.",
 		})
 		return false
 	}
 	return true
 }
 
-// CanCreatePullRequest returns true if can create pull requests
+// CanCreatePullRequest returns true if pusher can create pull requests
 func (ctx *preReceiveContext) CanCreatePullRequest() bool {
 	if !ctx.checkedCanCreatePullRequest {
-		ctx.canCreatePullRequest = ctx.Perm().CanRead(unit.TypePullRequests)
+		if !ctx.loadPusherAndPermission() {
+			return false
+		}
+		ctx.canCreatePullRequest = ctx.userPerm.CanRead(unit.TypePullRequests)
 		ctx.checkedCanCreatePullRequest = true
 	}
 	return ctx.canCreatePullRequest
 }
 
-// AssertCanCreatePullRequest returns true if can create pull requests
+// AssertCreatePullRequest returns true if can create pull requests
 func (ctx *preReceiveContext) AssertCreatePullRequest() bool {
 	if !ctx.CanCreatePullRequest() {
 		if ctx.Written() {
 			return false
 		}
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "User permission denied.",
+			"err": "User permission denied for creating pull-request.",
 		})
 		return false
 	}
@@ -134,17 +133,19 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 		}
 	}
 
-	ctx.PlainText(http.StatusOK, []byte("ok"))
+	ctx.PlainText(http.StatusOK, "ok")
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+	ctx.branchName = branchName
+
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
@@ -154,7 +155,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -183,7 +184,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 2. Disallow force pushes to protected branches
 	if git.EmptySHA != oldCommitID {
-		output, err := git.NewCommand("rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
+		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -228,7 +229,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	globs := protectBranch.GetProtectedFilePatterns()
 	if len(globs) > 0 {
-		_, err := pull_service.CheckFileProtection(oldCommitID, newCommitID, globs, 1, ctx.env, gitRepo)
+		_, err := pull_service.CheckFileProtection(gitRepo, oldCommitID, newCommitID, globs, 1, ctx.env)
 		if err != nil {
 			if !models.IsErrFilePathProtected(err) {
 				log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
@@ -246,7 +247,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 5. Check if the doer is allowed to push
 	canPush := false
-	if ctx.opts.IsDeployKey {
+	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
 		canPush = !changedProtectedfiles && protectBranch.CanUserPush(ctx.opts.UserID)
@@ -270,7 +271,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			// Allow commits that only touch unprotected files
 			globs := protectBranch.GetUnprotectedFilePatterns()
 			if len(globs) > 0 {
-				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(oldCommitID, newCommitID, globs, ctx.env, gitRepo)
+				unprotectedFilesOnly, err := pull_service.CheckUnprotectedFiles(gitRepo, oldCommitID, newCommitID, globs, ctx.env)
 				if err != nil {
 					log.Error("Unable to check file protection for commits from %s to %s in %-v: %v", oldCommitID, newCommitID, repo, err)
 					ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -294,7 +295,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx.opts.PullRequestID)
+		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -303,9 +304,15 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 			return
 		}
 
+		// although we should have called `loadPusherAndPermission` before, here we call it explicitly again because we need to access ctx.user below
+		if !ctx.loadPusherAndPermission() {
+			// if error occurs, loadPusherAndPermission had written the error response
+			return
+		}
+
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.perm, ctx.user)
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
 		if err != nil {
 			log.Error("Error calculating if allowed to merge: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -323,7 +330,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// If we're an admin for the repository we can ignore status checks, reviews and override protected files
-		if ctx.perm.IsAdmin() {
+		if ctx.userPerm.IsAdmin() {
 			return
 		}
 
@@ -337,8 +344,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(pr, true); err != nil {
-			if models.IsErrNotAllowedToMerge(err) {
+		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
+			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
 					Err: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),
@@ -363,7 +370,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = ctx.Repo.Repository.GetProtectedTags()
+		ctx.protectedTags, err = models.GetProtectedTags(ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -404,7 +411,7 @@ func preReceivePullRequest(ctx *preReceiveContext, oldCommitID, newCommitID, ref
 
 	if ctx.opts.IsWiki {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
-			"err": "Pull requests are not suppported on the wiki.",
+			"err": "Pull requests are not supported on the wiki.",
 		})
 		return
 	}
@@ -450,24 +457,44 @@ func generateGitEnv(opts *private.HookOptions) (env []string) {
 	return env
 }
 
-func loadUserAndPermission(ctx *gitea_context.PrivateContext, id int64) (user *user_model.User, perm models.Permission) {
-	user, err := user_model.GetUserByID(id)
-	if err != nil {
-		log.Error("Unable to get User id %d Error: %v", id, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Unable to get User id %d Error: %v", id, err),
-		})
-		return
+// loadPusherAndPermission returns false if an error occurs, and it writes the error response
+func (ctx *preReceiveContext) loadPusherAndPermission() bool {
+	if ctx.loadedPusher {
+		return true
 	}
 
-	perm, err = models.GetUserRepoPermission(ctx.Repo.Repository, user)
+	user, err := user_model.GetUserByID(ctx.opts.UserID)
+	if err != nil {
+		log.Error("Unable to get User id %d Error: %v", ctx.opts.UserID, err)
+		ctx.JSON(http.StatusInternalServerError, private.Response{
+			Err: fmt.Sprintf("Unable to get User id %d Error: %v", ctx.opts.UserID, err),
+		})
+		return false
+	}
+	ctx.user = user
+
+	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
 		})
-		return
+		return false
+	}
+	ctx.userPerm = userPerm
+
+	if ctx.opts.DeployKeyID != 0 {
+		deployKey, err := asymkey_model.GetDeployKeyByID(ctx, ctx.opts.DeployKeyID)
+		if err != nil {
+			log.Error("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err)
+			ctx.JSON(http.StatusInternalServerError, private.Response{
+				Err: fmt.Sprintf("Unable to get DeployKey id %d Error: %v", ctx.opts.DeployKeyID, err),
+			})
+			return false
+		}
+		ctx.deployKeyAccessMode = deployKey.Mode
 	}
 
-	return
+	ctx.loadedPusher = true
+	return true
 }

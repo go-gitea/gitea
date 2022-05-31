@@ -5,9 +5,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/migration"
@@ -23,12 +25,12 @@ import (
 // Task represents a task
 type Task struct {
 	ID             int64
-	DoerID         int64            `xorm:"index"` // operator
-	Doer           *user_model.User `xorm:"-"`
-	OwnerID        int64            `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
-	Owner          *user_model.User `xorm:"-"`
-	RepoID         int64            `xorm:"index"`
-	Repo           *Repository      `xorm:"-"`
+	DoerID         int64                  `xorm:"index"` // operator
+	Doer           *user_model.User       `xorm:"-"`
+	OwnerID        int64                  `xorm:"index"` // repo owner id, when creating, the repoID maybe zero
+	Owner          *user_model.User       `xorm:"-"`
+	RepoID         int64                  `xorm:"index"`
+	Repo           *repo_model.Repository `xorm:"-"`
 	Type           structs.TaskType
 	Status         structs.TaskStatus `xorm:"index"`
 	StartTime      timeutil.TimeStamp
@@ -50,19 +52,19 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.GetEngine(db.DefaultContext))
+	return task.loadRepo(db.DefaultContext)
 }
 
-func (task *Task) loadRepo(e db.Engine) error {
+func (task *Task) loadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}
-	var repo Repository
-	has, err := e.ID(task.RepoID).Get(&repo)
+	var repo repo_model.Repository
+	has, err := db.GetEngine(ctx).ID(task.RepoID).Get(&repo)
 	if err != nil {
 		return err
 	} else if !has {
-		return ErrRepoNotExist{
+		return repo_model.ErrRepoNotExist{
 			ID: task.RepoID,
 		}
 	}
@@ -180,6 +182,14 @@ func GetMigratingTask(repoID int64) (*Task, error) {
 	return &task, nil
 }
 
+// HasFinishedMigratingTask returns if a finished migration task exists for the repo.
+func HasFinishedMigratingTask(repoID int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).
+		Where("repo_id=? AND type=? AND status=?", repoID, structs.TaskTypeMigrateRepo, structs.TaskStatusFinished).
+		Table("task").
+		Exist()
+}
+
 // GetMigratingTaskByID returns the migrating task by repo's id
 func GetMigratingTaskByID(id, doerID int64) (*Task, *migration.MigrateOptions, error) {
 	task := Task{
@@ -224,12 +234,7 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(db.GetEngine(db.DefaultContext), task)
-}
-
-func createTask(e db.Engine, task *Task) error {
-	_, err := e.Insert(task)
-	return err
+	return db.Insert(db.DefaultContext, task)
 }
 
 // FinishMigrateTask updates database when migrate task finished
@@ -244,7 +249,7 @@ func FinishMigrateTask(task *Task) error {
 	}
 	conf.AuthPassword = ""
 	conf.AuthToken = ""
-	conf.CloneAddr = util.NewStringURLSanitizer(conf.CloneAddr, true).Replace(conf.CloneAddr)
+	conf.CloneAddr = util.SanitizeCredentialURLs(conf.CloneAddr)
 	conf.AuthPasswordEncrypted = ""
 	conf.AuthTokenEncrypted = ""
 	conf.CloneAddrEncrypted = ""

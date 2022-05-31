@@ -5,14 +5,17 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
 
 // InsertMilestones creates milestones of repository.
-func InsertMilestones(ms ...*Milestone) (err error) {
+func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
 	}
@@ -46,25 +49,24 @@ func InsertIssues(issues ...*Issue) error {
 	defer committer.Close()
 
 	for _, issue := range issues {
-		if err := insertIssue(db.GetEngine(ctx), issue); err != nil {
+		if err := insertIssue(ctx, issue); err != nil {
 			return err
 		}
 	}
 	return committer.Commit()
 }
 
-func insertIssue(sess db.Engine, issue *Issue) error {
+func insertIssue(ctx context.Context, issue *Issue) error {
+	sess := db.GetEngine(ctx)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
 	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
-	labelIDs := make([]int64, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
 		issueLabels = append(issueLabels, IssueLabel{
 			IssueID: issue.ID,
 			LabelID: label.ID,
 		})
-		labelIDs = append(labelIDs, label.ID)
 	}
 	if len(issueLabels) > 0 {
 		if _, err := sess.Insert(issueLabels); err != nil {
@@ -82,50 +84,9 @@ func insertIssue(sess db.Engine, issue *Issue) error {
 		}
 	}
 
-	cols := make([]string, 0)
-	if !issue.IsPull {
-		sess.ID(issue.RepoID).Incr("num_issues")
-		cols = append(cols, "num_issues")
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-		}
-	} else {
-		sess.ID(issue.RepoID).Incr("num_pulls")
-		cols = append(cols, "num_pulls")
-		if issue.IsClosed {
-			sess.Incr("num_closed_pulls")
-			cols = append(cols, "num_closed_pulls")
-		}
-	}
-	if _, err := sess.NoAutoTime().Cols(cols...).Update(issue.Repo); err != nil {
-		return err
-	}
-
-	cols = []string{"num_issues"}
-	sess.Incr("num_issues")
-	if issue.IsClosed {
-		sess.Incr("num_closed_issues")
-		cols = append(cols, "num_closed_issues")
-	}
-	if _, err := sess.In("id", labelIDs).NoAutoTime().Cols(cols...).Update(new(Label)); err != nil {
-		return err
-	}
-
-	if issue.MilestoneID > 0 {
-		cols = []string{"num_issues"}
-		sess.Incr("num_issues")
-		cl := "num_closed_issues"
-		if issue.IsClosed {
-			sess.Incr("num_closed_issues")
-			cols = append(cols, "num_closed_issues")
-			cl = "(num_closed_issues + 1)"
-		}
-
-		if _, err := sess.ID(issue.MilestoneID).
-			SetExpr("completeness", cl+" * 100 / (num_issues + 1)").
-			NoAutoTime().Cols(cols...).
-			Update(new(Milestone)); err != nil {
+	if issue.ForeignReference != nil {
+		issue.ForeignReference.LocalIndex = issue.Index
+		if _, err := sess.Insert(issue.ForeignReference); err != nil {
 			return err
 		}
 	}
@@ -166,7 +127,7 @@ func InsertIssueComments(comments []*Comment) error {
 	}
 
 	for issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ?) WHERE id = ?", issueID, issueID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?", issueID, CommentTypeComment, issueID); err != nil {
 			return err
 		}
 	}
@@ -182,7 +143,7 @@ func InsertPullRequests(prs ...*PullRequest) error {
 	defer committer.Close()
 	sess := db.GetEngine(ctx)
 	for _, pr := range prs {
-		if err := insertIssue(sess, pr.Issue); err != nil {
+		if err := insertIssue(ctx, pr.Issue); err != nil {
 			return err
 		}
 		pr.IssueID = pr.Issue.ID
@@ -190,7 +151,6 @@ func InsertPullRequests(prs ...*PullRequest) error {
 			return err
 		}
 	}
-
 	return committer.Commit()
 }
 
@@ -244,4 +204,24 @@ func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID s
 			"original_author_id": 0,
 		})
 	return err
+}
+
+// UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
+func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
+	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+
+	if err := UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+		return err
+	}
+	return UpdateReviewsMigrationsByType(tp, externalUserID, userID)
 }

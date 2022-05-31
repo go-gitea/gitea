@@ -8,8 +8,9 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -20,14 +21,14 @@ import (
 // getStarredRepos returns the repos that the user with the specified userID has
 // starred
 func getStarredRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, error) {
-	starredRepos, err := models.GetStarredRepos(user.ID, private, listOptions)
+	starredRepos, err := repo_model.GetStarredRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, err
 	}
 
 	repos := make([]*api.Repository, len(starredRepos))
 	for i, starred := range starredRepos {
-		access, err := models.AccessLevel(user, starred)
+		access, err := access_model.AccessLevel(user, starred)
 		if err != nil {
 			return nil, err
 		}
@@ -61,12 +62,14 @@ func GetStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	private := user.ID == ctx.User.ID
-	repos, err := getStarredRepos(user, private, utils.GetListOptions(ctx))
+	private := ctx.ContextUser.ID == ctx.Doer.ID
+	repos, err := getStarredRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
+		return
 	}
+
+	ctx.SetTotalCountHeader(int64(ctx.ContextUser.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -90,12 +93,12 @@ func GetMyStarredRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	repos, err := getStarredRepos(ctx.User, true, utils.GetListOptions(ctx))
+	repos, err := getStarredRepos(ctx.Doer, true, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getStarredRepos", err)
 	}
 
-	ctx.SetTotalCountHeader(int64(ctx.User.NumStars))
+	ctx.SetTotalCountHeader(int64(ctx.Doer.NumStars))
 	ctx.JSON(http.StatusOK, &repos)
 }
 
@@ -121,7 +124,7 @@ func IsStarring(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if models.IsStaring(ctx.User.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()
@@ -148,7 +151,7 @@ func Star(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return
@@ -176,7 +179,7 @@ func Unstar(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := models.StarRepo(ctx.User.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "StarRepo", err)
 		return

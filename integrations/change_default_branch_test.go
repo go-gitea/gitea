@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 )
 
 func TestChangeDefaultBranch(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
@@ -28,7 +28,7 @@ func TestChangeDefaultBranch(t *testing.T) {
 		"action": "default_branch",
 		"branch": "DefaultBranch",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	csrf = GetCSRF(t, session, branchesURL)
 	req = NewRequestWithValues(t, "POST", branchesURL, map[string]string{

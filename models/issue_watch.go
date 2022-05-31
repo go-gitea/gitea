@@ -5,7 +5,10 @@
 package models
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -29,7 +32,7 @@ type IssueWatchList []*IssueWatch
 
 // CreateOrUpdateIssueWatch set watching for a user and issue
 func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
-	iw, exists, err := getIssueWatch(db.GetEngine(db.DefaultContext), userID, issueID)
+	iw, exists, err := GetIssueWatch(db.DefaultContext, userID, issueID)
 	if err != nil {
 		return err
 	}
@@ -56,14 +59,9 @@ func CreateOrUpdateIssueWatch(userID, issueID int64, isWatching bool) error {
 
 // GetIssueWatch returns all IssueWatch objects from db by user and issue
 // the current Web-UI need iw object for watchers AND explicit non-watchers
-func GetIssueWatch(userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
-	return getIssueWatch(db.GetEngine(db.DefaultContext), userID, issueID)
-}
-
-// Return watcher AND explicit non-watcher if entry in db exist
-func getIssueWatch(e db.Engine, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
+func GetIssueWatch(ctx context.Context, userID, issueID int64) (iw *IssueWatch, exists bool, err error) {
 	iw = new(IssueWatch)
-	exists, err = e.
+	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(iw)
@@ -73,30 +71,26 @@ func getIssueWatch(e db.Engine, userID, issueID int64) (iw *IssueWatch, exists b
 // CheckIssueWatch check if an user is watching an issue
 // it takes participants and repo watch into account
 func CheckIssueWatch(user *user_model.User, issue *Issue) (bool, error) {
-	iw, exist, err := getIssueWatch(db.GetEngine(db.DefaultContext), user.ID, issue.ID)
+	iw, exist, err := GetIssueWatch(db.DefaultContext, user.ID, issue.ID)
 	if err != nil {
 		return false, err
 	}
 	if exist {
 		return iw.IsWatching, nil
 	}
-	w, err := getWatch(db.GetEngine(db.DefaultContext), user.ID, issue.RepoID)
+	w, err := repo_model.GetWatch(db.DefaultContext, user.ID, issue.RepoID)
 	if err != nil {
 		return false, err
 	}
-	return isWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
+	return repo_model.IsWatchMode(w.Mode) || IsUserParticipantsOfIssue(user, issue), nil
 }
 
 // GetIssueWatchersIDs returns IDs of subscribers or explicit unsubscribers to a given issue id
 // but avoids joining with `user` for performance reasons
 // User permissions must be verified elsewhere if required
-func GetIssueWatchersIDs(issueID int64, watching bool) ([]int64, error) {
-	return getIssueWatchersIDs(db.GetEngine(db.DefaultContext), issueID, watching)
-}
-
-func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, error) {
+func GetIssueWatchersIDs(ctx context.Context, issueID int64, watching bool) ([]int64, error) {
 	ids := make([]int64, 0, 64)
-	return ids, e.Table("issue_watch").
+	return ids, db.GetEngine(ctx).Table("issue_watch").
 		Where("issue_id=?", issueID).
 		And("is_watching = ?", watching).
 		Select("user_id").
@@ -104,12 +98,8 @@ func getIssueWatchersIDs(e db.Engine, issueID int64, watching bool) ([]int64, er
 }
 
 // GetIssueWatchers returns watchers/unwatchers of a given issue
-func GetIssueWatchers(issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
-	return getIssueWatchers(db.GetEngine(db.DefaultContext), issueID, listOptions)
-}
-
-func getIssueWatchers(e db.Engine, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
-	sess := e.
+func GetIssueWatchers(ctx context.Context, issueID int64, listOptions db.ListOptions) (IssueWatchList, error) {
+	sess := db.GetEngine(ctx).
 		Where("`issue_watch`.issue_id = ?", issueID).
 		And("`issue_watch`.is_watching = ?", true).
 		And("`user`.is_active = ?", true).
@@ -125,8 +115,18 @@ func getIssueWatchers(e db.Engine, issueID int64, listOptions db.ListOptions) (I
 	return watches, sess.Find(&watches)
 }
 
-func removeIssueWatchersByRepoID(e db.Engine, userID, repoID int64) error {
-	_, err := e.
+// CountIssueWatchers count watchers/unwatchers of a given issue
+func CountIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
+	return db.GetEngine(ctx).
+		Where("`issue_watch`.issue_id = ?", issueID).
+		And("`issue_watch`.is_watching = ?", true).
+		And("`user`.is_active = ?", true).
+		And("`user`.prohibit_login = ?", false).
+		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
+}
+
+func removeIssueWatchersByRepoID(ctx context.Context, userID, repoID int64) error {
+	_, err := db.GetEngine(ctx).
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
 		Where("`issue_watch`.user_id = ?", userID).
 		Delete(new(IssueWatch))

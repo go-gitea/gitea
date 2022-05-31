@@ -8,17 +8,24 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/sync"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
+// TODO: use clustered lock (unique queue? or *abuse* cache)
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
-func TransferOwnership(doer, newOwner *user_model.User, repo *models.Repository, teams []*models.Team) error {
-	if err := repo.GetOwner(); err != nil {
+func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
+	if err := repo.GetOwner(db.DefaultContext); err != nil {
 		return err
 	}
 	for _, team := range teams {
@@ -36,13 +43,13 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *models.Repository,
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
-	newRepo, err := models.GetRepositoryByID(repo.ID)
+	newRepo, err := repo_model.GetRepositoryByID(repo.ID)
 	if err != nil {
 		return err
 	}
 
 	for _, team := range teams {
-		if err := team.AddRepository(newRepo); err != nil {
+		if err := models.AddRepository(team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -53,7 +60,9 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *models.Repository,
 }
 
 // ChangeRepositoryName changes all corresponding setting from old repository name to new one.
-func ChangeRepositoryName(doer *user_model.User, repo *models.Repository, newRepoName string) error {
+func ChangeRepositoryName(doer *user_model.User, repo *repo_model.Repository, newRepoName string) error {
+	log.Trace("ChangeRepositoryName: %s/%s -> %s", doer.Name, repo.Name, newRepoName)
+
 	oldRepoName := repo.Name
 
 	// Change repository directory name. We must lock the local copy of the
@@ -61,12 +70,13 @@ func ChangeRepositoryName(doer *user_model.User, repo *models.Repository, newRep
 	// local copy's origin accordingly.
 
 	repoWorkingPool.CheckIn(fmt.Sprint(repo.ID))
-	if err := models.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
+	if err := repo_model.ChangeRepositoryName(doer, repo, newRepoName); err != nil {
 		repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 		return err
 	}
 	repoWorkingPool.CheckOut(fmt.Sprint(repo.ID))
 
+	repo.Name = newRepoName
 	notification.NotifyRenameRepository(doer, repo, oldRepoName)
 
 	return nil
@@ -74,7 +84,7 @@ func ChangeRepositoryName(doer *user_model.User, repo *models.Repository, newRep
 
 // StartRepositoryTransfer transfer a repo from one owner to a new one.
 // it make repository into pending transfer state, if doer can not create repo for new owner.
-func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repository, teams []*models.Team) error {
+func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository, teams []*organization.Team) error {
 	if err := models.TestRepositoryReadyForTransfer(repo.Status); err != nil {
 		return err
 	}
@@ -86,7 +96,7 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repos
 
 	// If new owner is an org and user can create repos he can transfer directly too
 	if newOwner.IsOrganization() {
-		allowed, err := models.CanCreateOrgRepo(newOwner.ID, doer.ID)
+		allowed, err := organization.CanCreateOrgRepo(newOwner.ID, doer.ID)
 		if err != nil {
 			return err
 		}
@@ -96,21 +106,21 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *models.Repos
 	}
 
 	// In case the new owner would not have sufficient access to the repo, give access rights for read
-	hasAccess, err := models.HasAccess(newOwner.ID, repo)
+	hasAccess, err := access_model.HasAccess(db.DefaultContext, newOwner.ID, repo)
 	if err != nil {
 		return err
 	}
 	if !hasAccess {
-		if err := repo.AddCollaborator(newOwner); err != nil {
+		if err := models.AddCollaborator(repo, newOwner); err != nil {
 			return err
 		}
-		if err := repo.ChangeCollaborationAccessMode(newOwner.ID, models.AccessModeRead); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}
 
 	// Make repo as pending for transfer
-	repo.Status = models.RepositoryPendingTransfer
+	repo.Status = repo_model.RepositoryPendingTransfer
 	if err := models.CreatePendingRepositoryTransfer(doer, newOwner, repo.ID, teams); err != nil {
 		return err
 	}

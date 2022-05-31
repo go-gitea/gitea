@@ -6,24 +6,23 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 )
 
 // NullNotifier implements a blank notifier
-type NullNotifier struct {
-}
+type NullNotifier struct{}
 
-var (
-	_ Notifier = &NullNotifier{}
-)
+var _ Notifier = &NullNotifier{}
 
 // Run places a place holder function
 func (*NullNotifier) Run() {
 }
 
 // NotifyCreateIssueComment places a place holder function
-func (*NullNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *models.Repository,
+func (*NullNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
 }
 
@@ -33,6 +32,10 @@ func (*NullNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.
 
 // NotifyIssueChangeStatus places a place holder function
 func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+}
+
+// NotifyDeleteIssue notify when some issue deleted
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
 }
 
 // NotifyNewPullRequest places a place holder function
@@ -117,57 +120,65 @@ func (*NullNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.I
 
 // NotifyIssueChangeLabels places a place holder function
 func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels []*models.Label, removedLabels []*models.Label) {
+	addedLabels, removedLabels []*models.Label) {
 }
 
 // NotifyCreateRepository places a place holder function
-func (*NullNotifier) NotifyCreateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (*NullNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // NotifyDeleteRepository places a place holder function
-func (*NullNotifier) NotifyDeleteRepository(doer *user_model.User, repo *models.Repository) {
+func (*NullNotifier) NotifyDeleteRepository(doer *user_model.User, repo *repo_model.Repository) {
 }
 
 // NotifyForkRepository places a place holder function
-func (*NullNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *models.Repository) {
+func (*NullNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
 }
 
 // NotifyMigrateRepository places a place holder function
-func (*NullNotifier) NotifyMigrateRepository(doer *user_model.User, u *user_model.User, repo *models.Repository) {
+func (*NullNotifier) NotifyMigrateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
 }
 
 // NotifyPushCommits notifies commits pushed to notifiers
-func (*NullNotifier) NotifyPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (*NullNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 }
 
 // NotifyCreateRef notifies branch or tag creation to notifiers
-func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifyDeleteRef notifies branch or tag deletion to notifiers
-func (*NullNotifier) NotifyDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 }
 
 // NotifyRenameRepository places a place holder function
-func (*NullNotifier) NotifyRenameRepository(doer *user_model.User, repo *models.Repository, oldRepoName string) {
+func (*NullNotifier) NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
 }
 
 // NotifyTransferRepository places a place holder function
-func (*NullNotifier) NotifyTransferRepository(doer *user_model.User, repo *models.Repository, oldOwnerName string) {
+func (*NullNotifier) NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
 }
 
 // NotifySyncPushCommits places a place holder function
-func (*NullNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *models.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (*NullNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
 }
 
 // NotifySyncCreateRef places a place holder function
-func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
 }
 
 // NotifySyncDeleteRef places a place holder function
-func (*NullNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *models.Repository, refType, refFullName string) {
+func (*NullNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 }
 
 // NotifyRepoPendingTransfer places a place holder function
-func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *models.Repository) {
+func (*NullNotifier) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
+}
+
+// NotifyPackageCreate places a place holder function
+func (*NullNotifier) NotifyPackageCreate(doer *user_model.User, pd *packages_model.PackageDescriptor) {
+}
+
+// NotifyPackageDelete places a place holder function
+func (*NullNotifier) NotifyPackageDelete(doer *user_model.User, pd *packages_model.PackageDescriptor) {
 }

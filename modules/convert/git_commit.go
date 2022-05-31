@@ -8,12 +8,13 @@ import (
 	"net/url"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 )
 
 // ToCommitUser convert a git.Signature to an api.CommitUser
@@ -28,7 +29,7 @@ func ToCommitUser(sig *git.Signature) *api.CommitUser {
 }
 
 // ToCommitMeta convert a git.Tag to an api.CommitMeta
-func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
+func ToCommitMeta(repo *repo_model.Repository, tag *git.Tag) *api.CommitMeta {
 	return &api.CommitMeta{
 		SHA:     tag.Object.String(),
 		URL:     util.URLJoin(repo.APIURL(), "git/commits", tag.ID.String()),
@@ -37,7 +38,7 @@ func ToCommitMeta(repo *models.Repository, tag *git.Tag) *api.CommitMeta {
 }
 
 // ToPayloadCommit convert a git.Commit to api.PayloadCommit
-func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit {
+func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCommit {
 	authorUsername := ""
 	if author, err := user_model.GetUserByEmail(c.Author.Email); err == nil {
 		authorUsername = author.Name
@@ -72,8 +73,7 @@ func ToPayloadCommit(repo *models.Repository, c *git.Commit) *api.PayloadCommit 
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
-
+func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -134,7 +134,7 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 	}
 
 	// Retrieve files affected by the commit
-	fileStatus, err := git.GetCommitFileStatus(repo.RepoPath(), commit.ID.String())
+	fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +145,13 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 				Filename: filename,
 			})
 		}
+	}
+
+	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+		AfterCommitID: commit.ID.String(),
+	})
+	if err != nil {
+		return nil, err
 	}
 
 	return &api.Commit{
@@ -176,10 +183,16 @@ func ToCommit(repo *models.Repository, commit *git.Commit, userCache map[string]
 				SHA:     commit.ID.String(),
 				Created: commit.Committer.When,
 			},
+			Verification: ToVerification(commit),
 		},
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
 		Files:     affectedFileList,
+		Stats: &api.CommitStats{
+			Total:     diff.TotalAddition + diff.TotalDeletion,
+			Additions: diff.TotalAddition,
+			Deletions: diff.TotalDeletion,
+		},
 	}, nil
 }

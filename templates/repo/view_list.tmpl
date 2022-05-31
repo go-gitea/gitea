@@ -26,15 +26,15 @@
 					</a>
 					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
 					{{ $commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String) }}
-					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
+					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
 							<button class="ui button ellipsis-button" aria-expanded="false">...</button>
-							<pre class="commit-body" style="display: none;">{{RenderCommitBody .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody $.Context .LatestCommit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 						{{end}}
 					</span>
 				{{end}}
 			</th>
-			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Author}}{{TimeSince .LatestCommit.Author.When $.Lang}}{{end}}{{end}}</th>
+			<th class="text grey right age">{{if .LatestCommit}}{{if .LatestCommit.Committer}}{{TimeSince .LatestCommit.Committer.When $.i18n.Lang}}{{end}}{{end}}</th>
 		</tr>
 	</thead>
 	<tbody>
@@ -62,7 +62,7 @@
 							{{if $entry.IsDir}}
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
-								{{svg "octicon-file-directory"}}
+								{{svg "octicon-file-directory-fill"}}
 								<a href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
@@ -80,13 +80,14 @@
 				<td class="message nine wide">
 					<span class="truncate">
 						{{if $commit}}
-							<a href="{{$.RepoLink}}/commit/{{PathEscape $commit.ID.String}}" title="{{$commit.Summary}}">{{$commit.Summary | RenderEmoji}}</a>
+							{{$commitLink := printf "%s/commit/%s" $.RepoLink (PathEscape $commit.ID.String)}}
+							{{RenderCommitMessageLinkSubject $.Context $commit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}
 						{{else}}
 							<div class="ui active tiny slow centered inline">…</div>
 						{{end}}
 					</span>
 				</td>
-				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When $.Lang}}{{end}}</td>
+				<td class="text right age three wide">{{if $commit}}{{TimeSince $commit.Committer.When $.i18n.Lang}}{{end}}</td>
 			</tr>
 		{{end}}
 	</tbody>

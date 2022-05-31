@@ -8,6 +8,8 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -30,14 +32,19 @@ func listUserRepos(ctx *context.APIContext, u *user_model.User, private bool) {
 		return
 	}
 
+	if err := repos.LoadAttributes(); err != nil {
+		ctx.Error(http.StatusInternalServerError, "RepositoryList.LoadAttributes", err)
+		return
+	}
+
 	apiRepos := make([]*api.Repository, 0, len(repos))
 	for i := range repos {
-		access, err := models.AccessLevel(ctx.User, repos[i])
+		access, err := access_model.AccessLevel(ctx.Doer, repos[i])
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
 		}
-		if ctx.IsSigned && ctx.User.IsAdmin || access >= models.AccessModeRead {
+		if ctx.IsSigned && ctx.Doer.IsAdmin || access >= perm.AccessModeRead {
 			apiRepos = append(apiRepos, convert.ToRepo(repos[i], access))
 		}
 	}
@@ -72,12 +79,8 @@ func ListUserRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
 	private := ctx.IsSigned
-	listUserRepos(ctx, user, private)
+	listUserRepos(ctx, ctx.ContextUser, private)
 }
 
 // ListMyRepos - list the repositories you own or have access to.
@@ -102,8 +105,8 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	opts := &models.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
-		Actor:              ctx.User,
-		OwnerID:            ctx.User.ID,
+		Actor:              ctx.Doer,
+		OwnerID:            ctx.Doer.ID,
 		Private:            ctx.IsSigned,
 		IncludeDescription: true,
 	}
@@ -117,11 +120,11 @@ func ListMyRepos(ctx *context.APIContext) {
 
 	results := make([]*api.Repository, len(repos))
 	for i, repo := range repos {
-		if err = repo.GetOwner(); err != nil {
+		if err = repo.GetOwner(ctx); err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetOwner", err)
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.User, repo)
+		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		}

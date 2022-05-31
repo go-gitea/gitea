@@ -6,6 +6,15 @@ package git
 
 import "strings"
 
+const (
+	// RemotePrefix is the base directory of the remotes information of git.
+	RemotePrefix = "refs/remotes/"
+	// PullPrefix is the base directory of the pull information of git.
+	PullPrefix = "refs/pull/"
+
+	pullLen = len(PullPrefix)
+)
+
 // Reference represents a Git ref.
 type Reference struct {
 	Name   string
@@ -24,17 +33,17 @@ func (ref *Reference) ShortName() string {
 	if ref == nil {
 		return ""
 	}
-	if strings.HasPrefix(ref.Name, "refs/heads/") {
-		return ref.Name[11:]
+	if strings.HasPrefix(ref.Name, BranchPrefix) {
+		return strings.TrimPrefix(ref.Name, BranchPrefix)
 	}
-	if strings.HasPrefix(ref.Name, "refs/tags/") {
-		return ref.Name[10:]
+	if strings.HasPrefix(ref.Name, TagPrefix) {
+		return strings.TrimPrefix(ref.Name, TagPrefix)
 	}
-	if strings.HasPrefix(ref.Name, "refs/remotes/") {
-		return ref.Name[13:]
+	if strings.HasPrefix(ref.Name, RemotePrefix) {
+		return strings.TrimPrefix(ref.Name, RemotePrefix)
 	}
-	if strings.HasPrefix(ref.Name, "refs/pull/") && strings.IndexByte(ref.Name[10:], '/') > -1 {
-		return ref.Name[10 : strings.IndexByte(ref.Name[10:], '/')+10]
+	if strings.HasPrefix(ref.Name, PullPrefix) && strings.IndexByte(ref.Name[pullLen:], '/') > -1 {
+		return ref.Name[pullLen : strings.IndexByte(ref.Name[pullLen:], '/')+pullLen]
 	}
 
 	return ref.Name
@@ -45,16 +54,16 @@ func (ref *Reference) RefGroup() string {
 	if ref == nil {
 		return ""
 	}
-	if strings.HasPrefix(ref.Name, "refs/heads/") {
+	if strings.HasPrefix(ref.Name, BranchPrefix) {
 		return "heads"
 	}
-	if strings.HasPrefix(ref.Name, "refs/tags/") {
+	if strings.HasPrefix(ref.Name, TagPrefix) {
 		return "tags"
 	}
-	if strings.HasPrefix(ref.Name, "refs/remotes/") {
+	if strings.HasPrefix(ref.Name, RemotePrefix) {
 		return "remotes"
 	}
-	if strings.HasPrefix(ref.Name, "refs/pull/") && strings.IndexByte(ref.Name[10:], '/') > -1 {
+	if strings.HasPrefix(ref.Name, PullPrefix) && strings.IndexByte(ref.Name[pullLen:], '/') > -1 {
 		return "pull"
 	}
 	return ""

@@ -9,10 +9,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/admin"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
 	repo_service "code.gitea.io/gitea/services/repository"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -23,7 +27,7 @@ func registerDeleteInactiveUsers() {
 			RunAtStart: false,
 			Schedule:   "@annually",
 		},
-		OlderThan: 0 * time.Second,
+		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
 		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
@@ -36,7 +40,7 @@ func registerDeleteRepositoryArchives() {
 		RunAtStart: false,
 		Schedule:   "@annually",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return repo_service.DeleteRepositoryArchives(ctx)
+		return archiver_service.DeleteRepositoryArchives(ctx)
 	})
 }
 
@@ -66,7 +70,7 @@ func registerRewriteAllPublicKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return models.RewriteAllPublicKeys()
+		return asymkey_model.RewriteAllPublicKeys()
 	})
 }
 
@@ -76,7 +80,7 @@ func registerRewriteAllPrincipalKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return models.RewriteAllPrincipalKeys()
+		return asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext)
 	})
 }
 
@@ -116,7 +120,7 @@ func registerRemoveRandomAvatars() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
-		return models.RemoveRandomAvatars(ctx)
+		return repo_service.RemoveRandomAvatars(ctx)
 	})
 }
 
@@ -152,6 +156,20 @@ func registerUpdateGiteaChecker() {
 	})
 }
 
+func registerDeleteOldSystemNotices() {
+	RegisterTaskFatal("delete_old_system_notices", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    false,
+			RunAtStart: false,
+			Schedule:   "@every 168h",
+		},
+		OlderThan: 365 * 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		olderThanConfig := config.(*OlderThanConfig)
+		return admin.DeleteOldSystemNotices(olderThanConfig.OlderThan)
+	})
+}
+
 func initExtendedTasks() {
 	registerDeleteInactiveUsers()
 	registerDeleteRepositoryArchives()
@@ -164,4 +182,5 @@ func initExtendedTasks() {
 	registerRemoveRandomAvatars()
 	registerDeleteOldActions()
 	registerUpdateGiteaChecker()
+	registerDeleteOldSystemNotices()
 }

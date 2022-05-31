@@ -81,7 +81,7 @@ Upgrade to [`gitea 1.6.4`](https://dl.gitea.io/gitea/1.6.4/) first. Download the
 the destination platform from the [downloads page](https://dl.gitea.io/gitea/1.6.4/) and replace the binary.
 Run Gitea at least once and check that everything works as expected.
 
-Then repeat the procedure, but this time using the [lastest release](https://dl.gitea.io/gitea/{{< version >}}/).
+Then repeat the procedure, but this time using the [latest release](https://dl.gitea.io/gitea/{{< version >}}/).
 
 ## Upgrading from a more recent version of Gogs
 

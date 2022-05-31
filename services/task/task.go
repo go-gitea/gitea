@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -48,13 +49,14 @@ func Init() error {
 	return nil
 }
 
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		task := datum.(*models.Task)
 		if err := Run(task); err != nil {
 			log.Error("Run task failed: %v", err)
 		}
 	}
+	return nil
 }
 
 // MigrateRepository add migration repository to task
@@ -75,7 +77,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 	if err != nil {
 		return nil, err
 	}
-	opts.CloneAddr = util.NewStringURLSanitizer(opts.CloneAddr, true).Replace(opts.CloneAddr)
+	opts.CloneAddr = util.SanitizeCredentialURLs(opts.CloneAddr)
 	opts.AuthPasswordEncrypted, err = secret.EncryptSecret(setting.SecretKey, opts.AuthPassword)
 	if err != nil {
 		return nil, err
@@ -91,7 +93,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		return nil, err
 	}
 
-	var task = &models.Task{
+	task := &models.Task{
 		DoerID:         doer.ID,
 		OwnerID:        u.ID,
 		Type:           structs.TaskTypeMigrateRepo,
@@ -110,7 +112,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		GitServiceType: opts.GitServiceType,
 		IsPrivate:      opts.Private,
 		IsMirror:       opts.Mirror,
-		Status:         models.RepositoryBeingMigrated,
+		Status:         repo_model.RepositoryBeingMigrated,
 	})
 	if err != nil {
 		task.EndTime = timeutil.TimeStampNow()

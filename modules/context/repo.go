@@ -8,24 +8,30 @@ package context
 import (
 	"context"
 	"fmt"
+	"html"
 	"io"
+	"net/http"
 	"net/url"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
-	"github.com/unknwon/com"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -42,7 +48,7 @@ var IssueTemplateDirCandidates = []string{
 
 // PullRequest contains information to make a pull request
 type PullRequest struct {
-	BaseRepo       *models.Repository
+	BaseRepo       *repo_model.Repository
 	Allowed        bool
 	SameRepo       bool
 	HeadInfoSubURL string // [<user>:]<branch> url segment
@@ -50,12 +56,12 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	models.Permission
+	access_model.Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
 	IsViewCommit bool
-	Repository   *models.Repository
+	Repository   *repo_model.Repository
 	Owner        *user_model.User
 	Commit       *git.Commit
 	Tag          *git.Tag
@@ -66,16 +72,21 @@ type Repository struct {
 	TreePath     string
 	CommitID     string
 	RepoLink     string
-	CloneLink    models.CloneLink
+	CloneLink    repo_model.CloneLink
 	CommitsCount int64
-	Mirror       *models.Mirror
+	Mirror       *repo_model.Mirror
 
 	PullRequest *PullRequest
 }
 
+// CanWriteToBranch checks if the branch is writable by the user
+func (r *Repository) CanWriteToBranch(user *user_model.User, branch string) bool {
+	return models.CanMaintainerWriteToBranch(r.Permission, branch, user)
+}
+
 // CanEnableEditor returns true if repository is editable and user has proper access level.
-func (r *Repository) CanEnableEditor() bool {
-	return r.Permission.CanWrite(unit_model.TypeCode) && r.Repository.CanEnableEditor() && r.IsViewBranch && !r.Repository.IsArchived
+func (r *Repository) CanEnableEditor(user *user_model.User) bool {
+	return r.IsViewBranch && r.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -105,9 +116,8 @@ type CanCommitToBranchResults struct {
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
-func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
-
+func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
+	protectedBranch, err := models.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
@@ -118,16 +128,16 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 		requireSigned = protectedBranch.RequireSignedCommits
 	}
 
-	sign, keyID, _, err := r.Repository.SignCRUDAction(doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
+	sign, keyID, _, err := asymkey_service.SignCRUDAction(ctx, r.Repository.RepoPath(), doer, r.Repository.RepoPath(), git.BranchPrefix+r.BranchName)
 
-	canCommit := r.CanEnableEditor() && userCanPush
+	canCommit := r.CanEnableEditor(doer) && userCanPush
 	if requireSigned {
 		canCommit = canCommit && sign
 	}
 	wontSignReason := ""
 	if err != nil {
-		if models.IsErrWontSign(err) {
-			wontSignReason = string(err.(*models.ErrWontSign).Reason)
+		if asymkey_service.IsErrWontSign(err) {
+			wontSignReason = string(err.(*asymkey_service.ErrWontSign).Reason)
 			err = nil
 		} else {
 			wontSignReason = "error"
@@ -136,7 +146,7 @@ func (r *Repository) CanCommitToBranch(doer *user_model.User) (CanCommitToBranch
 
 	return CanCommitToBranchResults{
 		CanCommitToBranch: canCommit,
-		EditorEnabled:     r.CanEnableEditor(),
+		EditorEnabled:     r.CanEnableEditor(doer),
 		UserCanPush:       userCanPush,
 		RequireSigned:     requireSigned,
 		WillSign:          sign,
@@ -150,7 +160,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.Use
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
+	isAssigned, _ := models.IsUserAssignedToIssue(db.DefaultContext, issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
@@ -176,14 +186,14 @@ func (r *Repository) GetCommitsCount() (int64, error) {
 }
 
 // GetCommitGraphsCount returns cached commit count for current view
-func (r *Repository) GetCommitGraphsCount(hidePRRefs bool, branches []string, files []string) (int64, error) {
+func (r *Repository) GetCommitGraphsCount(ctx context.Context, hidePRRefs bool, branches, files []string) (int64, error) {
 	cacheKey := fmt.Sprintf("commits-count-%d-graph-%t-%s-%s", r.Repository.ID, hidePRRefs, branches, files)
 
 	return cache.GetInt64(cacheKey, func() (int64, error) {
 		if len(branches) == 0 {
-			return git.AllCommitsCount(r.Repository.RepoPath(), hidePRRefs, files...)
+			return git.AllCommitsCount(ctx, r.Repository.RepoPath(), hidePRRefs, files...)
 		}
-		return git.CommitsCountFiles(r.Repository.RepoPath(), branches, files)
+		return git.CommitsCountFiles(ctx, r.Repository.RepoPath(), branches, files)
 	})
 }
 
@@ -202,7 +212,7 @@ func (r *Repository) BranchNameSubURL() string {
 }
 
 // FileExists returns true if a file exists in the given repo branch
-func (r *Repository) FileExists(path string, branch string) (bool, error) {
+func (r *Repository) FileExists(path, branch string) (bool, error) {
 	if branch == "" {
 		branch = r.Repository.DefaultBranch
 	}
@@ -218,13 +228,21 @@ func (r *Repository) FileExists(path string, branch string) (bool, error) {
 
 // GetEditorconfig returns the .editorconfig definition if found in the
 // HEAD of the default repo branch.
-func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
+func (r *Repository) GetEditorconfig(optCommit ...*git.Commit) (*editorconfig.Editorconfig, error) {
 	if r.GitRepo == nil {
 		return nil, nil
 	}
-	commit, err := r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
-	if err != nil {
-		return nil, err
+	var (
+		err    error
+		commit *git.Commit
+	)
+	if len(optCommit) != 0 {
+		commit = optCommit[0]
+	} else {
+		commit, err = r.GitRepo.GetBranchCommit(r.Repository.DefaultBranch)
+		if err != nil {
+			return nil, err
+		}
 	}
 	treeEntry, err := commit.GetTreeEntryByPath(".editorconfig")
 	if err != nil {
@@ -242,38 +260,39 @@ func (r *Repository) GetEditorconfig() (*editorconfig.Editorconfig, error) {
 }
 
 // RetrieveBaseRepo retrieves base repository
-func RetrieveBaseRepo(ctx *Context, repo *models.Repository) {
+func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-fork repository will not return error in this method.
 	if err := repo.GetBaseRepo(); err != nil {
-		if models.IsErrRepoNotExist(err) {
+		if repo_model.IsErrRepoNotExist(err) {
 			repo.IsFork = false
 			repo.ForkID = 0
 			return
 		}
 		ctx.ServerError("GetBaseRepo", err)
 		return
-	} else if err = repo.BaseRepo.GetOwner(); err != nil {
+	} else if err = repo.BaseRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("BaseRepo.GetOwner", err)
 		return
 	}
 }
 
 // RetrieveTemplateRepo retrieves template repository used to generate this repository
-func RetrieveTemplateRepo(ctx *Context, repo *models.Repository) {
+func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-generated repository will not return error in this method.
-	if err := repo.GetTemplateRepo(); err != nil {
-		if models.IsErrRepoNotExist(err) {
+	templateRepo, err := repo_model.GetTemplateRepo(ctx, repo)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
 			repo.TemplateID = 0
 			return
 		}
 		ctx.ServerError("GetTemplateRepo", err)
 		return
-	} else if err = repo.TemplateRepo.GetOwner(); err != nil {
+	} else if err = templateRepo.GetOwner(ctx); err != nil {
 		ctx.ServerError("TemplateRepo.GetOwner", err)
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(repo.TemplateRepo, ctx.User)
+	perm, err := access_model.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -301,14 +320,12 @@ func EarlyResponseForGoGetMeta(ctx *Context) {
 	username := ctx.Params(":username")
 	reponame := strings.TrimSuffix(ctx.Params(":reponame"), ".git")
 	if username == "" || reponame == "" {
-		ctx.PlainText(400, []byte("invalid repository path"))
+		ctx.PlainText(http.StatusBadRequest, "invalid repository path")
 		return
 	}
-	ctx.PlainText(200, []byte(com.Expand(`<meta name="go-import" content="{GoGetImport} git {CloneLink}">`,
-		map[string]string{
-			"GoGetImport": ComposeGoGetImport(username, reponame),
-			"CloneLink":   models.ComposeHTTPSCloneURL(username, reponame),
-		})))
+	goImportContent := fmt.Sprintf("%s git %s", ComposeGoGetImport(username, reponame), repo_model.ComposeHTTPSCloneURL(username, reponame))
+	htmlMeta := fmt.Sprintf(`<meta name="go-import" content="%s">`, html.EscapeString(goImportContent))
+	ctx.PlainText(http.StatusOK, htmlMeta)
 }
 
 // RedirectToRepo redirect to a differently-named repository
@@ -316,7 +333,7 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	ownerName := ctx.Params(":username")
 	previousRepoName := ctx.Params(":reponame")
 
-	repo, err := models.GetRepositoryByID(redirectRepoID)
+	repo, err := repo_model.GetRepositoryByID(redirectRepoID)
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -331,17 +348,17 @@ func RedirectToRepo(ctx *Context, redirectRepoID int64) {
 	if ctx.Req.URL.RawQuery != "" {
 		redirectPath += "?" + ctx.Req.URL.RawQuery
 	}
-	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+	ctx.Redirect(path.Join(setting.AppSubURL, redirectPath), http.StatusTemporaryRedirect)
 }
 
-func repoAssignment(ctx *Context, repo *models.Repository) {
+func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	var err error
-	if err = repo.GetOwner(); err != nil {
+	if err = repo.GetOwner(ctx); err != nil {
 		ctx.ServerError("GetOwner", err)
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(repo, ctx.User)
+	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -360,22 +377,35 @@ func repoAssignment(ctx *Context, repo *models.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-		var err error
-		ctx.Repo.Mirror, err = models.GetMirrorByRepoID(repo.ID)
+
+		// Check if the mirror has finsihed migrationg, only then we can
+		// lookup the mirror informtation the database.
+		finishedMigrating, err := models.HasFinishedMigratingTask(repo.ID)
 		if err != nil {
-			ctx.ServerError("GetMirrorByRepoID", err)
+			ctx.ServerError("HasFinishedMigratingTask", err)
 			return
 		}
-		ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
-		ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
-		ctx.Data["Mirror"] = ctx.Repo.Mirror
+		if finishedMigrating {
+			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+			if err != nil {
+				ctx.ServerError("GetMirrorByRepoID", err)
+				return
+			}
+			ctx.Repo.Mirror.Repo = ctx.Repo.Repository
+			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
+			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
+			ctx.Data["Mirror"] = ctx.Repo.Mirror
+		}
 	}
-	if err = repo.LoadPushMirrors(); err != nil {
-		ctx.ServerError("LoadPushMirrors", err)
+
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	if err != nil {
+		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
 	}
 
 	ctx.Repo.Repository = repo
+	ctx.Data["PushMirrors"] = pushMirrors
 	ctx.Data["RepoName"] = ctx.Repo.Repository.Name
 	ctx.Data["IsEmptyRepo"] = ctx.Repo.Repository.IsEmpty
 }
@@ -386,9 +416,9 @@ func RepoIDAssignment() func(ctx *Context) {
 		repoID := ctx.ParamsInt64(":repoid")
 
 		// Get repository.
-		repo, err := models.GetRepositoryByID(repoID)
+		repo, err := repo_model.GetRepositoryByID(repoID)
 		if err != nil {
-			if models.IsErrRepoNotExist(err) {
+			if repo_model.IsErrRepoNotExist(err) {
 				ctx.NotFound("GetRepositoryByID", nil)
 			} else {
 				ctx.ServerError("GetRepositoryByID", err)
@@ -402,6 +432,12 @@ func RepoIDAssignment() func(ctx *Context) {
 
 // RepoAssignment returns a middleware to handle repository assignment
 func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
+	if _, repoAssignmentOnce := ctx.Data["repoAssignmentExecuted"]; repoAssignmentOnce {
+		log.Trace("RepoAssignment was exec already, skipping second call ...")
+		return
+	}
+	ctx.Data["repoAssignmentExecuted"] = true
+
 	var (
 		owner *user_model.User
 		err   error
@@ -410,12 +446,14 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	userName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 	repoName = strings.TrimSuffix(repoName, ".git")
+	repoName = strings.TrimSuffix(repoName, ".rss")
+	repoName = strings.TrimSuffix(repoName, ".atom")
 
 	// Check if the user is the same as the repository owner
-	if ctx.IsSigned && ctx.User.LowerName == strings.ToLower(userName) {
-		owner = ctx.User
+	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
+		owner = ctx.Doer
 	} else {
-		owner, err = user_model.GetUserByName(userName)
+		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
@@ -430,16 +468,37 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 	}
 	ctx.Repo.Owner = owner
+	ctx.ContextUser = owner
 	ctx.Data["Username"] = ctx.Repo.Owner.Name
 
+	// redirect link to wiki
+	if strings.HasSuffix(repoName, ".wiki") {
+		// ctx.Req.URL.Path does not have the preceding appSubURL - any redirect must have this added
+		// Now we happen to know that all of our paths are: /:username/:reponame/whatever_else
+		originalRepoName := ctx.Params(":reponame")
+		redirectRepoName := strings.TrimSuffix(repoName, ".wiki")
+		redirectRepoName += originalRepoName[len(redirectRepoName)+5:]
+		redirectPath := strings.Replace(
+			ctx.Req.URL.EscapedPath(),
+			url.PathEscape(userName)+"/"+url.PathEscape(originalRepoName),
+			url.PathEscape(userName)+"/"+url.PathEscape(redirectRepoName)+"/wiki",
+			1,
+		)
+		if ctx.Req.URL.RawQuery != "" {
+			redirectPath += "?" + ctx.Req.URL.RawQuery
+		}
+		ctx.Redirect(path.Join(setting.AppSubURL, redirectPath))
+		return
+	}
+
 	// Get repository.
-	repo, err := models.GetRepositoryByName(owner.ID, repoName)
+	repo, err := repo_model.GetRepositoryByName(owner.ID, repoName)
 	if err != nil {
-		if models.IsErrRepoNotExist(err) {
-			redirectRepoID, err := models.LookupRepoRedirect(owner.ID, repoName)
+		if repo_model.IsErrRepoNotExist(err) {
+			redirectRepoID, err := repo_model.LookupRedirect(owner.ID, repoName)
 			if err == nil {
 				RedirectToRepo(ctx, redirectRepoID)
-			} else if models.IsErrRepoRedirectNotExist(err) {
+			} else if repo_model.IsErrRedirectNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
@@ -492,21 +551,45 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	if ctx.Data["CanSignedUserFork"], err = models.CanUserForkRepo(ctx.User, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("CanSignedUserFork", err)
+	canSignedUserFork, err := models.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
+	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	ctx.Data["DisableSSH"] = setting.SSH.Disabled
-	ctx.Data["ExposeAnonSSH"] = setting.SSH.ExposeAnonymous
-	ctx.Data["DisableHTTP"] = setting.Repository.DisableHTTPGit
+	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
+	if err != nil {
+		ctx.ServerError("GetForksByUserAndOrgs", err)
+		return
+	}
+	ctx.Data["UserAndOrgForks"] = userAndOrgForks
+
+	// canSignedUserFork is true if the current user doesn't have a fork of this repo yet or
+	// if he owns an org that doesn't have a fork of this repo yet
+	// If multiple forks are available or if the user can fork to another account, but there is already a fork: open selection dialog
+	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
+
+	ctx.Data["RepoCloneLink"] = repo.CloneLink()
+
+	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
+	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)
+	if !cloneButtonShowHTTPS && !cloneButtonShowSSH {
+		// We have to show at least one link, so we just show the HTTPS
+		cloneButtonShowHTTPS = true
+	}
+	ctx.Data["CloneButtonShowHTTPS"] = cloneButtonShowHTTPS
+	ctx.Data["CloneButtonShowSSH"] = cloneButtonShowSSH
+	ctx.Data["CloneButtonOriginLink"] = ctx.Data["RepoCloneLink"] // it may be rewritten to the WikiCloneLink by the router middleware
+
 	ctx.Data["RepoSearchEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["CloneLink"] = repo.CloneLink()
-	ctx.Data["WikiCloneLink"] = repo.WikiCloneLink()
+	if setting.Indexer.RepoIndexerEnabled {
+		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+	}
 
 	if ctx.IsSigned {
-		ctx.Data["IsWatchingRepo"] = models.IsWatching(ctx.User.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = models.IsStaring(ctx.User.ID, repo.ID)
+		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -534,11 +617,11 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(models.RepoPath(userName, repoName))
+	gitRepo, err := git.OpenRepository(ctx, repo_model.RepoPath(userName, repoName))
 	if err != nil {
 		if strings.Contains(err.Error(), "repository does not exist") || strings.Contains(err.Error(), "no such file or directory") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
-			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
 			ctx.Repo.Repository.IsEmpty = true
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			// Only allow access to base of repo or settings
@@ -547,8 +630,11 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 			}
 			return
 		}
-		ctx.ServerError("RepoAssignment Invalid repo "+models.RepoPath(userName, repoName), err)
+		ctx.ServerError("RepoAssignment Invalid repo "+repo_model.RepoPath(userName, repoName), err)
 		return
+	}
+	if ctx.Repo.GitRepo != nil {
+		ctx.Repo.GitRepo.Close()
 	}
 	ctx.Repo.GitRepo = gitRepo
 
@@ -570,7 +656,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if err != nil {
 		if strings.Contains(err.Error(), "fatal: not a git repository ") {
 			log.Error("Repository %-v has a broken repository on the file system: %s Error: %v", ctx.Repo.Repository, ctx.Repo.Repository.RepoPath(), err)
-			ctx.Repo.Repository.Status = models.RepositoryBroken
+			ctx.Repo.Repository.Status = repo_model.RepositoryBroken
 			ctx.Repo.Repository.IsEmpty = true
 			ctx.Data["BranchName"] = ctx.Repo.Repository.DefaultBranch
 			// Only allow access to base of repo or settings
@@ -584,7 +670,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["Tags"] = tags
 
-	brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
+	brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
 	if err != nil {
 		ctx.ServerError("GetBranches", err)
 		return
@@ -606,7 +692,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	// People who have push access or have forked repository can propose a new pull request.
 	canPush := ctx.Repo.CanWrite(unit_model.TypeCode) ||
-		(ctx.IsSigned && models.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
 	canCompare := false
 
 	// Pull request is allowed if this is a fork repository
@@ -629,7 +715,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
 
-	if ctx.Repo.Repository.Status == models.RepositoryPendingTransfer {
+	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
 		if err != nil {
 			ctx.ServerError("GetPendingRepositoryTransfer", err)
@@ -642,8 +728,8 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		}
 
 		ctx.Data["RepoTransfer"] = repoTransfer
-		if ctx.User != nil {
-			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.User)
+		if ctx.Doer != nil {
+			ctx.Data["CanUserAcceptTransfer"] = repoTransfer.CanUserAcceptTransfer(ctx.Doer)
 		}
 	}
 
@@ -791,8 +877,8 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		)
 
 		if ctx.Repo.GitRepo == nil {
-			repoPath := models.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-			ctx.Repo.GitRepo, err = git.OpenRepository(repoPath)
+			repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+			ctx.Repo.GitRepo, err = git.OpenRepository(ctx, repoPath)
 			if err != nil {
 				ctx.ServerError("RepoRef Invalid repo "+repoPath, err)
 				return
@@ -810,7 +896,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		if len(ctx.Params("*")) == 0 {
 			refName = ctx.Repo.Repository.DefaultBranch
 			if !ctx.Repo.GitRepo.IsBranchExist(refName) {
-				brs, _, err := ctx.Repo.GitRepo.GetBranches(0, 0)
+				brs, _, err := ctx.Repo.GitRepo.GetBranchNames(0, 0)
 				if err != nil {
 					ctx.ServerError("GetBranches", err)
 					return
@@ -876,7 +962,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 				}
 				// If short commit ID add canonical link header
 				if len(refName) < 40 {
-					ctx.Header().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
+					ctx.RespHeader().Set("Link", fmt.Sprintf("<%s>; rel=\"canonical\"",
 						util.URLJoin(setting.AppURL, strings.Replace(ctx.Req.URL.RequestURI(), util.PathEscapeSegments(refName), url.PathEscape(ctx.Repo.Commit.ID.String()), 1))))
 				}
 			} else {
@@ -889,7 +975,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 			if refType == RepoRefLegacy {
 				// redirect from old URL scheme to new URL scheme
-				prefix := strings.TrimPrefix(setting.AppSubURL+strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*")), ctx.Repo.RepoLink)
+				prefix := strings.TrimPrefix(setting.AppSubURL+strings.ToLower(strings.TrimSuffix(ctx.Req.URL.Path, ctx.Params("*"))), strings.ToLower(ctx.Repo.RepoLink))
 
 				ctx.Redirect(path.Join(
 					ctx.Repo.RepoLink,
@@ -923,7 +1009,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 // GitHookService checks if repository Git hooks service has been enabled.
 func GitHookService() func(ctx *Context) {
 	return func(ctx *Context) {
-		if !ctx.User.CanEditGitHook() {
+		if !ctx.Doer.CanEditGitHook() {
 			ctx.NotFound("GitHookService", nil)
 			return
 		}
@@ -941,6 +1027,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
+		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
 	}
 }
 

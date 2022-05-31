@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"net/http"
+	"net/url"
 	"path"
 	"testing"
 
@@ -17,7 +18,7 @@ func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route,
 
 	// Make request
 	req := NewRequest(t, "GET", path.Join(prefix, route))
-	resp := session.MakeRequest(t, req, http.StatusFound)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Check Location header
 	location := resp.HeaderMap.Get("Location")
@@ -36,7 +37,7 @@ func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch str
 		"action": "default_branch",
 		"branch": branch,
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
 func TestNonasciiBranches(t *testing.T) {
@@ -159,6 +160,41 @@ func TestNonasciiBranches(t *testing.T) {
 			to:     "tag/%D0%81/%E4%BA%BA",
 			status: http.StatusOK,
 		},
+		{
+			from:   "Plus+Is+Not+Space/%25%252525mightnotplaywell",
+			to:     "branch/Plus+Is+Not+Space/%25%252525mightnotplaywell",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/%25253Fisnotaquestion%25253F",
+			to:     "branch/Plus+Is+Not+Space/%25253Fisnotaquestion%25253F",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("%3Fis?and#afile"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("%3Fis?and#afile"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/10%25.md",
+			to:     "branch/Plus+Is+Not+Space/10%25.md",
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("This+file%20has 1space"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("This+file%20has 1space"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("This+file%2520has 2 spaces"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("This+file%2520has 2 spaces"),
+			status: http.StatusOK,
+		},
+		{
+			from:   "Plus+Is+Not+Space/" + url.PathEscape("£15&$6.txt"),
+			to:     "branch/Plus+Is+Not+Space/" + url.PathEscape("£15&$6.txt"),
+			status: http.StatusOK,
+		},
 	}
 
 	defer prepareTestEnv(t)()
@@ -174,5 +210,4 @@ func TestNonasciiBranches(t *testing.T) {
 	}
 
 	setDefaultBranch(t, session, user, repo, "master")
-
 }

@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -53,7 +54,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	}
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &models.Repository{ID: 1}).(*models.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
@@ -68,7 +69,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 	DecodeJSON(t, resp, &apiNL)
 	assert.Len(t, apiNL, 2)
 
-	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" //946687801 <- only Notification 4 is in this filter ...
+	lastReadAt := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801 <- only Notification 4 is in this filter ...
 	req = NewRequest(t, "PUT", fmt.Sprintf("/api/v1/repos/%s/%s/notifications?last_read_at=%s&token=%s", user2.Name, repo1.Name, lastReadAt, token))
 	session.MakeRequest(t, req, http.StatusResetContent)
 

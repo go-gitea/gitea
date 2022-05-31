@@ -10,9 +10,9 @@ import (
 	"reflect"
 	"runtime"
 	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -30,24 +30,25 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
-	"code.gitea.io/gitea/services/archiver"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	pull_service "code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
+	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
-
-	"gitea.com/go-chi/session"
 )
 
 func mustInit(fn func() error) {
@@ -72,7 +73,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repo_service.NewContext)
+	mustInit(repo_service.Init)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -87,7 +88,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInitCtx(ctx, repo_service.SyncRepositoryHooks)
 
 		log.Info("re-write ssh public keys ...")
-		mustInit(models.RewriteAllPublicKeys)
+		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
 		return appstate.AppState.Set(runtimeState)
@@ -95,9 +96,8 @@ func syncAppPathForGit(ctx context.Context) error {
 	return nil
 }
 
-// GlobalInit is for global configuration reload-able.
-func GlobalInit(ctx context.Context) {
-	setting.NewContext()
+// GlobalInitInstalled is for global installed configuration.
+func GlobalInitInstalled(ctx context.Context) {
 	if !setting.InstallLock {
 		log.Fatal("Gitea is not installed")
 	}
@@ -111,12 +111,14 @@ func GlobalInit(ctx context.Context) {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
+	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 
 	// Setup i18n
 	translation.InitLocales()
 
-	InitGitServices()
+	setting.NewServices()
+	mustInit(storage.Init)
+
 	mailer.NewContext()
 	mustInit(cache.NewContext)
 	notification.NewContext()
@@ -138,16 +140,18 @@ func GlobalInit(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
+	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	cron.NewContext()
+	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
 
 	mirror_service.InitSyncMirrors()
-	webhook.InitDeliverHooks()
+	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
+	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
@@ -173,20 +177,12 @@ func NormalRoutes() *web.Route {
 		r.Use(middle)
 	}
 
-	sessioner := session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	})
-
-	r.Mount("/", web_routers.Routes(sessioner))
-	r.Mount("/api/v1", apiv1.Routes(sessioner))
+	r.Mount("/", web_routers.Routes())
+	r.Mount("/api/v1", apiv1.Routes())
 	r.Mount("/api/internal", private.Routes())
+	if setting.Packages.Enabled {
+		r.Mount("/api/packages", packages_router.Routes())
+		r.Mount("/v2", packages_router.ContainerRoutes())
+	}
 	return r
 }

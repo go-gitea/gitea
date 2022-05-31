@@ -5,7 +5,6 @@
 package external
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"os"
@@ -53,6 +52,11 @@ func (p *Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
+}
+
+// SanitizerDisabled disabled sanitize if return true
+func (p *Renderer) SanitizerDisabled() bool {
+	return p.DisableSanitizer
 }
 
 func envMark(envName string) string {
@@ -107,11 +111,8 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		ctx.Ctx = graceful.GetManager().ShutdownContext()
 	}
 
-	processCtx, cancel := context.WithCancel(ctx.Ctx)
-	defer cancel()
-
-	pid := process.GetManager().Add(fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix), cancel)
-	defer process.GetManager().Remove(pid)
+	processCtx, _, finished := process.GetManager().AddContext(ctx.Ctx, fmt.Sprintf("Render [%s] for %s", commands[0], ctx.URLPrefix))
+	defer finished()
 
 	cmd := exec.CommandContext(processCtx, commands[0], args...)
 	cmd.Env = append(

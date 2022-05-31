@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -41,7 +42,7 @@ func Repos(ctx *context.Context) {
 
 // DeleteRepo delete one repository
 func DeleteRepo(ctx *context.Context) {
-	repo, err := models.GetRepositoryByID(ctx.FormInt64("id"))
+	repo, err := repo_model.GetRepositoryByID(ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetRepositoryByID", err)
 		return
@@ -51,7 +52,7 @@ func DeleteRepo(ctx *context.Context) {
 		ctx.Repo.GitRepo.Close()
 	}
 
-	if err := repo_service.DeleteRepository(ctx.User, repo); err != nil {
+	if err := repo_service.DeleteRepository(ctx, ctx.Doer, repo, true); err != nil {
 		ctx.ServerError("DeleteRepository", err)
 		return
 	}
@@ -120,7 +121,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	ctxUser, err := user_model.GetUserByName(dirSplit[0])
+	ctxUser, err := user_model.GetUserByName(ctx, dirSplit[0])
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("User does not exist: %s", dirSplit[0])
@@ -134,12 +135,12 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := models.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
 	}
-	isDir, err := util.IsDir(models.RepoPath(ctxUser.Name, repoName))
+	isDir, err := util.IsDir(repo_model.RepoPath(ctxUser.Name, repoName))
 	if err != nil {
 		ctx.ServerError("IsDir", err)
 		return
@@ -147,7 +148,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repo_service.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {
@@ -156,7 +157,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		}
 		ctx.Flash.Success(ctx.Tr("repo.adopt_preexisting_success", dir))
 	} else if action == "delete" {
-		if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, dirSplit[1]); err != nil {
+		if err := repo_service.DeleteUnadoptedRepository(ctx.Doer, ctxUser, dirSplit[1]); err != nil {
 			ctx.ServerError("repository.AdoptRepository", err)
 			return
 		}
