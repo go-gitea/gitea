@@ -664,18 +664,26 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 				})
 			}
 
-			allReviews = append(allReviews, &base.Review{
-				ID:           pr.ID,
-				IssueIndex:   reviewable.GetLocalIndex(),
-				ReviewerID:   pr.Reviewer.ID,
-				ReviewerName: pr.Reviewer.UserName,
-				Official:     pr.Official,
-				CommitID:     pr.CommitID,
-				Content:      pr.Body,
-				CreatedAt:    pr.Submitted,
-				State:        string(pr.State),
-				Comments:     reviewComments,
-			})
+			review := &base.Review{
+				ID:         pr.ID,
+				IssueIndex: reviewable.GetLocalIndex(),
+				Official:   pr.Official,
+				CommitID:   pr.CommitID,
+				Content:    pr.Body,
+				CreatedAt:  pr.Submitted,
+				State:      string(pr.State),
+				Comments:   reviewComments,
+			}
+
+			if pr.Reviewer != nil {
+				review.ReviewerID = pr.Reviewer.ID
+				review.ReviewerName = pr.Reviewer.UserName
+			} else {
+				// we have to skip this review as it will be mapped on to something incorrect
+				continue
+			}
+
+			allReviews = append(allReviews, review)
 		}
 
 		if len(prl) < g.maxPerPage {

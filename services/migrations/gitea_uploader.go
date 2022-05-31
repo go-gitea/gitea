@@ -696,6 +696,8 @@ func convertReviewState(state string) models.ReviewType {
 		return models.ReviewTypeReject
 	case base.ReviewStateCommented:
 		return models.ReviewTypeComment
+	case base.ReviewStateRequestReview:
+		return models.ReviewTypeRequest
 	default:
 		return models.ReviewTypePending
 	}
