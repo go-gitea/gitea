@@ -524,12 +524,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				URLPrefix:    path.Dir(treeLink),
 				Metas:        metas,
 				GitRepo:      ctx.Repo.GitRepo,
-				UseIframe:    true,
+				AllowIFrame:  true, // allow possible iframe from UI
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
+			// to prevent iframe load third-party url
+			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src "+setting.AppURL)
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}

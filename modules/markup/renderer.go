@@ -46,7 +46,7 @@ type RenderContext struct {
 	GitRepo       *git.Repository
 	ShaExistCache map[string]bool
 	cancelFn      func()
-	UseIframe     bool
+	AllowIFrame   bool
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -227,7 +227,7 @@ func (err ErrUnsupportedRenderExtension) Error() string {
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
 	if renderer, ok := extRenderers[extension]; ok {
-		if renderer.DisplayInIFrame() && ctx.UseIframe {
+		if renderer.DisplayInIFrame() && ctx.AllowIFrame {
 			return renderIFrame(ctx, renderer, input, output)
 		}
 		return render(ctx, renderer, input, output)
