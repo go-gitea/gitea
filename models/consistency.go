@@ -142,7 +142,7 @@ func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Select("id").
+		Select("`" + subject + "`.id").
 		Count()
 }
 
