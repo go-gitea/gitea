@@ -56,7 +56,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
 	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
 	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
-	stats.Counter.Action, _ = e.Count(new(Action))
+	stats.Counter.Action, _ = db.EstimateCount(db.DefaultContext, new(Action))
 	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {
