@@ -22,7 +22,10 @@ export function initRepoSettingsCollaboration() {
       $text.text(text); // update the text when using keyboard navigating
     },
     onHide () {
-      $dropdown.dropdown('set selected', $dropdown.attr('data-last-value')); // restore the really selected value
+      setTimeout(() => {
+        // restore the really selected value, defer to next tick to make sure `action` has finished its work
+        $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
+      }, 0);
     }
   });
 }
