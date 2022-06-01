@@ -6,13 +6,15 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.access-mode.menu .item').on('click', function () {
-    const $menu = $(this).parent();
-    $.post($menu.data('url'), {
-      _csrf: csrfToken,
-      uid: $menu.data('uid'),
-      mode: $(this).data('value')
-    });
+  const $dropdown = $('.page-content.repository .ui.access-mode.dropdown');
+  $dropdown.dropdown({
+    onChange(value) {
+      $.post($dropdown.attr('data-url'), {
+        _csrf: csrfToken,
+        uid: $dropdown.attr('data-uid'),
+        mode: value,
+      });
+    }
   });
 }
 
