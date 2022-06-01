@@ -8,8 +8,9 @@ function generateAriaId() {
 
 // make the item has role=option, and add an id if there wasn't one yet.
 function prepareMenuItem($item) {
-  $item.attr({'role': 'option'});
   if (!$item.attr('id')) $item.attr('id', generateAriaId());
+  $item.attr({'role': 'option', 'tabindex': '-1'});
+  $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 }
 
 // when the menu items are loaded from AJAX requests, the items are created dynamically

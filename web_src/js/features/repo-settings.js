@@ -7,6 +7,7 @@ const {appSubUrl, csrfToken} = window.config;
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   const $dropdown = $('.page-content.repository .ui.dropdown.access-mode');
+  const $text = $dropdown.find('> .text');
   $dropdown.dropdown({
     action (_text, value) {
       $.post($dropdown.attr('data-url'), {
@@ -14,7 +15,14 @@ export function initRepoSettingsCollaboration() {
         uid: $dropdown.attr('data-uid'),
         mode: value,
       });
+      $dropdown.attr('data-last-value', value);
       $dropdown.dropdown('hide');
+    },
+    onChange (_value, text, _$choice) {
+      $text.text(text); // update the text when using keyboard navigating
+    },
+    onHide () {
+      $dropdown.dropdown('set selected', $dropdown.attr('data-last-value')); // restore the really selected value
     }
   });
 }
