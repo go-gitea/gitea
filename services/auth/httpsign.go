@@ -53,31 +53,25 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	}
 
 	var (
-		u       *user_model.User
-		validpk *asymkey_model.PublicKey
-		err     error
+		publicKey *asymkey_model.PublicKey
+		err       error
 	)
 
-	// Handle SSH certificates
 	if len(req.Header.Get("X-Ssh-Certificate")) != 0 {
+		// Handle Signature signed by SSH certificates
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
 			return nil
 		}
 
-		validpk, err = VerifyCert(req)
+		publicKey, err = VerifyCert(req)
 		if err != nil {
 			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
 			return nil
 		}
 	} else {
-		keyID, err := GetKeyID(req)
-		if err != nil {
-			log.Debug("GetKeyID failed: %v", err)
-			return nil
-		}
-
-		validpk, err = VerifyPubKey(req, keyID)
+		// Handle Signature signed by Public Key
+		publicKey, err = VerifyPubKey(req)
 		if err != nil {
 			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
@@ -85,7 +79,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 		}
 	}
 
-	u, err = user_model.GetUserByID(validpk.OwnerID)
+	u, err := user_model.GetUserByID(publicKey.OwnerID)
 	if err != nil {
 		log.Error("GetUserByID:  %v", err)
 		return nil
@@ -98,134 +92,135 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	return u
 }
 
-func VerifyPubKey(r *http.Request, keyID string) (*asymkey_model.PublicKey, error) {
-	validpk, err := asymkey_model.SearchPublicKey(0, keyID)
+func VerifyPubKey(r *http.Request) (*asymkey_model.PublicKey, error) {
+	verifier, err := httpsig.NewVerifier(r)
+	if err != nil {
+		return nil, fmt.Errorf("httpsig.NewVerifier failed: %s", err)
+	}
+
+	keyID := verifier.KeyId()
+
+	publicKeys, err := asymkey_model.SearchPublicKey(0, keyID)
 	if err != nil {
 		return nil, err
 	}
 
-	if len(validpk) == 0 {
+	if len(publicKeys) == 0 {
 		return nil, fmt.Errorf("no public key found for keyid %s", keyID)
 	}
 
-	return validpk[0], nil
+	sshPublicKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(publicKeys[0].Content))
+	if err != nil {
+		return nil, err
+	}
+
+	if err := doVerify(verifier, []ssh.PublicKey{sshPublicKey}); err != nil {
+		return nil, err
+	}
+
+	return publicKeys[0], nil
 }
 
 // VerifyCert verifies the validity of the ssh certificate and returns the publickey of the signer
 // We verify that the certificate is signed with the correct CA
 // We verify that the http request is signed with the private key (of the public key mentioned in the certificate)
 func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
-	var validpk *asymkey_model.PublicKey
-
 	// Get our certificate from the header
 	bcert, err := base64.RawStdEncoding.DecodeString(r.Header.Get("x-ssh-certificate"))
 	if err != nil {
-		return validpk, err
+		return nil, err
 	}
 
 	pk, err := ssh.ParsePublicKey(bcert)
 	if err != nil {
-		return validpk, err
+		return nil, err
 	}
 
 	// Check if it's really a ssh certificate
 	cert, ok := pk.(*ssh.Certificate)
 	if !ok {
-		return validpk, fmt.Errorf("no certificate found")
+		return nil, fmt.Errorf("no certificate found")
 	}
 
-	for _, principal := range cert.ValidPrincipals {
-		validpk, err = asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
-		if err != nil {
-			if asymkey_model.IsErrKeyNotExist(err) {
-				continue
-			}
-			log.Error("SearchPublicKeyByContentExact: %v", err)
-			return validpk, err
-		}
+	c := &ssh.CertChecker{
+		IsUserAuthority: func(auth ssh.PublicKey) bool {
+			marshaled := auth.Marshal()
 
-		c := &ssh.CertChecker{
-			IsUserAuthority: func(auth ssh.PublicKey) bool {
-				marshaled := auth.Marshal()
-
-				for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-					if bytes.Equal(marshaled, k.Marshal()) {
-						return true
-					}
+			for _, k := range setting.SSH.TrustedUserCAKeysParsed {
+				if bytes.Equal(marshaled, k.Marshal()) {
+					return true
 				}
+			}
 
-				return false
-			},
-		}
-
-		// check the CA of the cert
-		if !c.IsUserAuthority(cert.SignatureKey) {
-			return validpk, fmt.Errorf("CA check failed")
-		}
-
-		// validate the cert for this principal
-		if err := c.CheckCert(principal, cert); err != nil {
-			return validpk, fmt.Errorf("no valid principal found")
-		}
-
-		break
+			return false
+		},
 	}
 
-	// validpk will be nil when we didn't find a principal matching the certificate registered in gitea
-	if validpk == nil {
-		return validpk, fmt.Errorf("no valid principal found")
+	// check the CA of the cert
+	if !c.IsUserAuthority(cert.SignatureKey) {
+		return nil, fmt.Errorf("CA check failed")
 	}
 
+	// Create a verifier
 	verifier, err := httpsig.NewVerifier(r)
 	if err != nil {
-		return validpk, fmt.Errorf("httpsig.NewVerifier failed: %s", err)
+		return nil, fmt.Errorf("httpsig.NewVerifier failed: %s", err)
 	}
 
-	// now verify that we signed this request with the publickey of the cert
-	err = doVerify(verifier, []ssh.PublicKey{cert.Key})
-	if err != nil {
-		return validpk, err
+	// now verify that this request was signed with the private key that matches the certificate public key
+	if err := doVerify(verifier, []ssh.PublicKey{cert.Key}); err != nil {
+		return nil, err
 	}
 
-	return validpk, nil
+	// Now for each of the certificate valid principals
+	for _, principal := range cert.ValidPrincipals {
+
+		// Look in the db for the public key
+		publicKey, err := asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
+		if err != nil {
+			if asymkey_model.IsErrKeyNotExist(err) {
+				// No public key matches this principal - try the next principal
+				continue
+			}
+
+			// this error will be a db error therefore we can't solve this and we should abort
+			log.Error("SearchPublicKeyByContentExact: %v", err)
+			return nil, err
+		}
+
+		// Validate the cert for this principal
+		if err := c.CheckCert(principal, cert); err != nil {
+			// however, because principal is a member of ValidPrincipals - if this fails then the certificate itself is invalid
+			return nil, err
+		}
+
+		// OK we have a public key for a principal matching a valid certificate whose key has signed this request.
+		return publicKey, nil
+	}
+
+	// No public key matching a principal in the certificate is registered in gitea
+	return nil, fmt.Errorf("no valid principal found")
 }
 
 // doVerify iterates across the provided public keys attempting the verify the current request against each key in turn
-func doVerify(verifier httpsig.Verifier, publickeys []ssh.PublicKey) error {
-	verified := false
+func doVerify(verifier httpsig.Verifier, sshPublicKeys []ssh.PublicKey) error {
+	for _, publicKey := range sshPublicKeys {
+		cryptoPubkey := publicKey.(ssh.CryptoPublicKey).CryptoPublicKey()
 
-	for _, pubkey := range publickeys {
-		cryptoPubkey := pubkey.(ssh.CryptoPublicKey).CryptoPublicKey()
-
-		var algo httpsig.Algorithm
+		var algos []httpsig.Algorithm
 
 		switch {
-		case strings.HasPrefix(pubkey.Type(), "ssh-ed25519"):
-			algo = httpsig.ED25519
-		case strings.HasPrefix(pubkey.Type(), "ssh-rsa"):
-			algo = httpsig.RSA_SHA1
+		case strings.HasPrefix(publicKey.Type(), "ssh-ed25519"):
+			algos = []httpsig.Algorithm{httpsig.ED25519}
+		case strings.HasPrefix(publicKey.Type(), "ssh-rsa"):
+			algos = []httpsig.Algorithm{httpsig.RSA_SHA1, httpsig.RSA_SHA256, httpsig.RSA_SHA512}
 		}
-
-		err := verifier.Verify(cryptoPubkey, algo)
-		if err == nil {
-			verified = true
-			break
+		for _, algo := range algos {
+			if err := verifier.Verify(cryptoPubkey, algo); err == nil {
+				return nil
+			}
 		}
-	}
-
-	if verified {
-		return nil
 	}
 
 	return errors.New("verification failed")
-}
-
-// GetKeyID returns the keyid from the httpsignature or an error if doesn't exist
-func GetKeyID(r *http.Request) (string, error) {
-	verifier, err := httpsig.NewVerifier(r)
-	if err != nil {
-		return "", fmt.Errorf("httpsig.NewVerifier failed: %s", err)
-	}
-
-	return verifier.KeyId(), nil
 }
