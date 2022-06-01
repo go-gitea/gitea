@@ -480,8 +480,15 @@ func getWorkPath(appPath string) string {
 	}
 	workPath = strings.ReplaceAll(workPath, "\\", "/")
 	if !filepath.IsAbs(workPath) {
-		log.Info("Provided work path %s is not absolute - will be absoluted against %s", workPath, appPath)
-		workPath = filepath.Join(appPath, workPath)
+		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
+
+		absPath, err := filepath.Abs(workPath)
+		if err != nil {
+			log.Error("Unable to absolute %s against the current working directory %v. Will absolute against the AppPath %s", workPath, err, appPath)
+			workPath = filepath.Join(appPath, workPath)
+		} else {
+			workPath = absPath
+		}
 	}
 	return strings.ReplaceAll(workPath, "\\", "/")
 }
