@@ -66,8 +66,8 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 
 		validpk, err = VerifyCert(req)
 		if err != nil {
+			log.Debug("VerifyCert on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			log.Debug("Failed authentication attempt from %s: VerifyCert failed: %v", req.RemoteAddr, err)
 			return nil
 		}
 	} else {
@@ -79,8 +79,8 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 
 		validpk, err = VerifyPubKey(req, keyID)
 		if err != nil {
+			log.Debug("VerifyPubKey on request from %s: failed: %v", req.RemoteAddr, err)
 			log.Warn("Failed authentication attempt from %s", req.RemoteAddr)
-			log.Debug("Failed authentication attempt from %s: VerifyPubKey failed: %v", req.RemoteAddr, err)
 			return nil
 		}
 	}
