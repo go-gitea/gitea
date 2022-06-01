@@ -8,12 +8,13 @@ export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
   const $dropdown = $('.page-content.repository .ui.access-mode.dropdown');
   $dropdown.dropdown({
-    onChange(value) {
+    action (_text, value) {
       $.post($dropdown.attr('data-url'), {
         _csrf: csrfToken,
         uid: $dropdown.attr('data-uid'),
         mode: value,
       });
+      $dropdown.dropdown('hide');
     }
   });
 }
