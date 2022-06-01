@@ -9,7 +9,7 @@ function generateAriaId() {
 // make the item has role=option, and add an id if there wasn't one yet.
 function prepareMenuItem($item) {
   if (!$item.attr('id')) $item.attr('id', generateAriaId());
-  $item.attr({'role': 'option', 'tabindex': '-1'});
+  $item.attr({'role': 'menuitem', 'tabindex': '-1'});
   $item.find('a').attr('tabindex', '-1'); // as above, the elements inside the dropdown menu item should not be focusable, the focus should always be on the dropdown primary element.
 }
 
@@ -26,6 +26,9 @@ $.fn.dropdown.settings.templates.menu = function(response, fields, preserveHTML,
 };
 
 function attachOneDropdownAria($dropdown) {
+  if ($dropdown.attr('data-aria-attached')) return;
+  $dropdown.attr('data-aria-attached', 1);
+
   const $textSearch = $dropdown.find('input.search').eq(0);
   const $focusable = $textSearch.length ? $textSearch : $dropdown; // see comment below
   if (!$focusable.length) return;
@@ -33,18 +36,21 @@ function attachOneDropdownAria($dropdown) {
   // prepare menu list
   const $menu = $dropdown.find('> .menu');
   if (!$menu.attr('id')) $menu.attr('id', generateAriaId());
-  $menu.attr('role', 'listbox');
 
   // dropdown has 2 different focusing behaviors
   // * with search input: the input is focused, and it works perfectly with aria-activedescendant pointing another sibling element.
-  // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown,
-  //   which make the UI flicking when navigating between list options, that's the best effect at the moment.
+  // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown
 
   $focusable.attr({
-    'role': 'combobox',
+    'role': 'menu',
+    'aria-haspopup': 'menu',
     'aria-controls': $menu.attr('id'),
     'aria-expanded': 'false',
   });
+
+  if ($dropdown.attr('data-content') && !$dropdown.attr('aria-label')) {
+    $dropdown.attr('aria-label', $dropdown.attr('data-content'));
+  }
 
   $menu.find('> .item').each((_, item) => {
     prepareMenuItem($(item));
