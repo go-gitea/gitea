@@ -28,7 +28,6 @@ func TestUserPinUnpin(t *testing.T) {
 		endstate     bool
 		failmesssage string
 	}{
-
 		{
 			uid:          2,
 			rid:          2,
