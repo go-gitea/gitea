@@ -5,6 +5,7 @@
 package user
 
 import (
+	goctx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -36,7 +38,9 @@ func GetNotificationCount(c *context.Context) {
 	c.Data["NotificationUnreadCount"] = func() int64 {
 		count, err := models.GetNotificationCount(c, c.Doer, models.NotificationStatusUnread)
 		if err != nil {
-			c.ServerError("GetNotificationCount", err)
+			if err != goctx.Canceled {
+				log.Error("Unable to GetNotificationCount for user:%-v: %v", c.Doer, err)
+			}
 			return -1
 		}
 
