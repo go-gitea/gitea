@@ -13,6 +13,7 @@ import (
 	"os"
 	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 	"unsafe"
 
@@ -157,6 +158,7 @@ func (c *Command) Run(opts *RunOpts) error {
 		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
