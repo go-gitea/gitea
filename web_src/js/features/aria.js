@@ -41,6 +41,14 @@ function attachOneDropdownAria($dropdown) {
   // * with search input: the input is focused, and it works perfectly with aria-activedescendant pointing another sibling element.
   // * without search input (but the readonly text), the dropdown itself is focused. then the aria-activedescendant points to the element inside dropdown
 
+  // expected user interactions for dropdown with aria support:
+  // * user can use Tab to focus in the dropdown, then the dropdown menu (list) will be shown
+  // * user presses Tab on the focused dropdown to move focus to next sibling focusable element (but not the menu item)
+  // * user can use arrow key Up/Down to navigate between menu items
+  // * when user presses Enter:
+  //    - if the menu item is clickable (eg: <a>), then trigger the click event
+  //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
+
   $focusable.attr({
     'role': 'menu',
     'aria-haspopup': 'menu',
@@ -68,7 +76,7 @@ function attachOneDropdownAria($dropdown) {
     $focusable.attr('aria-activedescendant', $active.attr('id'));
   };
 
-  // use setTimeout to run the refreshAria in next tick
+  // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
   $focusable.on('focus', () => {
     setTimeout(refreshAria, 0);
   });
@@ -78,9 +86,16 @@ function attachOneDropdownAria($dropdown) {
   $focusable.on('blur', () => {
     setTimeout(refreshAria, 0);
   });
+  $dropdown.on('keydown', (e) => {
+    // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
+    if (e.key === 'Enter') {
+      const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
+      // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
+      if ($item.is('a')) $item[0].click();
+    }
+  });
   $dropdown.on('keyup', (e) => {
-    const key = e.key;
-    if (key === 'Tab' || key === 'Space' || key === 'Enter' || key.startsWith('Arrow')) {
+    if (e.key.startsWith('Arrow')) {
       setTimeout(refreshAria, 0);
     }
   });

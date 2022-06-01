@@ -1,6 +1,12 @@
 **This document is used as aria/a11y reference for future developers**
 
-ARIA Dropdown:
+## ARIA Dropdown
+
+There are different solutions: 
+* combobox + listbox + option
+* menu + menuitem
+
+At the moment, `menu + menuitem` seems to work better with Fomantic UI Dropdown, so we only use it now.
 
 ```html
 <div>
@@ -14,7 +20,7 @@ ARIA Dropdown:
 ```
 
 
-Fomantic UI Dropdown:
+## Fomantic UI Dropdown
 
 ```html
 <!-- read-only dropdown -->
