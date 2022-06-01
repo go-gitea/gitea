@@ -4,11 +4,11 @@
 
 //go:build windows
 
+package git
+
 import (
 	"os/exec"
 )
-
-package git
 
 func setSysProcAttribute(cmd *exec.Cmd) {
 	// Do nothing
