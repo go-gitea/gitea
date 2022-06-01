@@ -95,7 +95,8 @@ func CountOrphanedIssues() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).
-		Count("id")
+		Select("COUNT(`issue`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -140,8 +141,9 @@ func DeleteOrphanedIssues() error {
 func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Count("id")
+		Where(builder.IsNull{"`" + refobject + "`.`id`"}).
+		Select("COUNT(`" + subject + "`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
@@ -241,7 +243,6 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 				WHERE
 					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
 	) AS il_too )`)
-
 	if err != nil {
 		return 0, err
 	}
