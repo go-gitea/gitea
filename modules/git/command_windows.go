@@ -4,6 +4,10 @@
 
 //go:build windows
 
+import (
+	"os/exec"
+)
+
 package git
 
 func setSysProcAttribute(cmd *exec.Cmd) {
