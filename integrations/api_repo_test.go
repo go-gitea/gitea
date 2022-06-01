@@ -111,7 +111,7 @@ func TestAPISearchRepo(t *testing.T) {
 		},
 		{
 			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
-				user2: {count: 7, repoName: "big_test_"},
+				user2: {count: 2, repoName: "big_test_"},
 			},
 		},
 		{

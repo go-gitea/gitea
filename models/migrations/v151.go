@@ -87,17 +87,18 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		}
 		return x.Sync2(new(User))
 	}
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
 
 	tempTableName := "tmp_recreate__user"
 	column.Default = "'argon2'"
 
 	createTableSQL, _, err := x.Dialect().CreateTableSQL(context.Background(), x.DB(), table, tempTableName)
 	if err != nil {
+		return err
+	}
+
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
 		return err
 	}
 	for _, sql := range createTableSQL {
