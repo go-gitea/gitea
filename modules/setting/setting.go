@@ -480,6 +480,7 @@ func getWorkPath(appPath string) string {
 	}
 	workPath = strings.ReplaceAll(workPath, "\\", "/")
 	if !filepath.IsAbs(workPath) {
+		log.Info("Provided work path %s is not absolute - will be absoluted against %s", workPath, appPath)
 		workPath = filepath.Join(appPath, workPath)
 	}
 	return strings.ReplaceAll(workPath, "\\", "/")
@@ -774,6 +775,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
 	if !filepath.IsAbs(AppDataPath) {
+		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
 		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
 	}
 
