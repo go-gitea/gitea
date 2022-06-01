@@ -49,6 +49,8 @@ function attachOneDropdownAria($dropdown) {
   //    - if the menu item is clickable (eg: <a>), then trigger the click event
   //    - otherwise, the dropdown control (low-level code) handles the Enter event, hides the dropdown menu
 
+  // TODO: multiple selection is not supported yet.
+
   $focusable.attr({
     'role': 'menu',
     'aria-haspopup': 'menu',
@@ -76,29 +78,21 @@ function attachOneDropdownAria($dropdown) {
     $focusable.attr('aria-activedescendant', $active.attr('id'));
   };
 
-  // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
-  $focusable.on('focus', () => {
-    setTimeout(refreshAria, 0);
-  });
-  $focusable.on('mouseup', () => {
-    setTimeout(refreshAria, 0);
-  });
-  $focusable.on('blur', () => {
-    setTimeout(refreshAria, 0);
-  });
   $dropdown.on('keydown', (e) => {
     // here it must use keydown event before dropdown's keyup handler, otherwise there is no Enter event in our keyup handler
     if (e.key === 'Enter') {
       const $item = $dropdown.dropdown('get item', $dropdown.dropdown('get value'));
       // if the selected item is clickable, then trigger the click event. in the future there could be a special CSS class for it.
-      if ($item.is('a')) $item[0].click();
+      if ($item && $item.is('a')) $item[0].click();
     }
   });
-  $dropdown.on('keyup', (e) => {
-    if (e.key.startsWith('Arrow')) {
-      setTimeout(refreshAria, 0);
-    }
-  });
+
+  // use setTimeout to run the refreshAria in next tick (to make sure the Fomantic UI code has finished its work)
+  const deferredRefreshAria = () => { setTimeout(refreshAria, 0) }; // do not return any value, jQuery has return-value related behaviors.
+  $focusable.on('focus', deferredRefreshAria);
+  $focusable.on('mouseup', deferredRefreshAria);
+  $focusable.on('blur', deferredRefreshAria);
+  $dropdown.on('keyup', (e) => { if (e.key.startsWith('Arrow')) deferredRefreshAria(); });
 }
 
 export function attachDropdownAria($dropdowns) {
