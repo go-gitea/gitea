@@ -59,7 +59,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	)
 
 	// Handle SSH certificates
-	if len(req.Header.Get("x-ssh-certificate")) != 0 {
+	if len(req.Header.Get("X-Ssh-Certificate")) != 0 {
 		if len(setting.SSH.TrustedUserCAKeys) == 0 {
 			return nil
 		}
