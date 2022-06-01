@@ -7,19 +7,20 @@ package doctor
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 const tplCommentPrefix = `# gitea public key`
 
-func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
+func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) error {
 	if setting.SSH.StartBuiltinServer || !setting.SSH.CreateAuthorizedKeysFile {
 		return nil
 	}
@@ -32,7 +33,7 @@ func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
 			return fmt.Errorf("Unable to open authorized_keys file. ERROR: %v", err)
 		}
 		logger.Warn("Unable to open authorized_keys. (ERROR: %v). Attempting to rewrite...", err)
-		if err = models.RewriteAllPublicKeys(); err != nil {
+		if err = asymkey_model.RewriteAllPublicKeys(); err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)
 		}
@@ -53,7 +54,7 @@ func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
 
 	// now we regenerate and check if there are any lines missing
 	regenerated := &bytes.Buffer{}
-	if err := models.RegeneratePublicKeys(regenerated); err != nil {
+	if err := asymkey_model.RegeneratePublicKeys(ctx, regenerated); err != nil {
 		logger.Critical("Unable to regenerate authorized_keys file. ERROR: %v", err)
 		return fmt.Errorf("Unable to regenerate authorized_keys file. ERROR: %v", err)
 	}
@@ -71,11 +72,11 @@ func checkAuthorizedKeys(logger log.Logger, autofix bool) error {
 				"authorized_keys file %q is out of date.\nRegenerate it with:\n\t\"%s\"\nor\n\t\"%s\"",
 				fPath,
 				"gitea admin regenerate keys",
-				"gitea doctor --run authorized_keys --fix")
-			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized_keys --fix"`)
+				"gitea doctor --run authorized-keys --fix")
+			return fmt.Errorf(`authorized_keys is out of date and should be regenerated with "gitea admin regenerate keys" or "gitea doctor --run authorized-keys --fix"`)
 		}
 		logger.Warn("authorized_keys is out of date. Attempting rewrite...")
-		err = models.RewriteAllPublicKeys()
+		err = asymkey_model.RewriteAllPublicKeys()
 		if err != nil {
 			logger.Critical("Unable to rewrite authorized_keys file. ERROR: %v", err)
 			return fmt.Errorf("Unable to rewrite authorized_keys file. ERROR: %v", err)

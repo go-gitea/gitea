@@ -22,8 +22,7 @@ func init() {
 }
 
 // Renderer implements markup.Renderer for csv files
-type Renderer struct {
-}
+type Renderer struct{}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
@@ -45,6 +44,11 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 	}
+}
+
+// SanitizerDisabled disabled sanitize if return true
+func (Renderer) SanitizerDisabled() bool {
+	return false
 }
 
 func writeField(w io.Writer, element, class, field string) error {
@@ -83,7 +87,7 @@ func writeField(w io.Writer, element, class, field string) error {
 
 // Render implements markup.Renderer
 func (Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error {
-	var tmpBlock = bufio.NewWriter(output)
+	tmpBlock := bufio.NewWriter(output)
 
 	// FIXME: don't read all to memory
 	rawBytes, err := io.ReadAll(input)

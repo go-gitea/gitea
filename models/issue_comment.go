@@ -7,6 +7,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"regexp"
 	"strconv"
@@ -14,7 +15,11 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/issues"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	project_model "code.gitea.io/gitea/models/project"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -96,14 +101,63 @@ const (
 	// 28 merge pull request
 	CommentTypeMergePull
 	// 29 push to PR head branch
-	CommentTypePullPush
+	CommentTypePullRequestPush
 	// 30 Project changed
 	CommentTypeProject
 	// 31 Project board changed
 	CommentTypeProjectBoard
-	// Dismiss Review
+	// 32 Dismiss Review
 	CommentTypeDismissReview
+	// 33 Change issue ref
+	CommentTypeChangeIssueRef
+	// 34 pr was scheduled to auto merge when checks succeed
+	CommentTypePRScheduledToAutoMerge
+	// 35 pr was un scheduled to auto merge when checks succeed
+	CommentTypePRUnScheduledToAutoMerge
 )
+
+var commentStrings = []string{
+	"comment",
+	"reopen",
+	"close",
+	"issue_ref",
+	"commit_ref",
+	"comment_ref",
+	"pull_ref",
+	"label",
+	"milestone",
+	"assignees",
+	"change_title",
+	"delete_branch",
+	"start_tracking",
+	"stop_tracking",
+	"add_time_manual",
+	"cancel_tracking",
+	"added_deadline",
+	"modified_deadline",
+	"removed_deadline",
+	"add_dependency",
+	"remove_dependency",
+	"code",
+	"review",
+	"lock",
+	"unlock",
+	"change_target_branch",
+	"delete_time_manual",
+	"review_request",
+	"merge_pull",
+	"pull_push",
+	"project",
+	"project_board",
+	"dismiss_review",
+	"change_issue_ref",
+	"pull_scheduled_merge",
+	"pull_cancel_scheduled_merge",
+}
+
+func (t CommentType) String() string {
+	return commentStrings[t]
+}
 
 // RoleDescriptor defines comment tag type
 type RoleDescriptor int
@@ -118,8 +172,7 @@ const (
 
 // WithRole enable a specific tag on the RoleDescriptor.
 func (rd RoleDescriptor) WithRole(role RoleDescriptor) RoleDescriptor {
-	rd |= (1 << role)
-	return rd
+	return rd | (1 << role)
 }
 
 func stringToRoleDescriptor(role string) RoleDescriptor {
@@ -144,10 +197,10 @@ func (rd RoleDescriptor) HasRole(role string) bool {
 
 // Comment represents a comment in commit and issue page.
 type Comment struct {
-	ID               int64       `xorm:"pk autoincr"`
-	Type             CommentType `xorm:"INDEX"`
-	PosterID         int64       `xorm:"INDEX"`
-	Poster           *User       `xorm:"-"`
+	ID               int64            `xorm:"pk autoincr"`
+	Type             CommentType      `xorm:"INDEX"`
+	PosterID         int64            `xorm:"INDEX"`
+	Poster           *user_model.User `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
 	IssueID          int64  `xorm:"INDEX"`
@@ -158,21 +211,21 @@ type Comment struct {
 	RemovedLabels    []*Label `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
-	OldProject       *Project `xorm:"-"`
-	Project          *Project `xorm:"-"`
+	OldProject       *project_model.Project `xorm:"-"`
+	Project          *project_model.Project `xorm:"-"`
 	OldMilestoneID   int64
 	MilestoneID      int64
-	OldMilestone     *Milestone `xorm:"-"`
-	Milestone        *Milestone `xorm:"-"`
+	OldMilestone     *issues_model.Milestone `xorm:"-"`
+	Milestone        *issues_model.Milestone `xorm:"-"`
 	TimeID           int64
 	Time             *TrackedTime `xorm:"-"`
 	AssigneeID       int64
 	RemovedAssignee  bool
-	Assignee         *User `xorm:"-"`
-	AssigneeTeamID   int64 `xorm:"NOT NULL DEFAULT 0"`
-	AssigneeTeam     *Team `xorm:"-"`
+	Assignee         *user_model.User   `xorm:"-"`
+	AssigneeTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	AssigneeTeam     *organization.Team `xorm:"-"`
 	ResolveDoerID    int64
-	ResolveDoer      *User `xorm:"-"`
+	ResolveDoer      *user_model.User `xorm:"-"`
 	OldTitle         string
 	NewTitle         string
 	OldRef           string
@@ -196,8 +249,8 @@ type Comment struct {
 	// Reference issue in commit message
 	CommitSHA string `xorm:"VARCHAR(40)"`
 
-	Attachments []*Attachment `xorm:"-"`
-	Reactions   ReactionList  `xorm:"-"`
+	Attachments []*repo_model.Attachment  `xorm:"-"`
+	Reactions   issues_model.ReactionList `xorm:"-"`
 
 	// For view issue page.
 	ShowRole RoleDescriptor `xorm:"-"`
@@ -214,9 +267,9 @@ type Comment struct {
 	RefAction    references.XRefAction `xorm:"SMALLINT"` // What happens if RefIssueID resolves
 	RefIsPull    bool
 
-	RefRepo    *Repository `xorm:"-"`
-	RefIssue   *Issue      `xorm:"-"`
-	RefComment *Comment    `xorm:"-"`
+	RefRepo    *repo_model.Repository `xorm:"-"`
+	RefIssue   *Issue                 `xorm:"-"`
+	RefComment *Comment               `xorm:"-"`
 
 	Commits     []*SignCommitWithStatuses `xorm:"-"`
 	OldCommit   string                    `xorm:"-"`
@@ -237,14 +290,15 @@ type PushActionContent struct {
 
 // LoadIssue loads issue from database
 func (c *Comment) LoadIssue() (err error) {
-	return c.loadIssue(db.GetEngine(db.DefaultContext))
+	return c.LoadIssueCtx(db.DefaultContext)
 }
 
-func (c *Comment) loadIssue(e db.Engine) (err error) {
+// LoadIssueCtx loads issue from database
+func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = getIssueByID(e, c.IssueID)
+	c.Issue, err = getIssueByID(ctx, c.IssueID)
 	return
 }
 
@@ -275,16 +329,16 @@ func (c *Comment) AfterLoad(session *xorm.Session) {
 	}
 }
 
-func (c *Comment) loadPoster(e db.Engine) (err error) {
+func (c *Comment) loadPoster(ctx context.Context) (err error) {
 	if c.PosterID <= 0 || c.Poster != nil {
 		return nil
 	}
 
-	c.Poster, err = getUserByID(e, c.PosterID)
+	c.Poster, err = user_model.GetUserByIDCtx(ctx, c.PosterID)
 	if err != nil {
-		if IsErrUserNotExist(err) {
+		if user_model.IsErrUserNotExist(err) {
 			c.PosterID = -1
-			c.Poster = NewGhostUser()
+			c.Poster = user_model.NewGhostUser()
 		} else {
 			log.Error("getUserByID[%d]: %v", c.ID, err)
 		}
@@ -298,7 +352,7 @@ func (c *Comment) AfterDelete() {
 		return
 	}
 
-	_, err := DeleteAttachmentsByComment(c.ID, true)
+	_, err := repo_model.DeleteAttachmentsByComment(c.ID, true)
 	if err != nil {
 		log.Info("Could not delete files for comment %d on issue #%d: %s", c.ID, c.IssueID, err)
 	}
@@ -311,7 +365,7 @@ func (c *Comment) HTMLURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -340,7 +394,7 @@ func (c *Comment) APIURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -361,7 +415,7 @@ func (c *Comment) IssueURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -377,7 +431,7 @@ func (c *Comment) PRURL() string {
 		return ""
 	}
 
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -423,7 +477,7 @@ func (c *Comment) LoadLabel() error {
 // LoadProject if comment.Type is CommentTypeProject, then load project.
 func (c *Comment) LoadProject() error {
 	if c.OldProjectID > 0 {
-		var oldProject Project
+		var oldProject project_model.Project
 		has, err := db.GetEngine(db.DefaultContext).ID(c.OldProjectID).Get(&oldProject)
 		if err != nil {
 			return err
@@ -433,7 +487,7 @@ func (c *Comment) LoadProject() error {
 	}
 
 	if c.ProjectID > 0 {
-		var project Project
+		var project project_model.Project
 		has, err := db.GetEngine(db.DefaultContext).ID(c.ProjectID).Get(&project)
 		if err != nil {
 			return err
@@ -448,7 +502,7 @@ func (c *Comment) LoadProject() error {
 // LoadMilestone if comment.Type is CommentTypeMilestone, then load milestone
 func (c *Comment) LoadMilestone() error {
 	if c.OldMilestoneID > 0 {
-		var oldMilestone Milestone
+		var oldMilestone issues_model.Milestone
 		has, err := db.GetEngine(db.DefaultContext).ID(c.OldMilestoneID).Get(&oldMilestone)
 		if err != nil {
 			return err
@@ -458,7 +512,7 @@ func (c *Comment) LoadMilestone() error {
 	}
 
 	if c.MilestoneID > 0 {
-		var milestone Milestone
+		var milestone issues_model.Milestone
 		has, err := db.GetEngine(db.DefaultContext).ID(c.MilestoneID).Get(&milestone)
 		if err != nil {
 			return err
@@ -471,17 +525,17 @@ func (c *Comment) LoadMilestone() error {
 
 // LoadPoster loads comment poster
 func (c *Comment) LoadPoster() error {
-	return c.loadPoster(db.GetEngine(db.DefaultContext))
+	return c.loadPoster(db.DefaultContext)
 }
 
-// LoadAttachments loads attachments
+// LoadAttachments loads attachments (it never returns error, the error during `GetAttachmentsByCommentIDCtx` is ignored)
 func (c *Comment) LoadAttachments() error {
 	if len(c.Attachments) > 0 {
 		return nil
 	}
 
 	var err error
-	c.Attachments, err = getAttachmentsByCommentID(db.GetEngine(db.DefaultContext), c.ID)
+	c.Attachments, err = repo_model.GetAttachmentsByCommentID(db.DefaultContext, c.ID)
 	if err != nil {
 		log.Error("getAttachmentsByCommentID[%d]: %v", c.ID, err)
 	}
@@ -490,23 +544,24 @@ func (c *Comment) LoadAttachments() error {
 
 // UpdateAttachments update attachments by UUIDs for the comment
 func (c *Comment) UpdateAttachments(uuids []string) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
-	attachments, err := getAttachmentsByUUIDs(sess, uuids)
+	defer committer.Close()
+
+	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, uuids)
 	if err != nil {
 		return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", uuids, err)
 	}
 	for i := 0; i < len(attachments); i++ {
 		attachments[i].IssueID = c.IssueID
 		attachments[i].CommentID = c.ID
-		if err := updateAttachment(sess, attachments[i]); err != nil {
+		if err := repo_model.UpdateAttachment(ctx, attachments[i]); err != nil {
 			return fmt.Errorf("update attachment [id: %d]: %v", attachments[i].ID, err)
 		}
 	}
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // LoadAssigneeUserAndTeam if comment.Type is CommentTypeAssignees, then load assignees
@@ -514,29 +569,29 @@ func (c *Comment) LoadAssigneeUserAndTeam() error {
 	var err error
 
 	if c.AssigneeID > 0 && c.Assignee == nil {
-		c.Assignee, err = GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
+		c.Assignee, err = user_model.GetUserByIDCtx(db.DefaultContext, c.AssigneeID)
 		if err != nil {
-			if !IsErrUserNotExist(err) {
+			if !user_model.IsErrUserNotExist(err) {
 				return err
 			}
-			c.Assignee = NewGhostUser()
+			c.Assignee = user_model.NewGhostUser()
 		}
 	} else if c.AssigneeTeamID > 0 && c.AssigneeTeam == nil {
 		if err = c.LoadIssue(); err != nil {
 			return err
 		}
 
-		if err = c.Issue.LoadRepo(); err != nil {
+		if err = c.Issue.LoadRepo(db.DefaultContext); err != nil {
 			return err
 		}
 
-		if err = c.Issue.Repo.GetOwner(); err != nil {
+		if err = c.Issue.Repo.GetOwner(db.DefaultContext); err != nil {
 			return err
 		}
 
 		if c.Issue.Repo.Owner.IsOrganization() {
-			c.AssigneeTeam, err = GetTeamByID(c.AssigneeTeamID)
-			if err != nil && !IsErrTeamNotExist(err) {
+			c.AssigneeTeam, err = organization.GetTeamByID(db.DefaultContext, c.AssigneeTeamID)
+			if err != nil && !organization.IsErrTeamNotExist(err) {
 				return err
 			}
 		}
@@ -549,10 +604,10 @@ func (c *Comment) LoadResolveDoer() (err error) {
 	if c.ResolveDoerID == 0 || c.Type != CommentTypeCode {
 		return nil
 	}
-	c.ResolveDoer, err = GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
+	c.ResolveDoer, err = user_model.GetUserByIDCtx(db.DefaultContext, c.ResolveDoerID)
 	if err != nil {
-		if IsErrUserNotExist(err) {
-			c.ResolveDoer = NewGhostUser()
+		if user_model.IsErrUserNotExist(err) {
+			c.ResolveDoer = user_model.NewGhostUser()
 			err = nil
 		}
 	}
@@ -569,7 +624,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = getIssueByID(db.GetEngine(db.DefaultContext), c.DependentIssueID)
+	c.DependentIssue, err = getIssueByID(db.DefaultContext, c.DependentIssueID)
 	return err
 }
 
@@ -583,11 +638,11 @@ func (c *Comment) LoadTime() error {
 	return err
 }
 
-func (c *Comment) loadReactions(e db.Engine, repo *Repository) (err error) {
+func (c *Comment) loadReactions(ctx context.Context, repo *repo_model.Repository) (err error) {
 	if c.Reactions != nil {
 		return nil
 	}
-	c.Reactions, err = findReactions(e, FindReactionsOptions{
+	c.Reactions, _, err = issues_model.FindReactions(ctx, issues_model.FindReactionsOptions{
 		IssueID:   c.IssueID,
 		CommentID: c.ID,
 	})
@@ -595,20 +650,20 @@ func (c *Comment) loadReactions(e db.Engine, repo *Repository) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := c.Reactions.loadUsers(e, repo); err != nil {
+	if _, err := c.Reactions.LoadUsers(ctx, repo); err != nil {
 		return err
 	}
 	return nil
 }
 
 // LoadReactions loads comment reactions
-func (c *Comment) LoadReactions(repo *Repository) error {
-	return c.loadReactions(db.GetEngine(db.DefaultContext), repo)
+func (c *Comment) LoadReactions(repo *repo_model.Repository) error {
+	return c.loadReactions(db.DefaultContext, repo)
 }
 
-func (c *Comment) loadReview(e db.Engine) (err error) {
+func (c *Comment) loadReview(ctx context.Context) (err error) {
 	if c.Review == nil {
-		if c.Review, err = getReviewByID(e, c.ReviewID); err != nil {
+		if c.Review, err = GetReviewByID(ctx, c.ReviewID); err != nil {
 			return err
 		}
 	}
@@ -618,12 +673,12 @@ func (c *Comment) loadReview(e db.Engine) (err error) {
 
 // LoadReview loads the associated review
 func (c *Comment) LoadReview() error {
-	return c.loadReview(db.GetEngine(db.DefaultContext))
+	return c.loadReview(db.DefaultContext)
 }
 
 var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
 
-func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch string) error {
+func (c *Comment) checkInvalidation(doer *user_model.User, repo *git.Repository, branch string) error {
 	// FIXME differentiate between previous and proposed line
 	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
 	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
@@ -642,7 +697,7 @@ func (c *Comment) checkInvalidation(doer *User, repo *git.Repository, branch str
 
 // CheckInvalidation checks if the line of code comment got changed by another commit.
 // If the line got changed the comment is going to be invalidated.
-func (c *Comment) CheckInvalidation(repo *git.Repository, doer *User, branch string) error {
+func (c *Comment) CheckInvalidation(repo *git.Repository, doer *user_model.User, branch string) error {
 	return c.checkInvalidation(doer, repo, branch)
 }
 
@@ -669,7 +724,7 @@ func (c *Comment) CodeCommentURL() string {
 		log.Error("LoadIssue(%d): %v", c.IssueID, err)
 		return ""
 	}
-	err = c.Issue.loadRepo(db.GetEngine(db.DefaultContext))
+	err = c.Issue.LoadRepo(db.DefaultContext)
 	if err != nil { // Silently dropping errors :unamused:
 		log.Error("loadRepo(%d): %v", c.Issue.RepoID, err)
 		return ""
@@ -678,8 +733,8 @@ func (c *Comment) CodeCommentURL() string {
 }
 
 // LoadPushCommits Load push commits
-func (c *Comment) LoadPushCommits() (err error) {
-	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullPush {
+func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
+	if c.Content == "" || c.Commits != nil || c.Type != CommentTypePullRequestPush {
 		return nil
 	}
 
@@ -700,11 +755,11 @@ func (c *Comment) LoadPushCommits() (err error) {
 		c.NewCommit = data.CommitIDs[1]
 	} else {
 		repoPath := c.Issue.Repo.RepoPath()
-		gitRepo, err := git.OpenRepository(repoPath)
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 		if err != nil {
 			return err
 		}
-		defer gitRepo.Close()
+		defer closer.Close()
 
 		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
@@ -713,7 +768,9 @@ func (c *Comment) LoadPushCommits() (err error) {
 	return err
 }
 
-func createComment(e db.Engine, opts *CreateCommentOptions) (_ *Comment, err error) {
+// CreateCommentCtx creates comment with context
+func CreateCommentCtx(ctx context.Context, opts *CreateCommentOptions) (_ *Comment, err error) {
+	e := db.GetEngine(ctx)
 	var LabelID int64
 	if opts.Label != nil {
 		LabelID = opts.Label.ID
@@ -757,28 +814,28 @@ func createComment(e db.Engine, opts *CreateCommentOptions) (_ *Comment, err err
 		return nil, err
 	}
 
-	if err = opts.Repo.getOwner(e); err != nil {
+	if err = opts.Repo.GetOwner(ctx); err != nil {
 		return nil, err
 	}
 
-	if err = updateCommentInfos(e, opts, comment); err != nil {
+	if err = updateCommentInfos(ctx, opts, comment); err != nil {
 		return nil, err
 	}
 
-	if err = comment.addCrossReferences(e, opts.Doer, false); err != nil {
+	if err = comment.addCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
 
 	return comment, nil
 }
 
-func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Comment) (err error) {
+func updateCommentInfos(ctx context.Context, opts *CreateCommentOptions, comment *Comment) (err error) {
 	// Check comment type.
 	switch opts.Type {
 	case CommentTypeCode:
 		if comment.ReviewID != 0 {
 			if comment.Review == nil {
-				if err := comment.loadReview(e); err != nil {
+				if err := comment.loadReview(ctx); err != nil {
 					return err
 				}
 			}
@@ -787,15 +844,14 @@ func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Commen
 			}
 		}
 		fallthrough
-	case CommentTypeReview:
-		fallthrough
 	case CommentTypeComment:
-		if _, err = e.Exec("UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
+		if _, err = db.Exec(ctx, "UPDATE `issue` SET num_comments=num_comments+1 WHERE id=?", opts.Issue.ID); err != nil {
 			return err
 		}
-
+		fallthrough
+	case CommentTypeReview:
 		// Check attachments
-		attachments, err := getAttachmentsByUUIDs(e, opts.Attachments)
+		attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, opts.Attachments)
 		if err != nil {
 			return fmt.Errorf("getAttachmentsByUUIDs [uuids: %v]: %v", opts.Attachments, err)
 		}
@@ -804,20 +860,20 @@ func updateCommentInfos(e db.Engine, opts *CreateCommentOptions, comment *Commen
 			attachments[i].IssueID = opts.Issue.ID
 			attachments[i].CommentID = comment.ID
 			// No assign value could be 0, so ignore AllCols().
-			if _, err = e.ID(attachments[i].ID).Update(attachments[i]); err != nil {
+			if _, err = db.GetEngine(ctx).ID(attachments[i].ID).Update(attachments[i]); err != nil {
 				return fmt.Errorf("update attachment [%d]: %v", attachments[i].ID, err)
 			}
 		}
 	case CommentTypeReopen, CommentTypeClose:
-		if err = opts.Issue.updateClosedNum(e); err != nil {
+		if err = updateIssueClosedNum(ctx, opts.Issue); err != nil {
 			return err
 		}
 	}
 	// update the issue's updated_unix column
-	return updateIssueCols(e, opts.Issue, "updated_unix")
+	return UpdateIssueCols(ctx, opts.Issue, "updated_unix")
 }
 
-func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
+func createDeadlineComment(ctx context.Context, doer *user_model.User, issue *Issue, newDeadlineUnix timeutil.TimeStamp) (*Comment, error) {
 	var content string
 	var commentType CommentType
 
@@ -835,7 +891,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		content = newDeadlineUnix.Format("2006-01-02") + "|" + issue.DeadlineUnix.Format("2006-01-02")
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
@@ -846,7 +902,7 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 		Issue:   issue,
 		Content: content,
 	}
-	comment, err := createComment(e, opts)
+	comment, err := CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -854,12 +910,12 @@ func createDeadlineComment(e *xorm.Session, doer *User, issue *Issue, newDeadlin
 }
 
 // Creates issue dependency comment
-func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentIssue *Issue, add bool) (err error) {
+func createIssueDependencyComment(ctx context.Context, doer *user_model.User, issue, dependentIssue *Issue, add bool) (err error) {
 	cType := CommentTypeAddDependency
 	if !add {
 		cType = CommentTypeRemoveDependency
 	}
-	if err = issue.loadRepo(e); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
 
@@ -871,7 +927,7 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentI
 		Issue:            issue,
 		DependentIssueID: dependentIssue.ID,
 	}
-	if _, err = createComment(e, opts); err != nil {
+	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return
 	}
 
@@ -882,15 +938,15 @@ func createIssueDependencyComment(e *xorm.Session, doer *User, issue, dependentI
 		Issue:            dependentIssue,
 		DependentIssueID: issue.ID,
 	}
-	_, err = createComment(e, opts)
+	_, err = CreateCommentCtx(ctx, opts)
 	return
 }
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
 	Type  CommentType
-	Doer  *User
-	Repo  *Repository
+	Doer  *user_model.User
+	Repo  *repo_model.Repository
 	Issue *Issue
 	Label *Label
 
@@ -926,18 +982,18 @@ type CreateCommentOptions struct {
 
 // CreateComment creates comment of issue or commit.
 func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err = sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	comment, err = createComment(sess, opts)
+	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return nil, err
 	}
 
-	if err = sess.Commit(); err != nil {
+	if err = committer.Commit(); err != nil {
 		return nil, err
 	}
 
@@ -945,7 +1001,7 @@ func CreateComment(opts *CreateCommentOptions) (comment *Comment, err error) {
 }
 
 // CreateRefComment creates a commit reference comment to issue.
-func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commitSHA string) error {
+func CreateRefComment(doer *user_model.User, repo *repo_model.Repository, issue *Issue, content, commitSHA string) error {
 	if len(commitSHA) == 0 {
 		return fmt.Errorf("cannot create reference with empty commit SHA")
 	}
@@ -974,13 +1030,9 @@ func CreateRefComment(doer *User, repo *Repository, issue *Issue, content, commi
 }
 
 // GetCommentByID returns the comment by given ID.
-func GetCommentByID(id int64) (*Comment, error) {
-	return getCommentByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getCommentByID(e db.Engine, id int64) (*Comment, error) {
+func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 	c := new(Comment)
-	has, err := e.ID(id).Get(c)
+	has, err := db.GetEngine(ctx).ID(id).Get(c)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -1031,9 +1083,10 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	return cond
 }
 
-func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
+// FindComments returns all comments according options
+func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	sess := e.Where(opts.toConds())
+	sess := db.GetEngine(ctx).Where(opts.toConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1050,11 +1103,6 @@ func findComments(e db.Engine, opts *FindCommentsOptions) ([]*Comment, error) {
 		Find(&comments)
 }
 
-// FindComments returns all comments according options
-func FindComments(opts *FindCommentsOptions) ([]*Comment, error) {
-	return findComments(db.GetEngine(db.DefaultContext), opts)
-}
-
 // CountComments count all comments according options by ignoring pagination
 func CountComments(opts *FindCommentsOptions) (int64, error) {
 	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
@@ -1065,23 +1113,24 @@ func CountComments(opts *FindCommentsOptions) (int64, error) {
 }
 
 // UpdateComment updates information of comment.
-func UpdateComment(c *Comment, doer *User) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func UpdateComment(c *Comment, doer *user_model.User) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if _, err := sess.ID(c.ID).AllCols().Update(c); err != nil {
 		return err
 	}
-	if err := c.loadIssue(sess); err != nil {
+	if err := c.LoadIssueCtx(ctx); err != nil {
 		return err
 	}
-	if err := c.addCrossReferences(sess, doer, true); err != nil {
+	if err := c.addCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return fmt.Errorf("Commit: %v", err)
 	}
 
@@ -1090,34 +1139,33 @@ func UpdateComment(c *Comment, doer *User) error {
 
 // DeleteComment deletes the comment
 func DeleteComment(comment *Comment) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := deleteComment(ctx, comment); err != nil {
 		return err
 	}
 
-	if err := deleteComment(sess, comment); err != nil {
-		return err
-	}
-
-	return sess.Commit()
+	return committer.Commit()
 }
 
-func deleteComment(e db.Engine, comment *Comment) error {
-	if _, err := e.Delete(&Comment{
-		ID: comment.ID,
-	}); err != nil {
+func deleteComment(ctx context.Context, comment *Comment) error {
+	e := db.GetEngine(ctx)
+	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
 	}
 
-	if _, err := e.Delete(&issues.ContentHistory{
+	if _, err := db.DeleteByBean(ctx, &issues_model.ContentHistory{
 		CommentID: comment.ID,
 	}); err != nil {
 		return err
 	}
 
 	if comment.Type == CommentTypeComment {
-		if _, err := e.Exec("UPDATE `issue` SET num_comments = num_comments - 1 WHERE id = ?", comment.IssueID); err != nil {
+		if _, err := e.ID(comment.IssueID).Decr("num_comments").Update(new(Issue)); err != nil {
 			return err
 		}
 	}
@@ -1125,21 +1173,22 @@ func deleteComment(e db.Engine, comment *Comment) error {
 		return err
 	}
 
-	if err := comment.neuterCrossReferences(e); err != nil {
+	if err := comment.neuterCrossReferences(ctx); err != nil {
 		return err
 	}
 
-	return deleteReaction(e, &ReactionOptions{Comment: comment})
+	return issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{CommentID: comment.ID})
 }
 
 // CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
 type CodeComments map[string]map[int64][]*Comment
 
-func fetchCodeComments(e db.Engine, issue *Issue, currentUser *User) (CodeComments, error) {
-	return fetchCodeCommentsByReview(e, issue, currentUser, nil)
+// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
+func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
+	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
 }
 
-func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *User, review *Review) (CodeComments, error) {
+func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
 	pathToLineToComment := make(CodeComments)
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1150,7 +1199,7 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *User, rev
 		ReviewID: review.ID,
 	}
 
-	comments, err := findCodeComments(e, opts, issue, currentUser, review)
+	comments, err := findCodeComments(ctx, opts, issue, currentUser, review)
 	if err != nil {
 		return nil, err
 	}
@@ -1164,7 +1213,7 @@ func fetchCodeCommentsByReview(e db.Engine, issue *Issue, currentUser *User, rev
 	return pathToLineToComment, nil
 }
 
-func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, currentUser *User, review *Review) ([]*Comment, error) {
+func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
 	var comments []*Comment
 	if review == nil {
 		review = &Review{ID: 0}
@@ -1173,6 +1222,7 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 	if review.ID == 0 {
 		conds = conds.And(builder.Eq{"invalidated": false})
 	}
+	e := db.GetEngine(ctx)
 	if err := e.Where(conds).
 		Asc("comment.created_unix").
 		Asc("comment.id").
@@ -1180,11 +1230,11 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 		return nil, err
 	}
 
-	if err := issue.loadRepo(e); err != nil {
+	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}
 
-	if err := CommentList(comments).loadPosters(e); err != nil {
+	if err := CommentList(comments).loadPosters(ctx); err != nil {
 		return nil, err
 	}
 
@@ -1223,6 +1273,7 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 
 		var err error
 		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: issue.Repo.Link(),
 			Metas:     issue.Repo.ComposeMetas(),
 		}, comment.Content); err != nil {
@@ -1233,19 +1284,14 @@ func findCodeComments(e db.Engine, opts FindCommentsOptions, issue *Issue, curre
 }
 
 // FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(issue *Issue, currentUser *User, treePath string, line int64) ([]*Comment, error) {
+func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
 	opts := FindCommentsOptions{
 		Type:     CommentTypeCode,
 		IssueID:  issue.ID,
 		TreePath: treePath,
 		Line:     line,
 	}
-	return findCodeComments(db.GetEngine(db.DefaultContext), opts, issue, currentUser, nil)
-}
-
-// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(issue *Issue, currentUser *User) (CodeComments, error) {
-	return fetchCodeComments(db.GetEngine(db.DefaultContext), issue, currentUser)
+	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
@@ -1269,20 +1315,20 @@ func UpdateCommentsMigrationsByType(tp structs.GitServiceType, originalAuthorID 
 }
 
 // CreatePushPullComment create push code to pull base comment
-func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
+func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *PullRequest, oldCommitID, newCommitID string) (comment *Comment, err error) {
 	if pr.HasMerged || oldCommitID == "" || newCommitID == "" {
 		return nil, nil
 	}
 
 	ops := &CreateCommentOptions{
-		Type: CommentTypePullPush,
+		Type: CommentTypePullRequestPush,
 		Doer: pusher,
 		Repo: pr.BaseRepo,
 	}
 
 	var data PushActionContent
 
-	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
+	data.CommitIDs, data.IsForcePush, err = getCommitIDsFromRepo(ctx, pr.BaseRepo, oldCommitID, newCommitID, pr.BaseBranch)
 	if err != nil {
 		return nil, err
 	}
@@ -1301,16 +1347,38 @@ func CreatePushPullComment(pusher *User, pr *PullRequest, oldCommitID, newCommit
 	return
 }
 
+// CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
+func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullRequest, doer *user_model.User) (comment *Comment, err error) {
+	if typ != CommentTypePRScheduledToAutoMerge && typ != CommentTypePRUnScheduledToAutoMerge {
+		return nil, fmt.Errorf("comment type %d cannot be used to create an auto merge comment", typ)
+	}
+	if err = pr.LoadIssueCtx(ctx); err != nil {
+		return
+	}
+
+	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
+		return
+	}
+
+	comment, err = CreateCommentCtx(ctx, &CreateCommentOptions{
+		Type:  typ,
+		Doer:  doer,
+		Repo:  pr.BaseRepo,
+		Issue: pr.Issue,
+	})
+	return
+}
+
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
 // isForcePush will be true if oldCommit isn't on the branch
 // Commit on baseBranch will skip
-func getCommitIDsFromRepo(repo *Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
+func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldCommitID, newCommitID, baseBranch string) (commitIDs []string, isForcePush bool, err error) {
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repoPath)
 	if err != nil {
 		return nil, false, err
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	oldCommit, err := gitRepo.GetCommit(oldCommitID)
 	if err != nil {
@@ -1414,3 +1482,20 @@ func commitBranchCheck(gitRepo *git.Repository, startCommit *git.Commit, endComm
 	}
 	return nil
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (c *Comment) RemapExternalUser(externalName string, externalID, userID int64) error {
+	c.OriginalAuthor = externalName
+	c.OriginalAuthorID = externalID
+	c.PosterID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (c *Comment) GetUserID() int64 { return c.PosterID }
+
+// GetExternalName ExternalUserRemappable interface
+func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }

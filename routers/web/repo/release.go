@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/upload"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	releaseservice "code.gitea.io/gitea/services/release"
@@ -124,25 +126,25 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		return
 	}
 
-	if err = models.GetReleaseAttachments(releases...); err != nil {
+	if err = models.GetReleaseAttachments(ctx, releases...); err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
 
 	// Temporary cache commits count of used branches to speed up.
 	countCache := make(map[string]int64)
-	cacheUsers := make(map[int64]*models.User)
-	if ctx.User != nil {
-		cacheUsers[ctx.User.ID] = ctx.User
+	cacheUsers := make(map[int64]*user_model.User)
+	if ctx.Doer != nil {
+		cacheUsers[ctx.Doer.ID] = ctx.Doer
 	}
 	var ok bool
 
 	for _, r := range releases {
 		if r.Publisher, ok = cacheUsers[r.PublisherID]; !ok {
-			r.Publisher, err = models.GetUserByID(r.PublisherID)
+			r.Publisher, err = user_model.GetUserByID(r.PublisherID)
 			if err != nil {
-				if models.IsErrUserNotExist(err) {
-					r.Publisher = models.NewGhostUser()
+				if user_model.IsErrUserNotExist(err) {
+					r.Publisher = user_model.NewGhostUser()
 				} else {
 					ctx.ServerError("GetUserByID", err)
 					return
@@ -200,16 +202,16 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 
-	err = models.GetReleaseAttachments(release)
+	err = models.GetReleaseAttachments(ctx, release)
 	if err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
 
-	release.Publisher, err = models.GetUserByID(release.PublisherID)
+	release.Publisher, err = user_model.GetUserByID(release.PublisherID)
 	if err != nil {
-		if models.IsErrUserNotExist(err) {
-			release.Publisher = models.NewGhostUser()
+		if user_model.IsErrUserNotExist(err) {
+			release.Publisher = user_model.NewGhostUser()
 		} else {
 			ctx.ServerError("GetUserByID", err)
 			return
@@ -260,7 +262,6 @@ func LatestRelease(ctx *context.Context) {
 func NewRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["tag_target"] = ctx.Repo.Repository.DefaultBranch
 	if tagName := ctx.FormString("tag"); len(tagName) > 0 {
@@ -278,7 +279,9 @@ func NewRelease(ctx *context.Context) {
 			}
 
 			ctx.Data["tag_name"] = rel.TagName
-			ctx.Data["tag_target"] = rel.Target
+			if rel.Target != "" {
+				ctx.Data["tag_target"] = rel.Target
+			}
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
 			ctx.Data["attachments"] = rel.Attachments
@@ -294,7 +297,6 @@ func NewReleasePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewReleaseForm)
 	ctx.Data["Title"] = ctx.Tr("repo.release.new_release")
 	ctx.Data["PageIsReleaseList"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 
 	if ctx.HasError() {
@@ -325,7 +327,7 @@ func NewReleasePost(ctx *context.Context) {
 		}
 
 		if len(form.TagOnly) > 0 {
-			if err = releaseservice.CreateNewTag(ctx.User, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
+			if err = releaseservice.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, form.Target, form.TagName, msg); err != nil {
 				if models.IsErrTagAlreadyExists(err) {
 					e := err.(models.ErrTagAlreadyExists)
 					ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))
@@ -350,15 +352,15 @@ func NewReleasePost(ctx *context.Context) {
 			}
 
 			ctx.Flash.Success(ctx.Tr("repo.tag.create_success", form.TagName))
-			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + form.TagName)
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/tag/" + util.PathEscapeSegments(form.TagName))
 			return
 		}
 
 		rel = &models.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			Repo:         ctx.Repo.Repository,
-			PublisherID:  ctx.User.ID,
-			Publisher:    ctx.User,
+			PublisherID:  ctx.Doer.ID,
+			Publisher:    ctx.Doer,
 			Title:        form.Title,
 			TagName:      form.TagName,
 			Target:       form.Target,
@@ -394,16 +396,16 @@ func NewReleasePost(ctx *context.Context) {
 		rel.Target = form.Target
 		rel.IsDraft = len(form.Draft) > 0
 		rel.IsPrerelease = form.Prerelease
-		rel.PublisherID = ctx.User.ID
+		rel.PublisherID = ctx.Doer.ID
 		rel.IsTag = false
 
-		if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
+		if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, attachmentUUIDs, nil, nil); err != nil {
 			ctx.Data["Err_TagName"] = true
 			ctx.ServerError("UpdateRelease", err)
 			return
 		}
 	}
-	log.Trace("Release created: %s/%s:%s", ctx.User.LowerName, ctx.Repo.Repository.Name, form.TagName)
+	log.Trace("Release created: %s/%s:%s", ctx.Doer.LowerName, ctx.Repo.Repository.Name, form.TagName)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
@@ -413,7 +415,6 @@ func EditRelease(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "release")
@@ -452,7 +453,6 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.release.edit_release")
 	ctx.Data["PageIsReleaseList"] = true
 	ctx.Data["PageIsEditRelease"] = true
-	ctx.Data["RequireSimpleMDE"] = true
 	ctx.Data["RequireTribute"] = true
 
 	tagName := ctx.Params("*")
@@ -483,7 +483,7 @@ func EditReleasePost(ctx *context.Context) {
 	const delPrefix = "attachment-del-"
 	const editPrefix = "attachment-edit-"
 	var addAttachmentUUIDs, delAttachmentUUIDs []string
-	var editAttachments = make(map[string]string) // uuid -> new name
+	editAttachments := make(map[string]string) // uuid -> new name
 	if setting.Attachment.Enabled {
 		addAttachmentUUIDs = form.Files
 		for k, v := range ctx.Req.Form {
@@ -499,7 +499,7 @@ func EditReleasePost(ctx *context.Context) {
 	rel.Note = form.Content
 	rel.IsDraft = len(form.Draft) > 0
 	rel.IsPrerelease = form.Prerelease
-	if err = releaseservice.UpdateRelease(ctx.User, ctx.Repo.GitRepo,
+	if err = releaseservice.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo,
 		rel, addAttachmentUUIDs, delAttachmentUUIDs, editAttachments); err != nil {
 		ctx.ServerError("UpdateRelease", err)
 		return
@@ -518,7 +518,7 @@ func DeleteTag(ctx *context.Context) {
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
-	if err := releaseservice.DeleteReleaseByID(ctx.FormInt64("id"), ctx.User, isDelTag); err != nil {
+	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
 		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
 	} else {
 		if isDelTag {

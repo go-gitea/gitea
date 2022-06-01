@@ -6,12 +6,15 @@ package issue
 
 import (
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ClearLabels clears all of an issue's labels
-func ClearLabels(issue *models.Issue, doer *models.User) (err error) {
-	if err = issue.ClearLabels(doer); err != nil {
+func ClearLabels(issue *models.Issue, doer *user_model.User) (err error) {
+	if err = models.ClearIssueLabels(issue, doer); err != nil {
 		return
 	}
 
@@ -21,7 +24,7 @@ func ClearLabels(issue *models.Issue, doer *models.User) (err error) {
 }
 
 // AddLabel adds a new label to the issue.
-func AddLabel(issue *models.Issue, doer *models.User, label *models.Label) error {
+func AddLabel(issue *models.Issue, doer *user_model.User, label *models.Label) error {
 	if err := models.NewIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
@@ -31,7 +34,7 @@ func AddLabel(issue *models.Issue, doer *models.User, label *models.Label) error
 }
 
 // AddLabels adds a list of new labels to the issue.
-func AddLabels(issue *models.Issue, doer *models.User, labels []*models.Label) error {
+func AddLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
 	if err := models.NewIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
@@ -41,12 +44,18 @@ func AddLabels(issue *models.Issue, doer *models.User, labels []*models.Label) e
 }
 
 // RemoveLabel removes a label from issue by given ID.
-func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) error {
-	if err := issue.LoadRepo(); err != nil {
+func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err := issue.LoadRepo(ctx); err != nil {
 		return err
 	}
 
-	perm, err := models.GetUserRepoPermission(issue.Repo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, issue.Repo, doer)
 	if err != nil {
 		return err
 	}
@@ -57,7 +66,11 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 		return models.ErrRepoLabelNotExist{}
 	}
 
-	if err := models.DeleteIssueLabel(issue, label, doer); err != nil {
+	if err := models.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+		return err
+	}
+
+	if err := committer.Commit(); err != nil {
 		return err
 	}
 
@@ -66,13 +79,13 @@ func RemoveLabel(issue *models.Issue, doer *models.User, label *models.Label) er
 }
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
-func ReplaceLabels(issue *models.Issue, doer *models.User, labels []*models.Label) error {
-	old, err := models.GetLabelsByIssueID(issue.ID)
+func ReplaceLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
+	old, err := models.GetLabelsByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return err
 	}
 
-	if err := issue.ReplaceLabels(labels, doer); err != nil {
+	if err := models.ReplaceIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 

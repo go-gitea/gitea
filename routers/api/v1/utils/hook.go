@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -75,7 +74,7 @@ func AddOrgHook(ctx *context.APIContext, form *api.CreateHookOption) {
 	org := ctx.Org.Organization
 	hook, ok := addHook(ctx, form, org.ID, 0)
 	if ok {
-		ctx.JSON(http.StatusCreated, convert.ToHook(org.HomeLink(), hook))
+		ctx.JSON(http.StatusCreated, convert.ToHook(org.AsUser().HomeLink(), hook))
 	}
 }
 
@@ -164,7 +163,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)
 		return nil, false
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateWebhook", err)
 		return nil, false
 	}
@@ -185,7 +184,7 @@ func EditOrgHook(ctx *context.APIContext, form *api.EditHookOption, hookID int64
 	if err != nil {
 		return
 	}
-	ctx.JSON(http.StatusOK, convert.ToHook(org.HomeLink(), updated))
+	ctx.JSON(http.StatusOK, convert.ToHook(org.AsUser().HomeLink(), updated))
 }
 
 // EditRepoHook edit webhook `w` according to `form`. Writes to `ctx` accordingly
@@ -246,17 +245,28 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.ChooseEvents = true
 	w.Create = util.IsStringInSlice(string(webhook.HookEventCreate), form.Events, true)
 	w.Push = util.IsStringInSlice(string(webhook.HookEventPush), form.Events, true)
-	w.PullRequest = util.IsStringInSlice(string(webhook.HookEventPullRequest), form.Events, true)
 	w.Create = util.IsStringInSlice(string(webhook.HookEventCreate), form.Events, true)
 	w.Delete = util.IsStringInSlice(string(webhook.HookEventDelete), form.Events, true)
 	w.Fork = util.IsStringInSlice(string(webhook.HookEventFork), form.Events, true)
-	w.Issues = util.IsStringInSlice(string(webhook.HookEventIssues), form.Events, true)
-	w.IssueComment = util.IsStringInSlice(string(webhook.HookEventIssueComment), form.Events, true)
-	w.Push = util.IsStringInSlice(string(webhook.HookEventPush), form.Events, true)
-	w.PullRequest = util.IsStringInSlice(string(webhook.HookEventPullRequest), form.Events, true)
 	w.Repository = util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
+
+	// Issues
+	w.Issues = issuesHook(form.Events, "issues_only")
+	w.IssueAssign = issuesHook(form.Events, string(webhook.HookEventIssueAssign))
+	w.IssueLabel = issuesHook(form.Events, string(webhook.HookEventIssueLabel))
+	w.IssueMilestone = issuesHook(form.Events, string(webhook.HookEventIssueMilestone))
+	w.IssueComment = issuesHook(form.Events, string(webhook.HookEventIssueComment))
+
+	// Pull requests
+	w.PullRequest = pullHook(form.Events, "pull_request_only")
+	w.PullRequestAssign = pullHook(form.Events, string(webhook.HookEventPullRequestAssign))
+	w.PullRequestLabel = pullHook(form.Events, string(webhook.HookEventPullRequestLabel))
+	w.PullRequestMilestone = pullHook(form.Events, string(webhook.HookEventPullRequestMilestone))
+	w.PullRequestComment = pullHook(form.Events, string(webhook.HookEventPullRequestComment))
+	w.PullRequestReview = pullHook(form.Events, "pull_request_review")
+	w.PullRequestSync = pullHook(form.Events, string(webhook.HookEventPullRequestSync))
 
 	if err := w.UpdateEvent(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateEvent", err)

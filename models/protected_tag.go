@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -33,6 +34,28 @@ func init() {
 	db.RegisterModel(new(ProtectedTag))
 }
 
+// EnsureCompiledPattern ensures the glob pattern is compiled
+func (pt *ProtectedTag) EnsureCompiledPattern() error {
+	if pt.RegexPattern != nil || pt.GlobPattern != nil {
+		return nil
+	}
+
+	var err error
+	if len(pt.NamePattern) >= 2 && strings.HasPrefix(pt.NamePattern, "/") && strings.HasSuffix(pt.NamePattern, "/") {
+		pt.RegexPattern, err = regexp.Compile(pt.NamePattern[1 : len(pt.NamePattern)-1])
+	} else {
+		pt.GlobPattern, err = glob.Compile(pt.NamePattern)
+	}
+	return err
+}
+
+func (pt *ProtectedTag) matchString(name string) bool {
+	if pt.RegexPattern != nil {
+		return pt.RegexPattern.MatchString(name)
+	}
+	return pt.GlobPattern.Match(name)
+}
+
 // InsertProtectedTag inserts a protected tag to database
 func InsertProtectedTag(pt *ProtectedTag) error {
 	_, err := db.GetEngine(db.DefaultContext).Insert(pt)
@@ -51,23 +74,8 @@ func DeleteProtectedTag(pt *ProtectedTag) error {
 	return err
 }
 
-// EnsureCompiledPattern ensures the glob pattern is compiled
-func (pt *ProtectedTag) EnsureCompiledPattern() error {
-	if pt.RegexPattern != nil || pt.GlobPattern != nil {
-		return nil
-	}
-
-	var err error
-	if len(pt.NamePattern) >= 2 && strings.HasPrefix(pt.NamePattern, "/") && strings.HasSuffix(pt.NamePattern, "/") {
-		pt.RegexPattern, err = regexp.Compile(pt.NamePattern[1 : len(pt.NamePattern)-1])
-	} else {
-		pt.GlobPattern, err = glob.Compile(pt.NamePattern)
-	}
-	return err
-}
-
-// IsUserAllowed returns true if the user is allowed to modify the tag
-func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
+// IsUserAllowedModifyTag returns true if the user is allowed to modify the tag
+func IsUserAllowedModifyTag(pt *ProtectedTag, userID int64) (bool, error) {
 	if base.Int64sContains(pt.AllowlistUserIDs, userID) {
 		return true, nil
 	}
@@ -76,7 +84,7 @@ func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 		return false, nil
 	}
 
-	in, err := IsUserInTeams(userID, pt.AllowlistTeamIDs)
+	in, err := organization.IsUserInTeams(db.DefaultContext, userID, pt.AllowlistTeamIDs)
 	if err != nil {
 		return false, err
 	}
@@ -84,9 +92,9 @@ func (pt *ProtectedTag) IsUserAllowed(userID int64) (bool, error) {
 }
 
 // GetProtectedTags gets all protected tags of the repository
-func (repo *Repository) GetProtectedTags() ([]*ProtectedTag, error) {
+func GetProtectedTags(repoID int64) ([]*ProtectedTag, error) {
 	tags := make([]*ProtectedTag, 0)
-	return tags, db.GetEngine(db.DefaultContext).Find(&tags, &ProtectedTag{RepoID: repo.ID})
+	return tags, db.GetEngine(db.DefaultContext).Find(&tags, &ProtectedTag{RepoID: repoID})
 }
 
 // GetProtectedTagByID gets the protected tag with the specific id
@@ -116,7 +124,7 @@ func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int6
 			continue
 		}
 
-		isAllowed, err = tag.IsUserAllowed(userID)
+		isAllowed, err = IsUserAllowedModifyTag(tag, userID)
 		if err != nil {
 			return false, err
 		}
@@ -126,11 +134,4 @@ func IsUserAllowedToControlTag(tags []*ProtectedTag, tagName string, userID int6
 	}
 
 	return isAllowed, nil
-}
-
-func (pt *ProtectedTag) matchString(name string) bool {
-	if pt.RegexPattern != nil {
-		return pt.RegexPattern.MatchString(name)
-	}
-	return pt.GlobPattern.Match(name)
 }

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !windows
-// +build !windows
 
 package private
 
@@ -17,12 +16,11 @@ import (
 // Restart causes the server to perform a graceful restart
 func Restart(ctx *context.PrivateContext) {
 	graceful.GetManager().DoGracefulRestart()
-	ctx.PlainText(http.StatusOK, []byte("success"))
-
+	ctx.PlainText(http.StatusOK, "success")
 }
 
 // Shutdown causes the server to perform a graceful shutdown
 func Shutdown(ctx *context.PrivateContext) {
 	graceful.GetManager().DoGracefulShutdown()
-	ctx.PlainText(http.StatusOK, []byte("success"))
+	ctx.PlainText(http.StatusOK, "success")
 }

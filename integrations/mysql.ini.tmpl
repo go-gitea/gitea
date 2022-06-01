@@ -101,7 +101,7 @@ PROVIDER_CONFIG = integrations/gitea-integration-mysql/data/sessions
 
 [log]
 MODE                 = test,file
-ROOT_PATH            = mysql-log
+ROOT_PATH            = {{REPO_TEST_DIR}}mysql-log
 ROUTER               = ,
 XORM                 = file
 ENABLE_SSH_LOG       = true
@@ -118,3 +118,6 @@ DISABLE_GIT_HOOKS = false
 INSTALL_LOCK   = true
 SECRET_KEY     = 9pCviYTWSb
 INTERNAL_TOKEN = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTU1NTE2MTh9.hhSVGOANkaKk3vfCd2jDOIww4pUk0xtg9JRde5UogyQ
+
+[packages]
+ENABLED = true

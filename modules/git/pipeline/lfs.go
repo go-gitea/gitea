@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package pipeline
 
@@ -17,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/git"
+
 	gogit "github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 )
@@ -119,7 +119,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			i++
 		}
 	}()
-	go NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()

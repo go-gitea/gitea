@@ -5,9 +5,13 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 )
@@ -20,22 +24,22 @@ type crossReference struct {
 // crossReferencesContext is context to pass along findCrossReference functions
 type crossReferencesContext struct {
 	Type        CommentType
-	Doer        *User
+	Doer        *user_model.User
 	OrigIssue   *Issue
 	OrigComment *Comment
 	RemoveOld   bool
 }
 
-func findOldCrossReferences(e db.Engine, issueID, commentID int64) ([]*Comment, error) {
+func findOldCrossReferences(ctx context.Context, issueID, commentID int64) ([]*Comment, error) {
 	active := make([]*Comment, 0, 10)
-	return active, e.Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
+	return active, db.GetEngine(ctx).Where("`ref_action` IN (?, ?, ?)", references.XRefActionNone, references.XRefActionCloses, references.XRefActionReopens).
 		And("`ref_issue_id` = ?", issueID).
 		And("`ref_comment_id` = ?", commentID).
 		Find(&active)
 }
 
-func neuterCrossReferences(e db.Engine, issueID, commentID int64) error {
-	active, err := findOldCrossReferences(e, issueID, commentID)
+func neuterCrossReferences(ctx context.Context, issueID, commentID int64) error {
+	active, err := findOldCrossReferences(ctx, issueID, commentID)
 	if err != nil {
 		return err
 	}
@@ -43,11 +47,11 @@ func neuterCrossReferences(e db.Engine, issueID, commentID int64) error {
 	for i, c := range active {
 		ids[i] = c.ID
 	}
-	return neuterCrossReferencesIds(e, ids)
+	return neuterCrossReferencesIds(ctx, ids)
 }
 
-func neuterCrossReferencesIds(e db.Engine, ids []int64) error {
-	_, err := e.In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
+func neuterCrossReferencesIds(ctx context.Context, ids []int64) error {
+	_, err := db.GetEngine(ctx).In("id", ids).Cols("`ref_action`").Update(&Comment{RefAction: references.XRefActionNeutered})
 	return err
 }
 
@@ -59,7 +63,7 @@ func neuterCrossReferencesIds(e db.Engine, ids []int64) error {
 //          \/     \/            \/
 //
 
-func (issue *Issue) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
+func (issue *Issue) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -72,11 +76,11 @@ func (issue *Issue) addCrossReferences(e db.Engine, doer *User, removeOld bool) 
 		OrigIssue: issue,
 		RemoveOld: removeOld,
 	}
-	return issue.createCrossReferences(e, ctx, issue.Title, issue.Content)
+	return issue.createCrossReferences(stdCtx, ctx, issue.Title, issue.Content)
 }
 
-func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
-	xreflist, err := ctx.OrigIssue.getCrossReferences(e, ctx, plaincontent, mdcontent)
+func (issue *Issue) createCrossReferences(stdCtx context.Context, ctx *crossReferencesContext, plaincontent, mdcontent string) error {
+	xreflist, err := ctx.OrigIssue.getCrossReferences(stdCtx, ctx, plaincontent, mdcontent)
 	if err != nil {
 		return err
 	}
@@ -85,7 +89,7 @@ func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesConte
 		if ctx.OrigComment != nil {
 			commentID = ctx.OrigComment.ID
 		}
-		active, err := findOldCrossReferences(e, ctx.OrigIssue.ID, commentID)
+		active, err := findOldCrossReferences(stdCtx, ctx.OrigIssue.ID, commentID)
 		if err != nil {
 			return err
 		}
@@ -104,7 +108,7 @@ func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesConte
 			}
 		}
 		if len(ids) > 0 {
-			if err = neuterCrossReferencesIds(e, ids); err != nil {
+			if err = neuterCrossReferencesIds(stdCtx, ids); err != nil {
 				return err
 			}
 		}
@@ -125,7 +129,7 @@ func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesConte
 			RefAction:    xref.Action,
 			RefIsPull:    ctx.OrigIssue.IsPull,
 		}
-		_, err := createComment(e, opts)
+		_, err := CreateCommentCtx(stdCtx, opts)
 		if err != nil {
 			return err
 		}
@@ -133,35 +137,34 @@ func (issue *Issue) createCrossReferences(e db.Engine, ctx *crossReferencesConte
 	return nil
 }
 
-func (issue *Issue) getCrossReferences(e db.Engine, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
+func (issue *Issue) getCrossReferences(stdCtx context.Context, ctx *crossReferencesContext, plaincontent, mdcontent string) ([]*crossReference, error) {
 	xreflist := make([]*crossReference, 0, 5)
 	var (
-		refRepo   *Repository
+		refRepo   *repo_model.Repository
 		refIssue  *Issue
 		refAction references.XRefAction
 		err       error
 	)
 
 	allrefs := append(references.FindAllIssueReferences(plaincontent), references.FindAllIssueReferencesMarkdown(mdcontent)...)
-
 	for _, ref := range allrefs {
 		if ref.Owner == "" && ref.Name == "" {
 			// Issues in the same repository
-			if err := ctx.OrigIssue.loadRepo(e); err != nil {
+			if err := ctx.OrigIssue.LoadRepo(stdCtx); err != nil {
 				return nil, err
 			}
 			refRepo = ctx.OrigIssue.Repo
 		} else {
 			// Issues in other repositories
-			refRepo, err = getRepositoryByOwnerAndName(e, ref.Owner, ref.Name)
+			refRepo, err = repo_model.GetRepositoryByOwnerAndNameCtx(stdCtx, ref.Owner, ref.Name)
 			if err != nil {
-				if IsErrRepoNotExist(err) {
+				if repo_model.IsErrRepoNotExist(err) {
 					continue
 				}
 				return nil, err
 			}
 		}
-		if refIssue, refAction, err = ctx.OrigIssue.verifyReferencedIssue(e, ctx, refRepo, ref); err != nil {
+		if refIssue, refAction, err = ctx.OrigIssue.verifyReferencedIssue(stdCtx, ctx, refRepo, ref); err != nil {
 			return nil, err
 		}
 		if refIssue != nil {
@@ -191,15 +194,17 @@ func (issue *Issue) updateCrossReferenceList(list []*crossReference, xref *cross
 }
 
 // verifyReferencedIssue will check if the referenced issue exists, and whether the doer has permission to do what
-func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesContext, repo *Repository,
-	ref references.IssueReference) (*Issue, references.XRefAction, error) {
+func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossReferencesContext, repo *repo_model.Repository,
+	ref references.IssueReference,
+) (*Issue, references.XRefAction, error) {
 	refIssue := &Issue{RepoID: repo.ID, Index: ref.Index}
 	refAction := ref.Action
+	e := db.GetEngine(stdCtx)
 
 	if has, _ := e.Get(refIssue); !has {
 		return nil, references.XRefActionNone, nil
 	}
-	if err := refIssue.loadRepo(e); err != nil {
+	if err := refIssue.LoadRepo(stdCtx); err != nil {
 		return nil, references.XRefActionNone, err
 	}
 
@@ -210,7 +215,7 @@ func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesConte
 
 	// Check doer permissions; set action to None if the doer can't change the destination
 	if refIssue.RepoID != ctx.OrigIssue.RepoID || ref.Action != references.XRefActionNone {
-		perm, err := getUserRepoPermission(e, refIssue.Repo, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(stdCtx, refIssue.Repo, ctx.Doer)
 		if err != nil {
 			return nil, references.XRefActionNone, err
 		}
@@ -240,11 +245,11 @@ func (issue *Issue) verifyReferencedIssue(e db.Engine, ctx *crossReferencesConte
 //         \/             \/      \/     \/     \/
 //
 
-func (comment *Comment) addCrossReferences(e db.Engine, doer *User, removeOld bool) error {
+func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}
-	if err := comment.loadIssue(e); err != nil {
+	if err := comment.LoadIssueCtx(stdCtx); err != nil {
 		return err
 	}
 	ctx := &crossReferencesContext{
@@ -254,11 +259,11 @@ func (comment *Comment) addCrossReferences(e db.Engine, doer *User, removeOld bo
 		OrigComment: comment,
 		RemoveOld:   removeOld,
 	}
-	return comment.Issue.createCrossReferences(e, ctx, "", comment.Content)
+	return comment.Issue.createCrossReferences(stdCtx, ctx, "", comment.Content)
 }
 
-func (comment *Comment) neuterCrossReferences(e db.Engine) error {
-	return neuterCrossReferences(e, comment.IssueID, comment.ID)
+func (comment *Comment) neuterCrossReferences(ctx context.Context) error {
+	return neuterCrossReferences(ctx, comment.IssueID, comment.ID)
 }
 
 // LoadRefComment loads comment that created this reference from database
@@ -266,7 +271,7 @@ func (comment *Comment) LoadRefComment() (err error) {
 	if comment.RefComment != nil {
 		return nil
 	}
-	comment.RefComment, err = GetCommentByID(comment.RefCommentID)
+	comment.RefComment, err = GetCommentByID(db.DefaultContext, comment.RefCommentID)
 	return
 }
 
@@ -277,7 +282,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	}
 	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
 	if err == nil {
-		err = comment.RefIssue.loadRepo(db.GetEngine(db.DefaultContext))
+		err = comment.RefIssue.LoadRepo(db.DefaultContext)
 	}
 	return
 }
@@ -289,8 +294,9 @@ func CommentTypeIsRef(t CommentType) bool {
 
 // RefCommentHTMLURL returns the HTML URL for the comment that created this reference
 func (comment *Comment) RefCommentHTMLURL() string {
+	// Edge case for when the reference is inside the title or the description of the referring issue
 	if comment.RefCommentID == 0 {
-		return ""
+		return comment.RefIssueHTMLURL()
 	}
 	if err := comment.LoadRefComment(); err != nil { // Silently dropping errors :unamused:
 		log.Error("LoadRefComment(%d): %v", comment.RefCommentID, err)
@@ -335,9 +341,9 @@ func (comment *Comment) RefIssueIdent() string {
 //                                  \/     \/   |__|           \/     \/
 
 // ResolveCrossReferences will return the list of references to close/reopen by this PR
-func (pr *PullRequest) ResolveCrossReferences() ([]*Comment, error) {
+func (pr *PullRequest) ResolveCrossReferences(ctx context.Context) ([]*Comment, error) {
 	unfiltered := make([]*Comment, 0, 5)
-	if err := db.GetEngine(db.DefaultContext).
+	if err := db.GetEngine(ctx).
 		Where("ref_repo_id = ? AND ref_issue_id = ?", pr.Issue.RepoID, pr.Issue.ID).
 		In("ref_action", []references.XRefAction{references.XRefActionCloses, references.XRefActionReopens}).
 		OrderBy("id").

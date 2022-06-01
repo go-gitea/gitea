@@ -4,7 +4,9 @@
 
 package db
 
-import "fmt"
+import (
+	"fmt"
+)
 
 // ErrCancelled represents an error due to context cancellation
 type ErrCancelled struct {
@@ -26,4 +28,32 @@ func ErrCancelledf(format string, args ...interface{}) error {
 	return ErrCancelled{
 		fmt.Sprintf(format, args...),
 	}
+}
+
+// ErrSSHDisabled represents an "SSH disabled" error.
+type ErrSSHDisabled struct{}
+
+// IsErrSSHDisabled checks if an error is a ErrSSHDisabled.
+func IsErrSSHDisabled(err error) bool {
+	_, ok := err.(ErrSSHDisabled)
+	return ok
+}
+
+func (err ErrSSHDisabled) Error() string {
+	return "SSH is disabled"
+}
+
+// ErrNotExist represents a non-exist error.
+type ErrNotExist struct {
+	ID int64
+}
+
+// IsErrNotExist checks if an error is an ErrNotExist
+func IsErrNotExist(err error) bool {
+	_, ok := err.(ErrNotExist)
+	return ok
+}
+
+func (err ErrNotExist) Error() string {
+	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
 }

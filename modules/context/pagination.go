@@ -10,24 +10,24 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/unknwon/paginater"
+	"code.gitea.io/gitea/modules/paginator"
 )
 
-// Pagination provides a pagination via Paginater and additional configurations for the link params used in rendering
+// Pagination provides a pagination via paginator.Paginator and additional configurations for the link params used in rendering
 type Pagination struct {
-	Paginater *paginater.Paginater
+	Paginater *paginator.Paginator
 	urlParams []string
 }
 
 // NewPagination creates a new instance of the Pagination struct
-func NewPagination(total int, page int, issueNum int, numPages int) *Pagination {
+func NewPagination(total, page, issueNum, numPages int) *Pagination {
 	p := &Pagination{}
-	p.Paginater = paginater.New(total, page, issueNum, numPages)
+	p.Paginater = paginator.New(total, page, issueNum, numPages)
 	return p
 }
 
 // AddParam adds a value from context identified by ctxKey as link param under a given paramKey
-func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
+func (p *Pagination) AddParam(ctx *Context, paramKey, ctxKey string) {
 	_, exists := ctx.Data[ctxKey]
 	if !exists {
 		return
@@ -38,7 +38,7 @@ func (p *Pagination) AddParam(ctx *Context, paramKey string, ctxKey string) {
 }
 
 // AddParamString adds a string parameter directly
-func (p *Pagination) AddParamString(key string, value string) {
+func (p *Pagination) AddParamString(key, value string) {
 	urlParam := fmt.Sprintf("%s=%v", url.QueryEscape(key), url.QueryEscape(value))
 	p.urlParams = append(p.urlParams, urlParam)
 }
@@ -53,5 +53,6 @@ func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
 	p.AddParam(ctx, "tab", "TabName")
+	// do not add any more uncommon params here!
 	p.AddParam(ctx, "t", "queryType")
 }

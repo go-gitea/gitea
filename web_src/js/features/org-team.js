@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {appSubUrl} = window.config;
 
 export function initOrgTeamSettings() {
@@ -18,7 +20,7 @@ export function initOrgTeamSearchRepoBox() {
   $searchRepoBox.search({
     minCharacters: 2,
     apiSettings: {
-      url: `${appSubUrl}/api/v1/repos/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
+      url: `${appSubUrl}/repo/search?q={query}&uid=${$searchRepoBox.data('uid')}`,
       onResponse(response) {
         const items = [];
         $.each(response.data, (_i, item) => {

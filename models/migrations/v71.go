@@ -53,7 +53,7 @@ func addScratchHash(x *xorm.Engine) error {
 
 		for _, tfa := range tfas {
 			// generate salt
-			salt, err := util.RandomString(10)
+			salt, err := util.CryptoRandomString(10)
 			if err != nil {
 				return err
 			}

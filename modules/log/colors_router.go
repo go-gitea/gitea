@@ -5,6 +5,7 @@
 package log
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -72,12 +73,16 @@ var (
 	wayTooLong = ColorBytes(BgMagenta)
 )
 
-// ColoredTime adds colors for time on log
+// ColoredTime converts the provided time to a ColoredValue for logging. The duration is always formatted in milliseconds.
 func ColoredTime(duration time.Duration) *ColoredValue {
+	// the output of duration in Millisecond is more readable:
+	// * before: "100.1ms" "100.1μs" "100.1s"
+	// * better: "100.1ms" "0.1ms"   "100100.0ms", readers can compare the values at first glance.
+	str := fmt.Sprintf("%.1fms", float64(duration.Microseconds())/1000)
 	for i, k := range durations {
 		if duration < k {
-			return NewColoredValueBytes(duration, &durationColors[i])
+			return NewColoredValueBytes(str, &durationColors[i])
 		}
 	}
-	return NewColoredValueBytes(duration, &wayTooLong)
+	return NewColoredValueBytes(str, &wayTooLong)
 }

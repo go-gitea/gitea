@@ -5,8 +5,15 @@
 package models
 
 import (
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/login"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	project_model "code.gitea.io/gitea/models/project"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -18,7 +25,7 @@ type Statistic struct {
 		Repo, Watch, Star, Action, Access,
 		Issue, IssueClosed, IssueOpen,
 		Comment, Oauth, Follow,
-		Mirror, Release, LoginSource, Webhook,
+		Mirror, Release, AuthSource, Webhook,
 		Milestone, Label, HookTask,
 		Team, UpdateTask, Project,
 		ProjectBoard, Attachment int64
@@ -43,14 +50,14 @@ type IssueByRepositoryCount struct {
 // GetStatistic returns the database statistics
 func GetStatistic() (stats Statistic) {
 	e := db.GetEngine(db.DefaultContext)
-	stats.Counter.User = CountUsers()
-	stats.Counter.Org = CountOrganizations()
-	stats.Counter.PublicKey, _ = e.Count(new(PublicKey))
-	stats.Counter.Repo = CountRepositories(true)
-	stats.Counter.Watch, _ = e.Count(new(Watch))
-	stats.Counter.Star, _ = e.Count(new(Star))
-	stats.Counter.Action, _ = e.Count(new(Action))
-	stats.Counter.Access, _ = e.Count(new(Access))
+	stats.Counter.User = user_model.CountUsers(nil)
+	stats.Counter.Org, _ = organization.CountOrgs(organization.FindOrgOptions{IncludePrivate: true})
+	stats.Counter.PublicKey, _ = e.Count(new(asymkey_model.PublicKey))
+	stats.Counter.Repo, _ = repo_model.CountRepositories(db.DefaultContext, repo_model.CountRepositoryOptions{})
+	stats.Counter.Watch, _ = e.Count(new(repo_model.Watch))
+	stats.Counter.Star, _ = e.Count(new(repo_model.Star))
+	stats.Counter.Action, _ = db.EstimateCount(db.DefaultContext, new(Action))
+	stats.Counter.Access, _ = e.Count(new(access_model.Access))
 
 	type IssueCount struct {
 		Count    int64
@@ -92,17 +99,17 @@ func GetStatistic() (stats Statistic) {
 
 	stats.Counter.Comment, _ = e.Count(new(Comment))
 	stats.Counter.Oauth = 0
-	stats.Counter.Follow, _ = e.Count(new(Follow))
-	stats.Counter.Mirror, _ = e.Count(new(Mirror))
+	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
+	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(Release))
-	stats.Counter.LoginSource = login.CountSources()
+	stats.Counter.AuthSource = auth.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
-	stats.Counter.Milestone, _ = e.Count(new(Milestone))
+	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
 	stats.Counter.Label, _ = e.Count(new(Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
-	stats.Counter.Team, _ = e.Count(new(Team))
-	stats.Counter.Attachment, _ = e.Count(new(Attachment))
-	stats.Counter.Project, _ = e.Count(new(Project))
-	stats.Counter.ProjectBoard, _ = e.Count(new(ProjectBoard))
+	stats.Counter.Team, _ = e.Count(new(organization.Team))
+	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
+	stats.Counter.Project, _ = e.Count(new(project_model.Project))
+	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
 	return
 }

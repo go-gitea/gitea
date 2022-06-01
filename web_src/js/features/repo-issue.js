@@ -1,6 +1,7 @@
+import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
-import {createCommentSimpleMDE} from './comp/CommentSimpleMDE.js';
+import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
@@ -53,13 +54,12 @@ function updateDeadline(deadlineString) {
     realDeadline = new Date(newDate);
   }
 
-  $.ajax(`${$('#update-issue-deadline-form').attr('action')}/deadline`, {
+  $.ajax(`${$('#update-issue-deadline-form').attr('action')}`, {
     data: JSON.stringify({
       due_date: realDeadline,
     }),
     headers: {
       'X-Csrf-Token': csrfToken,
-      'X-Remote': true,
     },
     contentType: 'application/json',
     type: 'POST',
@@ -91,9 +91,9 @@ export function initRepoIssueList() {
   const repoId = $('#repoId').val();
   const crossRepoSearch = $('#crossRepoSearch').val();
   const tp = $('#type').val();
-  let issueSearchUrl = `${appSubUrl}/api/v1/repos/${repolink}/issues?q={query}&type=${tp}`;
+  let issueSearchUrl = `${appSubUrl}/${repolink}/issues/search?q={query}&type=${tp}`;
   if (crossRepoSearch === 'true') {
-    issueSearchUrl = `${appSubUrl}/api/v1/repos/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
+    issueSearchUrl = `${appSubUrl}/issues/search?q={query}&priority_repo_id=${repoId}&type=${tp}`;
   }
   $('#new-dependency-drop-list')
     .dropdown({
@@ -160,6 +160,16 @@ export function initRepoIssueCommentDelete() {
         _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
+
+        // Check if this was a pending comment.
+        if ($conversationHolder.find('.pending-label').length) {
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
+        }
+
         $(`#${$this.data('comment-id')}`).remove();
         if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
           const path = $conversationHolder.data('path');
@@ -167,9 +177,9 @@ export function initRepoIssueCommentDelete() {
           const idx = $conversationHolder.data('idx');
           const lineType = $conversationHolder.closest('tr').data('line-type');
           if (lineType === 'same') {
-            $(`a.add-code-comment[data-path="${path}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).removeClass('invisible');
           } else {
-            $(`a.add-code-comment[data-path="${path}"][data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
+            $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).removeClass('invisible');
           }
           $conversationHolder.remove();
         }
@@ -182,7 +192,8 @@ export function initRepoIssueCommentDelete() {
 export function initRepoIssueDependencyDelete() {
   // Delete Issue dependency
   $(document).on('click', '.delete-dependency-button', (e) => {
-    const {id, type} = e.currentTarget.dataset;
+    const id = e.currentTarget.getAttribute('data-id');
+    const type = e.currentTarget.getAttribute('data-type');
 
     $('.remove-dependency').modal({
       closable: false,
@@ -213,39 +224,13 @@ export function initRepoIssueStatusButton() {
   // Change status
   const $statusButton = $('#status-button');
   $('#comment-form textarea').on('keyup', function () {
-    const $simplemde = $(this).data('simplemde');
-    const value = ($simplemde && $simplemde.value()) ? $simplemde.value() : $(this).val();
+    const easyMDE = getAttachedEasyMDE(this);
+    const value = easyMDE?.value() || $(this).val();
     $statusButton.text($statusButton.data(value.length === 0 ? 'status' : 'status-and-comment'));
   });
   $statusButton.on('click', () => {
     $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
-  });
-}
-
-export function initRepoPullRequestMerge() {
-  // Pull Request merge button
-  const $mergeButton = $('.merge-button > button');
-  $mergeButton.on('click', function (e) {
-    e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
-    $(this).parent().hide();
-    $('.instruct-toggle').hide();
-    $('.instruct-content').hide();
-  });
-  $('.merge-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
-        $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
-      }
-    }
-  });
-  $('.merge-cancel').on('click', function (e) {
-    e.preventDefault();
-    $(this).closest('.form').hide();
-    $mergeButton.parent().show();
-    $('.instruct-toggle').show();
   });
 }
 
@@ -287,11 +272,44 @@ export function initRepoPullRequestMergeInstruction() {
   });
 }
 
+export function initRepoPullRequestAllowMaintainerEdit() {
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+  $checkbox.popup({content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
+        error: () => {
+          $checkbox.popup({
+            content: promptError,
+            onHidden: () => {
+              // the error popup should be shown only once, then we restore the popup to the default message
+              $checkbox.popup({content: promptTip});
+            },
+          });
+          $checkbox.popup('show');
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
+  });
+}
+
 export function initRepoIssueReferenceRepositorySearch() {
   $('.issue_reference_repository_search')
     .dropdown({
       apiSettings: {
-        url: `${appSubUrl}/api/v1/repos/search?q={query}&limit=20`,
+        url: `${appSubUrl}/repo/search?q={query}&limit=20`,
         onResponse(response) {
           const filteredResponse = {success: true, results: []};
           $.each(response.data, (_r, repo) => {
@@ -332,42 +350,35 @@ export function initRepoIssueWipTitle() {
   });
 }
 
-export function updateIssuesMeta(url, action, issueIds, elementId) {
-  return new Promise((resolve, reject) => {
-    $.ajax({
-      type: 'POST',
-      url,
-      data: {
-        _csrf: csrfToken,
-        action,
-        issue_ids: issueIds,
-        id: elementId,
-      },
-      success: resolve,
-      error: reject,
-    });
+export async function updateIssuesMeta(url, action, issueIds, elementId) {
+  return $.ajax({
+    type: 'POST',
+    url,
+    data: {
+      _csrf: csrfToken,
+      action,
+      issue_ids: issueIds,
+      id: elementId,
+    },
   });
 }
 
 export function initRepoIssueComments() {
   if ($('.repository.view.issue .timeline').length === 0) return;
 
-  $('.re-request-review').on('click', function (event) {
+  $('.re-request-review').on('click', function (e) {
+    e.preventDefault();
     const url = $(this).data('update-url');
     const issueId = $(this).data('issue-id');
     const id = $(this).data('id');
     const isChecked = $(this).hasClass('checked');
 
-    event.preventDefault();
     updateIssuesMeta(
       url,
       isChecked ? 'detach' : 'attach',
       issueId,
       id,
-    ).then(() => {
-      window.location.reload();
-    });
-    return false;
+    ).then(() => window.location.reload());
   });
 
   $('.dismiss-review-btn').on('click', function (e) {
@@ -418,7 +429,7 @@ export function initRepoPullRequestReview() {
       // get the name of the parent id
       const groupID = commentDiv.closest('div[id^="code-comments-"]').attr('id');
       if (groupID && groupID.startsWith('code-comments-')) {
-        const id = groupID.substr(14);
+        const id = groupID.slice(14);
         $(`#show-outdated-${id}`).addClass('hide');
         $(`#code-comments-${id}`).removeClass('hide');
         $(`#code-preview-${id}`).removeClass('hide');
@@ -446,29 +457,32 @@ export function initRepoPullRequestReview() {
     $(`#show-outdated-${id}`).removeClass('hide');
   });
 
-  $(document).on('click', 'button.comment-form-reply', function (e) {
+  $(document).on('click', 'button.comment-form-reply', async function (e) {
     e.preventDefault();
+
     $(this).hide();
     const form = $(this).closest('.comment-code-cloud').find('.comment-form');
     form.removeClass('hide');
     const $textarea = form.find('textarea');
-    let $simplemde;
-    if ($textarea.data('simplemde')) {
-      $simplemde = $textarea.data('simplemde');
-    } else {
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      $simplemde = createCommentSimpleMDE($textarea);
-      $textarea.data('simplemde', $simplemde);
+    let easyMDE = getAttachedEasyMDE($textarea);
+    if (!easyMDE) {
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      easyMDE = await createCommentEasyMDE($textarea);
     }
     $textarea.focus();
-    $simplemde.codemirror.focus();
+    easyMDE.codemirror.focus();
     assignMenuAttributes(form.find('.menu'));
   });
 
   const $reviewBox = $('.review-box');
   if ($reviewBox.length === 1) {
-    createCommentSimpleMDE($reviewBox.find('textarea'));
-    initCompImagePaste($reviewBox);
+    (async () => {
+      // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
+      // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
+      // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set max-height for .CodeMirror-scroll in CSS.
+      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
+      initCompImagePaste($reviewBox);
+    })();
   }
 
   // The following part is only for diff views
@@ -484,14 +498,14 @@ export function initRepoPullRequestReview() {
     $(this).closest('.menu').toggle('visible');
   });
 
-  $('a.add-code-comment').on('click', async function (e) {
+  $(document).on('click', 'a.add-code-comment', async function (e) {
     if ($(e.target).hasClass('btn-add-single')) return; // https://github.com/go-gitea/gitea/issues/4745
     e.preventDefault();
 
     const isSplit = $(this).closest('.code-diff').hasClass('code-diff-split');
     const side = $(this).data('side');
     const idx = $(this).data('idx');
-    const path = $(this).data('path');
+    const path = $(this).closest('[data-path]').data('path');
     const tr = $(this).closest('tr');
     const lineType = tr.data('line-type');
 
@@ -501,13 +515,17 @@ export function initRepoPullRequestReview() {
         <tr class="add-comment" data-line-type="${lineType}">
           ${isSplit ? `
             <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
             <td class="add-comment-left"></td>
             <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="lines-type-marker"></td>
             <td class="add-comment-right"></td>
           ` : `
-            <td colspan="2" class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="lines-num"></td>
+            <td class="lines-escape"></td>
             <td class="add-comment-left add-comment-right" colspan="2"></td>
           `}
         </tr>`);
@@ -517,7 +535,7 @@ export function initRepoPullRequestReview() {
     const td = ntr.find(`.add-comment-${side}`);
     let commentCloud = td.find('.comment-code-cloud');
     if (commentCloud.length === 0 && !ntr.find('button[name="is_review"]').length) {
-      const data = await $.get($(this).data('new-comment-url'));
+      const data = await $.get($(this).closest('[data-new-comment-url]').data('new-comment-url'));
       td.html(data);
       commentCloud = td.find('.comment-code-cloud');
       assignMenuAttributes(commentCloud.find('.menu'));
@@ -525,10 +543,10 @@ export function initRepoPullRequestReview() {
       td.find("input[name='side']").val(side === 'left' ? 'previous' : 'proposed');
       td.find("input[name='path']").val(path);
       const $textarea = commentCloud.find('textarea');
-      attachTribute($textarea.get(), {mentions: true, emoji: true});
-      const $simplemde = createCommentSimpleMDE($textarea);
+      await attachTribute($textarea.get(), {mentions: true, emoji: true});
+      const easyMDE = await createCommentEasyMDE($textarea);
       $textarea.focus();
-      $simplemde.codemirror.focus();
+      easyMDE.codemirror.focus();
     }
   });
 }
@@ -554,10 +572,13 @@ export function initRepoIssueWipToggle() {
   // Toggle WIP
   $('.toggle-wip a, .toggle-wip button').on('click', async (e) => {
     e.preventDefault();
-    const {title, wipPrefix, updateUrl} = e.currentTarget.closest('.toggle-wip').dataset;
+    const toggleWip = e.currentTarget.closest('.toggle-wip');
+    const title = toggleWip.getAttribute('data-title');
+    const wipPrefix = toggleWip.getAttribute('data-wip-prefix');
+    const updateUrl = toggleWip.getAttribute('data-update-url');
     await $.post(updateUrl, {
       _csrf: csrfToken,
-      title: title?.startsWith(wipPrefix) ? title.substr(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
+      title: title?.startsWith(wipPrefix) ? title.slice(wipPrefix.length).trim() : `${wipPrefix.trim()} ${title}`,
     });
     window.location.reload();
   });

@@ -5,12 +5,12 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
-
-	"xorm.io/xorm"
 )
 
 // IssueAssignees saves all issue assignees
@@ -25,20 +25,15 @@ func init() {
 }
 
 // LoadAssignees load assignees of this issue.
-func (issue *Issue) LoadAssignees() error {
-	return issue.loadAssignees(db.GetEngine(db.DefaultContext))
-}
-
-// This loads all assignees of an issue
-func (issue *Issue) loadAssignees(e db.Engine) (err error) {
+func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	// Reset maybe preexisting assignees
-	issue.Assignees = []*User{}
+	issue.Assignees = []*user_model.User{}
+	issue.Assignee = nil
 
-	err = e.Table("`user`").
+	err = db.GetEngine(ctx).Table("`user`").
 		Join("INNER", "issue_assignees", "assignee_id = `user`.id").
 		Where("issue_assignees.issue_id = ?", issue.ID).
 		Find(&issue.Assignees)
-
 	if err != nil {
 		return err
 	}
@@ -47,7 +42,6 @@ func (issue *Issue) loadAssignees(e db.Engine) (err error) {
 	if len(issue.Assignees) > 0 {
 		issue.Assignee = issue.Assignees[0]
 	}
-
 	return
 }
 
@@ -63,64 +57,39 @@ func GetAssigneeIDsByIssue(issueID int64) ([]int64, error) {
 		Find(&userIDs)
 }
 
-// GetAssigneesByIssue returns everyone assigned to that issue
-func GetAssigneesByIssue(issue *Issue) (assignees []*User, err error) {
-	return getAssigneesByIssue(db.GetEngine(db.DefaultContext), issue)
-}
-
-func getAssigneesByIssue(e db.Engine, issue *Issue) (assignees []*User, err error) {
-	err = issue.loadAssignees(e)
-	if err != nil {
-		return assignees, err
-	}
-
-	return issue.Assignees, nil
-}
-
 // IsUserAssignedToIssue returns true when the user is assigned to the issue
-func IsUserAssignedToIssue(issue *Issue, user *User) (isAssigned bool, err error) {
-	return isUserAssignedToIssue(db.GetEngine(db.DefaultContext), issue, user)
+func IsUserAssignedToIssue(ctx context.Context, issue *Issue, user *user_model.User) (isAssigned bool, err error) {
+	return db.GetByBean(ctx, &IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
 }
 
-func isUserAssignedToIssue(e db.Engine, issue *Issue, user *User) (isAssigned bool, err error) {
-	return e.Get(&IssueAssignees{IssueID: issue.ID, AssigneeID: user.ID})
-}
-
-// ClearAssigneeByUserID deletes all assignments of an user
-func clearAssigneeByUserID(sess db.Engine, userID int64) (err error) {
-	_, err = sess.Delete(&IssueAssignees{AssigneeID: userID})
-	return
-}
-
-// ToggleAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
-func (issue *Issue) ToggleAssignee(doer *User, assigneeID int64) (removed bool, comment *Comment, err error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+// ToggleIssueAssignee changes a user between assigned and not assigned for this issue, and make issue comment for it.
+func ToggleIssueAssignee(issue *Issue, doer *user_model.User, assigneeID int64) (removed bool, comment *Comment, err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return false, nil, err
 	}
+	defer committer.Close()
 
-	removed, comment, err = issue.toggleAssignee(sess, doer, assigneeID, false)
+	removed, comment, err = toggleIssueAssignee(ctx, issue, doer, assigneeID, false)
 	if err != nil {
 		return false, nil, err
 	}
 
-	if err := sess.Commit(); err != nil {
+	if err := committer.Commit(); err != nil {
 		return false, nil, err
 	}
 
 	return removed, comment, nil
 }
 
-func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
-	removed, err = toggleUserAssignee(sess, issue, assigneeID)
+func toggleIssueAssignee(ctx context.Context, issue *Issue, doer *user_model.User, assigneeID int64, isCreate bool) (removed bool, comment *Comment, err error) {
+	removed, err = toggleUserAssignee(ctx, issue, assigneeID)
 	if err != nil {
 		return false, nil, fmt.Errorf("UpdateIssueUserByAssignee: %v", err)
 	}
 
 	// Repo infos
-	if err = issue.loadRepo(sess); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		return false, nil, fmt.Errorf("loadRepo: %v", err)
 	}
 
@@ -133,7 +102,7 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 		AssigneeID:      assigneeID,
 	}
 	// Comment
-	comment, err = createComment(sess, opts)
+	comment, err = CreateCommentCtx(ctx, opts)
 	if err != nil {
 		return false, nil, fmt.Errorf("createComment: %v", err)
 	}
@@ -147,39 +116,38 @@ func (issue *Issue) toggleAssignee(sess *xorm.Session, doer *User, assigneeID in
 }
 
 // toggles user assignee state in database
-func toggleUserAssignee(e *xorm.Session, issue *Issue, assigneeID int64) (removed bool, err error) {
+func toggleUserAssignee(ctx context.Context, issue *Issue, assigneeID int64) (removed bool, err error) {
 	// Check if the user exists
-	assignee, err := getUserByID(e, assigneeID)
+	assignee, err := user_model.GetUserByIDCtx(ctx, assigneeID)
 	if err != nil {
 		return false, err
 	}
 
 	// Check if the submitted user is already assigned, if yes delete him otherwise add him
-	var i int
-	for i = 0; i < len(issue.Assignees); i++ {
+	found := false
+	i := 0
+	for ; i < len(issue.Assignees); i++ {
 		if issue.Assignees[i].ID == assigneeID {
+			found = true
 			break
 		}
 	}
 
 	assigneeIn := IssueAssignees{AssigneeID: assigneeID, IssueID: issue.ID}
-
-	toBeDeleted := i < len(issue.Assignees)
-	if toBeDeleted {
-		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i:]...)
-		_, err = e.Delete(assigneeIn)
+	if found {
+		issue.Assignees = append(issue.Assignees[:i], issue.Assignees[i+1:]...)
+		_, err = db.DeleteByBean(ctx, &assigneeIn)
 		if err != nil {
-			return toBeDeleted, err
+			return found, err
 		}
 	} else {
 		issue.Assignees = append(issue.Assignees, assignee)
-		_, err = e.Insert(assigneeIn)
-		if err != nil {
-			return toBeDeleted, err
+		if err = db.Insert(ctx, &assigneeIn); err != nil {
+			return found, err
 		}
 	}
 
-	return toBeDeleted, nil
+	return found, nil
 }
 
 // MakeIDsFromAPIAssigneesToAdd returns an array with all assignee IDs
@@ -197,7 +165,7 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	}
 
 	// Get the IDs of all assignees
-	assigneeIDs, err = GetUserIDsByNames(requestAssignees, false)
+	assigneeIDs, err = user_model.GetUserIDsByNames(requestAssignees, false)
 
 	return
 }

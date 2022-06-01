@@ -8,16 +8,11 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/web/user"
+	"code.gitea.io/gitea/routers/web/auth"
 )
 
 // Events listens for events
@@ -48,7 +43,7 @@ func Events(ctx *context.Context) {
 
 	shutdownCtx := graceful.GetManager().ShutdownContext()
 
-	uid := ctx.User.ID
+	uid := ctx.Doer.ID
 
 	messageChan := eventsource.GetManager().Register(uid)
 
@@ -71,8 +66,6 @@ func Events(ctx *context.Context) {
 
 	timer := time.NewTicker(30 * time.Second)
 
-	stopwatchTimer := time.NewTicker(setting.UI.Notification.MinTimeout)
-
 loop:
 	for {
 		select {
@@ -82,7 +75,7 @@ loop:
 			}
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}
@@ -93,32 +86,6 @@ loop:
 		case <-shutdownCtx.Done():
 			go unregister()
 			break loop
-		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.User.ID, db.ListOptions{})
-			if err != nil {
-				log.Error("Unable to GetUserStopwatches: %v", err)
-				continue
-			}
-			apiSWs, err := convert.ToStopWatches(sws)
-			if err != nil {
-				log.Error("Unable to APIFormat stopwatches: %v", err)
-				continue
-			}
-			dataBs, err := json.Marshal(apiSWs)
-			if err != nil {
-				log.Error("Unable to marshal stopwatches: %v", err)
-				continue
-			}
-			_, err = (&eventsource.Event{
-				Name: "stopwatches",
-				Data: string(dataBs),
-			}).WriteTo(ctx.Resp)
-			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
-				go unregister()
-				break loop
-			}
-			ctx.Resp.Flush()
 		case event, ok := <-messageChan:
 			if !ok {
 				break loop
@@ -133,7 +100,7 @@ loop:
 					}).WriteTo(ctx.Resp)
 					ctx.Resp.Flush()
 					go unregister()
-					user.HandleSignOut(ctx)
+					auth.HandleSignOut(ctx)
 					break loop
 				}
 				// Replace the event - we don't want to expose the session ID to the user
@@ -145,7 +112,7 @@ loop:
 
 			_, err := event.WriteTo(ctx.Resp)
 			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.User.Name, err)
+				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
 				go unregister()
 				break loop
 			}

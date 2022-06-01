@@ -6,9 +6,11 @@ package repo
 
 import (
 	"net/http"
+	"net/url"
 
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -89,11 +91,11 @@ func getGitRefsInternal(ctx *context.APIContext, filter string) {
 	for i := range refs {
 		apiRefs[i] = &api.Reference{
 			Ref: refs[i].Name,
-			URL: ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Name,
+			URL: ctx.Repo.Repository.APIURL() + "/git/" + util.PathEscapeSegments(refs[i].Name),
 			Object: &api.GitObject{
 				SHA:  refs[i].Object.String(),
 				Type: refs[i].Type,
-				URL:  ctx.Repo.Repository.APIURL() + "/git/" + refs[i].Type + "s/" + refs[i].Object.String(),
+				URL:  ctx.Repo.Repository.APIURL() + "/git/" + url.PathEscape(refs[i].Type) + "s/" + url.PathEscape(refs[i].Object.String()),
 			},
 		}
 	}

@@ -8,7 +8,7 @@
 			</div>
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived)}}
-					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
+					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new/choose?project={{$.Project.ID}}">{{.i18n.Tr "repo.issues.new"}}</a>
 					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.i18n.Tr "new_project_board"}}</a>
 				{{end}}
 				<div class="ui small modal new-board-modal" id="new-board-item">
@@ -82,9 +82,14 @@
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header df ac sb">
-					<div class="ui large label board-label py-2">{{.Title}}</div>
+					<div class="ui large label board-label py-2">
+						<div class="ui small circular grey label board-card-cnt">
+							{{.NumIssues}}
+						</div>
+						{{.Title}}
+					</div>
 					{{if and $.CanWriteProjects (not $.Repository.IsArchived) (ne .ID 0)}}
-						<div class="ui dropdown jump item poping up" data-variation="tiny inverted">
+						<div class="ui dropdown jump item tooltip">
 							<div class="not-mobile px-3" tabindex="-1">
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
@@ -170,7 +175,7 @@
 
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ range .Issues }}
+					{{ range (index $.IssuesMap .ID) }}
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
@@ -195,18 +200,18 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title vm" href="{{$.RepoLink}}/issues/{{.Index}}">
+								<a class="project-board-title vm" href="{{.Link}}">
 									{{.Title}}
 								</a>
 							</div>
 							<div class="meta my-2">
 								<span class="text light grey">
 									#{{.Index}}
-									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
 									{{if .OriginalAuthor }}
-										{{$.i18n.Tr .GetLastEventLabelFake $timeStr .OriginalAuthor | Safe}}
+										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 									{{else if gt .Poster.ID 0}}
-										{{$.i18n.Tr .GetLastEventLabel $timeStr .Poster.HomeLink (.Poster.GetDisplayName | Escape) | Safe}}
+										{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 									{{else}}
 										{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 									{{end}}
@@ -229,13 +234,19 @@
 							</div>
 							{{- end }}
 						</div>
-						{{if .Labels}}
-							<div class="extra content labels-list p-0 pt-2">
-								{{ range .Labels }}
-								<a class="ui label" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+
+						{{ if or .Labels .Assignees }}
+						<div class="extra content labels-list p-0 pt-2">
+							{{ range .Labels }}
+								<a class="ui label" target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
+							{{ end }}
+							<div class="right floated">
+								{{ range .Assignees }}
+									<a class="tooltip" target="_blank" href="{{.HTMLURL}}" data-content="{{$.i18n.Tr "repo.projects.board.assigned_to"}} {{.Name}}">{{avatar . 28 "mini mr-3"}}</a>
 								{{ end }}
 							</div>
-						{{end}}
+						</div>
+						{{ end }}
 					</div>
 					<!-- stop issue card -->
 

@@ -15,9 +15,7 @@ import (
 	_ "gitea.com/go-chi/cache/memcache" // memcache plugin for cache
 )
 
-var (
-	conn mc.Cache
-)
+var conn mc.Cache
 
 func newCache(cacheConfig setting.Cache) (mc.Cache, error) {
 	return mc.NewCacher(mc.Options{
@@ -33,6 +31,9 @@ func NewContext() error {
 
 	if conn == nil && setting.CacheService.Enabled {
 		if conn, err = newCache(setting.CacheService.Cache); err != nil {
+			return err
+		}
+		if err = conn.Ping(); err != nil {
 			return err
 		}
 	}

@@ -5,11 +5,16 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
+	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/timeutil"
 
@@ -55,10 +60,10 @@ func (rt ReviewType) Icon() string {
 type Review struct {
 	ID               int64 `xorm:"pk autoincr"`
 	Type             ReviewType
-	Reviewer         *User `xorm:"-"`
-	ReviewerID       int64 `xorm:"index"`
-	ReviewerTeamID   int64 `xorm:"NOT NULL DEFAULT 0"`
-	ReviewerTeam     *Team `xorm:"-"`
+	Reviewer         *user_model.User   `xorm:"-"`
+	ReviewerID       int64              `xorm:"index"`
+	ReviewerTeamID   int64              `xorm:"NOT NULL DEFAULT 0"`
+	ReviewerTeam     *organization.Team `xorm:"-"`
 	OriginalAuthor   string
 	OriginalAuthorID int64
 	Issue            *Issue `xorm:"-"`
@@ -83,92 +88,80 @@ func init() {
 	db.RegisterModel(new(Review))
 }
 
-func (r *Review) loadCodeComments(e db.Engine) (err error) {
+// LoadCodeComments loads CodeComments
+func (r *Review) LoadCodeComments(ctx context.Context) (err error) {
 	if r.CodeComments != nil {
 		return
 	}
-	if err = r.loadIssue(e); err != nil {
+	if err = r.loadIssue(ctx); err != nil {
 		return
 	}
-	r.CodeComments, err = fetchCodeCommentsByReview(e, r.Issue, nil, r)
+	r.CodeComments, err = fetchCodeCommentsByReview(ctx, r.Issue, nil, r)
 	return
 }
 
-// LoadCodeComments loads CodeComments
-func (r *Review) LoadCodeComments() error {
-	return r.loadCodeComments(db.GetEngine(db.DefaultContext))
-}
-
-func (r *Review) loadIssue(e db.Engine) (err error) {
+func (r *Review) loadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return
 	}
-	r.Issue, err = getIssueByID(e, r.IssueID)
+	r.Issue, err = getIssueByID(ctx, r.IssueID)
 	return
 }
 
-func (r *Review) loadReviewer(e db.Engine) (err error) {
+func (r *Review) loadReviewer(ctx context.Context) (err error) {
 	if r.ReviewerID == 0 || r.Reviewer != nil {
 		return
 	}
-	r.Reviewer, err = getUserByID(e, r.ReviewerID)
+	r.Reviewer, err = user_model.GetUserByIDCtx(ctx, r.ReviewerID)
 	return
 }
 
-func (r *Review) loadReviewerTeam(e db.Engine) (err error) {
+func (r *Review) loadReviewerTeam(ctx context.Context) (err error) {
 	if r.ReviewerTeamID == 0 || r.ReviewerTeam != nil {
 		return
 	}
 
-	r.ReviewerTeam, err = getTeamByID(e, r.ReviewerTeamID)
+	r.ReviewerTeam, err = organization.GetTeamByID(ctx, r.ReviewerTeamID)
 	return
 }
 
 // LoadReviewer loads reviewer
 func (r *Review) LoadReviewer() error {
-	return r.loadReviewer(db.GetEngine(db.DefaultContext))
+	return r.loadReviewer(db.DefaultContext)
 }
 
 // LoadReviewerTeam loads reviewer team
 func (r *Review) LoadReviewerTeam() error {
-	return r.loadReviewerTeam(db.GetEngine(db.DefaultContext))
+	return r.loadReviewerTeam(db.DefaultContext)
 }
 
-func (r *Review) loadAttributes(e db.Engine) (err error) {
-	if err = r.loadIssue(e); err != nil {
+// LoadAttributes loads all attributes except CodeComments
+func (r *Review) LoadAttributes(ctx context.Context) (err error) {
+	if err = r.loadIssue(ctx); err != nil {
 		return
 	}
-	if err = r.loadCodeComments(e); err != nil {
+	if err = r.LoadCodeComments(ctx); err != nil {
 		return
 	}
-	if err = r.loadReviewer(e); err != nil {
+	if err = r.loadReviewer(ctx); err != nil {
 		return
 	}
-	if err = r.loadReviewerTeam(e); err != nil {
+	if err = r.loadReviewerTeam(ctx); err != nil {
 		return
 	}
 	return
 }
 
-// LoadAttributes loads all attributes except CodeComments
-func (r *Review) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
-}
-
-func getReviewByID(e db.Engine, id int64) (*Review, error) {
+// GetReviewByID returns the review by the given ID
+func GetReviewByID(ctx context.Context, id int64) (*Review, error) {
 	review := new(Review)
-	if has, err := e.ID(id).Get(review); err != nil {
+	if has, err := db.GetEngine(ctx).ID(id).Get(review); err != nil {
 		return nil, err
 	} else if !has {
 		return nil, ErrReviewNotExist{ID: id}
 	} else {
 		return review, nil
 	}
-}
-
-// GetReviewByID returns the review by the given ID
-func GetReviewByID(id int64) (*Review, error) {
-	return getReviewByID(db.GetEngine(db.DefaultContext), id)
 }
 
 // FindReviewOptions represent possible filters to find reviews
@@ -197,9 +190,10 @@ func (opts *FindReviewOptions) toCond() builder.Cond {
 	return cond
 }
 
-func findReviews(e db.Engine, opts FindReviewOptions) ([]*Review, error) {
+// FindReviews returns reviews passing FindReviewOptions
+func FindReviews(ctx context.Context, opts FindReviewOptions) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
-	sess := e.Where(opts.toCond())
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 	if opts.Page > 0 {
 		sess = db.SetSessionPagination(sess, &opts)
 	}
@@ -207,11 +201,6 @@ func findReviews(e db.Engine, opts FindReviewOptions) ([]*Review, error) {
 		Asc("created_unix").
 		Asc("id").
 		Find(&reviews)
-}
-
-// FindReviews returns reviews passing FindReviewOptions
-func FindReviews(opts FindReviewOptions) ([]*Review, error) {
-	return findReviews(db.GetEngine(db.DefaultContext), opts)
 }
 
 // CountReviews returns count of reviews passing FindReviewOptions
@@ -224,24 +213,20 @@ type CreateReviewOptions struct {
 	Content      string
 	Type         ReviewType
 	Issue        *Issue
-	Reviewer     *User
-	ReviewerTeam *Team
+	Reviewer     *user_model.User
+	ReviewerTeam *organization.Team
 	Official     bool
 	CommitID     string
 	Stale        bool
 }
 
 // IsOfficialReviewer check if at least one of the provided reviewers can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewer(issue *Issue, reviewers ...*User) (bool, error) {
-	return isOfficialReviewer(db.GetEngine(db.DefaultContext), issue, reviewers...)
-}
-
-func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*User) (bool, error) {
-	pr, err := getPullRequestByIssueID(e, issue.ID)
+func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_model.User) (bool, error) {
+	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(e); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -249,7 +234,7 @@ func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*User) (bool, er
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := pr.ProtectedBranch.isUserOfficialReviewer(e, reviewer)
+		official, err := isUserOfficialReviewer(ctx, pr.ProtectedBranch, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -259,16 +244,12 @@ func isOfficialReviewer(e db.Engine, issue *Issue, reviewers ...*User) (bool, er
 }
 
 // IsOfficialReviewerTeam check if reviewer in this team can make official reviews in issue (counts towards required approvals)
-func IsOfficialReviewerTeam(issue *Issue, team *Team) (bool, error) {
-	return isOfficialReviewerTeam(db.GetEngine(db.DefaultContext), issue, team)
-}
-
-func isOfficialReviewerTeam(e db.Engine, issue *Issue, team *Team) (bool, error) {
-	pr, err := getPullRequestByIssueID(e, issue.ID)
+func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organization.Team) (bool, error) {
+	pr, err := GetPullRequestByIssueID(ctx, issue.ID)
 	if err != nil {
 		return false, err
 	}
-	if err = pr.loadProtectedBranch(e); err != nil {
+	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, err
 	}
 	if pr.ProtectedBranch == nil {
@@ -276,13 +257,14 @@ func isOfficialReviewerTeam(e db.Engine, issue *Issue, team *Team) (bool, error)
 	}
 
 	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
-		return team.Authorize >= AccessModeWrite, nil
+		return team.UnitAccessModeCtx(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
 	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
-func createReview(e db.Engine, opts CreateReviewOptions) (*Review, error) {
+// CreateReview creates a new review based on opts
+func CreateReview(ctx context.Context, opts CreateReviewOptions) (*Review, error) {
 	review := &Review{
 		Type:         opts.Type,
 		Issue:        opts.Issue,
@@ -302,23 +284,15 @@ func createReview(e db.Engine, opts CreateReviewOptions) (*Review, error) {
 		}
 		review.ReviewerTeamID = opts.ReviewerTeam.ID
 	}
-	if _, err := e.Insert(review); err != nil {
-		return nil, err
-	}
-
-	return review, nil
+	return review, db.Insert(ctx, review)
 }
 
-// CreateReview creates a new review based on opts
-func CreateReview(opts CreateReviewOptions) (*Review, error) {
-	return createReview(db.GetEngine(db.DefaultContext), opts)
-}
-
-func getCurrentReview(e db.Engine, reviewer *User, issue *Issue) (*Review, error) {
+// GetCurrentReview returns the current pending review of reviewer for given issue
+func GetCurrentReview(ctx context.Context, reviewer *user_model.User, issue *Issue) (*Review, error) {
 	if reviewer == nil {
 		return nil, nil
 	}
-	reviews, err := findReviews(e, FindReviewOptions{
+	reviews, err := FindReviews(ctx, FindReviewOptions{
 		Type:       ReviewTypePending,
 		IssueID:    issue.ID,
 		ReviewerID: reviewer.ID,
@@ -339,11 +313,6 @@ func ReviewExists(issue *Issue, treePath string, line int64) (bool, error) {
 	return db.GetEngine(db.DefaultContext).Cols("id").Exist(&Comment{IssueID: issue.ID, TreePath: treePath, Line: line, Type: CommentTypeCode})
 }
 
-// GetCurrentReview returns the current pending review of reviewer for given issue
-func GetCurrentReview(reviewer *User, issue *Issue) (*Review, error) {
-	return getCurrentReview(db.GetEngine(db.DefaultContext), reviewer, issue)
-}
-
 // ContentEmptyErr represents an content empty error
 type ContentEmptyErr struct{}
 
@@ -358,16 +327,17 @@ func IsContentEmptyErr(err error) bool {
 }
 
 // SubmitReview creates a review out of the existing pending review or creates a new one if no pending review exist
-func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, content, commitID string, stale bool, attachmentUUIDs []string) (*Review, *Comment, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	official := false
 
-	review, err := getCurrentReview(sess, doer, issue)
+	review, err := GetCurrentReview(ctx, doer, issue)
 	if err != nil {
 		if !IsErrReviewNotExist(err) {
 			return nil, nil, err
@@ -379,16 +349,16 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+			if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
 
 		// No current review. Create a new one!
-		if review, err = createReview(sess, CreateReviewOptions{
+		if review, err = CreateReview(ctx, CreateReviewOptions{
 			Type:     reviewType,
 			Issue:    issue,
 			Reviewer: doer,
@@ -400,7 +370,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 			return nil, nil, err
 		}
 	} else {
-		if err := review.loadCodeComments(sess); err != nil {
+		if err := review.LoadCodeComments(ctx); err != nil {
 			return nil, nil, err
 		}
 		if reviewType != ReviewTypeApprove && len(review.CodeComments) == 0 && len(strings.TrimSpace(content)) == 0 {
@@ -409,10 +379,10 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 
 		if reviewType == ReviewTypeApprove || reviewType == ReviewTypeReject {
 			// Only reviewers latest review of type approve and reject shall count as "official", so existing reviews needs to be cleared
-			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
+			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_id=?", false, issue.ID, doer.ID); err != nil {
 				return nil, nil, err
 			}
-			if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+			if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
 				return nil, nil, err
 			}
 		}
@@ -429,7 +399,7 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		}
 	}
 
-	comm, err := createComment(sess, &CreateCommentOptions{
+	comm, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:        CommentTypeReview,
 		Doer:        doer,
 		Content:     review.Content,
@@ -450,32 +420,28 @@ func SubmitReview(doer *User, issue *Issue, reviewType ReviewType, content, comm
 		}
 
 		for _, teamReviewRequest := range teamReviewRequests {
-			ok, err := isTeamMember(sess, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
+			ok, err := organization.IsTeamMember(ctx, issue.Repo.OwnerID, teamReviewRequest.ReviewerTeamID, doer.ID)
 			if err != nil {
 				return nil, nil, err
 			} else if !ok {
 				continue
 			}
 
-			if _, err := sess.Delete(teamReviewRequest); err != nil {
+			if _, err := sess.ID(teamReviewRequest.ID).NoAutoCondition().Delete(teamReviewRequest); err != nil {
 				return nil, nil, err
 			}
 		}
 	}
 
 	comm.Review = review
-	return review, comm, sess.Commit()
+	return review, comm, committer.Commit()
 }
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
 func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
 	reviews := make([]*Review, 0, 10)
 
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return nil, err
-	}
+	sess := db.GetEngine(db.DefaultContext)
 
 	// Get latest review of each reviewer, sorted in order they were made
 	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
@@ -513,14 +479,10 @@ func GetReviewersFromOriginalAuthorsByIssueID(issueID int64) ([]*Review, error) 
 }
 
 // GetReviewByIssueIDAndUserID get the latest review of reviewer for a pull request
-func GetReviewByIssueIDAndUserID(issueID, userID int64) (*Review, error) {
-	return getReviewByIssueIDAndUserID(db.GetEngine(db.DefaultContext), issueID, userID)
-}
-
-func getReviewByIssueIDAndUserID(e db.Engine, issueID, userID int64) (*Review, error) {
+func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*Review, error) {
 	review := new(Review)
 
-	has, err := e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
+	has, err := db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_id = ? AND original_author_id = 0 AND type in (?, ?, ?))",
 		issueID, userID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest).
 		Get(review)
 	if err != nil {
@@ -534,16 +496,12 @@ func getReviewByIssueIDAndUserID(e db.Engine, issueID, userID int64) (*Review, e
 	return review, nil
 }
 
-// GetTeamReviewerByIssueIDAndTeamID get the latest review requst of reviewer team for a pull request
-func GetTeamReviewerByIssueIDAndTeamID(issueID, teamID int64) (review *Review, err error) {
-	return getTeamReviewerByIssueIDAndTeamID(db.GetEngine(db.DefaultContext), issueID, teamID)
-}
-
-func getTeamReviewerByIssueIDAndTeamID(e db.Engine, issueID, teamID int64) (review *Review, err error) {
+// GetTeamReviewerByIssueIDAndTeamID get the latest review request of reviewer team for a pull request
+func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (review *Review, err error) {
 	review = new(Review)
 
 	has := false
-	if has, err = e.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = ?)",
+	if has, err = db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = ?)",
 		issueID, teamID).
 		Get(review); err != nil {
 		return nil, err
@@ -589,12 +547,12 @@ func DismissReview(review *Review, isDismiss bool) (err error) {
 
 // InsertReviews inserts review and review comments
 func InsertReviews(reviews []*Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	for _, review := range reviews {
 		if _, err := sess.NoAutoTime().Insert(review); err != nil {
@@ -626,18 +584,19 @@ func InsertReviews(reviews []*Review) error {
 		}
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // AddReviewRequest add a review request from one reviewer
-func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func AddReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
-	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+	review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
@@ -647,7 +606,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, nil
 	}
 
-	official, err := isOfficialReviewer(sess, issue, reviewer, doer)
+	official, err := IsOfficialReviewer(ctx, issue, reviewer, doer)
 	if err != nil {
 		return nil, err
 	} else if official {
@@ -656,7 +615,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		}
 	}
 
-	review, err = createReview(sess, CreateReviewOptions{
+	review, err = CreateReview(ctx, CreateReviewOptions{
 		Type:     ReviewTypeRequest,
 		Issue:    issue,
 		Reviewer: reviewer,
@@ -667,7 +626,7 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -680,18 +639,18 @@ func AddReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveReviewRequest remove a review request from one reviewer
-func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func RemoveReviewRequest(issue *Issue, reviewer, doer *user_model.User) (*Comment, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+	review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
@@ -700,28 +659,28 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, nil
 	}
 
-	if _, err = sess.Delete(review); err != nil {
+	if _, err = db.DeleteByBean(ctx, review); err != nil {
 		return nil, err
 	}
 
-	official, err := isOfficialReviewer(sess, issue, reviewer)
+	official, err := IsOfficialReviewer(ctx, issue, reviewer)
 	if err != nil {
 		return nil, err
 	} else if official {
 		// recalculate the latest official review for reviewer
-		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, reviewer.ID)
+		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, reviewer.ID)
 		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
 		if review != nil {
-			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -733,18 +692,18 @@ func RemoveReviewRequest(issue *Issue, reviewer, doer *User) (*Comment, error) {
 		return nil, err
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // AddTeamReviewRequest add a review request from one team
-func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func AddTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
+	review, err := GetTeamReviewerByIssueIDAndTeamID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
@@ -754,16 +713,16 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		return nil, nil
 	}
 
-	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	} else if !official {
-		if official, err = isOfficialReviewer(sess, issue, doer); err != nil {
+		if official, err = IsOfficialReviewer(ctx, issue, doer); err != nil {
 			return nil, fmt.Errorf("isOfficialReviewer(): %v", err)
 		}
 	}
 
-	if review, err = createReview(sess, CreateReviewOptions{
+	if review, err = CreateReview(ctx, CreateReviewOptions{
 		Type:         ReviewTypeRequest,
 		Issue:        issue,
 		ReviewerTeam: reviewer,
@@ -774,12 +733,12 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 	}
 
 	if official {
-		if _, err := sess.Exec("UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id=?", false, issue.ID, reviewer.ID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE issue_id=? AND reviewer_team_id=?", false, issue.ID, reviewer.ID); err != nil {
 			return nil, err
 		}
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -789,21 +748,21 @@ func AddTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, e
 		ReviewID:        review.ID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // RemoveTeamReviewRequest remove a review request from one team
-func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment, error) {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
+func RemoveTeamReviewRequest(issue *Issue, reviewer *organization.Team, doer *user_model.User) (*Comment, error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return nil, err
 	}
+	defer committer.Close()
 
-	review, err := getTeamReviewerByIssueIDAndTeamID(sess, issue.ID, reviewer.ID)
+	review, err := GetTeamReviewerByIssueIDAndTeamID(ctx, issue.ID, reviewer.ID)
 	if err != nil && !IsErrReviewNotExist(err) {
 		return nil, err
 	}
@@ -812,34 +771,34 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		return nil, nil
 	}
 
-	if _, err = sess.Delete(review); err != nil {
+	if _, err = db.DeleteByBean(ctx, review); err != nil {
 		return nil, err
 	}
 
-	official, err := isOfficialReviewerTeam(sess, issue, reviewer)
+	official, err := IsOfficialReviewerTeam(ctx, issue, reviewer)
 	if err != nil {
 		return nil, fmt.Errorf("isOfficialReviewerTeam(): %v", err)
 	}
 
 	if official {
 		// recalculate which is the latest official review from that team
-		review, err := getReviewByIssueIDAndUserID(sess, issue.ID, -reviewer.ID)
+		review, err := GetReviewByIssueIDAndUserID(ctx, issue.ID, -reviewer.ID)
 		if err != nil && !IsErrReviewNotExist(err) {
 			return nil, err
 		}
 
 		if review != nil {
-			if _, err := sess.Exec("UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
+			if _, err := db.Exec(ctx, "UPDATE `review` SET official=? WHERE id=?", true, review.ID); err != nil {
 				return nil, err
 			}
 		}
 	}
 
 	if doer == nil {
-		return nil, sess.Commit()
+		return nil, committer.Commit()
 	}
 
-	comment, err := createComment(sess, &CreateCommentOptions{
+	comment, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 		Type:            CommentTypeReviewRequest,
 		Doer:            doer,
 		Repo:            issue.Repo,
@@ -848,14 +807,14 @@ func RemoveTeamReviewRequest(issue *Issue, reviewer *Team, doer *User) (*Comment
 		AssigneeTeamID:  reviewer.ID, // Use AssigneeTeamID as reviewer team ID
 	})
 	if err != nil {
-		return nil, fmt.Errorf("createComment(): %v", err)
+		return nil, fmt.Errorf("CreateCommentCtx(): %v", err)
 	}
 
-	return comment, sess.Commit()
+	return comment, committer.Commit()
 }
 
 // MarkConversation Add or remove Conversation mark for a code comment
-func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) {
+func MarkConversation(comment *Comment, doer *user_model.User, isResolve bool) (err error) {
 	if comment.Type != CommentTypeCode {
 		return nil
 	}
@@ -883,24 +842,24 @@ func MarkConversation(comment *Comment, doer *User, isResolve bool) (err error) 
 
 // CanMarkConversation  Add or remove Conversation mark for a code comment permission check
 // the PR writer , offfcial reviewer and poster can do it
-func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) {
+func CanMarkConversation(issue *Issue, doer *user_model.User) (permResult bool, err error) {
 	if doer == nil || issue == nil {
 		return false, fmt.Errorf("issue or doer is nil")
 	}
 
 	if doer.ID != issue.PosterID {
-		if err = issue.LoadRepo(); err != nil {
+		if err = issue.LoadRepo(db.DefaultContext); err != nil {
 			return false, err
 		}
 
-		perm, err := GetUserRepoPermission(issue.Repo, doer)
+		p, err := access_model.GetUserRepoPermission(db.DefaultContext, issue.Repo, doer)
 		if err != nil {
 			return false, err
 		}
 
-		permResult = perm.CanAccess(AccessModeWrite, unit.TypePullRequests)
+		permResult = p.CanAccess(perm.AccessModeWrite, unit.TypePullRequests)
 		if !permResult {
-			if permResult, err = IsOfficialReviewer(issue, doer); err != nil {
+			if permResult, err = IsOfficialReviewer(db.DefaultContext, issue, doer); err != nil {
 				return false, err
 			}
 		}
@@ -915,12 +874,12 @@ func CanMarkConversation(issue *Issue, doer *User) (permResult bool, err error) 
 
 // DeleteReview delete a review and it's code comments
 func DeleteReview(r *Review) error {
-	sess := db.NewSession(db.DefaultContext)
-	defer sess.Close()
-
-	if err := sess.Begin(); err != nil {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
 		return err
 	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
 
 	if r.ID == 0 {
 		return fmt.Errorf("review is not allowed to be 0")
@@ -954,7 +913,7 @@ func DeleteReview(r *Review) error {
 		return err
 	}
 
-	return sess.Commit()
+	return committer.Commit()
 }
 
 // GetCodeCommentsCount return count of CodeComments a Review has
@@ -990,3 +949,20 @@ func (r *Review) HTMLURL() string {
 	}
 	return comment.HTMLURL()
 }
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Review) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.ReviewerID = userID
+	return nil
+}
+
+// GetUserID ExternalUserRemappable interface
+func (r *Review) GetUserID() int64 { return r.ReviewerID }
+
+// GetExternalName ExternalUserRemappable interface
+func (r *Review) GetExternalName() string { return r.OriginalAuthor }
+
+// GetExternalID ExternalUserRemappable interface
+func (r *Review) GetExternalID() int64 { return r.OriginalAuthorID }

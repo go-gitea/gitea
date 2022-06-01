@@ -10,11 +10,12 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation/i18n"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestSignup(t *testing.T) {
@@ -28,7 +29,7 @@ func TestSignup(t *testing.T) {
 		"password":  "examplePassword!1",
 		"retype":    "examplePassword!1",
 	})
-	MakeRequest(t, req, http.StatusFound)
+	MakeRequest(t, req, http.StatusSeeOther)
 
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/exampleUser")
@@ -47,13 +48,13 @@ func TestSignupAsRestricted(t *testing.T) {
 		"password":  "examplePassword!1",
 		"retype":    "examplePassword!1",
 	})
-	MakeRequest(t, req, http.StatusFound)
+	MakeRequest(t, req, http.StatusSeeOther)
 
 	// should be able to view new user's page
 	req = NewRequest(t, "GET", "/restrictedUser")
 	MakeRequest(t, req, http.StatusOK)
 
-	user2 := db.AssertExistsAndLoadBean(t, &models.User{Name: "restrictedUser"}).(*models.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "restrictedUser"}).(*user_model.User)
 	assert.True(t, user2.IsRestricted)
 }
 
@@ -67,10 +68,10 @@ func TestSignupEmail(t *testing.T) {
 		wantStatus int
 		wantMsg    string
 	}{
-		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
-		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
-		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid", nil)},
-		{"exampleUser@example.com", http.StatusFound, ""},
+		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com", http.StatusSeeOther, ""},
 	}
 
 	for i, test := range tests {

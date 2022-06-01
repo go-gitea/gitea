@@ -8,8 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/context"
 	api "code.gitea.io/gitea/modules/structs"
@@ -25,7 +24,7 @@ func TestRepoEdit(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	description := "new description"
 	website := "http://wwww.newwebsite.com"
 	private := true
@@ -56,14 +55,14 @@ func TestRepoEdit(t *testing.T) {
 		Archived:                  &archived,
 	}
 
-	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
+	apiCtx := &context.APIContext{Context: ctx, Org: nil}
 	web.SetForm(apiCtx, &opts)
 	Edit(apiCtx)
 
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, db.Cond("name = ? AND is_archived = 1", *opts.Name))
+	}, unittest.Cond("name = ? AND is_archived = 1", *opts.Name))
 }
 
 func TestRepoEditNameChange(t *testing.T) {
@@ -72,18 +71,18 @@ func TestRepoEditNameChange(t *testing.T) {
 	ctx := test.MockContext(t, "user2/repo1")
 	test.LoadRepo(t, ctx, 1)
 	test.LoadUser(t, ctx, 2)
-	ctx.Repo.Owner = ctx.User
+	ctx.Repo.Owner = ctx.Doer
 	name := "newname"
 	opts := api.EditRepoOption{
 		Name: &name,
 	}
 
-	var apiCtx = &context.APIContext{Context: ctx, Org: nil}
+	apiCtx := &context.APIContext{Context: ctx, Org: nil}
 	web.SetForm(apiCtx, &opts)
 	Edit(apiCtx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 
-	db.AssertExistsAndLoadBean(t, &models.Repository{
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 		ID: 1,
-	}, db.Cond("name = ?", opts.Name))
+	}, unittest.Cond("name = ?", opts.Name))
 }

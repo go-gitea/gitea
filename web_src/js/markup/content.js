@@ -1,9 +1,11 @@
 import {renderMermaid} from './mermaid.js';
+import {renderCodeCopy} from './codecopy.js';
 import {initMarkupTasklist} from './tasklist.js';
 
 // code that runs for all markup content
 export function initMarkupContent() {
-  const _promise = renderMermaid(document.querySelectorAll('code.language-mermaid'));
+  renderMermaid();
+  renderCodeCopy();
 }
 
 // code that only runs for comments

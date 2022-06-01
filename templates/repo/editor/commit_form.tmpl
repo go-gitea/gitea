@@ -70,5 +70,5 @@
 	<button id="commit-button" type="submit" class="ui green button">
 		{{if eq .commit_choice "commit-to-new-branch"}}{{.i18n.Tr "repo.editor.propose_file_change"}}{{else}}{{.i18n.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
-	<a class="ui button red" href="{{EscapePound $.BranchLink}}/{{EscapePound .TreePath}}">{{.i18n.Tr "repo.editor.cancel"}}</a>
+	<a class="ui button red" href="{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.editor.cancel"}}</a>
 </div>
