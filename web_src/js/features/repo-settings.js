@@ -6,7 +6,7 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  const $dropdown = $('.page-content.repository .ui.access-mode.dropdown');
+  const $dropdown = $('.page-content.repository .ui.dropdown.access-mode');
   $dropdown.dropdown({
     action (_text, value) {
       $.post($dropdown.attr('data-url'), {
