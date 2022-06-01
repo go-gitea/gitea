@@ -95,7 +95,7 @@ func CountOrphanedIssues() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).
-		Select("id").
+		Select("COUNT(`issue`.`id`)").
 		Count()
 }
 
@@ -141,8 +141,8 @@ func DeleteOrphanedIssues() error {
 func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Select("`" + subject + "`.id").
+		Where(builder.IsNull{"`" + refobject + "`.`id`"}).
+		Select("COUNT(`" + subject + "`.`id`)").
 		Count()
 }
 
