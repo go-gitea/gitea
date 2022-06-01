@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v45/github"
 	"golang.org/x/oauth2"
 )
 
@@ -812,6 +812,29 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 			}
 			allReviews = append(allReviews, r)
 		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+	for {
+		g.waitAndPickClient()
+		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
+		if err != nil {
+			return nil, fmt.Errorf("error while listing repos: %v", err)
+		}
+		g.setRate(&resp.Rate)
+		for _, user := range reviewers.Users {
+			r := &base.Review{
+				ID:           user.GetID(),
+				ReviewerID:   user.GetID(),
+				ReviewerName: user.GetLogin(),
+				State:        base.ReviewStateRequestReview,
+				IssueIndex:   reviewable.GetLocalIndex(),
+			}
+			allReviews = append(allReviews, r)
+		}
+		// TODO: Handle Team requests
 		if resp.NextPage == 0 {
 			break
 		}
