@@ -101,11 +101,9 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-	for _, sql := range createTableSQL {
-		if _, err := sess.Exec(sql); err != nil {
-			log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
-			return err
-		}
+	if _, err := sess.Exec(createTableSQL); err != nil {
+		log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
+		return err
 	}
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tempTableName, index)); err != nil {
