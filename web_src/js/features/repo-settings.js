@@ -10,10 +10,14 @@ export function initRepoSettingsCollaboration() {
   const $text = $dropdown.find('> .text');
   $dropdown.dropdown({
     action (_text, value) {
+      const lastValue = $dropdown.attr('data-last-value');
       $.post($dropdown.attr('data-url'), {
         _csrf: csrfToken,
         uid: $dropdown.attr('data-uid'),
         mode: value,
+      }).fail(() => {
+        $text.text('(error)'); // prevent from misleading users when error occurs
+        $dropdown.attr('data-last-value', lastValue);
       });
       $dropdown.attr('data-last-value', value);
       $dropdown.dropdown('hide');
@@ -23,7 +27,7 @@ export function initRepoSettingsCollaboration() {
     },
     onHide () {
       setTimeout(() => {
-        // restore the really selected value, defer to next tick to make sure `action` has finished its work
+        // restore the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
         $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
       }, 0);
     }

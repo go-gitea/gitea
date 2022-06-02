@@ -66,7 +66,7 @@ function attachOneDropdownAria($dropdown) {
     prepareMenuItem($(item));
   });
 
-  // update aria attributes according current active/selected item
+  // update aria attributes according to current active/selected item
   const refreshAria = () => {
     const isMenuVisible = !$menu.is('.hidden') && !$menu.is('.animating.out');
     $focusable.attr('aria-expanded', isMenuVisible ? 'true' : 'false');
