@@ -392,31 +392,31 @@ func NewFuncMap() []template.FuncMap {
 		"DotEscape":   DotEscape,
 		"Iterate": func(arg interface{}) (items []uint64) {
 			count := uint64(0)
-			switch arg.(type) {
+			switch val := arg.(type) {
 			case uint64:
-				count = arg.(uint64)
+				count = val
 			case *uint64:
-				count = *(arg.(*uint64))
+				count = *val
 			case int64:
-				count = uint64(arg.(int64))
+				count = uint64(val)
 			case *int64:
-				count = uint64(*(arg.(*int64)))
+				count = uint64(*val)
 			case int:
-				count = uint64(arg.(int))
+				count = uint64(val)
 			case *int:
-				count = uint64(*arg.(*int))
+				count = uint64(*val)
 			case uint:
-				count = uint64(arg.(uint))
+				count = uint64(val)
 			case *uint:
-				count = uint64(*arg.(*uint))
+				count = uint64(*val)
 			case int32:
-				count = uint64(arg.(int32))
+				count = uint64(val)
 			case *int32:
-				count = uint64(*arg.(*int32))
+				count = uint64(*val)
 			case uint32:
-				count = uint64(arg.(uint32))
+				count = uint64(val)
 			case *uint32:
-				count = uint64(*arg.(*uint32))
+				count = uint64(*val)
 			}
 			if count <= 0 {
 				return items
