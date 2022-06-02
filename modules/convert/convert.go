@@ -413,4 +413,3 @@ func ToLFSLock(l *models.LFSLock) *api.LFSLock {
 		},
 	}
 }
-

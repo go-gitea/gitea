@@ -166,7 +166,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 		return
 	}
 
-	var responsePushMirrors = make([]*api.PushMirror, 0)
+	responsePushMirrors := make([]*api.PushMirror, 0)
 	for _, mirror := range pushMirrors {
 		responsePushMirrors = append(responsePushMirrors, convert.ToPushMirror(mirror, repo))
 	}
@@ -308,6 +308,7 @@ func DeletePushMirrorByID(ctx *context.APIContext) {
 	}
 	ctx.Status(http.StatusNoContent)
 }
+
 func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirrorOption) {
 	repo := ctx.Repo.Repository
 
