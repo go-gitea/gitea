@@ -64,9 +64,9 @@
 					{{if and $.IsSigned $.Permission.IsAdmin}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if .IsPinned}}un{{end}}pin?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
-						<div class="ui labeled button" tabindex="0">
+						<div tabindex="0">
 							<button type="submit" class="ui compact small basic button">
-								{{if .IsPinned}}{{svg "octicon-stop" 16}}Unpin{{else}}{{svg "octicon-pin"}}Pin{{end}}
+								{{if .IsPinned}}{{svg "octicon-custom-pin-off" 16}}Unpin{{else}}{{svg "octicon-pin"}}Pin{{end}}
 							</button>
 						</div>
 					</form>
