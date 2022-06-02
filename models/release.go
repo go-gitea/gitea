@@ -104,7 +104,7 @@ func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, er
 		return false, nil
 	}
 
-	return db.GetEngine(ctx).Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
+	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
 // UpdateRelease updates all columns of a release
