@@ -32,9 +32,10 @@ RUN apk --no-cache add \
     bash \
     ca-certificates \
     gettext \
-    git \
     curl \
     gnupg
+
+RUN apk add git --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main
 
 RUN addgroup \
     -S -g 1000 \
