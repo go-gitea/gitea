@@ -306,7 +306,7 @@ func runServ(c *cli.Context) error {
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr
-	gitcmd.Env = append(gitcmd.Env, os.Environ()...) // FIXME: the legacy code passes the whole env. in the future, should only pass the env which are really needed
+	gitcmd.Env = append(gitcmd.Env, os.Environ()...)
 	gitcmd.Env = append(gitcmd.Env,
 		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
 		repo_module.EnvRepoName+"="+results.RepoName,
