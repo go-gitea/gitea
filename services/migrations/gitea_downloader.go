@@ -639,6 +639,11 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 		}
 
 		for _, pr := range prl {
+			if pr.Reviewer == nil {
+				// Presumably this is a team review which we cannot migrate at present but we have to skip this review as otherwise the review will be mapped on to an incorrect user.
+				// TODO: handle team reviews
+				continue
+			}
 
 			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
@@ -675,11 +680,6 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 				Comments:   reviewComments,
 			}
 
-			if pr.Reviewer == nil {
-				// Presumably this is a team review which we cannot migrate at present but we have to skip this review as otherwise the review will be mapped on to an incorrect user.
-				// TODO: handle team reviews
-				continue
-			}
 			review.ReviewerID = pr.Reviewer.ID
 			review.ReviewerName = pr.Reviewer.UserName
 			allReviews = append(allReviews, review)

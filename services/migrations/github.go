@@ -826,7 +826,6 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		g.setRate(&resp.Rate)
 		for _, user := range reviewers.Users {
 			r := &base.Review{
-				ID:           user.GetID(),
 				ReviewerID:   user.GetID(),
 				ReviewerName: user.GetLogin(),
 				State:        base.ReviewStateRequestReview,
