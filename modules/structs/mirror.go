@@ -15,7 +15,6 @@ type CreatePushMirrorOption struct {
 // PushMirror represents information of a push mirror
 // swagger:model
 type PushMirror struct {
-	ID             int64  `json:"id"`
 	RepoName       string `json:"repoName"`
 	RemoteName     string `json:"remoteName"`
 	RemoteAddress  string `json:"remoteAddress"`

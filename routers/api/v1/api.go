@@ -977,9 +977,9 @@ func Routes() *web.Route {
 				m.Group("/push-mirror", func() {
 					m.Combo("").Get(reqAdmin(), repo.ListPushMirrors).
 						Post(reqAdmin(), bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
-					m.Combo("/{id}").
+					m.Combo("/{name}").
 						Delete(reqAdmin(), repo.DeletePushMirrorByID).
-						Get(reqAdmin(), repo.GetPushMirrorByID)
+						Get(reqAdmin(), repo.GetPushMirrorByName)
 				})
 
 				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)

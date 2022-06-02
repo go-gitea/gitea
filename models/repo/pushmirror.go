@@ -70,9 +70,9 @@ func DeletePushMirrorByID(ID int64) error {
 	return err
 }
 
-// DeletePushMirrorByRepoIDAndID deletes a push-mirrors by ID
-func DeletePushMirrorByRepoIDAndID(repoID, mirrorID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(mirrorID).Where("repo_id = ?", repoID).Delete(&PushMirror{})
+// DeletePushMirrorByRepoIDAndName deletes a push-mirrors by remote name
+func DeletePushMirrorByRepoIDAndName(repoID int64, remoteName string) error {
+	_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", repoID, remoteName).Delete(&PushMirror{})
 	return err
 }
 
@@ -95,10 +95,10 @@ func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 	return m, nil
 }
 
-// GetPushMirrorByRepoIDAndID returns push-mirror information.
-func GetPushMirrorByRepoIDAndID(repoID, mirrorID int64) (*PushMirror, error) {
+// GetPushMirrorByRepoIDAndName returns push-mirror information.
+func GetPushMirrorByRepoIDAndName(repoID int64, remoteName string) (*PushMirror, error) {
 	m := &PushMirror{}
-	has, err := db.GetEngine(db.DefaultContext).ID(mirrorID).Where("repo_id = ?", repoID).Get(m)
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", repoID, remoteName).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {

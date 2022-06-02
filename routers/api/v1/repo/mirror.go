@@ -174,9 +174,9 @@ func ListPushMirrors(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
 
-// GetPushMirrorByID get push mirror of a repository by ID
-func GetPushMirrorByID(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/push-mirror/{id} repository repoGetPushMirrorByID
+// GetPushMirrorByName get push mirror of a repository by name
+func GetPushMirrorByName(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/push-mirror/{name} repository repoGetPushMirrorByID
 	// ---
 	// summary: Get push mirror of the repository by ID
 	// produces:
@@ -192,9 +192,9 @@ func GetPushMirrorByID(ctx *context.APIContext) {
 	//   description: name of the repo to sync
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: ID of push mirror
+	//   description: remote name of push mirror
 	//   type: string
 	//   required: true
 	// responses:
@@ -206,13 +206,13 @@ func GetPushMirrorByID(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	repo := ctx.Repo.Repository
-	id := ctx.ParamsInt64(":id")
+	id := ctx.Params(":name")
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "GetPushMirrorByID", "Mirror feature is disabled")
 		return
 	}
 	// Get push mirror of a specific repo by ID
-	pushMirror, err := repo_model.GetPushMirrorByRepoIDAndID(repo.ID, id)
+	pushMirror, err := repo_model.GetPushMirrorByRepoIDAndName(repo.ID, id)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "GetPushMirrorByID", err)
 		return
@@ -264,7 +264,7 @@ func AddPushMirror(ctx *context.APIContext) {
 
 // DeletePushMirrorByID deletes a push mirror from a repository by ID
 func DeletePushMirrorByID(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/push-mirror/{id} repository repoDeletePushMirror
+	// swagger:operation DELETE /repos/{owner}/{repo}/push-mirror/{name} repository repoDeletePushMirror
 	// ---
 	// summary: deletes a push mirror from a repository by ID
 	// produces:
@@ -280,9 +280,9 @@ func DeletePushMirrorByID(ctx *context.APIContext) {
 	//   description: name of the repo
 	//   type: string
 	//   required: true
-	// - name: id
+	// - name: name
 	//   in: path
-	//   description: id of the pushMirror
+	//   description: remote name of the pushMirror
 	//   type: string
 	//   required: true
 	// responses:
@@ -293,14 +293,14 @@ func DeletePushMirrorByID(ctx *context.APIContext) {
 	//   "400":
 	//     "$ref": "#/responses/error"
 
-	id := ctx.ParamsInt64(":id")
+	remoteName := ctx.Params(":name")
 
 	if !setting.Mirror.Enabled {
 		ctx.Error(http.StatusBadRequest, "DeletePushMirrorByID", "Mirror feature is disabled")
 		return
 	}
 	// delete push mirror by id
-	err := repo_model.DeletePushMirrorByRepoIDAndID(ctx.Repo.Repository.ID, id)
+	err := repo_model.DeletePushMirrorByRepoIDAndName(ctx.Repo.Repository.ID, remoteName)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "DeletePushMirrorByID", err)
 		return

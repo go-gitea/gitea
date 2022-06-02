@@ -14,7 +14,6 @@ import (
 func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) *api.PushMirror {
 	remoteAddress, _ := getMirrorRemoteAddress(repo, pm.RemoteName)
 	return &api.PushMirror{
-		ID:             pm.ID,
 		RepoName:       repo.Name,
 		RemoteName:     pm.RemoteName,
 		RemoteAddress:  remoteAddress,
