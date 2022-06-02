@@ -76,9 +76,22 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 }
 
 // GetPushMirrorByID returns push-mirror information.
+// WARNING: You should ensure that this PushMirror belongs to the repository you are intending to use it with
 func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 	m := &PushMirror{}
 	has, err := db.GetEngine(db.DefaultContext).ID(ID).Get(m)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrPushMirrorNotExist
+	}
+	return m, nil
+}
+
+// GetPushMirrorByRepoIDAndID returns push-mirror information.
+func GetPushMirrorByRepoIDAndID(repoID, mirrorID int64) (*PushMirror, error) {
+	m := &PushMirror{}
+	has, err := db.GetEngine(db.DefaultContext).ID(mirrorID).Where("repo_id = ?", repoID).Get(m)
 	if err != nil {
 		return nil, err
 	} else if !has {

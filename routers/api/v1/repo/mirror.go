@@ -213,7 +213,7 @@ func GetPushMirrorByID(ctx *context.APIContext) {
 		return
 	}
 	// Get push mirror of a specific repo by ID
-	pushMirror, err := repo_model.GetPushMirrorByID(id)
+	pushMirror, err := repo_model.GetPushMirrorByRepoIDAndID(repo.ID, id)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "GetPushMirrorByID", err)
 		return
