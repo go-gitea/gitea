@@ -8812,7 +8812,7 @@
         }
       }
     },
-    "/repos/{owner}/{repo}/push-mirror/{id}": {
+    "/repos/{owner}/{repo}/push-mirror/{name}": {
       "get": {
         "produces": [
           "application/json"
@@ -8839,8 +8839,8 @@
           },
           {
             "type": "string",
-            "description": "ID of push mirror",
-            "name": "id",
+            "description": "remote name of push mirror",
+            "name": "name",
             "in": "path",
             "required": true
           }
@@ -8883,8 +8883,8 @@
           },
           {
             "type": "string",
-            "description": "id of the pushMirror",
-            "name": "id",
+            "description": "remote name of the pushMirror",
+            "name": "name",
             "in": "path",
             "required": true
           }
@@ -17737,11 +17737,6 @@
         "created": {
           "type": "string",
           "x-go-name": "CreatedUnix"
-        },
-        "id": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "ID"
         },
         "interval": {
           "type": "string",
