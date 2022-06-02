@@ -301,7 +301,7 @@ func DeletePushMirrorByID(ctx *context.APIContext) {
 		return
 	}
 	// delete push mirror by id
-	err := repo_model.DeletePushMirrorByID(id)
+	err := repo_model.DeletePushMirrorByRepoIDAndID(ctx.Repo.Repository.ID, id)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "DeletePushMirrorByID", err)
 		return

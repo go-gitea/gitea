@@ -64,8 +64,15 @@ func UpdatePushMirror(m *PushMirror) error {
 }
 
 // DeletePushMirrorByID deletes a push-mirrors by ID
+// WARNING: This does not check if this PushMirror belongs to a RepoID
 func DeletePushMirrorByID(ID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(ID).Delete(&PushMirror{})
+	return err
+}
+
+// DeletePushMirrorByRepoIDAndID deletes a push-mirrors by ID
+func DeletePushMirrorByRepoIDAndID(repoID, mirrorID int64) error {
+	_, err := db.GetEngine(db.DefaultContext).ID(mirrorID).Where("repo_id = ?", repoID).Delete(&PushMirror{})
 	return err
 }
 
@@ -76,7 +83,7 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 }
 
 // GetPushMirrorByID returns push-mirror information.
-// WARNING: You should ensure that this PushMirror belongs to the repository you are intending to use it with
+// WARNING: You must ensure that this PushMirror belongs to the repository you are intending to use it with
 func GetPushMirrorByID(ID int64) (*PushMirror, error) {
 	m := &PushMirror{}
 	has, err := db.GetEngine(db.DefaultContext).ID(ID).Get(m)
