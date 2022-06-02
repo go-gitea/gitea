@@ -157,7 +157,7 @@ func (c *Command) Run(opts *RunOpts) error {
 		"GIT_NO_REPLACE_OBJECTS=1",
 	)
 
-	setSysProcAttribute(cmd)
+	process.SetSysProcAttribute(cmd)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr

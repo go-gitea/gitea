@@ -4,13 +4,14 @@
 
 //go:build !windows
 
-package git
+package process
 
 import (
 	"os/exec"
 	"syscall"
 )
 
-func setSysProcAttribute(cmd *exec.Cmd) {
+// SetSysProcAttribute sets the common SysProcAttrs for commands
+func SetSysProcAttribute(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
 }

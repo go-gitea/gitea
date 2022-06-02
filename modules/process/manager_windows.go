@@ -4,12 +4,13 @@
 
 //go:build windows
 
-package git
+package process
 
 import (
 	"os/exec"
 )
 
-func setSysProcAttribute(cmd *exec.Cmd) {
+// SetSysProcAttribute sets the common SysProcAttrs for commands
+func SetSysProcAttribute(cmd *exec.Cmd) {
 	// Do nothing
 }
