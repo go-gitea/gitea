@@ -8,6 +8,7 @@ import {fileURLToPath} from 'url';
 const {readFile, writeFile} = fs.promises;
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const logoFile = resolve(__dirname, '../assets/logo.svg');
+const faviconFile = resolve(__dirname, '../assets/favicon.svg');
 
 function exit(err) {
   if (err) console.error(err);
@@ -68,15 +69,17 @@ async function generate(svg, outputFile, {size, bg}) {
 
 async function main() {
   const gitea = process.argv.slice(2).includes('gitea');
-  const svg = await readFile(logoFile, 'utf8');
+  const logoSvg = await readFile(logoFile, 'utf8');
+  const faviconSvg = await readFile(faviconFile, 'utf8');
 
   await Promise.all([
-    generate(svg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
-    generate(svg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
-    generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
-    generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
-    generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
-    gitea && generate(svg, resolve(__dirname, '../public/img/gitea.svg'), {size: 32}),
+    generate(logoSvg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
+    generate(logoSvg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
+    generate(faviconSvg, resolve(__dirname, '../public/img/favicon.svg'), {size: 32}),
+    generate(faviconSvg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
+    generate(logoSvg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
+    generate(logoSvg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
+    gitea && generate(logoSvg, resolve(__dirname, '../public/img/gitea.svg'), {size: 32}),
   ]);
 }
 
