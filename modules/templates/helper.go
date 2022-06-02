@@ -390,6 +390,42 @@ func NewFuncMap() []template.FuncMap {
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
+		"Iterate": func(arg interface{}) (items []uint64) {
+			count := uint64(0)
+			switch arg.(type) {
+			case uint64:
+				count = arg.(uint64)
+			case *uint64:
+				count = *(arg.(*uint64))
+			case int64:
+				count = uint64(arg.(int64))
+			case *int64:
+				count = uint64(*(arg.(*int64)))
+			case int:
+				count = uint64(arg.(int))
+			case *int:
+				count = uint64(*arg.(*int))
+			case uint:
+				count = uint64(arg.(uint))
+			case *uint:
+				count = uint64(*arg.(*uint))
+			case int32:
+				count = uint64(arg.(int32))
+			case *int32:
+				count = uint64(*arg.(*int32))
+			case uint32:
+				count = uint64(arg.(uint32))
+			case *uint32:
+				count = uint64(*arg.(*uint32))
+			}
+			if count <= 0 {
+				return items
+			}
+			for i := uint64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
 	}}
 }
 
