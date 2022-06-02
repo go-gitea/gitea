@@ -68,6 +68,8 @@ adduser \
    git
 ```
 
+**NOTE:** If such a dedicated Gitea user is not created and Gitea is run from an already existing user instead, it may modify the global git configuration file. It is possible to use an altnerate global git configuration file by setting the [GIT_CONFIG_GLOBAL](https://git-scm.com/docs/git#Documentation/git.txt-codeGITCONFIGGLOBALcode) if [git version 2.32 or above](https://github.com/git/git/blob/master/Documentation/RelNotes/2.32.0.txt#L92-L93) is installed.
+
 ### Create required directory structure
 
 ```sh
