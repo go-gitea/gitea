@@ -155,7 +155,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{

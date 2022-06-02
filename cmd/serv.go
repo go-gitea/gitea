@@ -302,7 +302,7 @@ func runServ(c *cli.Context) error {
 	if _, err := os.Stat(setting.RepoRootPath); err != nil {
 		if os.IsNotExist(err) {
 			return fail("Incorrect configuration.",
-				"Directory `[repository]` `ROOT` was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository]` `ROOT` an absolute value.")
+				"Directory `[repository]` `ROOT` %s was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository]` `ROOT` an absolute value.", setting.RepoRootPath)
 		}
 	}
 

@@ -204,25 +204,21 @@ func GetReviewerTeams(repo *repo_model.Repository) ([]*organization.Team, error)
 	return teams, err
 }
 
-func updateRepoSize(e db.Engine, repo *repo_model.Repository) error {
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 	size, err := util.GetDirectorySize(repo.RepoPath())
 	if err != nil {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	lfsSize, err := e.Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
+	lfsSize, err := db.GetEngine(ctx).Where("repository_id = ?", repo.ID).SumInt(new(LFSMetaObject), "size")
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
 
 	repo.Size = size + lfsSize
-	_, err = e.ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
+	_, err = db.GetEngine(ctx).ID(repo.ID).Cols("size").NoAutoTime().Update(repo)
 	return err
-}
-
-// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
-func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
-	return updateRepoSize(db.GetEngine(ctx), repo)
 }
 
 // CanUserForkRepo returns true if specified user can fork repository.
@@ -303,11 +299,6 @@ func CanUserDelete(repo *repo_model.Repository, user *user_model.User) (bool, er
 	return false, nil
 }
 
-// SetRepoReadBy sets repo to be visited by given user.
-func SetRepoReadBy(repoID, userID int64) error {
-	return setRepoNotificationStatusReadIfUnread(db.GetEngine(db.DefaultContext), userID, repoID)
-}
-
 // CreateRepoOptions contains the create repository options
 type CreateRepoOptions struct {
 	Name           string
@@ -334,7 +325,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 		return err
 	}
 
-	has, err := repo_model.IsRepositoryExistCtx(ctx, u, repo.Name)
+	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
 	if err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
@@ -398,7 +389,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
-	if err = user_model.UpdateUserColsEngine(db.GetEngine(ctx), u, "last_repo_visibility"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
 		return fmt.Errorf("updateUser: %v", err)
 	}
 
@@ -421,7 +412,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			}
 		}
 
-		if isAdmin, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer); err != nil {
+		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
 			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
@@ -438,7 +429,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 	}
 
 	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
+		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
 			return fmt.Errorf("watchRepo: %v", err)
 		}
 	}
@@ -510,7 +501,7 @@ func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visib
 		return fmt.Errorf("update: %v", err)
 	}
 
-	if err = updateRepoSize(e, repo); err != nil {
+	if err = UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -536,13 +527,13 @@ func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visib
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(db.WithEngine(ctx, e), repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 
 		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
 		if err != nil {
-			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+			return fmt.Errorf("GetRepositoriesByForkID: %v", err)
 		}
 		for i := range forkRepos {
 			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
@@ -581,7 +572,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	sess := db.GetEngine(ctx)
 
 	// In case is a organization.
-	org, err := user_model.GetUserByIDEngine(sess, uid)
+	org, err := user_model.GetUserByIDCtx(ctx, uid)
 	if err != nil {
 		return err
 	}
@@ -647,7 +638,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		releaseAttachments = append(releaseAttachments, attachments[i].RelativePath())
 	}
 
-	if _, err := sess.Exec("UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repo.ID); err != nil {
 		return err
 	}
 
@@ -680,33 +671,33 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Labels and related objects
-	if err := deleteLabelsByRepoID(sess, repoID); err != nil {
+	if err := deleteLabelsByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Pulls and related objects
-	if err := deletePullsByBaseRepoID(sess, repoID); err != nil {
+	if err := deletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByRepoID(sess, repoID); err != nil {
+	if attachmentPaths, err = deleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete issue index
-	if err := db.DeleteResouceIndex(sess, "issue_index", repoID); err != nil {
+	if err := db.DeleteResouceIndex(ctx, "issue_index", repoID); err != nil {
 		return err
 	}
 
 	if repo.IsFork {
-		if _, err := sess.Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repo.ForkID); err != nil {
 			return fmt.Errorf("decrease fork count: %v", err)
 		}
 	}
 
-	if _, err := sess.Exec("UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
+	if _, err := db.Exec(ctx, "UPDATE `user` SET num_repos=num_repos-1 WHERE id=?", uid); err != nil {
 		return err
 	}
 
@@ -716,7 +707,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := project_model.GetProjectsCtx(ctx, project_model.SearchOptions{
+	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID: repoID,
 	})
 	if err != nil {
@@ -736,7 +727,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	lfsPaths := make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
-		count, err := sess.Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+		count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}
@@ -747,7 +738,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
-	if _, err := sess.Delete(&LFSMetaObject{RepositoryID: repoID}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &LFSMetaObject{RepositoryID: repoID}); err != nil {
 		return err
 	}
 
@@ -763,7 +754,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		archivePaths = append(archivePaths, p)
 	}
 
-	if _, err := sess.Delete(&repo_model.RepoArchiver{RepoID: repoID}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
 		return err
 	}
 
@@ -1181,7 +1172,7 @@ func DeleteDeployKey(ctx context.Context, doer *user_model.User, id int64) error
 		if err != nil {
 			return fmt.Errorf("GetRepositoryByID: %v", err)
 		}
-		has, err := access_model.IsUserRepoAdminCtx(ctx, repo, doer)
+		has, err := access_model.IsUserRepoAdmin(ctx, repo, doer)
 		if err != nil {
 			return fmt.Errorf("GetUserRepoPermission: %v", err)
 		} else if !has {

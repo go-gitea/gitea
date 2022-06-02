@@ -42,10 +42,9 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 		return err
 	}
 	defer committer.Close()
-	sess := db.GetEngine(ctx)
 
 	// Check if it aleready exists
-	exists, err := issueDepExists(sess, issue.ID, dep.ID)
+	exists, err := issueDepExists(ctx, issue.ID, dep.ID)
 	if err != nil {
 		return err
 	}
@@ -53,7 +52,7 @@ func CreateIssueDependency(user *user_model.User, issue, dep *Issue) error {
 		return ErrDependencyExists{issue.ID, dep.ID}
 	}
 	// And if it would be circular
-	circular, err := issueDepExists(sess, dep.ID, issue.ID)
+	circular, err := issueDepExists(ctx, dep.ID, issue.ID)
 	if err != nil {
 		return err
 	}
@@ -114,8 +113,8 @@ func RemoveIssueDependency(user *user_model.User, issue, dep *Issue, depType Dep
 }
 
 // Check if the dependency already exists
-func issueDepExists(e db.Engine, issueID, depID int64) (bool, error) {
-	return e.Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
+func issueDepExists(ctx context.Context, issueID, depID int64) (bool, error) {
+	return db.GetEngine(ctx).Where("(issue_id = ? AND dependency_id = ?)", issueID, depID).Exist(&IssueDependency{})
 }
 
 // IssueNoDependenciesLeft checks if issue can be closed

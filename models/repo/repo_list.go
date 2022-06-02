@@ -22,9 +22,10 @@ func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
 func IterateRepository(f func(repo *Repository) error) error {
 	var start int
 	batchSize := setting.Database.IterateBufferSize
+	sess := db.GetEngine(db.DefaultContext)
 	for {
 		repos := make([]*Repository, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&repos); err != nil {
+		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
 			return err
 		}
 		if len(repos) == 0 {
