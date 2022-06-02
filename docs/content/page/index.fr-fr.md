@@ -249,27 +249,24 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
 
 ## Navigateurs supportés
 
-- Consultez [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) pour la liste des navigateurs supportés.
-- La taille minimale supportée officielement est de **1024*768**, l'interface utilisateur peut toujours fonctionner à une taille plus petite, mais ce n'est pas garanti et les problèmes remontés ne seront pas corrigés.
+- Chrome, Firefox, Safari, Edge
 
 ## Composants
 
 * Framework web : [Chi](http://github.com/go-chi/chi)
 * ORM: [XORM](https://xorm.io)
 * Interface graphique :
-  * [Semantic UI](http://semantic-ui.com/)
-  * [GitHub Octicons](https://octicons.github.com/)
-  * [Font Awesome](http://fontawesome.io/)
-  * [DropzoneJS](http://www.dropzonejs.com/)
-  * [Highlight](https://highlightjs.org/)
-  * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [CodeMirror](https://codemirror.net/)
-  * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
+  * [jQuery](https://jquery.com)
+  * [Fomantic UI](https://fomantic-ui.com)
+  * [Vue2](https://vuejs.org)
+  * [CodeMirror](https://codemirror.net)
+  * [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
+  * [Monaco Editor](https://microsoft.github.io/monaco-editor)
+  * ... (package.json)
 * Connecteurs de base de données :
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
   * [github.com/lib/pq](https://github.com/lib/pq)
   * [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-  * [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 ## Logiciels et services
