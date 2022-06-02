@@ -125,57 +125,55 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	dataRc, err := blob.DataAsync()
-	if err != nil {
-		ctx.ServerError("DataAsync", err)
-		return
-	}
-	defer func() {
+	if blob.Size() <= 1024 {
+		dataRc, err := blob.DataAsync()
+		if err != nil {
+			ctx.ServerError("DataAsync", err)
+			return
+		}
+
+		pointer, _ := lfs.ReadPointer(dataRc)
 		if err = dataRc.Close(); err != nil {
 			log.Error("Close: %v", err)
 		}
-	}()
-
-	pointer, _ := lfs.ReadPointer(dataRc)
-	if pointer.IsValid() {
-		meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-		if err != nil {
-			if err == models.ErrLFSObjectNotExist {
-				if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
-					ctx.ServerError("ServeBlob", err)
+		if pointer.IsValid() {
+			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil {
+				if err == models.ErrLFSObjectNotExist {
+					if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+						ctx.ServerError("ServeBlob", err)
+					}
+				} else {
+					ctx.ServerError("GetLFSMetaObjectByOid", err)
 				}
-			} else {
-				ctx.ServerError("GetLFSMetaObjectByOid", err)
-			}
-			return
-		}
-		if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
-			return
-		}
-
-		if setting.LFS.ServeDirect {
-			// If we have a signed url (S3, object storage), redirect to this directly.
-			u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
-			if u != nil && err == nil {
-				ctx.Redirect(u.String())
 				return
 			}
-		}
+			if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+				return
+			}
 
-		lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
-		if err != nil {
-			ctx.ServerError("ReadMetaObject", err)
-			return
-		}
-		defer func() {
+			if setting.LFS.ServeDirect {
+				// If we have a signed url (S3, object storage), redirect to this directly.
+				u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+				if u != nil && err == nil {
+					ctx.Redirect(u.String())
+					return
+				}
+			}
+
+			lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+			if err != nil {
+				ctx.ServerError("ReadMetaObject", err)
+				return
+			}
+			if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
+				ctx.ServerError("ServeData", err)
+			}
 			if err = lfsDataRc.Close(); err != nil {
 				log.Error("Close: %v", err)
 			}
-		}()
-		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
-			ctx.ServerError("ServeData", err)
+			return
 		}
-		return
 	}
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
