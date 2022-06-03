@@ -53,6 +53,7 @@ func TestRoute2(t *testing.T) {
 				tp := chi.URLParam(req, "type")
 				assert.EqualValues(t, "issues", tp)
 				route = 0
+				resp.WriteHeader(200)
 			})
 
 			r.Get("/{type:issues|pulls}/{index}", func(resp http.ResponseWriter, req *http.Request) {
@@ -65,9 +66,8 @@ func TestRoute2(t *testing.T) {
 				index := chi.URLParam(req, "index")
 				assert.EqualValues(t, "1", index)
 				route = 1
+				resp.WriteHeader(200)
 			})
-		}, func(resp http.ResponseWriter, req *http.Request) {
-			resp.WriteHeader(200)
 		})
 
 		r.Group("/issues/{index}", func() {
@@ -79,6 +79,7 @@ func TestRoute2(t *testing.T) {
 				index := chi.URLParam(req, "index")
 				assert.EqualValues(t, "1", index)
 				route = 2
+				resp.WriteHeader(200)
 			})
 		})
 	})
