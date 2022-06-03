@@ -112,10 +112,10 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 
 // CreateRelease creates a new release of repository.
 func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, msg string) error {
-	isExist, err := models.IsReleaseExist(gitRepo.Ctx, rel.RepoID, rel.TagName)
+	has, err := models.IsReleaseExist(gitRepo.Ctx, rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
-	} else if isExist {
+	} else if has {
 		return models.ErrReleaseAlreadyExist{
 			TagName: rel.TagName,
 		}
