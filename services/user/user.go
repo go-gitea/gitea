@@ -190,15 +190,13 @@ func CanPin(ctx context.Context, u *user_model.User, r *repo_model.Repository) b
 		teams, err := org.GetUserTeams(u.ID)
 		if err != nil {
 			return false
-		} else {
-			for _, team := range teams {
-				if team.AccessMode >= perm.AccessModeAdmin {
-					return true
-				}
-			}
-			return false
 		}
-	} else {
-		return u.ID == r.OwnerID
+		for _, team := range teams {
+			if team.AccessMode >= perm.AccessModeAdmin {
+				return true
+			}
+		}
+		return false
 	}
+	return u.ID == r.OwnerID
 }
