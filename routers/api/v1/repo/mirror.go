@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/models"
@@ -145,23 +146,19 @@ func PushMirrorAdd(ctx *context.APIContext) {
 			addrErr := err.(*models.ErrInvalidCloneAddr)
 			switch {
 			case addrErr.IsProtocolInvalid:
-				ctx.Error(http.StatusUnprocessableEntity, "repo.mirror_address_protocol_invalid", err)
+				ctx.Error(http.StatusUnprocessableEntity, "protocol of push_mirror_address is invalid", err)
 			case addrErr.IsURLError:
-				ctx.Error(http.StatusUnprocessableEntity, "repo.url_error", err)
+				ctx.Error(http.StatusUnprocessableEntity, "url is not valid", err)
 			case addrErr.IsPermissionDenied:
-				if addrErr.LocalPath {
-					ctx.Error(http.StatusUnprocessableEntity, "repo.migrate.permission_denied", err)
-				} else {
-					ctx.Error(http.StatusUnprocessableEntity, "repo.migrate.permission_denied_blocked", err)
-				}
+				ctx.Error(http.StatusUnprocessableEntity, "permission denied", err)
 			case addrErr.IsInvalidPath:
-				ctx.Error(http.StatusUnprocessableEntity, "repo.migrate.invalid_local_path", err)
+				ctx.Error(http.StatusUnprocessableEntity, "local path is not valid", err)
 			default:
 				ctx.Error(http.StatusUnprocessableEntity, "Unknown error", err)
 			}
 			return
 		}
-		ctx.Error(http.StatusUnprocessableEntity, "repo.mirror_address_url_invalid", err)
+		ctx.Error(http.StatusUnprocessableEntity, "push_mirror_address is not valid", err)
 		return
 	}
 
@@ -228,21 +225,9 @@ func PushMirrorRemove(ctx *context.APIContext) {
 		return
 	}
 
-	id := ctx.ParamsInt64(":id")
-	repo := ctx.Repo.Repository
-
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	m, err := getPushMirror(ctx)
 	if err != nil {
-		ctx.ServerError("GetPushMirrorsByRepoID", err)
-	}
-
-	var m *repo_model.PushMirror
-	for _, mirror := range pushMirrors {
-		if mirror.ID == id {
-			m = mirror
-			m.Repo = repo
-			break
-		}
+		ctx.Error(http.StatusNotFound, "push mirror not found", err)
 	}
 
 	if err = mirror_service.RemovePushMirrorRemote(ctx, m); err != nil {
@@ -256,4 +241,69 @@ func PushMirrorRemove(ctx *context.APIContext) {
 	}
 
 	ctx.JSON(http.StatusOK, convert.ToPushMirror(m, ctx.Repo.AccessMode))
+}
+
+// PushMirrorSync adds a push mirror to the queue
+func PushMirrorSync(ctx *context.APIContext) {
+	// swagger:operation POST /repos/{owner}/{repo}/push-mirrors/{id}/sync repository repoPushMirrorSync
+	// ---
+	// summary: Sync a push mirror
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: id
+	//   in: path
+	//   description: id of the push mirror
+	//   type: string
+	//   format: int64
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if !setting.Mirror.Enabled {
+		ctx.Error(http.StatusBadRequest, "PushMirrorSync", "Mirror is disabled")
+		return
+	}
+
+	m, err := getPushMirror(ctx)
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "push mirror not found", err)
+	}
+
+	mirror_service.AddPushMirrorToQueue(m.ID)
+}
+
+func getPushMirror(ctx *context.APIContext) (*repo_model.PushMirror, error) {
+	id, err := strconv.ParseInt(ctx.Params(":id"), 10, 64)
+	if err != nil {
+		return nil, err
+	}
+	repo := ctx.Repo.Repository
+
+	mirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	if err != nil {
+		return nil, err
+	}
+	for _, mirror := range mirrors {
+		if mirror.ID == id {
+			return mirror, nil
+		}
+	}
+
+	return nil, fmt.Errorf("PushMirror[%v] not associated to repository %v", id, repo)
 }
