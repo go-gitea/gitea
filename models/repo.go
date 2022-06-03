@@ -373,7 +373,7 @@ func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
 				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyleMerge, AllowRebaseUpdate: true},
+				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
 			})
 		} else {
 			units = append(units, repo_model.RepoUnit{
@@ -1144,7 +1144,7 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
-		rel, err := GetReleaseByID(a.ReleaseID)
+		rel, err := GetReleaseByID(db.DefaultContext, a.ReleaseID)
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}
