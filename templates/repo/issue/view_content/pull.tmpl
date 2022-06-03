@@ -257,7 +257,6 @@
 				{{/* admin can merge without checks, writer can merge when checkes succeed */}}
 				{{$canMergeNow := and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
 				{{/* admin and writer both can make an auto merge schedule */}}
-				{{$canAutoMerge = true}}
 
 				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}
