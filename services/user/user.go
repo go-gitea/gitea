@@ -18,7 +18,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
-	access_model "code.gitea.io/gitea/models/perm/access"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
@@ -185,6 +185,20 @@ func DeleteAvatar(u *user_model.User) error {
 
 // Verify that a user has permission to pin/unpin a repository
 func CanPin(ctx context.Context, u *user_model.User, r *repo_model.Repository) bool {
-	perm, err := access_model.GetUserRepoPermission(ctx, r, u)
-	return err == nil && perm.IsAdmin()
+	if r.Owner.IsOrganization() {
+		org := organization.OrgFromUser(r.Owner)
+		teams, err := org.GetUserTeams(u.ID)
+		if err != nil {
+			return false
+		} else {
+			for _, team := range teams {
+				if team.AccessMode >= perm.AccessModeAdmin {
+					return true
+				}
+			}
+			return false
+		}
+	} else {
+		return u.ID == r.OwnerID
+	}
 }

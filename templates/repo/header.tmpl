@@ -61,7 +61,7 @@
 							</div>
 						</form>
 					{{end}}
-					{{if and $.IsSigned $.Permission.IsAdmin}}
+					{{if $.CanPin}}
 					<form method="post" action="{{$.RepoLink}}/action/{{if .IsPinned}}un{{end}}pin?redirect_to={{$.Link}}">
 						{{$.CsrfTokenHtml}}
 						<div tabindex="0">

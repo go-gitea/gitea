@@ -39,6 +39,7 @@ import (
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/feed"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 const (
@@ -720,6 +721,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+	ctx.Data["CanPin"] = ctx.IsSigned && user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
 
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
