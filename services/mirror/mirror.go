@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -41,7 +42,7 @@ func doMirrorSync(ctx context.Context, req *SyncRequest) {
 	}
 	switch req.Type {
 	case PushMirrorType:
-		_ = SyncPushMirror(ctx, req.ReferenceID)
+		_ = mirror_module.SyncPushMirror(ctx, req.ReferenceID)
 	case PullMirrorType:
 		_ = SyncPullMirror(ctx, req.ReferenceID)
 	default:

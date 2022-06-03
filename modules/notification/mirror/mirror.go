@@ -11,10 +11,10 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/repository"
-	pushmirror_service "code.gitea.io/gitea/services/pushmirror"
 )
 
 type mirrorNotifier struct {
@@ -41,6 +41,6 @@ func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 
 	for _, mirror := range pushMirrors {
 		// TODO: push mirror likely will benefit from using a queue
-		pushmirror_service.SyncPushMirror(ctx, mirror.ID)
+		mirror_module.SyncPushMirror(ctx, mirror.ID)
 	}
 }
