@@ -1144,7 +1144,7 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
-		rel, err := GetReleaseByID(a.ReleaseID)
+		rel, err := GetReleaseByID(db.DefaultContext, a.ReleaseID)
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}
