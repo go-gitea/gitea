@@ -2404,5 +2404,5 @@ strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251 h1:mUcz5b3
 strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251/go.mod h1:FJGmPh3vz9jSos1L/F91iAgnC/aejc0wIIrF2ZwJxdY=
 xorm.io/builder v0.3.11-0.20220531020008-1bd24a7dc978 h1:bvLlAPW1ZMTWA32LuZMBEGHAUOcATZjzHcotf3SWweM=
 xorm.io/builder v0.3.11-0.20220531020008-1bd24a7dc978/go.mod h1:aUW0S9eb9VCaPohFCH3j7czOx1PMW3i1HrSzbLYGBSE=
-xorm.io/xorm v1.3.1-0.20220531030028-f9a6990ecb22 h1:rQoYBZd67lp7AuJA/k+Noptk/ARCNS8ljBX2ipCSP0Q=
-xorm.io/xorm v1.3.1-0.20220531030028-f9a6990ecb22/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
+xorm.io/xorm v1.3.1-0.20220603072424-c98930f8f2a5 h1:krK4x6RVI0VNrvsssKZdNkT5TsFq58bjC8vDg9rmgd0=
+xorm.io/xorm v1.3.1-0.20220603072424-c98930f8f2a5/go.mod h1:9NbjqdnjX6eyjRRhh01GHm64r6N9shTb/8Ak3YRt8Nw=
