@@ -16,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/web/middleware"
 
 	"github.com/go-fed/httpsig"
 	"golang.org/x/crypto/ssh"
@@ -42,11 +41,6 @@ func (h *HTTPSign) Name() string {
 // the corresponding user object on successful validation.
 // Returns nil if header is empty or validation fails.
 func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
-	// HTTPSign authentication should only fire on API
-	if !middleware.IsAPIPath(req) {
-		return nil
-	}
-
 	sigHead := req.Header.Get("Signature")
 	if len(sigHead) == 0 {
 		return nil
@@ -174,15 +168,12 @@ func VerifyCert(r *http.Request) (*asymkey_model.PublicKey, error) {
 
 	// Now for each of the certificate valid principals
 	for _, principal := range cert.ValidPrincipals {
-
 		// Look in the db for the public key
 		publicKey, err := asymkey_model.SearchPublicKeyByContentExact(r.Context(), principal)
-		if err != nil {
-			if asymkey_model.IsErrKeyNotExist(err) {
-				// No public key matches this principal - try the next principal
-				continue
-			}
-
+		if asymkey_model.IsErrKeyNotExist(err) {
+			// No public key matches this principal - try the next principal
+			continue
+		} else if err != nil {
 			// this error will be a db error therefore we can't solve this and we should abort
 			log.Error("SearchPublicKeyByContentExact: %v", err)
 			return nil, err
