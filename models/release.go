@@ -138,10 +138,10 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 // GetRelease returns release by given ID.
 func GetRelease(repoID int64, tagName string) (*Release, error) {
 	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	isExist, err := db.GetEngine(db.DefaultContext).Get(rel)
+	has, err := db.GetEngine(db.DefaultContext).Get(rel)
 	if err != nil {
 		return nil, err
-	} else if !isExist {
+	} else if !has {
 		return nil, ErrReleaseNotExist{0, tagName}
 	}
 	return rel, nil
