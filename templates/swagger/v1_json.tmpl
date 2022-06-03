@@ -8678,6 +8678,114 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/push-mirrors": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Add a push mirror to the repository",
+        "operationId": "repoPushMirrorAdd",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "address of the push mirror",
+            "name": "push_mirror_address",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The username of the push mirror",
+            "name": "push_mirror_username",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The password of the push mirror",
+            "name": "push_mirror_password",
+            "in": "query",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The interval of the push mirror",
+            "name": "push_mirror_interval",
+            "in": "query",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/push-mirrors/{id}": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Remove a push mirror from the repository",
+        "operationId": "repoPushMirrorRemove",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "format": "int64",
+            "description": "id of the push mirror",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/raw/{filepath}": {
       "get": {
         "produces": [
