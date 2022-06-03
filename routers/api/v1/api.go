@@ -972,6 +972,10 @@ func Routes() *web.Route {
 							Delete(reqToken(), reqRepoWriter(unit.TypeReleases), repo.DeleteReleaseByTag)
 					})
 				}, reqRepoReader(unit.TypeReleases))
+				m.Group("/push-mirrors", func() {
+					m.Post("", reqRepoWriter(unit.TypeCode), repo.PushMirrorAdd)
+					m.Delete("/{id}", reqRepoWriter(unit.TypeCode), repo.PushMirrorRemove)
+				})
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
 				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {

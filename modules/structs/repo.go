@@ -351,3 +351,24 @@ type RepoTransfer struct {
 	Recipient *User   `json:"recipient"`
 	Teams     []*Team `json:"teams"`
 }
+
+// PushMirror represents push mirror information
+type PushMirror struct {
+	ID         int64       `json:"id"`
+	RepoID     int64       `json:"repo_id"`
+	Repo       *Repository `json:"repo"`
+	RemoteName string
+
+	Interval       time.Duration `json:"interval"`
+	CreatedUnix    int64         `json:"created_unix"`
+	LastUpdateUnix int64         `json:"last_update_unix"`
+	LastError      string        `json:"last_error"`
+}
+
+// AddRepoPushMirrorOption options when adding a push mirror
+type AddRepoPushMirrorOption struct {
+	PushMirrorAddress  string `json:"push_mirror_address" binding:"Required;ValidUrl;MaxSize(255)"`
+	PushMirrorUsername string `json:"push_mirror_username" binding:"Required"`
+	PushMirrorPassword string `json:"push_mirror_password" binding:"Required"`
+	PushMirrorInterval string `json:"push_mirror_interval" binding:"Required"`
+}
