@@ -6,8 +6,10 @@
 package repo
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"time"
@@ -121,63 +123,97 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
+	if blob.Size() > 1024 {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		// OK not cached - serve!
+		if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
 		return
 	}
 
-	if blob.Size() <= 1024 {
-		dataRc, err := blob.DataAsync()
-		if err != nil {
-			ctx.ServerError("DataAsync", err)
+	// OK, now the blob is known to have at most 1024 bytes we can simply read this in in one go (This saves reading it twice)
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	buf, err := io.ReadAll(dataRc)
+	if err != nil {
+		_ = dataRc.Close()
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	if err := dataRc.Close(); err != nil {
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+	}
+
+	// Check if the blob represents a pointer
+	pointer, _ := lfs.ReadPointer(bytes.NewReader(buf))
+
+	// if its not a pointer just serve the data directly
+	if !pointer.IsValid() {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return
 		}
 
-		pointer, _ := lfs.ReadPointer(dataRc)
-		if err = dataRc.Close(); err != nil {
-			log.Error("Close: %v", err)
+		// OK not cached - serve!
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
 		}
-		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil {
-				if err == models.ErrLFSObjectNotExist {
-					if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
-						ctx.ServerError("ServeBlob", err)
-					}
-				} else {
-					ctx.ServerError("GetLFSMetaObjectByOid", err)
-				}
-				return
-			}
-			if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
-				return
-			}
+		return
+	}
 
-			if setting.LFS.ServeDirect {
-				// If we have a signed url (S3, object storage), redirect to this directly.
-				u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
-				if u != nil && err == nil {
-					ctx.Redirect(u.String())
-					return
-				}
-			}
+	// Now check if there is a meta object for this pointer
+	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 
-			lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
-			if err != nil {
-				ctx.ServerError("ReadMetaObject", err)
-				return
-			}
-			if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
-				ctx.ServerError("ServeData", err)
-			}
-			if err = lfsDataRc.Close(); err != nil {
-				log.Error("Close: %v", err)
-			}
+	// If there isn't one just serve the data directly
+	if err == models.ErrLFSObjectNotExist {
+		// Handle caching for the blob SHA (not the LFS object OID)
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	} else if err != nil {
+		ctx.ServerError("GetLFSMetaObjectByOid", err)
+		return
+	}
+
+	// Handle caching for the LFS object OID
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+		return
+	}
+
+	if setting.LFS.ServeDirect {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
 			return
 		}
 	}
 
-	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
-		ctx.ServerError("ServeBlob", err)
+	lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+	if err != nil {
+		ctx.ServerError("ReadMetaObject", err)
+		return
+	}
+	defer lfsDataRc.Close()
+
+	if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
+		ctx.ServerError("ServeData", err)
 	}
 }
 
