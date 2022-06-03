@@ -33,13 +33,14 @@ RUN apk --no-cache add \
     ca-certificates \
     curl \
     gettext \
-    git \
     linux-pam \
     openssh \
     s6 \
     sqlite \
     su-exec \
     gnupg
+
+RUN apk add git --repository=http://dl-cdn.alpinelinux.org/alpine/v3.16/main
 
 RUN addgroup \
     -S -g 1000 \
