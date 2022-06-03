@@ -17,10 +17,10 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -51,7 +51,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 
-	ok := mirror_service.SyncPushMirror(context.Background(), mirrors[0].ID)
+	ok := mirror_module.SyncPushMirror(context.Background(), mirrors[0].ID)
 	assert.True(t, ok)
 
 	srcGitRepo, err := git.OpenRepository(git.DefaultContext, srcRepo.RepoPath())
