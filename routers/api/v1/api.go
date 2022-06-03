@@ -973,8 +973,8 @@ func Routes() *web.Route {
 					})
 				}, reqRepoReader(unit.TypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
-				m.Post("/push-mirror-sync", reqAdmin(), repo.PushMirrorSync)
-				m.Group("/push-mirror", func() {
+				m.Post("/push_mirrors-sync", reqAdmin(), repo.PushMirrorSync)
+				m.Group("/push_mirrors", func() {
 					m.Combo("").Get(reqAdmin(), repo.ListPushMirrors).
 						Post(reqAdmin(), bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").

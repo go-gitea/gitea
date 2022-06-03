@@ -77,7 +77,7 @@ func MirrorSync(ctx *context.APIContext) {
 
 // PushMirrorSync adds all push mirrored repositories to the sync queue
 func PushMirrorSync(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/push-mirror-sync repository repoPushMirrorSync
+	// swagger:operation POST /repos/{owner}/{repo}/push_mirrors-sync repository repoPushMirrorSync
 	// ---
 	// summary: Sync all push mirrored repository
 	// produces:
@@ -120,7 +120,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 
 // ListPushMirrors get list of push mirrors of a repository
 func ListPushMirrors(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/push-mirror repository repoListPushMirrors
+	// swagger:operation GET /repos/{owner}/{repo}/push_mirrors repository repoListPushMirrors
 	// ---
 	// summary: Get all push mirrors of the repository
 	// produces:
@@ -176,7 +176,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 // GetPushMirrorByName get push mirror of a repository by name
 func GetPushMirrorByName(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/push-mirror/{name} repository repoGetPushMirrorByID
+	// swagger:operation GET /repos/{owner}/{repo}/push_mirrors/{name} repository repoGetPushMirrorByID
 	// ---
 	// summary: Get push mirror of the repository by ID
 	// produces:
@@ -223,7 +223,7 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 
 // AddPushMirror adds a push mirror to a repository
 func AddPushMirror(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/push-mirror repository repoAddPushMirror
+	// swagger:operation POST /repos/{owner}/{repo}/push_mirrors repository repoAddPushMirror
 	// ---
 	// summary: add a push mirror to the repository
 	// consumes:
@@ -264,7 +264,7 @@ func AddPushMirror(ctx *context.APIContext) {
 
 // DeletePushMirrorByID deletes a push mirror from a repository by ID
 func DeletePushMirrorByID(ctx *context.APIContext) {
-	// swagger:operation DELETE /repos/{owner}/{repo}/push-mirror/{name} repository repoDeletePushMirror
+	// swagger:operation DELETE /repos/{owner}/{repo}/push_mirrors/{name} repository repoDeletePushMirror
 	// ---
 	// summary: deletes a push mirror from a repository by ID
 	// produces:
