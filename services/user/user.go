@@ -203,5 +203,5 @@ func CanPin(ctx context.Context, u *user_model.User, r *repo_model.Repository) b
 		return false
 	}
 	perm, err := access_model.GetUserRepoPermission(ctx, r, u)
-	return err != nil && perm.IsAdmin()
+	return err == nil && perm.IsAdmin()
 }
