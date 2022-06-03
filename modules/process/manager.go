@@ -254,13 +254,13 @@ func (pm *Manager) ExecDirEnvStdIn(timeout time.Duration, dir, desc string, env 
 	if stdIn != nil {
 		cmd.Stdin = stdIn
 	}
+	SetSysProcAttribute(cmd)
 
 	if err := cmd.Start(); err != nil {
 		return "", "", err
 	}
 
 	err := cmd.Wait()
-
 	if err != nil {
 		err = &Error{
 			PID:         GetPID(ctx),

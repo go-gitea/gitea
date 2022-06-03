@@ -188,6 +188,7 @@ func (c *Command) RunWithContext(rc *RunContext) error {
 	if goVersionLessThan115 {
 		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
 	}
+	process.SetSysProcAttribute(cmd)
 	cmd.Dir = rc.Dir
 	cmd.Stdout = rc.Stdout
 	cmd.Stderr = rc.Stderr

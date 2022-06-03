@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
@@ -247,7 +248,7 @@ func runServ(c *cli.Context) error {
 	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
 	os.Setenv(models.EnvAppURL, setting.AppURL)
 
-	//LFS token authentication
+	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
@@ -306,6 +307,7 @@ func runServ(c *cli.Context) error {
 		}
 	}
 
+	process.SetSysProcAttribute(gitcmd)
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin

@@ -130,6 +130,7 @@ func createBlameReader(ctx context.Context, dir string, command ...string) (*Bla
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
 	cmd.Dir = dir
 	cmd.Stderr = os.Stderr
+	process.SetSysProcAttribute(cmd)
 
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
