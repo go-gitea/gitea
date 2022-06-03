@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -47,14 +46,14 @@ type Issue struct {
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64                   `xorm:"index"`
-	Title            string                  `xorm:"name"`
-	Content          string                  `xorm:"LONGTEXT"`
-	RenderedContent  string                  `xorm:"-"`
-	Labels           []*Label                `xorm:"-"`
-	MilestoneID      int64                   `xorm:"INDEX"`
-	Milestone        *issues_model.Milestone `xorm:"-"`
-	Project          *project_model.Project  `xorm:"-"`
+	OriginalAuthorID int64                  `xorm:"index"`
+	Title            string                 `xorm:"name"`
+	Content          string                 `xorm:"LONGTEXT"`
+	RenderedContent  string                 `xorm:"-"`
+	Labels           []*Label               `xorm:"-"`
+	MilestoneID      int64                  `xorm:"INDEX"`
+	Milestone        *Milestone             `xorm:"-"`
+	Project          *project_model.Project `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
@@ -73,7 +72,7 @@ type Issue struct {
 
 	Attachments      []*repo_model.Attachment           `xorm:"-"`
 	Comments         []*Comment                         `xorm:"-"`
-	Reactions        issues_model.ReactionList          `xorm:"-"`
+	Reactions        ReactionList                       `xorm:"-"`
 	TotalTrackedTime int64                              `xorm:"-"`
 	Assignees        []*user_model.User                 `xorm:"-"`
 	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
@@ -237,7 +236,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	reactions, _, err := issues_model.FindReactions(ctx, issues_model.FindReactionsOptions{
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	if err != nil {
@@ -247,7 +246,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := issues_model.ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
+	if _, err := ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
 		return err
 	}
 
@@ -292,8 +291,8 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 
 func (issue *Issue) loadMilestone(ctx context.Context) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
-		issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
-		if err != nil && !issues_model.IsErrMilestoneNotExist(err) {
+		issue.Milestone, err = GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
 		}
 	}
@@ -666,7 +665,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 
 	// Update issue count of milestone
 	if issue.MilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+		if err := UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return nil, err
 		}
 	}
@@ -815,12 +814,12 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 	}
 	defer committer.Close()
 
-	hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, issue.ID, 0)
+	hasContentHistory, err := HasIssueContentHistory(ctx, issue.ID, 0)
 	if err != nil {
 		return fmt.Errorf("HasIssueContentHistory: %v", err)
 	}
 	if !hasContentHistory {
-		if err = issues_model.SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
+		if err = SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
 			issue.CreatedUnix, issue.Content, true); err != nil {
 			return fmt.Errorf("SaveIssueContentHistory: %v", err)
 		}
@@ -832,7 +831,7 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issues_model.SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
+	if err = SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
 		timeutil.TimeStampNow(), issue.Content, false); err != nil {
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}
@@ -912,8 +911,8 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
-		if err != nil && !issues_model.IsErrMilestoneNotExist(err) {
+		milestone, err := GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByID: %v", err)
 		}
 
@@ -937,7 +936,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
+		if err := UpdateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -2094,14 +2093,14 @@ func deleteIssue(ctx context.Context, issue *Issue) error {
 
 	// delete all database data still assigned to this issue
 	if err := deleteInIssue(ctx, issue.ID,
-		&issues_model.ContentHistory{},
+		&ContentHistory{},
 		&Comment{},
 		&IssueLabel{},
 		&IssueDependency{},
 		&IssueAssignees{},
 		&IssueUser{},
 		&Notification{},
-		&issues_model.Reaction{},
+		&Reaction{},
 		&IssueWatch{},
 		&Stopwatch{},
 		&TrackedTime{},
@@ -2382,7 +2381,7 @@ func deleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	sess := db.GetEngine(ctx)
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&issues_model.ContentHistory{}); err != nil {
+		Delete(&ContentHistory{}); err != nil {
 		return
 	}
 
@@ -2410,7 +2409,7 @@ func deleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&issues_model.Reaction{}); err != nil {
+		Delete(&Reaction{}); err != nil {
 		return
 	}
 
