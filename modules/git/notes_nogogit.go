@@ -44,8 +44,12 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			tree, err = tree.SubTree(commitID[0:2])
 			path += commitID[0:2] + "/"
 			commitID = commitID[2:]
-		} else if err != nil {
-			log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
+		}
+		if err != nil {
+			// Err may have been updated by the SubTree we need to recheck if it's again an ErrNotExist
+			if !IsErrNotExist(err) {
+				log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
+			}
 			return err
 		}
 	}
