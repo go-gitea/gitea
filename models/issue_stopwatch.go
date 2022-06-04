@@ -75,7 +75,7 @@ type UserStopwatch struct {
 // GetUIDsAndNotificationCounts between the two provided times
 func GetUIDsAndStopwatch() ([]*UserStopwatch, error) {
 	sws := []*Stopwatch{}
-	if err := db.GetEngine(db.DefaultContext).Find(&sws); err != nil {
+	if err := db.GetEngine(db.DefaultContext).Where("issue_id != 0").Find(&sws); err != nil {
 		return nil, err
 	}
 	if len(sws) == 0 {

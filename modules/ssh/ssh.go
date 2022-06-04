@@ -102,6 +102,8 @@ func sessionHandler(session ssh.Session) {
 	}
 	defer stdin.Close()
 
+	process.SetSysProcAttribute(cmd)
+
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
 
