@@ -6,12 +6,37 @@ const {appSubUrl, csrfToken} = window.config;
 
 export function initRepoSettingsCollaboration() {
   // Change collaborator access mode
-  $('.access-mode.menu .item').on('click', function () {
-    const $menu = $(this).parent();
-    $.post($menu.data('url'), {
-      _csrf: csrfToken,
-      uid: $menu.data('uid'),
-      mode: $(this).data('value')
+  $('.page-content.repository .ui.dropdown.access-mode').each((_, e) => {
+    const $dropdown = $(e);
+    const $text = $dropdown.find('> .text');
+    $dropdown.dropdown({
+      action(_text, value) {
+        const lastValue = $dropdown.attr('data-last-value');
+        $.post($dropdown.attr('data-url'), {
+          _csrf: csrfToken,
+          uid: $dropdown.attr('data-uid'),
+          mode: value,
+        }).fail(() => {
+          $text.text('(error)'); // prevent from misleading users when error occurs
+          $dropdown.attr('data-last-value', lastValue);
+        });
+        $dropdown.attr('data-last-value', value);
+        $dropdown.dropdown('hide');
+      },
+      onChange(_value, text, _$choice) {
+        $text.text(text); // update the text when using keyboard navigating
+      },
+      onHide() {
+        // set to the really selected value, defer to next tick to make sure `action` has finished its work because the calling order might be onHide -> action
+        setTimeout(() => {
+          const $item = $dropdown.dropdown('get item', $dropdown.attr('data-last-value'));
+          if ($item) {
+            $dropdown.dropdown('set selected', $dropdown.attr('data-last-value'));
+          } else {
+            $text.text('(N/A)'); // prevent from misleading users when the access mode is undefined
+          }
+        }, 0);
+      }
     });
   });
 }
