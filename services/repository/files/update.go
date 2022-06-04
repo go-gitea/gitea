@@ -6,6 +6,7 @@ package files
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"path"
 	"strings"
@@ -22,7 +23,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
-	repo_service "code.gitea.io/gitea/services/repository"
 
 	stdcharset "golang.org/x/net/html/charset"
 	"golang.org/x/text/transform"
@@ -125,7 +125,7 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (st
 }
 
 // CreateOrUpdateRepoFile adds or updates a file in the given repository
-func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
+func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *UpdateRepoFileOptions) (*structs.FileResponse, error) {
 	// If no branch name is set, assume default branch
 	if opts.OldBranch == "" {
 		opts.OldBranch = repo.DefaultBranch
@@ -134,8 +134,14 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		opts.NewBranch = opts.OldBranch
 	}
 
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
+	if err != nil {
+		return nil, err
+	}
+	defer closer.Close()
+
 	// oldBranch must exist for this operation
-	if _, err := repo_service.GetBranch(repo, opts.OldBranch); err != nil {
+	if _, err := gitRepo.GetBranch(opts.OldBranch); err != nil && !repo.IsEmpty {
 		return nil, err
 	}
 
@@ -143,7 +149,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 	// Check to make sure the branch does not already exist, otherwise we can't proceed.
 	// If we aren't branching to a new branch, make sure user can commit to the given branch
 	if opts.NewBranch != opts.OldBranch {
-		existingBranch, err := repo_service.GetBranch(repo, opts.NewBranch)
+		existingBranch, err := gitRepo.GetBranch(opts.NewBranch)
 		if existingBranch != nil {
 			return nil, models.ErrBranchAlreadyExists{
 				BranchName: opts.NewBranch,
@@ -152,7 +158,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		if err != nil && !git.IsErrBranchNotExist(err) {
 			return nil, err
 		}
-	} else if err := VerifyBranchProtection(repo, doer, opts.OldBranch, opts.TreePath); err != nil {
+	} else if err := VerifyBranchProtection(ctx, repo, doer, opts.OldBranch, opts.TreePath); err != nil {
 		return nil, err
 	}
 
@@ -180,123 +186,135 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 
 	author, committer := GetAuthorAndCommitterUsers(opts.Author, opts.Committer, doer)
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		log.Error("%v", err)
 	}
 	defer t.Close()
+	hasOldBranch := true
 	if err := t.Clone(opts.OldBranch); err != nil {
-		return nil, err
-	}
-	if err := t.SetDefaultIndex(); err != nil {
-		return nil, err
-	}
-
-	// Get the commit of the original branch
-	commit, err := t.GetBranchCommit(opts.OldBranch)
-	if err != nil {
-		return nil, err // Couldn't get a commit for the branch
-	}
-
-	// Assigned LastCommitID in opts if it hasn't been set
-	if opts.LastCommitID == "" {
-		opts.LastCommitID = commit.ID.String()
-	} else {
-		lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
-		if err != nil {
-			return nil, fmt.Errorf("DeleteRepoFile: Invalid last commit ID: %v", err)
+		if !git.IsErrBranchNotExist(err) || !repo.IsEmpty {
+			return nil, err
 		}
-		opts.LastCommitID = lastCommitID.String()
-
+		if err := t.Init(); err != nil {
+			return nil, err
+		}
+		hasOldBranch = false
+		opts.LastCommitID = ""
+	}
+	if hasOldBranch {
+		if err := t.SetDefaultIndex(); err != nil {
+			return nil, err
+		}
 	}
 
 	encoding := "UTF-8"
 	bom := false
 	executable := false
 
-	if !opts.IsNewFile {
-		fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
+	if hasOldBranch {
+		// Get the commit of the original branch
+		commit, err := t.GetBranchCommit(opts.OldBranch)
 		if err != nil {
-			return nil, err
+			return nil, err // Couldn't get a commit for the branch
 		}
-		if opts.SHA != "" {
-			// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
-			if opts.SHA != fromEntry.ID.String() {
-				return nil, models.ErrSHADoesNotMatch{
-					Path:       treePath,
-					GivenSHA:   opts.SHA,
-					CurrentSHA: fromEntry.ID.String(),
-				}
+
+		// Assigned LastCommitID in opts if it hasn't been set
+		if opts.LastCommitID == "" {
+			opts.LastCommitID = commit.ID.String()
+		} else {
+			lastCommitID, err := t.gitRepo.ConvertToSHA1(opts.LastCommitID)
+			if err != nil {
+				return nil, fmt.Errorf("ConvertToSHA1: Invalid last commit ID: %v", err)
 			}
-		} else if opts.LastCommitID != "" {
-			// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
-			// an error, but only if we aren't creating a new branch.
-			if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
-				if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
-					return nil, err
-				} else if changed {
-					return nil, models.ErrCommitIDDoesNotMatch{
-						GivenCommitID:   opts.LastCommitID,
-						CurrentCommitID: opts.LastCommitID,
+			opts.LastCommitID = lastCommitID.String()
+
+		}
+
+		if !opts.IsNewFile {
+			fromEntry, err := commit.GetTreeEntryByPath(fromTreePath)
+			if err != nil {
+				return nil, err
+			}
+			if opts.SHA != "" {
+				// If a SHA was given and the SHA given doesn't match the SHA of the fromTreePath, throw error
+				if opts.SHA != fromEntry.ID.String() {
+					return nil, models.ErrSHADoesNotMatch{
+						Path:       treePath,
+						GivenSHA:   opts.SHA,
+						CurrentSHA: fromEntry.ID.String(),
 					}
 				}
-				// The file wasn't modified, so we are good to delete it
+			} else if opts.LastCommitID != "" {
+				// If a lastCommitID was given and it doesn't match the commitID of the head of the branch throw
+				// an error, but only if we aren't creating a new branch.
+				if commit.ID.String() != opts.LastCommitID && opts.OldBranch == opts.NewBranch {
+					if changed, err := commit.FileChangedSinceCommit(treePath, opts.LastCommitID); err != nil {
+						return nil, err
+					} else if changed {
+						return nil, models.ErrCommitIDDoesNotMatch{
+							GivenCommitID:   opts.LastCommitID,
+							CurrentCommitID: opts.LastCommitID,
+						}
+					}
+					// The file wasn't modified, so we are good to delete it
+				}
+			} else {
+				// When updating a file, a lastCommitID or SHA needs to be given to make sure other commits
+				// haven't been made. We throw an error if one wasn't provided.
+				return nil, models.ErrSHAOrCommitIDNotProvided{}
 			}
-		} else {
-			// When updating a file, a lastCommitID or SHA needs to be given to make sure other commits
-			// haven't been made. We throw an error if one wasn't provided.
-			return nil, models.ErrSHAOrCommitIDNotProvided{}
+			encoding, bom = detectEncodingAndBOM(fromEntry, repo)
+			executable = fromEntry.IsExecutable()
 		}
-		encoding, bom = detectEncodingAndBOM(fromEntry, repo)
-		executable = fromEntry.IsExecutable()
-	}
 
-	// For the path where this file will be created/updated, we need to make
-	// sure no parts of the path are existing files or links except for the last
-	// item in the path which is the file name, and that shouldn't exist IF it is
-	// a new file OR is being moved to a new path.
-	treePathParts := strings.Split(treePath, "/")
-	subTreePath := ""
-	for index, part := range treePathParts {
-		subTreePath = path.Join(subTreePath, part)
-		entry, err := commit.GetTreeEntryByPath(subTreePath)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				// Means there is no item with that name, so we're good
-				break
+		// For the path where this file will be created/updated, we need to make
+		// sure no parts of the path are existing files or links except for the last
+		// item in the path which is the file name, and that shouldn't exist IF it is
+		// a new file OR is being moved to a new path.
+		treePathParts := strings.Split(treePath, "/")
+		subTreePath := ""
+		for index, part := range treePathParts {
+			subTreePath = path.Join(subTreePath, part)
+			entry, err := commit.GetTreeEntryByPath(subTreePath)
+			if err != nil {
+				if git.IsErrNotExist(err) {
+					// Means there is no item with that name, so we're good
+					break
+				}
+				return nil, err
 			}
-			return nil, err
-		}
-		if index < len(treePathParts)-1 {
-			if !entry.IsDir() {
+			if index < len(treePathParts)-1 {
+				if !entry.IsDir() {
+					return nil, models.ErrFilePathInvalid{
+						Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
+						Path:    subTreePath,
+						Name:    part,
+						Type:    git.EntryModeBlob,
+					}
+				}
+			} else if entry.IsLink() {
 				return nil, models.ErrFilePathInvalid{
-					Message: fmt.Sprintf("a file exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
+					Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
 					Path:    subTreePath,
 					Name:    part,
-					Type:    git.EntryModeBlob,
+					Type:    git.EntryModeSymlink,
+				}
+			} else if entry.IsDir() {
+				return nil, models.ErrFilePathInvalid{
+					Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
+					Path:    subTreePath,
+					Name:    part,
+					Type:    git.EntryModeTree,
+				}
+			} else if fromTreePath != treePath || opts.IsNewFile {
+				// The entry shouldn't exist if we are creating new file or moving to a new path
+				return nil, models.ErrRepoFileAlreadyExists{
+					Path: treePath,
 				}
 			}
-		} else if entry.IsLink() {
-			return nil, models.ErrFilePathInvalid{
-				Message: fmt.Sprintf("a symbolic link exists where you’re trying to create a subdirectory [path: %s]", subTreePath),
-				Path:    subTreePath,
-				Name:    part,
-				Type:    git.EntryModeSymlink,
-			}
-		} else if entry.IsDir() {
-			return nil, models.ErrFilePathInvalid{
-				Message: fmt.Sprintf("a directory exists where you’re trying to create a file [path: %s]", subTreePath),
-				Path:    subTreePath,
-				Name:    part,
-				Type:    git.EntryModeTree,
-			}
-		} else if fromTreePath != treePath || opts.IsNewFile {
-			// The entry shouldn't exist if we are creating new file or moving to a new path
-			return nil, models.ErrRepoFileAlreadyExists{
-				Path: treePath,
-			}
-		}
 
+		}
 	}
 
 	// Get the two paths (might be the same if not moving) from the index if they exist
@@ -348,7 +366,7 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 	opts.Content = content
 	var lfsMetaObject *models.LFSMetaObject
 
-	if setting.LFS.StartServer {
+	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
 		filename2attribute2info, err := t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
 			Attributes: []string{"filter"},
@@ -395,9 +413,9 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 	// Now commit the tree
 	var commitHash string
 	if opts.Dates != nil {
-		commitHash, err = t.CommitTreeWithDate(author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
+		commitHash, err = t.CommitTreeWithDate(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff, opts.Dates.Author, opts.Dates.Committer)
 	} else {
-		commitHash, err = t.CommitTree(author, committer, treeHash, message, opts.Signoff)
+		commitHash, err = t.CommitTree(opts.LastCommitID, author, committer, treeHash, message, opts.Signoff)
 	}
 	if err != nil {
 		return nil, err
@@ -430,12 +448,12 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 		return nil, err
 	}
 
-	commit, err = t.GetCommit(commitHash)
+	commit, err := t.GetCommit(commitHash)
 	if err != nil {
 		return nil, err
 	}
 
-	file, err := GetFileResponseFromCommit(repo, commit, opts.NewBranch, treePath)
+	file, err := GetFileResponseFromCommit(ctx, repo, commit, opts.NewBranch, treePath)
 	if err != nil {
 		return nil, err
 	}
@@ -443,8 +461,8 @@ func CreateOrUpdateRepoFile(repo *repo_model.Repository, doer *user_model.User, 
 }
 
 // VerifyBranchProtection verify the branch protection for modifying the given treePath on the given branch
-func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
-	protectedBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
+func VerifyBranchProtection(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, branchName, treePath string) error {
+	protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -460,7 +478,7 @@ func VerifyBranchProtection(repo *repo_model.Repository, doer *user_model.User, 
 			}
 		}
 		if protectedBranch.RequireSignedCommits {
-			_, _, _, err := asymkey_service.SignCRUDAction(repo.RepoPath(), doer, repo.RepoPath(), branchName)
+			_, _, _, err := asymkey_service.SignCRUDAction(ctx, repo.RepoPath(), doer, repo.RepoPath(), branchName)
 			if err != nil {
 				if !asymkey_service.IsErrWontSign(err) {
 					return err

@@ -22,12 +22,17 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 		URL:       n.APIURL(),
 	}
 
-	//since user only get notifications when he has access to use minimal access mode
+	// since user only get notifications when he has access to use minimal access mode
 	if n.Repository != nil {
 		result.Repository = ToRepo(n.Repository, perm.AccessModeRead)
+
+		// This permission is not correct and we should not be reporting it
+		for repository := result.Repository; repository != nil; repository = repository.Parent {
+			repository.Permissions = nil
+		}
 	}
 
-	//handle Subject
+	// handle Subject
 	switch n.Source {
 	case models.NotificationSourceIssue:
 		result.Subject = &api.NotificationSubject{Type: api.NotifySubjectIssue}
@@ -83,7 +88,7 @@ func ToNotificationThread(n *models.Notification) *api.NotificationThread {
 
 // ToNotifications convert list of Notification to api.NotificationThread list
 func ToNotifications(nl models.NotificationList) []*api.NotificationThread {
-	var result = make([]*api.NotificationThread, 0, len(nl))
+	result := make([]*api.NotificationThread, 0, len(nl))
 	for _, n := range nl {
 		result = append(result, ToNotificationThread(n))
 	}

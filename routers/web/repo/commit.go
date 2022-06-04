@@ -7,13 +7,13 @@ package repo
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -118,12 +118,12 @@ func Graph(ctx *context.Context) {
 		return
 	}
 
-	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
+	graphCommitsCount, err := ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 	if err != nil {
 		log.Warn("GetCommitGraphsCount error for generate graph exclude prs: %t branches: %s in %-v, Will Ignore branches and try again. Underlying Error: %v", hidePRRefs, branches, ctx.Repo.Repository, err)
 		realBranches = []string{}
 		branches = []string{}
-		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(hidePRRefs, realBranches, files)
+		graphCommitsCount, err = ctx.Repo.GetCommitGraphsCount(ctx, hidePRRefs, realBranches, files)
 		if err != nil {
 			ctx.ServerError("GetCommitGraphsCount", err)
 			return
@@ -253,7 +253,6 @@ func FileHistory(ctx *context.Context) {
 // Diff show different from current commit to previous commit
 func Diff(ctx *context.Context) {
 	ctx.Data["PageIsDiff"] = true
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["RequireTribute"] = true
 
 	userName := ctx.Repo.Owner.Name
@@ -265,7 +264,7 @@ func Diff(ctx *context.Context) {
 	)
 
 	if ctx.Data["PageIsWiki"] != nil {
-		gitRepo, err = git.OpenRepository(ctx.Repo.Repository.WikiPath())
+		gitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 		if err != nil {
 			ctx.ServerError("Repo.GitRepo.GetCommit", err)
 			return
@@ -336,7 +335,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["Commit"] = commit
 	ctx.Data["Diff"] = diff
 
-	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, commitID, db.ListOptions{})
+	statuses, _, err := models.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, commitID, db.ListOptions{})
 	if err != nil {
 		log.Error("GetLatestCommitStatus: %v", err)
 	}
@@ -351,7 +350,7 @@ func Diff(ctx *context.Context) {
 	ctx.Data["DiffNotAvailable"] = diff.NumFiles == 0
 
 	if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-		return models.IsUserRepoAdmin(ctx.Repo.Repository, user)
+		return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 	}, nil); err != nil {
 		ctx.ServerError("CalculateTrustStatus", err)
 		return
@@ -381,14 +380,24 @@ func Diff(ctx *context.Context) {
 
 // RawDiff dumps diff results of repository in given commit ID to io.Writer
 func RawDiff(ctx *context.Context) {
-	var repoPath string
+	var gitRepo *git.Repository
 	if ctx.Data["PageIsWiki"] != nil {
-		repoPath = ctx.Repo.Repository.WikiPath()
+		wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
+		if err != nil {
+			ctx.ServerError("OpenRepository", err)
+			return
+		}
+		defer wikiRepo.Close()
+		gitRepo = wikiRepo
 	} else {
-		repoPath = repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+		gitRepo = ctx.Repo.GitRepo
+		if gitRepo == nil {
+			ctx.ServerError("GitRepo not open", fmt.Errorf("no open git repo for '%s'", ctx.Repo.Repository.FullName()))
+			return
+		}
 	}
 	if err := git.GetRawDiff(
-		repoPath,
+		gitRepo,
 		ctx.Params(":sha"),
 		git.RawDiffType(ctx.Params(":ext")),
 		ctx.Resp,

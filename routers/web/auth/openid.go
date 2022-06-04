@@ -67,7 +67,6 @@ func SignInOpenID(ctx *context.Context) {
 
 // Check if the given OpenID URI is allowed by blacklist/whitelist
 func allowedOpenIDURI(uri string) (err error) {
-
 	// In case a Whitelist is present, URI must be in it
 	// in order to be accepted
 	if len(setting.Service.OpenIDWhitelist) != 0 {
@@ -144,13 +143,12 @@ func SignInOpenIDPost(ctx *context.Context) {
 
 // signInOpenIDVerify handles response from OpenID provider
 func signInOpenIDVerify(ctx *context.Context) {
-
 	log.Trace("Incoming call to: %s", ctx.Req.URL.String())
 
 	fullURL := setting.AppURL + ctx.Req.URL.String()[1:]
 	log.Trace("Full URL: %s", fullURL)
 
-	var id, err = openid.Verify(fullURL)
+	id, err := openid.Verify(fullURL)
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
 			Openid: id,
@@ -219,7 +217,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	}
 
 	if u == nil && nickname != "" {
-		u, _ = user_model.GetUserByName(nickname)
+		u, _ = user_model.GetUserByName(ctx, nickname)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
@@ -309,7 +307,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
@@ -418,26 +416,25 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	if length < 256 {
 		length = 256
 	}
-	password, err := util.RandomString(int64(length))
+	password, err := util.CryptoRandomString(int64(length))
 	if err != nil {
 		ctx.RenderWithErr(err.Error(), tplSignUpOID, form)
 		return
 	}
 
 	u := &user_model.User{
-		Name:     form.UserName,
-		Email:    form.Email,
-		Passwd:   password,
-		IsActive: !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
+		Name:   form.UserName,
+		Email:  form.Email,
+		Passwd: password,
 	}
-	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, false) {
+	if !createUserInContext(ctx, tplSignUpOID, form, u, nil, nil, false) {
 		// error already handled
 		return
 	}
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return

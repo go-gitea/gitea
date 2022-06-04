@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
+	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/git"
@@ -60,7 +61,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -74,10 +75,10 @@ func initMigrationTest(t *testing.T) func() {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
 
@@ -184,9 +185,17 @@ func restoreOldDB(t *testing.T, version string) bool {
 		db.Close()
 
 	case setting.Database.UsePostgreSQL:
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
-		assert.NoError(t, err)
+		var db *sql.DB
+		var err error
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.SSLMode, setting.Database.Host))
+			assert.NoError(t, err)
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+			assert.NoError(t, err)
+		}
 		defer db.Close()
 
 		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
@@ -198,8 +207,13 @@ func restoreOldDB(t *testing.T, version string) bool {
 
 		// Check if we need to setup a specific schema
 		if len(setting.Database.Schema) != 0 {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			if setting.Database.Host[0] == '/' {
+				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+					setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+			} else {
+				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+					setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			}
 			if !assert.NoError(t, err) {
 				return false
 			}
@@ -224,8 +238,13 @@ func restoreOldDB(t *testing.T, version string) bool {
 			db.Close()
 		}
 
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
 		assert.NoError(t, err)
 		defer db.Close()
 
@@ -315,6 +334,5 @@ func TestMigrations(t *testing.T) {
 		t.Run(fmt.Sprintf("Migrate-%s-%s", dialect, version), func(t *testing.T) {
 			doMigrationTest(t, version)
 		})
-
 	}
 }

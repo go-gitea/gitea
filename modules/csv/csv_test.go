@@ -31,7 +31,7 @@ func decodeSlashes(t *testing.T, s string) string {
 }
 
 func TestCreateReaderAndDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedRows      [][]string
 		expectedDelimiter rune
@@ -135,7 +135,7 @@ func TestDetermineDelimiterReadAllError(t *testing.T) {
 }
 
 func TestDetermineDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		filename          string
 		expectedDelimiter rune
@@ -236,7 +236,7 @@ John Doe	john@doe.com	This,note,had,a,lot,of,commas,to,test,delimiters`,
 }
 
 func TestRemoveQuotedString(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		text         string
 		expectedText string
 	}{
@@ -301,7 +301,7 @@ abc   | |123
 }
 
 func TestGuessDelimiter(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -456,7 +456,7 @@ jkl`,
 }
 
 func TestGuessFromBeforeAfterQuotes(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		csv               string
 		expectedDelimiter rune
 	}{
@@ -562,7 +562,7 @@ func (l mockLocale) TrN(_cnt interface{}, key1, _keyN string, _args ...interface
 }
 
 func TestFormatError(t *testing.T) {
-	var cases = []struct {
+	cases := []struct {
 		err             error
 		expectedMessage string
 		expectsError    bool

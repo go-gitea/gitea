@@ -54,6 +54,11 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return p.MarkupSanitizerRules
 }
 
+// SanitizerDisabled disabled sanitize if return true
+func (p *Renderer) SanitizerDisabled() bool {
+	return p.DisableSanitizer
+}
+
 func envMark(envName string) string {
 	if runtime.GOOS == "windows" {
 		return "%" + envName + "%"
@@ -119,6 +124,8 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		cmd.Stdin = input
 	}
 	cmd.Stdout = output
+	process.SetSysProcAttribute(cmd)
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
 	}

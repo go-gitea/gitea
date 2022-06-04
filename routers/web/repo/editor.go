@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
-	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -41,7 +40,7 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx.User)
+	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
@@ -68,7 +67,6 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	canCommit := renderCommitRights(ctx)
 
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -198,7 +196,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["PageHasPosted"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
@@ -242,7 +239,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.CreateOrUpdateRepoFile(ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
+	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -367,7 +364,7 @@ func DiffPreviewPost(ctx *context.Context) {
 		return
 	}
 
-	diff, err := files_service.GetDiffPreview(ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
+	diff, err := files_service.GetDiffPreview(ctx, ctx.Repo.Repository, ctx.Repo.BranchName, treePath, form.Content)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetDiffPreview: "+err.Error())
 		return
@@ -448,7 +445,7 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.DeleteRepoFile(ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
+	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -610,7 +607,7 @@ func UploadFilePost(ctx *context.Context) {
 	}
 
 	if oldBranchName != branchName {
-		if _, err := repo_service.GetBranch(ctx.Repo.Repository, branchName); err == nil {
+		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err == nil {
 			ctx.Data["Err_NewBranchName"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.branch_already_exists", branchName), tplUploadFile, &form)
 			return
@@ -654,7 +651,7 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := files_service.UploadRepoFiles(ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
+	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -781,7 +778,7 @@ func UploadFileToServer(ctx *context.Context) {
 func RemoveUploadFileFromServer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RemoveUploadFileForm)
 	if len(form.File) == 0 {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
@@ -791,7 +788,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 	}
 
 	log.Trace("Upload file removed: %s", form.File)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetUniquePatchBranchName Gets a unique branch name for a new patch branch
@@ -799,10 +796,10 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 // that doesn't already exist. If we exceed 1000 tries or an error is thrown, we just return "" so the user has to
 // type in the branch name themselves (will be an empty field)
 func GetUniquePatchBranchName(ctx *context.Context) string {
-	prefix := ctx.User.LowerName + "-patch-"
+	prefix := ctx.Doer.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
-		if _, err := repo_service.GetBranch(ctx.Repo.Repository, branchName); err != nil {
+		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {
 			if git.IsErrBranchNotExist(err) {
 				return branchName
 			}

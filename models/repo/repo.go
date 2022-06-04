@@ -26,7 +26,7 @@ import (
 )
 
 var (
-	reservedRepoNames    = []string{".", ".."}
+	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
 )
 
@@ -222,6 +222,30 @@ func (repo *Repository) MustOwner() *user_model.User {
 	return repo.mustOwner(db.DefaultContext)
 }
 
+// LoadAttributes loads attributes of the repository.
+func (repo *Repository) LoadAttributes(ctx context.Context) error {
+	// Load owner
+	if err := repo.GetOwner(ctx); err != nil {
+		return fmt.Errorf("load owner: %w", err)
+	}
+
+	// Load primary language
+	stats := make(LanguageStatList, 0, 1)
+	if err := db.GetEngine(ctx).
+		Where("`repo_id` = ? AND `is_primary` = ? AND `language` != ?", repo.ID, true, "other").
+		Find(&stats); err != nil {
+		return fmt.Errorf("find primary languages: %w", err)
+	}
+	stats.LoadAttributes()
+	for _, st := range stats {
+		if st.RepoID == repo.ID {
+			repo.PrimaryLanguage = st
+			break
+		}
+	}
+	return nil
+}
+
 // FullName returns the repository full name
 func (repo *Repository) FullName() string {
 	return repo.OwnerName + "/" + repo.Name
@@ -265,14 +289,32 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.Units, err = getUnitsByRepoID(db.GetEngine(ctx), repo.ID)
-	log.Trace("repo.Units: %-+v", repo.Units)
+	repo.Units, err = getUnitsByRepoID(ctx, repo.ID)
+	if log.IsTrace() {
+		unitTypeStrings := make([]string, len(repo.Units))
+		for i, unit := range repo.Units {
+			unitTypeStrings[i] = unit.Type.String()
+		}
+		log.Trace("repo.Units, ID=%d, Types: [%s]", repo.ID, strings.Join(unitTypeStrings, ", "))
+	}
+
 	return err
 }
 
 // UnitEnabled if this repository has the given unit enabled
-func (repo *Repository) UnitEnabled(tp unit.Type) bool {
-	if err := repo.LoadUnits(db.DefaultContext); err != nil {
+func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) {
+	if err := db.WithContext(func(ctx *db.Context) error {
+		result = repo.UnitEnabledCtx(ctx, tp)
+		return nil
+	}); err != nil {
+		log.Error("repo.UnitEnabled: %v", err)
+	}
+	return
+}
+
+// UnitEnabled if this repository has the given unit enabled
+func (repo *Repository) UnitEnabledCtx(ctx context.Context, tp unit.Type) bool {
+	if err := repo.LoadUnits(ctx); err != nil {
 		log.Warn("Error loading repository (ID: %d) units: %s", repo.ID, err.Error())
 	}
 	for _, unit := range repo.Units {
@@ -341,7 +383,7 @@ func (repo *Repository) GetOwner(ctx context.Context) (err error) {
 		return nil
 	}
 
-	repo.Owner, err = user_model.GetUserByIDEngine(db.GetEngine(ctx), repo.OwnerID)
+	repo.Owner, err = user_model.GetUserByIDCtx(ctx, repo.OwnerID)
 	return err
 }
 
@@ -412,15 +454,15 @@ func (repo *Repository) ComposeDocumentMetas() map[string]string {
 // returns an error on failure (NOTE: no error is returned for
 // non-fork repositories, and BaseRepo will be left untouched)
 func (repo *Repository) GetBaseRepo() (err error) {
-	return repo.getBaseRepo(db.GetEngine(db.DefaultContext))
+	return repo.getBaseRepo(db.DefaultContext)
 }
 
-func (repo *Repository) getBaseRepo(e db.Engine) (err error) {
+func (repo *Repository) getBaseRepo(ctx context.Context) (err error) {
 	if !repo.IsFork {
 		return nil
 	}
 
-	repo.BaseRepo, err = getRepositoryByID(e, repo.ForkID)
+	repo.BaseRepo, err = GetRepositoryByIDCtx(ctx, repo.ForkID)
 	return err
 }
 
@@ -437,16 +479,6 @@ func RepoPath(userName, repoName string) string { //revive:disable-line:exported
 // RepoPath returns the repository path
 func (repo *Repository) RepoPath() string {
 	return RepoPath(repo.OwnerName, repo.Name)
-}
-
-// GitConfigPath returns the path to a repository's git config/ directory
-func GitConfigPath(repoPath string) string {
-	return filepath.Join(repoPath, "config")
-}
-
-// GitConfigPath returns the repository git config path
-func (repo *Repository) GitConfigPath() string {
-	return GitConfigPath(repo.RepoPath())
 }
 
 // Link returns the repository link
@@ -485,10 +517,11 @@ func (repo *Repository) CanEnableEditor() bool {
 }
 
 // DescriptionHTML does special handles to description and return HTML string.
-func (repo *Repository) DescriptionHTML() template.HTML {
+func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 	desc, err := markup.RenderDescriptionHTML(&markup.RenderContext{
+		Ctx:       ctx,
 		URLPrefix: repo.HTMLURL(),
-		Metas:     repo.ComposeMetas(),
+		// Don't use Metas to speedup requests
 	}, repo.Description)
 	if err != nil {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
@@ -501,7 +534,6 @@ func (repo *Repository) DescriptionHTML() template.HTML {
 type CloneLink struct {
 	SSH   string
 	HTTPS string
-	Git   string
 }
 
 // ComposeHTTPSCloneURL returns HTTPS clone URL based on given owner and repository name.
@@ -515,10 +547,7 @@ func (repo *Repository) cloneLink(isWiki bool) *CloneLink {
 		repoName += ".wiki"
 	}
 
-	sshUser := setting.RunUser
-	if setting.SSH.StartBuiltinServer {
-		sshUser = setting.SSH.BuiltinServerUser
-	}
+	sshUser := setting.SSH.User
 
 	cl := new(CloneLink)
 
@@ -630,9 +659,10 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 	return repo, err
 }
 
-func getRepositoryByID(e db.Engine, id int64) (*Repository, error) {
+// GetRepositoryByIDCtx returns the repository by given id if exists.
+func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
 	repo := new(Repository)
-	has, err := e.ID(id).Get(repo)
+	has, err := db.GetEngine(ctx).ID(id).Get(repo)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -643,12 +673,7 @@ func getRepositoryByID(e db.Engine, id int64) (*Repository, error) {
 
 // GetRepositoryByID returns the repository by given id if exists.
 func GetRepositoryByID(id int64) (*Repository, error) {
-	return getRepositoryByID(db.GetEngine(db.DefaultContext), id)
-}
-
-// GetRepositoryByIDCtx returns the repository by given id if exists.
-func GetRepositoryByIDCtx(ctx context.Context, id int64) (*Repository, error) {
-	return getRepositoryByID(db.GetEngine(ctx), id)
+	return GetRepositoryByIDCtx(db.DefaultContext, id)
 }
 
 // GetRepositoriesMapByIDs returns the repositories by given id slice.
@@ -657,8 +682,8 @@ func GetRepositoriesMapByIDs(ids []int64) (map[int64]*Repository, error) {
 	return repos, db.GetEngine(db.DefaultContext).In("id", ids).Find(&repos)
 }
 
-// IsRepositoryExistCtx returns true if the repository with given name under user has already existed.
-func IsRepositoryExistCtx(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
+// IsRepositoryExist returns true if the repository with given name under user has already existed.
+func IsRepositoryExist(ctx context.Context, u *user_model.User, repoName string) (bool, error) {
 	has, err := db.GetEngine(ctx).Get(&Repository{
 		OwnerID:   u.ID,
 		LowerName: strings.ToLower(repoName),
@@ -670,29 +695,20 @@ func IsRepositoryExistCtx(ctx context.Context, u *user_model.User, repoName stri
 	return has && isDir, err
 }
 
-// IsRepositoryExist returns true if the repository with given name under user has already existed.
-func IsRepositoryExist(u *user_model.User, repoName string) (bool, error) {
-	return IsRepositoryExistCtx(db.DefaultContext, u, repoName)
-}
-
 // GetTemplateRepo populates repo.TemplateRepo for a generated repository and
 // returns an error on failure (NOTE: no error is returned for
 // non-generated repositories, and TemplateRepo will be left untouched)
-func GetTemplateRepo(repo *Repository) (*Repository, error) {
-	return getTemplateRepo(db.GetEngine(db.DefaultContext), repo)
-}
-
-func getTemplateRepo(e db.Engine, repo *Repository) (*Repository, error) {
+func GetTemplateRepo(ctx context.Context, repo *Repository) (*Repository, error) {
 	if !repo.IsGenerated() {
 		return nil, nil
 	}
 
-	return getRepositoryByID(e, repo.TemplateID)
+	return GetRepositoryByIDCtx(ctx, repo.TemplateID)
 }
 
 // TemplateRepo returns the repository, which is template of this repository
 func (repo *Repository) TemplateRepo() *Repository {
-	repo, err := GetTemplateRepo(repo)
+	repo, err := GetTemplateRepo(db.DefaultContext, repo)
 	if err != nil {
 		log.Error("TemplateRepo: %v", err)
 		return nil
@@ -700,60 +716,27 @@ func (repo *Repository) TemplateRepo() *Repository {
 	return repo
 }
 
-func countRepositories(userID int64, private bool) int64 {
-	sess := db.GetEngine(db.DefaultContext).Where("id > 0")
-
-	if userID > 0 {
-		sess.And("owner_id = ?", userID)
-	}
-	if !private {
-		sess.And("is_private=?", false)
-	}
-
-	count, err := sess.Count(new(Repository))
-	if err != nil {
-		log.Error("countRepositories: %v", err)
-	}
-	return count
+type CountRepositoryOptions struct {
+	OwnerID int64
+	Private util.OptionalBool
 }
 
 // CountRepositories returns number of repositories.
 // Argument private only takes effect when it is false,
 // set it true to count all repositories.
-func CountRepositories(private bool) int64 {
-	return countRepositories(-1, private)
-}
+func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64, error) {
+	sess := db.GetEngine(ctx).Where("id > 0")
 
-// CountUserRepositories returns number of repositories user owns.
-// Argument private only takes effect when it is false,
-// set it true to count all repositories.
-func CountUserRepositories(userID int64, private bool) int64 {
-	return countRepositories(userID, private)
-}
+	if opts.OwnerID > 0 {
+		sess.And("owner_id = ?", opts.OwnerID)
+	}
+	if !opts.Private.IsNone() {
+		sess.And("is_private=?", opts.Private.IsTrue())
+	}
 
-func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
-	return e.Count(&Repository{OwnerID: ownerID})
-}
-
-func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
-}
-
-func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
-}
-
-// GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), ownerID)
-}
-
-// GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
-	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
-
-// GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
-	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
+	count, err := sess.Count(new(Repository))
+	if err != nil {
+		return 0, fmt.Errorf("countRepositories: %v", err)
+	}
+	return count, nil
 }

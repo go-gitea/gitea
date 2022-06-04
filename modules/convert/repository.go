@@ -40,7 +40,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		}
 	}
 
-	//check enabled/disabled units
+	// check enabled/disabled units
 	hasIssues := false
 	var externalTracker *api.ExternalTracker
 	var internalTracker *api.InternalTracker
@@ -104,7 +104,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 	var mirrorUpdated time.Time
 	if repo.IsMirror {
 		var err error
-		repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+		repo.Mirror, err = repo_model.GetMirrorByRepoID(db.DefaultContext, repo.ID)
 		if err == nil {
 			mirrorInterval = repo.Mirror.Interval.String()
 			mirrorUpdated = repo.Mirror.UpdatedUnix.AsTime()
@@ -125,6 +125,13 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		}
 	}
 
+	var language string
+	if repo.PrimaryLanguage != nil {
+		language = repo.PrimaryLanguage.Language
+	}
+
+	repoAPIURL := repo.APIURL()
+
 	return &api.Repository{
 		ID:                        repo.ID,
 		Owner:                     ToUserWithAccessMode(repo.Owner, mode),
@@ -144,6 +151,8 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		CloneURL:                  cloneLink.HTTPS,
 		OriginalURL:               repo.SanitizedOriginalURL(),
 		Website:                   repo.Website,
+		Language:                  language,
+		LanguagesURL:              repoAPIURL + "/languages",
 		Stars:                     repo.NumStars,
 		Forks:                     repo.NumForks,
 		Watchers:                  repo.NumWatches,
@@ -177,10 +186,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 
 // ToRepoTransfer convert a models.RepoTransfer to a structs.RepeTransfer
 func ToRepoTransfer(t *models.RepoTransfer) *api.RepoTransfer {
-	var teams []*api.Team
-	for _, v := range t.Teams {
-		teams = append(teams, ToTeam(v))
-	}
+	teams, _ := ToTeams(t.Teams, false)
 
 	return &api.RepoTransfer{
 		Doer:      ToUser(t.Doer, nil),

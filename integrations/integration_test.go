@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -112,6 +112,13 @@ func TestMain(m *testing.M) {
 		}
 	}
 
+	os.Unsetenv("GIT_AUTHOR_NAME")
+	os.Unsetenv("GIT_AUTHOR_EMAIL")
+	os.Unsetenv("GIT_AUTHOR_DATE")
+	os.Unsetenv("GIT_COMMITTER_NAME")
+	os.Unsetenv("GIT_COMMITTER_EMAIL")
+	os.Unsetenv("GIT_COMMITTER_DATE")
+
 	err := unittest.InitFixtures(
 		unittest.FixturesOptions{
 			Dir: filepath.Join(filepath.Dir(setting.AppPath), "models/fixtures/"),
@@ -165,7 +172,8 @@ func initIntegrationTest() {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
-	_ = util.RemoveAll(models.LocalCopyPath())
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
+	_ = util.RemoveAll(repo_module.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
@@ -185,8 +193,16 @@ func initIntegrationTest() {
 			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+		var db *sql.DB
+		var err error
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
+
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -208,8 +224,13 @@ func initIntegrationTest() {
 		}
 		db.Close()
 
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {
@@ -254,7 +275,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -268,10 +289,10 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
 
@@ -359,6 +380,10 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
+func getUserToken(t testing.TB, userName string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName))
+}
+
 func loginUser(t testing.TB, userName string) *TestSession {
 	t.Helper()
 	if session, ok := loginSessionCache[userName]; ok {
@@ -380,7 +405,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 		"user_name": userName,
 		"password":  password,
 	})
-	resp = MakeRequest(t, req, http.StatusFound)
+	resp = MakeRequest(t, req, http.StatusSeeOther)
 
 	ch := http.Header{}
 	ch.Add("Cookie", strings.Join(resp.Header()["Set-Cookie"], ";"))
@@ -395,7 +420,7 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 	return session
 }
 
-//token has to be unique this counter take care of
+// token has to be unique this counter take care of
 var tokenCounter int64
 
 func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
@@ -408,7 +433,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -550,7 +575,7 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, queue.GetManager().FlushAll(context.Background(), -1))
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, util.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -564,10 +589,10 @@ func resetFixtures(t *testing.T) {
 			assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
 		}
 		for _, repoDir := range repoDirs {
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0755)
-			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "pack"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "objects", "info"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "heads"), 0o755)
+			_ = os.MkdirAll(filepath.Join(setting.RepoRootPath, ownerDir.Name(), repoDir.Name(), "refs", "tag"), 0o755)
 		}
 	}
 }

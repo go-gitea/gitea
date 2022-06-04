@@ -43,9 +43,13 @@ func ListUnadoptedRepositories(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	listOptions := utils.GetListOptions(ctx)
+	if listOptions.Page == 0 {
+		listOptions.Page = 1
+	}
 	repoNames, count, err := repo_service.ListUnadoptedRepositories(ctx.FormString("query"), &listOptions)
 	if err != nil {
 		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.SetTotalCountHeader(int64(count))
@@ -81,7 +85,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -92,7 +96,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -106,7 +110,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx.User, ctxUser, models.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -143,7 +147,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -154,7 +158,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -169,7 +173,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 		return
 	}
 
-	if err := repo_service.DeleteUnadoptedRepository(ctx.User, ctxUser, repoName); err != nil {
+	if err := repo_service.DeleteUnadoptedRepository(ctx.Doer, ctxUser, repoName); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

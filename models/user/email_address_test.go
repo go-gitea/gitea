@@ -45,7 +45,7 @@ func TestIsEmailUsed(t *testing.T) {
 func TestAddEmailAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, AddEmailAddress(&EmailAddress{
+	assert.NoError(t, AddEmailAddress(db.DefaultContext, &EmailAddress{
 		Email:       "user1234567890@example.com",
 		LowerEmail:  "user1234567890@example.com",
 		IsPrimary:   true,
@@ -53,7 +53,7 @@ func TestAddEmailAddress(t *testing.T) {
 	}))
 
 	// ErrEmailAlreadyUsed
-	err := AddEmailAddress(&EmailAddress{
+	err := AddEmailAddress(db.DefaultContext, &EmailAddress{
 		Email:      "user1234567890@example.com",
 		LowerEmail: "user1234567890@example.com",
 	})
@@ -251,4 +251,59 @@ func TestListEmails(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, emails, 5)
 	assert.Greater(t, count, int64(len(emails)))
+}
+
+func TestEmailAddressValidate(t *testing.T) {
+	kases := map[string]error{
+		"abc@gmail.com":                  nil,
+		"132@hotmail.com":                nil,
+		"1-3-2@test.org":                 nil,
+		"1.3.2@test.org":                 nil,
+		"a_123@test.org.cn":              nil,
+		`first.last@iana.org`:            nil,
+		`first!last@iana.org`:            nil,
+		`first#last@iana.org`:            nil,
+		`first$last@iana.org`:            nil,
+		`first%last@iana.org`:            nil,
+		`first&last@iana.org`:            nil,
+		`first'last@iana.org`:            nil,
+		`first*last@iana.org`:            nil,
+		`first+last@iana.org`:            nil,
+		`first/last@iana.org`:            nil,
+		`first=last@iana.org`:            nil,
+		`first?last@iana.org`:            nil,
+		`first^last@iana.org`:            nil,
+		"first`last@iana.org":            nil,
+		`first{last@iana.org`:            nil,
+		`first|last@iana.org`:            nil,
+		`first}last@iana.org`:            nil,
+		`first~last@iana.org`:            nil,
+		`first;last@iana.org`:            ErrEmailCharIsNotSupported{`first;last@iana.org`},
+		".233@qq.com":                    ErrEmailInvalid{".233@qq.com"},
+		"!233@qq.com":                    ErrEmailInvalid{"!233@qq.com"},
+		"#233@qq.com":                    ErrEmailInvalid{"#233@qq.com"},
+		"$233@qq.com":                    ErrEmailInvalid{"$233@qq.com"},
+		"%233@qq.com":                    ErrEmailInvalid{"%233@qq.com"},
+		"&233@qq.com":                    ErrEmailInvalid{"&233@qq.com"},
+		"'233@qq.com":                    ErrEmailInvalid{"'233@qq.com"},
+		"*233@qq.com":                    ErrEmailInvalid{"*233@qq.com"},
+		"+233@qq.com":                    ErrEmailInvalid{"+233@qq.com"},
+		"/233@qq.com":                    ErrEmailInvalid{"/233@qq.com"},
+		"=233@qq.com":                    ErrEmailInvalid{"=233@qq.com"},
+		"?233@qq.com":                    ErrEmailInvalid{"?233@qq.com"},
+		"^233@qq.com":                    ErrEmailInvalid{"^233@qq.com"},
+		"`233@qq.com":                    ErrEmailInvalid{"`233@qq.com"},
+		"{233@qq.com":                    ErrEmailInvalid{"{233@qq.com"},
+		"|233@qq.com":                    ErrEmailInvalid{"|233@qq.com"},
+		"}233@qq.com":                    ErrEmailInvalid{"}233@qq.com"},
+		"~233@qq.com":                    ErrEmailInvalid{"~233@qq.com"},
+		";233@qq.com":                    ErrEmailCharIsNotSupported{";233@qq.com"},
+		"Foo <foo@bar.com>":              ErrEmailCharIsNotSupported{"Foo <foo@bar.com>"},
+		string([]byte{0xE2, 0x84, 0xAA}): ErrEmailCharIsNotSupported{string([]byte{0xE2, 0x84, 0xAA})},
+	}
+	for kase, err := range kases {
+		t.Run(kase, func(t *testing.T) {
+			assert.EqualValues(t, err, ValidateEmail(kase))
+		})
+	}
 }

@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -70,6 +71,7 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
@@ -153,7 +155,7 @@ var (
 		PrefixArchiveFiles:                      true,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DefaultBranch:                           "master",
+		DefaultBranch:                           "main",
 
 		// Repository editor settings
 		Editor: struct {
@@ -191,6 +193,7 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
@@ -204,6 +207,7 @@ var (
 			// https://help.github.com/articles/closing-issues-via-commit-messages
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
 			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
+			DefaultMergeStyle:                        "merge",
 			DefaultMergeMessageCommitsLimit:          50,
 			DefaultMergeMessageSize:                  5 * 1024,
 			DefaultMergeMessageAllAuthors:            false,
@@ -278,6 +282,10 @@ func newRepository() {
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 
+	if _, err := exec.LookPath(ScriptType); err != nil {
+		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
+	}
+
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
 	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
@@ -288,6 +296,10 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(true) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
 	// Handle default trustmodel settings

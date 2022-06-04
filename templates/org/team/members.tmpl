@@ -26,7 +26,7 @@
 				<div class="ui bottom attached table segment members">
 					{{range .Team.Members}}
 						<div class="item">
-							{{if and $.IsOrganizationOwner (not (eq $.SignedUser.ID .ID))}}
+							{{if and $.IsOrganizationOwner (not (and ($.Team.IsOwnerTeam) (eq (len $.Team.Members) 1)))}}
 								<form>
 									<button class="ui red button delete-button right" data-modal-id="remove-team-member"
 										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"

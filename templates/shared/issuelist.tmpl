@@ -33,8 +33,8 @@
 				<div class="issue-item-top-row">
 					<a class="title tdn" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">{{RenderEmoji .Title}}</a>
 					{{if .IsPull}}
-						{{if (index $.CommitStatus .PullRequest.ID)}}
-							{{template "repo/commit_status" (index $.CommitStatus .PullRequest.ID)}}
+						{{if (index $.CommitStatuses .PullRequest.ID)}}
+							{{template "repo/commit_statuses" dict "Status" (index $.CommitLastStatus .PullRequest.ID) "Statuses" (index $.CommitStatuses .PullRequest.ID) "root" $}}
 						{{end}}
 					{{end}}
 					<span class="labels-list ml-2">
@@ -51,13 +51,34 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.Lang }}
+					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
 					{{if .OriginalAuthor }}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
 						{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 					{{else}}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+					{{end}}
+					{{if .IsPull}}
+						<div class="branches">
+							<div class="branch">
+								<a class="bold" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
+									{{/* inline to remove the spaces between spans */}}
+									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
+								</a>
+							</div>
+
+							&laquo;
+
+							{{if .PullRequest.HeadRepo}}
+							<div class="branch">
+								<a class="bold" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+									{{/* inline to remove the spaces between spans */}}
+									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
+								</a>
+							</div>
+							{{end}}
+						</div>
 					{{end}}
 					{{if and .Milestone (ne $.listType "milestone")}}
 						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
@@ -73,7 +94,8 @@
 					{{if gt $tasks 0}}
 						{{$tasksDone := .GetTasksDone}}
 						<span class="checklist">
-							{{svg "octicon-checklist" 14 "mr-2"}}{{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+							{{svg "octicon-checklist" 14 "mr-2"}}{{$tasksDone}} / {{$tasks}}
+							<progress value="{{$tasksDone}}" max="{{$tasks}}"></progress>
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
@@ -138,6 +160,11 @@
 				</div>
 			</div>
 		</li>
+	{{end}}
+	{{if .IssueIndexerUnavailable}}
+		<div class="ui error message">
+			<p>{{$.i18n.Tr "repo.issues.keyword_search_unavailable"}}</p>
+		</div>
 	{{end}}
 </div>
 {{template "base/paginate" .}}

@@ -27,6 +27,7 @@ const (
 	TypeExternalWiki                // 6 ExternalWiki
 	TypeExternalTracker             // 7 ExternalTracker
 	TypeProjects                    // 8 Kanban board
+	TypePackages                    // 9 Packages
 )
 
 // Value returns integer value for unit type
@@ -52,6 +53,8 @@ func (u Type) String() string {
 		return "TypeExternalTracker"
 	case TypeProjects:
 		return "TypeProjects"
+	case TypePackages:
+		return "TypePackages"
 	}
 	return fmt.Sprintf("Unknown Type %d", u)
 }
@@ -74,6 +77,7 @@ var (
 		TypeExternalWiki,
 		TypeExternalTracker,
 		TypeProjects,
+		TypePackages,
 	}
 
 	// DefaultRepoUnits contains the default unit types
@@ -84,6 +88,7 @@ var (
 		TypeReleases,
 		TypeWiki,
 		TypeProjects,
+		TypePackages,
 	}
 
 	// NotAllowedDefaultRepoUnits contains units that can't be default
@@ -275,6 +280,15 @@ var (
 		perm.AccessModeOwner,
 	}
 
+	UnitPackages = Unit{
+		TypePackages,
+		"repo.packages",
+		"/packages",
+		"packages.desc",
+		6,
+		perm.AccessModeRead,
+	}
+
 	// Units contains all the units
 	Units = map[Type]Unit{
 		TypeCode:            UnitCode,
@@ -285,6 +299,7 @@ var (
 		TypeWiki:            UnitWiki,
 		TypeExternalWiki:    UnitExternalWiki,
 		TypeProjects:        UnitProjects,
+		TypePackages:        UnitPackages,
 	}
 )
 
@@ -328,7 +343,12 @@ func AllUnitKeyNames() []string {
 // MinUnitAccessMode returns the minial permission of the permission map
 func MinUnitAccessMode(unitsMap map[Type]perm.AccessMode) perm.AccessMode {
 	res := perm.AccessModeNone
-	for _, mode := range unitsMap {
+	for t, mode := range unitsMap {
+		// Don't allow `TypeExternal{Tracker,Wiki}` to influence this as they can only be set to READ perms.
+		if t == TypeExternalTracker || t == TypeExternalWiki {
+			continue
+		}
+
 		// get the minial permission great than AccessModeNone except all are AccessModeNone
 		if mode > perm.AccessModeNone && (res == perm.AccessModeNone || mode < res) {
 			res = mode

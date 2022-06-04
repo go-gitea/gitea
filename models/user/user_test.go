@@ -31,10 +31,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// ignore none active user email
-	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user9"}))
-	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames([]string{"user8", "user5"}))
+	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user9"}))
+	assert.Equal(t, []string{"user8@example.com", "user5@example.com"}, GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user5"}))
 
-	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames([]string{"user8", "user7"}))
+	assert.Equal(t, []string{"user8@example.com"}, GetUserEmailsByNames(db.DefaultContext, []string{"user8", "user7"}))
 }
 
 func TestCanCreateOrganization(t *testing.T) {
@@ -232,7 +232,21 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 
 	err := CreateUser(user)
 	assert.Error(t, err)
-	assert.True(t, IsErrEmailInvalid(err))
+	assert.True(t, IsErrEmailCharIsNotSupported(err))
+}
+
+func TestCreateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
+
+	// add new user with user2's email
+	user.Name = "testuser"
+	user.LowerName = strings.ToLower(user.Name)
+	user.ID = 0
+	err := CreateUser(user)
+	assert.Error(t, err)
+	assert.True(t, IsErrEmailAlreadyUsed(err))
 }
 
 func TestGetUserIDsByNames(t *testing.T) {
@@ -273,19 +287,19 @@ func TestUpdateUser(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 
 	user.KeepActivityPrivate = true
-	assert.NoError(t, UpdateUser(user, false))
+	assert.NoError(t, UpdateUser(db.DefaultContext, user, false))
 	user = unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
-	assert.Error(t, UpdateUser(user, false))
+	assert.Error(t, UpdateUser(db.DefaultContext, user, false))
 	user = unittest.AssertExistsAndLoadBean(t, &User{ID: 2}).(*User)
 	assert.True(t, user.KeepActivityPrivate)
 
 	user.Email = "no mail@mail.org"
-	assert.Error(t, UpdateUser(user, true))
+	assert.Error(t, UpdateUser(db.DefaultContext, user, true))
 }
 
 func TestNewUserRedirect(t *testing.T) {

@@ -62,7 +62,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		Description: form.Description,
 		Context:     form.Context,
 	}
-	if err := files_service.CreateCommitStatus(ctx.Repo.Repository, ctx.User, sha, status); err != nil {
+	if err := files_service.CreateCommitStatus(ctx, ctx.Repo.Repository, ctx.Doer, sha, status); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateCommitStatus", err)
 		return
 	}
@@ -176,7 +176,7 @@ func GetCommitStatusesByRef(ctx *context.APIContext) {
 		return
 	}
 
-	getCommitStatuses(ctx, filter) //By default filter is maybe the raw SHA
+	getCommitStatuses(ctx, filter) // By default filter is maybe the raw SHA
 }
 
 func getCommitStatuses(ctx *context.APIContext, sha string) {
@@ -253,7 +253,7 @@ func GetCombinedCommitStatusByRef(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 
-	statuses, count, err := models.GetLatestCommitStatus(repo.ID, sha, utils.GetListOptions(ctx))
+	statuses, count, err := models.GetLatestCommitStatus(ctx, repo.ID, sha, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLatestCommitStatus", fmt.Errorf("GetLatestCommitStatus[%s, %s]: %v", repo.FullName(), sha, err))
 		return

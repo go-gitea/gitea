@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -23,42 +24,42 @@ func TestUpdateAssignee(t *testing.T) {
 	// Assign multiple users
 	user2, err := user_model.GetUserByID(2)
 	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user2.ID)
+	_, _, err = ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user2.ID)
 	assert.NoError(t, err)
 
 	user3, err := user_model.GetUserByID(3)
 	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user3.ID)
+	_, _, err = ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user3.ID)
 	assert.NoError(t, err)
 
 	user1, err := user_model.GetUserByID(1) // This user is already assigned (see the definition in fixtures), so running  UpdateAssignee should unassign him
 	assert.NoError(t, err)
-	_, _, err = issue.ToggleAssignee(&user_model.User{ID: 1}, user1.ID)
+	_, _, err = ToggleIssueAssignee(issue, &user_model.User{ID: 1}, user1.ID)
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := IsUserAssignedToIssue(issue, user1)
+	isAssigned, err := IsUserAssignedToIssue(db.DefaultContext, issue, user1)
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 
 	// Check if they're all there
-	assignees, err := GetAssigneesByIssue(issue)
+	err = issue.LoadAssignees(db.DefaultContext)
 	assert.NoError(t, err)
 
 	var expectedAssignees []*user_model.User
 	expectedAssignees = append(expectedAssignees, user2, user3)
 
-	for in, assignee := range assignees {
+	for in, assignee := range issue.Assignees {
 		assert.Equal(t, assignee.ID, expectedAssignees[in].ID)
 	}
 
 	// Check if the user is assigned
-	isAssigned, err = IsUserAssignedToIssue(issue, user2)
+	isAssigned, err = IsUserAssignedToIssue(db.DefaultContext, issue, user2)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 
 	// This user should not be assigned
-	isAssigned, err = IsUserAssignedToIssue(issue, &user_model.User{ID: 4})
+	isAssigned, err = IsUserAssignedToIssue(db.DefaultContext, issue, &user_model.User{ID: 4})
 	assert.NoError(t, err)
 	assert.False(t, isAssigned)
 }

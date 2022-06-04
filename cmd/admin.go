@@ -25,6 +25,7 @@ import (
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
+	"code.gitea.io/gitea/modules/util"
 	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/auth/source/smtp"
@@ -56,6 +57,7 @@ var (
 			microcmdUserList,
 			microcmdUserChangePassword,
 			microcmdUserDelete,
+			microcmdUserGenerateAccessToken,
 		},
 	}
 
@@ -113,6 +115,10 @@ var (
 				Name:  "access-token",
 				Usage: "Generate access token for the user",
 			},
+			cli.BoolFlag{
+				Name:  "restricted",
+				Usage: "Make a restricted user account",
+			},
 		},
 	}
 
@@ -152,6 +158,27 @@ var (
 			},
 		},
 		Action: runDeleteUser,
+	}
+
+	microcmdUserGenerateAccessToken = cli.Command{
+		Name:  "generate-access-token",
+		Usage: "Generate a access token for a specific user",
+		Flags: []cli.Flag{
+			cli.StringFlag{
+				Name:  "username,u",
+				Usage: "Username",
+			},
+			cli.StringFlag{
+				Name:  "token-name,t",
+				Usage: "Token name",
+				Value: "gitea-admin",
+			},
+			cli.BoolFlag{
+				Name:  "raw",
+				Usage: "Display only the token value",
+			},
+		},
+		Action: runGenerateAccessToken,
 	}
 
 	subcmdRepoSyncReleases = cli.Command{
@@ -463,7 +490,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := user_model.GetUserByName(uname)
+	user, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		return err
 	}
@@ -471,7 +498,7 @@ func runChangePassword(c *cli.Context) error {
 		return err
 	}
 
-	if err = user_model.UpdateUserCols(db.DefaultContext, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err = user_model.UpdateUserCols(ctx, user, "passwd", "passwd_hash_algo", "salt"); err != nil {
 		return err
 	}
 
@@ -525,11 +552,11 @@ func runCreateUser(c *cli.Context) error {
 	}
 
 	// always default to true
-	var changePassword = true
+	changePassword := true
 
 	// If this is the first user being created.
 	// Take it as the admin and don't force a password update.
-	if n := user_model.CountUsers(); n == 0 {
+	if n := user_model.CountUsers(nil); n == 0 {
 		changePassword = false
 	}
 
@@ -537,17 +564,26 @@ func runCreateUser(c *cli.Context) error {
 		changePassword = c.Bool("must-change-password")
 	}
 
+	restricted := util.OptionalBoolNone
+
+	if c.IsSet("restricted") {
+		restricted = util.OptionalBoolOf(c.Bool("restricted"))
+	}
+
 	u := &user_model.User{
 		Name:               username,
 		Email:              c.String("email"),
 		Passwd:             password,
-		IsActive:           true,
 		IsAdmin:            c.Bool("admin"),
 		MustChangePassword: changePassword,
-		Theme:              setting.UI.DefaultTheme,
 	}
 
-	if err := user_model.CreateUser(u); err != nil {
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:     util.OptionalBoolTrue,
+		IsRestricted: restricted,
+	}
+
+	if err := user_model.CreateUser(u, overwriteDefault); err != nil {
 		return fmt.Errorf("CreateUser: %v", err)
 	}
 
@@ -577,7 +613,6 @@ func runListUsers(c *cli.Context) error {
 	}
 
 	users, err := user_model.GetAllUsers()
-
 	if err != nil {
 		return err
 	}
@@ -601,7 +636,6 @@ func runListUsers(c *cli.Context) error {
 
 	w.Flush()
 	return nil
-
 }
 
 func runDeleteUser(c *cli.Context) error {
@@ -625,7 +659,7 @@ func runDeleteUser(c *cli.Context) error {
 	if c.IsSet("email") {
 		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = user_model.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
 		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
@@ -641,6 +675,41 @@ func runDeleteUser(c *cli.Context) error {
 	}
 
 	return user_service.DeleteUser(user)
+}
+
+func runGenerateAccessToken(c *cli.Context) error {
+	if !c.IsSet("username") {
+		return fmt.Errorf("You must provide the username to generate a token for them")
+	}
+
+	ctx, cancel := installSignals()
+	defer cancel()
+
+	if err := initDB(ctx); err != nil {
+		return err
+	}
+
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
+	if err != nil {
+		return err
+	}
+
+	t := &models.AccessToken{
+		Name: c.String("token-name"),
+		UID:  user.ID,
+	}
+
+	if err := models.NewAccessToken(t); err != nil {
+		return err
+	}
+
+	if c.Bool("raw") {
+		fmt.Printf("%s\n", t.Token)
+	} else {
+		fmt.Printf("Access token was successfully created: %s\n", t.Token)
+	}
+
+	return nil
 }
 
 func runRepoSyncReleases(_ *cli.Context) error {
@@ -669,7 +738,7 @@ func runRepoSyncReleases(_ *cli.Context) error {
 		log.Trace("Processing next %d repos of %d", len(repos), count)
 		for _, repo := range repos {
 			log.Trace("Synchronizing repo %s with path %s", repo.FullName(), repo.RepoPath())
-			gitRepo, err := git.OpenRepository(repo.RepoPath())
+			gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 			if err != nil {
 				log.Warn("OpenRepository: %v", err)
 				continue
@@ -826,7 +895,6 @@ func runUpdateOauth(c *cli.Context) error {
 
 	if c.IsSet("required-claim-name") {
 		oAuth2Config.RequiredClaimName = c.String("required-claim-name")
-
 	}
 	if c.IsSet("required-claim-value") {
 		oAuth2Config.RequiredClaimValue = c.String("required-claim-value")
@@ -843,7 +911,7 @@ func runUpdateOauth(c *cli.Context) error {
 	}
 
 	// update custom URL mapping
-	var customURLMapping = &oauth2.CustomURLMapping{}
+	customURLMapping := &oauth2.CustomURLMapping{}
 
 	if oAuth2Config.CustomURLMapping != nil {
 		customURLMapping.TokenURL = oAuth2Config.CustomURLMapping.TokenURL
@@ -926,7 +994,7 @@ func runAddSMTP(c *cli.Context) error {
 	if !c.IsSet("port") {
 		return errors.New("port must be set")
 	}
-	var active = true
+	active := true
 	if c.IsSet("active") {
 		active = c.BoolT("active")
 	}
@@ -994,7 +1062,6 @@ func runListAuth(c *cli.Context) error {
 	}
 
 	authSources, err := auth.Sources()
-
 	if err != nil {
 		return err
 	}

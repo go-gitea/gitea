@@ -87,7 +87,7 @@ func Emails(ctx *context.Context) {
 			emails[i].SearchEmailResult = *baseEmails[i]
 			// Don't let the admin deactivate its own primary email address
 			// We already know the user is admin
-			emails[i].CanChange = ctx.User.ID != emails[i].UID || !emails[i].IsPrimary
+			emails[i].CanChange = ctx.Doer.ID != emails[i].UID || !emails[i].IsPrimary
 		}
 	}
 	ctx.Data["Keyword"] = opts.Keyword
@@ -101,9 +101,7 @@ func Emails(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplEmails)
 }
 
-var (
-	nullByte = []byte{0x00}
-)
+var nullByte = []byte{0x00}
 
 func isKeywordValid(keyword string) bool {
 	return !bytes.Contains([]byte(keyword), nullByte)
@@ -111,7 +109,6 @@ func isKeywordValid(keyword string) bool {
 
 // ActivateEmail serves a POST request for activating/deactivating a user's email
 func ActivateEmail(ctx *context.Context) {
-
 	truefalse := map[string]bool{"1": true, "0": false}
 
 	uid := ctx.FormInt64("uid")

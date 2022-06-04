@@ -44,7 +44,7 @@ func SendEmail(ctx *context.PrivateContext) {
 	var emails []string
 	if len(mail.To) > 0 {
 		for _, uname := range mail.To {
-			user, err := user_model.GetUserByName(uname)
+			user, err := user_model.GetUserByName(ctx, uname)
 			if err != nil {
 				err := fmt.Sprintf("Failed to get user information: %v", err)
 				log.Error(err)
@@ -60,7 +60,7 @@ func SendEmail(ctx *context.PrivateContext) {
 		}
 	} else {
 		err := user_model.IterateUser(func(user *user_model.User) error {
-			if len(user.Email) > 0 {
+			if len(user.Email) > 0 && user.IsActive {
 				emails = append(emails, user.Email)
 			}
 			return nil

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -44,7 +45,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 	}
 	defer file.Close()
 
-	attach, err := attachment.UploadAttachment(file, ctx.User.ID, repoID, 0, header.Filename, allowedTypes)
+	attach, err := attachment.UploadAttachment(file, ctx.Doer.ID, repoID, 0, header.Filename, allowedTypes)
 	if err != nil {
 		if upload.IsErrFileTypeForbidden(err) {
 			ctx.Error(http.StatusBadRequest, err.Error())
@@ -63,12 +64,12 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 // DeleteAttachment response for deleting issue's attachment
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
-	attach, err := repo_model.GetAttachmentByUUID(file)
+	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, err.Error())
 		return
 	}
-	if !ctx.IsSigned || (ctx.User.ID != attach.UploaderID) {
+	if !ctx.IsSigned || (ctx.Doer.ID != attach.UploaderID) {
 		ctx.Error(http.StatusForbidden)
 		return
 	}
@@ -84,7 +85,7 @@ func DeleteAttachment(ctx *context.Context) {
 
 // GetAttachment serve attachements
 func GetAttachment(ctx *context.Context) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx.Params(":uuid"))
+	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -100,13 +101,13 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	if repository == nil { //If not linked
-		if !(ctx.IsSigned && attach.UploaderID == ctx.User.ID) { //We block if not the uploader
+	if repository == nil { // If not linked
+		if !(ctx.IsSigned && attach.UploaderID == ctx.Doer.ID) { // We block if not the uploader
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-	} else { //If we have the repository we check access
-		perm, err := models.GetUserRepoPermission(repository, ctx.User)
+	} else { // If we have the repository we check access
+		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
 			return
@@ -123,7 +124,7 @@ func GetAttachment(ctx *context.Context) {
 	}
 
 	if setting.Attachment.ServeDirect {
-		//If we have a signed url (S3, object storage), redirect to this directly.
+		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.Attachments.URL(attach.RelativePath(), attach.Name)
 
 		if u != nil && err == nil {
@@ -136,7 +137,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	//If we have matched and access to release or issue
+	// If we have matched and access to release or issue
 	fr, err := storage.Attachments.Open(attach.RelativePath())
 	if err != nil {
 		ctx.ServerError("Open", err)

@@ -8,13 +8,14 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
 
 // InsertMilestones creates milestones of repository.
-func InsertMilestones(ms ...*Milestone) (err error) {
+func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 	if len(ms) == 0 {
 		return nil
 	}
@@ -52,10 +53,6 @@ func InsertIssues(issues ...*Issue) error {
 			return err
 		}
 	}
-	err = UpdateRepoStats(ctx, issues[0].RepoID)
-	if err != nil {
-		return err
-	}
 	return committer.Commit()
 }
 
@@ -83,6 +80,13 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 
 	if len(issue.Reactions) > 0 {
 		if _, err := sess.Insert(issue.Reactions); err != nil {
+			return err
+		}
+	}
+
+	if issue.ForeignReference != nil {
+		issue.ForeignReference.LocalIndex = issue.Index
+		if _, err := sess.Insert(issue.ForeignReference); err != nil {
 			return err
 		}
 	}
@@ -146,11 +150,6 @@ func InsertPullRequests(prs ...*PullRequest) error {
 		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
 			return err
 		}
-	}
-
-	err = UpdateRepoStats(ctx, prs[0].Issue.RepoID)
-	if err != nil {
-		return err
 	}
 	return committer.Commit()
 }

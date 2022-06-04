@@ -527,13 +527,16 @@
   margin-right: 10px !important;
 
   i {
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    &:extend(.unselectable);
   }
+}
+
+.markup-render {
+  display: block;
+  border: none;
+  width: 100%;
+  height: var(--height-loading); // actual height is set in JS after loading
+  overflow: hidden;
 }
 
 .markup-block-error {
@@ -542,7 +545,7 @@
   border-bottom-right-radius: 0 !important;
   box-shadow: none !important;
   font-size: 85% !important;
-  white-space: pre !important;
+  white-space: pre-wrap !important;
   padding: .5rem 1rem !important;
   text-align: left !important;
 }

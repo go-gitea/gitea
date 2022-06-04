@@ -1,49 +1,14 @@
+import $ from 'jquery';
 import attachTribute from '../tribute.js';
-
-const {appSubUrl} = window.config;
-
-function loadScript(url) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.async = true;
-    script.addEventListener('load', () => {
-      resolve();
-    });
-    script.addEventListener('error', (e) => {
-      reject(e.error);
-    });
-    script.src = url;
-    document.body.appendChild(script);
-  });
-}
+import {handleGlobalEnterQuickSubmit} from '../common-global.js';
 
 /**
  * @returns {EasyMDE}
  */
 export async function importEasyMDE() {
-  // for CodeMirror: the plugins should be loaded dynamically
-  // https://github.com/codemirror/CodeMirror/issues/5484
-  // https://github.com/codemirror/CodeMirror/issues/4838
-
-  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can not overwrite the default styles.
-  const [{default: EasyMDE}, {default: CodeMirror}] = await Promise.all([
-    import(/* webpackChunkName: "easymde" */'easymde'),
-    import(/* webpackChunkName: "codemirror" */'codemirror'),
-  ]);
-
-  // CodeMirror plugins must be loaded by a "Plain browser env"
-  window.CodeMirror = CodeMirror;
-  await Promise.all([
-    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/addon/mode/loadmode.js`),
-    loadScript(`${appSubUrl}/assets/vendor/plugins/codemirror/mode/meta.js`),
-  ]);
-
-  // the loadmode.js/meta.js would set the modeURL/modeInfo properties, so we check it to make sure our loading works
-  if (!CodeMirror.modeURL || !CodeMirror.modeInfo) {
-    throw new Error('failed to load plugins for CodeMirror');
-  }
-
-  CodeMirror.modeURL = `${appSubUrl}/assets/vendor/plugins/codemirror/mode/%N/%N.js`;
+  // EasyMDE's CSS should be loaded via webpack config, otherwise our own styles can
+  // not overwrite the default styles.
+  const {default: EasyMDE} = await import(/* webpackChunkName: "easymde" */'easymde');
   return EasyMDE;
 }
 
@@ -54,7 +19,7 @@ export async function importEasyMDE() {
  * @returns {null|EasyMDE}
  */
 export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
-  if (textarea instanceof jQuery) {
+  if (textarea instanceof $) {
     textarea = textarea[0];
   }
   if (!textarea) {
@@ -107,13 +72,16 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
         title: 'Revert to simple textarea',
       },
     ], ...easyMDEOptions});
+
   const inputField = easyMDE.codemirror.getInputField();
-  inputField.classList.add('js-quick-submit');
+
   easyMDE.codemirror.setOption('extraKeys', {
-    Enter: () => {
+    'Cmd-Enter': codeMirrorQuickSubmit,
+    'Ctrl-Enter': codeMirrorQuickSubmit,
+    Enter: (cm) => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
-        return window.CodeMirror.Pass;
+        cm.execCommand('newlineAndIndent');
       }
     },
     Backspace: (cm) => {
@@ -151,7 +119,7 @@ export function attachEasyMDEToElements(easyMDE) {
  * @returns {null|EasyMDE}
  */
 export function getAttachedEasyMDE(el) {
-  if (el instanceof jQuery) {
+  if (el instanceof $) {
     el = el[0];
   }
   if (!el) {
@@ -184,4 +152,13 @@ export function validateTextareaNonEmpty($textarea) {
   }
   $mdeInputField.prop('required', false);
   return true;
+}
+
+/**
+ * there is no guarantee that the CodeMirror object is inside the same form as the textarea,
+ * so can not call handleGlobalEnterQuickSubmit directly.
+ * @param {CodeMirror.EditorFromTextArea} codeMirror
+ */
+export function codeMirrorQuickSubmit(codeMirror) {
+  handleGlobalEnterQuickSubmit(codeMirror.getTextArea());
 }

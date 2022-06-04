@@ -17,12 +17,12 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 	}
 	var cmd *Command
 	if CheckGitVersionAtLeast("2.7") == nil {
-		cmd = NewCommandContext(ctx, "remote", "get-url", remoteName)
+		cmd = NewCommand(ctx, "remote", "get-url", remoteName)
 	} else {
-		cmd = NewCommandContext(ctx, "config", "--get", "remote."+remoteName+".url")
+		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
 	}
 
-	result, err := cmd.RunInDir(repoPath)
+	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return nil, err
 	}

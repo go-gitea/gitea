@@ -4,13 +4,250 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.16.0-rc1) - 2022-01-19
+## [1.16.8](https://github.com/go-gitea/gitea/releases/tag/v1.16.8) - 2022-05-16
+
+* ENHANCEMENTS
+  * Add doctor check/fix for bogus action rows (#19656) (#19669)
+  * Make .cs highlighting legible on dark themes. (#19604) (#19605)
+* BUGFIXES
+  * Fix oauth setting list bug (#19681)
+  * Delete user related oauth stuff on user deletion too (#19677) (#19680)
+  * Fix new release from tags list UI (#19670) (#19673)
+  * Prevent NPE when checking repo units if the user is nil (#19625) (#19630)
+  * GetFeeds must always discard actions with dangling repo_id (#19598) (#19629)
+  * Call MultipartForm.RemoveAll when request finishes (#19606) (#19607)
+  * Avoid MoreThanOne error when creating a branch whose name conflicts with other ref names (#19557) (#19591)
+  * Fix sending empty notifications (#19589) (#19590)
+  * Ignore DNS error when doing migration allow/block check (#19566) (#19567)
+  * Fix issue overview for teams (#19652) (#19653)
+
+## [1.16.7](https://github.com/go-gitea/gitea/releases/tag/v1.16.7) - 2022-05-02
+
+* SECURITY
+  * Escape git fetch remote (#19487) (#19490)
+* BUGFIXES
+  * Don't overwrite err with nil (#19572) (#19574)
+  * On Migrations, only write commit-graph if wiki clone was successful (#19563) (#19568)
+  * Respect DefaultUserIsRestricted system default when creating new user (#19310) (#19560)
+  * Don't error when branch's commit doesn't exist (#19547) (#19548)
+  * Support `hostname:port` to pass host matcher's check (#19543) (#19544)
+  * Prevent intermittent race in attribute reader close (#19537) (#19539)
+  * Fix 64-bit atomic operations on 32-bit machines (#19531) (#19532)
+  * Prevent dangling archiver goroutine (#19516) (#19526)
+  * Fix migrate release from github (#19510) (#19523)
+  * When view _Siderbar or _Footer, just display once (#19501) (#19522)
+  * Fix blame page select range error and some typos (#19503)
+  * Fix name of doctor fix "authorized-keys" in hints (#19464) (#19484)
+  * User specific repoID or xorm builder conditions for issue search (#19475) (#19476)
+  * Prevent dangling cat-file calls (goroutine alternative) (#19454) (#19466)
+  * RepoAssignment ensure to close before overwrite (#19449) (#19460)
+  * Set correct PR status on 3way on conflict checking (#19457) (#19458)
+  * Mark TemplateLoading error as "UnprocessableEntity" (#19445) (#19446)
+
+## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-20
+
+* ENHANCEMENTS
+  * Only request write when necessary (#18657) (#19422)
+  * Disable service worker by default (#18914) (#19342)
+* BUGFIXES
+  * When dumping trim the standard suffices instead of a random suffix (#19440) (#19447)
+  * Fix DELETE request for non-existent public key (#19443) (#19444)
+  * Don't panic on ErrEmailInvalid (#19441) (#19442)
+  * Add uploadpack.allowAnySHA1InWant to allow --filter=blob:none with older git clients (#19430) (#19438)
+  * Warn on SSH connection for incorrect configuration (#19317) (#19437)
+  * Search Issues via API, dont show 500 if filter result in empty list (#19244) (#19436)
+  * When updating mirror repo intervals by API reschedule next update too (#19429) (#19433)
+  * Fix nil error when some pages are rendered outside request context (#19427) (#19428)
+  * Fix double blob-hunk on diff page (#19404) (#19405)
+  * Don't allow merging PR's which are being conflict checked (#19357) (#19358)
+  * Fix middleware function's placements (#19377) (#19378)
+  * Fix invalid CSRF token bug, make sure CSRF tokens can be up-to-date (#19338)
+  * Restore user autoregistration with email addresses (#19261) (#19312)
+  * Move checks for pulls before merge into own function (#19271) (#19277)
+  * Granular webhook events in editHook (#19251) (#19257)
+  * Only send webhook events to active system webhooks and only deliver to active hooks (#19234) (#19248)
+  * Use full output of git show-ref --tags to get tags for PushUpdateAddTag (#19235) (#19236)
+  * Touch mirrors on even on fail to update (#19217) (#19233)
+  * Hide sensitive content on admin panel progress monitor (#19218 & #19226) (#19231)
+  * Fix clone url JS error for the empty repo page (#19209)
+  * Bump goldmark to v1.4.11 (#19201) (#19203)
+* TESTING
+  * Prevent intermittent failures in RepoIndexerTest (#19225 #19229) (#19228)
+* BUILD
+  * Revert the minimal golang version requirement from 1.17 to 1.16 and add a warning in Makefile (#19319)
+* MISC
+  * Performance improvement for add team user when org has more than 1000 repositories (#19227) (#19289)
+  * Check go and nodejs version by go.mod and package.json (#19197) (#19254)
+
+## [1.16.5](https://github.com/go-gitea/gitea/releases/tag/v1.16.5) - 2022-03-23
+
+* BREAKING
+  * Bump to build with go1.18 (#19120 et al) (#19127)
+* SECURITY
+  * Prevent redirect to Host (2) (#19175) (#19186)
+  * Try to prevent autolinking of displaynames by email readers (#19169) (#19183)
+  * Clean paths when looking in Storage (#19124) (#19179)
+  * Do not send notification emails to inactive users (#19131) (#19139)
+  * Do not send activation email if manual confirm is set (#19119) (#19122)
+* ENHANCEMENTS
+  * Use the new/choose link for New Issue on project page (#19172) (#19176)
+* BUGFIXES
+  * Fix showing issues in your repositories (#18916) (#19191)
+  * Fix compare link in active feeds for new branch (#19149) (#19185)
+  * Redirect .wiki/* ui link to /wiki (#18831) (#19184)
+  * Ensure deploy keys with write access can push (#19010) (#19182)
+  * Ensure that setting.LocalURL always has a trailing slash (#19171) (#19177)
+  * Cleanup protected branches when deleting users & teams (#19158) (#19174)
+  * Use IterateBufferSize whilst querying repositories during adoption check (#19140) (#19160)
+  * Fix NPE /repos/issues/search when not signed in (#19154) (#19155)
+  * Use custom favicon when viewing static files if it exists (#19130) (#19152)
+  * Fix the editor height in review box (#19003) (#19147)
+  * Ensure isSSH is set whenever DISABLE_HTTP_GIT is set (#19028) (#19146)
+  * Fix wrong scopes caused by empty scope input (#19029) (#19145)
+  * Make migrations SKIP_TLS_VERIFY apply to git too (#19132) (#19141)
+  * Handle email address not exist (#19089) (#19121)
+* MISC
+  * Update json-iterator to allow compilation with go1.18 (#18644) (#19100)
+  * Update golang.org/x/crypto (#19097) (#19098)
+
+## [1.16.4](https://github.com/go-gitea/gitea/releases/tag/v1.16.4) - 2022-03-14
+
+* SECURITY
+  * Restrict email address validation (#17688) (#19085)
+  * Fix lfs bug (#19072) (#19080)
+* ENHANCEMENTS
+  * Improve SyncMirrors logging (#19045) (#19050)
+* BUGFIXES
+  * Refactor mirror code & fix `StartToMirror` (#18904) (#19075)
+  * Update the webauthn_credential_id_sequence in Postgres (#19048) (#19060)
+  * Prevent 500 when there is an error during new auth source post (#19041) (#19059)
+  * If rendering has failed due to a net.OpError stop rendering (attempt 2) (#19049) (#19056)
+  * Fix flag validation (#19046) (#19051)
+  * Add pam account authorization check (#19040) (#19047)
+  * Ignore missing comment for user notifications (#18954) (#19043)
+  * Set `rel="nofollow noindex"` on new issue links (#19023) (#19042)
+  * Upgrading binding package (#19034) (#19035)
+  * Don't show context cancelled errors in attribute reader (#19006) (#19027)
+  * Fix update hint bug (#18996) (#19002)
+* MISC
+  *  Fix potential assignee query for repo (#18994) (#18999)
+
+## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
+
+* SECURITY
+ * Git backend ignore replace objects (#18979) (#18980) 
+* ENHANCEMENTS
+  * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
+* BUGFIXES
+  * Set max text height to prevent overflow (#18862) (#18977)
+  * Fix newAttachmentPaths deletion for DeleteRepository() (#18973) (#18974)
+  * Accounts with WebAuthn only (no TOTP) now exist ... fix code to handle that case (#18897) (#18964)
+  * Send 404 on `/{org}.gpg` (#18959) (#18962)
+  * Fix admin user list pagination (#18957) (#18960)
+  * Fix lfs management setting (#18947) (#18946)
+  * Fix login with email panic when email is not exist (#18942)
+  * Update go-org to v1.6.1 (#18932) (#18933)
+  * Fix `<strong>` html in translation (#18929) (#18931)
+  * Fix page and missing return on unadopted repos API (#18848) (#18927)
+  * Allow adminstrator teams members to see other teams (#18918) (#18919)
+  * Don't treat BOM escape sequence as hidden character. (#18909) (#18910)
+  * Correctly link URLs to users/repos with dashes, dots or underscores (… (#18908)
+  * Fix redirect when using lowercase repo name (#18775) (#18902)
+  * Fix migration v210 (#18893) (#18892)
+  * Fix team management UI (#18887) (18886)
+  * BeforeSourcePath should point to base commit (#18880) (#18799)
+* TRANSLATION
+  * Backport locales from master (#18944)
+* MISC
+  * Don't update email for organisation (#18905) (#18906)
+
+## [1.16.2](https://github.com/go-gitea/gitea/releases/tag/v1.16.2) - 2022-02-24
+
+* ENHANCEMENTS
+  * Show fullname on issue edits and gpg/ssh signing info (#18828)
+  * Immediately Hammer if second kill is sent (#18823) (#18826)
+  * Allow mermaid render error to wrap (#18791)
+* BUGFIXES
+  * Fix ldap user sync missed email in email_address table (#18786) (#18876) 
+  * Update assignees check to include any writing team and change org sidebar (#18680) (#18873)
+  * Don't report signal: killed errors in serviceRPC (#18850) (#18865)
+  * Fix bug where certain LDAP settings were reverted (#18859)
+  * Update go-org to 1.6.0 (#18824) (#18839)
+  * Fix login with email for ldap users (#18800) (#18836)
+  * Fix bug for get user by email (#18834)
+  * Fix panic in EscapeReader (#18820) (#18821)
+  * Fix ldap loginname (#18789) (#18804)
+  * Remove redundant call to UpdateRepoStats during migration (#18591) (#18794)
+  * In disk_channel queues synchronously push to disk on shutdown (#18415) (#18788)
+  * Fix template bug of LFS lock (#18784) (#18787)
+  * Attempt to fix the webauthn migration again - part 3 (#18770) (#18771)
+  * Send mail to issue/pr assignee/reviewer also when OnMention is set (#18707) (#18765)
+  * Fix a broken link in commits_list_small.tmpl (#18763) (#18764)
+  * Increase the size of the webauthn_credential credential_id field (#18739) (#18756)
+  * Prevent dangling GetAttribute calls (#18754) (#18755)
+  * Fix isempty detection of git repository (#18746) (#18750)
+  * Fix source code line highlighting on external tracker (#18729) (#18740)
+  * Prevent double encoding of branch names in delete branch (#18714) (#18738)
+  * Always set PullRequestWorkInProgressPrefixes in PrepareViewPullInfo (#18713) (#18737)
+  * Fix forked repositories missed tags (#18719) (#18735)
+  * Fix release typo (#18728) (#18731)
+  * Separate the details links of commit-statuses in headers (#18661) (#18730)
+  * Update object repo with the migrated repository (#18684) (#18726)
+  * Fix bug for version update hint (#18701) (#18705)
+  * Fix issue with docker-rootless shimming script (#18690) (#18699)
+  * Let `MinUnitAccessMode` return correct perm (#18675) (#18689)
+  * Prevent security failure due to bad APP_ID (#18678) (#18682)
+  * Restart zero worker if there is still work to do (#18658) (#18672)
+  * If rendering has failed due to a net.OpError stop rendering (#18642) (#18645)
+* TESTING
+  * Ensure git tag tests and others create test repos in tmpdir (#18447) (#18767)
+* BUILD
+  * Reduce CI go module downloads, add make targets (#18708, #18475, #18443) (#18741)
+* MISC
+  * Put buttons back in org dashboard (#18817) (#18825)
+  * Various Mermaid improvements (#18776) (#18780)
+  * C preprocessor colors improvement (#18671) (#18696)
+  * Fix the missing i18n key for update checker (#18646) (#18665)
+
+## [1.16.1](https://github.com/go-gitea/gitea/releases/tag/v1.16.1) - 2022-02-06
+
+* SECURITY
+  * Update JS dependencies, fix lint (#18389) (#18540)
+* ENHANCEMENTS
+  * Add dropdown icon to label set template dropdown (#18564) (#18571)
+* BUGFIXES
+  * comments on migrated issues/prs must link to the comment ID (#18630) (#18637)
+  * Stop logging an error when notes are not found (#18626) (#18635)
+  * Ensure that blob-excerpt links work for wiki (#18587) (#18624)
+  * Only attempt to flush queue if the underlying worker pool is not finished (#18593) (#18620)
+  * Ensure commit-statuses box is sized correctly in headers (#18538) (#18606)
+  * Prevent merge messages from being sorted to the top of email chains (#18566) (#18588)
+  * Prevent panic on prohibited user login with oauth2 (#18562) (#18563)
+  * Collaborator trust model should trust collaborators (#18539) (#18557)
+  * Detect conflicts with 3way merge (#18536) (#18537)
+  * In docker rootless use $GITEA_APP_INI if provided (#18524) (#18535)
+  * Add `GetUserTeams` (#18499) (#18531)
+  * Fix review excerpt (#18502) (#18530)
+  * Fix for AvatarURL database type (#18487) (#18529)
+  * Use `ImagedProvider` for gplus oauth2 provider (#18504) (#18505)
+  * Fix OAuth Source Edit Page (#18495) (#18503)
+  * Use "read" value for General Access (#18496) (#18500)
+  * Prevent NPE on partial match of compare URL and allow short SHA1 compare URLs (#18472) (#18473)
+* BUILD
+  * Make docker gitea/gitea:v1.16-dev etc refer to the latest build on that branch (#18551) (#18569)
+* DOCS
+  * Update 1.16.0 changelog to set #17846 as breaking (#18533) (#18534)
+
+## [1.16.0](https://github.com/go-gitea/gitea/releases/tag/v1.16.0) - 2022-01-30
 
 * BREAKING
   * Remove golang vendored directory (#18277)
   * Paginate releases page & set default page size to 10 (#16857)
+  * Use shadowing script for docker (#17846)
   * Only allow webhook to send requests to allowed hosts (#17482)
 * SECURITY
+  * Disable content sniffing on `PlainTextBytes` (#18359) (#18365)
+  * Only view milestones from current repo (#18414) (#18417)
   * Sanitize user-input on file name (#17666)
   * Use `hostmatcher` to replace `matchlist` to improve blocking of bad hosts in Webhooks (#17605)
 * FEATURES
@@ -228,6 +465,16 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add left padding for chunk header of split diff view (#13397)
   * Allow U2F 2FA without TOTP (#11573)
 * BUGFIXES
+  * GitLab reviews may not have the updated_at field set (#18450) (#18461)
+  * Fix detection of no commits when the default branch is not master (#18422) (#18423)
+  * Fix broken oauth2 authentication source edit page (#18412) (#18419)
+  * Place inline diff comment dialogs on split diff in 4th and 8th columns (#18403) (#18404)
+  * Fix restore without topic failure (#18387) (#18400)
+  * Fix commit's time (#18375) (#18392)
+  * Fix partial cloning a repo (#18373) (#18377)
+  * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
+  * Prevent showing webauthn error for every time visiting `/user/settings/security` (#18386)
+  * Fix mime-type detection for HTTP server (#18370) (#18371)
   * Stop trimming preceding and suffixing spaces from editor filenames (#18334)
   * Restore propagation of ErrDependenciesLeft (#18325)
   * Fix PR comments UI (#18323)
@@ -295,9 +542,21 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUILD
   * Add lockfile-check (#18285)
   * Don't store assets modified time into generated files (#18193)
-  * Use shadowing script for docker (#17846)
 * MISC
   * Update JS dependencies (#17611)
+
+## [1.15.11](https://github.com/go-gitea/gitea/releases/tag/v1.15.11) - 2022-01-29
+
+* SECURITY
+  * Only view milestones from current repo (#18414) (#18418)
+* BUGFIXES
+  * Fix broken when no commits and default branch is not master (#18422) (#18424)
+  * Fix commit's time (#18375) (#18409)
+  * Fix restore without topic failure (#18387) (#18401)
+  * Fix mermaid import in 1.15 (it uses ESModule now) (#18382)
+  * Update to go/text 0.3.7 (#18336)
+* MISC
+  * Upgrade EasyMDE to 2.16.1 (#18278) (#18279)
 
 ## [1.15.10](https://github.com/go-gitea/gitea/releases/tag/v1.15.10) - 2022-01-14
 

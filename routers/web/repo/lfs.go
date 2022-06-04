@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -103,31 +104,31 @@ func LFSLocks(ctx *context.Context) {
 	}
 
 	// Clone base repo.
-	tmpBasePath, err := models.CreateTemporaryPath("locks")
+	tmpBasePath, err := repo_module.CreateTemporaryPath("locks")
 	if err != nil {
 		log.Error("Failed to create temporary path: %v", err)
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
 		}
 	}()
 
-	if err := git.Clone(ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
+	if err := git.Clone(ctx, ctx.Repo.Repository.RepoPath(), tmpBasePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to clone repository: %s (%v)", ctx.Repo.Repository.FullName(), err))
 		return
 	}
 
-	gitRepo, err := git.OpenRepository(tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Failed to open new temporary repository in: %s %v", tmpBasePath, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))
 		return
 	}
 	defer gitRepo.Close()
@@ -140,7 +141,7 @@ func LFSLocks(ctx *context.Context) {
 
 	if err := gitRepo.ReadTreeToIndex(ctx.Repo.Repository.DefaultBranch); err != nil {
 		log.Error("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err)
-		ctx.ServerError("LFSLocks", fmt.Errorf("Unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
+		ctx.ServerError("LFSLocks", fmt.Errorf("unable to read the default branch to the index: %s (%v)", ctx.Repo.Repository.DefaultBranch, err))
 		return
 	}
 
@@ -217,7 +218,7 @@ func LFSLockFile(ctx *context.Context) {
 
 	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
 		Path:    lockPath,
-		OwnerID: ctx.User.ID,
+		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
 		if models.IsErrLFSLockAlreadyExist(err) {
@@ -237,7 +238,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.User, true)
+	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -253,6 +254,13 @@ func LFSFileGet(ctx *context.Context) {
 	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 	oid := ctx.Params("oid")
+
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSFileGet", nil)
+		return
+	}
+
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
 	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
@@ -305,7 +313,7 @@ func LFSFileGet(ctx *context.Context) {
 
 		var output bytes.Buffer
 		lines := strings.Split(escapedContent.String(), "\n")
-		//Remove blank line at the end of file
+		// Remove blank line at the end of file
 		if len(lines) > 0 && lines[len(lines)-1] == "" {
 			lines = lines[:len(lines)-1]
 		}
@@ -343,6 +351,12 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 	oid := ctx.Params("oid")
+	p := lfs.Pointer{Oid: oid}
+	if !p.IsValid() {
+		ctx.NotFound("LFSDelete", nil)
+		return
+	}
+
 	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
@@ -463,7 +477,7 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Associatable, err = models.LFSObjectAccessible(ctx.User, pointerBlob.Oid)
+					result.Associatable, err = models.LFSObjectAccessible(ctx.Doer, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
@@ -525,20 +539,20 @@ func LFSAutoAssociate(ctx *context.Context) {
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')
 		if idx < 0 || idx+1 > len(oid) {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s", oid))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s", oid))
 			return
 		}
 		var err error
 		metas[i] = &models.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
-			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("Illegal oid input: %s %v", oid, err))
+			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
 			return
 		}
 		metas[i].Oid = oid[:idx]
-		//metas[i].RepositoryID = ctx.Repo.Repository.ID
+		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
-	if err := models.LFSAutoAssociate(metas, ctx.User, ctx.Repo.Repository.ID); err != nil {
+	if err := models.LFSAutoAssociate(metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
 		return
 	}

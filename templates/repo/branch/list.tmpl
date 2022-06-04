@@ -18,7 +18,7 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch}}">{{.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.i18n.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .i18n.Lang}}</p>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.i18n.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .i18n.Lang}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
@@ -59,7 +59,7 @@
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .Name}}">{{.Name}}</a>
-										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -121,9 +121,9 @@
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{PathEscapeSegments .DeletedBranch.Name}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
+												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
 											{{else}}
-												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{PathEscapeSegments .Name}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
+												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
 												</a>
 											{{end}}

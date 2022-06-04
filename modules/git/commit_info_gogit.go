@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -158,7 +157,7 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 
 func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*object.Commit, []string, error) {
 	var unHitEntryPaths []string
-	var results = make(map[string]*object.Commit)
+	results := make(map[string]*object.Commit)
 	for _, p := range paths {
 		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
 		if err != nil {

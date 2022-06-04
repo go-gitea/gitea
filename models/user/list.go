@@ -5,6 +5,7 @@
 package user
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/auth"
@@ -17,7 +18,7 @@ type UserList []*User //revive:disable-line:exported
 
 // GetUserIDs returns a slice of user's id
 func (users UserList) GetUserIDs() []int64 {
-	userIDs := make([]int64, len(users))
+	userIDs := make([]int64, 0, len(users))
 	for _, user := range users {
 		userIDs = append(userIDs, user.ID) // Considering that user id are unique in the list
 	}
@@ -30,30 +31,44 @@ func (users UserList) GetTwoFaStatus() map[int64]bool {
 	for _, user := range users {
 		results[user.ID] = false // Set default to false
 	}
-	tokenMaps, err := users.loadTwoFactorStatus(db.GetEngine(db.DefaultContext))
-	if err == nil {
+
+	if tokenMaps, err := users.loadTwoFactorStatus(db.DefaultContext); err == nil {
 		for _, token := range tokenMaps {
 			results[token.UID] = true
+		}
+	}
+
+	if ids, err := users.userIDsWithWebAuthn(db.DefaultContext); err == nil {
+		for _, id := range ids {
+			results[id] = true
 		}
 	}
 
 	return results
 }
 
-func (users UserList) loadTwoFactorStatus(e db.Engine) (map[int64]*auth.TwoFactor, error) {
+func (users UserList) loadTwoFactorStatus(ctx context.Context) (map[int64]*auth.TwoFactor, error) {
 	if len(users) == 0 {
 		return nil, nil
 	}
 
 	userIDs := users.GetUserIDs()
 	tokenMaps := make(map[int64]*auth.TwoFactor, len(userIDs))
-	err := e.
-		In("uid", userIDs).
-		Find(&tokenMaps)
-	if err != nil {
+	if err := db.GetEngine(ctx).In("uid", userIDs).Find(&tokenMaps); err != nil {
 		return nil, fmt.Errorf("find two factor: %v", err)
 	}
 	return tokenMaps, nil
+}
+
+func (users UserList) userIDsWithWebAuthn(ctx context.Context) ([]int64, error) {
+	if len(users) == 0 {
+		return nil, nil
+	}
+	ids := make([]int64, 0, len(users))
+	if err := db.GetEngine(ctx).Table(new(auth.WebAuthnCredential)).In("user_id", users.GetUserIDs()).Select("user_id").Distinct("user_id").Find(&ids); err != nil {
+		return nil, fmt.Errorf("find two factor: %v", err)
+	}
+	return ids, nil
 }
 
 // GetUsersByIDs returns all resolved users from a list of Ids.

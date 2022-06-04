@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // DefaultContext is the default context to run xorm queries in
@@ -35,7 +36,7 @@ type Context struct {
 func WithEngine(ctx context.Context, e Engine) *Context {
 	return &Context{
 		Context: ctx,
-		e:       e,
+		e:       e.Context(ctx),
 	}
 }
 
@@ -50,6 +51,11 @@ func (ctx *Context) Value(key interface{}) interface{} {
 		return ctx
 	}
 	return ctx.Context.Value(key)
+}
+
+// WithContext returns this engine tied to this context
+func (ctx *Context) WithContext(other context.Context) *Context {
+	return WithEngine(other, ctx.e)
 }
 
 // Engined structs provide an Engine
@@ -98,7 +104,14 @@ func WithContext(f func(ctx *Context) error) error {
 }
 
 // WithTx represents executing database operations on a transaction
-func WithTx(f func(ctx context.Context) error) error {
+// you can optionally change the context to a parrent one
+func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
+	parentCtx := DefaultContext
+	if len(stdCtx) != 0 && stdCtx[0] != nil {
+		// TODO: make sure parent context has no open session
+		parentCtx = stdCtx[0]
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
@@ -106,7 +119,7 @@ func WithTx(f func(ctx context.Context) error) error {
 	}
 
 	if err := f(&Context{
-		Context: DefaultContext,
+		Context: parentCtx,
 		e:       sess,
 	}); err != nil {
 		return err
@@ -143,6 +156,17 @@ func DeleteByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Delete(bean)
 }
 
+// DeleteBeans deletes all given beans, beans should contain delete conditions.
+func DeleteBeans(ctx context.Context, beans ...interface{}) (err error) {
+	e := GetEngine(ctx)
+	for i := range beans {
+		if _, err = e.Delete(beans[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // CountByBean counts the number of database records according non-empty fields of the bean as conditions.
 func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 	return GetEngine(ctx).Count(bean)
@@ -151,4 +175,25 @@ func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 // TableName returns the table name according a bean object
 func TableName(bean interface{}) string {
 	return x.TableName(bean)
+}
+
+// EstimateCount returns an estimate of total number of rows in table
+func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
+	e := GetEngine(ctx)
+	e.Context(ctx)
+
+	var rows int64
+	var err error
+	tablename := TableName(bean)
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
+	case schemas.POSTGRES:
+		_, err = e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
+	case schemas.MSSQL:
+		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
+	default:
+		return e.Context(ctx).Count(tablename)
+	}
+	return rows, err
 }
