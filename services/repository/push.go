@@ -399,7 +399,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	if len(newReleases) > 0 {
-		if err = models.InsertReleasesContext(ctx, newReleases); err != nil {
+		if err = db.Insert(ctx, newReleases); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 	}
