@@ -1808,13 +1808,7 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	} else {
 		// Need to check if Issues are enabled and we can read Issues
-		if !ctx.Repo.CanRead(unit.TypeIssues) &&
-			!ctx.Repo.CanRead(unit.TypeExternalTracker) {
-			ctx.Error(http.StatusNotFound)
-			return
-		}
-		_, err := ctx.Repo.Repository.GetUnit(unit.TypeExternalTracker)
-		if err == nil {
+		if !ctx.Repo.CanRead(unit.TypeIssues)  {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
