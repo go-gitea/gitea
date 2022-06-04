@@ -112,10 +112,10 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 
 // CreateRelease creates a new release of repository.
 func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs []string, msg string) error {
-	isExist, err := models.IsReleaseExist(rel.RepoID, rel.TagName)
+	has, err := models.IsReleaseExist(gitRepo.Ctx, rel.RepoID, rel.TagName)
 	if err != nil {
 		return err
-	} else if isExist {
+	} else if has {
 		return models.ErrReleaseAlreadyExist{
 			TagName: rel.TagName,
 		}
@@ -126,7 +126,7 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 	}
 
 	rel.LowerTagName = strings.ToLower(rel.TagName)
-	if err = models.InsertRelease(rel); err != nil {
+	if err = db.Insert(gitRepo.Ctx, rel); err != nil {
 		return err
 	}
 
@@ -143,10 +143,10 @@ func CreateRelease(gitRepo *git.Repository, rel *models.Release, attachmentUUIDs
 
 // CreateNewTag creates a new repository tag
 func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, tagName, msg string) error {
-	isExist, err := models.IsReleaseExist(repo.ID, tagName)
+	has, err := models.IsReleaseExist(ctx, repo.ID, tagName)
 	if err != nil {
 		return err
-	} else if isExist {
+	} else if has {
 		return models.ErrTagAlreadyExists{
 			TagName: tagName,
 		}
@@ -174,11 +174,7 @@ func CreateNewTag(ctx context.Context, doer *user_model.User, repo *repo_model.R
 		return err
 	}
 
-	if err = models.InsertRelease(rel); err != nil {
-		return err
-	}
-
-	return err
+	return db.Insert(ctx, rel)
 }
 
 // UpdateRelease updates information, attachments of a release and will create tag if it's not a draft and tag not exist.
@@ -286,12 +282,12 @@ func UpdateRelease(doer *user_model.User, gitRepo *git.Repository, rel *models.R
 
 // DeleteReleaseByID deletes a release and corresponding Git tag by given ID.
 func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, delTag bool) error {
-	rel, err := models.GetReleaseByID(id)
+	rel, err := models.GetReleaseByID(ctx, id)
 	if err != nil {
 		return fmt.Errorf("GetReleaseByID: %v", err)
 	}
 
-	repo, err := repo_model.GetRepositoryByID(rel.RepoID)
+	repo, err := repo_model.GetRepositoryByIDCtx(ctx, rel.RepoID)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByID: %v", err)
 	}

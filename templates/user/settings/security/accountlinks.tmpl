@@ -1,25 +1,42 @@
 <h4 class="ui top attached header">
 	{{.i18n.Tr "settings.manage_account_links"}}
+	{{if .OrderedOAuth2Names}}
+		<div class="ui right">
+			<div class="ui dropdown">
+				<div class="ui primary tiny button">{{.i18n.Tr "settings.link_account"}}</div>
+				<div class="menu">
+					{{range $key := .OrderedOAuth2Names}}
+						{{$provider := index $.OAuth2Providers $key}}
+						<a class="item" href="{{AppSubUrl}}/user/oauth2/{{$key}}">
+							<img width="20" height="20" src="{{AppSubUrl}}{{$provider.Image}}" alt="{{$provider.DisplayName}}">
+							{{$provider.DisplayName}}
+						</a>
+					{{end}}
+				</div>
+			</div>
+		</div>
+	{{end}}
 </h4>
+
 <div class="ui attached segment">
 	<div class="ui key list">
 		<div class="item">
 			{{.i18n.Tr "settings.manage_account_links_desc"}}
 		</div>
 		{{if .AccountLinks}}
-		{{range $loginSource, $provider := .AccountLinks}}
-			<div class="item">
-				<div class="right floated content">
-						<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
-							{{$.i18n.Tr "settings.delete_key"}}
-						</button>
-				</div>
+			{{range $loginSource, $provider := .AccountLinks}}
+				<div class="item">
+					<div class="right floated content">
+							<button class="ui red tiny button delete-button" data-modal-id="delete-account-link" data-url="{{AppSubUrl}}/user/settings/security/account_link" data-id="{{$loginSource.ID}}">
+								{{$.i18n.Tr "settings.delete_key"}}
+							</button>
+					</div>
 					<div class="content">
 						<strong>{{$provider}}</strong>
 						{{if $loginSource.IsActive}}<span class="text red">{{$.i18n.Tr "settings.active"}}</span>{{end}}
 					</div>
-			</div>
-		{{end}}
+				</div>
+			{{end}}
 		{{end}}
 	</div>
 </div>

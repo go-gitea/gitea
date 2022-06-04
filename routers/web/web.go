@@ -344,10 +344,6 @@ func RegisterRoutes(m *web.Route) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), auth.SignUpPost)
-		m.Group("/oauth2", func() {
-			m.Get("/{provider}", auth.SignInOAuth)
-			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
-		})
 		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
 		m.Post("/link_account_signin", linkAccountEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", linkAccountEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
@@ -452,6 +448,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Group("/oauth2", func() {
+			m.Get("/{provider}", auth.SignInOAuth)
+			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
+		})
 	})
 	// ***** END: User *****
 
