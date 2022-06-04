@@ -1808,7 +1808,7 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 	} else {
 		// Need to check if Issues are enabled and we can read Issues
-		if !ctx.Repo.CanRead(unit.TypeIssues)  {
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
