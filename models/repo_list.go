@@ -556,12 +556,15 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		opts.OrderBy = db.SearchOrderByAlphabetically
 	}
 
+	args := make([]interface{}, 0)
 	if opts.PriorityOwnerID > 0 {
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = %d THEN 0 ELSE owner_id END, %s", opts.PriorityOwnerID, opts.OrderBy))
+		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_id = ? THEN 0 ELSE owner_id END, %s", opts.OrderBy))
+		args = append(args, opts.PriorityOwnerID)
 	} else if strings.Count(opts.Keyword, "/") == 1 {
 		// With "owner/repo" search times, prioritise results which match the owner field
 		orgName := strings.Split(opts.Keyword, "/")[0]
-		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE '%s' THEN 0 ELSE 1 END, %s", orgName, opts.OrderBy))
+		opts.OrderBy = db.SearchOrderBy(fmt.Sprintf("CASE WHEN owner_name LIKE ? THEN 0 ELSE 1 END, %s", opts.OrderBy))
+		args = append(args, orgName)
 	}
 
 	sess := db.GetEngine(ctx)
@@ -577,7 +580,7 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 		}
 	}
 
-	sess = sess.Where(cond).OrderBy(opts.OrderBy.String())
+	sess = sess.Where(cond).OrderBy(opts.OrderBy.String(), args...)
 	if opts.PageSize > 0 {
 		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}

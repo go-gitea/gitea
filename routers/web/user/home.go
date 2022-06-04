@@ -170,8 +170,9 @@ func Milestones(ctx *context.Context) {
 		Actor:         ctxUser,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
-		AllPublic:     false,                 // Include also all public repositories of users and public organisations
-		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		AllPublic:     false, // Include also all public repositories of users and public organisations
+		AllLimited:    false, // Include also all public repositories of limited organisations
+		Archived:      util.OptionalBoolFalse,
 		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 	}
 

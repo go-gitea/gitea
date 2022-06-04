@@ -37,7 +37,6 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
 		ID:          newPublicKey.ID,
 		Name:        newPublicKey.Title,
-		Content:     newPublicKey.Key,
 		Fingerprint: newPublicKey.Fingerprint,
 		OwnerID:     keyOwner.ID,
 	})
