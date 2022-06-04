@@ -838,19 +838,6 @@
 					{{end}}
 				</span>
 			</div>
-<<<<<<< HEAD
-		{{else if eq .Type 34}}
-			{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
-			<div class="timeline-item event" id="{{.HashTag}}">
-				<span class="badge">{{svg "octicon-tag"}}</span>
-				<a href="{{.Poster.HomeLink}}">
-					{{avatar .Poster}}
-				</a>
-				<span class="text grey">
-					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.tag_ref_at" (.Tag|Escape) ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) $createdStr | Str2html}}
-				</span>
-			</div>
 		{{else if or (eq .Type 34) (eq .Type 35)}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
