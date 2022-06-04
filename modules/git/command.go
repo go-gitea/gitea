@@ -168,6 +168,7 @@ func (c *Command) Run(opts *RunOpts) error {
 		log.Warn("Git's HomeDir is empty, the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", HomeDir)
 	}
 
+	process.SetSysProcAttribute(cmd)
 	cmd.Env = append(cmd.Env, CommonEnvs()...)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
