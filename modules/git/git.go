@@ -225,17 +225,6 @@ func InitWithConfigSync(ctx context.Context) error {
 		SupportProcReceive = false
 	}
 
-	if CheckGitVersionAtLeast("2.35.2") == nil {
-		// since Git 2.35.2, git adds a protection for CVE-2022-24765, the protection denies the git directories which are not owned by current user
-		// however, some docker users and samba users (maybe more, issue #19455) have difficulty to set their Gitea git repositories to the correct owner.
-		// the reason behind the problem is: docker/samba uses some uid-mapping mechanism, which are unstable/unfixable in some cases.
-		// now Gitea always use its customized git config file, and all the accesses to the git repositories can be managed,
-		// so it's safe to set "safe.directory=*" for internal usage only.
-		if err := configSet("safe.directory", "*"); err != nil {
-			return err
-		}
-	}
-
 	if runtime.GOOS == "windows" {
 		if err := configSet("core.longpaths", "true"); err != nil {
 			return err
