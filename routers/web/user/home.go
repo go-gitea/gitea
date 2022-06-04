@@ -610,6 +610,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		shownIssues = int(issueStats.ClosedCount)
 		ctx.Data["TotalIssueCount"] = shownIssues
 	}
+	if len(repoIDs) != 0 {
+		shownIssues = 0
+		for _, repoID := range repoIDs {
+			shownIssues += int(issueCountByRepo[repoID])
+		}
+	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 

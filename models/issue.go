@@ -1220,9 +1220,9 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "priorityrepo":
-		sess.OrderBy("CASE " +
-			"WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 " +
-			"ELSE 2 END ASC").
+		sess.OrderBy("CASE "+
+			"WHEN issue.repo_id = ? THEN 1 "+
+			"ELSE 2 END ASC", priorityRepoID).
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "project-column-sorting":
@@ -2124,7 +2124,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*Dep
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
 		Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {
@@ -2142,7 +2142,7 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
 		Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {
