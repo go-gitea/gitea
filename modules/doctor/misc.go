@@ -75,9 +75,14 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 }
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := models.DoctorUserStarNum(); err != nil {
-		logger.Critical("Unable update User Stars numbers")
-		return err
+	if autofix {
+		if err := models.DoctorUserStarNum(); err != nil {
+			logger.Critical("Unable update User Stars numbers")
+			return err
+		}
+		logger.Info("Updated User Stars numbers.")
+	} else {
+		logger.Info("No check available for User Stars numbers (skipped)")
 	}
 	return nil
 }
@@ -88,18 +93,18 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 
 	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+		r, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
 		if autofix {
-			_, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunStdString(&git.RunOpts{Dir: r.Path})
 			return err
 		}
 
-		value, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunInDir(r.Path)
+		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunStdString(&git.RunOpts{Dir: r.Path})
 		if err != nil {
 			return err
 		}
@@ -207,7 +212,7 @@ func init() {
 		Priority:  6,
 	})
 	Register(&Check{
-		Title:     "Enable push options",
+		Title:     "Check that all git repositories have receive.advertisePushOptions set to true",
 		Name:      "enable-push-options",
 		IsDefault: false,
 		Run:       checkEnablePushOptions,

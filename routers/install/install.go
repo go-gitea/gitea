@@ -42,20 +42,18 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
-var supportedDbTypeNames []map[string]string // use a slice to keep order
-func getDbTypeNames() []map[string]string {
-	if supportedDbTypeNames == nil {
-		for _, t := range setting.SupportedDatabaseTypes {
-			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
-		}
+// getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
+func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
+	for _, t := range setting.SupportedDatabaseTypes {
+		dbTypeNames = append(dbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
 	}
-	return supportedDbTypeNames
+	return dbTypeNames
 }
 
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
 	rnd := templates.HTMLRenderer()
-
+	dbTypeNames := getSupportedDbTypeNames()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
 			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
@@ -74,13 +72,15 @@ func Init(next http.Handler) http.Handler {
 				"i18n":          locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
-				"DbTypeNames":   getDbTypeNames(),
+				"DbTypeNames":   dbTypeNames,
 				"AllLangs":      translation.AllLangs(),
 				"PageStartTime": startTime,
 
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
+		defer ctx.Close()
+
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
@@ -136,6 +136,7 @@ func Install(ctx *context.Context) {
 		form.SMTPHost = setting.MailService.Host
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
+		form.SMTPPasswd = setting.MailService.Passwd
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
@@ -455,6 +456,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
+	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
+
 	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
 
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
@@ -501,13 +504,17 @@ func SubmitInstall(ctx *context.Context) {
 	// Create admin account
 	if len(form.AdminName) > 0 {
 		u := &user_model.User{
-			Name:     form.AdminName,
-			Email:    form.AdminEmail,
-			Passwd:   form.AdminPasswd,
-			IsAdmin:  true,
-			IsActive: true,
+			Name:    form.AdminName,
+			Email:   form.AdminEmail,
+			Passwd:  form.AdminPasswd,
+			IsAdmin: true,
 		}
-		if err = user_model.CreateUser(u); err != nil {
+		overwriteDefault := &user_model.CreateUserOverwriteOptions{
+			IsRestricted: util.OptionalBoolFalse,
+			IsActive:     util.OptionalBoolTrue,
+		}
+
+		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -516,7 +523,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = user_model.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays

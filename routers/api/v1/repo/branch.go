@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -69,7 +70,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branchName)
+	branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -205,7 +206,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch.Name)
+	branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -258,23 +259,29 @@ func ListBranches(ctx *context.APIContext) {
 		return
 	}
 
-	apiBranches := make([]*api.Branch, len(branches))
+	apiBranches := make([]*api.Branch, 0, len(branches))
 	for i := range branches {
 		c, err := branches[i].GetCommit()
 		if err != nil {
+			// Skip if this branch doesn't exist anymore.
+			if git.IsErrNotExist(err) {
+				totalNumOfBranches--
+				continue
+			}
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branches[i].Name)
+		branchProtection, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 			return
 		}
-		apiBranches[i], err = convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
+		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)
 			return
 		}
+		apiBranches = append(apiBranches, apiBranch)
 	}
 
 	ctx.SetLinkHeader(totalNumOfBranches, listOptions.PageSize)
@@ -313,7 +320,7 @@ func GetBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -405,7 +412,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, form.BranchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, form.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectBranchOfRepoByName", err)
 		return
@@ -448,27 +455,27 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
-		whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
+		whitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
 			return
 		}
-		mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
+		mergeWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 				return
 			}
 			ctx.Error(http.StatusInternalServerError, "GetTeamIDsByNames", err)
 			return
 		}
-		approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
+		approvalsWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 		if err != nil {
-			if models.IsErrTeamNotExist(err) {
+			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 				return
 			}
@@ -497,7 +504,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 		BlockOnOutdatedBranch:         form.BlockOnOutdatedBranch,
 	}
 
-	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+	err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
@@ -516,7 +523,7 @@ func CreateBranchProtection(ctx *context.APIContext) {
 	}
 
 	// Reload from db to get all whitelists
-	bp, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, form.BranchName)
+	bp, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, form.BranchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -568,7 +575,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.EditBranchProtectionOption)
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return
@@ -692,9 +699,9 @@ func EditBranchProtection(ctx *context.APIContext) {
 	var whitelistTeams, mergeWhitelistTeams, approvalsWhitelistTeams []int64
 	if repo.Owner.IsOrganization() {
 		if form.PushWhitelistTeams != nil {
-			whitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
+			whitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.PushWhitelistTeams, false)
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 					return
 				}
@@ -705,9 +712,9 @@ func EditBranchProtection(ctx *context.APIContext) {
 			whitelistTeams = protectBranch.WhitelistTeamIDs
 		}
 		if form.MergeWhitelistTeams != nil {
-			mergeWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
+			mergeWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.MergeWhitelistTeams, false)
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 					return
 				}
@@ -718,9 +725,9 @@ func EditBranchProtection(ctx *context.APIContext) {
 			mergeWhitelistTeams = protectBranch.MergeWhitelistTeamIDs
 		}
 		if form.ApprovalsWhitelistTeams != nil {
-			approvalsWhitelistTeams, err = models.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
+			approvalsWhitelistTeams, err = organization.GetTeamIDsByNames(repo.OwnerID, form.ApprovalsWhitelistTeams, false)
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "Team does not exist", err)
 					return
 				}
@@ -732,7 +739,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 		}
 	}
 
-	err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+	err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 		UserIDs:          whitelistUsers,
 		TeamIDs:          whitelistTeams,
 		MergeUserIDs:     mergeWhitelistUsers,
@@ -751,7 +758,7 @@ func EditBranchProtection(ctx *context.APIContext) {
 	}
 
 	// Reload from db to ensure get all whitelists
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchBy", err)
 		return
@@ -795,7 +802,7 @@ func DeleteBranchProtection(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	bpName := ctx.Params(":name")
-	bp, err := models.GetProtectedBranchBy(repo.ID, bpName)
+	bp, err := models.GetProtectedBranchBy(ctx, repo.ID, bpName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranchByID", err)
 		return

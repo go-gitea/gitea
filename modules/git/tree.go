@@ -55,7 +55,7 @@ func (repo *Repository) LsTree(ref string, filenames ...string) ([]string, error
 			cmd.AddArguments(arg)
 		}
 	}
-	res, err := cmd.RunInDirBytes(repo.Path)
+	res, _, err := cmd.RunStdBytes(&RunOpts{Dir: repo.Path})
 	if err != nil {
 		return nil, err
 	}

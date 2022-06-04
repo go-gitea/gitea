@@ -44,17 +44,17 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 
 			if !pr.HasMerged {
 				var err error
-				pr.MergeBase, err = git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunInDir(repoPath)
+				pr.MergeBase, _, err = git.NewCommand(ctx, "merge-base", "--", pr.BaseBranch, pr.GetGitRefName()).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					var err2 error
-					pr.MergeBase, err2 = git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunInDir(repoPath)
+					pr.MergeBase, _, err2 = git.NewCommand(ctx, "rev-parse", git.BranchPrefix+pr.BaseBranch).RunStdString(&git.RunOpts{Dir: repoPath})
 					if err2 != nil {
 						logger.Warn("Unable to get merge base for PR ID %d, #%d onto %s in %s/%s. Error: %v & %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err, err2)
 						return nil
 					}
 				}
 			} else {
-				parentsString, err := git.NewCommand(ctx, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunInDir(repoPath)
+				parentsString, _, err := git.NewCommand(ctx, "rev-list", "--parents", "-n", "1", pr.MergedCommitID).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					logger.Warn("Unable to get parents for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
@@ -67,7 +67,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 				args := append([]string{"merge-base", "--"}, parents[1:]...)
 				args = append(args, pr.GetGitRefName())
 
-				pr.MergeBase, err = git.NewCommand(ctx, args...).RunInDir(repoPath)
+				pr.MergeBase, _, err = git.NewCommand(ctx, args...).RunStdString(&git.RunOpts{Dir: repoPath})
 				if err != nil {
 					logger.Warn("Unable to get merge base for merged PR ID %d, #%d onto %s in %s/%s. Error: %v", pr.ID, pr.Index, pr.BaseBranch, pr.BaseRepo.OwnerName, pr.BaseRepo.Name, err)
 					return nil
@@ -92,12 +92,14 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 	if autofix {
 		logger.Info("%d PR mergebases updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 	} else {
-		if numPRsUpdated > 0 && err == nil {
+		if numPRsUpdated == 0 {
+			logger.Info("All %d PRs in %d repos have a correct mergebase", numPRs, numRepos)
+		} else if err == nil {
 			logger.Critical("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 			return fmt.Errorf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
+		} else {
+			logger.Warn("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 		}
-
-		logger.Warn("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 	}
 
 	return err

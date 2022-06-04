@@ -77,15 +77,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 				SetDescription(fmt.Sprintf("Repository Garbage Collection: %s", repo.FullName()))
 			var stdout string
 			var err error
-			if timeout > 0 {
-				var stdoutBytes []byte
-				stdoutBytes, err = command.RunInDirTimeout(
-					timeout,
-					repo.RepoPath())
-				stdout = string(stdoutBytes)
-			} else {
-				stdout, err = command.RunInDir(repo.RepoPath())
-			}
+			stdout, _, err = command.RunStdString(&git.RunOpts{Timeout: timeout, Dir: repo.RepoPath()})
 
 			if err != nil {
 				log.Error("Repository garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)

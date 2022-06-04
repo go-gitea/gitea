@@ -22,13 +22,13 @@
 			<td colspan="5" class="lines-code lines-code-old ">{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code></td>
 		{{else}}
 			{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 			<td class="blob-excerpt lines-escape lines-escape-old">{{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-old">{{if $line.LeftIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
 			<td class="blob-excerpt lines-code lines-code-old halfwidth">{{/*
 				*/}}<code {{if and $line.LeftIdx $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{$.i18n.Tr "repo.line_unicode"}}"{{else}}class="code-inner"{{end}}>{{if $line.LeftIdx}}{{$inlineDiff.Content}}{{end}}</code>{{/*
 			*/}}</td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 			<td class="blob-excerpt lines-escape lines-escape-new">{{if and $line.RightIdx $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
 			<td class="blob-excerpt lines-type-marker lines-type-marker-new">{{if $line.RightIdx}}<span class="mono" data-type-marker=""></span>{{end}}</td>
 			<td class="blob-excerpt lines-code lines-code-new halfwidth">{{/*
@@ -59,8 +59,8 @@
 				{{end}}
 			</td>
 		{{else}}
-			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{Sha1 $.fileName}}L{{$line.LeftIdx}}{{end}}"></span></td>
-			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{Sha1 $.fileName}}R{{$line.RightIdx}}{{end}}"></span></td>
+			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$.FileNameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
+			<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$.FileNameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 		{{end}}
 		{{$inlineDiff := $.section.GetComputedInlineDiffFor $line}}
 		<td class="blob-excerpt lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>

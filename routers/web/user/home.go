@@ -17,6 +17,8 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -74,7 +76,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctxUser.DisplayName() + " - " + ctx.Tr("dashboard")
 	ctx.Data["PageIsDashboard"] = true
 	ctx.Data["PageIsNews"] = true
-	cnt, _ := models.GetOrganizationCount(ctx, ctxUser)
+	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
 
 	var uid int64
@@ -99,11 +101,11 @@ func Dashboard(ctx *context.Context) {
 	var err error
 	var mirrors []*repo_model.Repository
 	if ctxUser.IsOrganization() {
-		var env models.AccessibleReposEnvironment
+		var env organization.AccessibleReposEnvironment
 		if ctx.Org.Team != nil {
-			env = models.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
+			env = organization.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
 		} else {
-			env, err = models.OrgFromUser(ctxUser).AccessibleReposEnv(ctx.Doer.ID)
+			env, err = organization.AccessibleReposEnv(ctx, organization.OrgFromUser(ctxUser), ctx.Doer.ID)
 			if err != nil {
 				ctx.ServerError("AccessibleReposEnv", err)
 				return
@@ -218,13 +220,13 @@ func Milestones(ctx *context.Context) {
 		}
 	}
 
-	counts, err := models.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
+	counts, err := issues_model.CountMilestonesByRepoCondAndKw(userRepoCond, keyword, isShowClosed)
 	if err != nil {
 		ctx.ServerError("CountMilestonesByRepoIDs", err)
 		return
 	}
 
-	milestones, err := models.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
+	milestones, err := issues_model.SearchMilestones(repoCond, page, isShowClosed, sortType, keyword)
 	if err != nil {
 		ctx.ServerError("SearchMilestones", err)
 		return
@@ -270,17 +272,17 @@ func Milestones(ctx *context.Context) {
 		i++
 	}
 
-	milestoneStats, err := models.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
+	milestoneStats, err := issues_model.GetMilestonesStatsByRepoCondAndKw(repoCond, keyword)
 	if err != nil {
 		ctx.ServerError("GetMilestoneStats", err)
 		return
 	}
 
-	var totalMilestoneStats *models.MilestonesStats
+	var totalMilestoneStats *issues_model.MilestonesStats
 	if len(repoIDs) == 0 {
 		totalMilestoneStats = milestoneStats
 	} else {
-		totalMilestoneStats, err = models.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
+		totalMilestoneStats, err = issues_model.GetMilestonesStatsByRepoCondAndKw(userRepoCond, keyword)
 		if err != nil {
 			ctx.ServerError("GetMilestoneStats", err)
 			return
@@ -404,8 +406,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// --------------------------------------------------------------------------
 
 	// Get repository IDs where User/Org/Team has access.
-	var team *models.Team
-	var org *models.Organization
+	var team *organization.Team
+	var org *organization.Organization
 	if ctx.Org != nil {
 		org = ctx.Org.Organization
 		team = ctx.Org.Team
@@ -441,12 +443,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllLimited: false,
 	}
 
-	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-		repoOpts.TeamID = ctx.Org.Team.ID
+	if team != nil {
+		repoOpts.TeamID = team.ID
 	}
 
 	switch filterMode {
 	case models.FilterModeAll:
+	case models.FilterModeYourRepositories:
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctx.Doer.ID
 	case models.FilterModeCreate:
@@ -455,19 +458,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
-	case models.FilterModeYourRepositories:
-		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-			// Fixes a issue whereby the user's ID would be used
-			// to check if it's in the team(which possible isn't the case).
-			opts.User = nil
-		}
-		userRepoIDs, _, err := models.SearchRepositoryIDs(repoOpts)
-		if err != nil {
-			ctx.ServerError("models.SearchRepositoryIDs: %v", err)
-			return
-		}
-
-		opts.RepoIDs = userRepoIDs
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -531,7 +521,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// Gets set when clicking filters on the issues overview page.
 	repoIDs := getRepoIDs(ctx.FormString("repos"))
 	if len(repoIDs) > 0 {
-		opts.RepoIDs = repoIDs
+		opts.RepoCond = builder.In("issue.repo_id", repoIDs)
 	}
 
 	// ------------------------------
@@ -577,7 +567,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 	}
 
-	commitStatus, err := pull_service.GetIssuesLastCommitStatus(ctx, issues)
+	commitStatuses, lastStatus, err := pull_service.GetIssuesAllCommitStatus(ctx, issues)
 	if err != nil {
 		ctx.ServerError("GetIssuesLastCommitStatus", err)
 		return
@@ -599,13 +589,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if filterMode == models.FilterModeYourRepositories {
-			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
-		}
-		// Detect when we only should search by team.
-		if opts.User == nil {
-			statsOpts.UserID = 0
-		}
+
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
@@ -631,7 +615,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
-	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -654,7 +638,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		}
 		return 0
 	}
-	ctx.Data["CommitStatus"] = commitStatus
+	ctx.Data["CommitLastStatus"] = lastStatus
+	ctx.Data["CommitStatuses"] = commitStatuses
 	ctx.Data["Repos"] = showRepos
 	ctx.Data["Counts"] = issueCountByRepo
 	ctx.Data["IssueStats"] = issueStats

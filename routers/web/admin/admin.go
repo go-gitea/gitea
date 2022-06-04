@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/updatechecker"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/forms"
@@ -35,10 +36,11 @@ import (
 )
 
 const (
-	tplDashboard base.TplName = "admin/dashboard"
-	tplConfig    base.TplName = "admin/config"
-	tplMonitor   base.TplName = "admin/monitor"
-	tplQueue     base.TplName = "admin/queue"
+	tplDashboard  base.TplName = "admin/dashboard"
+	tplConfig     base.TplName = "admin/config"
+	tplMonitor    base.TplName = "admin/monitor"
+	tplStacktrace base.TplName = "admin/stacktrace"
+	tplQueue      base.TplName = "admin/queue"
 )
 
 var sysStatus struct {
@@ -244,7 +246,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["OfflineMode"] = setting.OfflineMode
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
-	ctx.Data["RunMode"] = strings.Title(setting.RunMode)
+	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
 	if version, err := git.LocalVersion(); err == nil {
 		ctx.Data["GitVersion"] = version.Original()
 	}
@@ -326,10 +328,31 @@ func Monitor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.monitor")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminMonitor"] = true
-	ctx.Data["Processes"] = process.GetManager().Processes(true)
+	ctx.Data["Processes"], ctx.Data["ProcessCount"] = process.GetManager().Processes(false, true)
 	ctx.Data["Entries"] = cron.ListTasks()
 	ctx.Data["Queues"] = queue.GetManager().ManagedQueues()
+
 	ctx.HTML(http.StatusOK, tplMonitor)
+}
+
+// GoroutineStacktrace show admin monitor goroutines page
+func GoroutineStacktrace(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.monitor")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminMonitor"] = true
+
+	processStacks, processCount, goroutineCount, err := process.GetManager().ProcessStacktraces(false, false)
+	if err != nil {
+		ctx.ServerError("GoroutineStacktrace", err)
+		return
+	}
+
+	ctx.Data["ProcessStacks"] = processStacks
+
+	ctx.Data["GoroutineCount"] = goroutineCount
+	ctx.Data["ProcessCount"] = processCount
+
+	ctx.HTML(http.StatusOK, tplStacktrace)
 }
 
 // MonitorCancel cancels a process

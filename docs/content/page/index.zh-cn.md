@@ -34,6 +34,7 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 - 支持后台管理面板
 - 支持 MySQL、PostgreSQL、SQLite3、MSSQL 和 TiDB(MySQL) 数据库
 - 支持多语言本地化（21 种语言）
+- 支持软件包注册中心（Composer/Conan/Container/Generic/Helm/Maven/NPM/Nuget/PyPI/RubyGems）
 
 ## 系统要求
 
@@ -42,27 +43,25 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 
 ## 浏览器支持
 
-- 请根据 [Semantic UI](https://github.com/Semantic-Org/Semantic-UI#browser-support) 查看具体支持的浏览器版本。
-- 官方支持的最小 UI 尺寸为 **1024*768**，UI 不一定会在更小尺寸的设备上被破坏，但我们无法保证且不会修复。
+- Chrome, Firefox, Safari, Edge
 
 ## 组件
 
 * Web框架： [Chi](http://github.com/go-chi/chi)
 * ORM: [XORM](https://xorm.io)
-* UI组件：
-  * [Semantic UI](http://semantic-ui.com/)
-  * [GitHub Octicons](https://octicons.github.com/)
-  * [Font Awesome](http://fontawesome.io/)
-  * [DropzoneJS](http://www.dropzonejs.com/)
-  * [Highlight](https://highlightjs.org/)
-  * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [CodeMirror](https://codemirror.net/)
-  * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
+* UI 框架：
+  * [jQuery](https://jquery.com)
+  * [Fomantic UI](https://fomantic-ui.com)
+  * [Vue2](https://vuejs.org)
+  * 更多组件参见 package.json
+* 编辑器：
+  * [CodeMirror](https://codemirror.net)
+  * [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
+  * [Monaco Editor](https://microsoft.github.io/monaco-editor)
 * 数据库驱动：
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
   * [github.com/lib/pq](https://github.com/lib/pq)
   * [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-  * [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 ## 软件及服务支持

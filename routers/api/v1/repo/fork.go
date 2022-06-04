@@ -9,8 +9,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -58,7 +59,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.Doer, fork)
+		access, err := access_model.AccessLevel(ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return
@@ -108,9 +109,9 @@ func CreateFork(ctx *context.APIContext) {
 	if form.Organization == nil {
 		forker = ctx.Doer
 	} else {
-		org, err := models.GetOrgByName(*form.Organization)
+		org, err := organization.GetOrgByName(*form.Organization)
 		if err != nil {
-			if models.IsErrOrgNotExist(err) {
+			if organization.IsErrOrgNotExist(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "GetOrgByName", err)
@@ -135,7 +136,7 @@ func CreateFork(ctx *context.APIContext) {
 		name = *form.Name
 	}
 
-	fork, err := repo_service.ForkRepository(ctx.Doer, forker, repo_service.ForkRepoOptions{
+	fork, err := repo_service.ForkRepository(ctx, ctx.Doer, forker, repo_service.ForkRepoOptions{
 		BaseRepo:    repo,
 		Name:        name,
 		Description: repo.Description,

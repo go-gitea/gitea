@@ -40,7 +40,7 @@ const (
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
 	// Required by the mail composer; make sure to load these before calling the async function
-	if err := ctx.Issue.LoadRepo(); err != nil {
+	if err := ctx.Issue.LoadRepo(ctx); err != nil {
 		return fmt.Errorf("LoadRepo(): %v", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
@@ -71,7 +71,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -98,7 +98,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}

@@ -281,6 +281,7 @@ func (s *sendmailSender) Send(from string, to []string, msg io.WriterTo) error {
 	if err != nil {
 		return err
 	}
+	process.SetSysProcAttribute(cmd)
 
 	if err = cmd.Start(); err != nil {
 		_ = pipe.Close()

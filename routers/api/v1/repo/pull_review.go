@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -59,7 +61,7 @@ func ListPullReviews(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -74,7 +76,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		return
 	}
 
-	if err = pr.Issue.LoadRepo(); err != nil {
+	if err = pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepo", err)
 		return
 	}
@@ -85,7 +87,7 @@ func ListPullReviews(ctx *context.APIContext) {
 		IssueID:     pr.IssueID,
 	}
 
-	allReviews, err := models.FindReviews(opts)
+	allReviews, err := models.FindReviews(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -305,7 +307,7 @@ func CreatePullReview(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	opts := web.GetForm(ctx).(*api.CreatePullReviewOptions)
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -321,7 +323,7 @@ func CreatePullReview(ctx *context.APIContext) {
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}
@@ -524,7 +526,7 @@ func preparePullReviewType(ctx *context.APIContext, pr *models.PullRequest, even
 
 // prepareSingleReview return review, related pull and false or nil, nil and true if an error happen
 func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullRequest, bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -534,7 +536,7 @@ func prepareSingleReview(ctx *context.APIContext) (*models.Review, *models.PullR
 		return nil, nil, true
 	}
 
-	review, err := models.GetReviewByID(ctx.ParamsInt64(":id"))
+	review, err := models.GetReviewByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrReviewNotExist(err) {
 			ctx.NotFound("GetReviewByID", err)
@@ -646,7 +648,7 @@ func DeleteReviewRequests(ctx *context.APIContext) {
 }
 
 func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions, isAdd bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -656,14 +658,14 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		return
 	}
 
-	if err := pr.Issue.LoadRepo(); err != nil {
+	if err := pr.Issue.LoadRepo(ctx); err != nil {
 		ctx.Error(http.StatusInternalServerError, "pr.Issue.LoadRepo", err)
 		return
 	}
 
 	reviewers := make([]*user_model.User, 0, len(opts.Reviewers))
 
-	permDoer, err := models.GetUserRepoPermission(pr.Issue.Repo, ctx.Doer)
+	permDoer, err := access_model.GetUserRepoPermission(ctx, pr.Issue.Repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
 		return
@@ -674,7 +676,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 		if strings.Contains(r, "@") {
 			reviewer, err = user_model.GetUserByEmail(r)
 		} else {
-			reviewer, err = user_model.GetUserByName(r)
+			reviewer, err = user_model.GetUserByName(ctx, r)
 		}
 
 		if err != nil {
@@ -686,7 +688,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 			return
 		}
 
-		err = issue_service.IsValidReviewRequest(reviewer, ctx.Doer, isAdd, pr.Issue, &permDoer)
+		err = issue_service.IsValidReviewRequest(ctx, reviewer, ctx.Doer, isAdd, pr.Issue, &permDoer)
 		if err != nil {
 			if models.IsErrNotValidReviewRequest(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
@@ -722,12 +724,12 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 
 	if ctx.Repo.Repository.Owner.IsOrganization() && len(opts.TeamReviewers) > 0 {
 
-		teamReviewers := make([]*models.Team, 0, len(opts.TeamReviewers))
+		teamReviewers := make([]*organization.Team, 0, len(opts.TeamReviewers))
 		for _, t := range opts.TeamReviewers {
-			var teamReviewer *models.Team
-			teamReviewer, err = models.GetTeam(ctx.Repo.Owner.ID, t)
+			var teamReviewer *organization.Team
+			teamReviewer, err = organization.GetTeam(ctx, ctx.Repo.Owner.ID, t)
 			if err != nil {
-				if models.IsErrTeamNotExist(err) {
+				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound("TeamNotExist", fmt.Sprintf("Team '%s' not exist", t))
 					return
 				}
@@ -735,7 +737,7 @@ func apiReviewRequest(ctx *context.APIContext, opts api.PullReviewRequestOptions
 				return
 			}
 
-			err = issue_service.IsValidTeamReviewRequest(teamReviewer, ctx.Doer, isAdd, pr.Issue)
+			err = issue_service.IsValidTeamReviewRequest(ctx, teamReviewer, ctx.Doer, isAdd, pr.Issue)
 			if err != nil {
 				if models.IsErrNotValidReviewRequest(err) {
 					ctx.Error(http.StatusUnprocessableEntity, "NotValidReviewRequest", err)
@@ -890,7 +892,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 		return
 	}
 
-	if review, err = models.GetReviewByID(review.ID); err != nil {
+	if review, err = models.GetReviewByID(ctx, review.ID); err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReviewByID", err)
 		return
 	}

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -56,7 +57,7 @@ func Transfer(ctx *context.APIContext) {
 
 	opts := web.GetForm(ctx).(*api.TransferRepoOption)
 
-	newOwner, err := user_model.GetUserByName(opts.NewOwner)
+	newOwner, err := user_model.GetUserByName(ctx, opts.NewOwner)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
@@ -67,23 +68,23 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if newOwner.Type == user_model.UserTypeOrganization {
-		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
+		if !ctx.Doer.IsAdmin && newOwner.Visibility == api.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
 			// The user shouldn't know about this organization
 			ctx.Error(http.StatusNotFound, "", "The new owner does not exist or cannot be found")
 			return
 		}
 	}
 
-	var teams []*models.Team
+	var teams []*organization.Team
 	if opts.TeamIDs != nil {
 		if !newOwner.IsOrganization() {
 			ctx.Error(http.StatusUnprocessableEntity, "repoTransfer", "Teams can only be added to organization-owned repositories")
 			return
 		}
 
-		org := convert.ToOrganization(models.OrgFromUser(newOwner))
+		org := convert.ToOrganization(organization.OrgFromUser(newOwner))
 		for _, tID := range *opts.TeamIDs {
-			team, err := models.GetTeamByID(tID)
+			team, err := organization.GetTeamByID(ctx, tID)
 			if err != nil {
 				ctx.Error(http.StatusUnprocessableEntity, "team", fmt.Errorf("team %d not found", tID))
 				return
@@ -103,14 +104,16 @@ func Transfer(ctx *context.APIContext) {
 		ctx.Repo.GitRepo = nil
 	}
 
+	oldFullname := ctx.Repo.Repository.FullName()
+
 	if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, ctx.Repo.Repository, teams); err != nil {
 		if models.IsErrRepoTransferInProgress(err) {
-			ctx.Error(http.StatusConflict, "CreatePendingRepositoryTransfer", err)
+			ctx.Error(http.StatusConflict, "StartRepositoryTransfer", err)
 			return
 		}
 
 		if repo_model.IsErrRepoAlreadyExist(err) {
-			ctx.Error(http.StatusUnprocessableEntity, "CreatePendingRepositoryTransfer", err)
+			ctx.Error(http.StatusUnprocessableEntity, "StartRepositoryTransfer", err)
 			return
 		}
 
@@ -119,12 +122,12 @@ func Transfer(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
-		log.Trace("Repository transfer initiated: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+		log.Trace("Repository transfer initiated: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
 		ctx.JSON(http.StatusCreated, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 		return
 	}
 
-	log.Trace("Repository transferred: %s -> %s", ctx.Repo.Repository.FullName(), newOwner.Name)
+	log.Trace("Repository transferred: %s -> %s", oldFullname, ctx.Repo.Repository.FullName())
 	ctx.JSON(http.StatusAccepted, convert.ToRepo(ctx.Repo.Repository, perm.AccessModeAdmin))
 }
 

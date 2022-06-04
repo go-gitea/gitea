@@ -1,5 +1,5 @@
 #Build stage
-FROM golang:1.18-alpine3.15 AS build-env
+FROM golang:1.18-alpine3.16 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -23,7 +23,7 @@ RUN if [ -n "${GITEA_VERSION}" ]; then git checkout "${GITEA_VERSION}"; fi \
 # Begin env-to-ini build
 RUN go build contrib/environment-to-ini/environment-to-ini.go
 
-FROM alpine:3.15
+FROM alpine:3.16
 LABEL maintainer="maintainers@gitea.io"
 
 EXPOSE 22 3000

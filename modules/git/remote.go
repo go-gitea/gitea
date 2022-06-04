@@ -22,7 +22,7 @@ func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (*url.UR
 		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
 	}
 
-	result, err := cmd.RunInDir(repoPath)
+	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
 		return nil, err
 	}

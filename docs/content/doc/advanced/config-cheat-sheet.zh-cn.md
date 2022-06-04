@@ -175,12 +175,12 @@ menu:
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
-- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: 是否启用。
-- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)

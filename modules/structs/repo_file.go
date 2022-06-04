@@ -30,6 +30,11 @@ type CreateFileOptions struct {
 	Content string `json:"content"`
 }
 
+// Branch returns branch name
+func (o *CreateFileOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
 // DeleteFileOptions options for deleting files (used for other File structs below)
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
@@ -37,6 +42,11 @@ type DeleteFileOptions struct {
 	// sha is the SHA for the file that already exists
 	// required: true
 	SHA string `json:"sha" binding:"Required"`
+}
+
+// Branch returns branch name
+func (o *DeleteFileOptions) Branch() string {
+	return o.FileOptions.BranchName
 }
 
 // UpdateFileOptions options for updating files
@@ -48,6 +58,16 @@ type UpdateFileOptions struct {
 	Content string `json:"content"`
 	// from_path (optional) is the path of the original file which will be moved/renamed to the path in the URL
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
+}
+
+// Branch returns branch name
+func (o *UpdateFileOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
+// FileOptionInterface provides a unified interface for the different file options
+type FileOptionInterface interface {
+	Branch() string
 }
 
 // ApplyDiffPatchFileOptions options for applying a diff patch

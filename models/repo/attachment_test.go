@@ -16,7 +16,7 @@ import (
 func TestIncreaseDownloadCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
+	attachment, err := GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), attachment.DownloadCount)
 
@@ -24,7 +24,7 @@ func TestIncreaseDownloadCount(t *testing.T) {
 	err = attachment.IncreaseDownloadCount()
 	assert.NoError(t, err)
 
-	attachment, err = GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
+	attachment, err = GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), attachment.DownloadCount)
 }
@@ -33,11 +33,11 @@ func TestGetByCommentOrIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// count of attachments from issue ID
-	attachments, err := GetAttachmentsByIssueID(1)
+	attachments, err := GetAttachmentsByIssueID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 1)
 
-	attachments, err = GetAttachmentsByCommentID(1)
+	attachments, err = GetAttachmentsByCommentID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Len(t, attachments, 2)
 }
@@ -56,7 +56,7 @@ func TestDeleteAttachments(t *testing.T) {
 	err = DeleteAttachment(&Attachment{ID: 8}, false)
 	assert.NoError(t, err)
 
-	attachment, err := GetAttachmentByUUID("a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
+	attachment, err := GetAttachmentByUUID(db.DefaultContext, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a18")
 	assert.Error(t, err)
 	assert.True(t, IsErrAttachmentNotExist(err))
 	assert.Nil(t, attachment)
@@ -65,7 +65,7 @@ func TestDeleteAttachments(t *testing.T) {
 func TestGetAttachmentByID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attach, err := GetAttachmentByID(1)
+	attach, err := GetAttachmentByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
 }
@@ -81,12 +81,12 @@ func TestAttachment_DownloadURL(t *testing.T) {
 func TestUpdateAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	attach, err := GetAttachmentByID(1)
+	attach, err := GetAttachmentByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11", attach.UUID)
 
 	attach.Name = "new_name"
-	assert.NoError(t, UpdateAttachment(attach))
+	assert.NoError(t, UpdateAttachment(db.DefaultContext, attach))
 
 	unittest.AssertExistsAndLoadBean(t, &Attachment{Name: "new_name"})
 }

@@ -70,7 +70,7 @@ func (gt GiteaTemplate) Globs() []glob.Glob {
 
 // GenerateWebhooks generates webhooks from a template repository
 func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateWebhooks, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: templateRepo.ID})
+	templateWebhooks, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: templateRepo.ID})
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func GenerateWebhooks(ctx context.Context, templateRepo, generateRepo *repo_mode
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateLabels, err := getLabelsByRepoID(db.GetEngine(ctx), templateRepo.ID, "", db.ListOptions{})
+	templateLabels, err := GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}
@@ -110,7 +110,7 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 			Description: templateLabel.Description,
 			Color:       templateLabel.Color,
 		}
-		if err := newLabel(db.GetEngine(ctx), generateLabel); err != nil {
+		if err := db.Insert(ctx, generateLabel); err != nil {
 			return err
 		}
 	}

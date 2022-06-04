@@ -60,7 +60,7 @@ func ListHooks(ctx *context.APIContext) {
 		return
 	}
 
-	hooks, err := webhook.ListWebhooksByOpts(opts)
+	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -138,6 +138,11 @@ func TestHook(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"

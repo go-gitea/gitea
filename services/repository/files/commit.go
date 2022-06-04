@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/services/automerge"
 )
 
 // CreateCommitStatus creates a new CommitStatus given a bunch of parameters
@@ -42,6 +43,12 @@ func CreateCommitStatus(ctx context.Context, repo *repo_model.Repository, creato
 		CommitStatus: status,
 	}); err != nil {
 		return fmt.Errorf("NewCommitStatus[repo_id: %d, user_id: %d, sha: %s]: %v", repo.ID, creator.ID, sha, err)
+	}
+
+	if status.State.IsSuccess() {
+		if err := automerge.MergeScheduledPullRequest(ctx, sha, repo); err != nil {
+			return fmt.Errorf("MergeScheduledPullRequest[repo_id: %d, user_id: %d, sha: %s]: %w", repo.ID, creator.ID, sha, err)
+		}
 	}
 
 	return nil

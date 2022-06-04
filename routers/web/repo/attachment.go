@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -63,7 +64,7 @@ func uploadAttachment(ctx *context.Context, repoID int64, allowedTypes string) {
 // DeleteAttachment response for deleting issue's attachment
 func DeleteAttachment(ctx *context.Context) {
 	file := ctx.FormString("file")
-	attach, err := repo_model.GetAttachmentByUUID(file)
+	attach, err := repo_model.GetAttachmentByUUID(ctx, file)
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, err.Error())
 		return
@@ -84,7 +85,7 @@ func DeleteAttachment(ctx *context.Context) {
 
 // GetAttachment serve attachements
 func GetAttachment(ctx *context.Context) {
-	attach, err := repo_model.GetAttachmentByUUID(ctx.Params(":uuid"))
+	attach, err := repo_model.GetAttachmentByUUID(ctx, ctx.Params(":uuid"))
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -106,7 +107,7 @@ func GetAttachment(ctx *context.Context) {
 			return
 		}
 	} else { // If we have the repository we check access
-		perm, err := models.GetUserRepoPermission(repository, ctx.Doer)
+		perm, err := access_model.GetUserRepoPermission(ctx, repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err.Error())
 			return

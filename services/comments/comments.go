@@ -28,7 +28,7 @@ func CreateIssueComment(doer *user_model.User, repo *repo_model.Repository, issu
 		return nil, err
 	}
 
-	mentions, err := issue.FindAndUpdateIssueMentions(db.DefaultContext, doer, comment.Content)
+	mentions, err := models.FindAndUpdateIssueMentions(db.DefaultContext, issue, doer, comment.Content)
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 			return err
 		}
 		if !hasContentHistory {
-			if err = issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), c.PosterID, c.IssueID, c.ID,
+			if err = issues.SaveIssueContentHistory(db.DefaultContext, c.PosterID, c.IssueID, c.ID,
 				c.CreatedUnix, oldContent, true); err != nil {
 				return err
 			}
@@ -60,7 +60,7 @@ func UpdateComment(c *models.Comment, doer *user_model.User, oldContent string) 
 	}
 
 	if needsContentHistory {
-		err := issues.SaveIssueContentHistory(db.GetEngine(db.DefaultContext), doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		err := issues.SaveIssueContentHistory(db.DefaultContext, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 		if err != nil {
 			return err
 		}

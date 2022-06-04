@@ -11,7 +11,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -109,7 +111,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	c.Data["Title"] = c.Tr("repo.settings.protected_branch") + " - " + branch
 	c.Data["PageIsSettingsBranches"] = true
 
-	protectBranch, err := models.GetProtectedBranchBy(c.Repo.Repository.ID, branch)
+	protectBranch, err := models.GetProtectedBranchBy(c, c.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			c.ServerError("GetProtectBranchOfRepoByName", err)
@@ -124,7 +126,7 @@ func SettingsProtectedBranch(c *context.Context) {
 		}
 	}
 
-	users, err := models.GetRepoReaders(c.Repo.Repository)
+	users, err := access_model.GetRepoReaders(c.Repo.Repository)
 	if err != nil {
 		c.ServerError("Repo.Repository.GetReaders", err)
 		return
@@ -158,7 +160,7 @@ func SettingsProtectedBranch(c *context.Context) {
 	}
 
 	if c.Repo.Owner.IsOrganization() {
-		teams, err := models.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
+		teams, err := organization.OrgFromUser(c.Repo.Owner).TeamsWithAccessToRepo(c.Repo.Repository.ID, perm.AccessModeRead)
 		if err != nil {
 			c.ServerError("Repo.Owner.TeamsWithAccessToRepo", err)
 			return
@@ -182,7 +184,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx.Repo.Repository.ID, branch)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch)
 	if err != nil {
 		if !git.IsErrBranchNotExist(err) {
 			ctx.ServerError("GetProtectBranchOfRepoByName", err)
@@ -260,7 +262,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		protectBranch.UnprotectedFilePatterns = f.UnprotectedFilePatterns
 		protectBranch.BlockOnOutdatedBranch = f.BlockOnOutdatedBranch
 
-		err = models.UpdateProtectBranch(ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
+		err = models.UpdateProtectBranch(ctx, ctx.Repo.Repository, protectBranch, models.WhitelistOptions{
 			UserIDs:          whitelistUsers,
 			TeamIDs:          whitelistTeams,
 			MergeUserIDs:     mergeWhitelistUsers,

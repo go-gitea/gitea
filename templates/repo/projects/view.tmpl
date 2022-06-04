@@ -84,7 +84,7 @@
 				<div class="board-column-header df ac sb">
 					<div class="ui large label board-label py-2">
 						<div class="ui small circular grey label board-card-cnt">
-							{{len .Issues}}
+							{{.NumIssues}}
 						</div>
 						{{.Title}}
 					</div>
@@ -175,7 +175,7 @@
 
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ range .Issues }}
+					{{ range (index $.IssuesMap .ID) }}
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">

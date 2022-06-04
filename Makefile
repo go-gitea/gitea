@@ -29,8 +29,8 @@ XGO_VERSION := go-1.18.x
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.4.0
 ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.0
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
@@ -195,6 +195,7 @@ help:
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
+	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
@@ -369,16 +370,20 @@ unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
+.PHONY: tidy
+tidy:
+	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
+	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+
 .PHONY: vendor
-vendor:
-	$(GO) mod tidy && $(GO) mod vendor
+vendor: tidy
+	$(GO) mod vendor
 
 .PHONY: gomod-check
-gomod-check:
-	@$(GO) mod tidy
+gomod-check: tidy
 	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run '$(GO) mod tidy' and commit the result:"; \
+		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -646,7 +651,9 @@ release-sources: | $(DIST_DIRS)
 	echo $(VERSION) > $(STORED_VERSION_FILE)
 # bsdtar needs a ^ to prevent matching subdirectories
 	$(eval EXCL := --exclude=$(shell tar --help | grep -q bsdtar && echo "^")./)
-	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
+# use transform to a add a release-folder prefix; in bsdtar the transform parameter equivalent is -s
+	$(eval TRANSFORM := $(shell tar --help | grep -q bsdtar && echo "-s '/^./gitea-src-$(VERSION)/'" || echo "--transform 's|^./|gitea-src-$(VERSION)/|'"))
+	tar $(addprefix $(EXCL),$(TAR_EXCLUDES)) $(TRANSFORM) -czf $(DIST)/release/gitea-src-$(VERSION).tar.gz .
 	rm -f $(STORED_VERSION_FILE)
 
 .PHONY: release-docs
@@ -696,7 +703,6 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
-	cp -f web_src/js/vendor/dropdown.js $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/definitions/modules
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
 	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 

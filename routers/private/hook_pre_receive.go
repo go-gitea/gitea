@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	perm_model "code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -30,7 +31,7 @@ type preReceiveContext struct {
 	// loadedPusher indicates that where the following information are loaded
 	loadedPusher        bool
 	user                *user_model.User // it's the org user if a DeployKey is used
-	userPerm            models.Permission
+	userPerm            access_model.Permission
 	deployKeyAccessMode perm_model.AccessMode
 
 	canCreatePullRequest        bool
@@ -45,6 +46,8 @@ type preReceiveContext struct {
 	env []string
 
 	opts *private.HookOptions
+
+	branchName string
 }
 
 // CanWriteCode returns true if pusher can write code
@@ -53,7 +56,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = ctx.userPerm.CanWrite(unit.TypeCode) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = models.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -134,13 +137,15 @@ func HookPreReceive(ctx *gitea_context.PrivateContext) {
 }
 
 func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName string) {
+	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
+	ctx.branchName = branchName
+
 	if !ctx.AssertCanWriteCode() {
 		return
 	}
 
 	repo := ctx.Repo.Repository
 	gitRepo := ctx.Repo.GitRepo
-	branchName := strings.TrimPrefix(refFullName, git.BranchPrefix)
 
 	if branchName == repo.DefaultBranch && newCommitID == git.EmptySHA {
 		log.Warn("Forbidden: Branch: %s is the default branch in %-v and cannot be deleted", branchName, repo)
@@ -150,7 +155,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(repo.ID, branchName)
+	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -179,7 +184,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 	// 2. Disallow force pushes to protected branches
 	if git.EmptySHA != oldCommitID {
-		output, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunInDirWithEnv(repo.RepoPath(), ctx.env)
+		output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+newCommitID).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: ctx.env})
 		if err != nil {
 			log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, newCommitID, repo, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -290,7 +295,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx.opts.PullRequestID)
+		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -307,7 +312,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 
 		// Now check if the user is allowed to merge PRs for this repository
 		// Note: we can use ctx.perm and ctx.user directly as they will have been loaded above
-		allowedMerge, err := pull_service.IsUserAllowedToMerge(pr, ctx.userPerm, ctx.user)
+		allowedMerge, err := pull_service.IsUserAllowedToMerge(ctx, pr, ctx.userPerm, ctx.user)
 		if err != nil {
 			log.Error("Error calculating if allowed to merge: %v", err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -339,8 +344,8 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		}
 
 		// Check all status checks and reviews are ok
-		if err := pull_service.CheckPRReadyToMerge(ctx, pr, true); err != nil {
-			if models.IsErrNotAllowedToMerge(err) {
+		if err := pull_service.CheckPullBranchProtections(ctx, pr, true); err != nil {
+			if models.IsErrDisallowedToMerge(err) {
 				log.Warn("Forbidden: User %d is not allowed push to protected branch %s in %-v and pr #%d is not ready to be merged: %s", ctx.opts.UserID, branchName, repo, pr.Index, err.Error())
 				ctx.JSON(http.StatusForbidden, private.Response{
 					Err: fmt.Sprintf("Not allowed to push to protected branch %s and pr #%d is not ready to be merged: %s", branchName, ctx.opts.PullRequestID, err.Error()),
@@ -468,7 +473,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 	}
 	ctx.user = user
 
-	userPerm, err := models.GetUserRepoPermission(ctx.Repo.Repository, user)
+	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
 		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
