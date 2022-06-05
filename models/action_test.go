@@ -211,3 +211,20 @@ func TestNotifyWatchers(t *testing.T) {
 		OpType:    action.OpType,
 	})
 }
+
+func TestGetFeedsCorrupted(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ID:     8,
+		RepoID: 1700,
+	})
+
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedUser:  user,
+		Actor:          user,
+		IncludePrivate: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 0)
+}

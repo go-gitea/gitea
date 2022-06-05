@@ -11,8 +11,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-
-	"xorm.io/xorm"
 )
 
 // ErrPushMirrorNotExist mirror does not exist error
@@ -35,21 +33,16 @@ func init() {
 	db.RegisterModel(new(PushMirror))
 }
 
-// AfterLoad is invoked from XORM after setting the values of all fields of this object.
-func (m *PushMirror) AfterLoad(session *xorm.Session) {
-	if m == nil {
-		return
+// GetRepository returns the path of the repository.
+func (m *PushMirror) GetRepository() *Repository {
+	if m.Repo != nil {
+		return m.Repo
 	}
-
 	var err error
-	m.Repo, err = getRepositoryByID(session, m.RepoID)
+	m.Repo, err = GetRepositoryByIDCtx(db.DefaultContext, m.RepoID)
 	if err != nil {
 		log.Error("getRepositoryByID[%d]: %v", m.ID, err)
 	}
-}
-
-// GetRepository returns the path of the repository.
-func (m *PushMirror) GetRepository() *Repository {
 	return m.Repo
 }
 

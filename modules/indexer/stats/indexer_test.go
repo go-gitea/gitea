@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
@@ -49,7 +50,7 @@ func TestRepoStatsIndex(t *testing.T) {
 
 	queue.GetManager().FlushAll(context.Background(), 5*time.Second)
 
-	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(db.DefaultContext, repo, repo_model.RepoIndexerTypeStats)
 	assert.NoError(t, err)
 	assert.Equal(t, "65f1bf27bc3bf70f64657658635e66094edbcb4d", status.CommitSha)
 	langs, err := repo_model.GetTopLanguageStats(repo, 5)

@@ -52,7 +52,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"UseHTTPS": func() bool {
 			return strings.HasPrefix(setting.AppURL, "https")
@@ -146,7 +146,6 @@ func NewFuncMap() []template.FuncMap {
 		"EllipsisString":                 base.EllipsisString,
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"Sha1":                           Sha1,
 		"ShortSha":                       base.ShortSha,
 		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
@@ -399,7 +398,7 @@ func NewFuncMap() []template.FuncMap {
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"AppName": func() string {
 			return setting.AppName
@@ -575,7 +574,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Collaborator:
+	case *repo_model.Collaborator:
 		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
@@ -647,11 +646,6 @@ func JSEscape(raw string) string {
 // DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
 func DotEscape(raw string) string {
 	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
-}
-
-// Sha1 returns sha1 sum of string
-func Sha1(str string) string {
-	return base.EncodeSha1(str)
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -99,7 +100,7 @@ func UpdateAssignees(issue *models.Issue, oneAssignee string, multipleAssignees 
 
 	// Loop through all assignees to add them
 	for _, assigneeName := range multipleAssignees {
-		assignee, err := user_model.GetUserByName(assigneeName)
+		assignee, err := user_model.GetUserByName(db.DefaultContext, assigneeName)
 		if err != nil {
 			return err
 		}
@@ -163,7 +164,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 	}
 
 	// Check if the user is already assigned
-	isAssigned, err := models.IsUserAssignedToIssue(issue, assignee)
+	isAssigned, err := models.IsUserAssignedToIssue(db.DefaultContext, issue, assignee)
 	if err != nil {
 		return err
 	}
@@ -172,7 +173,7 @@ func AddAssigneeIfNotAssigned(issue *models.Issue, doer *user_model.User, assign
 		return nil
 	}
 
-	valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+	valid, err := access_model.CanBeAssigned(db.DefaultContext, assignee, issue.Repo, issue.IsPull)
 	if err != nil {
 		return err
 	}

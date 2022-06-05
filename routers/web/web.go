@@ -31,6 +31,7 @@ import (
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
@@ -191,6 +192,8 @@ func Routes() *web.Route {
 		rw.WriteHeader(http.StatusOK)
 	})
 
+	routes.Get("/api/healthz", healthcheck.Check)
+
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
 	common = append(common, context.Contexter())
 
@@ -279,6 +282,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	federationEnabled := func(ctx *context.Context) {
+		if !setting.Federation.Enabled {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -286,9 +296,10 @@ func RegisterRoutes(m *web.Route) {
 	m.Get("/", Home)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
-		if setting.Federation.Enabled {
+		m.Group("", func() {
 			m.Get("/nodeinfo", NodeInfoLinks)
-		}
+			m.Get("/webfinger", WebfingerQuery)
+		}, federationEnabled)
 		m.Get("/change-password", func(w http.ResponseWriter, req *http.Request) {
 			http.Redirect(w, req, "/user/settings/account", http.StatusTemporaryRedirect)
 		})
@@ -333,10 +344,6 @@ func RegisterRoutes(m *web.Route) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), auth.SignUpPost)
-		m.Group("/oauth2", func() {
-			m.Get("/{provider}", auth.SignInOAuth)
-			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
-		})
 		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
 		m.Post("/link_account_signin", linkAccountEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", linkAccountEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
@@ -441,6 +448,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Group("/oauth2", func() {
+			m.Get("/{provider}", auth.SignInOAuth)
+			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
+		})
 	})
 	// ***** END: User *****
 
@@ -862,6 +873,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
 				m.Post("/watch", repo.IssueWatch)
 				m.Post("/ref", repo.UpdateIssueRef)
+				m.Post("/viewed-files", repo.UpdateViewedFiles)
 				m.Group("/dependency", func() {
 					m.Post("/add", repo.AddDependency)
 					m.Post("/delete", repo.RemoveDependency)

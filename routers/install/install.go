@@ -79,6 +79,8 @@ func Init(next http.Handler) http.Handler {
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
+		defer ctx.Close()
+
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
@@ -519,7 +521,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = user_model.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays
