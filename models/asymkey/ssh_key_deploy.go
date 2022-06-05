@@ -116,7 +116,7 @@ func HasDeployKey(keyID, repoID int64) bool {
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
 func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
-	fingerprint, err := calcFingerprint(content)
+	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}

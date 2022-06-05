@@ -77,7 +77,7 @@ func (key *PublicKey) AuthorizedString() string {
 
 func addKey(ctx context.Context, key *PublicKey) (err error) {
 	if len(key.Fingerprint) == 0 {
-		key.Fingerprint, err = calcFingerprint(key.Content)
+		key.Fingerprint, err = CalcFingerprint(key.Content)
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func addKey(ctx context.Context, key *PublicKey) (err error) {
 func AddPublicKey(ownerID int64, name, content string, authSourceID int64) (*PublicKey, error) {
 	log.Trace(content)
 
-	fingerprint, err := calcFingerprint(content)
+	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
