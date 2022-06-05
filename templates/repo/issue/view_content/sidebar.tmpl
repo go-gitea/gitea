@@ -468,7 +468,7 @@
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
-									<a class="title" href="{{.Issue.Link}}">
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
 									<div class="text small">
@@ -495,7 +495,7 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
-									<a class="title" href="{{.Issue.Link}}">
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
 									<div class="text small">

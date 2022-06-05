@@ -78,6 +78,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 
 	var uid int64
 	if ctxUser != nil {
@@ -169,8 +170,9 @@ func Milestones(ctx *context.Context) {
 		Actor:         ctxUser,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
-		AllPublic:     false,                 // Include also all public repositories of users and public organisations
-		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		AllPublic:     false, // Include also all public repositories of users and public organisations
+		AllLimited:    false, // Include also all public repositories of limited organisations
+		Archived:      util.OptionalBoolFalse,
 		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 	}
 
@@ -607,6 +609,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 		ctx.Data["TotalIssueCount"] = shownIssues
+	}
+	if len(repoIDs) != 0 {
+		shownIssues = 0
+		for _, repoID := range repoIDs {
+			shownIssues += int(issueCountByRepo[repoID])
+		}
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed

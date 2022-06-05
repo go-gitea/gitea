@@ -32,7 +32,7 @@ const gitShortEmptySha = "0000000"
 // UpdateAddress writes new address to Git repository and database
 func UpdateAddress(ctx context.Context, m *repo_model.Mirror, addr string) error {
 	remoteName := m.GetRemoteName()
-	repoPath := m.Repo.RepoPath()
+	repoPath := m.GetRepository().RepoPath()
 	// Remove old remote
 	_, _, err := git.NewCommand(ctx, "remote", "rm", remoteName).RunStdString(&git.RunOpts{Dir: repoPath})
 	if err != nil && !strings.HasPrefix(err.Error(), "exit status 128 - fatal: No such remote ") {

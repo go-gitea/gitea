@@ -21,6 +21,9 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 	case http.HandlerFunc:
 		return func(resp http.ResponseWriter, req *http.Request, others ...wrappedHandlerFunc) (done bool, deferrable func()) {
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			if _, ok := resp.(context.ResponseWriter); !ok {
+				resp = context.NewResponse(resp)
+			}
 			t(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
@@ -92,6 +95,9 @@ func convertHandler(handler interface{}) wrappedHandlerFunc {
 				next = wrapInternal(others)
 			}
 			routing.UpdateFuncInfo(req.Context(), funcInfo)
+			if _, ok := resp.(context.ResponseWriter); !ok {
+				resp = context.NewResponse(resp)
+			}
 			t(next).ServeHTTP(resp, req)
 			if r, ok := resp.(context.ResponseWriter); ok && r.Status() > 0 {
 				done = true
