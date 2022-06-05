@@ -851,6 +851,11 @@ func RegisterRoutes(m *web.Route) {
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.Group("/{type:issues|pulls}", func() {
+			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
+			})
+		})
 	}, context.RepoAssignment, context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
@@ -867,7 +872,6 @@ func RegisterRoutes(m *web.Route) {
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
