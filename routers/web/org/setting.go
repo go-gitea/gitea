@@ -252,7 +252,7 @@ func Applications(ctx *context.Context) {
 	ctx.Data["PageIsOrgSettings"] = true
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+	apps, err := auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Org.Organization.ID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 		return
@@ -270,7 +270,7 @@ func ApplicationsPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
-		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Org.Organization.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
@@ -281,7 +281,7 @@ func ApplicationsPost(ctx *context.Context) {
 		return
 	}
 
-	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
+	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.Org.Organization.ID,
@@ -302,7 +302,7 @@ func ApplicationsPost(ctx *context.Context) {
 
 // EditApplication response for editing oauth2 application
 func EditApplication(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -329,7 +329,7 @@ func EditApplicationPost(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 
 	if ctx.HasError() {
-		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx.Org.Organization.ID)
+		apps, err := auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Org.Organization.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
@@ -359,7 +359,7 @@ func ApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["PageIsSettingsApplications"] = true
 	ctx.Data["PageIsOrgSettings"] = true
 
-	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
