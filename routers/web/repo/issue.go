@@ -1799,6 +1799,21 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 		return
 	}
+
+	if issue.IsPull {
+		// Need to check if Pulls are enabled and we can read Pulls
+		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	} else {
+		// Need to check if Issues are enabled and we can read Issues
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 
