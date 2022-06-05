@@ -78,14 +78,14 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
   $dropdown.dropdown({
-    fullTextSearch: true,
+    fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.data('url')) {
-        window.location.href = $choice.data('url');
+      if ($choice.attr('data-url')) {
+        window.location.href = $choice.attr('data-url');
       }
     },
-    message: {noResults: $dropdown.data('no-results')},
+    message: {noResults: $dropdown.attr('data-no-results')},
   });
 }
 
