@@ -322,7 +322,9 @@ func runServ(c *cli.Context) error {
 		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
 		repo_module.EnvAppURL+"="+setting.AppURL,
 	)
-	gitcmd.Env = append(gitcmd.Env, git.CommonEnvs()...)
+	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
+	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
+	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
 	if err = gitcmd.Run(); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)

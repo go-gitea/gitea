@@ -106,11 +106,20 @@ type RunOpts struct {
 	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
-func CommonEnvs() []string {
+// CommonGitCmdEnvs returns the common environment variables for a "git" command.
+func CommonGitCmdEnvs() []string {
 	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
 	return []string{
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		"GIT_TERMINAL_PROMPT=0",    // avoid prompting for credentials interactively, supported since git v2.3
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
+	}
+}
+
+// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+func CommonCmdServEnvs() []string {
+	return []string{
 		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
 		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
 	}
@@ -169,7 +178,7 @@ func (c *Command) Run(opts *RunOpts) error {
 	}
 
 	process.SetSysProcAttribute(cmd)
-	cmd.Env = append(cmd.Env, CommonEnvs()...)
+	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
