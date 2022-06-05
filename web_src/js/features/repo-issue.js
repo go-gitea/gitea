@@ -234,32 +234,6 @@ export function initRepoIssueStatusButton() {
   });
 }
 
-export function initRepoPullRequestMerge() {
-  // Pull Request merge button
-  const $mergeButton = $('.merge-button > button');
-  $mergeButton.on('click', function (e) {
-    e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
-    $(this).parent().hide();
-    $('.instruct-toggle').hide();
-    $('.instruct-content').hide();
-  });
-  $('.merge-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
-        $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
-      }
-    }
-  });
-  $('.merge-cancel').on('click', function (e) {
-    e.preventDefault();
-    $(this).closest('.form').hide();
-    $mergeButton.parent().show();
-    $('.instruct-toggle').show();
-  });
-}
-
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');

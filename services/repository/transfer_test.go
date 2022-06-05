@@ -9,7 +9,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,13 +67,13 @@ func TestStartRepositoryTransferSetPermission(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
 	repo.Owner = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
-	hasAccess, err := models.HasAccess(recipient.ID, repo)
+	hasAccess, err := access_model.HasAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
 	assert.False(t, hasAccess)
 
 	assert.NoError(t, StartRepositoryTransfer(doer, recipient, repo, nil))
 
-	hasAccess, err = models.HasAccess(recipient.ID, repo)
+	hasAccess, err = access_model.HasAccess(db.DefaultContext, recipient.ID, repo)
 	assert.NoError(t, err)
 	assert.True(t, hasAccess)
 

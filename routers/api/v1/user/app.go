@@ -213,7 +213,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 
 	data := web.GetForm(ctx).(*api.CreateOAuth2ApplicationOptions)
 
-	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
+	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:         data.Name,
 		UserID:       ctx.Doer.ID,
 		RedirectURIs: data.RedirectURIs,
@@ -320,7 +320,7 @@ func GetOauth2Application(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 	appID := ctx.ParamsInt64(":id")
-	app, err := auth.GetOAuth2ApplicationByID(appID)
+	app, err := auth.GetOAuth2ApplicationByID(ctx, appID)
 	if err != nil {
 		if auth.IsErrOauthClientIDInvalid(err) || auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound()

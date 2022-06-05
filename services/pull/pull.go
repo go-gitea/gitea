@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/process"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/sync"
 	issue_service "code.gitea.io/gitea/services/issue"
@@ -289,7 +290,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 						if err != nil {
 							log.Error("GetDiverging: %v", err)
 						} else {
-							err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+							err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 							if err != nil {
 								log.Error("UpdateCommitDivergence: %v", err)
 							}
@@ -335,7 +336,7 @@ func AddTestPullRequestTask(doer *user_model.User, repoID int64, branch string, 
 					log.Error("GetDiverging: %v", err)
 				}
 			} else {
-				err = pr.UpdateCommitDivergence(divergence.Ahead, divergence.Behind)
+				err = pr.UpdateCommitDivergence(ctx, divergence.Ahead, divergence.Behind)
 				if err != nil {
 					log.Error("UpdateCommitDivergence: %v", err)
 				}
@@ -452,7 +453,7 @@ func pushToBaseRepoHelper(ctx context.Context, pr *models.PullRequest, prefixHea
 		Branch: prefixHeadBranch + pr.HeadBranch + ":" + gitRefName,
 		Force:  true,
 		// Use InternalPushingEnvironment here because we know that pre-receive and post-receive do not run on a refs/pulls/...
-		Env: models.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
+		Env: repo_module.InternalPushingEnvironment(pr.Issue.Poster, pr.BaseRepo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) {
 			// This should not happen as we're using force!
@@ -792,7 +793,7 @@ func getAllCommitStatus(gitRepo *git.Repository, pr *models.PullRequest) (status
 		return nil, nil, shaErr
 	}
 
-	statuses, _, err = models.GetLatestCommitStatus(pr.BaseRepo.ID, sha, db.ListOptions{})
+	statuses, _, err = models.GetLatestCommitStatus(db.DefaultContext, pr.BaseRepo.ID, sha, db.ListOptions{})
 	lastStatus = models.CalcCommitStatus(statuses)
 	return statuses, lastStatus, err
 }

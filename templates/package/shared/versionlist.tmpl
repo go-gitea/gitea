@@ -10,7 +10,7 @@
 				<option value="untagged" {{if not $isTagged}}selected="selected"{{end}}>{{.i18n.Tr "packages.filter.container.untagged"}}</option>
 			</select>
 			{{end}}
-			<button class="ui blue button">{{.i18n.Tr "explore.search"}}</button>
+			<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
 		</div>
 	</form>
 	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">

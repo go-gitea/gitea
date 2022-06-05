@@ -27,11 +27,11 @@ func TestWatchRepo(t *testing.T) {
 	const repoID = 3
 	const userID = 2
 
-	assert.NoError(t, repo_model.WatchRepo(userID, repoID, true))
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, true))
 	unittest.AssertExistsAndLoadBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
 
-	assert.NoError(t, repo_model.WatchRepo(userID, repoID, false))
+	assert.NoError(t, repo_model.WatchRepo(db.DefaultContext, userID, repoID, false))
 	unittest.AssertNotExistsBean(t, &repo_model.Watch{RepoID: repoID, UserID: userID})
 	unittest.CheckConsistencyFor(t, &repo_model.Repository{ID: repoID})
 }
@@ -179,7 +179,7 @@ func TestLinkedRepository(t *testing.T) {
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			attach, err := repo_model.GetAttachmentByID(tc.attachID)
+			attach, err := repo_model.GetAttachmentByID(db.DefaultContext, tc.attachID)
 			assert.NoError(t, err)
 			repo, unitType, err := LinkedRepository(attach)
 			assert.NoError(t, err)

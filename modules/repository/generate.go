@@ -43,7 +43,7 @@ var defaultTransformers = []transformer{
 	{Name: "PASCAL", Transform: xstrings.ToCamelCase},
 	{Name: "LOWER", Transform: strings.ToLower},
 	{Name: "UPPER", Transform: strings.ToUpper},
-	{Name: "TITLE", Transform: strings.Title},
+	{Name: "TITLE", Transform: util.ToTitleCase},
 }
 
 func generateExpansion(src string, templateRepo, generateRepo *repo_model.Repository) string {

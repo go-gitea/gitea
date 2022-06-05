@@ -78,6 +78,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["PageIsNews"] = true
 	cnt, _ := organization.GetOrganizationCount(ctx, ctxUser)
 	ctx.Data["UserOrgsCount"] = cnt
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 
 	var uid int64
 	if ctxUser != nil {
@@ -169,8 +170,9 @@ func Milestones(ctx *context.Context) {
 		Actor:         ctxUser,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
-		AllPublic:     false,                 // Include also all public repositories of users and public organisations
-		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		AllPublic:     false, // Include also all public repositories of users and public organisations
+		AllLimited:    false, // Include also all public repositories of limited organisations
+		Archived:      util.OptionalBoolFalse,
 		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 	}
 
@@ -443,12 +445,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		AllLimited: false,
 	}
 
-	if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-		repoOpts.TeamID = ctx.Org.Team.ID
+	if team != nil {
+		repoOpts.TeamID = team.ID
 	}
 
 	switch filterMode {
 	case models.FilterModeAll:
+	case models.FilterModeYourRepositories:
 	case models.FilterModeAssign:
 		opts.AssigneeID = ctx.Doer.ID
 	case models.FilterModeCreate:
@@ -457,13 +460,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		opts.MentionedID = ctx.Doer.ID
 	case models.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
-	case models.FilterModeYourRepositories:
-		if ctxUser.IsOrganization() && ctx.Org.Team != nil {
-			// Fixes a issue whereby the user's ID would be used
-			// to check if it's in the team(which possible isn't the case).
-			opts.User = nil
-		}
-		opts.RepoCond = models.SearchRepositoryCondition(repoOpts)
 	}
 
 	// keyword holds the search term entered into the search field.
@@ -595,13 +591,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Org:        org,
 			Team:       team,
 		}
-		if filterMode == models.FilterModeYourRepositories {
-			statsOpts.RepoCond = models.SearchRepositoryCondition(repoOpts)
-		}
-		// Detect when we only should search by team.
-		if opts.User == nil {
-			statsOpts.UserID = 0
-		}
+
 		issueStats, err = models.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
@@ -620,6 +610,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		shownIssues = int(issueStats.ClosedCount)
 		ctx.Data["TotalIssueCount"] = shownIssues
 	}
+	if len(repoIDs) != 0 {
+		shownIssues = 0
+		for _, repoID := range repoIDs {
+			shownIssues += int(issueCountByRepo[repoID])
+		}
+	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
@@ -627,7 +623,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
-	approvalCounts, err := models.IssueList(issues).GetApprovalCounts()
+	approvalCounts, err := models.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return

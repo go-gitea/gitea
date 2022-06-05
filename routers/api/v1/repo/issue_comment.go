@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -78,7 +79,7 @@ func ListIssueComments(ctx *context.APIContext) {
 		Type:    models.CommentTypeComment,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
@@ -171,7 +172,7 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		Type:        models.CommentTypeUnknown,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
@@ -203,7 +204,7 @@ func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *model
 		if err != nil {
 			return false
 		}
-		perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, user)
+		perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, user)
 		if err != nil {
 			return false
 		}
@@ -268,7 +269,7 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		Before:      before,
 	}
 
-	comments, err := models.FindComments(opts)
+	comments, err := models.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
@@ -398,7 +399,7 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -525,7 +526,7 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -628,7 +629,7 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)

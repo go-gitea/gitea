@@ -24,7 +24,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
@@ -32,6 +31,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/queue"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -173,7 +173,7 @@ func initIntegrationTest() {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
-	_ = util.RemoveAll(models.LocalCopyPath())
+	_ = util.RemoveAll(repo_module.LocalCopyPath())
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
@@ -193,8 +193,16 @@ func initIntegrationTest() {
 			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+		var db *sql.DB
+		var err error
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
+
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -216,8 +224,13 @@ func initIntegrationTest() {
 		}
 		db.Close()
 
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {

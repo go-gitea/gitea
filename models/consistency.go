@@ -9,6 +9,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
 )
@@ -85,7 +86,6 @@ func DeleteOrphanedIssueLabels() error {
 	_, err := db.GetEngine(db.DefaultContext).
 		NotIn("label_id", builder.Select("id").From("label")).
 		Delete(IssueLabel{})
-
 	return err
 }
 
@@ -94,7 +94,8 @@ func CountOrphanedIssues() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).
-		Count("id")
+		Select("COUNT(`issue`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -116,7 +117,7 @@ func DeleteOrphanedIssues() error {
 
 	var attachmentPaths []string
 	for i := range ids {
-		paths, err := deleteIssuesByRepoID(db.GetEngine(ctx), ids[i])
+		paths, err := deleteIssuesByRepoID(ctx, ids[i])
 		if err != nil {
 			return err
 		}
@@ -140,7 +141,8 @@ func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Count("id")
+		Select("COUNT(`" + subject + "`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
@@ -245,4 +247,24 @@ func FixIssueLabelWithOutsideLabels() (int64, error) {
 	}
 
 	return res.RowsAffected()
+}
+
+// CountActionCreatedUnixString count actions where created_unix is an empty string
+func CountActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+	}
+	return 0, nil
+}
+
+// FixActionCreatedUnixString set created_unix to zero if it is an empty string
+func FixActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		if err != nil {
+			return 0, err
+		}
+		return res.RowsAffected()
+	}
+	return 0, nil
 }

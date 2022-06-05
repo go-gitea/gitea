@@ -143,6 +143,7 @@ type RepoSettingForm struct {
 	TrackerIssueStyle                     string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnablePackages                        bool
 	EnablePulls                           bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
@@ -625,7 +626,7 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string
-	Type     string `binding:"Required;In(approve,comment,reject)"`
+	Type     string
 	CommitID string
 	Files    []string
 }
@@ -636,7 +637,7 @@ func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) bind
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ReviewType will return the corresponding reviewtype for type
+// ReviewType will return the corresponding ReviewType for type
 func (f SubmitReviewForm) ReviewType() models.ReviewType {
 	switch f.Type {
 	case "approve":
@@ -645,6 +646,8 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 		return models.ReviewTypeComment
 	case "reject":
 		return models.ReviewTypeReject
+	case "":
+		return models.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
 		return models.ReviewTypeUnknown
 	}

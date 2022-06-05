@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/private"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -162,7 +162,7 @@ func (n *nilWriter) WriteString(s string) (int, error) {
 }
 
 func runHookPreReceive(c *cli.Context) error {
-	if os.Getenv(models.EnvIsInternal) == "true" {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
 	ctx, cancel := installSignals()
@@ -180,12 +180,12 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// the environment is set by serv command
-	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
-	username := os.Getenv(models.EnvRepoUsername)
-	reponame := os.Getenv(models.EnvRepoName)
-	userID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	prID, _ := strconv.ParseInt(os.Getenv(models.EnvPRID), 10, 64)
-	deployKeyID, _ := strconv.ParseInt(os.Getenv(models.EnvDeployKeyID), 10, 64)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
+	username := os.Getenv(repo_module.EnvRepoUsername)
+	reponame := os.Getenv(repo_module.EnvRepoName)
+	userID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	prID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPRID), 10, 64)
+	deployKeyID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvDeployKeyID), 10, 64)
 
 	hookOptions := private.HookOptions{
 		UserID:                          userID,
@@ -314,7 +314,7 @@ func runHookPostReceive(c *cli.Context) error {
 	}
 
 	// Now if we're an internal don't do anything else
-	if os.Getenv(models.EnvIsInternal) == "true" {
+	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
 
@@ -343,11 +343,11 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	// the environment is set by serv command
-	repoUser := os.Getenv(models.EnvRepoUsername)
-	isWiki := os.Getenv(models.EnvRepoIsWiki) == "true"
-	repoName := os.Getenv(models.EnvRepoName)
-	pusherID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	pusherName := os.Getenv(models.EnvPusherName)
+	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	isWiki, _ := strconv.ParseBool(os.Getenv(repo_module.EnvRepoIsWiki))
+	repoName := os.Getenv(repo_module.EnvRepoName)
+	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	hookOptions := private.HookOptions{
 		UserName:                        pusherName,
@@ -503,10 +503,10 @@ Gitea or set your environment appropriately.`, "")
 	}
 
 	reader := bufio.NewReader(os.Stdin)
-	repoUser := os.Getenv(models.EnvRepoUsername)
-	repoName := os.Getenv(models.EnvRepoName)
-	pusherID, _ := strconv.ParseInt(os.Getenv(models.EnvPusherID), 10, 64)
-	pusherName := os.Getenv(models.EnvPusherName)
+	repoUser := os.Getenv(repo_module.EnvRepoUsername)
+	repoName := os.Getenv(repo_module.EnvRepoName)
+	pusherID, _ := strconv.ParseInt(os.Getenv(repo_module.EnvPusherID), 10, 64)
+	pusherName := os.Getenv(repo_module.EnvPusherName)
 
 	// 1. Version and features negotiation.
 	// S: PKT-LINE(version=1\0push-options atomic...) / PKT-LINE(version=1\n)

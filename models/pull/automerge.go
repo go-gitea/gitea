@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -59,21 +58,12 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pullID int64,
 		return ErrAlreadyScheduledToAutoMerge{PullID: pullID}
 	}
 
-	if _, err := db.GetEngine(ctx).Insert(&AutoMerge{
+	_, err := db.GetEngine(ctx).Insert(&AutoMerge{
 		DoerID:     doer.ID,
 		PullID:     pullID,
 		MergeStyle: style,
 		Message:    message,
-	}); err != nil {
-		return err
-	}
-
-	pr, err := models.GetPullRequestByID(ctx, pullID)
-	if err != nil {
-		return err
-	}
-
-	_, err = createAutoMergeComment(ctx, models.CommentTypePRScheduledToAutoMerge, pr, doer)
+	})
 	return err
 }
 
@@ -94,50 +84,15 @@ func GetScheduledMergeByPullID(ctx context.Context, pullID int64) (bool, *AutoMe
 	return true, scheduledPRM, nil
 }
 
-// RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pullID int64, comment bool) error {
-	return db.WithTx(func(ctx context.Context) error {
-		exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
-		if err != nil {
-			return err
-		} else if !exist {
-			return models.ErrNotExist{ID: pullID}
-		}
-
-		if _, err := db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{}); err != nil {
-			return err
-		}
-
-		// if pull got merged we don't need to add "auto-merge canceled comment"
-		if !comment || doer == nil {
-			return nil
-		}
-
-		pr, err := models.GetPullRequestByID(ctx, pullID)
-		if err != nil {
-			return err
-		}
-
-		_, err = createAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pr, doer)
+// DeleteScheduledAutoMerge delete a scheduled pull request
+func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
+	exist, scheduledPRM, err := GetScheduledMergeByPullID(ctx, pullID)
+	if err != nil {
 		return err
-	}, ctx)
-}
-
-// createAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
-func createAutoMergeComment(ctx context.Context, typ models.CommentType, pr *models.PullRequest, doer *user_model.User) (comment *models.Comment, err error) {
-	if err = pr.LoadIssueCtx(ctx); err != nil {
-		return
+	} else if !exist {
+		return db.ErrNotExist{ID: pullID}
 	}
 
-	if err = pr.LoadBaseRepoCtx(ctx); err != nil {
-		return
-	}
-
-	comment, err = models.CreateCommentCtx(ctx, &models.CreateCommentOptions{
-		Type:  typ,
-		Doer:  doer,
-		Repo:  pr.BaseRepo,
-		Issue: pr.Issue,
-	})
-	return
+	_, err = db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{})
+	return err
 }
