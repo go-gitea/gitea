@@ -30,7 +30,7 @@
           <input name="tag_after_merge" type="checkbox" v-model="addTagAfterMerge" id="tag-after-merge">
         </div>
         <div class="ui input ml-2" v-if="mergeForm.isAllowCreateTag">
-        <label for="tag-after-merge">{{ mergeForm.textTagCreate }}</label>
+          <label for="tag-after-merge">{{ mergeForm.textTagCreate }}</label>
           <input id="tag-name" name="tag_name" type="text" v-model="tagName" :placeholder="mergeForm.textTagName">
         </div>
       </form>
