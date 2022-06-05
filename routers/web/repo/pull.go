@@ -1062,7 +1062,7 @@ func MergePullRequest(ctx *context.Context) {
 			return
 		}
 
-		if err := models.AddTagPRCommitComment(ctx.Doer, pr.BaseRepo, pr.IssueID, form.TagName, issue.PullRequest.MergedCommitID); err != nil {
+		if err := models.AddTagPRCommitComment(ctx, ctx.Doer, pr.BaseRepo, pr.IssueID, form.TagName, issue.PullRequest.MergedCommitID); err != nil {
 			// Do not fail here as tag has already been set
 			log.Error("AddTagPRCommitComment: %v", err)
 		}

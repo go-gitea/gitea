@@ -335,12 +335,15 @@
 										'baseLink': {{.Link}},
 										'textCancel': {{$.i18n.Tr "cancel"}},
 										'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+										'textTagName': {{.i18n.Tr "repo.release.tag_name"}},
+										'textTagCreate': {{$.i18n.Tr "repo.tag.create_tag_operation"}},
 
 										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
 										'pullHeadCommitID': {{.PullHeadCommitID}},
 										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
 										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
+										'isAllowCreateTag': {{$prUnit.PullRequestsConfig.AllowCreateTag}},
 									};
 									mergeForm['mergeStyles'] = [
 										{
