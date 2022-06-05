@@ -6,7 +6,6 @@ package git
 
 import (
 	"context"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -65,7 +64,7 @@ summary Add code of delete user
 previous be0ba9ea88aff8a658d0495d36accf944b74888d gogs.go
 filename gogs.go
 	// license that can be found in the LICENSE file.
-	
+
 e2aa991e10ffd924a828ec149951f2f20eecead2 6 6 2
 author Lunny Xiao
 author-mail <xiaolunwen@gmail.com>
@@ -84,61 +83,30 @@ e2aa991e10ffd924a828ec149951f2f20eecead2 7 7
 `
 
 func TestReadingBlameOutput(t *testing.T) {
-	tempFile, err := os.CreateTemp("", ".txt")
-	if err != nil {
-		panic(err)
-	}
-
-	defer tempFile.Close()
-
-	if _, err = tempFile.WriteString(exampleBlame); err != nil {
-		panic(err)
-	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	blameReader, err := createBlameReader(ctx, "", "cat", tempFile.Name())
-	if err != nil {
-		panic(err)
-	}
+	blameReader, err := CreateBlameReader(ctx, "./tests/repos/repo5_pulls", "f32b0a9dfd09a60f616f29158f772cedd89942d2", "README.md")
+	assert.NoError(t, err)
 	defer blameReader.Close()
 
 	parts := []*BlamePart{
 		{
-			"4b92a6c2df28054ad766bc262f308db9f6066596",
+			"72866af952e98d02a73003501836074b286a78f6",
 			[]string{
-				"// Copyright 2014 The Gogs Authors. All rights reserved.",
+				"# test_repo",
+				"Test repository for testing migration from github to gitea",
 			},
 		},
 		{
-			"ce21ed6c3490cdfad797319cbb1145e2330a8fef",
-			[]string{
-				"// Copyright 2016 The Gitea Authors. All rights reserved.",
-			},
+			"f32b0a9dfd09a60f616f29158f772cedd89942d2",
+			[]string{},
 		},
-		{
-			"4b92a6c2df28054ad766bc262f308db9f6066596",
-			[]string{
-				"// Use of this source code is governed by a MIT-style",
-				"// license that can be found in the LICENSE file.",
-				"",
-			},
-		},
-		{
-			"e2aa991e10ffd924a828ec149951f2f20eecead2",
-			[]string{
-				"// Gitea (git with a cup of tea) is a painless self-hosted Git Service.",
-				"package main // import \"code.gitea.io/gitea\"",
-			},
-		},
-		nil,
 	}
 
 	for _, part := range parts {
 		actualPart, err := blameReader.NextPart()
-		if err != nil {
-			panic(err)
-		}
+		assert.NoError(t, err)
 		assert.Equal(t, part, actualPart)
 	}
 }
