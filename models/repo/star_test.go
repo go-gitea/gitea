@@ -57,14 +57,16 @@ func TestZeroStarRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	const userID = 2
 	const repoID = 1
-	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
-	assert.NoError(t, StarRepo(userID, repoID, true))
-	unittest.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
-	assert.NoError(t, ZeroStarRepo(db.DefaultContext, repoID))
-	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID, RepoID: repoID})
+	assert.NoError(t, repo_model.StarRepo(userID, repoID, true))
+	unittest.AssertExistsAndLoadBean(t, &repo_model.Star{UID: userID, RepoID: repoID})
+	assert.NoError(t, repo_model.StarRepo(userID, repoID, false))
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID, RepoID: repoID})
+	assert.NoError(t, repo_model.ZeroStarRepo(db.DefaultContext, repoID))
+	unittest.AssertNotExistsBean(t, &repo_model.Star{UID: userID, RepoID: repoID})
 
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
-	gazers, err := GetStargazers(repo, db.ListOptions{Page: 0})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	gazers, err := repo_model.GetStargazers(repo, db.ListOptions{Page: 0})
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
 }
