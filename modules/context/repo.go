@@ -391,7 +391,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 				ctx.ServerError("GetMirrorByRepoID", err)
 				return
 			}
-			ctx.Repo.Mirror.Repo = ctx.Repo.Repository
+			ctx.Repo.Mirror.Repo = repo
 			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
 			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
 			ctx.Data["Mirror"] = ctx.Repo.Mirror
