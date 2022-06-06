@@ -57,7 +57,7 @@ func init() {
 	Register(&Check{
 		Title:     "Check if users has an valid email address",
 		Name:      "check-user-email",
-		IsDefault: true,
+		IsDefault: false,
 		Run:       checkUserEmail,
 		Priority:  9,
 	})
