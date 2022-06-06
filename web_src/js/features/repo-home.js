@@ -30,7 +30,7 @@ export function initRepoTopicBar() {
   saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
 
-    $.post(saveBtn.data('link'), {
+    $.post(saveBtn.attr('data-link'), {
       _csrf: csrfToken,
       topics
     }, (_data, _textStatus, xhr) => {
