@@ -51,3 +51,19 @@ func TestRepository_GetStargazers2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, gazers, 0)
 }
+
+func TestZeroStarRepo(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	const userID = 2
+	const repoID = 1
+	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
+	assert.NoError(t, StarRepo(userID, repoID, true))
+	unittest.AssertExistsAndLoadBean(t, &Star{UID: userID, RepoID: repoID})
+	assert.NoError(t, ZeroStarRepo(db.DefaultContext, repoID))
+	unittest.AssertNotExistsBean(t, &Star{UID: userID, RepoID: repoID})
+
+	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 1}).(*Repository)
+	gazers, err := GetStargazers(repo, db.ListOptions{Page: 0})
+	assert.NoError(t, err)
+	assert.Len(t, gazers, 0)
+}

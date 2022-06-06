@@ -524,6 +524,10 @@ func UpdateRepositoryCtx(ctx context.Context, repo *repo_model.Repository, visib
 			if err != nil {
 				return err
 			}
+
+			if err = repo_model.ZeroStarRepo(ctx, repo.ID); err != nil {
+				return err
+			}
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
