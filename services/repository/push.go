@@ -95,7 +95,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 

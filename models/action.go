@@ -393,7 +393,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	if opts.RequestedRepo != nil {

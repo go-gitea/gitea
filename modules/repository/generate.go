@@ -5,6 +5,8 @@
 package repository
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
 	"os"
@@ -20,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 
+	"github.com/gobwas/glob"
 	"github.com/huandu/xstrings"
 )
 
@@ -78,7 +81,38 @@ func generateExpansion(src string, templateRepo, generateRepo *repo_model.Reposi
 	})
 }
 
-func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
+// GiteaTemplate holds information about a .gitea/template file
+type GiteaTemplate struct {
+	Path    string
+	Content []byte
+
+	globs []glob.Glob
+}
+
+// Globs parses the .gitea/template globs or returns them if they were already parsed
+func (gt GiteaTemplate) Globs() []glob.Glob {
+	if gt.globs != nil {
+		return gt.globs
+	}
+
+	gt.globs = make([]glob.Glob, 0)
+	scanner := bufio.NewScanner(bytes.NewReader(gt.Content))
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		g, err := glob.Compile(line, '/')
+		if err != nil {
+			log.Info("Invalid glob expression '%s' (skipped): %v", line, err)
+			continue
+		}
+		gt.globs = append(gt.globs, g)
+	}
+	return gt.globs
+}
+
+func checkGiteaTemplate(tmpDir string) (*GiteaTemplate, error) {
 	gtPath := filepath.Join(tmpDir, ".gitea", "template")
 	if _, err := os.Stat(gtPath); os.IsNotExist(err) {
 		return nil, nil
@@ -91,7 +125,7 @@ func checkGiteaTemplate(tmpDir string) (*models.GiteaTemplate, error) {
 		return nil, err
 	}
 
-	gt := &models.GiteaTemplate{
+	gt := &GiteaTemplate{
 		Path:    gtPath,
 		Content: content,
 	}
@@ -227,7 +261,7 @@ func generateGitContent(ctx context.Context, repo, templateRepo, generateRepo *r
 	if err = gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
 		return fmt.Errorf("setDefaultBranch: %v", err)
 	}
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 
@@ -240,7 +274,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 		return err
 	}
 
-	if err := models.UpdateRepoSize(ctx, generateRepo); err != nil {
+	if err := UpdateRepoSize(ctx, generateRepo); err != nil {
 		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
@@ -250,8 +284,27 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 	return nil
 }
 
+// GenerateRepoOptions contains the template units to generate
+type GenerateRepoOptions struct {
+	Name          string
+	DefaultBranch string
+	Description   string
+	Private       bool
+	GitContent    bool
+	Topics        bool
+	GitHooks      bool
+	Webhooks      bool
+	Avatar        bool
+	IssueLabels   bool
+}
+
+// IsValid checks whether at least one option is chosen for generation
+func (gro GenerateRepoOptions) IsValid() bool {
+	return gro.GitContent || gro.Topics || gro.GitHooks || gro.Webhooks || gro.Avatar || gro.IssueLabels // or other items as they are added
+}
+
 // GenerateRepository generates a repository from a template
-func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts models.GenerateRepoOptions) (_ *repo_model.Repository, err error) {
+func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templateRepo *repo_model.Repository, opts GenerateRepoOptions) (_ *repo_model.Repository, err error) {
 	generateRepo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -288,7 +341,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		return generateRepo, err
 	}
 
-	if err = models.CheckDaemonExportOK(ctx, generateRepo); err != nil {
+	if err = CheckDaemonExportOK(ctx, generateRepo); err != nil {
 		return generateRepo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 

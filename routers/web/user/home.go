@@ -166,7 +166,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	repoOpts := models.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:         ctxUser,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
@@ -181,7 +181,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -234,7 +234,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -437,7 +437,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &models.SearchRepoOptions{
+	repoOpts := &repo_model.SearchRepoOptions{
 		Actor:      ctx.Doer,
 		OwnerID:    ctx.Doer.ID,
 		Private:    true,
@@ -559,7 +559,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// a RepositoryList
-	showRepos := models.RepositoryListOfMap(showReposMap)
+	showRepos := repo_model.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 
 	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
