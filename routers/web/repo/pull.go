@@ -758,7 +758,7 @@ func ViewPullFiles(ctx *context.Context) {
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
 	ctx.Data["RequireTribute"] = true
-	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
+	if ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
 	}

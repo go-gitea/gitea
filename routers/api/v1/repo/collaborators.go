@@ -312,7 +312,7 @@ func GetReviewers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.Doer.ID, 0)
+	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -342,7 +342,7 @@ func GetAssignees(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	assignees, err := models.GetRepoAssignees(ctx.Repo.Repository)
+	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
