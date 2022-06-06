@@ -52,17 +52,17 @@ Mixing different frameworks together is discouraged, it makes the code difficult
 A JavaScript module should follow one major framework and follow the framework's best practice.
 
 Recommended implementations:
-* Vue + Native
+* Vue + Vanilla JS
 * Fomantic-UI (jQuery)
-* Native only
+* Vanilla JS
 
 Discouraged implementations:
 * Vue + Fomantic-UI (jQuery)
-* jQuery + Native
+* jQuery + Vanilla JS
 
 To make UI consistent, Vue components can use Fomantic-UI CSS classes.
 Although mixing different frameworks is discouraged, 
-it should also work if the mixing is necessary and the code is well-designed and maintainable, 
+it should also work if the mixing is necessary and the code is well-designed and maintainable. 
 
 ### `async` Functions
 
