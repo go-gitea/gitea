@@ -162,7 +162,7 @@ func TestRelease_Update(t *testing.T) {
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(release.ID)
+	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -186,7 +186,7 @@ func TestRelease_Update(t *testing.T) {
 	time.Sleep(2 * time.Second) // sleep 2 seconds to ensure a different timestamp
 	release.Title = "Changed title"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(release.ID)
+	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Less(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -211,7 +211,7 @@ func TestRelease_Update(t *testing.T) {
 	release.Title = "Changed title"
 	release.Note = "Changed note"
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(release.ID)
+	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(releaseCreatedUnix), int64(release.CreatedUnix))
 
@@ -236,7 +236,7 @@ func TestRelease_Update(t *testing.T) {
 	tagName := release.TagName
 
 	assert.NoError(t, UpdateRelease(user, gitRepo, release, nil, nil, nil))
-	release, err = models.GetReleaseByID(release.ID)
+	release, err = models.GetReleaseByID(db.DefaultContext, release.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, tagName, release.TagName)
 

@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package repo_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/util"
 
@@ -15,18 +16,18 @@ import (
 )
 
 var (
-	countRepospts        = CountRepositoryOptions{OwnerID: 10}
-	countReposptsPublic  = CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolFalse}
-	countReposptsPrivate = CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolTrue}
+	countRepospts        = repo_model.CountRepositoryOptions{OwnerID: 10}
+	countReposptsPublic  = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolFalse}
+	countReposptsPrivate = repo_model.CountRepositoryOptions{OwnerID: 10, Private: util.OptionalBoolTrue}
 )
 
 func TestGetRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	ctx := db.DefaultContext
-	count, err1 := CountRepositories(ctx, countRepospts)
-	privateCount, err2 := CountRepositories(ctx, countReposptsPrivate)
-	publicCount, err3 := CountRepositories(ctx, countReposptsPublic)
+	count, err1 := repo_model.CountRepositories(ctx, countRepospts)
+	privateCount, err2 := repo_model.CountRepositories(ctx, countReposptsPrivate)
+	publicCount, err3 := repo_model.CountRepositories(ctx, countReposptsPublic)
 	assert.NoError(t, err1)
 	assert.NoError(t, err2)
 	assert.NoError(t, err3)
@@ -37,7 +38,7 @@ func TestGetRepositoryCount(t *testing.T) {
 func TestGetPublicRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := CountRepositories(db.DefaultContext, countReposptsPublic)
+	count, err := repo_model.CountRepositories(db.DefaultContext, countReposptsPublic)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), count)
 }
@@ -45,14 +46,14 @@ func TestGetPublicRepositoryCount(t *testing.T) {
 func TestGetPrivateRepositoryCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	count, err := CountRepositories(db.DefaultContext, countReposptsPrivate)
+	count, err := repo_model.CountRepositories(db.DefaultContext, countReposptsPrivate)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), count)
 }
 
 func TestRepoAPIURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: 10}).(*Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user12/repo10", repo.APIURL())
 }

@@ -34,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -905,7 +906,7 @@ func renderCode(ctx *context.Context) {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}
-		if err = models.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
+		if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
