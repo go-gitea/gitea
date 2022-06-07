@@ -266,10 +266,10 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return err
 		}
-		if issue.IsPull && !checkRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
+		if issue.IsPull && !CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !checkRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+		if !issue.IsPull && !CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
 			continue
 		}
 
@@ -510,9 +510,9 @@ func (nl NotificationList) getPendingRepoIDs() []int64 {
 }
 
 // LoadRepos loads repositories from database
-func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
+func (nl NotificationList) LoadRepos() (repo_model.RepositoryList, []int, error) {
 	if len(nl) == 0 {
-		return RepositoryList{}, []int{}, nil
+		return repo_model.RepositoryList{}, []int{}, nil
 	}
 
 	repoIDs := nl.getPendingRepoIDs()
@@ -548,7 +548,7 @@ func (nl NotificationList) LoadRepos() (RepositoryList, []int, error) {
 
 	failed := []int{}
 
-	reposList := make(RepositoryList, 0, len(repoIDs))
+	reposList := make(repo_model.RepositoryList, 0, len(repoIDs))
 	for i, notification := range nl {
 		if notification.Repository == nil {
 			notification.Repository = repos[notification.RepoID]

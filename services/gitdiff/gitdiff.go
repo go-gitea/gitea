@@ -1220,7 +1220,7 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
 				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := db.Count(m)
+				count, err := db.CountByBean(db.DefaultContext, m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true

@@ -444,7 +444,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 	}
 
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 

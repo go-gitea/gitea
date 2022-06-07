@@ -95,7 +95,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -399,7 +399,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	if len(newReleases) > 0 {
-		if err = models.InsertReleasesContext(ctx, newReleases); err != nil {
+		if err = db.Insert(ctx, newReleases); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 	}

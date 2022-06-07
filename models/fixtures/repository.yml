@@ -618,7 +618,8 @@
   num_forks: 0
   num_issues: 1
   num_milestones: 1
-  is_mirror: false
+  is_mirror:
+  is_archived: false
 
 -
   id: 43
