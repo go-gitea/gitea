@@ -156,7 +156,7 @@ func SettingsPost(ctx *context.Context) {
 		repo.IsTemplate = form.Template
 
 		// Visibility of forked repository is forced sync with base repository.
-		if repo.IsFork {
+		if repo.IsFork && !repo.BaseRepo.IsMirror {
 			form.Private = repo.BaseRepo.IsPrivate || repo.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
 		}
 

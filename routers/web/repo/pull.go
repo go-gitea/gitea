@@ -233,6 +233,7 @@ func ForkPost(ctx *context.Context) {
 		BaseRepo:    forkRepo,
 		Name:        form.RepoName,
 		Description: form.Description,
+		IsPrivate:   form.Private,
 	})
 	if err != nil {
 		ctx.Data["Err_RepoName"] = true

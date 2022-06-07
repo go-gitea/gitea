@@ -27,6 +27,7 @@ type ForkRepoOptions struct {
 	BaseRepo    *repo_model.Repository
 	Name        string
 	Description string
+	IsPrivate   bool
 }
 
 // ForkRepository forks a repository
@@ -43,6 +44,14 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 	}
 
+	var isPrivate bool
+
+	if opts.BaseRepo.IsMirror {
+		isPrivate = opts.IsPrivate
+	} else {
+		isPrivate = opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate
+	}
+
 	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
@@ -51,7 +60,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		LowerName:     strings.ToLower(opts.Name),
 		Description:   opts.Description,
 		DefaultBranch: opts.BaseRepo.DefaultBranch,
-		IsPrivate:     opts.BaseRepo.IsPrivate || opts.BaseRepo.Owner.Visibility == structs.VisibleTypePrivate,
+		IsPrivate:     isPrivate,
 		IsEmpty:       opts.BaseRepo.IsEmpty,
 		IsFork:        true,
 		ForkID:        opts.BaseRepo.ID,

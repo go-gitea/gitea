@@ -27,7 +27,7 @@
 						<label>{{.i18n.Tr "repo.template_helper"}}</label>
 					</div>
 				</div>
-				{{if not .Repository.IsFork}}
+				{{if not (and .Repository.IsFork (not .Repository.BaseRepo.IsMirror))}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
 						<div class="ui checkbox">
