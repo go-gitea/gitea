@@ -5,6 +5,8 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 )
@@ -18,5 +20,5 @@ func FindFiles(ctx *context.Context) {
 	path := ctx.Params("*")
 	ctx.Data["TreeLink"] = ctx.Repo.RepoLink + "/src/" + path
 	ctx.Data["DataLink"] = ctx.Repo.RepoLink + "/tree-list/" + path
-	ctx.HTML(200, tplFindFiles)
+	ctx.HTML(http.StatusOK, tplFindFiles)
 }
