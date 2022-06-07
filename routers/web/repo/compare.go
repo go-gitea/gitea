@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -636,7 +637,7 @@ func PrepareCompareDiff(
 		return false
 	}
 
-	commits := models.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
+	commits := git_model.ConvertFromGitCommit(ci.CompareInfo.Commits, ci.HeadRepo)
 	ctx.Data["Commits"] = commits
 	ctx.Data["CommitCount"] = len(commits)
 

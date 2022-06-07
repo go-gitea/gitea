@@ -762,7 +762,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		}
 		defer closer.Close()
 
-		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits = git_model.ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
 	}
 

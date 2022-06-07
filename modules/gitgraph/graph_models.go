@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -118,7 +117,7 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsOwnerMemberCollaborator(repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)
 		}, &keyMap)
 
 		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
