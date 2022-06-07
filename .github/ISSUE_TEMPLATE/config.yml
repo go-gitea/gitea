@@ -4,7 +4,7 @@ contact_links:
     url: https://tinyurl.com/security-gitea
     about: For security concerns, please send a mail to security@gitea.io instead of opening a public issue.
   - name: Discord Server
-    url: https://discord.gg/gitea
+    url: https://discord.gg/Gitea
     about: Please ask questions and discuss configuration or deployment problems here.
   - name: Discourse Forum
     url: https://discourse.gitea.io
