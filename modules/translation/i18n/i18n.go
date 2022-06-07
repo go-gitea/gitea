@@ -128,8 +128,17 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 				fmtArgs = append(fmtArgs, arg)
 			}
 		}
+		for i, arg := range fmtArgs {
+			switch val := arg.(type) {
+			case TranslatableFormatted:
+				fmtArgs[i] = formatWrapper{l: l, t: val}
+			case TranslatableString:
+				fmtArgs[i] = stringWrapper{l: l, t: val}
+			}
+		}
 		return fmt.Sprintf(trMsg, fmtArgs...)
 	}
+
 	return trMsg
 }
 
