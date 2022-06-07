@@ -113,7 +113,7 @@ func (s *ContentStore) Verify(pointer Pointer) (bool, error) {
 	return true, nil
 }
 
-// ReadMetaObject will read a models.LFSMetaObject and return a reader
+// ReadMetaObject will read a git_model.LFSMetaObject and return a reader
 func ReadMetaObject(pointer Pointer) (io.ReadCloser, error) {
 	contentStore := NewContentStore()
 	return contentStore.Get(pointer)

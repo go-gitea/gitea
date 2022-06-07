@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -278,7 +279,7 @@ func GenerateGitContent(ctx context.Context, templateRepo, generateRepo *repo_mo
 		return fmt.Errorf("failed to update size for repository: %v", err)
 	}
 
-	if err := models.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
+	if err := git_model.CopyLFS(ctx, generateRepo, templateRepo); err != nil {
 		return fmt.Errorf("failed to copy LFS: %v", err)
 	}
 	return nil

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/cache"
@@ -173,10 +174,10 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	// Now check if there is a meta object for this pointer
-	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 
 	// If there isn't one just serve the data directly
-	if err == models.ErrLFSObjectNotExist {
+	if err == git_model.ErrLFSObjectNotExist {
 		// Handle caching for the blob SHA (not the LFS object OID)
 		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
 			return

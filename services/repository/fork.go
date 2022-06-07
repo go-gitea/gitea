@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -101,7 +102,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		}
 
 		// copy lfs files failure should not be ignored
-		if err = models.CopyLFS(txCtx, repo, opts.BaseRepo); err != nil {
+		if err = git_model.CopyLFS(txCtx, repo, opts.BaseRepo); err != nil {
 			return err
 		}
 

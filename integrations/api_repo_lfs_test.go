@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -76,7 +76,7 @@ func TestAPILFSBatch(t *testing.T) {
 
 	content := []byte("dummy1")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -260,9 +260,9 @@ func TestAPILFSBatch(t *testing.T) {
 			content := []byte("dummy0")
 			storeObjectInRepo(t, repo2.ID, &content)
 
-			meta, err := models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 			assert.Nil(t, meta)
-			assert.Equal(t, models.ErrLFSObjectNotExist, err)
+			assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "upload",
@@ -275,7 +275,7 @@ func TestAPILFSBatch(t *testing.T) {
 			assert.Nil(t, br.Objects[0].Error)
 			assert.Empty(t, br.Objects[0].Actions)
 
-			meta, err = models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 
@@ -336,7 +336,7 @@ func TestAPILFSUpload(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -365,9 +365,9 @@ func TestAPILFSUpload(t *testing.T) {
 		err = contentStore.Put(p, bytes.NewReader([]byte("dummy5")))
 		assert.NoError(t, err)
 
-		meta, err := models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 		assert.Nil(t, meta)
-		assert.Equal(t, models.ErrLFSObjectNotExist, err)
+		assert.Equal(t, git_model.ErrLFSObjectNotExist, err)
 
 		t.Run("InvalidAccess", func(t *testing.T) {
 			req := newRequest(t, p, "invalid")
@@ -378,7 +378,7 @@ func TestAPILFSUpload(t *testing.T) {
 			req := newRequest(t, p, "dummy5")
 
 			session.MakeRequest(t, req, http.StatusOK)
-			meta, err = models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+			meta, err = git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 			assert.NoError(t, err)
 			assert.NotNil(t, meta)
 		})
@@ -426,7 +426,7 @@ func TestAPILFSUpload(t *testing.T) {
 		assert.NoError(t, err)
 		assert.True(t, exist)
 
-		meta, err := models.GetLFSMetaObjectByOid(repo.ID, p.Oid)
+		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, p.Oid)
 		assert.NoError(t, err)
 		assert.NotNil(t, meta)
 	})
@@ -441,7 +441,7 @@ func TestAPILFSVerify(t *testing.T) {
 
 	content := []byte("dummy3")
 	oid := storeObjectInRepo(t, repo.ID, &content)
-	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 

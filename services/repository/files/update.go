@@ -76,8 +76,8 @@ func detectEncodingAndBOM(entry *git.TreeEntry, repo *repo_model.Repository) (st
 	if setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(repo.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				// return default
 				return "UTF-8", false
 			}
@@ -365,7 +365,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 	}
 	// Reset the opts.Content to our adjusted content to ensure that LFS gets the correct content
 	opts.Content = content
-	var lfsMetaObject *models.LFSMetaObject
+	var lfsMetaObject *git_model.LFSMetaObject
 
 	if setting.LFS.StartServer && hasOldBranch {
 		// Check there is no way this can return multiple infos
@@ -384,7 +384,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 			if err != nil {
 				return nil, err
 			}
-			lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: repo.ID}
+			lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repo.ID}
 			content = pointer.StringContent()
 		}
 	}
@@ -424,7 +424,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 
 	if lfsMetaObject != nil {
 		// We have an LFS object - create it
-		lfsMetaObject, err = models.NewLFSMetaObject(lfsMetaObject)
+		lfsMetaObject, err = git_model.NewLFSMetaObject(lfsMetaObject)
 		if err != nil {
 			return nil, err
 		}
@@ -435,7 +435,7 @@ func CreateOrUpdateRepoFile(ctx context.Context, repo *repo_model.Repository, do
 		}
 		if !exist {
 			if err := contentStore.Put(lfsMetaObject.Pointer, strings.NewReader(opts.Content)); err != nil {
-				if _, err2 := models.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, lfsMetaObject.Oid); err2 != nil {
 					return nil, fmt.Errorf("Error whilst removing failed inserted LFS object %s: %v (Prev Error: %v)", lfsMetaObject.Oid, err2, err)
 				}
 				return nil, err

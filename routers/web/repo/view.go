@@ -295,8 +295,8 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -418,8 +418,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -467,7 +467,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	// Check LFS Lock
-	lfsLock, err := models.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+	lfsLock, err := git_model.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)

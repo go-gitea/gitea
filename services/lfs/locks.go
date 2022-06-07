@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -20,9 +20,9 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *models.LFSLock, err error) {
+func handleLockListOut(ctx *context.Context, repo *repo_model.Repository, lock *git_model.LFSLock, err error) {
 	if err != nil {
-		if models.IsErrLFSLockNotExist(err) {
+		if git_model.IsErrLFSLockNotExist(err) {
 			ctx.JSON(http.StatusOK, api.LFSLockList{
 				Locks: []*api.LFSLock{},
 			})
@@ -88,8 +88,8 @@ func GetListLockHandler(ctx *context.Context) {
 			})
 			return
 		}
-		lock, err := models.GetLFSLockByID(ctx, v)
-		if err != nil && !models.IsErrLFSLockNotExist(err) {
+		lock, err := git_model.GetLFSLockByID(ctx, v)
+		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock with ID[%s]: Error: %v", v, err)
 		}
 		handleLockListOut(ctx, repository, lock, err)
@@ -98,8 +98,8 @@ func GetListLockHandler(ctx *context.Context) {
 
 	path := ctx.FormString("path")
 	if path != "" { // Case where we request a specific id
-		lock, err := models.GetLFSLock(ctx, repository, path)
-		if err != nil && !models.IsErrLFSLockNotExist(err) {
+		lock, err := git_model.GetLFSLock(ctx, repository, path)
+		if err != nil && !git_model.IsErrLFSLockNotExist(err) {
 			log.Error("Unable to get lock for repository %-v with path %s: Error: %v", repository, path, err)
 		}
 		handleLockListOut(ctx, repository, lock, err)
@@ -107,7 +107,7 @@ func GetListLockHandler(ctx *context.Context) {
 	}
 
 	// If no query params path or id
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
+	lockList, err := git_model.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
@@ -168,19 +168,19 @@ func PostLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.CreateLFSLock(repository, &models.LFSLock{
+	lock, err := git_model.CreateLFSLock(repository, &git_model.LFSLock{
 		Path:    req.Path,
 		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
-		if models.IsErrLFSLockAlreadyExist(err) {
+		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.JSON(http.StatusConflict, api.LFSLockError{
 				Lock:    convert.ToLFSLock(lock),
 				Message: "already created lock",
 			})
 			return
 		}
-		if models.IsErrLFSUnauthorizedAction(err) {
+		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 				Message: "You must have push access to create locks : " + err.Error(),
@@ -234,7 +234,7 @@ func VerifyLockHandler(ctx *context.Context) {
 	} else if limit < 0 {
 		limit = 0
 	}
-	lockList, err := models.GetLFSLockByRepoID(repository.ID, cursor, limit)
+	lockList, err := git_model.GetLFSLockByRepoID(repository.ID, cursor, limit)
 	if err != nil {
 		log.Error("Unable to list locks for repository ID[%d]: Error: %v", repository.ID, err)
 		ctx.JSON(http.StatusInternalServerError, api.LFSLockError{
@@ -301,9 +301,9 @@ func UnLockHandler(ctx *context.Context) {
 		return
 	}
 
-	lock, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
+	lock, err := git_model.DeleteLFSLockByID(ctx.ParamsInt64("lid"), repository, ctx.Doer, req.Force)
 	if err != nil {
-		if models.IsErrLFSUnauthorizedAction(err) {
+		if git_model.IsErrLFSUnauthorizedAction(err) {
 			ctx.Resp.Header().Set("WWW-Authenticate", "Basic realm=gitea-lfs")
 			ctx.JSON(http.StatusUnauthorized, api.LFSLockError{
 				Message: "You must have push access to delete locks : " + err.Error(),

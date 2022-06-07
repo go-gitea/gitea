@@ -17,8 +17,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
@@ -276,7 +276,7 @@ func runServ(c *cli.Context) error {
 			return fail("Internal error", "Failed to sign JWT token: %v", err)
 		}
 
-		tokenAuthentication := &models.LFSTokenResponse{
+		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
