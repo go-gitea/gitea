@@ -74,8 +74,8 @@
 					</div>
 				{{end}}
 				<div class="fitted item mx-0">
-					<a href="{{.BaseRepo.Link}}/find/{{.BranchName | PathEscapeSegments}}">
-						<button id="go-to-file" class="ui compact basic button">{{.i18n.Tr "action.find_file"}}</button>
+					<a href="{{.BaseRepo.Link}}/find/{{.BranchNameSubURL}}">
+						<button id="go-to-file" class="ui compact basic button">{{.i18n.Tr "repo.find_file.go_to_file"}}</button>
 					</a>
 				</div>
 			{{else}}

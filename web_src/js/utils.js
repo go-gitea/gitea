@@ -58,3 +58,35 @@ export function parseIssueHref(href) {
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {owner, repo, type, index};
 }
+
+// return the sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
+// see unit tests for examples
+export function strSubMatch(full, sub) {
+  const res = [''];
+  let i = 0, j = 0;
+  for (; i < sub.length && j < full.length;) {
+    while (j < full.length) {
+      if (sub[i] === full[j]) {
+        if (res.length % 2 !== 0) res.push('');
+        res[res.length - 1] += full[j];
+        j++;
+        i++;
+      } else {
+        if (res.length % 2 === 0) res.push('');
+        res[res.length - 1] += full[j];
+        j++;
+        break;
+      }
+    }
+  }
+  if (i !== sub.length) {
+    return [full];
+  }
+  if (j < full.length) {
+    if (res.length % 2 === 0) res.push('');
+    for (; j < full.length; j++) {
+      res[res.length - 1] += full[j];
+    }
+  }
+  return res;
+}
