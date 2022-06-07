@@ -379,7 +379,7 @@ var migrations = []Migration{
 	// v211 -> v212
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
 
-	// v212 -> v213
+	// v216 -> v217
 	NewMigration("Add safe mirrors", addEnableSafeMirrorColToMirror),
 }
 
