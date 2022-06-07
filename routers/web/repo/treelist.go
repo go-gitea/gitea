@@ -5,11 +5,13 @@
 package repo
 
 import (
+	"net/http"
+
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+
 	"github.com/go-enry/go-enry/v2"
-	"net/http"
 )
 
 // TreeList get all files' entries of a repository
