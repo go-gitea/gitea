@@ -1343,6 +1343,48 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 }
 
+// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
+func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("team_repo").Where(
+			builder.Eq{
+				"team_id": teamID,
+			}.And(
+				builder.Or(
+					// Check if the user is member of the team.
+					builder.In(
+						"team_id", builder.Select("team_id").From("team_user").Where(
+							builder.Eq{
+								"uid": userID,
+							},
+						),
+					),
+					// Check if the user is in the owner team of the organisation.
+					builder.Exists(builder.Select("team_id").From("team_user").
+						Where(builder.Eq{
+							"org_id": orgID,
+							"team_id": builder.Select("id").From("team").Where(
+								builder.Eq{
+									"org_id":     orgID,
+									"lower_name": strings.ToLower(organization.OwnerTeamName),
+								}),
+							"uid": userID,
+						}),
+					),
+				)).And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_unit").Where(
+						builder.Eq{
+							"`team_unit`.org_id": orgID,
+						}.And(
+							builder.In("`team_unit`.type", units),
+						),
+					),
+				),
+			),
+		))
+}
+
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
 func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
@@ -1356,19 +1398,19 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 		} else {
 			cond = cond.And(
 				builder.Or(
-					userOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					userOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userOwnedRepoCond(userID),                          // owned repos
-				userCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
-				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
-				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
-				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(userID),                          // owned repos
+				repo_model.UserCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
+				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
+				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
 			),
 		)
 	}
@@ -1434,7 +1476,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	opts.setupSessionNoLimit(sess)
 
-	accessCond := accessibleRepositoryCondition(user)
+	accessCond := repo_model.AccessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
 		Distinct("issue.repo_id").
 		Table("issue").
