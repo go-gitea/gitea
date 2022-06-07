@@ -49,6 +49,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -283,7 +284,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -441,7 +442,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 
-	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -522,13 +523,13 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			posterID = 0
 		}
 
-		reviewers, err = models.GetReviewers(repo, ctx.Doer.ID, posterID)
+		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = models.GetReviewerTeams(repo)
+		teamReviewers, err = repo_service.GetReviewerTeams(repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -1799,6 +1800,21 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 		return
 	}
+
+	if issue.IsPull {
+		// Need to check if Pulls are enabled and we can read Pulls
+		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	} else {
+		// Need to check if Issues are enabled and we can read Issues
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 
@@ -2145,7 +2161,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	// find repos user can access (for issue search)
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -2191,8 +2207,8 @@ func SearchIssues(ctx *context.Context) {
 		opts.TeamID = team.ID
 	}
 
-	repoCond := models.SearchRepositoryCondition(opts)
-	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	repoCond := repo_model.SearchRepositoryCondition(opts)
+	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err.Error())
 		return

@@ -55,7 +55,7 @@ func init() {
 func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = repo_model.GetRepositoryByID(r.RepoID)
+		r.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
@@ -99,24 +99,12 @@ func (r *Release) HTMLURL() string {
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
-func IsReleaseExist(repoID int64, tagName string) (bool, error) {
+func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, error) {
 	if len(tagName) == 0 {
 		return false, nil
 	}
 
-	return db.GetEngine(db.DefaultContext).Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
-}
-
-// InsertRelease inserts a release
-func InsertRelease(rel *Release) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(rel)
-	return err
-}
-
-// InsertReleasesContext insert releases
-func InsertReleasesContext(ctx context.Context, rels []*Release) error {
-	_, err := db.GetEngine(ctx).Insert(rels)
-	return err
+	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
 // UpdateRelease updates all columns of a release
@@ -149,22 +137,20 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 
 // GetRelease returns release by given ID.
 func GetRelease(repoID int64, tagName string) (*Release, error) {
-	isExist, err := IsReleaseExist(repoID, tagName)
+	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
+	has, err := db.GetEngine(db.DefaultContext).Get(rel)
 	if err != nil {
 		return nil, err
-	} else if !isExist {
+	} else if !has {
 		return nil, ErrReleaseNotExist{0, tagName}
 	}
-
-	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	_, err = db.GetEngine(db.DefaultContext).Get(rel)
-	return rel, err
+	return rel, nil
 }
 
 // GetReleaseByID returns release with given ID.
-func GetReleaseByID(id int64) (*Release, error) {
+func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 	rel := new(Release)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		ID(id).
 		Get(rel)
 	if err != nil {

@@ -84,12 +84,13 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
-	unittest.AssertExistsAndLoadBean(t, &models.Release{
+	rel := &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
-		Note:    newRelease.Note,
-	})
+	}
+	unittest.AssertExistsAndLoadBean(t, rel)
+	assert.EqualValues(t, newRelease.Note, rel.Note)
 
 	return &newRelease
 }
@@ -137,12 +138,13 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
-	unittest.AssertExistsAndLoadBean(t, &models.Release{
+	rel := &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
-		Note:    newRelease.Note,
-	})
+	}
+	unittest.AssertExistsAndLoadBean(t, rel)
+	assert.EqualValues(t, rel.Note, newRelease.Note)
 }
 
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
