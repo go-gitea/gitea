@@ -142,7 +142,7 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
-	cond := accessibleRepositoryCondition(user)
+	cond := repo_model.AccessibleRepositoryCondition(user)
 	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
@@ -173,7 +173,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		newMetas := make([]*LFSMetaObject, 0, len(metas))
 		cond := builder.In(
 			"`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(accessibleRepositoryCondition(user)),
+			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user)),
 		)
 		err = sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas)
 		if err != nil {
@@ -245,4 +245,13 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error
 	}
 
 	return nil
+}
+
+// GetRepoLFSSize return a repository's lfs files size
+func GetRepoLFSSize(ctx context.Context, repoID int64) (int64, error) {
+	lfsSize, err := db.GetEngine(ctx).Where("repository_id = ?", repoID).SumInt(new(LFSMetaObject), "size")
+	if err != nil {
+		return 0, fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+	return lfsSize, nil
 }
