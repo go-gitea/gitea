@@ -317,7 +317,7 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error
 	for _, v := range lfsObjects {
 		v.ID = 0
 		v.RepositoryID = newRepo.ID
-		if _, err := db.GetEngine(ctx).Insert(v); err != nil {
+		if err := db.Insert(ctx, v); err != nil {
 			return err
 		}
 	}
