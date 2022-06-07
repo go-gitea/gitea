@@ -85,7 +85,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -96,7 +96,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -147,7 +147,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -158,7 +158,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

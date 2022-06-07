@@ -29,13 +29,13 @@ func AddDependency(ctx *context.Context) {
 
 	depID := ctx.FormInt64("newDependency")
 
-	if err = issue.LoadRepo(); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		ctx.ServerError("LoadRepo", err)
 		return
 	}
 
 	// Redirect
-	defer ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	defer ctx.Redirect(issue.HTMLURL())
 
 	// Dependency
 	dep, err := models.GetIssueByID(depID)
@@ -88,7 +88,7 @@ func RemoveDependency(ctx *context.Context) {
 
 	depID := ctx.FormInt64("removeDependencyID")
 
-	if err = issue.LoadRepo(); err != nil {
+	if err = issue.LoadRepo(ctx); err != nil {
 		ctx.ServerError("LoadRepo", err)
 		return
 	}
@@ -125,5 +125,5 @@ func RemoveDependency(ctx *context.Context) {
 	}
 
 	// Redirect
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }

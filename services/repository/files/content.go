@@ -164,7 +164,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
-		if blobResponse, err := GetBlobBySHA(ctx, repo, entry.ID.String()); err != nil {
+		if blobResponse, err := GetBlobBySHA(ctx, repo, gitRepo, entry.ID.String()); err != nil {
 			return nil, err
 		} else if !forList {
 			// We don't show the content if we are getting a list of FileContentResponses
@@ -220,12 +220,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 }
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, sha string) (*api.GitBlobResponse, error) {
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
+func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err

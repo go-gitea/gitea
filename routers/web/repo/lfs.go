@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -103,14 +104,14 @@ func LFSLocks(ctx *context.Context) {
 	}
 
 	// Clone base repo.
-	tmpBasePath, err := models.CreateTemporaryPath("locks")
+	tmpBasePath, err := repo_module.CreateTemporaryPath("locks")
 	if err != nil {
 		log.Error("Failed to create temporary path: %v", err)
 		ctx.ServerError("LFSLocks", err)
 		return
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(tmpBasePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(tmpBasePath); err != nil {
 			log.Error("LFSLocks: RemoveTemporaryPath: %v", err)
 		}
 	}()
@@ -124,7 +125,7 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, tmpBasePath)
+	gitRepo, err := git.OpenRepository(ctx, tmpBasePath)
 	if err != nil {
 		log.Error("Unable to open temporary repository: %s (%v)", tmpBasePath, err)
 		ctx.ServerError("LFSLocks", fmt.Errorf("failed to open new temporary repository in: %s %v", tmpBasePath, err))

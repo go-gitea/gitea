@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"mime"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -77,8 +79,9 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 		"Code":              code,
 		"Language":          locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -127,8 +130,9 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 		"Email":           email.Email,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -157,8 +161,9 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		"Username":    u.Name,
 		"Language":    locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -190,8 +195,9 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var content bytes.Buffer
@@ -274,8 +280,9 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":     locale,
-		"Str2html": templates.Str2html,
+		"i18n":      locale,
+		"Str2html":  templates.Str2html,
+		"DotEscape": templates.DotEscape,
 	}
 
 	var mailSubject bytes.Buffer
@@ -360,6 +367,7 @@ func generateAdditionalHeaders(ctx *mailCommentContext, reason string, recipient
 		//"List-Post": https://github.com/go-gitea/gitea/pull/13585
 		"List-Unsubscribe": ctx.Issue.HTMLURL(),
 
+		"X-Mailer":                  "Gitea",
 		"X-Gitea-Reason":            reason,
 		"X-Gitea-Sender":            ctx.Doer.DisplayName(),
 		"X-Gitea-Recipient":         recipient.DisplayName(),
@@ -398,7 +406,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 		return nil
 	}
 
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("Unable to load repo [%d] for issue #%d [%d]. Error: %v", issue.RepoID, issue.Index, issue.ID, err)
 		return err
 	}
@@ -414,6 +422,7 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 
 	for lang, tos := range langMap {
 		msgs, err := composeIssueCommentMessages(&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: models.ActionType(0),

@@ -106,8 +106,7 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 		ctx.Data["Err_RepoName"] = true
 		ctx.RenderWithErr(ctx.Tr("repo.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tpl, form)
 	default:
-		remoteAddr, _ := forms.ParseRemoteAddr(form.CloneAddr, form.AuthUsername, form.AuthPassword)
-		err = util.NewStringURLSanitizedError(err, remoteAddr, true)
+		err = util.SanitizeErrorCredentialURLs(err)
 		if strings.Contains(err.Error(), "Authentication failed") ||
 			strings.Contains(err.Error(), "Bad credentials") ||
 			strings.Contains(err.Error(), "could not read Username") {

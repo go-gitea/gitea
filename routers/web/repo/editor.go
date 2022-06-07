@@ -67,7 +67,6 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	canCommit := renderCommitRights(ctx)
 
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -197,7 +196,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["PageHasPosted"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
@@ -780,7 +778,7 @@ func UploadFileToServer(ctx *context.Context) {
 func RemoveUploadFileFromServer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RemoveUploadFileForm)
 	if len(form.File) == 0 {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
@@ -790,7 +788,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 	}
 
 	log.Trace("Upload file removed: %s", form.File)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetUniquePatchBranchName Gets a unique branch name for a new patch branch

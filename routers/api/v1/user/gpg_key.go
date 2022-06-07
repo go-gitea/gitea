@@ -18,7 +18,7 @@ import (
 )
 
 func listGPGKeys(ctx *context.APIContext, uid int64, listOptions db.ListOptions) {
-	keys, err := asymkey_model.ListGPGKeys(db.DefaultContext, uid, listOptions)
+	keys, err := asymkey_model.ListGPGKeys(ctx, uid, listOptions)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListGPGKeys", err)
 		return
@@ -64,11 +64,7 @@ func ListGPGKeys(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/GPGKeyList"
 
-	user := GetUserByParams(ctx)
-	if ctx.Written() {
-		return
-	}
-	listGPGKeys(ctx, user.ID, utils.GetListOptions(ctx))
+	listGPGKeys(ctx, ctx.ContextUser.ID, utils.GetListOptions(ctx))
 }
 
 // ListMyGPGKeys get the GPG key list of the authenticated user

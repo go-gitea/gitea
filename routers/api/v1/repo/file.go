@@ -6,16 +6,25 @@
 package repo
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
+	"path"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -53,7 +62,7 @@ func GetRawFile(ctx *context.APIContext) {
 	//   required: false
 	// responses:
 	//   200:
-	//     description: success
+	//     description: Returns raw file content.
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
@@ -62,33 +71,186 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	commit := ctx.Repo.Commit
+	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
 
-	if ref := ctx.FormTrim("ref"); len(ref) > 0 {
-		var err error
-		commit, err = ctx.Repo.GitRepo.GetCommit(ref)
-		if err != nil {
-			if git.IsErrNotExist(err) {
-				ctx.NotFound()
-			} else {
-				ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
-			}
+	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+	}
+}
+
+// GetRawFileOrLFS get a file by repo's path, redirecting to LFS if necessary.
+func GetRawFileOrLFS(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
+	// ---
+	// summary: Get a file or it's LFS object from a repository
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file to get
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   200:
+	//     description: Returns raw file content.
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound()
+		return
+	}
+
+	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
+	if blob.Size() > 1024 {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		// OK not cached - serve!
+		if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	}
+
+	// OK, now the blob is known to have at most 1024 bytes we can simply read this in in one go (This saves reading it twice)
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	buf, err := io.ReadAll(dataRc)
+	if err != nil {
+		_ = dataRc.Close()
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	if err := dataRc.Close(); err != nil {
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+	}
+
+	// Check if the blob represents a pointer
+	pointer, _ := lfs.ReadPointer(bytes.NewReader(buf))
+
+	// if its not a pointer just serve the data directly
+	if !pointer.IsValid() {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		// OK not cached - serve!
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	}
+
+	// Now check if there is a meta object for this pointer
+	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+
+	// If there isn't one just serve the data directly
+	if err == models.ErrLFSObjectNotExist {
+		// Handle caching for the blob SHA (not the LFS object OID)
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	} else if err != nil {
+		ctx.ServerError("GetLFSMetaObjectByOid", err)
+		return
+	}
+
+	// Handle caching for the LFS object OID
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+		return
+	}
+
+	if setting.LFS.ServeDirect {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
 			return
 		}
 	}
 
-	blob, err := commit.GetBlobByPath(ctx.Repo.TreePath)
+	lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+	if err != nil {
+		ctx.ServerError("ReadMetaObject", err)
+		return
+	}
+	defer lfsDataRc.Close()
+
+	if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
+		ctx.ServerError("ServeData", err)
+	}
+}
+
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound()
 		} else {
-			ctx.Error(http.StatusInternalServerError, "GetBlobByPath", err)
+			ctx.Error(http.StatusInternalServerError, "GetTreeEntryByPath", err)
 		}
 		return
 	}
-	if err = common.ServeBlob(ctx.Context, blob); err != nil {
-		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
+
+	if entry.IsDir() || entry.IsSubModule() {
+		ctx.NotFound("getBlobForEntry", nil)
+		return
 	}
+
+	var c *git.LastCommitCache
+	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
+		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
+	}
+
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetCommitsInfo", err)
+		return
+	}
+
+	if len(info) == 1 {
+		// Not Modified
+		lastModified = info[0].Commit.Committer.When
+	}
+	blob = entry.Blob()
+
+	return
 }
 
 // GetArchive get archive of a repository
@@ -122,7 +284,7 @@ func GetArchive(ctx *context.APIContext) {
 
 	repoPath := repo_model.RepoPath(ctx.Params(":username"), ctx.Params(":reponame"))
 	if ctx.Repo.GitRepo == nil {
-		gitRepo, err := git.OpenRepositoryCtx(ctx, repoPath)
+		gitRepo, err := git.OpenRepository(ctx, repoPath)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "OpenRepository", err)
 			return
@@ -157,13 +319,18 @@ func GetEditorconfig(ctx *context.APIContext) {
 	//   description: filepath of file to get
 	//   type: string
 	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
 	// responses:
 	//   200:
 	//     description: success
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	ec, err := ctx.Repo.GetEditorconfig()
+	ec, err := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 	if err != nil {
 		if git.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -183,8 +350,10 @@ func GetEditorconfig(ctx *context.APIContext) {
 }
 
 // canWriteFiles returns true if repository is editable and user has proper access level.
-func canWriteFiles(r *context.Repository) bool {
-	return r.Permission.CanWrite(unit.TypeCode) && !r.Repository.IsMirror && !r.Repository.IsArchived
+func canWriteFiles(ctx *context.APIContext, branch string) bool {
+	return ctx.Repo.CanWriteToBranch(ctx.Doer, branch) &&
+		!ctx.Repo.Repository.IsMirror &&
+		!ctx.Repo.Repository.IsArchived
 }
 
 // canReadFiles returns true if repository is readable and user has proper access level.
@@ -233,9 +402,6 @@ func CreateFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	apiOpts := web.GetForm(ctx).(*api.CreateFileOptions)
-	if ctx.Repo.Repository.IsEmpty {
-		ctx.Error(http.StatusUnprocessableEntity, "RepoIsEmpty", fmt.Errorf("repo is empty"))
-	}
 
 	if apiOpts.BranchName == "" {
 		apiOpts.BranchName = ctx.Repo.Repository.DefaultBranch
@@ -389,7 +555,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 
 // Called from both CreateFile or UpdateFile to handle both
 func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, opts.OldBranch) {
 		return nil, models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
@@ -446,7 +612,7 @@ func DeleteFile(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
-	if !canWriteFiles(ctx.Repo) {
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
 		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,

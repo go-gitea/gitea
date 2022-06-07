@@ -24,7 +24,7 @@ const (
 // Code render explore code page
 func Code(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(setting.AppSubURL+"/explore", 302)
+		ctx.Redirect(setting.AppSubURL + "/explore")
 		return
 	}
 
@@ -55,7 +55,7 @@ func Code(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.Doer)
+		repoIDs, err = repo_model.FindUserAccessibleRepoIDs(ctx.Doer)
 		if err != nil {
 			ctx.ServerError("SearchResults", err)
 			return
@@ -79,7 +79,7 @@ func Code(ctx *context.Context) {
 		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
 		repoIDs = make([]int64, 0, len(repoMaps))
 		for id, repo := range repoMaps {
-			if models.CheckRepoUnitUser(repo, ctx.Doer, unit.TypeCode) {
+			if models.CheckRepoUnitUser(ctx, repo, ctx.Doer, unit.TypeCode) {
 				rightRepoMap[id] = repo
 				repoIDs = append(repoIDs, id)
 			}
@@ -138,7 +138,6 @@ func Code(ctx *context.Context) {
 	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)

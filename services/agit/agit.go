@@ -20,8 +20,8 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-// ProcRecive handle proc receive work
-func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HookProcReceiveRefResult {
+// ProcReceive handle proc receive work
+func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HookProcReceiveRefResult {
 	// TODO: Add more options?
 	var (
 		topicBranch string
@@ -177,7 +177,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		// update exist pull request
-		if err := pr.LoadBaseRepo(); err != nil {
+		if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 			log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 				"Err": fmt.Sprintf("Unable to load base repository for PR[%d] Error: %v", pr.ID, err),
@@ -205,7 +205,7 @@ func ProcRecive(ctx *context.PrivateContext, opts *private.HookOptions) []privat
 		}
 
 		if !forcePush {
-			output, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunInDirWithEnv(repo.RepoPath(), os.Environ())
+			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
 				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, opts.NewCommitIDs[i], repo, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{

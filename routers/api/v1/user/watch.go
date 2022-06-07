@@ -7,8 +7,8 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -19,14 +19,14 @@ import (
 
 // getWatchedRepos returns the repos that the user with the specified userID is watching
 func getWatchedRepos(user *user_model.User, private bool, listOptions db.ListOptions) ([]*api.Repository, int64, error) {
-	watchedRepos, total, err := models.GetWatchedRepos(user.ID, private, listOptions)
+	watchedRepos, total, err := repo_model.GetWatchedRepos(user.ID, private, listOptions)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	repos := make([]*api.Repository, len(watchedRepos))
 	for i, watched := range watchedRepos {
-		access, err := models.AccessLevel(user, watched)
+		access, err := access_model.AccessLevel(user, watched)
 		if err != nil {
 			return nil, 0, err
 		}
@@ -60,9 +60,8 @@ func GetWatchedRepos(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/RepositoryList"
 
-	user := GetUserByParams(ctx)
-	private := user.ID == ctx.Doer.ID
-	repos, total, err := getWatchedRepos(user, private, utils.GetListOptions(ctx))
+	private := ctx.ContextUser.ID == ctx.Doer.ID
+	repos, total, err := getWatchedRepos(ctx.ContextUser, private, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "getWatchedRepos", err)
 	}
@@ -157,7 +156,7 @@ func Watch(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/WatchInfo"
 
-	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "WatchRepo", err)
 		return
@@ -192,7 +191,7 @@ func Unwatch(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	err := repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+	err := repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "UnwatchRepo", err)
 		return

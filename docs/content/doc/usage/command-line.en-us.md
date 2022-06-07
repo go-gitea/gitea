@@ -313,8 +313,13 @@ in the current directory.
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
   - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
+  - `--skip-lfs-data`: Skip dumping of LFS data. Optional.
+  - `--skip-attachment-data`: Skip dumping of attachment data. Optional.
+  - `--skip-package-data`: Skip dumping of package data. Optional.
+  - `--skip-log`: Skip dumping of log data. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
+  - `--type`: Set the dump output format. Optional. (default: zip)
 - Examples:
   - `gitea dump`
   - `gitea dump --verbose`
@@ -503,6 +508,13 @@ Manage running server operations:
               - `--host value`, `-H value`: Mail server host (defaults to: 127.0.0.1:25)
               - `--send-to value`, `-s value`: Email address(es) to send to
               - `--subject value`, `-S value`: Subject header of sent emails
+  - `processes`: Display Gitea processes and goroutine information
+    - Options:
+      - `--flat`: Show processes as flat table rather than as tree
+      - `--no-system`: Do not show system processes
+      - `--stacktraces`: Show stacktraces for goroutines associated with processes
+      - `--json`: Output as json
+      - `--cancel PID`: Send cancel to process with PID. (Only for non-system processes.)
 
 ### dump-repo
 

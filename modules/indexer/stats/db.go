@@ -30,12 +30,12 @@ func (db *DBIndexer) Index(id int64) error {
 		return nil
 	}
 
-	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeStats)
+	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeStats)
 	if err != nil {
 		return err
 	}
 
-	gitRepo, err := git.OpenRepositoryCtx(ctx, repo.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		if err.Error() == "no such file or directory" {
 			return nil

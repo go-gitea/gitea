@@ -9,7 +9,6 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -80,7 +79,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		return
 	}
 
-	if ctx.Cache.IsExist("MailResendLimit_" + u.LowerName) {
+	if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+u.LowerName) {
 		ctx.Data["ResendLimited"] = true
 		ctx.HTML(http.StatusOK, tplForgotPassword)
 		return
@@ -88,8 +87,10 @@ func ForgotPasswdPost(ctx *context.Context) {
 
 	mailer.SendResetPasswordMail(u)
 
-	if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-		log.Error("Set cache(MailResendLimit) fail: %v", err)
+	if setting.CacheService.Enabled {
+		if err = ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		}
 	}
 
 	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
@@ -232,7 +233,7 @@ func ResetPasswdPost(ctx *context.Context) {
 		return
 	}
 	u.MustChangePassword = false
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "rands", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}
@@ -327,7 +328,7 @@ func MustChangePasswordPost(ctx *context.Context) {
 
 	u.MustChangePassword = false
 
-	if err := user_model.UpdateUserCols(db.DefaultContext, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
+	if err := user_model.UpdateUserCols(ctx, u, "must_change_password", "passwd", "passwd_hash_algo", "salt"); err != nil {
 		ctx.ServerError("UpdateUser", err)
 		return
 	}

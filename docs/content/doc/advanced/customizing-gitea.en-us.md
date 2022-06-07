@@ -60,14 +60,15 @@ the url `http://gitea.domain.tld/assets/image.png`.
 
 ## Changing the logo
 
-To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
-`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo and/or favicon clone the Gitea source repository, replace `assets/logo.svg` and/or `assets/favicon.svg` and run
+`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.svg` - Used for site icon, app icon
 - `public/img/logo.png` - Used for Open Graph
-- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 - `public/img/avatar_default.png` - Used as the default avatar image
 - `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
+- `public/img/favicon.svg` - Used for favicon
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 
 In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
@@ -132,15 +133,18 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 `$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
-{{if .RequireHighlightJS}}
-<script src="https://your-server.com/deflate.js"></script>
-<script src="https://your-server.com/encode.js"></script>
-<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
-  <!-- Replace call with address to your plantuml server-->
-  parsePlantumlCodeBlocks("http://www.plantuml.com/plantuml");
+  $(async () => {
+    if (!$('.language-plantuml').length) return;
+    await Promise.all([
+      $.getScript('https://your-server.com/deflate.js'), 
+      $.getScript('https://your-server.com/encode.js'),
+      $.getScript('https://your-server.com/plantuml_codeblock_parse.js'),
+    ]);
+    // Replace call with address to your plantuml server
+    parsePlantumlCodeBlocks("https://www.plantuml.com/plantuml");
+  });
 </script>
-{{end}}
 ```
 
 You can then add blocks like the following to your markdown:
@@ -298,6 +302,8 @@ To add a completely new locale, as well as placing the file in the above locatio
 LANGS = en-US,foo-BAR
 NAMES = English,FooBar
 ```
+
+The first locale will be used as the default if user browser's language doesn't match any locale in the list.
 
 Locales may change between versions, so keeping track of your customized locales is highly encouraged.
 

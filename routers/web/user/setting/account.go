@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -75,7 +74,7 @@ func AccountPost(ctx *context.Context) {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
-		if err := user_model.UpdateUserCols(db.DefaultContext, ctx.Doer, "salt", "passwd_hash_algo", "passwd"); err != nil {
+		if err := user_model.UpdateUserCols(ctx, ctx.Doer, "salt", "passwd_hash_algo", "passwd"); err != nil {
 			ctx.ServerError("UpdateUser", err)
 			return
 		}
@@ -106,7 +105,7 @@ func EmailPost(ctx *context.Context) {
 	// Send activation Email
 	if ctx.FormString("_method") == "SENDACTIVATION" {
 		var address string
-		if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
+		if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
 			log.Error("Send activation: activation still pending")
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 			return
@@ -142,8 +141,10 @@ func EmailPost(ctx *context.Context) {
 		}
 		address = email.Email
 
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
@@ -182,7 +183,7 @@ func EmailPost(ctx *context.Context) {
 		Email:       form.Email,
 		IsActivated: !setting.Service.RegisterEmailConfirm,
 	}
-	if err := user_model.AddEmailAddress(email); err != nil {
+	if err := user_model.AddEmailAddress(ctx, email); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) {
 			loadAccountData(ctx)
 
@@ -202,8 +203,10 @@ func EmailPost(ctx *context.Context) {
 	// Send confirmation email
 	if setting.Service.RegisterEmailConfirm {
 		mailer.SendActivateEmailMail(ctx.Doer, email)
-		if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
 	} else {
@@ -252,6 +255,9 @@ func DeleteAccount(ctx *context.Context) {
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("form.still_has_org"))
 			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
+		case models.IsErrUserOwnPackages(err):
+			ctx.Flash.Error(ctx.Tr("form.still_own_packages"))
+			ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
@@ -271,7 +277,7 @@ func loadAccountData(ctx *context.Context) {
 		user_model.EmailAddress
 		CanBePrimary bool
 	}
-	pendingActivation := ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName)
+	pendingActivation := setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName)
 	emails := make([]*UserEmail, len(emlist))
 	for i, em := range emlist {
 		var email UserEmail

@@ -9,8 +9,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
@@ -29,7 +31,7 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := models.GetCurrentReview(ctx.Doer, issue)
+	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
@@ -105,7 +107,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	action := ctx.FormString("action")
 	commentID := ctx.FormInt64("comment_id")
 
-	comment, err := models.GetCommentByID(commentID)
+	comment, err := models.GetCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
@@ -241,4 +243,48 @@ func DismissReview(ctx *context.Context) {
 	}
 
 	ctx.Redirect(fmt.Sprintf("%s/pulls/%d#%s", ctx.Repo.RepoLink, comm.Issue.Index, comm.HashTag()))
+}
+
+// viewedFilesUpdate Struct to parse the body of a request to update the reviewed files of a PR
+// If you want to implement an API to update the review, simply move this struct into modules.
+type viewedFilesUpdate struct {
+	Files         map[string]bool `json:"files"`
+	HeadCommitSHA string          `json:"headCommitSHA"`
+}
+
+func UpdateViewedFiles(ctx *context.Context) {
+	// Find corresponding PR
+	issue := checkPullInfo(ctx)
+	if ctx.Written() {
+		return
+	}
+	pull := issue.PullRequest
+
+	var data *viewedFilesUpdate
+	err := json.NewDecoder(ctx.Req.Body).Decode(&data)
+	if err != nil {
+		log.Warn("Attempted to update a review but could not parse request body: %v", err)
+		ctx.Resp.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	// Expect the review to have been now if no head commit was supplied
+	if data.HeadCommitSHA == "" {
+		data.HeadCommitSHA = pull.HeadCommitID
+	}
+
+	updatedFiles := make(map[string]pull_model.ViewedState, len(data.Files))
+	for file, viewed := range data.Files {
+
+		// Only unviewed and viewed are possible, has-changed can not be set from the outside
+		state := pull_model.Unviewed
+		if viewed {
+			state = pull_model.Viewed
+		}
+		updatedFiles[file] = state
+	}
+
+	if err := pull_model.UpdateReviewState(ctx, ctx.Doer.ID, pull.ID, data.HeadCommitSHA, updatedFiles); err != nil {
+		ctx.ServerError("UpdateReview", err)
+	}
 }

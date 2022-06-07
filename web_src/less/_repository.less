@@ -301,7 +301,7 @@
         font-weight: normal;
       }
 
-      .ui.tiny.blue.buttons {
+      .ui.tiny.primary.buttons {
         @media @mediaSm {
           width: 100%;
         }
@@ -334,7 +334,7 @@
             margin-right: 10px;
           }
 
-          &.octicon-file-directory,
+          &.octicon-file-directory-fill,
           &.octicon-file-submodule {
             color: var(--color-primary);
           }
@@ -861,6 +861,11 @@
           }
         }
 
+        /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
+        .inline-timeline-avatar {
+          display: none;
+        }
+
         .avatar.image,
         .avatar.image img {
           width: 20px;
@@ -1163,7 +1168,7 @@
             border-color: var(--color-secondary-dark-1) !important;
           }
 
-          .ui.label.basic.blue {
+          .ui.label.basic.primary {
             background-color: var(--color-reaction-active-bg) !important;
             border-color: var(--color-primary-alpha-80) !important;
           }
@@ -1221,6 +1226,10 @@
         height: 200px;
         font-family: var(--fonts-monospace);
       }
+
+      .CodeMirror-scroll {
+        max-height: 85vh;
+      }
     }
   }
 
@@ -1233,26 +1242,9 @@
       padding-bottom: 10px;
       border-bottom: 1px dashed var(--color-secondary);
 
-      > a {
-        padding-top: 5px;
-        padding-right: 10px;
-        font-size: 1.5rem;
-        color: var(--color-text);
-
-        &:hover {
-          color: var(--color-primary);
-        }
-      }
-
-      .ui.progress {
-        width: 40%;
-        padding: 0;
-        border: 0;
-        margin: 0;
-
-        .bar {
-          height: 20px;
-        }
+      progress {
+        width: 200px;
+        height: 16px;
       }
 
       .meta {
@@ -1583,6 +1575,7 @@
     }
 
     .line-num {
+      &:extend(.unselectable);
       width: 1%;
       min-width: 50px;
       font-family: monospace;
@@ -1591,7 +1584,6 @@
       white-space: nowrap;
       vertical-align: top;
       cursor: pointer;
-      user-select: none;
       text-align: right;
       background: var(--color-body);
       border: 0;
@@ -1655,7 +1647,7 @@
       @media (max-width: 480px) {
         padding-top: .25rem;
 
-        .ui.button {
+        .ui.button:not(.btn-submit) {
           padding-left: .5rem;
           padding-right: .5rem;
           display: flex;
@@ -1727,11 +1719,11 @@
       background: var(--color-code-bg);
 
       .lines-num {
+        &:extend(.unselectable);
         text-align: right;
         color: var(--color-text-light);
         width: 1%;
         min-width: 50px;
-        user-select: none;
 
         span.fold {
           display: block;
@@ -1774,9 +1766,9 @@
           }
 
           .lines-type-marker {
+            &:extend(.unselectable);
             width: 10px;
             min-width: 10px;
-            user-select: none;
           }
 
           [data-type-marker]::before {
@@ -2065,6 +2057,21 @@
     }
   }
 
+  &.packages {
+    .empty {
+      padding-top: 70px;
+      padding-bottom: 100px;
+
+      .svg {
+        height: 48px;
+      }
+    }
+
+    .file-size {
+      white-space: nowrap;
+    }
+  }
+
   &.wiki {
     &.start {
       .ui.segment {
@@ -2102,6 +2109,10 @@
           }
         }
       }
+    }
+
+    .form .CodeMirror-scroll {
+      max-height: 85vh;
     }
 
     @media @mediaSm {
@@ -2391,7 +2402,7 @@
       color: var(--color-primary) !important;
     }
 
-    .ui.label.basic.blue {
+    .ui.label.basic.primary {
       background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
@@ -2435,13 +2446,13 @@
     }
 
     .segment.language-stats {
+      &:extend(.unselectable);
       padding: 0;
       height: 11px;
       display: flex;
       white-space: nowrap;
       width: 100%;
       border-radius: 0;
-      user-select: none;
 
       @media @mediaSm {
         display: none;
@@ -2647,7 +2658,7 @@
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
-  padding: .5rem 1rem !important;
+  padding: .5rem 1rem;
   margin: 0 !important;
   position: relative;
   color: var(--color-text-light-2);
@@ -2941,11 +2952,24 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+
+  @media @mediaSm {
+    + .container {
+      margin-top: 7px;
+    }
+  }
 }
 
 .repo-buttons {
-  display: flex;
   align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  word-break: keep-all;
+
+  @media @mediaSm {
+    margin-top: 1em;
+  }
 }
 
 .repo-buttons .ui.labeled.button > .label:hover {
@@ -2984,6 +3008,11 @@ tbody.commit-list {
 
     > .button {
       pointer-events: none !important;
+    }
+  }
+  @media @mediaSm {
+    .svg {
+      display: none;
     }
   }
 }
@@ -3211,4 +3240,162 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+@media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
+  .issue-list-headers.ui[class].grid {
+    > div:nth-child(1) {
+      order: 1;
+      width: 50%;
+    }
+
+    > div:nth-child(2) {
+      order: 3;
+      width: 100%;
+    }
+
+    > div.column:not(.row):nth-child(3) {
+      order: 2;
+      width: 50%;
+    }
+  }
+
+  .repository.view.issue .comment-list {
+    .timeline,
+    .timeline-item {
+      margin-left: 0;
+    }
+
+    .timeline {
+      &::before {
+        left: 14px;
+      }
+
+      .inline-timeline-avatar {
+        display: flex;
+        margin-bottom: auto;
+
+        img.avatar.image {
+          height: 24px;
+          width: 24px;
+        }
+      }
+
+      .comment-header {
+        &::before,
+        &::after {
+          content: unset;
+        }
+
+        padding-left: 4px;
+      }
+
+      /* Don't show the general avatar, we show the inline avatar on mobile.
+       * And don't show the role labels, there's no place for that. */
+      .timeline-avatar,
+      .comment-header-right .role-label {
+        display: none;
+      }
+    }
+  }
+  .commit-header-row {
+    .ui.horizontal.list {
+      width: 100%;
+      overflow-x: scroll;
+      margin-top: 2px;
+
+      .item {
+        align-items: center;
+        display: flex;
+      }
+    }
+
+    .author {
+      padding: 3px 0;
+    }
+  }
+
+  .commit-header h3 {
+    flex-basis: auto !important;
+    margin-bottom: .5rem !important;
+  }
+
+  .commits-table {
+    flex-direction: column;
+
+    .commits-table-left {
+      align-items: initial !important;
+      margin-bottom: 6px;
+    }
+
+    .commits-table-right form {
+      display: flex;
+      flex-wrap: wrap;
+
+      > div:nth-child(1) {
+        order: 1;
+      }
+
+      > div:nth-child(2) {
+        order: 3;
+        margin-left: .5rem;
+        margin-top: .5rem;
+      }
+
+      > button:nth-child(3) {
+        order: 2;
+        margin-left: .25rem;
+      }
+    }
+  }
+
+  .commit-table {
+    overflow-x: scroll;
+
+    td.sha,
+    th.sha {
+      display: none !important;
+    }
+
+    .commit-list {
+      span.message-wrapper {
+        max-width: none;
+      }
+
+      tr td:last-child {
+        display: block;
+        width: max-content;
+      }
+
+      td.author {
+        display: block;
+        width: calc(100% + .5rem);
+      }
+
+      .copy-commit-sha {
+        display: none !important;
+      }
+    }
+  }
 }

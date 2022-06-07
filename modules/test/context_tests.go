@@ -13,8 +13,7 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -39,6 +38,7 @@ func MockContext(t *testing.T, path string) *context.Context {
 		Resp:   context.NewResponse(resp),
 		Locale: &mockLocale{},
 	}
+	defer ctx.Close()
 
 	requestURL, err := url.Parse(path)
 	assert.NoError(t, err)
@@ -61,13 +61,13 @@ func LoadRepo(t *testing.T, ctx *context.Context, repoID int64) {
 	ctx.Repo.Owner, err = user_model.GetUserByID(ctx.Repo.Repository.OwnerID)
 	assert.NoError(t, err)
 	ctx.Repo.RepoLink = ctx.Repo.Repository.Link()
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx.Repo.Repository, ctx.Doer)
+	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
 	assert.NoError(t, err)
 }
 
 // LoadRepoCommit loads a repo's commit into a test context.
 func LoadRepoCommit(t *testing.T, ctx *context.Context) {
-	gitRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
+	gitRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	branch, err := gitRepo.GetHEADBranch()
@@ -87,9 +87,9 @@ func LoadUser(t *testing.T, ctx *context.Context, userID int64) {
 // LoadGitRepo load a git repo into a test context. Requires that ctx.Repo has
 // already been populated.
 func LoadGitRepo(t *testing.T, ctx *context.Context) {
-	assert.NoError(t, ctx.Repo.Repository.GetOwner(db.DefaultContext))
+	assert.NoError(t, ctx.Repo.Repository.GetOwner(ctx))
 	var err error
-	ctx.Repo.GitRepo, err = git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.RepoPath())
+	ctx.Repo.GitRepo, err = git.OpenRepository(ctx, ctx.Repo.Repository.RepoPath())
 	assert.NoError(t, err)
 }
 
