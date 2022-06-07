@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE supplementalData SYSTEM "../../common/dtd/ldmlSupplemental.dtd">
+<!--
+Copyright © 1991-2015 Unicode, Inc.
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+For terms of use, see http://www.unicode.org/copyright.html
+-->
+<supplementalData>
+    <version number="$Revision$"/>
+    <plurals type="ordinal">
+        <!-- For a canonicalized list, use GeneratedPluralSamples -->
+
+        <!-- 1: other -->
+
+        <pluralRules locales="af am an ar bg bs ce cs da de dsb el es et eu fa fi fy gl gsw he hr hsb ia id in is iw ja km kn ko ky lt lv ml mn my nb nl no pa pl prg ps pt root ru sd sh si sk sl sr sw ta te th tpi tr ur uz yue zh zu">
+            <pluralRule count="other"> @integer 0~15, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 2: one,other -->
+
+        <pluralRules locales="sv">
+            <pluralRule count="one">n % 10 = 1,2 and n % 100 != 11,12 @integer 1, 2, 21, 22, 31, 32, 41, 42, 51, 52, 61, 62, 71, 72, 81, 82, 101, 1001, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 3~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="bal fil fr ga hy lo mo ms ro tl vi">
+            <pluralRule count="one">n = 1 @integer 1</pluralRule>
+            <pluralRule count="other"> @integer 0, 2~16, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="hu">
+            <pluralRule count="one">n = 1,5 @integer 1, 5</pluralRule>
+            <pluralRule count="other"> @integer 0, 2~4, 6~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="ne">
+            <pluralRule count="one">n = 1..4 @integer 1~4</pluralRule>
+            <pluralRule count="other"> @integer 0, 5~19, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 2: few,other -->
+
+        <pluralRules locales="be">
+            <pluralRule count="few">n % 10 = 2,3 and n % 100 != 12,13 @integer 2, 3, 22, 23, 32, 33, 42, 43, 52, 53, 62, 63, 72, 73, 82, 83, 102, 1002, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 1, 4~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="uk">
+            <pluralRule count="few">n % 10 = 3 and n % 100 != 13 @integer 3, 23, 33, 43, 53, 63, 73, 83, 103, 1003, …</pluralRule>
+            <pluralRule count="other"> @integer 0~2, 4~16, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="tk">
+            <pluralRule count="few">n % 10 = 6,9 or n = 10 @integer 6, 9, 10, 16, 19, 26, 29, 36, 39, 106, 1006, …</pluralRule>
+            <pluralRule count="other"> @integer 0~5, 7, 8, 11~15, 17, 18, 20, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 2: many,other -->
+
+        <pluralRules locales="kk">
+            <pluralRule count="many">n % 10 = 6 or n % 10 = 9 or n % 10 = 0 and n != 0 @integer 6, 9, 10, 16, 19, 20, 26, 29, 30, 36, 39, 40, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+            <pluralRule count="other"> @integer 0~5, 7, 8, 11~15, 17, 18, 21, 101, 1001, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="it sc scn">
+            <pluralRule count="many">n = 11,8,80,800 @integer 8, 11, 80, 800</pluralRule>
+            <pluralRule count="other"> @integer 0~7, 9, 10, 12~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="lij">
+            <pluralRule count="many">n = 11,8,80..89,800..899 @integer 8, 11, 80~89, 800~803</pluralRule>
+            <pluralRule count="other"> @integer 0~7, 9, 10, 12~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 3: one,many,other -->
+
+        <pluralRules locales="ka">
+            <pluralRule count="one">i = 1 @integer 1</pluralRule>
+            <pluralRule count="many">i = 0 or i % 100 = 2..20,40,60,80 @integer 0, 2~16, 102, 1002, …</pluralRule>
+            <pluralRule count="other"> @integer 21~36, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="sq">
+            <pluralRule count="one">n = 1 @integer 1</pluralRule>
+            <pluralRule count="many">n % 10 = 4 and n % 100 != 14 @integer 4, 24, 34, 44, 54, 64, 74, 84, 104, 1004, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 2, 3, 5~17, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="kw">
+            <pluralRule count="one">n = 1..4 or n % 100 = 1..4,21..24,41..44,61..64,81..84 @integer 1~4, 21~24, 41~44, 61~64, 101, 1001, …</pluralRule>
+            <pluralRule count="many">n = 5 or n % 100 = 5 @integer 5, 105, 205, 305, 405, 505, 605, 705, 1005, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 6~20, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 4: one,two,few,other -->
+
+        <pluralRules locales="en">
+            <pluralRule count="one">n % 10 = 1 and n % 100 != 11 @integer 1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …</pluralRule>
+            <pluralRule count="two">n % 10 = 2 and n % 100 != 12 @integer 2, 22, 32, 42, 52, 62, 72, 82, 102, 1002, …</pluralRule>
+            <pluralRule count="few">n % 10 = 3 and n % 100 != 13 @integer 3, 23, 33, 43, 53, 63, 73, 83, 103, 1003, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 4~18, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="mr">
+            <pluralRule count="one">n = 1 @integer 1</pluralRule>
+            <pluralRule count="two">n = 2,3 @integer 2, 3</pluralRule>
+            <pluralRule count="few">n = 4 @integer 4</pluralRule>
+            <pluralRule count="other"> @integer 0, 5~19, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="gd">
+            <pluralRule count="one">n = 1,11 @integer 1, 11</pluralRule>
+            <pluralRule count="two">n = 2,12 @integer 2, 12</pluralRule>
+            <pluralRule count="few">n = 3,13 @integer 3, 13</pluralRule>
+            <pluralRule count="other"> @integer 0, 4~10, 14~21, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="ca">
+            <pluralRule count="one">n = 1,3 @integer 1, 3</pluralRule>
+            <pluralRule count="two">n = 2 @integer 2</pluralRule>
+            <pluralRule count="few">n = 4 @integer 4</pluralRule>
+            <pluralRule count="other"> @integer 0, 5~19, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 4: one,two,many,other -->
+
+        <pluralRules locales="mk">
+            <pluralRule count="one">i % 10 = 1 and i % 100 != 11 @integer 1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …</pluralRule>
+            <pluralRule count="two">i % 10 = 2 and i % 100 != 12 @integer 2, 22, 32, 42, 52, 62, 72, 82, 102, 1002, …</pluralRule>
+            <pluralRule count="many">i % 10 = 7,8 and i % 100 != 17,18 @integer 7, 8, 27, 28, 37, 38, 47, 48, 57, 58, 67, 68, 77, 78, 87, 88, 107, 1007, …</pluralRule>
+            <pluralRule count="other"> @integer 0, 3~6, 9~19, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 4: one,few,many,other -->
+
+        <pluralRules locales="az">
+            <pluralRule count="one">i % 10 = 1,2,5,7,8 or i % 100 = 20,50,70,80 @integer 1, 2, 5, 7, 8, 11, 12, 15, 17, 18, 20~22, 25, 101, 1001, …</pluralRule>
+            <pluralRule count="few">i % 10 = 3,4 or i % 1000 = 100,200,300,400,500,600,700,800,900 @integer 3, 4, 13, 14, 23, 24, 33, 34, 43, 44, 53, 54, 63, 64, 73, 74, 100, 1003, …</pluralRule>
+            <pluralRule count="many">i = 0 or i % 10 = 6 or i % 100 = 40,60,90 @integer 0, 6, 16, 26, 36, 40, 46, 56, 106, 1006, …</pluralRule>
+            <pluralRule count="other"> @integer 9, 10, 19, 29, 30, 39, 49, 59, 69, 79, 109, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 5: one,two,few,many,other -->
+
+        <pluralRules locales="gu hi">
+            <pluralRule count="one">n = 1 @integer 1</pluralRule>
+            <pluralRule count="two">n = 2,3 @integer 2, 3</pluralRule>
+            <pluralRule count="few">n = 4 @integer 4</pluralRule>
+            <pluralRule count="many">n = 6 @integer 6</pluralRule>
+            <pluralRule count="other"> @integer 0, 5, 7~20, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="as bn">
+            <pluralRule count="one">n = 1,5,7,8,9,10 @integer 1, 5, 7~10</pluralRule>
+            <pluralRule count="two">n = 2,3 @integer 2, 3</pluralRule>
+            <pluralRule count="few">n = 4 @integer 4</pluralRule>
+            <pluralRule count="many">n = 6 @integer 6</pluralRule>
+            <pluralRule count="other"> @integer 0, 11~25, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+        <pluralRules locales="or">
+            <pluralRule count="one">n = 1,5,7..9 @integer 1, 5, 7~9</pluralRule>
+            <pluralRule count="two">n = 2,3 @integer 2, 3</pluralRule>
+            <pluralRule count="few">n = 4 @integer 4</pluralRule>
+            <pluralRule count="many">n = 6 @integer 6</pluralRule>
+            <pluralRule count="other"> @integer 0, 10~24, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+
+        <!-- 6: zero,one,two,few,many,other -->
+
+        <pluralRules locales="cy">
+            <pluralRule count="zero">n = 0,7,8,9 @integer 0, 7~9</pluralRule>
+            <pluralRule count="one">n = 1 @integer 1</pluralRule>
+            <pluralRule count="two">n = 2 @integer 2</pluralRule>
+            <pluralRule count="few">n = 3,4 @integer 3, 4</pluralRule>
+            <pluralRule count="many">n = 5,6 @integer 5, 6</pluralRule>
+            <pluralRule count="other"> @integer 10~25, 100, 1000, 10000, 100000, 1000000, …</pluralRule>
+        </pluralRules>
+    </plurals>
+</supplementalData>

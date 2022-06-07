@@ -1,0 +1,1307 @@
+<!--
+Copyright © 1991-2022 Unicode, Inc.
+For terms of use, see http://www.unicode.org/copyright.html
+SPDX-License-Identifier: Unicode-DFS-2016
+CLDR data files are interpreted according to the LDML specification (http://unicode.org/reports/tr35/)
+-->
+
+<!ELEMENT supplementalData ( version, generation?, cldrVersion?, currencyData?, territoryContainment?, subdivisionContainment?, languageData?, territoryInfo?, postalCodeData?, calendarData?, calendarPreferenceData?, weekData?, timeData?, measurementData?, unitConstants*, unitQuantities*, convertUnits*, unitPreferenceData?, timezoneData?, characters?, transforms?, metadata?, codeMappings?, parentLocales?, likelySubtags?, metazoneInfo?, plurals?, telephoneCodeData?, numberingSystems?, bcp47KeywordMappings?, gender?, references?, languageMatching?, dayPeriodRuleSet*, metaZones?, primaryZones?, windowsZones?, coverageLevels?, idValidity?, rgScope?, languageGroups?, grammaticalData? ) >
+
+<!ELEMENT version EMPTY >
+    <!--@METADATA-->
+<!ATTLIST version number CDATA #REQUIRED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+<!ATTLIST version cldrVersion CDATA #FIXED "41" >
+    <!--@MATCH:version-->
+    <!--@VALUE-->
+<!ATTLIST version unicodeVersion CDATA #FIXED "14.0.0" >
+    <!--@MATCH:version-->
+    <!--@VALUE-->
+
+<!ELEMENT generation EMPTY >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST generation date CDATA #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT cldrVersion EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST cldrVersion version CDATA #REQUIRED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT currencyData ( fractions*, region+ ) >
+<!ATTLIST currencyData draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT fractions ( info+ ) >
+<!ATTLIST fractions draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT info EMPTY >
+<!ATTLIST info iso4217 NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/currency||literal/DEFAULT-->
+<!ATTLIST info digits NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~5-->
+    <!--@VALUE-->
+<!ATTLIST info rounding NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~5-->
+    <!--@VALUE-->
+<!ATTLIST info cashDigits NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~100-->
+    <!--@VALUE-->
+<!ATTLIST info cashRounding NMTOKEN #IMPLIED >
+    <!--@MATCH:literal/0, 5, 50-->
+    <!--@VALUE-->
+<!ATTLIST info draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST info references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT region ( currency* ) >
+<!ATTLIST region iso3166 NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/region-->
+<!ATTLIST region draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT currency ( alternate* ) >
+<!ATTLIST currency before NMTOKEN #IMPLIED >
+    <!-- use from and to instead. -->
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST currency from NMTOKEN #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd-->
+<!ATTLIST currency to NMTOKEN #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd-->
+<!ATTLIST currency iso4217 NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/currency-->
+<!ATTLIST currency digits NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST currency rounding NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST currency cashRounding NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST currency tender (true | false) #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST currency draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST currency references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT alternate EMPTY >
+    <!-- use from and to instead. -->
+    <!--@DEPRECATED-->
+<!ATTLIST alternate iso4217 NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+
+<!ELEMENT territoryContainment ( group* ) >
+
+<!ELEMENT group EMPTY >
+<!ATTLIST group type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/region-->
+<!ATTLIST group contains NMTOKENS #IMPLIED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST group grouping (true | false) #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST group status (deprecated | grouping) #IMPLIED >
+<!ATTLIST group draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST group references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT subdivisionContainment ( subgroup* ) >
+
+<!ELEMENT subgroup EMPTY >
+<!ATTLIST subgroup type NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/region||validity/subdivision-->
+<!ATTLIST subgroup subtype NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST subgroup contains NMTOKENS #IMPLIED >
+    <!--@MATCH:set/or/validity/subdivision||literal/itca, itnu, itor, itsd, itss, no01, no02, no03, no04, no05, no06, no07, no08, no09, no10, no11, no12, no14, no15, no18, no19, no20, no21, no22, no50-->
+    <!--@VALUE-->
+
+<!ELEMENT languageData ( language* ) >
+
+<!ELEMENT language EMPTY >
+<!ATTLIST language type NMTOKEN #REQUIRED >
+    <!--@MATCH:set/validity/language-->
+<!ATTLIST language scripts NMTOKENS #IMPLIED >
+    <!--@MATCH:set/validity/script-->
+    <!--@VALUE-->
+<!ATTLIST language territories NMTOKENS #IMPLIED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST language variants NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST language draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST language references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST language alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/secondary, variant-->
+
+<!ELEMENT territoryInfo ( territory* ) >
+<!ATTLIST territoryInfo draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST territoryInfo references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST territoryInfo alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT territory ( languagePopulation* ) >
+<!ATTLIST territory type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/region-->
+<!ATTLIST territory gdp NMTOKEN #REQUIRED >
+    <!--@MATCH:range/0~100000000000000-->
+    <!--@VALUE-->
+<!ATTLIST territory literacyPercent NMTOKEN #REQUIRED >
+    <!--@MATCH:range/0.0~100.0-->
+    <!--@VALUE-->
+<!ATTLIST territory population NMTOKEN #REQUIRED >
+    <!--@MATCH:range/0~10000000000-->
+    <!--@VALUE-->
+<!ATTLIST territory draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST territory references CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+<!ATTLIST territory alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT languagePopulation EMPTY >
+<!ATTLIST languagePopulation type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/locale-->
+<!ATTLIST languagePopulation literacyPercent NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~100-->
+    <!--@VALUE-->
+<!ATTLIST languagePopulation writingPercent NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~100-->
+    <!--@VALUE-->
+<!ATTLIST languagePopulation populationPercent NMTOKEN #REQUIRED >
+    <!--@MATCH:range/0.0~100.0-->
+    <!--@VALUE-->
+<!ATTLIST languagePopulation officialStatus (de_facto_official | official | official_regional | official_minority) #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST languagePopulation draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST languagePopulation references CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+<!ATTLIST languagePopulation alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT postalCodeData ( postCodeRegex* ) >
+    <!--@DEPRECATED-->
+
+<!ELEMENT postCodeRegex ( #PCDATA ) >
+    <!--@DEPRECATED-->
+<!ATTLIST postCodeRegex territoryId NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST postCodeRegex draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT calendarData ( calendar* ) >
+
+<!ELEMENT calendar ( calendarSystem?, eras? ) >
+<!ATTLIST calendar type NMTOKEN #REQUIRED >
+    <!--@MATCH:bcp47/ca-->
+<!ATTLIST calendar territories NMTOKENS #IMPLIED >
+    <!-- use ordering attribute in calendarPreference element instead. -->
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST calendar draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST calendar references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST calendar alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT calendarSystem EMPTY >
+<!ATTLIST calendarSystem type (solar | lunar | lunisolar | other) #REQUIRED >
+    <!--@VALUE-->
+<!ATTLIST calendarSystem references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT eras ( era* ) >
+<!ATTLIST eras references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT era EMPTY >
+<!ATTLIST era type NMTOKEN #REQUIRED >
+    <!--@MATCH:range/0~250-->
+<!ATTLIST era start CDATA #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd-->
+    <!--@VALUE-->
+<!ATTLIST era end CDATA #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd-->
+    <!--@VALUE-->
+<!ATTLIST era named (true | false) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT calendarPreferenceData ( calendarPreference* ) >
+
+<!ELEMENT calendarPreference EMPTY >
+<!ATTLIST calendarPreference territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+<!ATTLIST calendarPreference ordering NMTOKENS #REQUIRED >
+    <!--@MATCH:set/bcp47/ca-->
+    <!--@VALUE-->
+
+<!ELEMENT weekData ( minDays*, firstDay*, weekendStart*, weekendEnd*, weekOfPreference* ) >
+
+<!ELEMENT minDays EMPTY >
+<!ATTLIST minDays count (1 | 2 | 3 | 4 | 5 | 6 | 7) #REQUIRED >
+<!ATTLIST minDays territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST minDays draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST minDays references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST minDays alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT firstDay EMPTY >
+<!ATTLIST firstDay day (sun | mon | tue | wed | thu | fri | sat) #REQUIRED >
+<!ATTLIST firstDay territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST firstDay draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST firstDay references CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+<!ATTLIST firstDay alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT weekendStart EMPTY >
+<!ATTLIST weekendStart day (sun | mon | tue | wed | thu | fri | sat) #REQUIRED >
+<!ATTLIST weekendStart territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST weekendStart draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST weekendStart references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST weekendStart alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT weekendEnd EMPTY >
+<!ATTLIST weekendEnd day (sun | mon | tue | wed | thu | fri | sat) #REQUIRED >
+<!ATTLIST weekendEnd territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST weekendEnd draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST weekendEnd references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST weekendEnd alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT weekOfPreference EMPTY >
+<!ATTLIST weekOfPreference locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+<!ATTLIST weekOfPreference ordering NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/weekOfDate, weekOfInterval, weekOfMonth, weekOfYear-->
+    <!--@VALUE-->
+
+<!ELEMENT timeData ( hours* ) >
+
+<!ELEMENT hours EMPTY >
+<!ATTLIST hours allowed NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/H, h, K, k, hB, hb-->
+<!ATTLIST hours preferred NMTOKEN #REQUIRED >
+    <!--@MATCH:literal/H, h-->
+<!ATTLIST hours regions NMTOKENS #REQUIRED >
+    <!--@MATCH:set/or/validity/region||validity/locale-->
+    <!--@VALUE-->
+<!ATTLIST hours draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST hours references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT measurementData ( measurementSystem*, paperSize* ) >
+
+<!ELEMENT measurementSystem EMPTY >
+<!ATTLIST measurementSystem type (metric | US | UK) #REQUIRED >
+<!ATTLIST measurementSystem category (temperature) #IMPLIED >
+<!ATTLIST measurementSystem territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST measurementSystem draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST measurementSystem references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST measurementSystem alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT paperSize EMPTY >
+<!ATTLIST paperSize type (A4 | US-Letter) #REQUIRED >
+<!ATTLIST paperSize territories NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST paperSize draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST paperSize references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST paperSize alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT unitConstants ( unitConstant* ) >
+
+<!ELEMENT unitConstant EMPTY >
+<!ATTLIST unitConstant constant NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][_A-Za-z0-9]*-->
+<!ATTLIST unitConstant value CDATA #REQUIRED >
+    <!--@MATCH:regex/[-+*/\._ 0-9a-zA-Z]+-->
+    <!--@VALUE-->
+<!ATTLIST unitConstant status NMTOKEN #IMPLIED >
+    <!--@MATCH:literal/approximate, exact-->
+    <!--@VALUE-->
+<!ATTLIST unitConstant description CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+
+<!ELEMENT unitQuantities ( unitQuantity* ) >
+
+<!ELEMENT unitQuantity EMPTY >
+<!ATTLIST unitQuantity baseUnit NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+<!ATTLIST unitQuantity quantity NMTOKENS #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+    <!--@VALUE-->
+<!ATTLIST unitQuantity status NMTOKEN #IMPLIED >
+    <!--@MATCH:regex/simple-->
+    <!--@VALUE-->
+<!ATTLIST unitQuantity description CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT convertUnits ( convertUnit* ) >
+
+<!ELEMENT convertUnit EMPTY >
+<!ATTLIST convertUnit source NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/(100-)?[A-Za-z][-A-Za-z0-9]*-->
+<!ATTLIST convertUnit baseUnit NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+    <!--@VALUE-->
+<!ATTLIST convertUnit factor CDATA #IMPLIED >
+    <!--@MATCH:regex/[-+*/\._ 0-9a-zA-Z]+-->
+    <!--@VALUE-->
+<!ATTLIST convertUnit offset CDATA #IMPLIED >
+    <!--@MATCH:regex/[-+*/\._ 0-9a-zA-Z]+-->
+    <!--@VALUE-->
+<!ATTLIST convertUnit systems NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/ussystem, uksystem, metric, si, other-->
+    <!--@VALUE-->
+<!ATTLIST convertUnit description CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT unitPreferenceData ( unitPreferences* ) >
+<!ATTLIST unitPreferenceData draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT unitPreferences ( unitPreference* ) >
+<!ATTLIST unitPreferences category NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[a-z]+([-][a-z]+)*-->
+<!ATTLIST unitPreferences usage NMTOKENS #REQUIRED >
+    <!--@MATCH:regex/[a-z]+([-][a-z]+)*-->
+<!ATTLIST unitPreferences scope (small) #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST unitPreferences draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT unitPreference ( #PCDATA ) >
+    <!--@ORDERED-->
+<!ATTLIST unitPreference regions NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+<!ATTLIST unitPreference geq NMTOKEN #IMPLIED >
+    <!--@MATCH:any-->
+<!ATTLIST unitPreference skeleton CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST unitPreference draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST unitPreference references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST unitPreference alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/informal, variant-->
+
+<!ELEMENT timezoneData ( mapTimezones*, zoneFormatting* ) >
+    <!--@DEPRECATED-->
+
+<!ELEMENT mapTimezones ( mapZone* ) >
+<!ATTLIST mapTimezones type NMTOKEN #IMPLIED >
+    <!--@MATCH:literal/metazones-->
+<!ATTLIST mapTimezones otherVersion CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+<!ATTLIST mapTimezones typeVersion CDATA #IMPLIED >
+    <!--@MATCH:regex/[0-9]{4}[a-z]+-->
+    <!--@METADATA-->
+<!ATTLIST mapTimezones references CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+
+<!ELEMENT mapZone EMPTY >
+<!ATTLIST mapZone type CDATA #REQUIRED >
+    <!--@MATCH:set/bcp47/tz-->
+    <!--@VALUE-->
+<!ATTLIST mapZone other CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST mapZone territory CDATA #IMPLIED >
+    <!--@MATCH:validity/region-->
+<!ATTLIST mapZone references CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@METADATA-->
+
+<!ELEMENT zoneFormatting ( zoneItem* ) >
+    <!--@DEPRECATED-->
+<!ATTLIST zoneFormatting multizone NMTOKENS #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST zoneFormatting tzidVersion CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST zoneFormatting references CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT zoneItem EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST zoneItem type CDATA #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST zoneItem territory NMTOKEN #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST zoneItem aliases CDATA #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST zoneItem references CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT characters ( character-fallback* ) >
+<!ATTLIST characters draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT character-fallback ( character* ) >
+
+<!ELEMENT character ( substitute* ) >
+<!ATTLIST character value CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST character draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST character standard CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST character references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST character alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT substitute ( #PCDATA ) >
+    <!--@ORDERED-->
+<!ATTLIST substitute draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST substitute standard CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST substitute references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST substitute alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT transforms ( transform* ) >
+
+<!ELEMENT transform ( ( comment | tRule )* ) >
+<!ATTLIST transform source CDATA #IMPLIED >
+    <!--@MATCH:any/TODO-->
+<!ATTLIST transform target CDATA #IMPLIED >
+    <!--@MATCH:any/TODO-->
+<!ATTLIST transform variant CDATA #IMPLIED >
+    <!--@MATCH:any/TODO-->
+<!ATTLIST transform direction (forward | backward | both) "both" >
+<!ATTLIST transform alias CDATA #IMPLIED >
+    <!--@MATCH:any/TODO-->
+    <!--@VALUE-->
+<!ATTLIST transform backwardAlias CDATA #IMPLIED >
+    <!--@MATCH:any/TODO-->
+    <!--@VALUE-->
+<!ATTLIST transform visibility (internal | external) "external" >
+    <!--@VALUE-->
+<!ATTLIST transform draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST transform references CDATA #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST transform alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT comment ( #PCDATA ) >
+    <!--@ORDERED-->
+    <!--@METADATA-->
+
+<!ELEMENT tRule ( #PCDATA ) >
+    <!--@ORDERED-->
+
+<!ELEMENT metadata ( attributeOrder?, elementOrder?, serialElements?, suppress?, validity?, alias?, deprecated?, distinguishing?, blocking?, coverageAdditions?, skipDefaultLocale?, defaultContent? ) >
+<!ATTLIST metadata draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT attributeOrder ( #PCDATA ) >
+    <!--@DEPRECATED-->
+<!ATTLIST attributeOrder draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT elementOrder ( #PCDATA ) >
+    <!--@DEPRECATED-->
+<!ATTLIST elementOrder draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT serialElements ( #PCDATA ) >
+    <!--@METADATA-->
+<!ATTLIST serialElements draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+
+<!ELEMENT suppress ( attributes* ) >
+    <!--@METADATA-->
+<!ATTLIST suppress draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT attributes EMPTY >
+    <!--@ORDERED-->
+<!ATTLIST attributes element NMTOKENS #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributes attribute NMTOKENS #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributes attributeValue CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributes draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+
+<!ELEMENT validity ( variable*, attributeValues* ) >
+    <!--@METADATA-->
+<!ATTLIST validity draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT variable ( #PCDATA ) >
+    <!--@ORDERED-->
+<!ATTLIST variable type NMTOKEN #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST variable id CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST variable draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+
+<!ELEMENT attributeValues ( #PCDATA ) >
+    <!--@ORDERED-->
+<!ATTLIST attributeValues dtds NMTOKEN #IMPLIED >
+    <!--@MATCH:any-->
+<!ATTLIST attributeValues type NMTOKEN #IMPLIED >
+    <!--@MATCH:any-->
+<!ATTLIST attributeValues elements NMTOKENS #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributeValues attributes NMTOKENS #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributeValues order NMTOKEN #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST attributeValues draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+
+<!ELEMENT alias ( languageAlias*, scriptAlias*, territoryAlias*, subdivisionAlias*, variantAlias*, zoneAlias*, unitAlias*, usageAlias* ) >
+<!ATTLIST alias draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT languageAlias EMPTY >
+<!ATTLIST languageAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/locale||literal/aa_saaho, aar, abk, afr, aka, alb, amh, ara, arg, arm, art_lojban, asm, ava, ave, aym, aze, bak, bam, baq, bel, ben, bih, bis, bod, bos, bre, bul, bur, cat, ces, cha, che, chi, chu, chv, cor, cos, cre, cym, cze, dan, deu, div, dut, dzo, ell, eng, epo, est, eus, ewe, fao, fas, fij, fin, fra, fre, fry, ful, geo, ger, gla, gle, glg, glv, gre, grn, guj, hat, hau, hbs, heb, her, hin, hmo, hrv, hun, hye, i_ami, i_bnn, i_hak, i_klingon, i_lux, i_navajo, i_pwn, i_tao, i_tay, i_tsu, ibo, ice, ido, iii, iku, ile, ina, ind, ipk, isl, ita, jav, jpn, kal, kan, kas, kat, kau, kaz, khm, kik, kin, kir, kom, kon, kor, kua, kur, lao, lat, lav, lim, lin, lit, ltz, lub, lug, mac, mah, mal, mao, mar, may, mkd, mlg, mlt, mol, mon, mri, msa, mya, nau, nav, nbl, nde, ndo, nep, nld, nno, no_bokmal, no_nynorsk, no_bok, no_nyn, nob, nor, nya, oci, oji, ori, orm, oss, pan, per, pli, pol, por, pus, que, roh, ron, rum, run, rus, sag, san, scc, scr, sgn_BE_FR, sgn_BE_NL, sgn_CH_DE, sin, slk, slo, slv, sme, smo, sna, snd, som, sot, spa, sqi, srd, srp, ssw, sun, swa, swe, tah, tam, tat, tel, tgk, tgl, tha, tib, tir, ton, tsn, tso, tuk, tur, twi, uig, ukr, urd, uzb, ven, vie, vol, wel, wln, wol, xho, yid, yor, zh_guoyu, zh_hakka, zh_min_nan, zh_xiang, zha, zho, zul, cel_gaulish, i_default, i_enochian, i_mingo, und_aaland, und_bokmal, und_hakka, und_lojban, und_nynorsk, und_saaho, und_xiang, zh_min, en_GB_oed, zh_cmn, zh_cmn_Hans, zh_cmn_Hant, zh_gan, zh_wuu, zh_yue-->
+<!ATTLIST languageAlias replacement NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/locale||literal/en_x_i_default, nan_x_zh_min, see_x_i_mingo, und_x_i_enochian, xtg_x_cel_gaulish-->
+    <!--@VALUE-->
+<!ATTLIST languageAlias reason (deprecated | overlong | macrolanguage | legacy | bibliographic) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT scriptAlias EMPTY >
+<!ATTLIST scriptAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/script-->
+<!ATTLIST scriptAlias replacement NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/script-->
+    <!--@VALUE-->
+<!ATTLIST scriptAlias reason (deprecated | overlong) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT territoryAlias EMPTY >
+<!ATTLIST territoryAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:set/or/validity/region||regex/[0-9]{3}|[A-Z]{3}||literal/CT, DY, FQ, HV, JT, MI, NH, NQ, PC, PU, PZ, RH, UK, VD, WK-->
+<!ATTLIST territoryAlias replacement NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/region-->
+    <!--@VALUE-->
+<!ATTLIST territoryAlias reason (deprecated | overlong) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT subdivisionAlias EMPTY >
+<!ATTLIST subdivisionAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/subdivision-->
+<!ATTLIST subdivisionAlias replacement NMTOKENS #REQUIRED >
+    <!--@MATCH:set/or/validity/region||validity/subdivision||literal/cnmn, cz663, no50-->
+    <!--@VALUE-->
+<!ATTLIST subdivisionAlias reason (deprecated | overlong) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT variantAlias EMPTY >
+<!ATTLIST variantAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/variant||literal/aaland, polytoni-->
+<!ATTLIST variantAlias replacement NMTOKEN #REQUIRED >
+    <!--@MATCH:or/validity/variant||validity/region||literal/hy, hyw-->
+    <!--@VALUE-->
+<!ATTLIST variantAlias reason (deprecated | overlong) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT zoneAlias EMPTY >
+<!ATTLIST zoneAlias type CDATA #REQUIRED >
+    <!--@MATCH:or/bcp47/tz||literal/SystemV/AST4, SystemV/AST4ADT, SystemV/CST6, SystemV/CST6CDT, SystemV/EST5, SystemV/EST5EDT, SystemV/HST10, SystemV/MST7, SystemV/MST7MDT, SystemV/PST8, SystemV/PST8PDT, SystemV/YST9, SystemV/YST9YDT-->
+<!ATTLIST zoneAlias replacement CDATA #REQUIRED >
+    <!--@MATCH:bcp47/tz-->
+    <!--@VALUE-->
+<!ATTLIST zoneAlias reason (deprecated | overlong) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT unitAlias EMPTY >
+<!ATTLIST unitAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/short-unit/deprecated-->
+<!ATTLIST unitAlias replacement NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+    <!--@VALUE-->
+<!ATTLIST unitAlias reason (deprecated) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT usageAlias EMPTY >
+<!ATTLIST usageAlias type NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+<!ATTLIST usageAlias replacement NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[A-Za-z][-A-Za-z0-9]*-->
+    <!--@VALUE-->
+<!ATTLIST usageAlias reason (deprecated) #IMPLIED >
+    <!--@VALUE-->
+
+<!ELEMENT deprecated ( deprecatedItems* ) >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecated draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT deprecatedItems EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecatedItems type (standard | supplemental | ldml | supplementalData | ldmlBCP47) #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecatedItems elements NMTOKENS #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecatedItems attributes NMTOKENS #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecatedItems values CDATA #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST deprecatedItems draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT distinguishing ( distinguishingItems* ) >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST distinguishing draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT distinguishingItems EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST distinguishingItems exclude (true | false) #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST distinguishingItems elements NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST distinguishingItems attributes NMTOKENS #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST distinguishingItems draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT blocking ( blockingItems* ) >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST blocking draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT blockingItems EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST blockingItems elements NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST blockingItems draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT coverageAdditions ( languageCoverage*, scriptCoverage*, territoryCoverage*, currencyCoverage*, timezoneCoverage* ) >
+    <!--@DEPRECATED-->
+<!ATTLIST coverageAdditions draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT languageCoverage EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST languageCoverage type NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST languageCoverage values NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST languageCoverage draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT scriptCoverage EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST scriptCoverage type NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST scriptCoverage values NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST scriptCoverage draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT territoryCoverage EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST territoryCoverage type NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST territoryCoverage values NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST territoryCoverage draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT currencyCoverage EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST currencyCoverage type NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST currencyCoverage values NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST currencyCoverage draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT timezoneCoverage EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST timezoneCoverage type NMTOKEN #IMPLIED >
+    <!--@DEPRECATED-->
+<!ATTLIST timezoneCoverage values CDATA #IMPLIED >
+    <!-- would be NMTOKENS, but needs to allow / -->
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST timezoneCoverage draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT skipDefaultLocale EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST skipDefaultLocale services NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT defaultContent EMPTY >
+<!ATTLIST defaultContent locales NMTOKENS #IMPLIED >
+    <!--@MATCH:set/validity/locale-->
+    <!--@VALUE-->
+
+<!ELEMENT codeMappings ( languageCodes*, territoryCodes*, currencyCodes* ) >
+
+<!ELEMENT languageCodes EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST languageCodes type NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST languageCodes alpha3 NMTOKEN #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT territoryCodes EMPTY >
+<!ATTLIST territoryCodes type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/region-->
+<!ATTLIST territoryCodes numeric NMTOKEN #IMPLIED >
+    <!--@MATCH:range/1~999-->
+    <!--@VALUE-->
+<!ATTLIST territoryCodes alpha3 NMTOKEN #IMPLIED >
+    <!--@MATCH:regex/[A-Z]{3}-->
+    <!--@VALUE-->
+<!ATTLIST territoryCodes fips10 NMTOKEN #IMPLIED >
+    <!--@MATCH:regex/[A-Z]{2}-->
+    <!--@VALUE-->
+<!ATTLIST territoryCodes internet NMTOKENS #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT currencyCodes EMPTY >
+<!ATTLIST currencyCodes type NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/currency-->
+<!ATTLIST currencyCodes numeric NMTOKEN #REQUIRED >
+    <!--@MATCH:range/1~999-->
+    <!--@VALUE-->
+
+<!-- # Parent locales -->
+
+<!ELEMENT parentLocales ( parentLocale* ) >
+
+<!ELEMENT parentLocale EMPTY >
+<!ATTLIST parentLocale parent NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/locale-->
+<!ATTLIST parentLocale locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+    <!--@VALUE-->
+
+<!ELEMENT likelySubtags ( likelySubtag* ) >
+
+<!ELEMENT likelySubtag EMPTY >
+<!ATTLIST likelySubtag from NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/locale-->
+<!ATTLIST likelySubtag to NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/locale-->
+    <!--@VALUE-->
+
+<!ELEMENT metazoneInfo ( timezone* ) >
+
+<!ELEMENT timezone ( usesMetazone* ) >
+<!ATTLIST timezone type CDATA #REQUIRED >
+    <!--@MATCH:bcp47/tz-->
+
+<!ELEMENT usesMetazone EMPTY >
+<!ATTLIST usesMetazone from CDATA #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd HH:mm-->
+<!ATTLIST usesMetazone to CDATA #IMPLIED >
+    <!--@MATCH:time/yyyy-MM-dd HH:mm-->
+<!ATTLIST usesMetazone mzone NMTOKEN #REQUIRED >
+    <!--@MATCH:metazone-->
+    <!--@VALUE-->
+
+<!ELEMENT plurals ( pluralRules*, pluralRanges* ) >
+<!ATTLIST plurals type (ordinal | cardinal) #IMPLIED >
+    <!-- default is cardinal -->
+<!ATTLIST plurals draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST plurals references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT pluralRules ( pluralRule* ) >
+<!ATTLIST pluralRules locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+<!ATTLIST pluralRules draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST pluralRules references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT pluralRule ( #PCDATA ) >
+    <!--@ORDERED-->
+<!ATTLIST pluralRule count (zero | one | two | few | many | other) #REQUIRED >
+    <!-- 'other' is implicitly everything else -->
+<!ATTLIST pluralRule draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST pluralRule references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT pluralRanges ( pluralRange* ) >
+<!ATTLIST pluralRanges locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+<!ATTLIST pluralRanges draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST pluralRanges references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT pluralRange EMPTY >
+<!ATTLIST pluralRange start (zero | one | two | few | many | other) #IMPLIED >
+    <!-- if missing, means *all* -->
+<!ATTLIST pluralRange end (zero | one | two | few | many | other) #IMPLIED >
+    <!-- if missing, means *all* -->
+<!ATTLIST pluralRange result (zero | one | two | few | many | other) #REQUIRED >
+    <!-- if a whole rule is missing, means *other* -->
+    <!--@VALUE-->
+<!ATTLIST pluralRange draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST pluralRange references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT telephoneCodeData ( codesByTerritory* ) >
+    <!--@DEPRECATED-->
+
+<!ELEMENT codesByTerritory ( telephoneCountryCode+ ) >
+    <!--@DEPRECATED-->
+<!ATTLIST codesByTerritory territory NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST codesByTerritory draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST codesByTerritory references CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT telephoneCountryCode EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode code NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode from NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode to NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode references CDATA #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST telephoneCountryCode alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT numberingSystems ( numberingSystem* ) >
+
+<!ELEMENT numberingSystem EMPTY >
+<!ATTLIST numberingSystem type (numeric | algorithmic) #REQUIRED >
+    <!--@VALUE-->
+<!ATTLIST numberingSystem id NMTOKEN #REQUIRED >
+    <!--@MATCH:bcp47/nu-->
+<!ATTLIST numberingSystem radix NMTOKEN #IMPLIED >
+    <!--@VALUE-->
+<!ATTLIST numberingSystem digits CDATA #IMPLIED >
+    <!--@MATCH:unicodeset/[\p{Nd}[\u3007\u4E00\u4E03\u4E09\u4E5D\u4E8C\u4E94\u516B\u516D\u56DB][\U00016AC0-\U00016AC9]]-->
+    <!--@VALUE-->
+<!ATTLIST numberingSystem rules CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST numberingSystem draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT bcp47KeywordMappings ( mapKeys?, mapTypes* ) >
+    <!--@DEPRECATED-->
+
+<!ELEMENT mapKeys ( keyMap* ) >
+    <!--@DEPRECATED-->
+
+<!ELEMENT keyMap EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST keyMap type NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST keyMap bcp47 NMTOKEN #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!ELEMENT mapTypes ( typeMap* ) >
+    <!--@DEPRECATED-->
+<!ATTLIST mapTypes type NMTOKEN #REQUIRED >
+    <!--@DEPRECATED-->
+
+<!ELEMENT typeMap EMPTY >
+    <!--@DEPRECATED-->
+<!ATTLIST typeMap type CDATA #REQUIRED >
+    <!--@DEPRECATED-->
+<!ATTLIST typeMap bcp47 NMTOKEN #REQUIRED >
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+
+<!-- # Gender List support -->
+
+<!ELEMENT gender ( personList+ ) >
+
+<!ELEMENT personList EMPTY >
+<!ATTLIST personList type (neutral | mixedNeutral | maleTaints) #REQUIRED >
+<!ATTLIST personList locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+    <!--@VALUE-->
+
+<!ELEMENT references ( reference* ) >
+    <!--@METADATA-->
+
+<!ELEMENT reference ( #PCDATA ) >
+    <!--@METADATA-->
+<!ATTLIST reference type NMTOKEN #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST reference uri CDATA #IMPLIED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST reference draft (approved | contributed | provisional | unconfirmed | true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED:true, false-->
+<!ATTLIST reference standard (true | false) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST reference alt NMTOKENS #IMPLIED >
+    <!--@MATCH:literal/variant-->
+
+<!ELEMENT languageMatching ( languageMatches* ) >
+
+<!ELEMENT languageMatches ( paradigmLocales*, matchVariable*, languageMatch* ) >
+<!ATTLIST languageMatches type NMTOKEN #REQUIRED >
+    <!--@MATCH:literal/written, written_new-->
+
+<!ELEMENT paradigmLocales EMPTY >
+<!ATTLIST paradigmLocales locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+    <!--@VALUE-->
+
+<!ELEMENT matchVariable EMPTY >
+<!ATTLIST matchVariable id CDATA #REQUIRED >
+    <!--@MATCH:regex/\$[a-zA-Z0-9_]+-->
+<!ATTLIST matchVariable value CDATA #REQUIRED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+
+<!ELEMENT languageMatch EMPTY >
+    <!--@ORDERED-->
+<!ATTLIST languageMatch desired CDATA #REQUIRED >
+    <!--@MATCH:any/TODO-->
+<!ATTLIST languageMatch supported CDATA #REQUIRED >
+    <!--@MATCH:any/TODO-->
+<!ATTLIST languageMatch percent NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~100-->
+    <!--@VALUE-->
+<!ATTLIST languageMatch distance NMTOKEN #IMPLIED >
+    <!--@MATCH:range/0~100-->
+    <!--@VALUE-->
+<!ATTLIST languageMatch oneway (true | false) #IMPLIED >
+    <!--@VALUE-->
+
+<!-- # Day Periods -->
+
+<!ELEMENT dayPeriodRuleSet ( dayPeriodRules* ) >
+<!ATTLIST dayPeriodRuleSet type NMTOKEN #IMPLIED >
+    <!--@MATCH:literal/selection-->
+<!ATTLIST dayPeriodRuleSet draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST dayPeriodRuleSet references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT dayPeriodRules ( dayPeriodRule* ) >
+<!ATTLIST dayPeriodRules locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+<!ATTLIST dayPeriodRules draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+    <!--@DEPRECATED-->
+<!ATTLIST dayPeriodRules references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT dayPeriodRule EMPTY >
+<!ATTLIST dayPeriodRule type NMTOKEN #REQUIRED >
+    <!--@MATCH:literal/afternoon1, afternoon2, am, evening1, evening2, midnight, morning1, morning2, night1, night2, noon, pm-->
+<!ATTLIST dayPeriodRule at NMTOKEN #IMPLIED >
+    <!--@MATCH:time/HH:mm-->
+    <!--@VALUE-->
+<!ATTLIST dayPeriodRule after NMTOKEN #IMPLIED >
+    <!--@MATCH:time/HH:mm-->
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST dayPeriodRule before NMTOKEN #IMPLIED >
+    <!--@MATCH:time/HH:mm-->
+    <!--@VALUE-->
+<!ATTLIST dayPeriodRule from NMTOKEN #IMPLIED >
+    <!--@MATCH:time/HH:mm-->
+    <!--@VALUE-->
+<!ATTLIST dayPeriodRule to NMTOKEN #IMPLIED >
+    <!--@MATCH:time/HH:mm-->
+    <!--@VALUE-->
+    <!--@DEPRECATED-->
+<!ATTLIST dayPeriodRule draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+<!ATTLIST dayPeriodRule references CDATA #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT metaZones ( metazoneInfo?, mapTimezones?, metazoneIds? ) >
+
+<!ELEMENT metazoneIds ( metazoneId* ) >
+
+<!ELEMENT metazoneId EMPTY >
+<!ATTLIST metazoneId shortId NMTOKEN #REQUIRED >
+    <!--@MATCH:regex/[a-z][a-z][a-z][a-z]-->
+<!ATTLIST metazoneId longId CDATA #IMPLIED >
+    <!--@MATCH:metazone-->
+    <!--@VALUE-->
+<!ATTLIST metazoneId deprecated (true | false) "false" >
+    <!--@VALUE-->
+<!ATTLIST metazoneId preferred NMTOKEN #IMPLIED >
+    <!--@MATCH:metazone-->
+    <!--@VALUE-->
+<!ATTLIST metazoneId since CDATA "40" >
+    <!--@MATCH:version-->
+    <!--@METADATA-->
+
+<!ELEMENT primaryZones ( primaryZone* ) >
+
+<!ELEMENT primaryZone ( #PCDATA ) >
+<!ATTLIST primaryZone iso3166 NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/region-->
+
+<!-- # Time Zones -->
+
+<!ELEMENT windowsZones ( mapTimezones? ) >
+
+<!-- # Coverage levels -->
+
+<!ELEMENT coverageLevels ( approvalRequirements, coverageVariable*, coverageLevel* ) >
+    <!--@METADATA-->
+
+<!ELEMENT approvalRequirements ( approvalRequirement* ) >
+
+<!ELEMENT approvalRequirement EMPTY >
+<!ATTLIST approvalRequirement votes CDATA #REQUIRED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+<!ATTLIST approvalRequirement locales CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST approvalRequirement paths CDATA #REQUIRED >
+    <!--@MATCH:any-->
+
+<!ELEMENT coverageVariable EMPTY >
+    <!--@ORDERED-->
+<!ATTLIST coverageVariable key CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST coverageVariable value CDATA #REQUIRED >
+    <!--@MATCH:any-->
+    <!--@VALUE-->
+
+<!ELEMENT coverageLevel EMPTY >
+    <!--@ORDERED-->
+<!ATTLIST coverageLevel inLanguage CDATA #IMPLIED >
+    <!--@MATCH:any-->
+<!ATTLIST coverageLevel inScript CDATA #IMPLIED >
+    <!--@MATCH:validity/script-->
+<!ATTLIST coverageLevel inTerritory CDATA #IMPLIED >
+    <!--@MATCH:any-->
+<!ATTLIST coverageLevel value CDATA #REQUIRED >
+    <!--@MATCH:literal/basic, core, minimal, moderate, modern, posix-->
+    <!--@VALUE-->
+<!ATTLIST coverageLevel match CDATA #REQUIRED >
+    <!--@MATCH:any-->
+
+<!ELEMENT idValidity ( id* ) >
+
+<!ELEMENT id ( #PCDATA ) >
+<!ATTLIST id type NMTOKEN #REQUIRED >
+    <!--@MATCH:literal/currency, language, region, script, subdivision, unit, variant-->
+<!ATTLIST id idStatus NMTOKEN #REQUIRED >
+    <!--@MATCH:literal/deprecated, macroregion, private_use, regular, reserved, special, unknown-->
+
+<!ELEMENT rgScope ( rgPath* ) >
+
+<!ELEMENT rgPath EMPTY >
+<!ATTLIST rgPath path CDATA #REQUIRED >
+    <!--@MATCH:any-->
+<!ATTLIST rgPath draft (approved | contributed | provisional | unconfirmed) #IMPLIED >
+    <!--@METADATA-->
+
+<!ELEMENT languageGroups ( languageGroup* ) >
+
+<!ELEMENT languageGroup ( #PCDATA ) >
+<!ATTLIST languageGroup parent NMTOKEN #REQUIRED >
+    <!--@MATCH:validity/language-->
+
+<!-- # Grammatical Features -->
+
+<!ELEMENT grammaticalData ( grammaticalFeatures*, grammaticalDerivations* ) >
+
+<!ELEMENT grammaticalFeatures ( grammaticalCase*, grammaticalGender*, grammaticalDefiniteness* ) >
+<!ATTLIST grammaticalFeatures targets NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/nominal-->
+<!ATTLIST grammaticalFeatures locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/language-->
+
+<!ELEMENT grammaticalCase EMPTY >
+<!ATTLIST grammaticalCase scope NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/units-->
+<!ATTLIST grammaticalCase values NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/abessive, ablative, accusative, adessive, allative, causal, comitative, dative, delative, elative, ergative, essive, genitive, illative, inessive, instrumental, locative, locativecopulative, nominative, oblique, partitive, prepositional, sociative, sublative, superessive, terminative, translative, vocative-->
+    <!--@VALUE-->
+
+<!ELEMENT grammaticalGender EMPTY >
+<!ATTLIST grammaticalGender scope NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/units-->
+<!ATTLIST grammaticalGender values NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/animate, common, feminine, inanimate, masculine, neuter, personal-->
+    <!--@VALUE-->
+
+<!ELEMENT grammaticalDefiniteness EMPTY >
+<!ATTLIST grammaticalDefiniteness scope NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/units-->
+<!ATTLIST grammaticalDefiniteness values NMTOKENS #IMPLIED >
+    <!--@MATCH:set/literal/definite, indefinite, unspecified, construct-->
+    <!--@VALUE-->
+
+<!ELEMENT grammaticalDerivations ( deriveCompound*, deriveComponent* ) >
+<!ATTLIST grammaticalDerivations locales NMTOKENS #REQUIRED >
+    <!--@MATCH:set/validity/locale-->
+
+<!ELEMENT deriveCompound EMPTY >
+<!ATTLIST deriveCompound feature NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/gender-->
+<!ATTLIST deriveCompound structure NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/per, times, power, prefix-->
+<!ATTLIST deriveCompound value NMTOKEN #REQUIRED >
+    <!-- TODO: add @MATCH function for locale's gender categories and use here -->
+    <!--@MATCH:set/literal/0, 1-->
+    <!--@VALUE-->
+
+<!ELEMENT deriveComponent EMPTY >
+<!ATTLIST deriveComponent feature NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/plural, case-->
+<!ATTLIST deriveComponent structure NMTOKENS #REQUIRED >
+    <!--@MATCH:set/literal/per, times, power, prefix-->
+<!ATTLIST deriveComponent value0 NMTOKEN #REQUIRED >
+    <!-- TODO: add @MATCH function for locale's plural/case categories and use here -->
+    <!--@MATCH:set/literal/compound, zero, one, two, few, many, other, accusative, nominative-->
+    <!--@VALUE-->
+<!ATTLIST deriveComponent value1 NMTOKEN #REQUIRED >
+    <!-- TODO: add @MATCH function for locale's plural/case categories and use here -->
+    <!--@MATCH:set/literal/compound, zero, one, two, few, many, other, accusative, nominative-->
+    <!--@VALUE-->

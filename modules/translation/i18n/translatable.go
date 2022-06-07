@@ -8,7 +8,8 @@ import "fmt"
 
 // Locale represents an interface to translation
 type Locale interface {
-	Tr(string, ...interface{}) string
+	Tr(key string, args ...interface{}) string
+	TrPlural(cnt interface{}, key string, args ...interface{}) string
 }
 
 // TranslatableFormatted structs provide their own translated string when formatted in translation
@@ -16,8 +17,8 @@ type TranslatableFormatted interface {
 	TranslatedFormat(l Locale, s fmt.State, c rune)
 }
 
-// TranslatableString structs provide their own translated string when formatted as a string in translation
-type TranslatableString interface {
+// TranslatableStringer structs provide their own translated string when formatted as a string in translation
+type TranslatableStringer interface {
 	TranslatedString(l Locale) string
 }
 
@@ -32,7 +33,7 @@ func (f formatWrapper) Format(s fmt.State, c rune) {
 
 type stringWrapper struct {
 	l Locale
-	t TranslatableString
+	t TranslatableStringer
 }
 
 func (s stringWrapper) String() string {

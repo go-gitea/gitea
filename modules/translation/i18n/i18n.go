@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/translation/i18n/plurals"
 
 	"gopkg.in/ini.v1"
 )
@@ -22,10 +23,11 @@ var (
 )
 
 type locale struct {
-	store    *LocaleStore
-	langName string
-	langDesc string
-	messages *ini.File
+	store       *LocaleStore
+	langName    string
+	langDesc    string
+	messages    *ini.File
+	pluralRules map[plurals.RuleType]*plurals.Rule
 }
 
 type LocaleStore struct {
@@ -34,10 +36,11 @@ type LocaleStore struct {
 	langDescs   []string
 	localeMap   map[string]*locale
 	defaultLang string
+	pluralRules plurals.Rules
 }
 
 func NewLocaleStore() *LocaleStore {
-	return &LocaleStore{localeMap: make(map[string]*locale)}
+	return &LocaleStore{localeMap: make(map[string]*locale), pluralRules: plurals.DefaultRules()}
 }
 
 // AddLocaleByIni adds locale by ini into the store
@@ -52,6 +55,12 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 	if err == nil {
 		iniFile.BlockMode = false
 		lc := &locale{store: ls, langName: langName, langDesc: langDesc, messages: iniFile}
+		lc.pluralRules = map[plurals.RuleType]*plurals.Rule{}
+		for typ, ruleMap := range ls.pluralRules {
+			rule := ruleMap[lc.langName]
+			lc.pluralRules[typ] = rule
+		}
+
 		ls.langNames = append(ls.langNames, lc.langName)
 		ls.langDescs = append(ls.langDescs, lc.langDesc)
 		ls.localeMap[lc.langName] = lc
@@ -132,7 +141,7 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 			switch val := arg.(type) {
 			case TranslatableFormatted:
 				fmtArgs[i] = formatWrapper{l: l, t: val}
-			case TranslatableString:
+			case TranslatableStringer:
 				fmtArgs[i] = stringWrapper{l: l, t: val}
 			}
 		}
@@ -140,6 +149,50 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 	}
 
 	return trMsg
+}
+
+func (l *locale) HasMessage(key string) bool {
+	var section string
+
+	idx := strings.IndexByte(key, '.')
+	if idx > 0 {
+		section = key[:idx]
+		key = key[idx+1:]
+	}
+
+	return l.messages.Section(section).HasKey(key)
+}
+
+func (l *locale) TrOrdinal(cnt interface{}, key string, args ...interface{}) string {
+	return l.TrPlurals(cnt, string(plurals.Ordinal), key, args...)
+}
+
+func (l *locale) TrPlural(cnt interface{}, key string, args ...interface{}) string {
+	return l.TrPlurals(cnt, string(plurals.Cardinal), key, args...)
+}
+
+func (l *locale) TrPlurals(cnt interface{}, ruleType, key string, args ...interface{}) string {
+	operands, err := plurals.NewOperands(cnt)
+	if err != nil {
+		// if we fail to parse fall back to the standard
+		return l.Tr(key, args...)
+	}
+
+	rule := l.pluralRules[plurals.RuleType(ruleType)]
+	if rule == nil {
+		// if we fail to parse fall back to the standard
+		return l.Tr(key, args...)
+	}
+
+	form := rule.PluralFormFunc(operands)
+
+	if form != plurals.Other && l.HasMessage(key+"_"+string(form)) {
+		// use this pluralized key
+		return l.Tr(key+"_"+string(form), args...)
+	}
+
+	// use the key as is
+	return l.Tr(key, args...)
 }
 
 func ResetDefaultLocales() {
