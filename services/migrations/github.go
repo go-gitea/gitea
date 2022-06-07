@@ -778,6 +778,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}
+	// Get approve/request change reviews
 	for {
 		g.waitAndPickClient()
 		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
@@ -817,6 +818,7 @@ func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Rev
 		}
 		opt.Page = resp.NextPage
 	}
+	// Get requested reviews
 	for {
 		g.waitAndPickClient()
 		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)

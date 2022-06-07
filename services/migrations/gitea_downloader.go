@@ -670,18 +670,18 @@ func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review
 			}
 
 			review := &base.Review{
-				ID:         pr.ID,
-				IssueIndex: reviewable.GetLocalIndex(),
-				Official:   pr.Official,
-				CommitID:   pr.CommitID,
-				Content:    pr.Body,
-				CreatedAt:  pr.Submitted,
-				State:      string(pr.State),
-				Comments:   reviewComments,
+				ID:           pr.ID,
+				IssueIndex:   reviewable.GetLocalIndex(),
+				ReviewerID:   pr.Reviewer.ID,
+				ReviewerName: pr.Reviewer.UserName,
+				Official:     pr.Official,
+				CommitID:     pr.CommitID,
+				Content:      pr.Body,
+				CreatedAt:    pr.Submitted,
+				State:        string(pr.State),
+				Comments:     reviewComments,
 			}
 
-			review.ReviewerID = pr.Reviewer.ID
-			review.ReviewerName = pr.Reviewer.UserName
 			allReviews = append(allReviews, review)
 		}
 
