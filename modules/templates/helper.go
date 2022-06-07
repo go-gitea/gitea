@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -398,25 +399,49 @@ func NewFuncMap() []template.FuncMap {
 			case *uint64:
 				count = *val
 			case int64:
+				if val < 0 {
+					val = 0
+				}
 				count = uint64(val)
 			case *int64:
+				if *val < 0 {
+					*val = 0
+				}
 				count = uint64(*val)
 			case int:
+				if val < 0 {
+					val = 0
+				}
 				count = uint64(val)
 			case *int:
+				if *val < 0 {
+					*val = 0
+				}
 				count = uint64(*val)
 			case uint:
 				count = uint64(val)
 			case *uint:
 				count = uint64(*val)
 			case int32:
+				if val < 0 {
+					val = 0
+				}
 				count = uint64(val)
 			case *int32:
+				if *val < 0 {
+					*val = 0
+				}
 				count = uint64(*val)
 			case uint32:
 				count = uint64(val)
 			case *uint32:
 				count = uint64(*val)
+			case string:
+				cnt, _ := strconv.ParseInt(val, 10, 64)
+				if cnt < 0 {
+					cnt = 0
+				}
+				count = uint64(cnt)
 			}
 			if count <= 0 {
 				return items
