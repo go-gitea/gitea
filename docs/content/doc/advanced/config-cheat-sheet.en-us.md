@@ -316,7 +316,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `SSL_CURVE_PREFERENCES`: **X25519,P256**: Set the preferred curves,
 - `SSL_CIPHER_SUITES`: **ecdhe_ecdsa_with_aes_256_gcm_sha384,ecdhe_rsa_with_aes_256_gcm_sha384,ecdhe_ecdsa_with_aes_128_gcm_sha256,ecdhe_rsa_with_aes_128_gcm_sha256,ecdhe_ecdsa_with_chacha20_poly1305,ecdhe_rsa_with_chacha20_poly1305**: Set the preferred cipher suites.
   - If there is no hardware support for AES suites, by default the ChaCha suites will be preferred over the AES suites.
-  - supported suites as of Go >= 1.17 are:
+  - supported suites as of Go 1.18 are:
     - TLS 1.0 - 1.2 cipher suites
       - "rsa_with_rc4_128_sha"
       - "rsa_with_3des_ede_cbc_sha"
