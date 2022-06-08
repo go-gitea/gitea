@@ -15,6 +15,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma v0.10.0
 	github.com/blevesearch/bleve/v2 v2.3.2
+	github.com/buildkite/terminal-to-html/v3 v3.6.1
 	github.com/caddyserver/certmagic v0.16.1
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.0
