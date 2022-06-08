@@ -64,20 +64,39 @@
 				<p>{{.FormatWarning}}</p>
 			</div>
 		{{end}}
-		<div class="ui {{if .sidebarPresent}}grid equal width{{end}}" style="margin-top: 1rem;">
-			<div class="ui {{if .sidebarPresent}}eleven wide column{{end}} segment markup wiki-content-main">
+		<div class="ui {{if or .sidebarPresent .toc}}grid equal width{{end}}" style="margin-top: 1rem;">
+			<div class="ui {{if or .sidebarPresent .toc}}eleven wide column{{end}} segment markup wiki-content-main">
 				{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 				{{.content | Safe}}
 			</div>
-			{{if .sidebarPresent}}
+			{{if or .sidebarPresent .toc}}
 			<div class="column" style="padding-top: 0;">
-				<div class="ui segment wiki-content-sidebar">
-					{{if and .CanWriteWiki (not .Repository.IsMirror)}}
-						<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
-					{{end}}
-					{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
-					{{.sidebarContent | Safe}}
-				</div>
+				{{if .toc}}
+					<div class="ui segment wiki-content-toc">
+						<details open>
+							<summary>
+								<div class="ui header">{{.i18n.Tr "toc"}}</div>
+							</summary>
+							{{$level := 0}}
+							{{range .toc}}
+								{{if lt $level .Level}}{{range Iterate (Subtract .Level $level)}}<ul>{{end}}{{end}}
+								{{if gt $level .Level}}{{range Iterate (Subtract $level .Level)}}</ul>{{end}}{{end}}
+								{{$level = .Level}}
+								<li><a href="#{{.ID}}">{{.Text}}</a></li>
+							{{end}}
+							{{range Iterate $level}}</ul>{{end}}
+						</details>
+					</div>
+				{{end}}
+				{{if .sidebarPresent}}
+					<div class="ui segment wiki-content-sidebar">
+						{{if and .CanWriteWiki (not .Repository.IsMirror)}}
+							<a class="ui right floated muted" href="{{.RepoLink}}/wiki/_Sidebar?action=_edit" aria-label="{{.i18n.Tr "repo.wiki.edit_page_button"}}">{{svg "octicon-pencil"}}</a>
+						{{end}}
+						{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .sidebarEscapeStatus "root" $}}
+						{{.sidebarContent | Safe}}
+					</div>
+				{{end}}
 			</div>
 			{{end}}
 		</div>

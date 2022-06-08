@@ -393,7 +393,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	if opts.RequestedRepo != nil {
@@ -492,7 +492,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
 			act.ID = 0
 			act.UserID = act.Repo.Owner.ID
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new actioner: %v", err)
 			}
 		}
@@ -545,7 +545,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 				}
 			}
 
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new action: %v", err)
 			}
 		}
