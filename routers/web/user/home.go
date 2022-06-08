@@ -166,12 +166,13 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	repoOpts := models.SearchRepoOptions{
+	repoOpts := repo_model.SearchRepoOptions{
 		Actor:         ctxUser,
 		OwnerID:       ctxUser.ID,
 		Private:       true,
-		AllPublic:     false,                 // Include also all public repositories of users and public organisations
-		AllLimited:    false,                 // Include also all public repositories of limited organisations
+		AllPublic:     false, // Include also all public repositories of users and public organisations
+		AllLimited:    false, // Include also all public repositories of limited organisations
+		Archived:      util.OptionalBoolFalse,
 		HasMilestones: util.OptionalBoolTrue, // Just needs display repos has milestones
 	}
 
@@ -180,7 +181,7 @@ func Milestones(ctx *context.Context) {
 	}
 
 	var (
-		userRepoCond = models.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
+		userRepoCond = repo_model.SearchRepositoryCondition(&repoOpts) // all repo condition user could visit
 		repoCond     = userRepoCond
 		repoIDs      []int64
 
@@ -233,7 +234,7 @@ func Milestones(ctx *context.Context) {
 		return
 	}
 
-	showRepos, _, err := models.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
+	showRepos, _, err := repo_model.SearchRepositoryByCondition(&repoOpts, userRepoCond, false)
 	if err != nil {
 		ctx.ServerError("SearchRepositoryByCondition", err)
 		return
@@ -436,7 +437,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// As team:
 	// - Team org's owns the repository.
 	// - Team has read permission to repository.
-	repoOpts := &models.SearchRepoOptions{
+	repoOpts := &repo_model.SearchRepoOptions{
 		Actor:      ctx.Doer,
 		OwnerID:    ctx.Doer.ID,
 		Private:    true,
@@ -558,7 +559,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	// a RepositoryList
-	showRepos := models.RepositoryListOfMap(showReposMap)
+	showRepos := repo_model.RepositoryListOfMap(showReposMap)
 	sort.Sort(showRepos)
 
 	// maps pull request IDs to their CommitStatus. Will be posted to ctx.Data.
@@ -608,6 +609,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
 		ctx.Data["TotalIssueCount"] = shownIssues
+	}
+	if len(repoIDs) != 0 {
+		shownIssues = 0
+		for _, repoID := range repoIDs {
+			shownIssues += int(issueCountByRepo[repoID])
+		}
 	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
