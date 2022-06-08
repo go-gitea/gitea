@@ -112,7 +112,11 @@ func PushMirrorSync(ctx *context.APIContext) {
 		return
 	}
 	for _, mirror := range pushMirrors {
-		mirror_service.SyncPushMirror(ctx, mirror.ID)
+		ok := mirror_service.SyncPushMirror(ctx, mirror.ID)
+		if !ok {
+			ctx.Error(http.StatusInternalServerError, "PushMirrorSync", "error occured when syncing push mirror "+mirror.RemoteName)
+			return
+		}
 	}
 
 	ctx.Status(http.StatusOK)
