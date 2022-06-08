@@ -116,7 +116,7 @@
 										</div>
 									</div>
 									<div class="inline field {{if .Err_Interval}}error{{end}}">
-										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+										<label for="interval">{{.i18n.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
 									{{$address := MirrorRemoteAddress $.Context .Mirror}}
@@ -220,7 +220,7 @@
 											</div>
 										</details>
 										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
-											<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+											<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
 										</div>
 										<div class="field">

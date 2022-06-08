@@ -478,6 +478,18 @@ func getWorkPath(appPath string) string {
 			workPath = appPath[:i]
 		}
 	}
+	workPath = strings.ReplaceAll(workPath, "\\", "/")
+	if !filepath.IsAbs(workPath) {
+		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
+
+		absPath, err := filepath.Abs(workPath)
+		if err != nil {
+			log.Error("Unable to absolute %s against the current working directory %v. Will absolute against the AppPath %s", workPath, err, appPath)
+			workPath = filepath.Join(appPath, workPath)
+		} else {
+			workPath = absPath
+		}
+	}
 	return strings.ReplaceAll(workPath, "\\", "/")
 }
 
@@ -769,6 +781,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	if !filepath.IsAbs(AppDataPath) {
+		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
+		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
