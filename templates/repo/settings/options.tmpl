@@ -30,7 +30,7 @@
 				{{if not .Repository.IsFork}}
 					<div class="inline field">
 						<label>{{.i18n.Tr "repo.visibility"}}</label>
-						<div class="ui checkbox {{if not .Repository.IsPrivate}} tooltip {{end}}" data-content="{{.i18n.Tr "repo.stars_remove_warning"}}">
+						<div class="ui checkbox{{if not .Repository.IsPrivate}} tooltip{{end}}" data-content="{{.i18n.Tr "repo.stars_remove_warning"}}">
 							{{if .IsAdmin}}
 							<input name="private" type="checkbox" {{if .Repository.IsPrivate}}checked{{end}}>
 							{{else}}
