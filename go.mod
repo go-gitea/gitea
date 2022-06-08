@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.17
+go 1.18
 
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
