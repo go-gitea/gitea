@@ -5,6 +5,7 @@
 package auth
 
 import (
+	stdContext "context"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -135,9 +136,9 @@ type AccessTokenResponse struct {
 	IDToken      string    `json:"id_token,omitempty"`
 }
 
-func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
+func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, serverKey, clientKey oauth2.JWTSigningKey) (*AccessTokenResponse, *AccessTokenError) {
 	if setting.OAuth2.InvalidateRefreshTokens {
-		if err := grant.IncreaseCounter(); err != nil {
+		if err := grant.IncreaseCounter(ctx); err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidGrant,
 				ErrorDescription: "cannot increase the grant counter",
@@ -182,7 +183,7 @@ func newAccessTokenResponse(grant *auth.OAuth2Grant, serverKey, clientKey oauth2
 	// generate OpenID Connect id_token
 	signedIDToken := ""
 	if grant.ScopeContains("openid") {
-		app, err := auth.GetOAuth2ApplicationByID(grant.ApplicationID)
+		app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
 		if err != nil {
 			return nil, &AccessTokenError{
 				ErrorCode:        AccessTokenErrorCodeInvalidRequest,
@@ -333,9 +334,9 @@ func IntrospectOAuth(ctx *context.Context) {
 	token, err := oauth2.ParseToken(form.Token, oauth2.DefaultSigningKey)
 	if err == nil {
 		if token.Valid() == nil {
-			grant, err := auth.GetOAuth2GrantByID(token.GrantID)
+			grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
 			if err == nil && grant != nil {
-				app, err := auth.GetOAuth2ApplicationByID(grant.ApplicationID)
+				app, err := auth.GetOAuth2ApplicationByID(ctx, grant.ApplicationID)
 				if err == nil && app != nil {
 					response.Active = true
 					response.Scope = grant.Scope
@@ -364,7 +365,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	app, err := auth.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		if auth.IsErrOauthClientIDInvalid(err) {
 			handleAuthorizeError(ctx, AuthorizeError{
@@ -438,7 +439,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		return
 	}
 
-	grant, err := app.GetGrantByUserID(ctx.Doer.ID)
+	grant, err := app.GetGrantByUserID(ctx, ctx.Doer.ID)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -446,7 +447,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 
 	// Redirect if user already granted access
 	if grant != nil {
-		code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
+		code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, form.CodeChallenge, form.CodeChallengeMethod)
 		if err != nil {
 			handleServerError(ctx, form.State, form.RedirectURI)
 			return
@@ -458,7 +459,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 		}
 		// Update nonce to reflect the new session
 		if len(form.Nonce) > 0 {
-			err := grant.SetNonce(form.Nonce)
+			err := grant.SetNonce(ctx, form.Nonce)
 			if err != nil {
 				log.Error("Unable to update nonce: %v", err)
 			}
@@ -510,12 +511,12 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		ctx.Error(http.StatusBadRequest)
 		return
 	}
-	app, err := auth.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		ctx.ServerError("GetOAuth2ApplicationByClientID", err)
 		return
 	}
-	grant, err := app.CreateGrant(ctx.Doer.ID, form.Scope)
+	grant, err := app.CreateGrant(ctx, ctx.Doer.ID, form.Scope)
 	if err != nil {
 		handleAuthorizeError(ctx, AuthorizeError{
 			State:            form.State,
@@ -525,7 +526,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 		return
 	}
 	if len(form.Nonce) > 0 {
-		err := grant.SetNonce(form.Nonce)
+		err := grant.SetNonce(ctx, form.Nonce)
 		if err != nil {
 			log.Error("Unable to update nonce: %v", err)
 		}
@@ -535,7 +536,7 @@ func GrantApplicationOAuth(ctx *context.Context) {
 	codeChallenge, _ = ctx.Session.Get("CodeChallenge").(string)
 	codeChallengeMethod, _ = ctx.Session.Get("CodeChallengeMethod").(string)
 
-	code, err := grant.GenerateNewAuthorizationCode(form.RedirectURI, codeChallenge, codeChallengeMethod)
+	code, err := grant.GenerateNewAuthorizationCode(ctx, form.RedirectURI, codeChallenge, codeChallengeMethod)
 	if err != nil {
 		handleServerError(ctx, form.State, form.RedirectURI)
 		return
@@ -648,7 +649,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		return
 	}
 	// get grant before increasing counter
-	grant, err := auth.GetOAuth2GrantByID(token.GrantID)
+	grant, err := auth.GetOAuth2GrantByID(ctx, token.GrantID)
 	if err != nil || grant == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidGrant,
@@ -666,7 +667,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 		log.Warn("A client tried to use a refresh token for grant_id = %d was used twice!", grant.ID)
 		return
 	}
-	accessToken, tokenErr := newAccessTokenResponse(grant, serverKey, clientKey)
+	accessToken, tokenErr := newAccessTokenResponse(ctx, grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -675,7 +676,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 }
 
 func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, serverKey, clientKey oauth2.JWTSigningKey) {
-	app, err := auth.GetOAuth2ApplicationByClientID(form.ClientID)
+	app, err := auth.GetOAuth2ApplicationByClientID(ctx, form.ClientID)
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidClient,
@@ -697,7 +698,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	authorizationCode, err := auth.GetOAuth2AuthorizationByCode(form.Code)
+	authorizationCode, err := auth.GetOAuth2AuthorizationByCode(ctx, form.Code)
 	if err != nil || authorizationCode == nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
@@ -722,13 +723,13 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		return
 	}
 	// remove token from database to deny duplicate usage
-	if err := authorizationCode.Invalidate(); err != nil {
+	if err := authorizationCode.Invalidate(ctx); err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeInvalidRequest,
 			ErrorDescription: "cannot proceed your request",
 		})
 	}
-	resp, tokenErr := newAccessTokenResponse(authorizationCode.Grant, serverKey, clientKey)
+	resp, tokenErr := newAccessTokenResponse(ctx, authorizationCode.Grant, serverKey, clientKey)
 	if tokenErr != nil {
 		handleAccessTokenError(ctx, *tokenErr)
 		return
@@ -846,7 +847,17 @@ func SignInOAuthCallback(ctx *context.Context) {
 	}
 
 	if u == nil {
-		if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
+		if ctx.Doer != nil {
+			// attach user to already logged in user
+			err = externalaccount.LinkAccountToUser(ctx.Doer, gothUser)
+			if err != nil {
+				ctx.ServerError("UserLinkAccount", err)
+				return
+			}
+
+			ctx.Redirect(setting.AppSubURL + "/user/settings/security")
+			return
+		} else if !setting.Service.AllowOnlyInternalRegistration && setting.OAuth2Client.EnableAutoRegistration {
 			// create new user with details from oauth2 provider
 			var missingFields []string
 			if gothUser.UserID == "" {

@@ -7150,6 +7150,52 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/media/{filepath}": {
+      "get": {
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get a file or it's LFS object from a repository",
+        "operationId": "repoGetRawFileOrLFS",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "filepath of the file to get",
+            "name": "filepath",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "name": "ref",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Returns raw file content."
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/milestones": {
       "get": {
         "produces": [
@@ -8013,6 +8059,51 @@
           },
           "409": {
             "$ref": "#/responses/error"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Cancel the scheduled auto merge for the given pull request",
+        "operationId": "repoCancelScheduledAutoMerge",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to merge",
+            "name": "index",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
           }
         }
       }
@@ -16298,6 +16389,10 @@
         "head_commit_id": {
           "type": "string",
           "x-go-name": "HeadCommitID"
+        },
+        "merge_when_checks_succeed": {
+          "type": "boolean",
+          "x-go-name": "MergeWhenChecksSucceed"
         }
       },
       "x-go-name": "MergePullRequestForm",

@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -70,7 +71,7 @@ func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
 		return nil
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -376,7 +377,7 @@ func PrepareMergedViewPullInfo(ctx *context.Context, issue *models.Issue) *git.C
 
 	if len(compareInfo.Commits) != 0 {
 		sha := compareInfo.Commits[0].ID.String()
-		commitStatuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := models.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, sha, db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -437,7 +438,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 			ctx.ServerError(fmt.Sprintf("GetRefCommitID(%s)", pull.GetGitRefName()), err)
 			return nil
 		}
-		commitStatuses, _, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
+		commitStatuses, _, err := models.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLatestCommitStatus", err)
 			return nil
@@ -527,7 +528,7 @@ func PrepareViewPullInfo(ctx *context.Context, issue *models.Issue) *git.Compare
 		return nil
 	}
 
-	commitStatuses, _, err := models.GetLatestCommitStatus(repo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := models.GetLatestCommitStatus(ctx, repo.ID, sha, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLatestCommitStatus", err)
 		return nil
@@ -685,20 +686,33 @@ func ViewPullFiles(ctx *context.Context) {
 	if fileOnly && (len(files) == 2 || len(files) == 1) {
 		maxLines, maxFiles = -1, -1
 	}
+	diffOptions := &gitdiff.DiffOptions{
+		BeforeCommitID:     startCommitID,
+		AfterCommitID:      endCommitID,
+		SkipTo:             ctx.FormString("skip-to"),
+		MaxLines:           maxLines,
+		MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
+		MaxFiles:           maxFiles,
+		WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+	}
 
-	diff, err := gitdiff.GetDiff(gitRepo,
-		&gitdiff.DiffOptions{
-			BeforeCommitID:     startCommitID,
-			AfterCommitID:      endCommitID,
-			SkipTo:             ctx.FormString("skip-to"),
-			MaxLines:           maxLines,
-			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
-			MaxFiles:           maxFiles,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
-		}, ctx.FormStrings("files")...)
+	var methodWithError string
+	var diff *gitdiff.Diff
+	if !ctx.IsSigned {
+		diff, err = gitdiff.GetDiff(gitRepo, diffOptions, files...)
+		methodWithError = "GetDiff"
+	} else {
+		diff, err = gitdiff.SyncAndGetUserSpecificDiff(ctx, ctx.Doer.ID, pull, gitRepo, diffOptions, files...)
+		methodWithError = "SyncAndGetUserSpecificDiff"
+	}
 	if err != nil {
-		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
+		ctx.ServerError(methodWithError, err)
 		return
+	}
+
+	ctx.PageData["prReview"] = map[string]interface{}{
+		"numberOfFiles":       diff.NumFiles,
+		"numberOfViewedFiles": diff.NumViewedFiles,
 	}
 
 	if err = diff.LoadComments(ctx, issue, ctx.Doer); err != nil {
@@ -744,7 +758,7 @@ func ViewPullFiles(ctx *context.Context) {
 	setCompareContext(ctx, baseCommit, commit, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 
 	ctx.Data["RequireTribute"] = true
-	if ctx.Data["Assignees"], err = models.GetRepoAssignees(ctx.Repo.Repository); err != nil {
+	if ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository); err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
 	}
@@ -752,11 +766,27 @@ func ViewPullFiles(ctx *context.Context) {
 	if ctx.Written() {
 		return
 	}
-	ctx.Data["CurrentReview"], err = models.GetCurrentReview(ctx.Doer, issue)
+
+	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
 	if err != nil && !models.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
+	numPendingCodeComments := int64(0)
+	if currentReview != nil {
+		numPendingCodeComments, err = models.CountComments(&models.FindCommentsOptions{
+			Type:     models.CommentTypeCode,
+			ReviewID: currentReview.ID,
+			IssueID:  issue.ID,
+		})
+		if err != nil {
+			ctx.ServerError("CountComments", err)
+			return
+		}
+	}
+	ctx.Data["CurrentReview"] = currentReview
+	ctx.Data["PendingCodeCommentNumber"] = numPendingCodeComments
+
 	getBranchData(ctx, issue)
 	ctx.Data["IsIssuePoster"] = ctx.IsSigned && issue.IsPoster(ctx.Doer.ID)
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWriteIssuesOrPulls(issue.IsPull)
@@ -921,13 +951,22 @@ func MergePullRequest(ctx *context.Context) {
 		return
 	}
 
-	// set defaults to propagate needed fields
-	if err := form.SetDefaults(ctx, pr); err != nil {
-		ctx.ServerError("SetDefaults", fmt.Errorf("SetDefaults: %v", err))
-		return
+	message := strings.TrimSpace(form.MergeTitleField)
+	if len(message) == 0 {
+		var err error
+		message, err = pull_service.GetDefaultMergeMessage(ctx.Repo.GitRepo, pr, repo_model.MergeStyle(form.Do))
+		if err != nil {
+			ctx.ServerError("GetDefaultMergeMessage", err)
+			return
+		}
 	}
 
-	if err := pull_service.Merge(pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, form.MergeTitleField); err != nil {
+	form.MergeMessageField = strings.TrimSpace(form.MergeMessageField)
+	if len(form.MergeMessageField) > 0 {
+		message += "\n\n" + form.MergeMessageField
+	}
+
+	if err := pull_service.Merge(ctx, pr, ctx.Doer, ctx.Repo.GitRepo, repo_model.MergeStyle(form.Do), form.HeadCommitID, message); err != nil {
 		if models.IsErrInvalidMergeStyle(err) {
 			ctx.Flash.Error(ctx.Tr("repo.pulls.invalid_merge_option"))
 			ctx.Redirect(issue.Link())
@@ -1209,7 +1248,7 @@ func CleanUpPullRequest(ctx *context.Context) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -1315,7 +1354,7 @@ func DownloadPullPatch(ctx *context.Context) {
 
 // DownloadPullDiffOrPatch render a pull's raw diff or patch
 func DownloadPullDiffOrPatch(ctx *context.Context, patch bool) {
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
@@ -1408,7 +1447,7 @@ func UpdatePullRequestTarget(ctx *context.Context) {
 func SetAllowEdits(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.UpdateAllowEditsForm)
 
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		if models.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)

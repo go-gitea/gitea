@@ -360,7 +360,7 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 
 	if stdout, _, err := git.NewCommand(ctx, "push", "origin", "HEAD:"+defaultBranch).
 		SetDescription(fmt.Sprintf("initRepoCommit (git push): %s", tmpPath)).
-		RunStdString(&git.RunOpts{Dir: tmpPath, Env: models.InternalPushingEnvironment(u, repo)}); err != nil {
+		RunStdString(&git.RunOpts{Dir: tmpPath, Env: InternalPushingEnvironment(u, repo)}); err != nil {
 		log.Error("Failed to push back to HEAD: Stdout: %s\nError: %v", stdout, err)
 		return fmt.Errorf("git push: %v", err)
 	}
@@ -444,7 +444,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 	}
 
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 

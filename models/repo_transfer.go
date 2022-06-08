@@ -11,6 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -50,7 +51,7 @@ func (r *RepoTransfer) LoadAttributes() error {
 
 	if r.Recipient.IsOrganization() && len(r.TeamIDs) != len(r.Teams) {
 		for _, v := range r.TeamIDs {
-			team, err := organization.GetTeamByID(v)
+			team, err := organization.GetTeamByID(db.DefaultContext, v)
 			if err != nil {
 				return err
 			}
@@ -129,7 +130,7 @@ func CancelRepositoryTransfer(repo *repo_model.Repository) error {
 	defer committer.Close()
 
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
@@ -171,12 +172,12 @@ func CreatePendingRepositoryTransfer(doer, newOwner *user_model.User, repoID int
 	}
 
 	repo.Status = repo_model.RepositoryPendingTransfer
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
+	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -249,14 +250,14 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 
 	sess := db.GetEngine(ctx)
 
-	newOwner, err := user_model.GetUserByNameCtx(ctx, newOwnerName)
+	newOwner, err := user_model.GetUserByName(ctx, newOwnerName)
 	if err != nil {
 		return fmt.Errorf("get new owner '%s': %v", newOwnerName, err)
 	}
 	newOwnerName = newOwner.Name // ensure capitalisation matches
 
 	// Check if new owner has repository with same name.
-	if has, err := repo_model.IsRepositoryExistCtx(ctx, newOwner, repo.Name); err != nil {
+	if has, err := repo_model.IsRepositoryExist(ctx, newOwner, repo.Name); err != nil {
 		return fmt.Errorf("IsRepositoryExist: %v", err)
 	} else if has {
 		return repo_model.ErrRepoAlreadyExist{
@@ -280,13 +281,13 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 	}
 
 	// Remove redundant collaborators.
-	collaborators, err := getCollaborators(sess, repo.ID, db.ListOptions{})
+	collaborators, err := repo_model.GetCollaborators(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("getCollaborators: %v", err)
 	}
 
 	// Dummy object.
-	collaboration := &Collaboration{RepoID: repo.ID}
+	collaboration := &repo_model.Collaboration{RepoID: repo.ID}
 	for _, c := range collaborators {
 		if c.IsGhost() {
 			collaboration.ID = c.Collaboration.ID
@@ -330,7 +331,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 				}
 			}
 		}
-	} else if err := recalculateAccesses(ctx, repo); err != nil {
+	} else if err := access_model.RecalculateAccesses(ctx, repo); err != nil {
 		// Organization called this in addRepository method.
 		return fmt.Errorf("recalculateAccesses: %v", err)
 	}
@@ -342,13 +343,13 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return fmt.Errorf("decrease old owner repository count: %v", err)
 	}
 
-	if err := repo_model.WatchRepoCtx(ctx, doer.ID, repo.ID, true); err != nil {
+	if err := repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
 		return fmt.Errorf("watchRepo: %v", err)
 	}
 
 	// Remove watch for organization.
 	if oldOwner.IsOrganization() {
-		if err := repo_model.WatchRepoCtx(ctx, oldOwner.ID, repo.ID, false); err != nil {
+		if err := repo_model.WatchRepo(ctx, oldOwner.ID, repo.ID, false); err != nil {
 			return fmt.Errorf("watchRepo [false]: %v", err)
 		}
 	}
@@ -409,7 +410,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		return fmt.Errorf("deleteRepositoryTransfer: %v", err)
 	}
 	repo.Status = repo_model.RepositoryReady
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "status"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "status"); err != nil {
 		return err
 	}
 

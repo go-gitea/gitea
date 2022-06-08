@@ -12,6 +12,8 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -105,6 +107,11 @@ func TestAPISearchRepo(t *testing.T) {
 				nil:   {count: 7, repoName: "big_test_"},
 				user:  {count: 7, repoName: "big_test_"},
 				user2: {count: 7, repoName: "big_test_"},
+			},
+		},
+		{
+			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
+				user2: {count: 2, repoName: "big_test_"},
 			},
 		},
 		{
@@ -205,7 +212,7 @@ func TestAPISearchRepo(t *testing.T) {
 					assert.Len(t, repoNames, expected.count)
 					for _, repo := range body.Data {
 						r := getRepo(t, repo.ID)
-						hasAccess, err := models.HasAccess(userID, r)
+						hasAccess, err := access_model.HasAccess(db.DefaultContext, userID, r)
 						assert.NoError(t, err, "Error when checking if User: %d has access to %s: %v", userID, repo.FullName, err)
 						assert.True(t, hasAccess, "User: %d does not have access to %s", userID, repo.FullName)
 
@@ -386,7 +393,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
-		user, err := user_model.GetUserByName(httpContext.Username)
+		user, err := user_model.GetUserByName(db.DefaultContext, httpContext.Username)
 		assert.NoError(t, err)
 		userID := user.ID
 

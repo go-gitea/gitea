@@ -301,7 +301,7 @@ volumes:
 sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 ```
 
-在下一步中，需要在主机上创建一个名为 `/app/gitea/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/app/gitea/gitea`：
+在下一步中，需要在主机上创建一个名为 `/user/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/user/local/bin/gitea`：
 
 ```bash
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
@@ -324,14 +324,14 @@ ports:
 ssh-rsa <Gitea Host Key>
 
 # other keys from users
-command="/app/gitea/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
+command="/user/local/bin/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
 ```
 
 这是详细的说明，当发出 SSH 请求时会发生什么：
 
 1. 使用 `git` 用户向主机发出 SSH 请求，例如 `git clone git@domain:user/repo.git`。
-2. 在 `/home/git/.ssh/authorized_keys` 中，该命令执行 `/app/gitea/gitea` 脚本。
-3. `/app/gitea/gitea` 将 SSH 请求转发到端口 2222，该端口已映射到容器的 SSH 端口（22）。
+2. 在 `/home/git/.ssh/authorized_keys` 中，该命令执行 `/user/local/bin/gitea` 脚本。
+3. `/user/local/bin/gitea` 将 SSH 请求转发到端口 2222，该端口已映射到容器的 SSH 端口（22）。
 4. 由于 `/home/git/.ssh/authorized_keys` 中存在 `git` 用户的公钥，因此身份验证主机 → 容器成功，并且 SSH 请求转发到在 docker 容器中运行的 Gitea。
 
 如果在 Gitea Web 界面中添加了新的 SSH 密钥，它将以与现有密钥相同的方式附加到 `.ssh/authorized_keys` 中。

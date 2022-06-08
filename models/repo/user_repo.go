@@ -8,7 +8,11 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	api "code.gitea.io/gitea/modules/structs"
+
+	"xorm.io/builder"
 )
 
 // GetStarredRepos returns the repos starred by a particular user
@@ -52,36 +56,117 @@ func GetWatchedRepos(userID int64, private bool, listOptions db.ListOptions) ([]
 	return repos, total, err
 }
 
-// CountUserRepositories returns number of repositories user owns.
-// Argument private only takes effect when it is false,
-// set it true to count all repositories.
-func CountUserRepositories(userID int64, private bool) int64 {
-	return countRepositories(userID, private)
+// GetRepoAssignees returns all users that have write access and can be assigned to issues
+// of the repository,
+func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
+	if err = repo.GetOwner(ctx); err != nil {
+		return nil, err
+	}
+
+	e := db.GetEngine(ctx)
+	userIDs := make([]int64, 0, 10)
+	if err = e.Table("access").
+		Where("repo_id = ? AND mode >= ?", repo.ID, perm.AccessModeWrite).
+		Select("user_id").
+		Find(&userIDs); err != nil {
+		return nil, err
+	}
+
+	additionalUserIDs := make([]int64, 0, 10)
+	if err = e.Table("team_user").
+		Join("INNER", "team_repo", "`team_repo`.team_id = `team_user`.team_id").
+		Join("INNER", "team_unit", "`team_unit`.team_id = `team_user`.team_id").
+		Where("`team_repo`.repo_id = ? AND `team_unit`.access_mode >= ?", repo.ID, perm.AccessModeWrite).
+		Distinct("`team_user`.uid").
+		Select("`team_user`.uid").
+		Find(&additionalUserIDs); err != nil {
+		return nil, err
+	}
+
+	uidMap := map[int64]bool{}
+	i := 0
+	for _, uid := range userIDs {
+		if uidMap[uid] {
+			continue
+		}
+		uidMap[uid] = true
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+	userIDs = append(userIDs, additionalUserIDs...)
+
+	for _, uid := range additionalUserIDs {
+		if uidMap[uid] {
+			continue
+		}
+		userIDs[i] = uid
+		i++
+	}
+	userIDs = userIDs[:i]
+
+	// Leave a seat for owner itself to append later, but if owner is an organization
+	// and just waste 1 unit is cheaper than re-allocate memory once.
+	users := make([]*user_model.User, 0, len(userIDs)+1)
+	if len(userIDs) > 0 {
+		if err = e.In("id", userIDs).Find(&users); err != nil {
+			return nil, err
+		}
+	}
+	if !repo.Owner.IsOrganization() && !uidMap[repo.OwnerID] {
+		users = append(users, repo.Owner)
+	}
+
+	return users, nil
 }
 
-func getRepositoryCount(e db.Engine, ownerID int64) (int64, error) {
-	return e.Count(&Repository{OwnerID: ownerID})
-}
+// GetReviewers get all users can be requested to review:
+// * for private repositories this returns all users that have read access or higher to the repository.
+// * for public repositories this returns all users that have read access or higher to the repository,
+// all repo watchers and all organization members.
+// TODO: may be we should have a busy choice for users to block review request to them.
+func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64) ([]*user_model.User, error) {
+	// Get the owner of the repository - this often already pre-cached and if so saves complexity for the following queries
+	if err := repo.GetOwner(ctx); err != nil {
+		return nil, err
+	}
 
-func getPublicRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", false).Count(&Repository{OwnerID: u.ID})
-}
+	cond := builder.And(builder.Neq{"`user`.id": posterID})
 
-func getPrivateRepositoryCount(e db.Engine, u *user_model.User) (int64, error) {
-	return e.Where("is_private = ?", true).Count(&Repository{OwnerID: u.ID})
-}
+	if repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate {
+		// This a private repository:
+		// Anyone who can read the repository is a requestable reviewer
 
-// GetRepositoryCount returns the total number of repositories of user.
-func GetRepositoryCount(ctx context.Context, ownerID int64) (int64, error) {
-	return getRepositoryCount(db.GetEngine(ctx), ownerID)
-}
+		cond = cond.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").Where(
+				builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead}),
+			),
+		))
 
-// GetPublicRepositoryCount returns the total number of public repositories of user.
-func GetPublicRepositoryCount(u *user_model.User) (int64, error) {
-	return getPublicRepositoryCount(db.GetEngine(db.DefaultContext), u)
-}
+		if repo.Owner.Type == user_model.UserTypeIndividual && repo.Owner.ID != posterID {
+			// as private *user* repos don't generate an entry in the `access` table,
+			// the owner of a private repo needs to be explicitly added.
+			cond = cond.Or(builder.Eq{"`user`.id": repo.Owner.ID})
+		}
 
-// GetPrivateRepositoryCount returns the total number of private repositories of user.
-func GetPrivateRepositoryCount(u *user_model.User) (int64, error) {
-	return getPrivateRepositoryCount(db.GetEngine(db.DefaultContext), u)
+	} else {
+		// This is a "public" repository:
+		// Any user that has read access, is a watcher or organization member can be requested to review
+		cond = cond.And(builder.And(builder.In("`user`.id",
+			builder.Select("user_id").From("access").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.Gte{"mode": perm.AccessModeRead})),
+		).Or(builder.In("`user`.id",
+			builder.Select("user_id").From("watch").
+				Where(builder.Eq{"repo_id": repo.ID}.
+					And(builder.In("mode", WatchModeNormal, WatchModeAuto))),
+		).Or(builder.In("`user`.id",
+			builder.Select("uid").From("org_user").
+				Where(builder.Eq{"org_id": repo.OwnerID}),
+		)))))
+	}
+
+	users := make([]*user_model.User, 0, 8)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
 }

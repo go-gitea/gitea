@@ -160,6 +160,16 @@ export function initRepoIssueCommentDelete() {
         _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
+
+        // Check if this was a pending comment.
+        if ($conversationHolder.find('.pending-label').length) {
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
+        }
+
         $(`#${$this.data('comment-id')}`).remove();
         if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
           const path = $conversationHolder.data('path');
@@ -221,32 +231,6 @@ export function initRepoIssueStatusButton() {
   $statusButton.on('click', () => {
     $('#status').val($statusButton.data('status-val'));
     $('#comment-form').trigger('submit');
-  });
-}
-
-export function initRepoPullRequestMerge() {
-  // Pull Request merge button
-  const $mergeButton = $('.merge-button > button');
-  $mergeButton.on('click', function (e) {
-    e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
-    $(this).parent().hide();
-    $('.instruct-toggle').hide();
-    $('.instruct-content').hide();
-  });
-  $('.merge-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
-        $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
-      }
-    }
-  });
-  $('.merge-cancel').on('click', function (e) {
-    e.preventDefault();
-    $(this).closest('.form').hide();
-    $mergeButton.parent().show();
-    $('.instruct-toggle').show();
   });
 }
 

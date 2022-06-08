@@ -126,7 +126,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		return
 	}
 
-	if err = models.GetReleaseAttachments(releases...); err != nil {
+	if err = models.GetReleaseAttachments(ctx, releases...); err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
 	}
@@ -202,7 +202,7 @@ func SingleRelease(ctx *context.Context) {
 		return
 	}
 
-	err = models.GetReleaseAttachments(release)
+	err = models.GetReleaseAttachments(ctx, release)
 	if err != nil {
 		ctx.ServerError("GetReleaseAttachments", err)
 		return
@@ -279,7 +279,9 @@ func NewRelease(ctx *context.Context) {
 			}
 
 			ctx.Data["tag_name"] = rel.TagName
-			ctx.Data["tag_target"] = rel.Target
+			if rel.Target != "" {
+				ctx.Data["tag_target"] = rel.Target
+			}
 			ctx.Data["title"] = rel.Title
 			ctx.Data["content"] = rel.Note
 			ctx.Data["attachments"] = rel.Attachments

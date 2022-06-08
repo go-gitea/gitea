@@ -18,6 +18,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -253,7 +254,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	} else if len(headInfos) == 2 {
 		headInfosSplit := strings.Split(headInfos[0], "/")
 		if len(headInfosSplit) == 1 {
-			ci.HeadUser, err = user_model.GetUserByName(headInfos[0])
+			ci.HeadUser, err = user_model.GetUserByName(ctx, headInfos[0])
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					ctx.NotFound("GetUserByName", nil)
@@ -412,7 +413,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// Now we need to assert that the ctx.Doer has permission to read
 	// the baseRepo's code and pulls
 	// (NOT headRepo's)
-	permBase, err := models.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
+	permBase, err := access_model.GetUserRepoPermission(ctx, baseRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return nil
@@ -431,7 +432,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	// If we're not merging from the same repo:
 	if !isSameRepo {
 		// Assert ctx.Doer has permission to read headRepo's codes
-		permHead, err := models.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
+		permHead, err := access_model.GetUserRepoPermission(ctx, ci.HeadRepo, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return nil
@@ -456,7 +457,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(rootRepo, ctx.Doer, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -481,7 +482,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ownForkRepo, ctx.Doer, unit.TypeCode)
+		canRead := models.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -874,7 +875,7 @@ func ExcerptBlob(ctx *context.Context) {
 		}
 	}
 	ctx.Data["section"] = section
-	ctx.Data["fileName"] = filePath
+	ctx.Data["FileNameHash"] = base.EncodeSha1(filePath)
 	ctx.Data["AfterCommitID"] = commitID
 	ctx.Data["Anchor"] = anchor
 	ctx.HTML(http.StatusOK, tplBlobExcerpt)

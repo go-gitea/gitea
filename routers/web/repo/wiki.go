@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unit"
@@ -278,6 +279,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	} else {
 		ctx.Data["footerPresent"] = false
 	}
+
+	ctx.Data["toc"] = rctx.TableOfContents
 
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
@@ -627,7 +630,7 @@ func WikiRaw(ctx *context.Context) {
 	}
 
 	if entry != nil {
-		if err = common.ServeBlob(ctx, entry.Blob()); err != nil {
+		if err = common.ServeBlob(ctx, entry.Blob(), time.Time{}); err != nil {
 			ctx.ServerError("ServeBlob", err)
 		}
 		return

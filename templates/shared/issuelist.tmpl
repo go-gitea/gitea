@@ -59,6 +59,27 @@
 					{{else}}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
+					{{if .IsPull}}
+						<div class="branches">
+							<div class="branch">
+								<a class="bold" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
+									{{/* inline to remove the spaces between spans */}}
+									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
+								</a>
+							</div>
+
+							&laquo;
+
+							{{if .PullRequest.HeadRepo}}
+							<div class="branch">
+								<a class="bold" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+									{{/* inline to remove the spaces between spans */}}
+									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
+								</a>
+							</div>
+							{{end}}
+						</div>
+					{{end}}
 					{{if and .Milestone (ne $.listType "milestone")}}
 						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
 							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
@@ -73,7 +94,8 @@
 					{{if gt $tasks 0}}
 						{{$tasksDone := .GetTasksDone}}
 						<span class="checklist">
-							{{svg "octicon-checklist" 14 "mr-2"}}{{$tasksDone}} / {{$tasks}} <span class="progress-bar"><span class="progress" style="width:calc(100% * {{$tasksDone}} / {{$tasks}});"></span></span>
+							{{svg "octicon-checklist" 14 "mr-2"}}{{$tasksDone}} / {{$tasks}}
+							<progress value="{{$tasksDone}}" max="{{$tasks}}"></progress>
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}

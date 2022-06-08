@@ -27,13 +27,6 @@ import (
 
 var byteMailto = []byte("mailto:")
 
-// Header holds the data about a header.
-type Header struct {
-	Level int
-	Text  string
-	ID    string
-}
-
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
@@ -42,12 +35,13 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
-	toc := []Header{}
+	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
 	rc := &RenderConfig{
 		Meta: "table",
 		Icon: "table",
 		Lang: "",
 	}
+
 	if metaData != nil {
 		rc.ToRenderConfig(metaData)
 
@@ -56,7 +50,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			node.InsertBefore(node, firstChild, metaNode)
 		}
 		createTOC = rc.TOC
-		toc = make([]Header, 0, 100)
+		ctx.TableOfContents = make([]markup.Header, 0, 100)
 	}
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -66,23 +60,20 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 
 		switch v := n.(type) {
 		case *ast.Heading:
-			if createTOC {
-				text := n.Text(reader.Source())
-				header := Header{
-					Text:  util.BytesToReadOnlyString(text),
-					Level: v.Level,
-				}
-				if id, found := v.AttributeString("id"); found {
-					header.ID = util.BytesToReadOnlyString(id.([]byte))
-				}
-				toc = append(toc, header)
-			} else {
-				for _, attr := range v.Attributes() {
-					if _, ok := attr.Value.([]byte); !ok {
-						v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
-					}
+			for _, attr := range v.Attributes() {
+				if _, ok := attr.Value.([]byte); !ok {
+					v.SetAttribute(attr.Name, []byte(fmt.Sprintf("%v", attr.Value)))
 				}
 			}
+			text := n.Text(reader.Source())
+			header := markup.Header{
+				Text:  util.BytesToReadOnlyString(text),
+				Level: v.Level,
+			}
+			if id, found := v.AttributeString("id"); found {
+				header.ID = util.BytesToReadOnlyString(id.([]byte))
+			}
+			ctx.TableOfContents = append(ctx.TableOfContents, header)
 		case *ast.Image:
 			// Images need two things:
 			//
@@ -199,12 +190,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		return ast.WalkContinue, nil
 	})
 
-	if createTOC && len(toc) > 0 {
+	if createTOC && len(ctx.TableOfContents) > 0 {
 		lang := rc.Lang
 		if len(lang) == 0 {
 			lang = setting.Langs[0]
 		}
-		tocNode := createTOCNode(toc, lang)
+		tocNode := createTOCNode(ctx.TableOfContents, lang)
 		if tocNode != nil {
 			node.InsertBefore(node, firstChild, tocNode)
 		}

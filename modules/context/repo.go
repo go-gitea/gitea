@@ -16,6 +16,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,6 +26,7 @@ import (
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -54,7 +57,7 @@ type PullRequest struct {
 
 // Repository contains information to operate a repository
 type Repository struct {
-	models.Permission
+	access_model.Permission
 	IsWatching   bool
 	IsViewBranch bool
 	IsViewTag    bool
@@ -77,9 +80,14 @@ type Repository struct {
 	PullRequest *PullRequest
 }
 
+// CanWriteToBranch checks if the branch is writable by the user
+func (r *Repository) CanWriteToBranch(user *user_model.User, branch string) bool {
+	return models.CanMaintainerWriteToBranch(r.Permission, branch, user)
+}
+
 // CanEnableEditor returns true if repository is editable and user has proper access level.
 func (r *Repository) CanEnableEditor(user *user_model.User) bool {
-	return r.IsViewBranch && r.Permission.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
+	return r.IsViewBranch && r.CanWriteToBranch(user, r.BranchName) && r.Repository.CanEnableEditor() && !r.Repository.IsArchived
 }
 
 // CanCreateBranch returns true if repository is editable and user has proper access level.
@@ -110,7 +118,7 @@ type CanCommitToBranchResults struct {
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := models.GetProtectedBranchBy(r.Repository.ID, r.BranchName)
+	protectedBranch, err := models.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
@@ -153,7 +161,7 @@ func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.Use
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	isAssigned, _ := models.IsUserAssignedToIssue(issue, user)
+	isAssigned, _ := models.IsUserAssignedToIssue(db.DefaultContext, issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
@@ -272,7 +280,7 @@ func RetrieveBaseRepo(ctx *Context, repo *repo_model.Repository) {
 // RetrieveTemplateRepo retrieves template repository used to generate this repository
 func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 	// Non-generated repository will not return error in this method.
-	templateRepo, err := repo_model.GetTemplateRepo(repo)
+	templateRepo, err := repo_model.GetTemplateRepo(ctx, repo)
 	if err != nil {
 		if repo_model.IsErrRepoNotExist(err) {
 			repo.TemplateID = 0
@@ -285,7 +293,7 @@ func RetrieveTemplateRepo(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, templateRepo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -351,7 +359,7 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Repo.Permission, err = models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	ctx.Repo.Permission, err = access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserRepoPermission", err)
 		return
@@ -379,11 +387,12 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 			return
 		}
 		if finishedMigrating {
-			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(repo.ID)
+			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
 			if err != nil {
 				ctx.ServerError("GetMirrorByRepoID", err)
 				return
 			}
+			ctx.Repo.Mirror.Repo = repo
 			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
 			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
 			ctx.Data["Mirror"] = ctx.Repo.Mirror
@@ -445,7 +454,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
 		owner = ctx.Doer
 	} else {
-		owner, err = user_model.GetUserByName(userName)
+		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if ctx.FormString("go-get") == "1" {
@@ -543,14 +552,14 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["CanWriteIssues"] = ctx.Repo.CanWrite(unit_model.TypeIssues)
 	ctx.Data["CanWritePulls"] = ctx.Repo.CanWrite(unit_model.TypePullRequests)
 
-	canSignedUserFork, err := models.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
+	canSignedUserFork, err := repo_module.CanUserForkRepo(ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("CanUserForkRepo", err)
 		return
 	}
 	ctx.Data["CanSignedUserFork"] = canSignedUserFork
 
-	userAndOrgForks, err := models.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
+	userAndOrgForks, err := repo_model.GetForksByUserAndOrgs(ctx, ctx.Doer, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetForksByUserAndOrgs", err)
 		return
@@ -581,7 +590,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 
 	if ctx.IsSigned {
 		ctx.Data["IsWatchingRepo"] = repo_model.IsWatching(ctx.Doer.ID, repo.ID)
-		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx.Doer.ID, repo.ID)
+		ctx.Data["IsStaringRepo"] = repo_model.IsStaring(ctx, ctx.Doer.ID, repo.ID)
 	}
 
 	if repo.IsFork {
@@ -1019,6 +1028,7 @@ func UnitTypes() func(ctx *Context) {
 		ctx.Data["UnitTypeExternalWiki"] = unit_model.TypeExternalWiki
 		ctx.Data["UnitTypeExternalTracker"] = unit_model.TypeExternalTracker
 		ctx.Data["UnitTypeProjects"] = unit_model.TypeProjects
+		ctx.Data["UnitTypePackages"] = unit_model.TypePackages
 	}
 }
 

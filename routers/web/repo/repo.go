@@ -152,7 +152,7 @@ func Create(ctx *context.Context) {
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(templateID)
-		if err == nil && models.CheckRepoUnitUser(templateRepo, ctxUser, unit.TypeCode) {
+		if err == nil && models.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -223,7 +223,7 @@ func CreatePost(ctx *context.Context) {
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
-		opts := models.GenerateRepoOptions{
+		opts := repo_module.GenerateRepoOptions{
 			Name:        form.RepoName,
 			Description: form.Description,
 			Private:     form.Private,
@@ -285,9 +285,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
@@ -304,7 +304,7 @@ func Action(ctx *context.Context) {
 
 		ctx.Repo.Repository.Description = ctx.FormString("desc")
 		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = models.UpdateRepository(ctx.Repo.Repository, false)
+		err = repo_service.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
@@ -369,7 +369,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -509,7 +509,7 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -581,7 +581,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,

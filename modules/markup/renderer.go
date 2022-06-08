@@ -33,18 +33,26 @@ func Init() {
 	}
 }
 
+// Header holds the data about a header.
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx           context.Context
-	Filename      string
-	Type          string
-	IsWiki        bool
-	URLPrefix     string
-	Metas         map[string]string
-	DefaultLink   string
-	GitRepo       *git.Repository
-	ShaExistCache map[string]bool
-	cancelFn      func()
+	Ctx             context.Context
+	Filename        string
+	Type            string
+	IsWiki          bool
+	URLPrefix       string
+	Metas           map[string]string
+	DefaultLink     string
+	GitRepo         *git.Repository
+	ShaExistCache   map[string]bool
+	cancelFn        func()
+	TableOfContents []Header
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
