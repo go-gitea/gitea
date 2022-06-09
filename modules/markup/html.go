@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/regexplru"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
@@ -831,7 +832,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 		case IssueNameStyleAlphanumeric:
 			found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
-			pattern, err := regexp.Compile(ctx.Metas["regexp"]) // TODO: Compile only once, at regexp definition time
+			pattern, err := regexplru.GetCompiled(ctx.Metas["regexp"])
 			if err != nil {
 				return
 			}
