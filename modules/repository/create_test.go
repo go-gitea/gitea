@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -146,4 +147,24 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 		}
 	}
 	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
+}
+
+func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Get sample repo and change visibility
+	repo, err := repo_model.GetRepositoryByID(9)
+	assert.NoError(t, err)
+	repo.IsPrivate = true
+
+	// Update it
+	err = UpdateRepository(db.DefaultContext, repo, true)
+	assert.NoError(t, err)
+
+	// Check visibility of action has become private
+	act := models.Action{}
+	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
+
+	assert.NoError(t, err)
+	assert.True(t, act.IsPrivate)
 }

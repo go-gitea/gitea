@@ -1220,9 +1220,9 @@ func sortIssuesSession(sess *xorm.Session, sortType string, priorityRepoID int64
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "priorityrepo":
-		sess.OrderBy("CASE " +
-			"WHEN issue.repo_id = " + strconv.FormatInt(priorityRepoID, 10) + " THEN 1 " +
-			"ELSE 2 END ASC").
+		sess.OrderBy("CASE "+
+			"WHEN issue.repo_id = ? THEN 1 "+
+			"ELSE 2 END ASC", priorityRepoID).
 			Desc("issue.created_unix").
 			Desc("issue.id")
 	case "project-column-sorting":
@@ -1343,6 +1343,48 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 }
 
+// teamUnitsRepoCond returns query condition for those repo id in the special org team with special units access
+func teamUnitsRepoCond(id string, userID, orgID, teamID int64, units ...unit.Type) builder.Cond {
+	return builder.In(id,
+		builder.Select("repo_id").From("team_repo").Where(
+			builder.Eq{
+				"team_id": teamID,
+			}.And(
+				builder.Or(
+					// Check if the user is member of the team.
+					builder.In(
+						"team_id", builder.Select("team_id").From("team_user").Where(
+							builder.Eq{
+								"uid": userID,
+							},
+						),
+					),
+					// Check if the user is in the owner team of the organisation.
+					builder.Exists(builder.Select("team_id").From("team_user").
+						Where(builder.Eq{
+							"org_id": orgID,
+							"team_id": builder.Select("id").From("team").Where(
+								builder.Eq{
+									"org_id":     orgID,
+									"lower_name": strings.ToLower(organization.OwnerTeamName),
+								}),
+							"uid": userID,
+						}),
+					),
+				)).And(
+				builder.In(
+					"team_id", builder.Select("team_id").From("team_unit").Where(
+						builder.Eq{
+							"`team_unit`.org_id": orgID,
+						}.And(
+							builder.In("`team_unit`.type", units),
+						),
+					),
+				),
+			),
+		))
+}
+
 // issuePullAccessibleRepoCond userID must not be zero, this condition require join repository table
 func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organization.Organization, team *organization.Team, isPull bool) builder.Cond {
 	cond := builder.NewCond()
@@ -1356,19 +1398,19 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 		} else {
 			cond = cond.And(
 				builder.Or(
-					userOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
-					userOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
+					repo_model.UserOrgUnitRepoCond(repoIDstr, userID, org.ID, unitType), // team member repos
+					repo_model.UserOrgPublicUnitRepoCond(userID, org.ID),                // user org public non-member repos, TODO: check repo has issues
 				),
 			)
 		}
 	} else {
 		cond = cond.And(
 			builder.Or(
-				userOwnedRepoCond(userID),                          // owned repos
-				userCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
-				userAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
-				userMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
-				userCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
+				repo_model.UserOwnedRepoCond(userID),                          // owned repos
+				repo_model.UserCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
+				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
+				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
 			),
 		)
 	}
@@ -1434,7 +1476,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	opts.setupSessionNoLimit(sess)
 
-	accessCond := accessibleRepositoryCondition(user)
+	accessCond := repo_model.AccessibleRepositoryCondition(user)
 	if err := sess.Where(accessCond).
 		Distinct("issue.repo_id").
 		Table("issue").
@@ -2124,7 +2166,7 @@ func (issue *Issue) BlockedByDependencies(ctx context.Context) (issueDeps []*Dep
 		Join("INNER", "issue_dependency", "issue_dependency.dependency_id = issue.id").
 		Where("issue_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
 		Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {
@@ -2142,7 +2184,7 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 		Join("INNER", "issue_dependency", "issue_dependency.issue_id = issue.id").
 		Where("dependency_id = ?", issue.ID).
 		// sort by repo id then created date, with the issues of the same repo at the beginning of the list
-		OrderBy("CASE WHEN issue.repo_id = " + strconv.FormatInt(issue.RepoID, 10) + " THEN 0 ELSE issue.repo_id END, issue.created_unix DESC").
+		OrderBy("CASE WHEN issue.repo_id = ? THEN 0 ELSE issue.repo_id END, issue.created_unix DESC", issue.RepoID).
 		Find(&issueDeps)
 
 	for _, depInfo := range issueDeps {

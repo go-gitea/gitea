@@ -15,6 +15,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma v0.10.0
 	github.com/blevesearch/bleve/v2 v2.3.2
+	github.com/buildkite/terminal-to-html/v3 v3.6.1
 	github.com/caddyserver/certmagic v0.16.1
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.0
@@ -29,6 +30,7 @@ require (
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-enry/go-enry/v2 v2.8.2
+	github.com/go-fed/httpsig v1.1.0
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
 	github.com/go-ldap/ldap/v3 v3.4.3
@@ -41,7 +43,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.4.1
-	github.com/google/go-github/v39 v39.2.0
+	github.com/google/go-github/v45 v45.0.0
 	github.com/google/pprof v0.0.0-20220509035851-59ca7ad80af3
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
@@ -98,8 +100,8 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.10
-	xorm.io/xorm v1.2.5
+	xorm.io/builder v0.3.11
+	xorm.io/xorm v1.3.1
 )
 
 require (

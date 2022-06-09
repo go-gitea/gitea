@@ -397,6 +397,14 @@ func CreateWebhook(ctx context.Context, w *Webhook) error {
 	return db.Insert(ctx, w)
 }
 
+// CreateWebhooks creates multiple web hooks
+func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
+	for i := 0; i < len(ws); i++ {
+		ws[i].Type = strings.TrimSpace(ws[i].Type)
+	}
+	return db.Insert(ctx, ws)
+}
+
 // getWebhook uses argument bean as query condition,
 // ID must be specified and do not assign unnecessary fields.
 func getWebhook(bean *Webhook) (*Webhook, error) {
