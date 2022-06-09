@@ -38,7 +38,7 @@ func Person(ctx *context.APIContext) {
 		return
 	}
 	username := ctx.Params("username")
-	
+
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 	person := ap.PersonNew(ap.IRI(link))
 
@@ -51,7 +51,7 @@ func Person(ctx *context.APIContext) {
 
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
-	
+
 	publicKeyPem, err := activitypub.GetPublicKey(user)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
