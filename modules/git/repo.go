@@ -197,10 +197,7 @@ type PushOptions struct {
 
 // Push pushs local commits to given remote branch.
 func Push(ctx context.Context, repoPath string, opts PushOptions) error {
-	initArgs := []string{}
-	if len(opts.InitArgs) > 0 {
-		initArgs = append(initArgs, opts.InitArgs...)
-	}
+	initArgs := opts.InitArgs
 	initArgs = append(initArgs, "push")
 
 	cmd := NewCommand(ctx, initArgs...)
