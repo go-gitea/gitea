@@ -817,21 +817,22 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 	next := node.NextSibling
 
-	_, exttrack := ctx.Metas["format"]
-	notNumericStyle := ctx.Metas["style"] != IssueNameStyleNumeric
-	foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, exttrack && notNumericStyle)
-
 	for node != nil && node != next {
+		_, hasExtTrackFormat := ctx.Metas["format"]
+
+		// Repos with external issue trackers might still need to reference local PRs
+		// We need to concern with the first one that shows up in the text, whichever it is
+		isNumericStyle := ctx.Metas["style"] == "" || ctx.Metas["style"] == IssueNameStyleNumeric
+		foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle)
+
 		switch ctx.Metas["style"] {
-		case IssueNameStyleNumeric:
-			found = foundNumeric
-			ref = refNumeric
+		case "", IssueNameStyleNumeric:
+			found, ref = foundNumeric, refNumeric
 		case IssueNameStyleAlphanumeric:
 			found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
 		case IssueNameStyleRegexp:
-			// TODO: Compile only once, at regexp definition time
-			pattern, err := regexp.Compile(ctx.Metas["regexp"])
-			if err == nil {
+			pattern, err := regexp.Compile(ctx.Metas["regexp"]) // TODO: Compile only once, at regexp definition time
+			if err != nil {
 				return
 			}
 			found, ref = references.FindRenderizableReferenceRegexp(node.Data, pattern)
@@ -839,9 +840,8 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		if exttrack && notNumericStyle {
-			// If numeric (PR) was found and it was BEFORE the notNumeric
-			// pattern, use that
+		if hasExtTrackFormat && !isNumericStyle {
+			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
 			if foundNumeric && refNumeric.RefLocation.Start < ref.RefLocation.Start {
 				found = foundNumeric
 				ref = refNumeric
@@ -853,7 +853,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		var link *html.Node
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-		if exttrack && !ref.IsPull {
+		if hasExtTrackFormat && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
 
 			res, err := vars.Expand(ctx.Metas["format"], ctx.Metas)
@@ -886,7 +886,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, exttrack) {
+		if references.IsXrefActionable(ref, hasExtTrackFormat) {
 			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{

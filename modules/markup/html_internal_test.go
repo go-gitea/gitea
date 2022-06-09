@@ -211,8 +211,13 @@ func TestRender_IssueIndexPattern5(t *testing.T) {
 			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 
+		metas := map[string]string{}
+		for k, v := range regexpMetas {
+			metas[k] = v
+		}
+		metas["regexp"] = pattern
 		expected := fmt.Sprintf(expectedFmt, links...)
-		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: regexpMetas})
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: metas})
 	}
 
 	test("abc ISSUE-123 def", "abc %s def",
@@ -242,7 +247,7 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *Rend
 	var buf strings.Builder
 	err := postProcess(ctx, []processor{issueIndexPatternProcessor}, strings.NewReader(input), &buf)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, buf.String())
+	assert.Equal(t, expected, buf.String(), "input=%q", input)
 }
 
 func TestRender_AutoLink(t *testing.T) {

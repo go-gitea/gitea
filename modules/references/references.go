@@ -354,14 +354,14 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 // FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
 func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bool, *RenderizableReference) {
 	match := pattern.FindStringSubmatchIndex(content)
-	if match == nil {
+	if len(match) < 4 {
 		return false, nil
 	}
 
 	action, location := findActionKeywords([]byte(content), match[2])
 
 	return true, &RenderizableReference{
-		Issue:          string(content[match[2]:match[3]]),
+		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
 		Action:         action,
 		ActionLocation: location,
