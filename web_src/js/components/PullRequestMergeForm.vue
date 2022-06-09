@@ -31,7 +31,7 @@
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
-            ({{ mergeForm.textAutoMergeButtonTitle }})
+            ({{ mergeForm.textAutoMergeButtonWhenSucceed }})
           </template>
         </button>
 
@@ -54,7 +54,7 @@
           <span class="button-text">
             {{ mergeStyleDetail.textDoMerge }}
             <template v-if="autoMergeWhenSucceed">
-              ({{ mergeForm.textAutoMergeButtonTitle }})
+              {{ mergeForm.textAutoMergeButtonWhenSucceed }}
             </template>
           </span>
         </button>
@@ -78,14 +78,9 @@
               <!-- if can NOT merge now, only show one action "auto merge when succeed" -->
               <div class="item" v-if="msd.allowed && !mergeForm.canMergeNow && !msd.hideAutoMerge" :key="msd.name" @click.stop="switchMergeStyle(msd.name, true)">
                 <div class="action-text">
-                  {{ msd.textDoMerge }}
-                </div>
-                <div class="auto-merge-full">
-                  <svg-icon name="octicon-clock" :size="14"/>
-                  <span class="auto-merge-text">{{ mergeForm.textAutoMergeWhenSucceed }}</span>
+                  {{ msd.textDoMerge }} {{ mergeForm.textAutoMergeButtonWhenSucceed }}
                 </div>
               </div>
-
             </template>
           </div>
         </div>
@@ -211,14 +206,7 @@ export default {
   padding: 0.8rem;
   flex: 1
 }
-.auto-merge-full {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.auto-merge-full .auto-merge-text {
-  padding: 0 1rem 0 0.25rem;
-}
+
 .auto-merge-small {
   width: 40px;
   display: flex;
