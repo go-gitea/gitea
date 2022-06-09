@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -125,7 +125,8 @@ func CountIssueWatchers(ctx context.Context, issueID int64) (int64, error) {
 		Join("INNER", "`user`", "`user`.id = `issue_watch`.user_id").Count(new(IssueWatch))
 }
 
-func removeIssueWatchersByRepoID(ctx context.Context, userID, repoID int64) error {
+// RemoveIssueWatchersByRepoID remove issue watchers by repoID
+func RemoveIssueWatchersByRepoID(ctx context.Context, userID, repoID int64) error {
 	_, err := db.GetEngine(ctx).
 		Join("INNER", "issue", "`issue`.id = `issue_watch`.issue_id AND `issue`.repo_id = ?", repoID).
 		Where("`issue_watch`.user_id = ?", userID).

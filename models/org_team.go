@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -153,7 +154,7 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
+			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -216,7 +217,7 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}

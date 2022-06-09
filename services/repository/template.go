@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -18,14 +19,14 @@ import (
 
 // GenerateIssueLabels generates issue labels from a template repository
 func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_model.Repository) error {
-	templateLabels, err := models.GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
+	templateLabels, err := issues_model.GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
 	}
 
-	newLabels := make([]*models.Label, 0, len(templateLabels))
+	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {
-		newLabels = append(newLabels, &models.Label{
+		newLabels = append(newLabels, &issues_model.Label{
 			RepoID:      generateRepo.ID,
 			Name:        templateLabel.Name,
 			Description: templateLabel.Description,

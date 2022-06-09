@@ -11,7 +11,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -34,9 +33,9 @@ func TestAPIListIssues(t *testing.T) {
 	resp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, unittest.GetCount(t, &models.Issue{RepoID: repo.ID}))
+	assert.Len(t, apiIssues, unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}))
 	for _, apiIssue := range apiIssues {
-		unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: apiIssue.ID, RepoID: repo.ID})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: apiIssue.ID, RepoID: repo.ID})
 	}
 
 	// test milestone filter
@@ -91,7 +90,7 @@ func TestAPICreateIssue(t *testing.T) {
 	assert.Equal(t, body, apiIssue.Body)
 	assert.Equal(t, title, apiIssue.Title)
 
-	unittest.AssertExistsAndLoadBean(t, &models.Issue{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
 		RepoID:     repoBefore.ID,
 		AssigneeID: owner.ID,
 		Content:    body,
@@ -106,7 +105,7 @@ func TestAPICreateIssue(t *testing.T) {
 func TestAPIEditIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
 	assert.NoError(t, issueBefore.LoadAttributes())
@@ -137,7 +136,7 @@ func TestAPIEditIssue(t *testing.T) {
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 
-	issueAfter := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
 
 	// check deleted user

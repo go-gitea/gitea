@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,7 +22,7 @@ import (
 func TestAPIIssuesReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 
@@ -80,7 +79,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 func TestAPICommentReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2}).(*issues_model.Comment)
 	_ = comment.LoadIssue()
 	issue := comment.Issue
 	_ = issue.LoadRepo(db.DefaultContext)

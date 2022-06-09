@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -215,7 +215,7 @@ func CreateIssueStopwatch(ctx context.Context, user *user_model.User, issue *Iss
 		return err
 	}
 	if exists {
-		issue, err := getIssueByID(ctx, sw.IssueID)
+		issue, err := GetIssueByID(ctx, sw.IssueID)
 		if err != nil {
 			return err
 		}

@@ -21,6 +21,53 @@ import (
 	"xorm.io/builder"
 )
 
+// ErrRepoLabelNotExist represents a "RepoLabelNotExist" kind of error.
+type ErrRepoLabelNotExist struct {
+	LabelID int64
+	RepoID  int64
+}
+
+// IsErrRepoLabelNotExist checks if an error is a RepoErrLabelNotExist.
+func IsErrRepoLabelNotExist(err error) bool {
+	_, ok := err.(ErrRepoLabelNotExist)
+	return ok
+}
+
+func (err ErrRepoLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, repo_id: %d]", err.LabelID, err.RepoID)
+}
+
+// ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
+type ErrOrgLabelNotExist struct {
+	LabelID int64
+	OrgID   int64
+}
+
+// IsErrOrgLabelNotExist checks if an error is a OrgErrLabelNotExist.
+func IsErrOrgLabelNotExist(err error) bool {
+	_, ok := err.(ErrOrgLabelNotExist)
+	return ok
+}
+
+func (err ErrOrgLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d, org_id: %d]", err.LabelID, err.OrgID)
+}
+
+// ErrLabelNotExist represents a "LabelNotExist" kind of error.
+type ErrLabelNotExist struct {
+	LabelID int64
+}
+
+// IsErrLabelNotExist checks if an error is a ErrLabelNotExist.
+func IsErrLabelNotExist(err error) bool {
+	_, ok := err.(ErrLabelNotExist)
+	return ok
+}
+
+func (err ErrLabelNotExist) Error() string {
+	return fmt.Sprintf("label does not exist [label_id: %d]", err.LabelID)
+}
+
 // LabelColorPattern is a regexp witch can validate LabelColor
 var LabelColorPattern = regexp.MustCompile("^#?(?:[0-9a-fA-F]{6}|[0-9a-fA-F]{3})$")
 
@@ -671,7 +718,8 @@ func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	return issue.LoadLabels(ctx)
 }
 
-func deleteLabelsByRepoID(ctx context.Context, repoID int64) error {
+// DeleteLabelsByRepoID  deletes labels of some repository
+func DeleteLabelsByRepoID(ctx context.Context, repoID int64) error {
 	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
 
 	if _, err := db.GetEngine(ctx).In("label_id", deleteCond).
@@ -681,4 +729,108 @@ func deleteLabelsByRepoID(ctx context.Context, repoID int64) error {
 
 	_, err := db.DeleteByBean(ctx, &Label{RepoID: repoID})
 	return err
+}
+
+// CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
+func CountOrphanedLabels() (int64, error) {
+	noref, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
+	if err != nil {
+		return 0, err
+	}
+
+	norepo, err := db.GetEngine(db.DefaultContext).Table("label").
+		Where(builder.And(
+			builder.Gt{"repo_id": 0},
+			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+		)).
+		Count()
+	if err != nil {
+		return 0, err
+	}
+
+	noorg, err := db.GetEngine(db.DefaultContext).Table("label").
+		Where(builder.And(
+			builder.Gt{"org_id": 0},
+			builder.NotIn("org_id", builder.Select("id").From("user")),
+		)).
+		Count()
+	if err != nil {
+		return 0, err
+	}
+
+	return noref + norepo + noorg, nil
+}
+
+// DeleteOrphanedLabels delete labels witch are broken and not accessible via ui anymore
+func DeleteOrphanedLabels() error {
+	// delete labels with no reference
+	if _, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Delete(new(Label)); err != nil {
+		return err
+	}
+
+	// delete labels with none existing repos
+	if _, err := db.GetEngine(db.DefaultContext).
+		Where(builder.And(
+			builder.Gt{"repo_id": 0},
+			builder.NotIn("repo_id", builder.Select("id").From("repository")),
+		)).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	// delete labels with none existing orgs
+	if _, err := db.GetEngine(db.DefaultContext).
+		Where(builder.And(
+			builder.Gt{"org_id": 0},
+			builder.NotIn("org_id", builder.Select("id").From("user")),
+		)).
+		Delete(Label{}); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// CountOrphanedIssueLabels return count of IssueLabels witch have no label behind anymore
+func CountOrphanedIssueLabels() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Table("issue_label").
+		NotIn("label_id", builder.Select("id").From("label")).
+		Count()
+}
+
+// DeleteOrphanedIssueLabels delete IssueLabels witch have no label behind anymore
+func DeleteOrphanedIssueLabels() error {
+	_, err := db.GetEngine(db.DefaultContext).
+		NotIn("label_id", builder.Select("id").From("label")).
+		Delete(IssueLabel{})
+	return err
+}
+
+// CountIssueLabelWithOutsideLabels count label comments with outside label
+func CountIssueLabelWithOutsideLabels() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
+		Table("issue_label").
+		Join("inner", "label", "issue_label.label_id = label.id ").
+		Join("inner", "issue", "issue.id = issue_label.issue_id ").
+		Join("inner", "repository", "issue.repo_id = repository.id").
+		Count(new(IssueLabel))
+}
+
+// FixIssueLabelWithOutsideLabels fix label comments with outside label
+func FixIssueLabelWithOutsideLabels() (int64, error) {
+	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
+		SELECT il_too.id FROM (
+			SELECT il_too_too.id
+				FROM issue_label AS il_too_too
+					INNER JOIN label ON il_too_too.label_id = label.id
+					INNER JOIN issue on issue.id = il_too_too.issue_id
+					INNER JOIN repository on repository.id = issue.repo_id
+				WHERE
+					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
+	) AS il_too )`)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
 }

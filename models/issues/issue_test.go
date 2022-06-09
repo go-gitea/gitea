@@ -85,9 +85,9 @@ func TestGetParticipantIDsByIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	checkParticipants := func(issueID int64, userIDs []int) {
-		issue, err := issues_model.GetIssueByID(issueID)
+		issue, err := issues_model.GetIssueByID(db.DefaultContext, issueID)
 		assert.NoError(t, err)
-		participants, err := issue.getParticipantIDsByIssue(db.DefaultContext)
+		participants, err := issue.GetParticipantIDsByIssue(db.DefaultContext)
 		if assert.NoError(t, err) {
 			participantsIDs := make([]int, len(participants))
 			for i, uid := range participants {
@@ -248,11 +248,11 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			UserIssueStatsOptions{
+			issues_model.UserIssueStatsOptions{
 				UserID:     1,
-				FilterMode: FilterModeCreate,
+				FilterMode: issues_model.FilterModeCreate,
 			},
-			IssueStats{
+			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
@@ -261,11 +261,11 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			UserIssueStatsOptions{
+			issues_model.UserIssueStatsOptions{
 				UserID:     1,
-				FilterMode: FilterModeMention,
+				FilterMode: issues_model.FilterModeMention,
 			},
-			IssueStats{
+			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 6
 				AssignCount:           1, // 6
 				CreateCount:           1, // 6
@@ -275,12 +275,12 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			UserIssueStatsOptions{
+			issues_model.UserIssueStatsOptions{
 				UserID:     1,
-				FilterMode: FilterModeCreate,
+				FilterMode: issues_model.FilterModeCreate,
 				IssueIDs:   []int64{1},
 			},
-			IssueStats{
+			issues_model.IssueStats{
 				YourRepositoriesCount: 1, // 1
 				AssignCount:           1, // 1
 				CreateCount:           1, // 1
@@ -289,13 +289,13 @@ func TestGetUserIssueStats(t *testing.T) {
 			},
 		},
 		{
-			UserIssueStatsOptions{
+			issues_model.UserIssueStatsOptions{
 				UserID:     2,
 				Org:        unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).(*organization.Organization),
 				Team:       unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 7}).(*organization.Team),
-				FilterMode: FilterModeAll,
+				FilterMode: issues_model.FilterModeAll,
 			},
-			IssueStats{
+			issues_model.IssueStats{
 				YourRepositoriesCount: 2,
 				AssignCount:           1,
 				CreateCount:           1,
@@ -315,7 +315,7 @@ func TestGetUserIssueStats(t *testing.T) {
 
 func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	ms, err := issues_model.GetIssueByID(2)
+	ms, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
@@ -414,58 +414,6 @@ func TestIssue_InsertIssue(t *testing.T) {
 	issue = testInsertIssue(t, `my issue2, this is my son's love \n \r \ `, "special issue's '' comments?", 7)
 	_, err = db.GetEngine(db.DefaultContext).ID(issue.ID).Delete(new(issues_model.Issue))
 	assert.NoError(t, err)
-}
-
-func TestIssue_DeleteIssue(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
-
-	issueIDs, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 5, len(issueIDs))
-
-	issue := &issues_model.Issue{
-		RepoID: 1,
-		ID:     issueIDs[2],
-	}
-
-	err = issues_model.DeleteIssue(issue)
-	assert.NoError(t, err)
-	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 4, len(issueIDs))
-
-	// check attachment removal
-	attachments, err := repo_model.GetAttachmentsByIssueID(db.DefaultContext, 4)
-	assert.NoError(t, err)
-	issue, err = issues_model.GetIssueByID(4)
-	assert.NoError(t, err)
-	err = issues_model.DeleteIssue(issue)
-	assert.NoError(t, err)
-	assert.EqualValues(t, 2, len(attachments))
-	for i := range attachments {
-		attachment, err := repo_model.GetAttachmentByUUID(db.DefaultContext, attachments[i].UUID)
-		assert.Error(t, err)
-		assert.True(t, repo_model.IsErrAttachmentNotExist(err))
-		assert.Nil(t, attachment)
-	}
-
-	// check issue dependencies
-	user, err := user_model.GetUserByID(1)
-	assert.NoError(t, err)
-	issue1, err := issues_model.GetIssueByID(1)
-	assert.NoError(t, err)
-	issue2, err := issues_model.GetIssueByID(2)
-	assert.NoError(t, err)
-	err = issues_model.CreateIssueDependency(user, issue1, issue2)
-	assert.NoError(t, err)
-	left, err := issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
-	assert.NoError(t, err)
-	assert.False(t, left)
-	err = issues_model.DeleteIssue(&issues_model.Issue{ID: 2})
-	assert.NoError(t, err)
-	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
-	assert.NoError(t, err)
-	assert.True(t, left)
 }
 
 func TestIssue_ResolveMentions(t *testing.T) {

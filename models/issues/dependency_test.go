@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	issues_model "code.gitea.io/gitea/models/issues"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,10 +22,10 @@ func TestCreateIssueDependency(t *testing.T) {
 	user1, err := user_model.GetUserByID(1)
 	assert.NoError(t, err)
 
-	issue1, err := issues_model.GetIssueByID(1)
+	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
-	issue2, err := issues_model.GetIssueByID(2)
+	issue2, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
 
 	// Create a dependency and check if it was successful

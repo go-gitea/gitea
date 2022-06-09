@@ -12,7 +12,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -669,7 +668,7 @@ func setupDefaultDiff() *Diff {
 func TestDiff_LoadComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	diff := setupDefaultDiff()
 	assert.NoError(t, diff.LoadComments(db.DefaultContext, issue, user))
@@ -678,15 +677,15 @@ func TestDiff_LoadComments(t *testing.T) {
 
 func TestDiffLine_CanComment(t *testing.T) {
 	assert.False(t, (&DiffLine{Type: DiffLineSection}).CanComment())
-	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*models.Comment{{Content: "bla"}}}).CanComment())
+	assert.False(t, (&DiffLine{Type: DiffLineAdd, Comments: []*issues_model.Comment{{Content: "bla"}}}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineAdd}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLineDel}).CanComment())
 	assert.True(t, (&DiffLine{Type: DiffLinePlain}).CanComment())
 }
 
 func TestDiffLine_GetCommentSide(t *testing.T) {
-	assert.Equal(t, "previous", (&DiffLine{Comments: []*models.Comment{{Line: -3}}}).GetCommentSide())
-	assert.Equal(t, "proposed", (&DiffLine{Comments: []*models.Comment{{Line: 3}}}).GetCommentSide())
+	assert.Equal(t, "previous", (&DiffLine{Comments: []*issues_model.Comment{{Line: -3}}}).GetCommentSide())
+	assert.Equal(t, "proposed", (&DiffLine{Comments: []*issues_model.Comment{{Line: 3}}}).GetCommentSide())
 }
 
 func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {

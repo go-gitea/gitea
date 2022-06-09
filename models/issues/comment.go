@@ -33,6 +33,22 @@ import (
 	"xorm.io/xorm"
 )
 
+// ErrCommentNotExist represents a "CommentNotExist" kind of error.
+type ErrCommentNotExist struct {
+	ID      int64
+	IssueID int64
+}
+
+// IsErrCommentNotExist checks if an error is a ErrCommentNotExist.
+func IsErrCommentNotExist(err error) bool {
+	_, ok := err.(ErrCommentNotExist)
+	return ok
+}
+
+func (err ErrCommentNotExist) Error() string {
+	return fmt.Sprintf("comment does not exist [id: %d, issue_id: %d]", err.ID, err.IssueID)
+}
+
 // CommentType defines whether a comment is just a simple comment, an action (like close) or a reference.
 type CommentType int
 
@@ -298,7 +314,7 @@ func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 	if c.Issue != nil {
 		return nil
 	}
-	c.Issue, err = getIssueByID(ctx, c.IssueID)
+	c.Issue, err = GetIssueByID(ctx, c.IssueID)
 	return
 }
 
@@ -624,7 +640,7 @@ func (c *Comment) LoadDepIssueDetails() (err error) {
 	if c.DependentIssueID <= 0 || c.DependentIssue != nil {
 		return nil
 	}
-	c.DependentIssue, err = getIssueByID(db.DefaultContext, c.DependentIssueID)
+	c.DependentIssue, err = GetIssueByID(db.DefaultContext, c.DependentIssueID)
 	return err
 }
 
@@ -1138,21 +1154,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 }
 
 // DeleteComment deletes the comment
-func DeleteComment(comment *Comment) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := deleteComment(ctx, comment); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-func deleteComment(ctx context.Context, comment *Comment) error {
+func DeleteComment(ctx context.Context, comment *Comment) error {
 	e := db.GetEngine(ctx)
 	if _, err := e.ID(comment.ID).NoAutoCondition().Delete(comment); err != nil {
 		return err
@@ -1169,7 +1171,11 @@ func deleteComment(ctx context.Context, comment *Comment) error {
 			return err
 		}
 	}
-	if _, err := e.Where("comment_id = ?", comment.ID).Cols("is_deleted").Update(&Action{IsDeleted: true}); err != nil {
+	if _, err := e.Table("action").
+		Where("comment_id = ?", comment.ID).
+		Update(map[string]interface{}{
+			"is_deleted": true,
+		}); err != nil {
 		return err
 	}
 
@@ -1499,3 +1505,42 @@ func (c *Comment) GetExternalName() string { return c.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (c *Comment) GetExternalID() int64 { return c.OriginalAuthorID }
+
+// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
+func CountCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
+}
+
+// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
+func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
+}
+
+// CountCommentTypeLabelWithOutsideLabels count label comments with outside label
+func CountCommentTypeLabelWithOutsideLabels() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
+		Table("comment").
+		Join("inner", "label", "label.id = comment.label_id").
+		Join("inner", "issue", "issue.id = comment.issue_id ").
+		Join("inner", "repository", "issue.repo_id = repository.id").
+		Count()
+}
+
+// FixCommentTypeLabelWithOutsideLabels count label comments with outside label
+func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
+	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM comment WHERE comment.id IN (
+		SELECT il_too.id FROM (
+			SELECT com.id
+				FROM comment AS com
+					INNER JOIN label ON com.label_id = label.id
+					INNER JOIN issue on issue.id = com.issue_id
+					INNER JOIN repository ON issue.repo_id = repository.id
+				WHERE
+					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
+	) AS il_too)`, CommentTypeLabel)
+	if err != nil {
+		return 0, err
+	}
+
+	return res.RowsAffected()
+}

@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -220,10 +221,10 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		prefix  string
 		// Fall back subject for bad templates, make sure subject is never empty
 		fallback       string
-		reviewComments []*models.Comment
+		reviewComments []*issues_model.Comment
 	)
 
-	commentType := models.CommentTypeComment
+	commentType := issues_model.CommentTypeComment
 	if ctx.Comment != nil {
 		commentType = ctx.Comment.Type
 		link = ctx.Issue.HTMLURL() + "#" + ctx.Comment.HashTag()
@@ -231,7 +232,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		link = ctx.Issue.HTMLURL()
 	}
 
-	reviewType := models.ReviewTypeComment
+	reviewType := issues_model.ReviewTypeComment
 	if ctx.Comment != nil && ctx.Comment.Review != nil {
 		reviewType = ctx.Comment.Review.Type
 	}
@@ -254,7 +255,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	fallback = prefix + fallbackMailSubject(ctx.Issue)
 
 	if ctx.Comment != nil && ctx.Comment.Review != nil {
-		reviewComments = make([]*models.Comment, 0, 10)
+		reviewComments = make([]*issues_model.Comment, 0, 10)
 		for _, lines := range ctx.Comment.Review.CodeComments {
 			for _, comments := range lines {
 				reviewComments = append(reviewComments, comments...)
@@ -328,7 +329,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *models.Issue, comment *models.Comment, actionType models.ActionType) string {
+func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType models.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -400,7 +401,7 @@ func sanitizeSubject(subject string) string {
 }
 
 // SendIssueAssignedMail composes and sends issue assigned email
-func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content string, comment *models.Comment, recipients []*user_model.User) error {
+func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, content string, comment *issues_model.Comment, recipients []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -439,8 +440,8 @@ func SendIssueAssignedMail(issue *models.Issue, doer *user_model.User, content s
 
 // actionToTemplate returns the type and name of the action facing the user
 // (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *models.Issue, actionType models.ActionType,
-	commentType models.CommentType, reviewType models.ReviewType,
+func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
+	commentType issues_model.CommentType, reviewType issues_model.ReviewType,
 ) (typeName, name, template string) {
 	if issue.IsPull {
 		typeName = "pull"
@@ -464,20 +465,20 @@ func actionToTemplate(issue *models.Issue, actionType models.ActionType,
 		name = "ready_for_review"
 	default:
 		switch commentType {
-		case models.CommentTypeReview:
+		case issues_model.CommentTypeReview:
 			switch reviewType {
-			case models.ReviewTypeApprove:
+			case issues_model.ReviewTypeApprove:
 				name = "approve"
-			case models.ReviewTypeReject:
+			case issues_model.ReviewTypeReject:
 				name = "reject"
 			default:
 				name = "review"
 			}
-		case models.CommentTypeCode:
+		case issues_model.CommentTypeCode:
 			name = "code"
-		case models.CommentTypeAssignees:
+		case issues_model.CommentTypeAssignees:
 			name = "assigned"
-		case models.CommentTypePullRequestPush:
+		case issues_model.CommentTypePullRequestPush:
 			name = "push"
 		default:
 			name = "default"

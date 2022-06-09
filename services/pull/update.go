@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -19,9 +20,9 @@ import (
 )
 
 // Update updates pull request with base branch.
-func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User, message string, rebase bool) error {
+func Update(ctx context.Context, pull *issues_model.PullRequest, doer *user_model.User, message string, rebase bool) error {
 	var (
-		pr    *models.PullRequest
+		pr    *issues_model.PullRequest
 		style repo_model.MergeStyle
 	)
 
@@ -33,7 +34,7 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		style = repo_model.MergeStyleRebaseUpdate
 	} else {
 		// use merge functions but switch repo's and branch's
-		pr = &models.PullRequest{
+		pr = &issues_model.PullRequest{
 			HeadRepoID: pull.BaseRepoID,
 			BaseRepoID: pull.HeadRepoID,
 			HeadBranch: pull.BaseBranch,
@@ -42,7 +43,7 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 		style = repo_model.MergeStyleMerge
 	}
 
-	if pull.Flow == models.PullRequestFlowAGit {
+	if pull.Flow == issues_model.PullRequestFlowAGit {
 		// TODO: Not support update agit flow pull request's head branch
 		return fmt.Errorf("Not support update agit flow pull request's head branch")
 	}
@@ -76,8 +77,8 @@ func Update(ctx context.Context, pull *models.PullRequest, doer *user_model.User
 }
 
 // IsUserAllowedToUpdate check if user is allowed to update PR with given permissions and branch protections
-func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
-	if pull.Flow == models.PullRequestFlowAGit {
+func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, user *user_model.User) (mergeAllowed, rebaseAllowed bool, err error) {
+	if pull.Flow == issues_model.PullRequestFlowAGit {
 		return false, false, nil
 	}
 
@@ -89,7 +90,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 		return false, false, err
 	}
 
-	pr := &models.PullRequest{
+	pr := &issues_model.PullRequest{
 		HeadRepoID: pull.BaseRepoID,
 		BaseRepoID: pull.HeadRepoID,
 		HeadBranch: pull.BaseBranch,
@@ -139,7 +140,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *models.PullRequest, user *
 }
 
 // GetDiverging determines how many commits a PR is ahead or behind the PR base branch
-func GetDiverging(ctx context.Context, pr *models.PullRequest) (*git.DivergeObject, error) {
+func GetDiverging(ctx context.Context, pr *issues_model.PullRequest) (*git.DivergeObject, error) {
 	log.Trace("GetDiverging[%d]: compare commits", pr.ID)
 	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		return nil, err

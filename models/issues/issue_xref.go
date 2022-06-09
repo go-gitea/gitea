@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -280,7 +280,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	if comment.RefIssue != nil {
 		return nil
 	}
-	comment.RefIssue, err = GetIssueByID(comment.RefIssueID)
+	comment.RefIssue, err = GetIssueByID(db.DefaultContext, comment.RefIssueID)
 	if err == nil {
 		err = comment.RefIssue.LoadRepo(db.DefaultContext)
 	}

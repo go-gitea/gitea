@@ -25,6 +25,83 @@ import (
 	"xorm.io/builder"
 )
 
+// ErrPullRequestNotExist represents a "PullRequestNotExist" kind of error.
+type ErrPullRequestNotExist struct {
+	ID         int64
+	IssueID    int64
+	HeadRepoID int64
+	BaseRepoID int64
+	HeadBranch string
+	BaseBranch string
+}
+
+// IsErrPullRequestNotExist checks if an error is a ErrPullRequestNotExist.
+func IsErrPullRequestNotExist(err error) bool {
+	_, ok := err.(ErrPullRequestNotExist)
+	return ok
+}
+
+func (err ErrPullRequestNotExist) Error() string {
+	return fmt.Sprintf("pull request does not exist [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
+// ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error
+type ErrPullRequestAlreadyExists struct {
+	ID         int64
+	IssueID    int64
+	HeadRepoID int64
+	BaseRepoID int64
+	HeadBranch string
+	BaseBranch string
+}
+
+// IsErrPullRequestAlreadyExists checks if an error is a ErrPullRequestAlreadyExists.
+func IsErrPullRequestAlreadyExists(err error) bool {
+	_, ok := err.(ErrPullRequestAlreadyExists)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestAlreadyExists) Error() string {
+	return fmt.Sprintf("pull request already exists for these targets [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
+		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
+// ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error
+type ErrPullRequestHeadRepoMissing struct {
+	ID         int64
+	HeadRepoID int64
+}
+
+// IsErrErrPullRequestHeadRepoMissing checks if an error is a ErrPullRequestHeadRepoMissing.
+func IsErrErrPullRequestHeadRepoMissing(err error) bool {
+	_, ok := err.(ErrPullRequestHeadRepoMissing)
+	return ok
+}
+
+// Error does pretty-printing :D
+func (err ErrPullRequestHeadRepoMissing) Error() string {
+	return fmt.Sprintf("pull request head repo missing [id: %d, head_repo_id: %d]",
+		err.ID, err.HeadRepoID)
+}
+
+// ErrPullWasClosed is used close a closed pull request
+type ErrPullWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrPullWasClosed checks if an error is a ErrErrPullWasClosed.
+func IsErrPullWasClosed(err error) bool {
+	_, ok := err.(ErrPullWasClosed)
+	return ok
+}
+
+func (err ErrPullWasClosed) Error() string {
+	return fmt.Sprintf("Pull request [%d] %d was already closed", err.ID, err.Index)
+}
+
 // PullRequestType defines pull request type
 type PullRequestType int
 
@@ -98,7 +175,8 @@ func init() {
 	db.RegisterModel(new(PullRequest))
 }
 
-func deletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
+// DeletePullsByBaseRepoID deletes all pull requests by the base repository ID
+func DeletePullsByBaseRepoID(ctx context.Context, repoID int64) error {
 	deleteCond := builder.Select("id").From("pull_request").Where(builder.Eq{"pull_request.base_repo_id": repoID})
 
 	// Delete scheduled auto merges
@@ -219,7 +297,7 @@ func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 		return nil
 	}
 
-	pr.Issue, err = getIssueByID(ctx, pr.IssueID)
+	pr.Issue, err = GetIssueByID(ctx, pr.IssueID)
 	if err == nil {
 		pr.Issue.PullRequest = pr
 	}
@@ -427,7 +505,7 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 		Attachments: uuids,
 		IsPull:      true,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -690,4 +768,66 @@ func (pr *PullRequest) Mergeable() bool {
 	// - Is a work-in-progress pull request.
 	return pr.Status != PullRequestStatusChecking && pr.Status != PullRequestStatusConflict &&
 		pr.Status != PullRequestStatusError && !pr.IsWorkInProgress()
+}
+
+// HasEnoughApprovals returns true if pr has enough granted approvals.
+func HasEnoughApprovals(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
+	if protectBranch.RequiredApprovals == 0 {
+		return true
+	}
+	return GetGrantedApprovalsCount(ctx, protectBranch, pr) >= protectBranch.RequiredApprovals
+}
+
+// GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
+func GetGrantedApprovalsCount(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) int64 {
+	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeApprove).
+		And("official = ?", true).
+		And("dismissed = ?", false)
+	if protectBranch.DismissStaleApprovals {
+		sess = sess.And("stale = ?", false)
+	}
+	approvals, err := sess.Count(new(Review))
+	if err != nil {
+		log.Error("GetGrantedApprovalsCount: %v", err)
+		return 0
+	}
+
+	return approvals
+}
+
+// MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
+func MergeBlockedByRejectedReview(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
+	if !protectBranch.BlockOnRejectedReviews {
+		return false
+	}
+	rejectExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeReject).
+		And("official = ?", true).
+		And("dismissed = ?", false).
+		Exist(new(Review))
+	if err != nil {
+		log.Error("MergeBlockedByRejectedReview: %v", err)
+		return true
+	}
+
+	return rejectExist
+}
+
+// MergeBlockedByOfficialReviewRequests block merge because of some review request to official reviewer
+// of from official review
+func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
+	if !protectBranch.BlockOnOfficialReviewRequests {
+		return false
+	}
+	has, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
+		And("type = ?", ReviewTypeRequest).
+		And("official = ?", true).
+		Exist(new(Review))
+	if err != nil {
+		log.Error("MergeBlockedByOfficialReviewRequests: %v", err)
+		return true
+	}
+
+	return has
 }

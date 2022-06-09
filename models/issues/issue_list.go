@@ -2,14 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -19,11 +18,6 @@ import (
 
 // IssueList defines a list of issues
 type IssueList []*Issue
-
-const (
-	// default variables number on IN () in SQL
-	defaultMaxInSize = 50
-)
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
@@ -48,7 +42,7 @@ func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Rep
 	repoMaps := make(map[int64]*repo_model.Repository, len(repoIDs))
 	left := len(repoIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -102,7 +96,7 @@ func (issues IssueList) loadPosters(ctx context.Context) error {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -150,7 +144,7 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 	left := len(issueIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -205,10 +199,10 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -242,7 +236,7 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 	issueIDs := issues.getIssueIDs()
 	left := len(issueIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -298,7 +292,7 @@ func (issues IssueList) loadPullRequests(ctx context.Context) error {
 	pullRequestMaps := make(map[int64]*PullRequest, len(issuesIDs))
 	left := len(issuesIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -342,7 +336,7 @@ func (issues IssueList) loadAttachments(ctx context.Context) (err error) {
 	issuesIDs := issues.getIssueIDs()
 	left := len(issuesIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -387,7 +381,7 @@ func (issues IssueList) loadComments(ctx context.Context, cond builder.Cond) (er
 	issuesIDs := issues.getIssueIDs()
 	left := len(issuesIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -443,7 +437,7 @@ func (issues IssueList) loadTotalTrackedTimes(ctx context.Context) (err error) {
 
 	left := len(ids)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}

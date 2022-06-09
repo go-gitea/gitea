@@ -6,6 +6,7 @@ package base
 
 import (
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,59 +24,59 @@ func (*NullNotifier) Run() {
 
 // NotifyCreateIssueComment places a place holder function
 func (*NullNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
 // NotifyNewIssue places a place holder function
-func (*NullNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
+func (*NullNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*user_model.User) {
 }
 
 // NotifyIssueChangeStatus places a place holder function
-func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (*NullNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 }
 
 // NotifyDeleteIssue notify when some issue deleted
-func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *models.Issue) {
+func (*NullNotifier) NotifyDeleteIssue(doer *user_model.User, issue *issues_model.Issue) {
 }
 
 // NotifyNewPullRequest places a place holder function
-func (*NullNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
+func (*NullNotifier) NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User) {
 }
 
 // NotifyPullRequestReview places a place holder function
-func (*NullNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, comment *models.Comment, mentions []*user_model.User) {
+func (*NullNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
 // NotifyPullRequestCodeComment places a place holder function
-func (*NullNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*user_model.User) {
+func (*NullNotifier) NotifyPullRequestCodeComment(pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
 }
 
 // NotifyMergePullRequest places a place holder function
-func (*NullNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user_model.User) {
+func (*NullNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 }
 
 // NotifyPullRequestSynchronized places a place holder function
-func (*NullNotifier) NotifyPullRequestSynchronized(doer *user_model.User, pr *models.PullRequest) {
+func (*NullNotifier) NotifyPullRequestSynchronized(doer *user_model.User, pr *issues_model.PullRequest) {
 }
 
 // NotifyPullRequestChangeTargetBranch places a place holder function
-func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *user_model.User, pr *models.PullRequest, oldBranch string) {
+func (*NullNotifier) NotifyPullRequestChangeTargetBranch(doer *user_model.User, pr *issues_model.PullRequest, oldBranch string) {
 }
 
 // NotifyPullRequestPushCommits notifies when push commits to pull request's head branch
-func (*NullNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment) {
+func (*NullNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 }
 
 // NotifyPullRevieweDismiss notifies when a review was dismissed by repo admin
-func (*NullNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment) {
+func (*NullNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 }
 
 // NotifyUpdateComment places a place holder function
-func (*NullNotifier) NotifyUpdateComment(doer *user_model.User, c *models.Comment, oldContent string) {
+func (*NullNotifier) NotifyUpdateComment(doer *user_model.User, c *issues_model.Comment, oldContent string) {
 }
 
 // NotifyDeleteComment places a place holder function
-func (*NullNotifier) NotifyDeleteComment(doer *user_model.User, c *models.Comment) {
+func (*NullNotifier) NotifyDeleteComment(doer *user_model.User, c *issues_model.Comment) {
 }
 
 // NotifyNewRelease places a place holder function
@@ -91,36 +92,36 @@ func (*NullNotifier) NotifyDeleteRelease(doer *user_model.User, rel *models.Rele
 }
 
 // NotifyIssueChangeMilestone places a place holder function
-func (*NullNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issue *models.Issue, oldMilestoneID int64) {
+func (*NullNotifier) NotifyIssueChangeMilestone(doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) {
 }
 
 // NotifyIssueChangeContent places a place holder function
-func (*NullNotifier) NotifyIssueChangeContent(doer *user_model.User, issue *models.Issue, oldContent string) {
+func (*NullNotifier) NotifyIssueChangeContent(doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 }
 
 // NotifyIssueChangeAssignee places a place holder function
-func (*NullNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
+func (*NullNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 }
 
 // NotifyPullReviewRequest places a place holder function
-func (*NullNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment) {
+func (*NullNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 }
 
 // NotifyIssueClearLabels places a place holder function
-func (*NullNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *models.Issue) {
+func (*NullNotifier) NotifyIssueClearLabels(doer *user_model.User, issue *issues_model.Issue) {
 }
 
 // NotifyIssueChangeTitle places a place holder function
-func (*NullNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string) {
+func (*NullNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
 // NotifyIssueChangeRef places a place holder function
-func (*NullNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldTitle string) {
+func (*NullNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 }
 
 // NotifyIssueChangeLabels places a place holder function
-func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *models.Issue,
-	addedLabels, removedLabels []*models.Label) {
+func (*NullNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *issues_model.Issue,
+	addedLabels, removedLabels []*issues_model.Label) {
 }
 
 // NotifyCreateRepository places a place holder function

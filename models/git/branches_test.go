@@ -7,7 +7,6 @@ package git_test
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -120,10 +119,10 @@ func TestRenameBranch(t *testing.T) {
 	repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
-	pull := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 1}).(*models.PullRequest) // merged
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest) // merged
 	assert.Equal(t, "master", pull.BaseBranch)
 
-	pull = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest) // open
+	pull = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest) // open
 	assert.Equal(t, "main", pull.BaseBranch)
 
 	renamedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.RenamedBranch{ID: 2}).(*git_model.RenamedBranch)

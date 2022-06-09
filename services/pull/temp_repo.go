@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -21,7 +22,7 @@ import (
 
 // createTemporaryRepo creates a temporary repo with "base" for pr.BaseBranch and "tracking" for  pr.HeadBranch
 // it also create a second base branch called "original_base"
-func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, error) {
+func createTemporaryRepo(ctx context.Context, pr *issues_model.PullRequest) (string, error) {
 	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		log.Error("LoadHeadRepo: %v", err)
 		return "", fmt.Errorf("LoadHeadRepo: %v", err)
@@ -164,7 +165,7 @@ func createTemporaryRepo(ctx context.Context, pr *models.PullRequest) (string, e
 	trackingBranch := "tracking"
 	// Fetch head branch
 	var headBranch string
-	if pr.Flow == models.PullRequestFlowGithub {
+	if pr.Flow == issues_model.PullRequestFlowGithub {
 		headBranch = git.BranchPrefix + pr.HeadBranch
 	} else if len(pr.HeadCommitID) == 40 { // for not created pull request
 		headBranch = pr.HeadCommitID
