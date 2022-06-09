@@ -7,14 +7,16 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
@@ -31,15 +33,15 @@ var (
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
 
-	// HomeDir is the home dir for git to store the global config file used by Gitea internally
-	HomeDir string
-
 	// DefaultContext is the default context to run git commands in
 	// will be overwritten by InitWithConfigSync with HammerContext
 	DefaultContext = context.Background()
 
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
+
+	// initMutex is used to avoid Golang's data race error. see the comments below.
+	initMutex sync.Mutex
 
 	gitVersion *version.Version
 )
@@ -132,17 +134,35 @@ func VersionInfo() string {
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem
 func InitSimple(ctx context.Context) error {
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	return initSimpleInternal(ctx)
+}
+
+// HomeDir is the home dir for git to store the global config file used by Gitea internally
+func HomeDir() string {
+	if setting.RepoRootPath == "" {
+		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
+		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
+		// in the future, the git module should be initialized first before use.
+		tmpHomeDir := filepath.Join(os.TempDir(), "gitea-temp-home")
+		log.Error("Git's HomeDir is empty (RepoRootPath is empty), the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", tmpHomeDir)
+		return tmpHomeDir
+	}
+	return setting.RepoRootPath
+}
+
+func initSimpleInternal(ctx context.Context) error {
+	// at the moment, when running integration tests, the git.InitXxx would be called twice.
+	// one is called by the GlobalInitInstalled, one is called by TestMain.
+	// so the init functions should be protected by a mutex to avoid Golang's data race error.
+
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
 	}
-
-	if setting.RepoRootPath == "" {
-		return errors.New("RepoRootPath is empty, git module needs that setting before initialization")
-	}
-
-	HomeDir = setting.RepoRootPath
 
 	if err := SetExecutablePath(setting.Git.Path); err != nil {
 		return err
@@ -156,7 +176,10 @@ func InitSimple(ctx context.Context) error {
 
 // InitWithConfigSync initializes git module. This method may create directories or write files into filesystem
 func InitWithConfigSync(ctx context.Context) error {
-	err := InitSimple(ctx)
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	err := initSimpleInternal(ctx)
 	if err != nil {
 		return err
 	}

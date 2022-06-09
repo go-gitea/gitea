@@ -13,7 +13,6 @@ import (
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
 	"time"
 	"unsafe"
@@ -113,7 +112,7 @@ func CommonGitCmdEnvs() []string {
 		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
 		"GIT_TERMINAL_PROMPT=0",    // avoid prompting for credentials interactively, supported since git v2.3
 		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
-		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
 	}
 }
 
@@ -121,7 +120,7 @@ func CommonGitCmdEnvs() []string {
 func CommonCmdServEnvs() []string {
 	return []string{
 		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
-		"HOME=" + HomeDir,          // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
 	}
 }
 
@@ -167,14 +166,6 @@ func (c *Command) Run(opts *RunOpts) error {
 		cmd.Env = os.Environ()
 	} else {
 		cmd.Env = opts.Env
-	}
-
-	if HomeDir == "" {
-		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
-		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
-		// in future, the git module should be initialized first before use.
-		HomeDir = filepath.Join(os.TempDir(), "/gitea-temp-home")
-		log.Warn("Git's HomeDir is empty, the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", HomeDir)
 	}
 
 	process.SetSysProcAttribute(cmd)
