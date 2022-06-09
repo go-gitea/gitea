@@ -1,0 +1,21 @@
+{{template "base/head" .}}
+<div class="page-content repository">
+	{{template "repo/header" .}}
+	<div class="ui container">
+		<div class="df ac">
+			<a href="{{$.RepoLink}}">{{.RepoName}}</a>
+			<span class="mx-3">/</span>
+			<div class="ui input f1">
+				<input id="repo-file-find-input" type="text" autofocus data-url-data-link="{{.DataLink}}" data-url-tree-link="{{.TreeLink}}">
+			</div>
+		</div>
+		<table id="repo-find-file-table" class="ui single line table">
+			<tbody>
+			</tbody>
+		</table>
+		<div id="repo-find-file-no-result" class="ui row center mt-5" hidden>
+			<h3>{{.i18n.Tr "repo.find_file.no_matching"}}</h3>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}
