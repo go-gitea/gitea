@@ -86,9 +86,7 @@ export function strSubMatch(full, sub) {
   if (j < full.length) {
     // append remaining chars from full to result as unmatched
     if (res.length % 2 === 0) res.push('');
-    for (; j < full.length; j++) {
-      res[res.length - 1] += full[j];
-    }
+    res[res.length - 1] += full.substring(j);
   }
   return res;
 }
