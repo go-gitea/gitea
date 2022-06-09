@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/go-ap/activitypub"
+	ap "github.com/go-ap/activitypub"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,49 +34,24 @@ func TestActivityPubPerson(t *testing.T) {
 		var m map[string]interface{}
 		DecodeJSON(t, resp, &m)
 
-		var person vocab.ActivityStreamsPerson
-		resolver, _ := streams.NewJSONResolver(func(c context.Context, p vocab.ActivityStreamsPerson) error {
-			person = p
-			return nil
-		})
-		ctx := context.Background()
-		err := resolver.Resolve(ctx, m)
+		var person ap.Person
+		err := person.UnmarshalJSON(resp.Body.Bytes())
 		assert.NoError(t, err)
-		assert.Equal(t, "Person", person.GetTypeName())
-		assert.Equal(t, username, person.GetActivityStreamsName().Begin().GetXMLSchemaString())
-		keyID := person.GetJSONLDId().GetIRI().String()
+
+		assert.Equal(t, "Person", person.Type)
+		assert.Equal(t, username, person.Name)
+		keyID := person.ID.String()
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s$", username), keyID)
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/outbox$", username), person.GetActivityStreamsOutbox().GetIRI().String())
-		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.GetActivityStreamsInbox().GetIRI().String())
+		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/outbox$", username), person.Outbox.GetID().String())
+		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.Inbox.GetID().String())
 
-		pkp := person.GetW3IDSecurityV1PublicKey()
-		assert.NotNil(t, pkp)
+		pkey := person.PublicKey
+		assert.NotNil(t, pkey)
 		publicKeyID := keyID + "#main-key"
-		var pkpFound vocab.W3IDSecurityV1PublicKey
-		for pkpIter := pkp.Begin(); pkpIter != pkp.End(); pkpIter = pkpIter.Next() {
-			if !pkpIter.IsW3IDSecurityV1PublicKey() {
-				continue
-			}
-			pkValue := pkpIter.Get()
-			var pkID *url.URL
-			pkID, err = pub.GetId(pkValue)
-			if err != nil {
-				return
-			}
-			assert.Equal(t, pkID.String(), publicKeyID)
-			if pkID.String() != publicKeyID {
-				continue
-			}
-			pkpFound = pkValue
-			break
-		}
-		assert.NotNil(t, pkpFound)
+		assert.Equal(t, pkey.ID.String(), publicKeyID)
 
-		pkPemProp := pkpFound.GetW3IDSecurityV1PublicKeyPem()
-		assert.NotNil(t, pkPemProp)
-		assert.True(t, pkPemProp.IsXMLSchemaString())
-
-		pubKeyPem := pkPemProp.Get()
+		pubKeyPem := pkey.PublicKeyPem
+		assert.NotNil(t, pubKeyPem)
 		assert.Regexp(t, "^-----BEGIN PUBLIC KEY-----", pubKeyPem)
 	})
 }
@@ -109,7 +84,8 @@ func TestActivityPubPersonInbox(t *testing.T) {
 			setting.AppURL = appURL
 		}()
 		username1 := "user1"
-		user1, err := user_model.GetUserByName(username1)
+		var ctx context.Context
+		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
 		user1url := fmt.Sprintf("%s/api/v1/activitypub/user/%s#main-key", srv.URL, username1)
 		c, err := activitypub.NewClient(user1, user1url)

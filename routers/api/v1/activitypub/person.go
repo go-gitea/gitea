@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -43,7 +44,11 @@ func Person(ctx *context.APIContext) {
 	person := ap.PersonNew(ap.IRI(link))
 
 	name := ap.NaturalLanguageValuesNew()
-	name.Set("en", ap.Content(username))
+	err := name.Set("en", ap.Content(username))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Set name", err)
+		return
+	}
 	person.Name = name
 
 	person.Inbox = ap.Item(ap.IRI(link + "/inbox"))
@@ -63,9 +68,14 @@ func Person(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-	ctx.Resp.Header().Set("Content-Type", "application/json;charset=utf-8")
-	ctx.Write(binary)
-	ctx.Status(http.StatusOK)
+
+	var jsonmap map[string]interface{}
+	err = json.Unmarshal(binary, jsonmap)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
+	}
+
+	ctx.JSON(http.StatusOK, jsonmap)
 }
 
 // PersonInbox function
