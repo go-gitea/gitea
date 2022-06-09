@@ -26,7 +26,7 @@ func init() {
 }
 
 func newIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
-	assignees, err := getRepoAssignees(ctx, repo)
+	assignees, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)
 	}

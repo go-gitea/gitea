@@ -190,6 +190,13 @@ func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, e
 	return key, nil
 }
 
+// IsDeployKeyExistByKeyID return true if there is at least one deploykey with the key id
+func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("key_id = ?", keyID).
+		Get(new(DeployKey))
+}
+
 // UpdateDeployKeyCols updates deploy key information in the specified columns.
 func UpdateDeployKeyCols(key *DeployKey, cols ...string) error {
 	_, err := db.GetEngine(db.DefaultContext).ID(key.ID).Cols(cols...).Update(key)

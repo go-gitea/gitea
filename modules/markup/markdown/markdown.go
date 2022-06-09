@@ -34,9 +34,10 @@ var (
 )
 
 var (
-	urlPrefixKey   = parser.NewContextKey()
-	isWikiKey      = parser.NewContextKey()
-	renderMetasKey = parser.NewContextKey()
+	urlPrefixKey     = parser.NewContextKey()
+	isWikiKey        = parser.NewContextKey()
+	renderMetasKey   = parser.NewContextKey()
+	renderContextKey = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -67,6 +68,7 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc.Set(urlPrefixKey, ctx.URLPrefix)
 	pc.Set(isWikiKey, ctx.IsWiki)
 	pc.Set(renderMetasKey, ctx.Metas)
+	pc.Set(renderContextKey, ctx)
 	return pc
 }
 

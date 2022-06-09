@@ -58,6 +58,9 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
+  /* console colors */
+  --color-console-fg: #ffffff;
+  --color-console-bg: #171717;
   /* colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -1998,15 +2001,6 @@ table th[data-sortt-desc] {
 .ui.dropdown.no-text > .dropdown.icon {
   margin-left: 0 !important;
   margin-right: 0 !important;
-}
-
-.dropdown:not(.selection) > .menu.review-box > * {
-  @media (max-height: 700px) {
-    .CodeMirror,
-    .CodeMirror-scroll {
-      min-height: 100px;
-    }
-  }
 }
 
 .ui.dropdown .menu .item {
