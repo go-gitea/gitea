@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -48,6 +49,7 @@ import (
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
 	pull_service "code.gitea.io/gitea/services/pull"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 const (
@@ -254,7 +256,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	issueList := models.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts()
+	approvalCounts, err := issueList.GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -282,7 +284,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["CommitStatuses"] = commitStatuses
 
 	// Get assignees.
-	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -293,14 +295,14 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
 	}
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -342,7 +344,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	if ctx.Repo.CanWriteIssuesOrPulls(ctx.Params(":type") == "pulls") {
-		projects, _, err := project_model.GetProjects(project_model.SearchOptions{
+		projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
 			RepoID:   repo.ID,
 			Type:     project_model.TypeRepository,
 			IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -440,7 +442,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 		return
 	}
 
-	ctx.Data["Assignees"], err = models.GetRepoAssignees(repo)
+	ctx.Data["Assignees"], err = repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		ctx.ServerError("GetAssignees", err)
 		return
@@ -452,7 +454,7 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 	var err error
 
-	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
+	ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolFalse,
@@ -463,7 +465,7 @@ func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
 		return
 	}
 
-	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
+	ctx.Data["ClosedProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     -1,
 		IsClosed: util.OptionalBoolTrue,
@@ -521,13 +523,13 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 			posterID = 0
 		}
 
-		reviewers, err = models.GetReviewers(repo, ctx.Doer.ID, posterID)
+		reviewers, err = repo_model.GetReviewers(ctx, repo, ctx.Doer.ID, posterID)
 		if err != nil {
 			ctx.ServerError("GetReviewers", err)
 			return
 		}
 
-		teamReviewers, err = models.GetReviewerTeams(repo)
+		teamReviewers, err = repo_service.GetReviewerTeams(repo)
 		if err != nil {
 			ctx.ServerError("GetReviewerTeams", err)
 			return
@@ -672,14 +674,14 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 		return nil
 	}
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return nil
 	}
 	ctx.Data["Labels"] = labels
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			return nil
 		}
@@ -760,10 +762,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 			ctx.Data[issueTemplateTitleKey] = meta.Title
 			ctx.Data[ctxDataKey] = templateBody
 			labelIDs := make([]string, 0, len(meta.Labels))
-			if repoLabels, err := models.GetLabelsByRepoID(ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
+			if repoLabels, err := models.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
 				ctx.Data["Labels"] = repoLabels
 				if ctx.Repo.Owner.IsOrganization() {
-					if orgLabels, err := models.GetLabelsByOrgID(ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
+					if orgLabels, err := models.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
 						ctx.Data["OrgLabels"] = orgLabels
 						repoLabels = append(repoLabels, orgLabels...)
 					}
@@ -817,7 +819,7 @@ func NewIssue(ctx *context.Context) {
 
 	projectID := ctx.FormInt64("project")
 	if projectID > 0 {
-		project, err := project_model.GetProjectByID(projectID)
+		project, err := project_model.GetProjectByID(ctx, projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
 		} else if project.RepoID != ctx.Repo.Repository.ID {
@@ -929,7 +931,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	}
 
 	if form.ProjectID > 0 {
-		p, err := project_model.GetProjectByID(form.ProjectID)
+		p, err := project_model.GetProjectByID(ctx, form.ProjectID)
 		if err != nil {
 			ctx.ServerError("GetProjectByID", err)
 			return nil, nil, 0, 0
@@ -959,7 +961,7 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 				return nil, nil, 0, 0
 			}
 
-			valid, err := models.CanBeAssigned(assignee, repo, isPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, repo, isPull)
 			if err != nil {
 				ctx.ServerError("CanBeAssigned", err)
 				return nil, nil, 0, 0
@@ -1051,7 +1053,7 @@ func NewIssuePost(ctx *context.Context) {
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
 func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *user_model.User, issue *models.Issue) (models.RoleDescriptor, error) {
-	perm, err := models.GetUserRepoPermission(ctx, repo, poster)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, poster)
 	if err != nil {
 		return models.RoleDescriptorNone, err
 	}
@@ -1067,7 +1069,7 @@ func roleDescriptor(ctx stdCtx.Context, repo *repo_model.Repository, poster *use
 		} else {
 
 			// Otherwise check if poster is the real repo admin.
-			ok, err := models.IsUserRealRepoAdmin(repo, poster)
+			ok, err := access_model.IsUserRealRepoAdmin(repo, poster)
 			if err != nil {
 				return models.RoleDescriptorNone, err
 			}
@@ -1236,7 +1238,7 @@ func ViewIssue(ctx *context.Context) {
 	for i := range issue.Labels {
 		labelIDMark[issue.Labels[i].ID] = true
 	}
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetLabelsByRepoID", err)
 		return
@@ -1244,7 +1246,7 @@ func ViewIssue(ctx *context.Context) {
 	ctx.Data["Labels"] = labels
 
 	if repo.Owner.IsOrganization() {
-		orgLabels, err := models.GetLabelsByOrgID(repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		orgLabels, err := models.GetLabelsByOrgID(ctx, repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
 		if err != nil {
 			ctx.ServerError("GetLabelsByOrgID", err)
 			return
@@ -1276,7 +1278,7 @@ func ViewIssue(ctx *context.Context) {
 	if issue.IsPull {
 		canChooseReviewer := ctx.Repo.CanWrite(unit.TypePullRequests)
 		if !canChooseReviewer && ctx.Doer != nil && ctx.IsSigned {
-			canChooseReviewer, err = models.IsOfficialReviewer(issue, ctx.Doer)
+			canChooseReviewer, err = models.IsOfficialReviewer(ctx, issue, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("IsOfficialReviewer", err)
 				return
@@ -1311,7 +1313,7 @@ func ViewIssue(ctx *context.Context) {
 			if !ctx.Data["IsStopwatchRunning"].(bool) {
 				var exists bool
 				var sw *models.Stopwatch
-				if exists, sw, err = models.HasUserStopwatch(ctx.Doer.ID); err != nil {
+				if exists, sw, err = models.HasUserStopwatch(ctx, ctx.Doer.ID); err != nil {
 					ctx.ServerError("HasUserStopwatch", err)
 					return
 				}
@@ -1526,7 +1528,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadHeadRepoCtx(ctx); err != nil {
 				log.Error("LoadHeadRepo: %v", err)
 			} else if pull.HeadRepo != nil {
-				perm, err := models.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
+				perm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, ctx.Doer)
 				if err != nil {
 					ctx.ServerError("GetUserRepoPermission", err)
 					return
@@ -1548,7 +1550,7 @@ func ViewIssue(ctx *context.Context) {
 			if err := pull.LoadBaseRepoCtx(ctx); err != nil {
 				log.Error("LoadBaseRepo: %v", err)
 			}
-			perm, err := models.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, pull.BaseRepo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -1687,12 +1689,12 @@ func ViewIssue(ctx *context.Context) {
 	}
 
 	// Get Dependencies
-	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies()
+	ctx.Data["BlockedByDependencies"], err = issue.BlockedByDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockedByDependencies", err)
 		return
 	}
-	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies()
+	ctx.Data["BlockingDependencies"], err = issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.ServerError("BlockingDependencies", err)
 		return
@@ -1766,7 +1768,7 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 		}
 		issueIDs = append(issueIDs, issueID)
 	}
-	issues, err := models.GetIssuesByIDs(issueIDs)
+	issues, err := models.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
 		ctx.ServerError("GetIssuesByIDs", err)
 		return nil
@@ -1798,6 +1800,21 @@ func GetIssueInfo(ctx *context.Context) {
 		}
 		return
 	}
+
+	if issue.IsPull {
+		// Need to check if Pulls are enabled and we can read Pulls
+		if !ctx.Repo.Repository.CanEnablePulls() || !ctx.Repo.CanRead(unit.TypePullRequests) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	} else {
+		// Need to check if Issues are enabled and we can read Issues
+		if !ctx.Repo.CanRead(unit.TypeIssues) {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	ctx.JSON(http.StatusOK, convert.ToAPIIssue(issue))
 }
 
@@ -1872,7 +1889,7 @@ func UpdateIssueContent(ctx *context.Context) {
 
 	// when update the request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
 	if !ctx.FormBool("ignore_attachments") {
-		if err := updateAttachments(issue, ctx.FormStrings("files[]")); err != nil {
+		if err := updateAttachments(ctx, issue, ctx.FormStrings("files[]")); err != nil {
 			ctx.ServerError("UpdateAttachments", err)
 			return
 		}
@@ -1978,7 +1995,7 @@ func UpdateIssueAssignee(ctx *context.Context) {
 				return
 			}
 
-			valid, err := models.CanBeAssigned(assignee, issue.Repo, issue.IsPull)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, issue.Repo, issue.IsPull)
 			if err != nil {
 				ctx.ServerError("canBeAssigned", err)
 				return
@@ -2046,7 +2063,7 @@ func UpdatePullReviewRequest(ctx *context.Context) {
 				return
 			}
 
-			team, err := organization.GetTeamByID(-reviewID)
+			team, err := organization.GetTeamByID(ctx, -reviewID)
 			if err != nil {
 				ctx.ServerError("GetTeamByID", err)
 				return
@@ -2144,7 +2161,7 @@ func SearchIssues(ctx *context.Context) {
 	}
 
 	// find repos user can access (for issue search)
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -2159,7 +2176,7 @@ func SearchIssues(ctx *context.Context) {
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err.Error())
@@ -2178,7 +2195,7 @@ func SearchIssues(ctx *context.Context) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err.Error())
@@ -2190,8 +2207,8 @@ func SearchIssues(ctx *context.Context) {
 		opts.TeamID = team.ID
 	}
 
-	repoCond := models.SearchRepositoryCondition(opts)
-	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	repoCond := repo_model.SearchRepositoryCondition(opts)
+	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err.Error())
 		return
@@ -2306,7 +2323,7 @@ func getUserIDForFilter(ctx *context.Context, queryName string) int64 {
 		return 0
 	}
 
-	user, err := user_model.GetUserByName(userName)
+	user, err := user_model.GetUserByName(ctx, userName)
 	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound("", err)
 		return 0
@@ -2630,7 +2647,7 @@ func NewComment(ctx *context.Context) {
 
 // UpdateCommentContent change comment of issue's content
 func UpdateCommentContent(ctx *context.Context) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
@@ -2671,7 +2688,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 	// when the update request doesn't intend to update attachments (eg: change checkbox state), ignore attachment updates
 	if !ctx.FormBool("ignore_attachments") {
-		if err := updateAttachments(comment, ctx.FormStrings("files[]")); err != nil {
+		if err := updateAttachments(ctx, comment, ctx.FormStrings("files[]")); err != nil {
 			ctx.ServerError("UpdateAttachments", err)
 			return
 		}
@@ -2696,7 +2713,7 @@ func UpdateCommentContent(ctx *context.Context) {
 
 // DeleteComment delete comment of issue
 func DeleteComment(ctx *context.Context) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
@@ -2822,7 +2839,7 @@ func ChangeIssueReaction(ctx *context.Context) {
 // ChangeCommentReaction create a reaction for comment
 func ChangeCommentReaction(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.ReactionForm)
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
@@ -2941,7 +2958,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 			if err != nil {
 				return err
 			}
-			perm, err := models.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
+			perm, err := access_model.GetUserRepoPermission(ctx, c.RefRepo, ctx.Doer)
 			if err != nil {
 				return err
 			}
@@ -2967,7 +2984,7 @@ func GetIssueAttachments(ctx *context.Context) {
 
 // GetCommentAttachments returns attachments for the comment
 func GetCommentAttachments(ctx *context.Context) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
@@ -2985,7 +3002,7 @@ func GetCommentAttachments(ctx *context.Context) {
 	ctx.JSON(http.StatusOK, attachments)
 }
 
-func updateAttachments(item interface{}, files []string) error {
+func updateAttachments(ctx *context.Context, item interface{}, files []string) error {
 	var attachments []*repo_model.Attachment
 	switch content := item.(type) {
 	case *models.Issue:
@@ -3019,9 +3036,9 @@ func updateAttachments(item interface{}, files []string) error {
 	}
 	switch content := item.(type) {
 	case *models.Issue:
-		content.Attachments, err = repo_model.GetAttachmentsByIssueID(content.ID)
+		content.Attachments, err = repo_model.GetAttachmentsByIssueID(ctx, content.ID)
 	case *models.Comment:
-		content.Attachments, err = repo_model.GetAttachmentsByCommentID(content.ID)
+		content.Attachments, err = repo_model.GetAttachmentsByCommentID(ctx, content.ID)
 	default:
 		return fmt.Errorf("unknown Type: %T", content)
 	}

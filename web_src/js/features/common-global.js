@@ -4,6 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
+import {attachDropdownAria} from './aria.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -44,11 +45,26 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $('.js-quick-submit').on('keydown', function (e) {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').trigger('submit');
+  $(document).on('keydown', '.js-quick-submit', (e) => {
+    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
+      handleGlobalEnterQuickSubmit(e.target);
+      return false;
     }
   });
+}
+
+export function handleGlobalEnterQuickSubmit(target) {
+  const $target = $(target);
+  const $form = $(target).closest('form');
+  if ($form.length) {
+    // here use the event to trigger the submit event (instead of calling `submit()` method directly)
+    // otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
+    $form.trigger('submit');
+  } else {
+    // if no form, then the editor is for an AJAX request, dispatch an event to the target, let the target's event handler to do the AJAX request.
+    // the 'ce-' prefix means this is a CustomEvent
+    $target.trigger('ce-quick-submit');
+  }
 }
 
 export function initGlobalButtonClickOnEnter() {
@@ -82,28 +98,28 @@ export function initGlobalCommon() {
   }
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown({
+  const $uiDropdowns = $('.ui.dropdown');
+  $uiDropdowns.filter(':not(.custom)').dropdown({
     fullTextSearch: 'exact'
   });
-  $('.jump.dropdown').dropdown({
+  $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
       $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
-  $('.slide.up.dropdown').dropdown({
+  $uiDropdowns.filter('.slide.up').dropdown({
     transition: 'slide up',
     fullTextSearch: 'exact'
   });
-  $('.upward.dropdown').dropdown({
+  $uiDropdowns.filter('.upward').dropdown({
     direction: 'upward',
     fullTextSearch: 'exact'
   });
+  attachDropdownAria($uiDropdowns);
+
   $('.ui.checkbox').checkbox();
-  $('.ui.progress').progress({
-    showActivity: false
-  });
 
   // init popups
   $('.tooltip').each((_, el) => {

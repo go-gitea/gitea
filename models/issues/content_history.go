@@ -38,7 +38,7 @@ func init() {
 }
 
 // SaveIssueContentHistory save history
-func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) error {
+func SaveIssueContentHistory(ctx context.Context, posterID, issueID, commentID int64, editTime timeutil.TimeStamp, contentText string, isFirstCreated bool) error {
 	ch := &ContentHistory{
 		PosterID:       posterID,
 		IssueID:        issueID,
@@ -47,27 +47,26 @@ func SaveIssueContentHistory(e db.Engine, posterID, issueID, commentID int64, ed
 		EditedUnix:     editTime,
 		IsFirstCreated: isFirstCreated,
 	}
-	_, err := e.Insert(ch)
-	if err != nil {
+	if err := db.Insert(ctx, ch); err != nil {
 		log.Error("can not save issue content history. err=%v", err)
 		return err
 	}
 	// We only keep at most 20 history revisions now. It is enough in most cases.
 	// If there is a special requirement to keep more, we can consider introducing a new setting option then, but not now.
-	keepLimitedContentHistory(e, issueID, commentID, 20)
+	keepLimitedContentHistory(ctx, issueID, commentID, 20)
 	return nil
 }
 
 // keepLimitedContentHistory keeps at most `limit` history revisions, it will hard delete out-dated revisions, sorting by revision interval
 // we can ignore all errors in this function, so we just log them
-func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int) {
+func keepLimitedContentHistory(ctx context.Context, issueID, commentID int64, limit int) {
 	type IDEditTime struct {
 		ID         int64
 		EditedUnix timeutil.TimeStamp
 	}
 
 	var res []*IDEditTime
-	err := e.Select("id, edited_unix").Table("issue_content_history").
+	err := db.GetEngine(ctx).Select("id, edited_unix").Table("issue_content_history").
 		Where(builder.Eq{"issue_id": issueID, "comment_id": commentID}).
 		OrderBy("edited_unix ASC").
 		Find(&res)
@@ -96,7 +95,7 @@ func keepLimitedContentHistory(e db.Engine, issueID, commentID int64, limit int)
 		}
 
 		// hard delete the found one
-		_, err = e.Delete(&ContentHistory{ID: res[indexToDelete].ID})
+		_, err = db.GetEngine(ctx).Delete(&ContentHistory{ID: res[indexToDelete].ID})
 		if err != nil {
 			log.Error("can not delete out-dated content history, err=%v", err)
 			break

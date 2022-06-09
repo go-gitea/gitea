@@ -65,21 +65,23 @@ func Settings(ctx *context.Context) {
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
+	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
+
 	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
-			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
+			status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
 			if err != nil {
 				ctx.ServerError("repo.indexer_status", err)
 				return
 			}
 			ctx.Data["CodeIndexerStatus"] = status
 		}
-		status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
+		status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
 		if err != nil {
 			ctx.ServerError("repo.indexer_status", err)
 			return
@@ -101,6 +103,17 @@ func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
+
+	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
+	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
+	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+
+	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningSettings"] = setting.Repository.Signing
+	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
 
@@ -168,7 +181,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		repo.IsPrivate = form.Private
-		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -191,15 +204,15 @@ func SettingsPost(ctx *context.Context) {
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
-		} else {
-			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
-			ctx.Repo.Mirror.Interval = interval
-			ctx.Repo.Mirror.ScheduleNextUpdate()
-			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
-				ctx.Data["Err_Interval"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
-				return
-			}
+			return
+		}
+
+		ctx.Repo.Mirror.EnablePrune = form.EnablePrune
+		ctx.Repo.Mirror.Interval = interval
+		ctx.Repo.Mirror.ScheduleNextUpdate()
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+			ctx.ServerError("UpdateMirror", err)
+			return
 		}
 
 		u, _ := git.GetRemoteAddress(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
@@ -241,7 +254,7 @@ func SettingsPost(ctx *context.Context) {
 
 		ctx.Repo.Mirror.LFS = form.LFS
 		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
@@ -491,7 +504,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		if repoChanged {
-			if err := models.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -510,7 +523,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if changed {
-			if err := models.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -530,7 +543,7 @@ func SettingsPost(ctx *context.Context) {
 			repo.IsFsckEnabled = form.EnableHealthCheck
 		}
 
-		if err := models.UpdateRepository(repo, false); err != nil {
+		if err := repo_service.UpdateRepository(repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -642,7 +655,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := user_model.GetUserByName(ctx.FormString("new_owner_name"))
+		newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -833,14 +846,14 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := models.GetCollaborators(ctx.Repo.Repository.ID, db.ListOptions{})
+	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := organization.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -863,7 +876,7 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	u, err := user_model.GetUserByName(name)
+	u, err := user_model.GetUserByName(ctx, name)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
@@ -887,7 +900,7 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if got, err := models.IsCollaborator(ctx.Repo.Repository.ID, u.ID); err == nil && got {
+	if got, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, u.ID); err == nil && got {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
@@ -908,7 +921,7 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := models.ChangeCollaborationAccessMode(
+	if err := repo_model.ChangeCollaborationAccessMode(
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
@@ -983,7 +996,7 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	team, err := organization.GetTeamByID(ctx.FormInt64("id"))
+	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetTeamByID", err)
 		return
@@ -1215,6 +1228,7 @@ func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Reposi
 
 	for _, m := range pushMirrors {
 		if m.ID == id {
+			m.Repo = repo
 			return m, nil
 		}
 	}

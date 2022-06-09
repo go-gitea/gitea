@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -52,7 +53,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"UseHTTPS": func() bool {
 			return strings.HasPrefix(setting.AppURL, "https")
@@ -390,6 +391,66 @@ func NewFuncMap() []template.FuncMap {
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
+		"Iterate": func(arg interface{}) (items []uint64) {
+			count := uint64(0)
+			switch val := arg.(type) {
+			case uint64:
+				count = val
+			case *uint64:
+				count = *val
+			case int64:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int64:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case int:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint:
+				count = uint64(val)
+			case *uint:
+				count = uint64(*val)
+			case int32:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int32:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint32:
+				count = uint64(val)
+			case *uint32:
+				count = uint64(*val)
+			case string:
+				cnt, _ := strconv.ParseInt(val, 10, 64)
+				if cnt < 0 {
+					cnt = 0
+				}
+				count = uint64(cnt)
+			}
+			if count <= 0 {
+				return items
+			}
+			for i := uint64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
 	}}
 }
 
@@ -398,7 +459,7 @@ func NewFuncMap() []template.FuncMap {
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"AppName": func() string {
 			return setting.AppName
@@ -574,7 +635,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Collaborator:
+	case *repo_model.Collaborator:
 		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())

@@ -344,10 +344,6 @@ func RegisterRoutes(m *web.Route) {
 		}, openIDSignInEnabled)
 		m.Get("/sign_up", auth.SignUp)
 		m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), auth.SignUpPost)
-		m.Group("/oauth2", func() {
-			m.Get("/{provider}", auth.SignInOAuth)
-			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
-		})
 		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
 		m.Post("/link_account_signin", linkAccountEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", linkAccountEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
@@ -452,6 +448,10 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/task/{task}", reqSignIn, user.TaskStatus)
 		m.Get("/stopwatches", reqSignIn, user.GetStopwatches)
 		m.Get("/search", ignExploreSignIn, user.Search)
+		m.Group("/oauth2", func() {
+			m.Get("/{provider}", auth.SignInOAuth)
+			m.Get("/{provider}/callback", auth.SignInOAuthCallback)
+		})
 	})
 	// ***** END: User *****
 
@@ -831,10 +831,21 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
+		m.Get("/find/*", repo.FindFiles)
+		m.Group("/tree-list", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
+		})
 		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
 			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
 			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+		m.Group("/{type:issues|pulls}", func() {
+			m.Group("/{index}", func() {
+				m.Get("/info", repo.GetIssueInfo)
+			})
+		})
 	}, context.RepoAssignment, context.UnitTypes())
 
 	// Grouping for those endpoints that do require authentication
@@ -851,7 +862,6 @@ func RegisterRoutes(m *web.Route) {
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Get("/info", repo.GetIssueInfo)
 				m.Post("/title", repo.UpdateIssueTitle)
 				m.Post("/content", repo.UpdateIssueContent)
 				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)

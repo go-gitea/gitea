@@ -8,18 +8,17 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-)
+	user_model "code.gitea.io/gitea/models/user"
 
-func getRepositoriesByForkID(e db.Engine, forkID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, e.
-		Where("fork_id=?", forkID).
-		Find(&repos)
-}
+	"xorm.io/builder"
+)
 
 // GetRepositoriesByForkID returns all repositories with given fork ID.
 func GetRepositoriesByForkID(ctx context.Context, forkID int64) ([]*Repository, error) {
-	return getRepositoriesByForkID(db.GetEngine(ctx), forkID)
+	repos := make([]*Repository, 0, 10)
+	return repos, db.GetEngine(ctx).
+		Where("fork_id=?", forkID).
+		Find(&repos)
 }
 
 // GetForkedRepo checks if given user has already forked a repository with given ID.
@@ -66,4 +65,52 @@ func GetForks(repo *Repository, listOptions db.ListOptions) ([]*Repository, erro
 	sess := db.GetPaginatedSession(&listOptions)
 	forks := make([]*Repository, 0, listOptions.PageSize)
 	return forks, sess.Find(&forks, &Repository{ForkID: repo.ID})
+}
+
+// IncrementRepoForkNum increment repository fork number
+func IncrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks+1 WHERE id=?", repoID)
+	return err
+}
+
+// DecrementRepoForkNum decrement repository fork number
+func DecrementRepoForkNum(ctx context.Context, repoID int64) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET num_forks=num_forks-1 WHERE id=?", repoID)
+	return err
+}
+
+// FindUserOrgForks returns the forked repositories for one user from a repository
+func FindUserOrgForks(ctx context.Context, repoID, userID int64) ([]*Repository, error) {
+	cond := builder.And(
+		builder.Eq{"fork_id": repoID},
+		builder.In("owner_id",
+			builder.Select("org_id").
+				From("org_user").
+				Where(builder.Eq{"uid": userID}),
+		),
+	)
+
+	var repos []*Repository
+	return repos, db.GetEngine(ctx).Table("repository").Where(cond).Find(&repos)
+}
+
+// GetForksByUserAndOrgs return forked repos of the user and owned orgs
+func GetForksByUserAndOrgs(ctx context.Context, user *user_model.User, repo *Repository) ([]*Repository, error) {
+	var repoList []*Repository
+	if user == nil {
+		return repoList, nil
+	}
+	forkedRepo, err := GetUserFork(ctx, repo.ID, user.ID)
+	if err != nil {
+		return repoList, err
+	}
+	if forkedRepo != nil {
+		repoList = append(repoList, forkedRepo)
+	}
+	orgForks, err := FindUserOrgForks(ctx, repo.ID, user.ID)
+	if err != nil {
+		return nil, err
+	}
+	repoList = append(repoList, orgForks...)
+	return repoList, nil
 }

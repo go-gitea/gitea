@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -144,7 +145,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 				continue
 			}
 
-			p, err := models.GetPullRequestByIndexCtx(ctx, repo.ID, prIndex)
+			p, err := models.GetPullRequestByIndex(ctx, repo.ID, prIndex)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
 				if models.IsErrPullRequestNotExist(err) {
@@ -224,7 +225,7 @@ func handlePull(pullID int64, sha string) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission: %v", err)
 		return

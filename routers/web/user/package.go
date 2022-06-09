@@ -7,11 +7,11 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -67,7 +67,7 @@ func ListPackages(ctx *context.Context) {
 			continue
 		}
 
-		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
@@ -177,7 +177,7 @@ func ViewPackageVersion(ctx *context.Context) {
 
 	hasRepositoryAccess := false
 	if pd.Repository != nil {
-		permission, err := models.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserRepoPermission", err)
 			return
@@ -287,7 +287,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})
