@@ -35,6 +35,8 @@ function filterRepoFiles(filter) {
     $a.attr('href', `${treeLink}/${matchRes.join('')}`);
     const $octiconFile = $(svg('octicon-file')).addClass('mr-3');
     $a.append($octiconFile);
+    // if the target file path is "abc/xyz", to search "bx", then the matchRes is ['a', 'b', 'c/', 'x', 'yz']
+    // the matchRes[odd] is matched and highlighted to red.
     for (let j = 0; j < matchRes.length; j++) {
       if (!matchRes[j]) continue;
       const $span = $('<span>').text(matchRes[j]);

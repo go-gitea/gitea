@@ -60,7 +60,7 @@ export function parseIssueHref(href) {
 }
 
 // return the sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
-// see unit tests for examples
+// res[even] is unmatched, res[odd] is matched, see unit tests for examples
 export function strSubMatch(full, sub) {
   const res = [''];
   let i = 0, j = 0;
@@ -80,9 +80,11 @@ export function strSubMatch(full, sub) {
     }
   }
   if (i !== sub.length) {
+    // if the sub string doesn't match the full, only return the full as unmatched.
     return [full];
   }
   if (j < full.length) {
+    // append remaining chars from full to result as unmatched
     if (res.length % 2 === 0) res.push('');
     for (; j < full.length; j++) {
       res[res.length - 1] += full[j];
