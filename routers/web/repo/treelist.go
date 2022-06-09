@@ -24,12 +24,12 @@ func TreeList(ctx *context.Context) {
 
 	entries, err := tree.ListEntriesRecursive()
 	if err != nil {
-		ctx.ServerError("Repo.Commit.SubTree", err)
+		ctx.ServerError("ListEntriesRecursive", err)
 		return
 	}
 	entries.CustomSort(base.NaturalSortLess)
 
-	var files []string
+	files := make([]string, 0, len(entries))
 	for _, entry := range entries {
 		if !isExcludedEntry(entry) {
 			files = append(files, entry.Name())
