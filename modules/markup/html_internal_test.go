@@ -21,7 +21,7 @@ const (
 	TestRepoURL = TestAppURL + TestOrgRepo + "/"
 )
 
-// alphanumLink an HTML link to an alphanumeric-style issue
+// externalIssueLink an HTML link to an alphanumeric-style issue
 func externalIssueLink(baseURL, class, name string) string {
 	return link(util.URLJoin(baseURL, name), class, name)
 }
