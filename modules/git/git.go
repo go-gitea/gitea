@@ -10,11 +10,13 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
-	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/hashicorp/go-version"
@@ -32,38 +34,33 @@ var (
 	GitExecutable = "git"
 
 	// DefaultContext is the default context to run git commands in
-	// will be overwritten by Init with HammerContext
+	// will be overwritten by InitWithConfigSync with HammerContext
 	DefaultContext = context.Background()
-
-	gitVersion *version.Version
 
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
+
+	// initMutex is used to avoid Golang's data race error. see the comments below.
+	initMutex sync.Mutex
+
+	gitVersion *version.Version
 )
 
-// LocalVersion returns current Git version from shell.
-func LocalVersion() (*version.Version, error) {
-	if err := LoadGitVersion(); err != nil {
-		return nil, err
-	}
-	return gitVersion, nil
-}
-
-// LoadGitVersion returns current Git version from shell.
-func LoadGitVersion() error {
+// loadGitVersion returns current Git version from shell. Internal usage only.
+func loadGitVersion() (*version.Version, error) {
 	// doesn't need RWMutex because its exec by Init()
 	if gitVersion != nil {
-		return nil
+		return gitVersion, nil
 	}
 
-	stdout, _, runErr := NewCommand(context.Background(), "version").RunStdString(nil)
+	stdout, _, runErr := NewCommand(DefaultContext, "version").RunStdString(nil)
 	if runErr != nil {
-		return runErr
+		return nil, runErr
 	}
 
 	fields := strings.Fields(stdout)
 	if len(fields) < 3 {
-		return fmt.Errorf("not enough output: %s", stdout)
+		return nil, fmt.Errorf("invalid git version output: %s", stdout)
 	}
 
 	var versionString string
@@ -78,7 +75,7 @@ func LoadGitVersion() error {
 
 	var err error
 	gitVersion, err = version.NewVersion(versionString)
-	return err
+	return gitVersion, err
 }
 
 // SetExecutablePath changes the path of git executable and checks the file permission and version.
@@ -93,7 +90,7 @@ func SetExecutablePath(path string) error {
 	}
 	GitExecutable = absPath
 
-	err = LoadGitVersion()
+	_, err = loadGitVersion()
 	if err != nil {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
@@ -120,7 +117,10 @@ func SetExecutablePath(path string) error {
 
 // VersionInfo returns git version information
 func VersionInfo() string {
-	format := "Git Version: %s"
+	if gitVersion == nil {
+		return "(git not found)"
+	}
+	format := "%s"
 	args := []interface{}{gitVersion.Original()}
 	// Since git wire protocol has been released from git v2.18
 	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
@@ -131,8 +131,33 @@ func VersionInfo() string {
 	return fmt.Sprintf(format, args...)
 }
 
-// Init initializes git module
-func Init(ctx context.Context) error {
+// InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
+// This method doesn't change anything to filesystem
+func InitSimple(ctx context.Context) error {
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	return initSimpleInternal(ctx)
+}
+
+// HomeDir is the home dir for git to store the global config file used by Gitea internally
+func HomeDir() string {
+	if setting.RepoRootPath == "" {
+		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
+		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
+		// in the future, the git module should be initialized first before use.
+		tmpHomeDir := filepath.Join(os.TempDir(), "gitea-temp-home")
+		log.Error("Git's HomeDir is empty (RepoRootPath is empty), the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", tmpHomeDir)
+		return tmpHomeDir
+	}
+	return setting.RepoRootPath
+}
+
+func initSimpleInternal(ctx context.Context) error {
+	// at the moment, when running integration tests, the git.InitXxx would be called twice.
+	// one is called by the GlobalInitInstalled, one is called by TestMain.
+	// so the init functions should be protected by a mutex to avoid Golang's data race error.
+
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
@@ -145,6 +170,23 @@ func Init(ctx context.Context) error {
 
 	// force cleanup args
 	globalCommandArgs = []string{}
+
+	return nil
+}
+
+// InitWithConfigSync initializes git module. This method may create directories or write files into filesystem
+func InitWithConfigSync(ctx context.Context) error {
+	initMutex.Lock()
+	defer initMutex.Unlock()
+
+	err := initSimpleInternal(ctx)
+	if err != nil {
+		return err
+	}
+
+	if err = os.MkdirAll(setting.RepoRootPath, os.ModePerm); err != nil {
+		return fmt.Errorf("unable to create directory %s, err: %w", setting.RepoRootPath, err)
+	}
 
 	if CheckGitVersionAtLeast("2.9") == nil {
 		// Explicitly disable credential helper, otherwise Git credentials might leak
@@ -161,68 +203,71 @@ func Init(ctx context.Context) error {
 		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
-	// Save current git version on init to gitVersion otherwise it would require an RWMutex
-	if err := LoadGitVersion(); err != nil {
-		return err
-	}
-
-	// Git requires setting user.name and user.email in order to commit changes - if they're not set just add some defaults
-	for configKey, defaultValue := range map[string]string{"user.name": "Gitea", "user.email": "gitea@fake.local"} {
-		if err := checkAndSetConfig(configKey, defaultValue, false); err != nil {
+	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
+	// TODO: need to confirm whether users really need to change these values manually. It seems that these values are dummy only and not really used.
+	// If these values are not really used, then they can be set (overwritten) directly without considering about existence.
+	for configKey, defaultValue := range map[string]string{
+		"user.name":  "Gitea",
+		"user.email": "gitea@fake.local",
+	} {
+		if err := configSetNonExist(configKey, defaultValue); err != nil {
 			return err
 		}
 	}
 
 	// Set git some configurations - these must be set to these values for gitea to work correctly
-	if err := checkAndSetConfig("core.quotePath", "false", true); err != nil {
+	if err := configSet("core.quotePath", "false"); err != nil {
 		return err
 	}
 
 	if CheckGitVersionAtLeast("2.10") == nil {
-		if err := checkAndSetConfig("receive.advertisePushOptions", "true", true); err != nil {
+		if err := configSet("receive.advertisePushOptions", "true"); err != nil {
 			return err
 		}
 	}
 
 	if CheckGitVersionAtLeast("2.18") == nil {
-		if err := checkAndSetConfig("core.commitGraph", "true", true); err != nil {
+		if err := configSet("core.commitGraph", "true"); err != nil {
 			return err
 		}
-		if err := checkAndSetConfig("gc.writeCommitGraph", "true", true); err != nil {
+		if err := configSet("gc.writeCommitGraph", "true"); err != nil {
 			return err
 		}
 	}
 
 	if CheckGitVersionAtLeast("2.29") == nil {
 		// set support for AGit flow
-		if err := checkAndAddConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
 		SupportProcReceive = true
 	} else {
-		if err := checkAndRemoveConfig("receive.procReceiveRefs", "refs/for"); err != nil {
+		if err := configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
 		SupportProcReceive = false
 	}
 
 	if runtime.GOOS == "windows" {
-		if err := checkAndSetConfig("core.longpaths", "true", true); err != nil {
+		if err := configSet("core.longpaths", "true"); err != nil {
+			return err
+		}
+		if setting.Git.DisableCoreProtectNTFS {
+			err = configSet("core.protectNTFS", "false")
+		} else {
+			err = configUnsetAll("core.protectNTFS", "false")
+		}
+		if err != nil {
 			return err
 		}
 	}
-	if setting.Git.DisableCoreProtectNTFS {
-		if err := checkAndSetConfig("core.protectntfs", "false", true); err != nil {
-			return err
-		}
-		globalCommandArgs = append(globalCommandArgs, "-c", "core.protectntfs=false")
-	}
+
 	return nil
 }
 
 // CheckGitVersionAtLeast check git version is at least the constraint version
 func CheckGitVersionAtLeast(atLeast string) error {
-	if err := LoadGitVersion(); err != nil {
+	if _, err := loadGitVersion(); err != nil {
 		return err
 	}
 	atLeastVersion, err := version.NewVersion(atLeast)
@@ -235,75 +280,75 @@ func CheckGitVersionAtLeast(atLeast string) error {
 	return nil
 }
 
-func checkAndSetConfig(key, defaultValue string, forceToDefault bool) error {
-	stdout, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key)
-	if err != nil {
-		perr, ok := err.(*process.Error)
-		if !ok {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
-		}
-		eerr, ok := perr.Err.(*exec.ExitError)
-		if !ok || eerr.ExitCode() != 1 {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
-		}
+func configSet(key, value string) error {
+	stdout, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	if err != nil && !err.IsExitCode(1) {
+		return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 	}
 
 	currValue := strings.TrimSpace(stdout)
-
-	if currValue == defaultValue || (!forceToDefault && len(currValue) > 0) {
+	if currValue == value {
 		return nil
 	}
 
-	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", key, defaultValue); err != nil {
-		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+	_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+	if err != nil {
+		return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 	}
 
 	return nil
 }
 
-func checkAndAddConfig(key, value string) error {
-	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
-	if err != nil {
-		perr, ok := err.(*process.Error)
-		if !ok {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
+func configSetNonExist(key, value string) error {
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	if err == nil {
+		// already exist
+		return nil
+	}
+	if err.IsExitCode(1) {
+		// not exist, set new config
+		_, _, err = NewCommand(DefaultContext, "config", "--global", key, value).RunStdString(nil)
+		if err != nil {
+			return fmt.Errorf("failed to set git global config %s, err: %w", key, err)
 		}
-		eerr, ok := perr.Err.(*exec.ExitError)
-		if !ok || eerr.ExitCode() != 1 {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
-		}
-		if eerr.ExitCode() == 1 {
-			if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--add", key, value); err != nil {
-				return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
-			}
-			return nil
-		}
+		return nil
 	}
 
-	return nil
+	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 }
 
-func checkAndRemoveConfig(key, value string) error {
-	_, stderr, err := process.GetManager().Exec("git.Init(get setting)", GitExecutable, "config", "--get", key, value)
-	if err != nil {
-		perr, ok := err.(*process.Error)
-		if !ok {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
-		}
-		eerr, ok := perr.Err.(*exec.ExitError)
-		if !ok || eerr.ExitCode() != 1 {
-			return fmt.Errorf("Failed to get git %s(%v) errType %T: %s", key, err, err, stderr)
-		}
-		if eerr.ExitCode() == 1 {
-			return nil
-		}
+func configAddNonExist(key, value string) error {
+	_, _, err := NewCommand(DefaultContext, "config", "--fixed-value", "--get", key, value).RunStdString(nil)
+	if err == nil {
+		// already exist
+		return nil
 	}
-
-	if _, stderr, err = process.GetManager().Exec(fmt.Sprintf("git.Init(set %s)", key), "git", "config", "--global", "--unset-all", key, value); err != nil {
-		return fmt.Errorf("Failed to set git %s(%s): %s", key, err, stderr)
+	if err.IsExitCode(1) {
+		// not exist, add new config
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--add", key, value).RunStdString(nil)
+		if err != nil {
+			return fmt.Errorf("failed to add git global config %s, err: %w", key, err)
+		}
+		return nil
 	}
+	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
+}
 
-	return nil
+func configUnsetAll(key, value string) error {
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
+	if err == nil {
+		// exist, need to remove
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--fixed-value", "--unset-all", key, value).RunStdString(nil)
+		if err != nil {
+			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
+		}
+		return nil
+	}
+	if err.IsExitCode(1) {
+		// not exist
+		return nil
+	}
+	return fmt.Errorf("failed to get git config %s, err: %w", key, err)
 }
 
 // Fsck verifies the connectivity and validity of the objects in the database

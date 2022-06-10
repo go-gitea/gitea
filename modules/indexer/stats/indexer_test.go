@@ -30,7 +30,7 @@ func TestMain(m *testing.M) {
 }
 
 func TestRepoStatsIndex(t *testing.T) {
-	if err := git.Init(context.Background()); !assert.NoError(t, err) {
+	if err := git.InitWithConfigSync(context.Background()); !assert.NoError(t, err) {
 		return
 	}
 
