@@ -804,7 +804,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		}
 	}
 
-	if models.MergeBlockedByOutdatedBranch(pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByOutdatedBranch(pr.ProtectedBranch, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
