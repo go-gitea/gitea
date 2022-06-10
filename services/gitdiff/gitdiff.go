@@ -1418,32 +1418,34 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 
 	var checker *git.CheckAttributeReader
 
-	indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
-	if err == nil {
-		defer deleteTemporaryFile()
+	{
+		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
+		if err == nil {
+			defer deleteTemporaryFile()
 
-		checker = &git.CheckAttributeReader{
-			Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-			Repo:       gitRepo,
-			IndexFile:  indexFilename,
-			WorkTree:   worktree,
-		}
-		ctx, cancel := context.WithCancel(gitRepo.Ctx)
-		if err := checker.Init(ctx); err != nil {
-			log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-		} else {
-			go func() {
-				err := checker.Run()
-				if err != nil && err != ctx.Err() {
-					log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-				}
+			checker = &git.CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+				Repo:       gitRepo,
+				IndexFile:  indexFilename,
+				WorkTree:   worktree,
+			}
+			ctx, cancel := context.WithCancel(gitRepo.Ctx)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
+			} else {
+				go func() {
+					err := checker.Run()
+					if err != nil && err != ctx.Err() {
+						log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
+					}
+					cancel()
+				}()
+			}
+			defer func() {
+				_ = checker.Close()
 				cancel()
 			}()
 		}
-		defer func() {
-			_ = checker.Close()
-			cancel()
-		}()
 	}
 
 	for _, diffFile := range diff.Files {

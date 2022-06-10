@@ -65,31 +65,33 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	var checker *CheckAttributeReader
 
-	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
-	if err == nil {
-		defer deleteTemporaryFile()
-		checker = &CheckAttributeReader{
-			Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-			Repo:       repo,
-			IndexFile:  indexFilename,
-			WorkTree:   worktree,
-		}
-		ctx, cancel := context.WithCancel(repo.Ctx)
-		if err := checker.Init(ctx); err != nil {
-			log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-		} else {
-			go func() {
-				err = checker.Run()
-				if err != nil {
-					log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-					cancel()
-				}
+	{
+		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+		if err == nil {
+			defer deleteTemporaryFile()
+			checker = &CheckAttributeReader{
+				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+				Repo:       repo,
+				IndexFile:  indexFilename,
+				WorkTree:   worktree,
+			}
+			ctx, cancel := context.WithCancel(repo.Ctx)
+			if err := checker.Init(ctx); err != nil {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			} else {
+				go func() {
+					err = checker.Run()
+					if err != nil {
+						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+						cancel()
+					}
+				}()
+			}
+			defer func() {
+				_ = checker.Close()
+				cancel()
 			}()
 		}
-		defer func() {
-			_ = checker.Close()
-			cancel()
-		}()
 	}
 
 	contentBuf := bytes.Buffer{}

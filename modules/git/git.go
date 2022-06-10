@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -139,8 +140,12 @@ func InitSimple(ctx context.Context) error {
 // HomeDir is the home dir for git to store the global config file used by Gitea internally
 func HomeDir() string {
 	if setting.RepoRootPath == "" {
-		log.Fatal("Can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
-		return ""
+		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
+		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
+		// in the future, the git module should be initialized first before use.
+		tmpHomeDir := filepath.Join(os.TempDir(), "gitea-temp-home")
+		log.Error("Git's HomeDir is empty (RepoRootPath is empty), the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", tmpHomeDir)
+		return tmpHomeDir
 	}
 	return setting.RepoRootPath
 }
