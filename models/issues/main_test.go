@@ -8,9 +8,13 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
+	_ "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	_ "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,11 +36,5 @@ func TestFixturesAreConsistent(t *testing.T) {
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles: []string{
-			"reaction.yml",
-			"user.yml",
-			"repository.yml",
-			"milestone.yml",
-		},
 	})
 }
