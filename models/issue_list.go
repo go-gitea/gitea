@@ -75,7 +75,7 @@ func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Rep
 			}
 		}
 	}
-	return valuesRepository(repoMaps), nil
+	return repo_model.ValuesRepository(repoMaps), nil
 }
 
 // LoadRepositories loads issues' all repositories
