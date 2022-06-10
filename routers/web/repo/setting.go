@@ -434,9 +434,10 @@ func SettingsPost(ctx *context.Context) {
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalTracker,
 				Config: &repo_model.ExternalTrackerConfig{
-					ExternalTrackerURL:    form.ExternalTrackerURL,
-					ExternalTrackerFormat: form.TrackerURLFormat,
-					ExternalTrackerStyle:  form.TrackerIssueStyle,
+					ExternalTrackerURL:           form.ExternalTrackerURL,
+					ExternalTrackerFormat:        form.TrackerURLFormat,
+					ExternalTrackerStyle:         form.TrackerIssueStyle,
+					ExternalTrackerRegexpPattern: form.ExternalTrackerRegexpPattern,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
