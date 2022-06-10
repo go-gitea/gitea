@@ -398,11 +398,6 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Git version missing: %v", err)
-	}
-
 	args := []string{
 		"name-rev",
 	}

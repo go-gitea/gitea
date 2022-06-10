@@ -223,12 +223,6 @@ func Merge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, b
 
 // rawMerge perform the merge operation without changing any pull information in database
 func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User, mergeStyle repo_model.MergeStyle, expectedHeadCommitID, message string) (string, error) {
-	err := git.LoadGitVersion()
-	if err != nil {
-		log.Error("git.LoadGitVersion: %v", err)
-		return "", fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	// Clone base repo.
 	tmpBasePath, err := createTemporaryRepo(ctx, pr)
 	if err != nil {
