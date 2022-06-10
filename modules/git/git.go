@@ -197,7 +197,7 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
-	if err = os.MkdirAll(setting.RepoRootPath, os.ModePerm); err != nil {
+	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
 		return fmt.Errorf("unable to create directory %s, err: %w", setting.RepoRootPath, err)
 	}
 
