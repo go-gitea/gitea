@@ -12,10 +12,6 @@ import (
 
 // GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
 func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return "", err
-	}
 	var cmd *Command
 	if CheckGitVersionAtLeast("2.7") == nil {
 		cmd = NewCommand(ctx, "remote", "get-url", remoteName)

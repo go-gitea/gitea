@@ -1226,6 +1226,10 @@
         height: 200px;
         font-family: var(--fonts-monospace);
       }
+
+      .CodeMirror-scroll {
+        max-height: 85vh;
+      }
     }
   }
 
@@ -2105,6 +2109,10 @@
           }
         }
       }
+    }
+
+    .form .CodeMirror-scroll {
+      max-height: 85vh;
     }
 
     @media @mediaSm {
@@ -3077,6 +3085,18 @@ td.blob-excerpt {
 .wiki-content-footer .ui.message.unicode-escape-prompt {
   p {
     display: none;
+  }
+}
+
+.wiki-content-toc {
+  > ul > li {
+    margin-bottom: 4px;
+  }
+
+  ul {
+    margin: 0;
+    list-style: none;
+    padding-left: 1em;
   }
 }
 

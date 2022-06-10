@@ -116,12 +116,14 @@ func TestCreateUserKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
+	fingerprint, err := asymkey_model.CalcFingerprint(rawKeyBody.Key)
+	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
-		ID:      newPublicKey.ID,
-		OwnerID: user.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeWrite,
+		ID:          newPublicKey.ID,
+		OwnerID:     user.ID,
+		Name:        rawKeyBody.Title,
+		Fingerprint: fingerprint,
+		Mode:        perm.AccessModeWrite,
 	})
 
 	// Search by fingerprint

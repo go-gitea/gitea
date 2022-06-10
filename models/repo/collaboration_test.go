@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package repo
+package repo_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -16,10 +17,10 @@ import (
 func TestRepository_GetCollaborators(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		collaborators, err := GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{})
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+		collaborators, err := repo_model.GetCollaborators(db.DefaultContext, repo.ID, db.ListOptions{})
 		assert.NoError(t, err)
-		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&Collaboration{RepoID: repoID})
+		expectedLen, err := db.GetEngine(db.DefaultContext).Count(&repo_model.Collaboration{RepoID: repoID})
 		assert.NoError(t, err)
 		assert.Len(t, collaborators, int(expectedLen))
 		for _, collaborator := range collaborators {
@@ -37,8 +38,8 @@ func TestRepository_IsCollaborator(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	test := func(repoID, userID int64, expected bool) {
-		repo := unittest.AssertExistsAndLoadBean(t, &Repository{ID: repoID}).(*Repository)
-		actual, err := IsCollaborator(db.DefaultContext, repo.ID, userID)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+		actual, err := repo_model.IsCollaborator(db.DefaultContext, repo.ID, userID)
 		assert.NoError(t, err)
 		assert.Equal(t, expected, actual)
 	}

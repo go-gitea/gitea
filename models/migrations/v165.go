@@ -24,8 +24,9 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
 		},
-		Length:   16,
-		Nullable: true, // To keep compatible as nullable
+		Length:         16,
+		Nullable:       true, // To keep compatible as nullable
+		DefaultIsEmpty: true,
 	}); err != nil {
 		return err
 	}
@@ -49,8 +50,9 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
 		},
-		Length:   16,
-		Nullable: true, // To keep compatible as nullable
+		Length:         16,
+		Nullable:       true, // To keep compatible as nullable
+		DefaultIsEmpty: true,
 	}); err != nil {
 		return err
 	}

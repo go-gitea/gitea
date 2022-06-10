@@ -86,7 +86,6 @@ func DeleteOrphanedIssueLabels() error {
 	_, err := db.GetEngine(db.DefaultContext).
 		NotIn("label_id", builder.Select("id").From("label")).
 		Delete(IssueLabel{})
-
 	return err
 }
 
@@ -95,7 +94,8 @@ func CountOrphanedIssues() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("issue").
 		Join("LEFT", "repository", "issue.repo_id=repository.id").
 		Where(builder.IsNull{"repository.id"}).
-		Count("id")
+		Select("COUNT(`issue`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedIssues delete issues without a repo
@@ -141,7 +141,8 @@ func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
 		Join("LEFT", "`"+refobject+"`", joinCond).
 		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Count("id")
+		Select("COUNT(`" + subject + "`.`id`)").
+		Count()
 }
 
 // DeleteOrphanedObjects delete subjects with have no existing refobject anymore
