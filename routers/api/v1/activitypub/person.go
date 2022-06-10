@@ -75,6 +75,8 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
 	}
 
+	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
+
 	ctx.JSON(http.StatusOK, jsonmap)
 }
 
