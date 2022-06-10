@@ -160,11 +160,6 @@ func IsUserOfficialReviewerCtx(ctx context.Context, protectBranch *ProtectedBran
 	return inTeam, nil
 }
 
-// MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
-func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(commitsBehind int) bool {
-	return protectBranch.BlockOnOutdatedBranch && commitsBehind > 0
-}
-
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
 func (protectBranch *ProtectedBranch) GetProtectedFilePatterns() []glob.Glob {
 	return getFilePatterns(protectBranch.ProtectedFilePatterns)
@@ -191,13 +186,13 @@ func getFilePatterns(filePatterns string) []glob.Glob {
 }
 
 // MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
-func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(changedProtecedFiles []string) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(changedProtectedFiles []string) bool {
 	glob := protectBranch.GetProtectedFilePatterns()
 	if len(glob) == 0 {
 		return false
 	}
 
-	return len(changedProtecedFiles) > 0
+	return len(changedProtectedFiles) > 0
 }
 
 // IsProtectedFile return if path is protected

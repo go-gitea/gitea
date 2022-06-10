@@ -73,3 +73,8 @@ func MergeBlockedByOfficialReviewRequests(ctx context.Context, protectBranch *gi
 
 	return has
 }
+
+// MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
+func MergeBlockedByOutdatedBranch(protectBranch *git_model.ProtectedBranch, pr *PullRequest) bool {
+	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
+}

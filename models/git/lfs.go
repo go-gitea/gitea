@@ -20,13 +20,6 @@ import (
 	"xorm.io/builder"
 )
 
-//.____   ____________________
-//|    |  \_   _____/   _____/
-//|    |   |    __) \_____  \
-//|    |___|     \  /        \
-//|_______ \___  / /_______  /
-//        \/   \/          \/
-
 // ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
 type ErrLFSLockNotExist struct {
 	ID     int64

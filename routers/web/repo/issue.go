@@ -1624,7 +1624,7 @@ func ViewIssue(ctx *context.Context) {
 			ctx.Data["IsBlockedByApprovals"] = !models.HasEnoughApprovals(ctx, pull.ProtectedBranch, pull)
 			ctx.Data["IsBlockedByRejection"] = models.MergeBlockedByRejectedReview(ctx, pull.ProtectedBranch, pull)
 			ctx.Data["IsBlockedByOfficialReviewRequests"] = models.MergeBlockedByOfficialReviewRequests(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByOutdatedBranch"] = pull.ProtectedBranch.MergeBlockedByOutdatedBranch(pull.CommitsBehind)
+			ctx.Data["IsBlockedByOutdatedBranch"] = models.MergeBlockedByOutdatedBranch(pull.ProtectedBranch, pull)
 			ctx.Data["GrantedApprovals"] = models.GetGrantedApprovalsCount(ctx, pull.ProtectedBranch, pull)
 			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
