@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/references"
+	"code.gitea.io/gitea/modules/regexplru"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates/vars"
 	"code.gitea.io/gitea/modules/util"
@@ -33,6 +34,7 @@ import (
 const (
 	IssueNameStyleNumeric      = "numeric"
 	IssueNameStyleAlphanumeric = "alphanumeric"
+	IssueNameStyleRegexp       = "regexp"
 )
 
 var (
@@ -815,19 +817,35 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 	)
 
 	next := node.NextSibling
+
 	for node != nil && node != next {
-		_, exttrack := ctx.Metas["format"]
-		alphanum := ctx.Metas["style"] == IssueNameStyleAlphanumeric
+		_, hasExtTrackFormat := ctx.Metas["format"]
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		found, ref = references.FindRenderizableReferenceNumeric(node.Data, exttrack && alphanum)
-		if exttrack && alphanum {
-			if found2, ref2 := references.FindRenderizableReferenceAlphanumeric(node.Data); found2 {
-				if !found || ref2.RefLocation.Start < ref.RefLocation.Start {
-					found = true
-					ref = ref2
-				}
+		isNumericStyle := ctx.Metas["style"] == "" || ctx.Metas["style"] == IssueNameStyleNumeric
+		foundNumeric, refNumeric := references.FindRenderizableReferenceNumeric(node.Data, hasExtTrackFormat && !isNumericStyle)
+
+		switch ctx.Metas["style"] {
+		case "", IssueNameStyleNumeric:
+			found, ref = foundNumeric, refNumeric
+		case IssueNameStyleAlphanumeric:
+			found, ref = references.FindRenderizableReferenceAlphanumeric(node.Data)
+		case IssueNameStyleRegexp:
+			pattern, err := regexplru.GetCompiled(ctx.Metas["regexp"])
+			if err != nil {
+				return
+			}
+			found, ref = references.FindRenderizableReferenceRegexp(node.Data, pattern)
+		}
+
+		// Repos with external issue trackers might still need to reference local PRs
+		// We need to concern with the first one that shows up in the text, whichever it is
+		if hasExtTrackFormat && !isNumericStyle {
+			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
+			if foundNumeric && refNumeric.RefLocation.Start < ref.RefLocation.Start {
+				found = foundNumeric
+				ref = refNumeric
 			}
 		}
 		if !found {
@@ -836,7 +854,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		var link *html.Node
 		reftext := node.Data[ref.RefLocation.Start:ref.RefLocation.End]
-		if exttrack && !ref.IsPull {
+		if hasExtTrackFormat && !ref.IsPull {
 			ctx.Metas["index"] = ref.Issue
 
 			res, err := vars.Expand(ctx.Metas["format"], ctx.Metas)
@@ -869,7 +887,7 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Decorate action keywords if actionable
 		var keyword *html.Node
-		if references.IsXrefActionable(ref, exttrack, alphanum) {
+		if references.IsXrefActionable(ref, hasExtTrackFormat) {
 			keyword = createKeyword(node.Data[ref.ActionLocation.Start:ref.ActionLocation.End])
 		} else {
 			keyword = &html.Node{
