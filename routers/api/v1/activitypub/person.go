@@ -70,7 +70,7 @@ func Person(ctx *context.APIContext) {
 	}
 
 	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, jsonmap)
+	err = json.Unmarshal(binary, &jsonmap)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
 	}
