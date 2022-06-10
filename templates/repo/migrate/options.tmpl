@@ -1,15 +1,12 @@
+{{if not .DisableNewPullMirrors}}
 <div class="inline field">
 	<label>{{.i18n.Tr "repo.migrate_options"}}</label>
 	<div class="ui checkbox">
-		{{if .DisableNewPullMirrors}}
-			<input id="mirror" name="mirror" type="checkbox" readonly>
-			<label>{{.i18n.Tr "repo.migrate_options_mirror_disabled"}}</label>
-		{{else}}
-			<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
-			<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
-		{{end}}
+		<input id="mirror" name="mirror" type="checkbox" {{if .mirror}} checked{{end}}>
+		<label>{{.i18n.Tr "repo.migrate_options_mirror_helper" | Safe}}</label>
 	</div>
 </div>
+{{end}}
 {{if .LFSActive}}
 <div class="inline field">
 	<label></label>

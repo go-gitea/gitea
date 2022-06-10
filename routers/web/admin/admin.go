@@ -247,9 +247,8 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
-	if version, err := git.LocalVersion(); err == nil {
-		ctx.Data["GitVersion"] = version.Original()
-	}
+	ctx.Data["GitVersion"] = git.VersionInfo()
+
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath

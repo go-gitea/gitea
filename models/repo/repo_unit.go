@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -75,9 +76,10 @@ func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
 
 // ExternalTrackerConfig describes external tracker config
 type ExternalTrackerConfig struct {
-	ExternalTrackerURL    string
-	ExternalTrackerFormat string
-	ExternalTrackerStyle  string
+	ExternalTrackerURL           string
+	ExternalTrackerFormat        string
+	ExternalTrackerStyle         string
+	ExternalTrackerRegexpPattern string
 }
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
@@ -146,6 +148,10 @@ func (cfg *PullRequestsConfig) IsMergeStyleAllowed(mergeStyle MergeStyle) bool {
 func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 	if len(cfg.DefaultMergeStyle) != 0 {
 		return cfg.DefaultMergeStyle
+	}
+
+	if setting.Repository.PullRequest.DefaultMergeStyle != "" {
+		return MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
 	}
 
 	return MergeStyleMerge
