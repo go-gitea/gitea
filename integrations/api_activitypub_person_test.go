@@ -30,12 +30,13 @@ func TestActivityPubPerson(t *testing.T) {
 		username := "user2"
 		req := NewRequestf(t, "GET", fmt.Sprintf("/api/v1/activitypub/user/%s", username))
 		resp := MakeRequest(t, req, http.StatusOK)
-		assert.Contains(t, resp.Body.String(), "@context")
+		body := resp.Body.Bytes()
+		assert.Contains(t, string(body), "@context")
 		var m map[string]interface{}
 		DecodeJSON(t, resp, &m)
 
 		var person ap.Person
-		err := person.UnmarshalJSON(resp.Body.Bytes())
+		err := person.UnmarshalJSON(body)
 		assert.NoError(t, err)
 
 		assert.Equal(t, ap.ActivityVocabularyType("Person"), person.Type)
