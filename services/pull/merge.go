@@ -274,15 +274,8 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 		return "", fmt.Errorf("Unable to write .git/info/sparse-checkout file in tmpBasePath: %v", err)
 	}
 
-	var gitConfigCommand func() *git.Command
-	if git.CheckGitVersionAtLeast("1.8.0") == nil {
-		gitConfigCommand = func() *git.Command {
-			return git.NewCommand(ctx, "config", "--local")
-		}
-	} else {
-		gitConfigCommand = func() *git.Command {
-			return git.NewCommand(ctx, "config")
-		}
+	gitConfigCommand := func() *git.Command {
+		return git.NewCommand(ctx, "config", "--local")
 	}
 
 	// Switch off LFS process (set required, clean and smudge here also)
@@ -364,16 +357,14 @@ func rawMerge(ctx context.Context, pr *models.PullRequest, doer *user_model.User
 
 	// Determine if we should sign
 	signArg := ""
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
-		if sign {
-			signArg = "-S" + keyID
-			if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				committer = signer
-			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			signArg = "--no-gpg-sign"
+	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
+	if sign {
+		signArg = "-S" + keyID
+		if pr.BaseRepo.GetTrustModel() == repo_model.CommitterTrustModel || pr.BaseRepo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			committer = signer
 		}
+	} else {
+		signArg = "--no-gpg-sign"
 	}
 
 	commitTimeStr := time.Now().Format(time.RFC3339)
