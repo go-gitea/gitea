@@ -15,6 +15,17 @@ import (
 	"github.com/urfave/cli"
 )
 
+var defaultUnits = cli.StringSlice{
+	"wiki",
+	"issues",
+	"labels",
+	"releases",
+	"release_assets",
+	"milestones",
+	"pull_requests",
+	"comments",
+}
+
 // CmdRestoreRepository represents the available restore a repository sub-command.
 var CmdRestoreRepository = cli.Command{
 	Name:        "restore-repo",
@@ -37,11 +48,10 @@ var CmdRestoreRepository = cli.Command{
 			Value: "",
 			Usage: "Restore destination repository name",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "units",
-			Value: "",
-			Usage: `Which items will be restored, one or more units should be separated as comma.
-wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
+			Value: &defaultUnits,
+			Usage: "Which items will be restored, can be repeated",
 		},
 		cli.BoolFlag{
 			Name:  "validation",
