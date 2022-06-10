@@ -55,7 +55,11 @@
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
 							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">{{if $row.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+								<td class="lines-escape">
+									{{if $row.EscapeStatus.Escaped}}
+										<a href="" class="toggle-escape-button" title="{{if $row.EscapeStatus.HasInvisible}}{{$.i18n.Tr "repo.invisible_runes_line"}} {{end}}{{if $row.EscapeStatus.HasAmbiguous}}{{$.i18n.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>
+									{{end}}
+								</td>
 							{{end}}
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner pl-3">{{$row.Code}}</code>

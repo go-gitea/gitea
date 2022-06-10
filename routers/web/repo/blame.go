@@ -280,7 +280,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, language, line)
 
-			br.EscapeStatus, line = charset.EscapeControlString(line)
+			br.EscapeStatus, line = charset.EscapeControlHTML(line, ctx.Locale)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
 			escapeStatus = escapeStatus.Or(br.EscapeStatus)

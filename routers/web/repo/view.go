@@ -365,24 +365,22 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		if err != nil {
 			log.Error("Render failed: %v then fallback", err)
 			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
 		} else {
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
 		}
 	} else {
 		ctx.Data["IsRenderedHTML"] = true
 		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf)
+		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf, ctx.Locale)
 		if err != nil {
 			log.Error("Read failed: %v", err)
 		}
 
-		ctx.Data["FileContent"] = strings.ReplaceAll(
-			gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
-		)
+		ctx.Data["FileContent"] = strings.ReplaceAll(buf.String(), "\n", `<br>`)
 	}
 }
 
@@ -544,12 +542,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
@@ -586,12 +584,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			}
 			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
-			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
-			ctx.Data["EscapeStatus"] = status
+			status := charset.EscapeStatus{}
 			statuses := make([]charset.EscapeStatus, len(fileContent))
 			for i, line := range fileContent {
-				statuses[i], fileContent[i] = charset.EscapeControlString(line)
+				statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
+				status = status.Or(statuses[i])
 			}
+			ctx.Data["EscapeStatus"] = status
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
@@ -642,7 +641,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
 		}
 	}
 
