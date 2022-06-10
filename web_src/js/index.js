@@ -21,6 +21,7 @@ import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
+import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
@@ -124,6 +125,7 @@ $(document).ready(() => {
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
+  initFindFileInRepo();
 
   initAdminCommon();
   initAdminEmails();
