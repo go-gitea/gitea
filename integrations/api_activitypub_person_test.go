@@ -85,7 +85,7 @@ func TestActivityPubPersonInbox(t *testing.T) {
 			setting.AppURL = appURL
 		}()
 		username1 := "user1"
-		var ctx context.Context
+		ctx := context.Context()
 		user1, err := user_model.GetUserByName(ctx, username1)
 		assert.NoError(t, err)
 		user1url := fmt.Sprintf("%s/api/v1/activitypub/user/%s#main-key", srv.URL, username1)
