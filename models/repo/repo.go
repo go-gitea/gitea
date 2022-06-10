@@ -760,8 +760,8 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 	return count, nil
 }
 
-// RepoStatsCorrectNumClosed update repository's issue related numbers
-func RepoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
+// StatsCorrectNumClosed update repository's issue related numbers
+func StatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
 	_, err := db.Exec(ctx, "UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
 	return err
 }

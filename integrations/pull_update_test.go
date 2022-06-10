@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -166,7 +167,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	assert.NoError(t, err)
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"}).(*issues_model.Issue)
-	pr, err := models.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
+	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 
 	return pr

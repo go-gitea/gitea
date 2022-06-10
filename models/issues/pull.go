@@ -498,7 +498,7 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 	defer committer.Close()
 	ctx.WithContext(outerCtx)
 
-	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
+	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,

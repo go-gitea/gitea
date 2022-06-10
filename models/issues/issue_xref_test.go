@@ -133,7 +133,7 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 
 	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
 	assert.NoError(t, err)
-	i := &Issue{
+	i := &issues_model.Issue{
 		RepoID:   r.ID,
 		PosterID: d.ID,
 		Poster:   d,
@@ -146,39 +146,39 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	ctx, committer, err := db.TxContext()
 	assert.NoError(t, err)
 	defer committer.Close()
-	err = newIssue(ctx, d, issues_model.NewIssueOptions{
+	err = issues_model.NewIssueWithIndex(ctx, d, issues_model.NewIssueOptions{
 		Repo:  r,
 		Issue: i,
 	})
 	assert.NoError(t, err)
-	i, err = issues_model.GetIssueByIDCtx(ctx, i.ID)
+	i, err = issues_model.GetIssueByID(ctx, i.ID)
 	assert.NoError(t, err)
-	assert.NoError(t, i.addCrossReferences(ctx, d, false))
+	assert.NoError(t, i.AddCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())
 	return i
 }
 
-func testCreatePR(t *testing.T, repo, doer int64, title, content string) *PullRequest {
+func testCreatePR(t *testing.T, repo, doer int64, title, content string) *issues_model.PullRequest {
 	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
-	i := &Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
-	pr := &PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: PullRequestStatusMergeable}
-	assert.NoError(t, NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
+	i := &issues_model.Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
+	pr := &issues_model.PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: issues_model.PullRequestStatusMergeable}
+	assert.NoError(t, issues_model.NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
 	pr.Issue = i
 	return pr
 }
 
 func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *issues_model.Comment {
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
-	i := unittest.AssertExistsAndLoadBean(t, &Issue{ID: issue}).(*Issue)
-	c := &issues_model.Comment{Type: CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
+	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue}).(*issues_model.Issue)
+	c := &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
 	ctx, committer, err := db.TxContext()
 	assert.NoError(t, err)
 	defer committer.Close()
 	err = db.Insert(ctx, c)
 	assert.NoError(t, err)
-	assert.NoError(t, c.addCrossReferences(ctx, d, false))
+	assert.NoError(t, c.AddCrossReferences(ctx, d, false))
 	assert.NoError(t, committer.Commit())
 	return c
 }

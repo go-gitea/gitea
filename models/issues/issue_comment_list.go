@@ -79,7 +79,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadLabels(ctx context.Context) error {
+func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
 	if len(comments) == 0 {
 		return nil
 	}
@@ -448,7 +448,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadReviews(ctx context.Context) error {
+func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 	if len(comments) == 0 {
 		return nil
 	}

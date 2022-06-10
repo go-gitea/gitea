@@ -55,15 +55,8 @@ func neuterCrossReferencesIds(ctx context.Context, ids []int64) error {
 	return err
 }
 
-// .___
-// |   | ______ ________ __   ____
-// |   |/  ___//  ___/  |  \_/ __ \
-// |   |\___ \ \___ \|  |  /\  ___/
-// |___/____  >____  >____/  \___  >
-//          \/     \/            \/
-//
-
-func (issue *Issue) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
+// AddCrossReferences add cross repositories references.
+func (issue *Issue) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	var commentType CommentType
 	if issue.IsPull {
 		commentType = CommentTypePullRef
@@ -237,15 +230,8 @@ func (issue *Issue) verifyReferencedIssue(stdCtx context.Context, ctx *crossRefe
 	return refIssue, refAction, nil
 }
 
-// _________                                       __
-// \_   ___ \  ____   _____   _____   ____   _____/  |_
-// /    \  \/ /  _ \ /     \ /     \_/ __ \ /    \   __\
-// \     \___(  <_> )  Y Y  \  Y Y  \  ___/|   |  \  |
-//  \______  /\____/|__|_|  /__|_|  /\___  >___|  /__|
-//         \/             \/      \/     \/     \/
-//
-
-func (comment *Comment) addCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
+// AddCrossReferences add cross references
+func (comment *Comment) AddCrossReferences(stdCtx context.Context, doer *user_model.User, removeOld bool) error {
 	if comment.Type != CommentTypeCode && comment.Type != CommentTypeComment {
 		return nil
 	}

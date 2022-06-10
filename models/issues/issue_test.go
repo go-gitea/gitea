@@ -60,7 +60,7 @@ func Test_GetIssueIDsByRepoID(t *testing.T) {
 func TestIssueAPIURL(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
-	err := issue.LoadAttributes()
+	err := issue.LoadAttributes(db.DefaultContext)
 
 	assert.NoError(t, err)
 	assert.Equal(t, "https://try.gitea.io/api/v1/repos/user2/repo1/issues/1", issue.APIURL())
@@ -317,7 +317,7 @@ func TestIssue_loadTotalTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	ms, err := issues_model.GetIssueByID(db.DefaultContext, 2)
 	assert.NoError(t, err)
-	assert.NoError(t, ms.loadTotalTimes(db.DefaultContext))
+	assert.NoError(t, ms.LoadTotalTimes(db.DefaultContext))
 	assert.Equal(t, int64(3682), ms.TotalTrackedTime)
 }
 
@@ -471,7 +471,7 @@ func TestCorrectIssueStats(t *testing.T) {
 	// Each new issues will have a constant description "Bugs are nasty"
 	// Which will be used later on.
 
-	issueAmount := maxQueryParameters + 10
+	issueAmount := issues_model.MaxQueryParameters + 10
 
 	var wg sync.WaitGroup
 	for i := 0; i < issueAmount; i++ {
@@ -508,7 +508,7 @@ func TestIssueForeignReference(t *testing.T) {
 	assert.NotEqualValues(t, issue.Index, issue.ID) // make sure they are different to avoid false positive
 
 	// it is fine for an issue to not have a foreign reference
-	err := issue.LoadAttributes()
+	err := issue.LoadAttributes(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.Nil(t, issue.ForeignReference)
 
@@ -516,7 +516,7 @@ func TestIssueForeignReference(t *testing.T) {
 	_, err = issues_model.GetIssueByForeignIndex(context.Background(), issue.RepoID, foreignIndex)
 	assert.True(t, foreignreference.IsErrLocalIndexNotExist(err))
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(&foreignreference.ForeignReference{
+	err = db.Insert(db.DefaultContext, &foreignreference.ForeignReference{
 		LocalIndex:   issue.Index,
 		ForeignIndex: strconv.FormatInt(foreignIndex, 10),
 		RepoID:       issue.RepoID,
@@ -524,7 +524,7 @@ func TestIssueForeignReference(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	err = issue.LoadAttributes()
+	err = issue.LoadAttributes(db.DefaultContext)
 	assert.NoError(t, err)
 
 	assert.EqualValues(t, issue.ForeignReference.ForeignIndex, strconv.FormatInt(foreignIndex, 10))

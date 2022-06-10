@@ -151,7 +151,10 @@ func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
-		count, err := countRepoMilestones(db.DefaultContext, repoID)
+		count, err := issues_model.CountMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
+			RepoID: repoID,
+			State:  api.StateAll,
+		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones, count)
 	}
@@ -159,7 +162,10 @@ func TestCountRepoMilestones(t *testing.T) {
 	test(2)
 	test(3)
 
-	count, err := countRepoMilestones(db.DefaultContext, unittest.NonexistentID)
+	count, err := issues_model.CountMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
+		RepoID: unittest.NonexistentID,
+		State:  api.StateAll,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }
@@ -168,7 +174,10 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
-		count, err := issues_model.CountRepoClosedMilestones(repoID)
+		count, err := issues_model.CountMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
+			RepoID: repoID,
+			State:  api.StateClosed,
+		})
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumClosedMilestones, count)
 	}
@@ -176,7 +185,10 @@ func TestCountRepoClosedMilestones(t *testing.T) {
 	test(2)
 	test(3)
 
-	count, err := issues_model.CountRepoClosedMilestones(unittest.NonexistentID)
+	count, err := issues_model.CountMilestones(db.DefaultContext, issues_model.GetMilestonesOption{
+		RepoID: unittest.NonexistentID,
+		State:  api.StateClosed,
+	})
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }
@@ -323,8 +335,8 @@ func TestUpdateMilestone(t *testing.T) {
 
 func TestUpdateMilestoneCounters(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{MilestoneID: 1},
-		"is_closed=0").(*Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{MilestoneID: 1},
+		"is_closed=0").(*issues_model.Issue)
 
 	issue.IsClosed = true
 	issue.ClosedUnix = timeutil.TimeStampNow()

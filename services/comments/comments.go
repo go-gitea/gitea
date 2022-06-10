@@ -6,7 +6,6 @@ package comments
 
 import (
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -43,12 +42,12 @@ func UpdateComment(c *issues_model.Comment, doer *user_model.User, oldContent st
 	needsContentHistory := c.Content != oldContent &&
 		(c.Type == issues_model.CommentTypeComment || c.Type == issues_model.CommentTypeReview || c.Type == issues_model.CommentTypeCode)
 	if needsContentHistory {
-		hasContentHistory, err := issues.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)
+		hasContentHistory, err := issues_model.HasIssueContentHistory(db.DefaultContext, c.IssueID, c.ID)
 		if err != nil {
 			return err
 		}
 		if !hasContentHistory {
-			if err = issues.SaveIssueContentHistory(db.DefaultContext, c.PosterID, c.IssueID, c.ID,
+			if err = issues_model.SaveIssueContentHistory(db.DefaultContext, c.PosterID, c.IssueID, c.ID,
 				c.CreatedUnix, oldContent, true); err != nil {
 				return err
 			}
@@ -60,7 +59,7 @@ func UpdateComment(c *issues_model.Comment, doer *user_model.User, oldContent st
 	}
 
 	if needsContentHistory {
-		err := issues.SaveIssueContentHistory(db.DefaultContext, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
+		err := issues_model.SaveIssueContentHistory(db.DefaultContext, doer.ID, c.IssueID, c.ID, timeutil.TimeStampNow(), c.Content, false)
 		if err != nil {
 			return err
 		}

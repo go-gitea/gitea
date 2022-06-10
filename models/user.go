@@ -16,7 +16,6 @@ import (
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
-	"code.gitea.io/gitea/models/issues"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -82,7 +81,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&issues_model.IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
-		&issues.Reaction{UserID: u.ID},
+		&issues_model.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
 		&issues_model.Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
@@ -118,7 +117,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		}
 
 		// Delete Reactions
-		if err = issues.DeleteReaction(ctx, &issues.ReactionOptions{DoerID: u.ID}); err != nil {
+		if err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{DoerID: u.ID}); err != nil {
 			return err
 		}
 	}

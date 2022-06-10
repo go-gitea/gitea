@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
@@ -20,7 +22,7 @@ import (
 func TestAPIPullReview(t *testing.T) {
 	defer prepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
-	assert.NoError(t, pullIssue.LoadAttributes())
+	assert.NoError(t, pullIssue.LoadAttributes(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)
 
 	// test ListPullReviews
@@ -199,7 +201,7 @@ func TestAPIPullReview(t *testing.T) {
 	// test get review requests
 	// to make it simple, use same api with get review
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).(*issues_model.Issue)
-	assert.NoError(t, pullIssue12.LoadAttributes())
+	assert.NoError(t, pullIssue12.LoadAttributes(db.DefaultContext))
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID}).(*repo_model.Repository)
 
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews?token=%s", repo3.OwnerName, repo3.Name, pullIssue12.Index, token)
@@ -223,7 +225,7 @@ func TestAPIPullReview(t *testing.T) {
 func TestAPIPullReviewRequest(t *testing.T) {
 	defer prepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
-	assert.NoError(t, pullIssue.LoadAttributes())
+	assert.NoError(t, pullIssue.LoadAttributes(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)
 
 	// Test add Review Request
@@ -268,7 +270,7 @@ func TestAPIPullReviewRequest(t *testing.T) {
 
 	// Test team review request
 	pullIssue12 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 12}).(*issues_model.Issue)
-	assert.NoError(t, pullIssue12.LoadAttributes())
+	assert.NoError(t, pullIssue12.LoadAttributes(db.DefaultContext))
 	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue12.RepoID}).(*repo_model.Repository)
 
 	// Test add Team Review Request

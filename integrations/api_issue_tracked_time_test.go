@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -83,7 +83,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Reset time of user 2 on issue 2
-	trackedSeconds, err := models.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
+	trackedSeconds, err := issues_model.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3661), trackedSeconds)
 
@@ -91,7 +91,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
-	trackedSeconds, err = models.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
+	trackedSeconds, err = issues_model.GetTrackedSeconds(db.DefaultContext, issues_model.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), trackedSeconds)
 }

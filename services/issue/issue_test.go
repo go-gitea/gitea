@@ -7,9 +7,9 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -45,7 +45,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 		ID:     issueIDs[2],
 	}
 
-	err = issues_model.DeleteIssue(issue)
+	err = deleteIssue(issue)
 	assert.NoError(t, err)
 	issueIDs, err = issues_model.GetIssueIDsByRepoID(db.DefaultContext, 1)
 	assert.NoError(t, err)
@@ -56,7 +56,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	assert.NoError(t, err)
 	issue, err = issues_model.GetIssueByID(db.DefaultContext, 4)
 	assert.NoError(t, err)
-	err = issues_model.DeleteIssue(issue)
+	err = deleteIssue(issue)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 2, len(attachments))
 	for i := range attachments {
@@ -78,7 +78,7 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	left, err := issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
-	err = issues_model.DeleteIssue(&issues_model.Issue{ID: 2})
+	err = deleteIssue(&issues_model.Issue{ID: 2})
 	assert.NoError(t, err)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)

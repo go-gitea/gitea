@@ -576,11 +576,11 @@ func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field strin
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repo_model.RepoStatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repo_model.RepoStatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
+	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {

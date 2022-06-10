@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -119,7 +119,7 @@ func TestDeleteLabel(t *testing.T) {
 	DeleteLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 	unittest.AssertNotExistsBean(t, &issues_model.Label{ID: 2})
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{LabelID: 2})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{LabelID: 2})
 	assert.Equal(t, ctx.Tr("repo.issues.label_deletion_success"), ctx.Flash.SuccessMsg)
 }
 
@@ -132,8 +132,8 @@ func TestUpdateIssueLabel_Clear(t *testing.T) {
 	ctx.Req.Form.Set("action", "clear")
 	UpdateIssueLabel(ctx)
 	assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 1})
-	unittest.AssertNotExistsBean(t, &models.IssueLabel{IssueID: 3})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 1})
+	unittest.AssertNotExistsBean(t, &issues_model.IssueLabel{IssueID: 3})
 	unittest.CheckConsistencyFor(t, &issues_model.Label{})
 }
 
@@ -159,7 +159,7 @@ func TestUpdateIssueLabel_Toggle(t *testing.T) {
 		UpdateIssueLabel(ctx)
 		assert.EqualValues(t, http.StatusOK, ctx.Resp.Status())
 		for _, issueID := range testCase.IssueIDs {
-			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &models.IssueLabel{
+			unittest.AssertExistsIf(t, testCase.ExpectedAdd, &issues_model.IssueLabel{
 				IssueID: issueID,
 				LabelID: testCase.LabelID,
 			})

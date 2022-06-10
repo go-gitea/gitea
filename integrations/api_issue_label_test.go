@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -106,9 +106,9 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
-	assert.Len(t, apiLabels, unittest.GetCount(t, &models.IssueLabel{IssueID: issue.ID}))
+	assert.Len(t, apiLabels, unittest.GetCount(t, &issues_model.IssueLabel{IssueID: issue.ID}))
 
-	unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: 2})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: 2})
 }
 
 func TestAPIReplaceIssueLabels(t *testing.T) {
@@ -133,8 +133,8 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 		assert.EqualValues(t, label.ID, apiLabels[0].ID)
 	}
 
-	unittest.AssertCount(t, &models.IssueLabel{IssueID: issue.ID}, 1)
-	unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
+	unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issue.ID}, 1)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 }
 
 func TestAPIModifyOrgLabels(t *testing.T) {

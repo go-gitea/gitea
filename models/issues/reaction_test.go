@@ -8,10 +8,10 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -58,7 +58,7 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, issues_model.ErrReactionAlreadyExist{Reaction: "heart"}, err)
 
-	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID}).(*Reaction)
+	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID}).(*issues_model.Reaction)
 	assert.Equal(t, existingR.ID, reaction.ID)
 }
 
@@ -169,7 +169,7 @@ func TestIssueCommentReactionCount(t *testing.T) {
 	var comment1ID int64 = 1
 
 	addReaction(t, user1.ID, issue1ID, comment1ID, "heart")
-	assert.NoError(t, DeleteCommentReaction(user1.ID, issue1ID, comment1ID, "heart"))
+	assert.NoError(t, issues_model.DeleteCommentReaction(user1.ID, issue1ID, comment1ID, "heart"))
 
-	unittest.AssertNotExistsBean(t, &Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID, CommentID: comment1ID})
+	unittest.AssertNotExistsBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID, CommentID: comment1ID})
 }

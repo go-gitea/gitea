@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/structs"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -171,7 +170,8 @@ func init() {
 	db.RegisterModel(new(IssueIndex))
 }
 
-func (issue *Issue) loadTotalTimes(ctx context.Context) (err error) {
+// LoadTotalTimes load total tracked time
+func (issue *Issue) LoadTotalTimes(ctx context.Context) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
 	issue.TotalTrackedTime, err = opts.toSession(db.GetEngine(ctx)).SumInt(&TrackedTime{}, "time")
 	if err != nil {
@@ -410,7 +410,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 	if issue.isTimetrackerEnabled(ctx) {
-		if err = issue.loadTotalTimes(ctx); err != nil {
+		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
 		}
 	}
@@ -781,7 +781,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 
@@ -888,7 +888,7 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}
 
-	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return fmt.Errorf("addCrossReferences: %v", err)
 	}
 
@@ -958,7 +958,8 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
+// NewIssueWithIndex creates issue with given index
+func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
@@ -1059,7 +1060,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 		return err
 	}
 
-	return opts.Issue.addCrossReferences(ctx, doer, false)
+	return opts.Issue.AddCrossReferences(ctx, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1077,7 +1078,7 @@ func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids
 	}
 	defer committer.Close()
 
-	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
+	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
@@ -1178,7 +1179,7 @@ func GetIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
 }
 
 // IssuesOptions represents options of an issue.
-type IssuesOptions struct {
+type IssuesOptions struct { //nolint
 	db.ListOptions
 	RepoID             int64 // overwrites RepoCond if not 0
 	RepoCond           builder.Cond
@@ -1613,14 +1614,15 @@ type IssueStatsOptions struct {
 }
 
 const (
+	// MaxQueryParameters represents the max query parameters
 	// When queries are broken down in parts because of the number
 	// of parameters, attempt to break by this amount
-	maxQueryParameters = 300
+	MaxQueryParameters = 300
 )
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
-	if len(opts.IssueIDs) <= maxQueryParameters {
+	if len(opts.IssueIDs) <= MaxQueryParameters {
 		return getIssueStatsChunk(opts, opts.IssueIDs)
 	}
 
@@ -1630,7 +1632,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	// ids in a temporary table and join from them.
 	accum := &IssueStats{}
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + maxQueryParameters
+		chunk := i + MaxQueryParameters
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
@@ -1996,7 +1998,7 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 		}
 	}
 
-	if err := issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return nil, false, err
 	}
 	return statusChangeComment, titleChanged, committer.Commit()
@@ -2104,9 +2106,9 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 
 func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {
 	if issue.IsPull {
-		err = repo_model.RepoStatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
+		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
 	} else {
-		err = repo_model.RepoStatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
+		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
 	}
 	return
 }
@@ -2271,7 +2273,7 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 	return err
 }
 
-func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
+func migratedIssueCond(tp api.GitServiceType) builder.Cond {
 	return builder.In("issue_id",
 		builder.Select("issue.id").
 			From("issue").

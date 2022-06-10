@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -70,22 +71,22 @@ func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	IDs, err := MakeIDsFromAPIAssigneesToAdd("", []string{""})
+	IDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{}, IDs)
 
-	_, err = MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
+	_, err = issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{"none_existing_user"})
 	assert.Error(t, err)
 
-	IDs, err = MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("user1", []string{"user1"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1}, IDs)
 
-	IDs, err = MakeIDsFromAPIAssigneesToAdd("user2", []string{""})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("user2", []string{""})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{2}, IDs)
 
-	IDs, err = MakeIDsFromAPIAssigneesToAdd("", []string{"user1", "user2"})
+	IDs, err = issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{"user1", "user2"})
 	assert.NoError(t, err)
 	assert.Equal(t, []int64{1, 2}, IDs)
 }

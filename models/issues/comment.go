@@ -838,7 +838,7 @@ func CreateCommentCtx(ctx context.Context, opts *CreateCommentOptions) (_ *Comme
 		return nil, err
 	}
 
-	if err = comment.addCrossReferences(ctx, opts.Doer, false); err != nil {
+	if err = comment.AddCrossReferences(ctx, opts.Doer, false); err != nil {
 		return nil, err
 	}
 
@@ -1143,7 +1143,7 @@ func UpdateComment(c *Comment, doer *user_model.User) error {
 	if err := c.LoadIssueCtx(ctx); err != nil {
 		return err
 	}
-	if err := c.addCrossReferences(ctx, doer, true); err != nil {
+	if err := c.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 	if err := committer.Commit(); err != nil {
