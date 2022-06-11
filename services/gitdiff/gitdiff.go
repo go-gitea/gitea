@@ -1418,6 +1418,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 
 	var checker *git.CheckAttributeReader
 
+	// this code block is refactored from old code "if (git version ...)", keep the block to limit the variable scope
 	{
 		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
 		if err == nil {

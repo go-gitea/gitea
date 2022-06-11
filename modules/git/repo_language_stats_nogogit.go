@@ -65,6 +65,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	var checker *CheckAttributeReader
 
+	// this code block is refactored from old code "if (git version ...)", keep the block to limit the variable scope
 	{
 		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 		if err == nil {

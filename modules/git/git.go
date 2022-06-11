@@ -134,6 +134,9 @@ func HomeDir() string {
 		tmpHomeDir := filepath.Join(os.TempDir(), "gitea-temp-home")
 		log.Error("Git's HomeDir is empty (RepoRootPath is empty), the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", tmpHomeDir)
 		return tmpHomeDir
+
+		// the Fatal will cause some CI failures (root reason is still unknown), need to be investigated more in the future
+		// log.Fatal("Can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
 	}
 	return setting.RepoRootPath
 }
