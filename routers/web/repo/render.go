@@ -24,7 +24,7 @@ func RenderFile(ctx *context.Context) {
 	blob, err := ctx.Repo.Commit.GetBlobByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound("GetBlobByPath", nil)
+			ctx.NotFound("GetBlobByPath", err)
 		} else {
 			ctx.ServerError("GetBlobByPath", err)
 		}
@@ -60,7 +60,7 @@ func RenderFile(ctx *context.Context) {
 	}
 
 	treeLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
-	if len(ctx.Repo.TreePath) > 0 {
+	if ctx.Repo.TreePath != "" {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
@@ -80,6 +80,5 @@ func RenderFile(ctx *context.Context) {
 	_, err = charset.EscapeControlReader(strings.NewReader(result.String()), ctx.Resp)
 	if err != nil {
 		ctx.ServerError("EscapeControlReader", err)
-		return
 	}
 }
