@@ -5,6 +5,7 @@
 package markup
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -33,18 +34,26 @@ func Init() {
 	}
 }
 
+// Header holds the data about a header.
+type Header struct {
+	Level int
+	Text  string
+	ID    string
+}
+
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx           context.Context
-	Filename      string
-	Type          string
-	IsWiki        bool
-	URLPrefix     string
-	Metas         map[string]string
-	DefaultLink   string
-	GitRepo       *git.Repository
-	ShaExistCache map[string]bool
-	cancelFn      func()
+	Ctx             context.Context
+	Filename        string
+	Type            string
+	IsWiki          bool
+	URLPrefix       string
+	Metas           map[string]string
+	DefaultLink     string
+	GitRepo         *git.Repository
+	ShaExistCache   map[string]bool
+	cancelFn        func()
+	TableOfContents []Header
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -85,6 +94,12 @@ type Renderer interface {
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
+// RendererContentDetector detects if the content can be rendered
+// by specified renderer
+type RendererContentDetector interface {
+	CanRender(filename string, input io.Reader) bool
+}
+
 var (
 	extRenderers = make(map[string]Renderer)
 	renderers    = make(map[string]Renderer)
@@ -107,6 +122,20 @@ func GetRendererByFileName(filename string) Renderer {
 // GetRendererByType returns a renderer according type
 func GetRendererByType(tp string) Renderer {
 	return renderers[tp]
+}
+
+// DetectRendererType detects the markup type of the content
+func DetectRendererType(filename string, input io.Reader) string {
+	buf, err := io.ReadAll(input)
+	if err != nil {
+		return ""
+	}
+	for _, renderer := range renderers {
+		if detector, ok := renderer.(RendererContentDetector); ok && detector.CanRender(filename, bytes.NewReader(buf)) {
+			return renderer.Name()
+		}
+	}
+	return ""
 }
 
 // Render renders markup file to HTML with all specific handling stuff.

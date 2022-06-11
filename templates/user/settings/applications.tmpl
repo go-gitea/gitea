@@ -55,12 +55,6 @@
 </div>
 
 <div class="ui small basic delete modal" id="delete-token">
-	{{/*
-		The wording here is a bit confusing.
-		The action asks for deleting an access token.
-		Confirming is therefore the destructive option and
-		should be deemphasized because it cannot be undone.
-	*/}}
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.i18n.Tr "settings.access_token_deletion"}}
@@ -71,11 +65,11 @@
 	<div class="actions">
 		<div class="ui cancel button">
 			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+			{{.i18n.Tr "settings.access_token_deletion_cancel_action"}}
 		</div>
 		<div class="ui red basic inverted ok button">
 			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+			{{.i18n.Tr "settings.access_token_deletion_confirm_action"}}
 		</div>
 	</div>
 </div>

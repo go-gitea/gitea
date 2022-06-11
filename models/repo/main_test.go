@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"testing"
 
+	"code.gitea.io/gitea/models/unittest"
+
 	_ "code.gitea.io/gitea/models"             // register table model
 	_ "code.gitea.io/gitea/models/perm/access" // register table model
 	_ "code.gitea.io/gitea/models/repo"        // register table model
 	_ "code.gitea.io/gitea/models/user"        // register table model
-
-	"code.gitea.io/gitea/models/unittest"
 )
 
 func TestMain(m *testing.M) {
