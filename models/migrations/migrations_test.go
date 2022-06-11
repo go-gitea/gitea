@@ -66,6 +66,10 @@ func TestMain(m *testing.M) {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
+	if err = git.InitOnceWithSync(context.Background()); err != nil {
+		fmt.Printf("Unable to InitOnceWithSync: %v\n", err)
+		os.Exit(1)
+	}
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)

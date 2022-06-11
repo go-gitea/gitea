@@ -30,9 +30,8 @@ var (
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
 
-	// DefaultContext is the default context to run git commands in
-	// will be overwritten by InitXxx with HammerContext
-	DefaultContext = context.Background()
+	// DefaultContext is the default context to run git commands in, must be initialized by git.InitXxx
+	DefaultContext context.Context
 
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
@@ -143,6 +142,7 @@ func HomeDir() string {
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by "git serv" sub-command, no data-race
+// However, in integration test, the sub-command function may be called in the current process, so the InitSimple would be called multiple times, too
 func InitSimple(ctx context.Context) error {
 	DefaultContext = ctx
 
@@ -150,14 +150,7 @@ func InitSimple(ctx context.Context) error {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
 	}
 
-	if err := SetExecutablePath(setting.Git.Path); err != nil {
-		return err
-	}
-
-	// force cleanup args
-	globalCommandArgs = []string{}
-
-	return nil
+	return SetExecutablePath(setting.Git.Path)
 }
 
 var initOnce sync.Once
