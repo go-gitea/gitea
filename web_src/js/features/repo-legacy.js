@@ -462,6 +462,11 @@ export function initRepository() {
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
     });
+    const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
+    $trackerIssueStyleRadios.on('change input', () => {
+      const checkedVal = $trackerIssueStyleRadios.filter(':checked').val();
+      $('#tracker-issue-style-regex-box').toggleClass('disabled', checkedVal !== 'regexp');
+    });
   }
 
   // Labels
