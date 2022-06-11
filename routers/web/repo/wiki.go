@@ -280,6 +280,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Data["footerPresent"] = false
 	}
 
+	ctx.Data["toc"] = rctx.TableOfContents
+
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
 	ctx.Data["CommitCount"] = commitsCount

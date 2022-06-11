@@ -317,11 +317,6 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		return fmt.Errorf("git add --all: %v", err)
 	}
 
-	err = git.LoadGitVersion()
-	if err != nil {
-		return fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	args := []string{
 		"commit", fmt.Sprintf("--author='%s <%s>'", sig.Name, sig.Email),
 		"-m", "Initial commit",
@@ -444,7 +439,7 @@ func initRepository(ctx context.Context, repoPath string, u *user_model.User, re
 		}
 	}
 
-	if err = models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+	if err = UpdateRepository(ctx, repo, false); err != nil {
 		return fmt.Errorf("updateRepository: %v", err)
 	}
 

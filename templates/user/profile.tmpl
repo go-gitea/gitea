@@ -4,15 +4,17 @@
 		<div class="ui stackable grid">
 			<div class="ui five wide column">
 				<div class="ui card">
+					<div id="profile-avatar" class="content df"/>
 					{{if eq .SignedUserName .Owner.Name}}
-						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" id="profile-avatar" data-content="{{.i18n.Tr "user.change_avatar"}}" data-position="bottom center">
+						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" data-content="{{.i18n.Tr "user.change_avatar"}}" data-position="bottom center">
 							{{avatar .Owner 290}}
 						</a>
 					{{else}}
-						<span class="image" id="profile-avatar">
+						<span class="image">
 							{{avatar .Owner 290}}
 						</span>
 					{{end}}
+					</div>
 					<div class="content word-break profile-avatar-name">
 						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>

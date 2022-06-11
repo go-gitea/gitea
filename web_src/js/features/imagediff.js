@@ -67,7 +67,8 @@ export default function initImageDiff() {
   $('.image-diff').each(function() {
     const $container = $(this);
 
-    const diffContainerWidth = $container.width() - 300;
+    // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
+    const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
     const pathAfter = $container.data('path-after');
     const pathBefore = $container.data('path-before');
 

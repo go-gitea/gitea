@@ -154,7 +154,7 @@ func TestTelegramPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &TelegramPayload{}, pl)
 
-		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/src/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
+		assert.Equal(t, `[<a href="http://localhost:3000/test/repo">test/repo</a>] Release created: <a href="http://localhost:3000/test/repo/releases/tag/v1.0">v1.0</a> by <a href="https://try.gitea.io/user1">user1</a>`, pl.(*TelegramPayload).Message)
 	})
 }
 
