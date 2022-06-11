@@ -32,6 +32,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -971,20 +972,35 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	a := remoteAddress{}
-
-	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
-	if err != nil {
-		log.Error("GetRemoteAddress %v", err)
+	if !m.IsMirror {
 		return a
 	}
 
-	if u.User != nil {
-		a.Username = u.User.Username()
-		a.Password, _ = u.User.Password()
+	remoteURL := m.OriginalURL
+	if remoteURL == "" {
+		var err error
+		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
+		if err != nil {
+			log.Error("GetRemoteURL %v", err)
+			return a
+		}
 	}
-	u.User = nil
+
+	u, err := giturl.Parse(remoteURL)
+	if err != nil {
+		log.Error("giturl.Parse %v", err)
+		return a
+	}
+
+	if u.Scheme != "ssh" && u.Scheme != "file" {
+		if u.User != nil {
+			a.Username = u.User.Username()
+			a.Password, _ = u.User.Password()
+		}
+		u.User = nil
+	}
 	a.Address = u.String()
 
 	return a
