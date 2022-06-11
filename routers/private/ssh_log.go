@@ -29,6 +29,6 @@ func SSHLog(ctx *context.PrivateContext) {
 		return
 	}
 
-	log.Debug("ssh: %v", opts.Message)
+	log.Info("ssh: %v", opts.Message)
 	ctx.Status(http.StatusOK)
 }

@@ -55,6 +55,12 @@ var CmdServ = cli.Command{
 	},
 }
 
+func init() {
+	git.SSHLog = private.SSHLog
+	setting.LocalURL = "http://localhost:3003/"
+	setting.InternalToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYmYiOjE0OTI3OTU5ODN9.OQkH5UmzID2XBdwQ9TAI6Jj2t1X-wElVTjbE7aoN4I8"
+}
+
 func setup(logPath string, debug bool) {
 	_ = log.DelLogger("console")
 	if debug {
@@ -78,9 +84,13 @@ func setup(logPath string, debug bool) {
 		return
 	}
 
+	_ = private.SSHLog(context.Background(), false, fmt.Sprintf("setup setting.RepoRootPath: %s", setting.RepoRootPath))
+
+	_ = private.SSHLog(context.Background(), false, fmt.Sprintf("setup before init git"))
 	if err := git.InitSimple(context.Background()); err != nil {
 		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
 	}
+	_ = private.SSHLog(context.Background(), false, fmt.Sprintf("setup after init git: %s", git.HomeDir()))
 }
 
 var (
