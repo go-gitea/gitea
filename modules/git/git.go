@@ -22,10 +22,10 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-var (
-	// GitVersionRequired is the minimum Git version required
-	GitVersionRequired = "2.0.0"
+// GitVersionRequired is the minimum Git version required
+const GitVersionRequired = "2.0.0"
 
+var (
 	// GitExecutable is the command name of git
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
