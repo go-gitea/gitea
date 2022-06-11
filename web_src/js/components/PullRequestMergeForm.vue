@@ -31,7 +31,7 @@
         <button class="ui button" :class="mergeButtonStyleClass" type="submit" name="do" :value="mergeStyle">
           {{ mergeStyleDetail.textDoMerge }}
           <template v-if="autoMergeWhenSucceed">
-            ({{ mergeForm.textAutoMergeButtonWhenSucceed }})
+            {{ mergeForm.textAutoMergeButtonWhenSucceed }}
           </template>
         </button>
 
