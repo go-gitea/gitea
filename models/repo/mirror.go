@@ -19,12 +19,6 @@ import (
 // ErrMirrorNotExist mirror does not exist error
 var ErrMirrorNotExist = errors.New("Mirror does not exist")
 
-// RemoteMirrorer defines base methods for pull/push mirrors.
-type RemoteMirrorer interface {
-	GetRepository() *Repository
-	GetRemoteName() string
-}
-
 // Mirror represents mirror information of a repository.
 type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
