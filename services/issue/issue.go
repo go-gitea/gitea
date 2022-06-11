@@ -229,7 +229,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 	}
 
 	// find attachments related to this issue and remove them
-	if err := issue.LoadAttributes(db.DefaultContext); err != nil {
+	if err := issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
