@@ -7,10 +7,10 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
@@ -30,9 +30,8 @@ var (
 	// Could be updated to an absolute path while initialization
 	GitExecutable = "git"
 
-	// DefaultContext is the default context to run git commands in
-	// will be overwritten by InitXxx with HammerContext
-	DefaultContext = context.Background()
+	// DefaultContext is the default context to run git commands in, must be initialized by git.InitXxx
+	DefaultContext context.Context
 
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
@@ -125,39 +124,43 @@ func VersionInfo() string {
 	return fmt.Sprintf(format, args...)
 }
 
+func checkInit() error {
+	if setting.RepoRootPath == "" {
+		return errors.New("can not init Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+	}
+	if DefaultContext != nil {
+		log.Warn("git module has been initialized already, duplicate init should be fixed")
+	}
+	return nil
+}
+
 // HomeDir is the home dir for git to store the global config file used by Gitea internally
 func HomeDir() string {
 	if setting.RepoRootPath == "" {
-		// TODO: now, some unit test code call the git module directly without initialization, which is incorrect.
-		// at the moment, we just use a temp HomeDir to prevent from conflicting with user's git config
-		// in the future, the git module should be initialized first before use.
-		tmpHomeDir := filepath.Join(os.TempDir(), "gitea-temp-home")
-		log.Error("Git's HomeDir is empty (RepoRootPath is empty), the git module is not initialized correctly, using a temp HomeDir (%s) temporarily", tmpHomeDir)
-		return tmpHomeDir
-
-		// the Fatal will cause some CI failures (root reason is still unknown), need to be investigated more in the future
-		// log.Fatal("Can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+		// strict check, make sure the git module is initialized correctly.
+		// attention: when the git module is called in gitea sub-command (serv/hook), the log module is not able to show messages to users.
+		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
+		log.Fatal("can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+		return ""
 	}
 	return setting.RepoRootPath
 }
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
 // This method doesn't change anything to filesystem. At the moment, it is only used by "git serv" sub-command, no data-race
+// However, in integration test, the sub-command function may be called in the current process, so the InitSimple would be called multiple times, too
 func InitSimple(ctx context.Context) error {
+	if err := checkInit(); err != nil {
+		return err
+	}
+
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
 	}
 
-	if err := SetExecutablePath(setting.Git.Path); err != nil {
-		return err
-	}
-
-	// force cleanup args
-	globalCommandArgs = []string{}
-
-	return nil
+	return SetExecutablePath(setting.Git.Path)
 }
 
 var initOnce sync.Once
@@ -166,6 +169,10 @@ var initOnce sync.Once
 // This method will update the global variables ONLY ONCE (just like git.CheckLFSVersion -- which is not ideal too),
 // otherwise there will be data-race problem at the moment.
 func InitOnceWithSync(ctx context.Context) (err error) {
+	if err = checkInit(); err != nil {
+		return err
+	}
+
 	initOnce.Do(func() {
 		err = InitSimple(ctx)
 		if err != nil {
