@@ -51,8 +51,8 @@ func Person(ctx *context.APIContext) {
 	}
 	person.Name = name
 
-	person.Inbox = ap.Item(ap.IRI(link + "/inbox"))
-	person.Outbox = ap.Item(ap.IRI(link + "/outbox"))
+	ap.Inbox.AddTo(person)
+	ap.Outbox.AddTo(person)
 
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)

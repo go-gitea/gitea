@@ -39,7 +39,7 @@ func TestActivityPubPerson(t *testing.T) {
 		err := person.UnmarshalJSON(body)
 		assert.NoError(t, err)
 
-		assert.Equal(t, ap.ActivityVocabularyType("Person"), person.Type)
+		assert.Equal(t, ap.PersonType, person.Type)
 		assert.Equal(t, username, person.Name.String())
 		keyID := person.GetID().String()
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s$", username), keyID)
