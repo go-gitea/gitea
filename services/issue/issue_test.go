@@ -78,7 +78,8 @@ func TestIssue_DeleteIssue(t *testing.T) {
 	left, err := issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
 	assert.False(t, left)
-	err = deleteIssue(&issues_model.Issue{ID: 2})
+
+	err = deleteIssue(issue2)
 	assert.NoError(t, err)
 	left, err = issues_model.IssueNoDependenciesLeft(db.DefaultContext, issue1)
 	assert.NoError(t, err)
