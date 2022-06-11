@@ -51,8 +51,10 @@ func Person(ctx *context.APIContext) {
 	}
 	person.Name = name
 
-	ap.Inbox.AddTo(person)
-	ap.Outbox.AddTo(person)
+	person.Inbox = nil
+	person.Inbox, _ = ap.Inbox.AddTo(person)
+	person.Outbox = nil
+	person.Outbox, _ = ap.Outbox.AddTo(person)
 
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
