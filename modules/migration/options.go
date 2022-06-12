@@ -5,7 +5,11 @@
 
 package migration
 
-import "code.gitea.io/gitea/modules/structs"
+import (
+	"code.gitea.io/gitea/modules/structs"
+
+	"lab.forgefriends.org/friendlyforgeformat/gofff"
+)
 
 // MigrateOptions defines the way a repository gets migrated
 // this is for internal usage by migrations module and func who interact with it
@@ -39,4 +43,17 @@ type MigrateOptions struct {
 	ReleaseAssets   bool
 	MigrateToRepoID int64
 	MirrorInterval  string `json:"mirror_interval"`
+}
+
+func (m MigrateOptions) ToGofffFeatures() gofff.Features {
+	return gofff.Features{
+		Wiki:          m.Wiki,
+		Issues:        m.Issues,
+		Milestones:    m.Milestones,
+		Labels:        m.Labels,
+		Releases:      m.Releases,
+		Comments:      m.Comments,
+		PullRequests:  m.PullRequests,
+		ReleaseAssets: m.ReleaseAssets,
+	}
 }

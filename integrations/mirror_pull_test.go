@@ -50,7 +50,14 @@ func TestMirrorPull(t *testing.T) {
 
 	ctx := context.Background()
 
-	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
+	fetch := func(repoPath string) {
+		assert.NoError(t, git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
+			Mirror:        true,
+			Quiet:         true,
+			SkipTLSVerify: true,
+		}))
+	}
+	mirror, err := repository.MigrateRepositoryGitData(ctx, user, fetch, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)

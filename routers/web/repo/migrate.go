@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	migration_module "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -76,10 +77,6 @@ func handleMigrateError(ctx *context.Context, owner *user_model.User, err error,
 	}
 
 	switch {
-	case migrations.IsRateLimitError(err):
-		ctx.RenderWithErr(ctx.Tr("form.visit_rate_limit"), tpl, form)
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.RenderWithErr(ctx.Tr("form.2fa_auth_required"), tpl, form)
 	case repo_model.IsErrReachLimitOfRepo(err):
 		maxCreationLimit := owner.MaxCreationLimit()
 		msg := ctx.TrN(maxCreationLimit, "repo.form.reach_limit_of_creation_1", "repo.form.reach_limit_of_creation_n", maxCreationLimit)
@@ -202,7 +199,7 @@ func MigratePost(ctx *context.Context) {
 		}
 	}
 
-	opts := migrations.MigrateOptions{
+	opts := migration_module.MigrateOptions{
 		OriginalURL:    form.CloneAddr,
 		GitServiceType: form.Service,
 		CloneAddr:      remoteAddr,

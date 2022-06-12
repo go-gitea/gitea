@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	base "code.gitea.io/gitea/modules/migration"
+	migration_module "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -140,7 +140,7 @@ func Migrate(ctx *context.APIContext) {
 		}
 	}
 
-	opts := migrations.MigrateOptions{
+	opts := migration_module.MigrateOptions{
 		CloneAddr:      remoteAddr,
 		RepoName:       form.RepoName,
 		Description:    form.Description,
@@ -221,10 +221,6 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, rem
 		ctx.Error(http.StatusConflict, "", "The repository with the same name already exists.")
 	case repo_model.IsErrRepoFilesAlreadyExist(err):
 		ctx.Error(http.StatusConflict, "", "Files already exist for this repository. Adopt them or delete them.")
-	case migrations.IsRateLimitError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit addressed rate limitation.")
-	case migrations.IsTwoFactorAuthError(err):
-		ctx.Error(http.StatusUnprocessableEntity, "", "Remote visit required two factors authentication.")
 	case repo_model.IsErrReachLimitOfRepo(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("You have already reached your limit of %d repositories.", repoOwner.MaxCreationLimit()))
 	case db.IsErrNameReserved(err):
@@ -235,7 +231,7 @@ func handleMigrateError(ctx *context.APIContext, repoOwner *user_model.User, rem
 		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("The pattern '%s' is not allowed in a username.", err.(db.ErrNamePatternNotAllowed).Pattern))
 	case models.IsErrInvalidCloneAddr(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
-	case base.IsErrNotSupported(err):
+	case migration_module.IsErrNotSupported(err):
 		ctx.Error(http.StatusUnprocessableEntity, "", err)
 	default:
 		err = util.SanitizeErrorCredentialURLs(err)

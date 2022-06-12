@@ -12,20 +12,21 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"strings"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/json"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/yaml.v2"
+	"lab.forgefriends.org/friendlyforgeformat/gofff"
+	"lab.forgefriends.org/friendlyforgeformat/gofff/forges/file"
+	"lab.forgefriends.org/friendlyforgeformat/gofff/format"
 )
 
 func TestDumpRestore(t *testing.T) {
@@ -40,83 +41,91 @@ func TestDumpRestore(t *testing.T) {
 			setting.AppVer = AppVer
 		}()
 
-		assert.NoError(t, migrations.Init())
-
-		reponame := "repo1"
-
-		basePath, err := os.MkdirTemp("", reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(basePath)
-
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 		session := loginUser(t, repoOwner.Name)
 		token := getTokenForLoggedInUser(t, session)
 
-		//
-		// Phase 1: dump repo1 from the Gitea instance to the filesystem
-		//
+		fixture := file.NewFixture(t, gofff.AllFeatures)
+		fixture.CreateEverything(file.User{
+			ID:    repoOwner.ID,
+			Name:  repoOwner.Name,
+			Email: repoOwner.Email,
+		})
+
+		assert.NoError(t, migrations.Init())
 
 		ctx := context.Background()
-		opts := migrations.MigrateOptions{
-			GitServiceType: structs.GiteaService,
-			Issues:         true,
-			PullRequests:   true,
-			Labels:         true,
-			Milestones:     true,
-			Comments:       true,
-			AuthToken:      token,
-			CloneAddr:      repo.CloneLink().HTTPS,
-			RepoName:       reponame,
-		}
-		err = migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
-		assert.NoError(t, err)
-
 		//
-		// Verify desired side effects of the dump
-		//
-		d := filepath.Join(basePath, repo.OwnerName, repo.Name)
-		for _, f := range []string{"repo.yml", "topic.yml", "label.yml", "milestone.yml", "issue.yml"} {
-			assert.FileExists(t, filepath.Join(d, f))
-		}
-
-		//
-		// Phase 2: restore from the filesystem to the Gitea instance in restoredrepo
+		// Phase 1: restore from the filesystem to the Gitea instance in restoredrepo
 		//
 
-		newreponame := "restored"
-		err = migrations.RestoreRepository(ctx, d, repo.OwnerName, newreponame, []string{
-			"labels", "issues", "comments", "milestones", "pull_requests",
+		restoredRepoName := "restored"
+		restoredRepoDirectory := fixture.GetDirectory()
+		err := migrations.RestoreRepository(ctx, restoredRepoDirectory, repoOwner.Name, restoredRepoName, []string{
+			"issues", "milestones", "labels", "releases", "release_assets", "comments", "pull_requests",
+			// wiki",
 		}, false)
 		assert.NoError(t, err)
 
-		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame}).(*repo_model.Repository)
+		restoredRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: restoredRepoName}).(*repo_model.Repository)
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Attachment{Name: file.Asset1})
 
 		//
-		// Phase 3: dump restored from the Gitea instance to the filesystem
+		// Phase 2: dump restoredRepo from the Gitea instance to the filesystem
 		//
-		opts.RepoName = newreponame
-		opts.CloneAddr = newrepo.CloneLink().HTTPS
-		err = migrations.DumpRepository(ctx, basePath, repoOwner.Name, opts)
+
+		opts := base.MigrateOptions{
+			GitServiceType: structs.GiteaService,
+
+			Wiki:          true,
+			Issues:        true,
+			Milestones:    true,
+			Labels:        true,
+			Releases:      true,
+			Comments:      true,
+			PullRequests:  true,
+			ReleaseAssets: true,
+
+			AuthToken: token,
+			CloneAddr: restoredRepo.CloneLink().HTTPS,
+			RepoName:  restoredRepoName,
+		}
+		dumpedRepoDirectory := t.TempDir()
+		err = migrations.DumpRepository(ctx, dumpedRepoDirectory, repoOwner.Name, opts)
 		assert.NoError(t, err)
 
 		//
 		// Verify the dump of restored is the same as the dump of repo1
 		//
+		//fixture.AssertEquals(restoredRepoDirectory, dumpedRepoDirectory)
+		//
+		// Verify the fixture files are the same as the restored files
+		//
+		project := fixture.GetFile().GetProject()
 		comparator := &compareDump{
-			t:        t,
-			basePath: basePath,
+			t: t,
+
+			repoBefore:  project.Name,
+			ownerBefore: project.Owner,
+			dirBefore:   restoredRepoDirectory,
+
+			repoAfter:  restoredRepoName,
+			ownerAfter: repoOwner.Name,
+			dirAfter:   dumpedRepoDirectory,
 		}
-		comparator.assertEquals(repo, newrepo)
+		comparator.assertEquals()
 	})
 }
 
 type compareDump struct {
-	t          *testing.T
-	basePath   string
-	repoBefore *repo_model.Repository
-	dirBefore  string
-	repoAfter  *repo_model.Repository
+	t *testing.T
+
+	repoBefore  string
+	ownerBefore string
+	dirBefore   string
+
+	repoAfter  string
+	ownerAfter string
 	dirAfter   string
 }
 
@@ -130,57 +139,58 @@ type compareField struct {
 
 type compareFields map[string]compareField
 
-func (c *compareDump) replaceRepoName(original string) string {
-	return strings.ReplaceAll(original, c.repoBefore.Name, c.repoAfter.Name)
-}
-
-func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository) {
-	c.repoBefore = repoBefore
-	c.dirBefore = filepath.Join(c.basePath, repoBefore.OwnerName, repoBefore.Name)
-	c.repoAfter = repoAfter
-	c.dirAfter = filepath.Join(c.basePath, repoAfter.OwnerName, repoAfter.Name)
-
+func (c *compareDump) assertEquals() {
 	//
 	// base.Repository
 	//
-	_ = c.assertEqual("repo.yml", base.Repository{}, compareFields{
+	_ = c.assertEqual("project.json", format.Project{}, compareFields{
 		"Name": {
-			before: c.repoBefore.Name,
-			after:  c.repoAfter.Name,
+			before: c.repoBefore,
+			after:  c.repoAfter,
 		},
-		"CloneURL":    {transform: c.replaceRepoName},
-		"OriginalURL": {transform: c.replaceRepoName},
+		"Owner": {
+			before: c.ownerBefore,
+			after:  c.ownerAfter,
+		},
+		"Index":    {ignore: true},
+		"CloneURL": {ignore: true},
 	})
 
 	//
 	// base.Label
 	//
-	labels, ok := c.assertEqual("label.yml", []base.Label{}, compareFields{}).([]*base.Label)
+	compareLabels := compareFields{
+		"Index": {ignore: true},
+	}
+	labels, ok := c.assertEqual("label.json", []format.Label{}, compareLabels).([]*format.Label)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(labels), 1)
 
 	//
 	// base.Milestone
 	//
-	milestones, ok := c.assertEqual("milestone.yml", []base.Milestone{}, compareFields{
+	milestones, ok := c.assertEqual("milestone.json", []format.Milestone{}, compareFields{
+		"Index":   {ignore: true},
 		"Updated": {ignore: true}, // the database updates that field independently
-	}).([]*base.Milestone)
+	}).([]*format.Milestone)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(milestones), 1)
 
 	//
-	// base.Issue and the associated comments
+	// format.Issue and the associated comments
 	//
-	issues, ok := c.assertEqual("issue.yml", []base.Issue{}, compareFields{
+	issues, ok := c.assertEqual("issue.json", []format.Issue{}, compareFields{
+		"Index":     {ignore: true},
 		"Assignees": {ignore: true}, // not implemented yet
-	}).([]*base.Issue)
+		"Labels":    {nested: &compareLabels},
+	}).([]*format.Issue)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(issues), 1)
 	for _, issue := range issues {
-		filename := filepath.Join("comments", fmt.Sprintf("%d.yml", issue.Number))
-		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{
+		filename := filepath.Join("comments", fmt.Sprintf("%d.json", issue.Number))
+		comments, ok := c.assertEqual(filename, []format.Comment{}, compareFields{
 			"Index": {ignore: true},
-		}).([]*base.Comment)
+		}).([]*format.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
 			assert.EqualValues(c.t, issue.Number, comment.IssueIndex)
@@ -188,26 +198,32 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	}
 
 	//
-	// base.PullRequest and the associated comments
+	// format.PullRequest and the associated comments
 	//
 	comparePullRequestBranch := &compareFields{
 		"RepoName": {
-			before: c.repoBefore.Name,
-			after:  c.repoAfter.Name,
+			before: c.repoBefore,
+			after:  c.repoAfter,
 		},
-		"CloneURL": {transform: c.replaceRepoName},
+		"OwnerName": {
+			before: c.ownerBefore,
+			after:  c.ownerAfter,
+		},
+		"CloneURL": {ignore: true},
 	}
-	prs, ok := c.assertEqual("pull_request.yml", []base.PullRequest{}, compareFields{
+	prs, ok := c.assertEqual("pull_request.json", []format.PullRequest{}, compareFields{
 		"Assignees": {ignore: true}, // not implemented yet
 		"Head":      {nested: comparePullRequestBranch},
 		"Base":      {nested: comparePullRequestBranch},
+		"PatchURL":  {ignore: true},
+		"CloneURL":  {ignore: true},
 		"Labels":    {ignore: true}, // because org labels are not handled properly
-	}).([]*base.PullRequest)
+	}).([]*format.PullRequest)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(prs), 1)
 	for _, pr := range prs {
-		filename := filepath.Join("comments", fmt.Sprintf("%d.yml", pr.Number))
-		comments, ok := c.assertEqual(filename, []base.Comment{}, compareFields{}).([]*base.Comment)
+		filename := filepath.Join("comments", fmt.Sprintf("%d.json", pr.Number))
+		comments, ok := c.assertEqual(filename, []format.Comment{}, compareFields{}).([]*format.Comment)
 		assert.True(c.t, ok)
 		for _, comment := range comments {
 			assert.EqualValues(c.t, pr.Number, comment.IssueIndex)
@@ -215,7 +231,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 	}
 }
 
-func (c *compareDump) assertLoadYAMLFiles(beforeFilename, afterFilename string, before, after interface{}) {
+func (c *compareDump) assertLoadJSONFiles(beforeFilename, afterFilename string, before, after interface{}) {
 	_, beforeErr := os.Stat(beforeFilename)
 	_, afterErr := os.Stat(afterFilename)
 	assert.EqualValues(c.t, errors.Is(beforeErr, os.ErrNotExist), errors.Is(afterErr, os.ErrNotExist))
@@ -225,10 +241,10 @@ func (c *compareDump) assertLoadYAMLFiles(beforeFilename, afterFilename string, 
 
 	beforeBytes, err := os.ReadFile(beforeFilename)
 	assert.NoError(c.t, err)
-	assert.NoError(c.t, yaml.Unmarshal(beforeBytes, before))
+	assert.NoError(c.t, json.Unmarshal(beforeBytes, before))
 	afterBytes, err := os.ReadFile(afterFilename)
 	assert.NoError(c.t, err)
-	assert.NoError(c.t, yaml.Unmarshal(afterBytes, after))
+	assert.NoError(c.t, json.Unmarshal(afterBytes, after))
 }
 
 func (c *compareDump) assertLoadFiles(beforeFilename, afterFilename string, t reflect.Type) (before, after reflect.Value) {
@@ -251,13 +267,14 @@ func (c *compareDump) assertLoadFiles(beforeFilename, afterFilename string, t re
 		beforePtr = reflect.New(t)
 		afterPtr = reflect.New(t)
 	}
-	c.assertLoadYAMLFiles(beforeFilename, afterFilename, beforePtr.Interface(), afterPtr.Interface())
+	c.assertLoadJSONFiles(beforeFilename, afterFilename, beforePtr.Interface(), afterPtr.Interface())
 	return beforePtr.Elem(), afterPtr.Elem()
 }
 
 func (c *compareDump) assertEqual(filename string, kind interface{}, fields compareFields) (i interface{}) {
 	beforeFilename := filepath.Join(c.dirBefore, filename)
 	afterFilename := filepath.Join(c.dirAfter, filename)
+	fmt.Println("assertEqual ", beforeFilename, afterFilename)
 
 	typeOf := reflect.TypeOf(kind)
 	before, after := c.assertLoadFiles(beforeFilename, afterFilename, typeOf)
@@ -300,29 +317,34 @@ func (c *compareDump) assertEqualValues(before, after reflect.Value, fields comp
 				// Transform these strings before comparing them
 				//
 				bs, ok := bi.(string)
-				assert.True(c.t, ok)
+				assert.True(c.t, ok, field.Name)
 				as, ok := ai.(string)
-				assert.True(c.t, ok)
-				assert.EqualValues(c.t, compare.transform(bs), compare.transform(as))
+				assert.True(c.t, ok, field.Name)
+				assert.EqualValues(c.t, compare.transform(bs), compare.transform(as), field.Name)
 				continue
 			}
 			if compare.before != nil && compare.after != nil {
 				//
 				// The fields are expected to have different values
 				//
-				assert.EqualValues(c.t, compare.before, bi)
-				assert.EqualValues(c.t, compare.after, ai)
+				assert.EqualValues(c.t, compare.before, bi, field.Name)
+				assert.EqualValues(c.t, compare.after, ai, field.Name)
 				continue
 			}
 			if compare.nested != nil {
 				//
-				// The fields are a struct, recurse
+				// The fields are a struct/slice, recurse
 				//
-				c.assertEqualValues(bf, af, *compare.nested)
+				fmt.Println("nested ", field.Name)
+				if reflect.TypeOf(bi).Kind() == reflect.Slice {
+					c.assertEqualSlices(bf, af, *compare.nested)
+				} else {
+					c.assertEqualValues(bf, af, *compare.nested)
+				}
 				continue
 			}
 		}
-		assert.EqualValues(c.t, bi, ai)
+		assert.EqualValues(c.t, bi, ai, field.Name)
 	}
 	return after.Interface()
 }

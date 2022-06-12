@@ -51,7 +51,7 @@ func WikiRemoteURL(ctx context.Context, remote string) string {
 
 // MigrateRepositoryGitData starts migrating git related data after created migrating repository
 func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
-	repo *repo_model.Repository, opts migration.MigrateOptions,
+	fetch func(string), repo *repo_model.Repository, opts migration.MigrateOptions,
 	httpTransport *http.Transport,
 ) (*repo_model.Repository, error) {
 	repoPath := repo_model.RepoPath(u.Name, opts.RepoName)
@@ -73,14 +73,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		return repo, fmt.Errorf("Failed to remove %s: %v", repoPath, err)
 	}
 
-	if err = git.Clone(ctx, opts.CloneAddr, repoPath, git.CloneRepoOptions{
-		Mirror:        true,
-		Quiet:         true,
-		Timeout:       migrateTimeout,
-		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
-	}); err != nil {
-		return repo, fmt.Errorf("Clone: %v", err)
-	}
+	fetch(repoPath)
 
 	if err := git.WriteCommitGraph(ctx, repoPath); err != nil {
 		return repo, err
@@ -224,6 +217,21 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 	}
 
 	return repo, committer.Commit()
+}
+
+// MigrateRepositoryGitData starts migrating git related data after created migrating repository
+func MigrateRepositoryGitDataWiki(ctx context.Context, u *user_model.User,
+	fetch func(string), repo *repo_model.Repository, opts migration.MigrateOptions,
+) error {
+	wikiPath := repo_model.WikiPath(u.Name, opts.RepoName)
+	wikiRemotePath := WikiRemoteURL(ctx, opts.CloneAddr)
+	if len(wikiRemotePath) > 0 {
+		if err := util.RemoveAll(wikiPath); err != nil {
+			return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
+		}
+		fetch(wikiPath)
+	}
+	return git.WriteCommitGraph(ctx, wikiPath)
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".

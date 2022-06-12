@@ -9,15 +9,11 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,16 +25,21 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/uri"
 	"code.gitea.io/gitea/services/pull"
 
 	gouuid "github.com/google/uuid"
+	gofff "lab.forgefriends.org/friendlyforgeformat/gofff"
+	gofff_gitea "lab.forgefriends.org/friendlyforgeformat/gofff/forges/gitea"
+	gofff_null "lab.forgefriends.org/friendlyforgeformat/gofff/forges/null"
+	gofff_format "lab.forgefriends.org/friendlyforgeformat/gofff/format"
 )
 
-var _ base.Uploader = &GiteaLocalUploader{}
+var _ gofff.ForgeInterface = &GiteaLocalUploader{}
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	gofff_null.Null
+	opts           base.MigrateOptions
 	ctx            context.Context
 	doer           *user_model.User
 	repoOwner      string
@@ -48,7 +49,7 @@ type GiteaLocalUploader struct {
 	milestones     map[string]int64
 	issues         map[int64]*issues_model.Issue
 	gitRepo        *git.Repository
-	prHeadCache    map[string]struct{}
+	prHeadCache    gofff_gitea.PrHeadCache
 	sameApp        bool
 	userMap        map[int64]int64 // external user id mapping to user id
 	prCache        map[int64]*issues_model.PullRequest
@@ -56,19 +57,23 @@ type GiteaLocalUploader struct {
 }
 
 // NewGiteaLocalUploader creates an gitea Uploader via gitea API v1
-func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner, repoName string) *GiteaLocalUploader {
+func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner string, opts base.MigrateOptions) *GiteaLocalUploader {
 	return &GiteaLocalUploader{
+		opts:        opts,
 		ctx:         ctx,
 		doer:        doer,
 		repoOwner:   repoOwner,
-		repoName:    repoName,
+		repoName:    opts.RepoName,
 		labels:      make(map[string]*issues_model.Label),
 		milestones:  make(map[string]int64),
 		issues:      make(map[int64]*issues_model.Issue),
-		prHeadCache: make(map[string]struct{}),
+		prHeadCache: make(gofff_gitea.PrHeadCache),
 		userMap:     make(map[int64]int64),
 		prCache:     make(map[int64]*issues_model.PullRequest),
 	}
+}
+
+func (g *GiteaLocalUploader) SetContext(ctx context.Context) {
 }
 
 // MaxBatchInsertSize returns the table's max batch insert size
@@ -91,54 +96,74 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 }
 
 // CreateRepo creates a repository
-func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
+func (g *GiteaLocalUploader) CreateProject(project *gofff_format.Project) {
 	owner, err := user_model.GetUserByName(g.ctx, g.repoOwner)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	var r *repo_model.Repository
-	if opts.MigrateToRepoID <= 0 {
+	if g.opts.MigrateToRepoID <= 0 {
 		r, err = repo_module.CreateRepository(g.doer, owner, models.CreateRepoOptions{
 			Name:           g.repoName,
-			Description:    repo.Description,
-			OriginalURL:    repo.OriginalURL,
-			GitServiceType: opts.GitServiceType,
-			IsPrivate:      opts.Private,
-			IsMirror:       opts.Mirror,
+			Description:    project.Description,
+			OriginalURL:    project.OriginalURL,
+			GitServiceType: g.opts.GitServiceType,
+			IsPrivate:      g.opts.Private,
+			IsMirror:       g.opts.Mirror,
 			Status:         repo_model.RepositoryBeingMigrated,
+			DefaultBranch:  project.DefaultBranch,
 		})
 	} else {
-		r, err = repo_model.GetRepositoryByID(opts.MigrateToRepoID)
+		r, err = repo_model.GetRepositoryByID(g.opts.MigrateToRepoID)
 	}
 	if err != nil {
-		return err
+		panic(err)
 	}
-	r.DefaultBranch = repo.DefaultBranch
-	r.Description = repo.Description
+	r.Description = project.Description
 
-	r, err = repo_module.MigrateRepositoryGitData(g.ctx, owner, r, base.MigrateOptions{
-		RepoName:       g.repoName,
-		Description:    repo.Description,
-		OriginalURL:    repo.OriginalURL,
-		GitServiceType: opts.GitServiceType,
-		Mirror:         repo.IsMirror,
-		LFS:            opts.LFS,
-		LFSEndpoint:    opts.LFSEndpoint,
-		CloneAddr:      repo.CloneURL,
-		Private:        repo.IsPrivate,
-		Wiki:           opts.Wiki,
-		Releases:       opts.Releases, // if didn't get releases, then sync them from tags
-		MirrorInterval: opts.MirrorInterval,
-	}, NewMigrationHTTPTransport())
+	g.sameApp = strings.HasPrefix(project.OriginalURL, setting.AppURL)
+}
 
-	g.sameApp = strings.HasPrefix(repo.OriginalURL, setting.AppURL)
-	g.repo = r
+// CreateRepo creates a repository
+func (g *GiteaLocalUploader) CreateRepositories(repositories ...*gofff_format.Repository) {
+	owner, err := user_model.GetUserByName(g.ctx, g.repoOwner)
 	if err != nil {
-		return err
+		panic(err)
 	}
-	g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
-	return err
+
+	r, err := repo_model.GetRepositoryByOwnerAndNameCtx(g.ctx, g.repoOwner, g.repoName)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, repository := range repositories {
+		switch repository.Name {
+		case gofff_format.RepositoryNameDefault:
+			r, err = repo_module.MigrateRepositoryGitData(g.ctx, owner, repository.Fetch, r, g.opts, NewMigrationHTTPTransport())
+
+			g.repo = r
+			if err != nil {
+				panic(err)
+			}
+
+			g.gitRepo, err = git.OpenRepository(g.ctx, r.RepoPath())
+			if err != nil {
+				panic(err)
+			}
+
+		case gofff_format.RepositoryNameWiki:
+			if g.opts.Wiki {
+				err = repo_module.MigrateRepositoryGitDataWiki(g.ctx, owner, repository.Fetch, r, g.opts)
+				if err != nil {
+					panic(err)
+				}
+			}
+
+		default:
+			panic(fmt.Errorf("unknown repository name %v", repository.Name))
+		}
+	}
 }
 
 // Close closes this uploader
@@ -149,21 +174,21 @@ func (g *GiteaLocalUploader) Close() {
 }
 
 // CreateTopics creates topics
-func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
-	// ignore topics to long for the db
-	c := 0
+func (g *GiteaLocalUploader) CreateTopics(topics ...*gofff_format.Topic) {
+	// ignore topics too long for the db
+	trimmedTopics := make([]string, 0, len(topics))
 	for i := range topics {
-		if len(topics[i]) <= 50 {
-			topics[c] = topics[i]
-			c++
+		if len(topics[i].Name) <= 50 {
+			trimmedTopics = append(trimmedTopics, topics[i].Name)
 		}
 	}
-	topics = topics[:c]
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	if err := repo_model.SaveTopics(g.repo.ID, trimmedTopics...); err != nil {
+		panic(err)
+	}
 }
 
 // CreateMilestones creates milestones
-func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+func (g *GiteaLocalUploader) CreateMilestones(milestones ...*gofff_format.Milestone) {
 	mss := make([]*issues_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
@@ -204,17 +229,16 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 
 	err := models.InsertMilestones(mss...)
 	if err != nil {
-		return err
+		panic(err)
 	}
 
 	for _, ms := range mss {
 		g.milestones[ms.Name] = ms.ID
 	}
-	return nil
 }
 
 // CreateLabels creates labels
-func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
+func (g *GiteaLocalUploader) CreateLabels(labels ...*gofff_format.Label) {
 	lbs := make([]*issues_model.Label, 0, len(labels))
 	for _, label := range labels {
 		lbs = append(lbs, &issues_model.Label{
@@ -227,16 +251,15 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 
 	err := issues_model.NewLabels(lbs...)
 	if err != nil {
-		return err
+		panic(err)
 	}
 	for _, lb := range lbs {
 		g.labels[lb.Name] = lb
 	}
-	return nil
 }
 
 // CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) CreateReleases(releases ...*gofff_format.Release) {
 	rels := make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
@@ -261,7 +284,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		}
 
 		if err := g.remapUser(release, &rel); err != nil {
-			return err
+			panic(err)
 		}
 
 		// calc NumCommits if possible
@@ -269,12 +292,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
-					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+					panic(fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err))
 				}
 				rel.Sha1 = commit.ID.String()
 				rel.NumCommits, err = commit.CommitsCount()
 				if err != nil {
-					return fmt.Errorf("CommitsCount: %v", err)
+					panic(fmt.Errorf("CommitsCount: %v", err))
 				}
 			}
 		}
@@ -297,29 +320,16 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 
 			// download attachment
 			err := func() error {
-				// asset.DownloadURL maybe a local file
-				var rc io.ReadCloser
-				var err error
-				if asset.DownloadFunc != nil {
-					rc, err = asset.DownloadFunc()
-					if err != nil {
-						return err
-					}
-				} else if asset.DownloadURL != nil {
-					rc, err = uri.Open(*asset.DownloadURL)
-					if err != nil {
-						return err
-					}
-				}
+				rc := asset.DownloadFunc()
 				if rc == nil {
 					return nil
 				}
-				_, err = storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
+				_, err := storage.Attachments.Save(attach.RelativePath(), rc, int64(*asset.Size))
 				rc.Close()
 				return err
 			}()
 			if err != nil {
-				return err
+				panic(err)
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)
@@ -328,7 +338,9 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		rels = append(rels, &rel)
 	}
 
-	return models.InsertReleases(rels...)
+	if err := models.InsertReleases(rels...); err != nil {
+		panic(err)
+	}
 }
 
 // SyncTags syncs releases with tags in the database
@@ -337,7 +349,7 @@ func (g *GiteaLocalUploader) SyncTags() error {
 }
 
 // CreateIssues creates issues
-func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+func (g *GiteaLocalUploader) CreateIssues(issues ...*gofff_format.Issue) {
 	iss := make([]*issues_model.Issue, 0, len(issues))
 	for _, issue := range issues {
 		var labels []*issues_model.Label
@@ -378,16 +390,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			Labels:      labels,
 			CreatedUnix: timeutil.TimeStamp(issue.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(issue.Updated.Unix()),
-			ForeignReference: &foreignreference.ForeignReference{
-				LocalIndex:   issue.GetLocalIndex(),
-				ForeignIndex: strconv.FormatInt(issue.GetForeignIndex(), 10),
-				RepoID:       g.repo.ID,
-				Type:         foreignreference.TypeIssue,
-			},
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
-			return err
+			panic(err)
 		}
 
 		if issue.Closed != nil {
@@ -400,7 +406,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				panic(err)
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
@@ -409,25 +415,23 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 	if len(iss) > 0 {
 		if err := models.InsertIssues(iss...); err != nil {
-			return err
+			panic(err)
 		}
 
 		for _, is := range iss {
 			g.issues[is.Index] = is
 		}
 	}
-
-	return nil
 }
 
 // CreateComments creates comments of issues
-func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+func (g *GiteaLocalUploader) CreateComments(commentable gofff_format.Commentable, comments ...*gofff_format.Comment) {
 	cms := make([]*issues_model.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
-			return fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
+			panic(fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex))
 		}
 
 		if comment.Created.IsZero() {
@@ -446,7 +450,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		if err := g.remapUser(comment, &cm); err != nil {
-			return err
+			panic(err)
 		}
 
 		// add reactions
@@ -456,7 +460,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				panic(err)
 			}
 			cm.Reactions = append(cm.Reactions, &res)
 		}
@@ -465,141 +469,38 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	}
 
 	if len(cms) == 0 {
-		return nil
+		return
 	}
-	return models.InsertIssueComments(cms)
+	if err := models.InsertIssueComments(cms); err != nil {
+		panic(err)
+	}
 }
 
 // CreatePullRequests creates pull requests
-func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+func (g *GiteaLocalUploader) CreatePullRequests(prs ...*gofff_format.PullRequest) {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		if err := g.remapUser(pr, gpr.Issue); err != nil {
-			return err
+			panic(err)
 		}
 
 		gprs = append(gprs, gpr)
 	}
 	if err := models.InsertPullRequests(gprs...); err != nil {
-		return err
+		panic(err)
 	}
 	for _, pr := range gprs {
 		g.issues[pr.Issue.Index] = pr.Issue
 		pull.AddToTaskQueue(pr)
 	}
-	return nil
 }
 
-func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head string, err error) {
-	// download patch file
-	err = func() error {
-		if pr.PatchURL == "" {
-			return nil
-		}
-		// pr.PatchURL maybe a local file
-		ret, err := uri.Open(pr.PatchURL)
-		if err != nil {
-			return err
-		}
-		defer ret.Close()
-		pullDir := filepath.Join(g.repo.RepoPath(), "pulls")
-		if err = os.MkdirAll(pullDir, os.ModePerm); err != nil {
-			return err
-		}
-		f, err := os.Create(filepath.Join(pullDir, fmt.Sprintf("%d.patch", pr.Number)))
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-		_, err = io.Copy(f, ret)
-		return err
-	}()
-	if err != nil {
-		return "", err
-	}
-
-	// set head information
-	pullHead := filepath.Join(g.repo.RepoPath(), "refs", "pull", fmt.Sprintf("%d", pr.Number))
-	if err := os.MkdirAll(pullHead, os.ModePerm); err != nil {
-		return "", err
-	}
-	p, err := os.Create(filepath.Join(pullHead, "head"))
-	if err != nil {
-		return "", err
-	}
-	_, err = p.WriteString(pr.Head.SHA)
-	p.Close()
-	if err != nil {
-		return "", err
-	}
-
-	head = "unknown repository"
-	if pr.IsForkPullRequest() && pr.State != "closed" {
-		if pr.Head.OwnerName != "" {
-			remote := pr.Head.OwnerName
-			_, ok := g.prHeadCache[remote]
-			if !ok {
-				// git remote add
-				err := g.gitRepo.AddRemote(remote, pr.Head.CloneURL, true)
-				if err != nil {
-					log.Error("AddRemote failed: %s", err)
-				} else {
-					g.prHeadCache[remote] = struct{}{}
-					ok = true
-				}
-			}
-
-			if ok {
-				_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-				if err != nil {
-					log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
-				} else {
-					headBranch := filepath.Join(g.repo.RepoPath(), "refs", "heads", pr.Head.OwnerName, pr.Head.Ref)
-					if err := os.MkdirAll(filepath.Dir(headBranch), os.ModePerm); err != nil {
-						return "", err
-					}
-					b, err := os.Create(headBranch)
-					if err != nil {
-						return "", err
-					}
-					_, err = b.WriteString(pr.Head.SHA)
-					b.Close()
-					if err != nil {
-						return "", err
-					}
-					head = pr.Head.OwnerName + "/" + pr.Head.Ref
-				}
-			}
-		}
-	} else {
-		head = pr.Head.Ref
-		// Ensure the closed PR SHA still points to an existing ref
-		_, _, err = git.NewCommand(g.ctx, "rev-list", "--quiet", "-1", pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
-			if pr.Head.SHA != "" {
-				// Git update-ref remove bad references with a relative path
-				log.Warn("Deprecated local head, removing : %v", pr.Head.SHA)
-				err = g.gitRepo.RemoveReference(pr.GetGitRefName())
-			} else {
-				// The SHA is empty, remove the head file
-				log.Warn("Empty reference, removing : %v", pullHead)
-				err = os.Remove(filepath.Join(pullHead, "head"))
-			}
-			if err != nil {
-				log.Error("Cannot remove local head ref, %v", err)
-			}
-		}
-	}
-
-	return head, nil
-}
-
-func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
+func (g *GiteaLocalUploader) newPullRequest(pr *gofff_format.PullRequest) (*issues_model.PullRequest, error) {
 	var labels []*issues_model.Label
 	for _, label := range pr.Labels {
 		lb, ok := g.labels[label.Name]
@@ -610,9 +511,10 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 
 	milestoneID := g.milestones[pr.Milestone]
 
-	head, err := g.updateGitForPullRequest(pr)
-	if err != nil {
-		return nil, fmt.Errorf("updateGitForPullRequest: %w", err)
+	_ = pr.Fetch(g.repo.RepoPath())
+	head, messages := gofff_gitea.UpdateGitForPullRequest(g.ctx, &g.prHeadCache, pr, g.repo.RepoPath())
+	for _, message := range messages {
+		log.Error(message)
 	}
 
 	if pr.Created.IsZero() {
@@ -687,15 +589,15 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model
 
 func convertReviewState(state string) issues_model.ReviewType {
 	switch state {
-	case base.ReviewStatePending:
+	case gofff_format.ReviewStatePending:
 		return issues_model.ReviewTypePending
-	case base.ReviewStateApproved:
+	case gofff_format.ReviewStateApproved:
 		return issues_model.ReviewTypeApprove
-	case base.ReviewStateChangesRequested:
+	case gofff_format.ReviewStateChangesRequested:
 		return issues_model.ReviewTypeReject
-	case base.ReviewStateCommented:
+	case gofff_format.ReviewStateCommented:
 		return issues_model.ReviewTypeComment
-	case base.ReviewStateRequestReview:
+	case gofff_format.ReviewStateRequestReview:
 		return issues_model.ReviewTypeRequest
 	default:
 		return issues_model.ReviewTypePending
@@ -703,13 +605,13 @@ func convertReviewState(state string) issues_model.ReviewType {
 }
 
 // CreateReviews create pull request reviews of currently migrated issues
-func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+func (g *GiteaLocalUploader) CreateReviews(reviewable gofff_format.Reviewable, reviews ...*gofff_format.Review) {
 	cms := make([]*issues_model.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
-			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
+			panic(fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex))
 		}
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
@@ -725,7 +627,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		if err := g.remapUser(review, &cm); err != nil {
-			return err
+			panic(err)
 		}
 
 		// get pr
@@ -734,7 +636,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			var err error
 			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
 			if err != nil {
-				return err
+				panic(err)
 			}
 			g.prCache[issue.ID] = pr
 		}
@@ -758,7 +660,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_ = reader.Close()
 				_ = writer.Close()
 			}()
-			go func(comment *base.ReviewComment) {
+			go func(comment *gofff_format.ReviewComment) {
 				if err := git.GetRepoRawDiffForFile(g.gitRepo, pr.MergeBase, headCommitID, git.RawDiffNormal, comment.TreePath, writer); err != nil {
 					// We should ignore the error since the commit maybe removed when force push to the pull request
 					log.Warn("GetRepoRawDiffForFile failed when migrating [%s, %s, %s, %s]: %v", g.gitRepo.Path, pr.MergeBase, headCommitID, comment.TreePath, err)
@@ -788,7 +690,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			if err := g.remapUser(review, &c); err != nil {
-				return err
+				panic(err)
 			}
 
 			cm.Comments = append(cm.Comments, &c)
@@ -797,37 +699,40 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		cms = append(cms, &cm)
 	}
 
-	return issues_model.InsertReviews(cms)
+	if err := issues_model.InsertReviews(cms); err != nil {
+		panic(err)
+	}
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
-func (g *GiteaLocalUploader) Rollback() error {
+func (g *GiteaLocalUploader) Rollback() {
 	if g.repo != nil && g.repo.ID > 0 {
 		g.gitRepo.Close()
 		if err := models.DeleteRepository(g.doer, g.repo.OwnerID, g.repo.ID); err != nil {
-			return err
+			panic(err)
 		}
 	}
-	return nil
 }
 
 // Finish when migrating success, this will do some status update things.
-func (g *GiteaLocalUploader) Finish() error {
+func (g *GiteaLocalUploader) Finish() {
 	if g.repo == nil || g.repo.ID <= 0 {
-		return ErrRepoNotCreated
+		panic(ErrRepoNotCreated)
 	}
 
 	// update issue_index
 	if err := issues_model.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
-		return err
+		panic(err)
 	}
 
 	if err := models.UpdateRepoStats(g.ctx, g.repo.ID); err != nil {
-		return err
+		panic(err)
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return repo_model.UpdateRepositoryCols(g.ctx, g.repo, "status")
+	if err := repo_model.UpdateRepositoryCols(g.ctx, g.repo, "status"); err != nil {
+		panic(err)
+	}
 }
 
 func (g *GiteaLocalUploader) remapUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {
