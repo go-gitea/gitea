@@ -9,7 +9,6 @@ import (
 	"io"
 	"net/http"
 	"path"
-	"strings"
 
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -64,22 +63,15 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	var result bytes.Buffer
 	err = markup.Render(&markup.RenderContext{
 		Ctx:          ctx,
 		RelativePath: ctx.Repo.TreePath,
 		URLPrefix:    path.Dir(treeLink),
 		Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 		GitRepo:      ctx.Repo.GitRepo,
-	}, rd, &result)
+	}, rd, ctx.Resp)
 	if err != nil {
 		ctx.ServerError("Render", err)
-		return
-	}
-
-	_, err = charset.EscapeControlReader(strings.NewReader(result.String()), ctx.Resp)
-	if err != nil {
-		ctx.ServerError("EscapeControlReader", err)
 		return
 	}
 }
