@@ -28,7 +28,7 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 	person := ap.PersonNew(ap.IRI(keyID.String()))
 	err = person.UnmarshalJSON(b)
 	if err != nil {
-		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %T", b)
+		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %v", err)
 		return
 	}
 	pkey := person.PublicKey
@@ -50,7 +50,7 @@ func fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", activitypub.ActivityStreamsContentType)
 	req.Header("Accept-Charset", "utf-8")
-	req.Header("Date", fmt.Sprintf("%s GMT", time.Now().UTC().Format(time.RFC1123)))
+	req.Header("Date", fmt.Sprintf("%s UTC", time.Now().UTC().Format(time.RFC1123)))
 	resp, err := req.Response()
 	if err != nil {
 		return
@@ -89,7 +89,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	}
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
-	authenticated = nil == v.Verify(pKey, algo)
+	authenticated = v.Verify(pKey, algo) == nil
 	return
 }
 

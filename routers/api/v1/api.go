@@ -645,8 +645,10 @@ func Routes() *web.Route {
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
 			m.Group("/activitypub", func() {
-				m.Get("/user/{username}", activitypub.Person)
-				m.Post("/user/{username}/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
+				m.Group("/user/{username}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
+				})
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)

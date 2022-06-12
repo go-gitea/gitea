@@ -32,8 +32,6 @@ func TestActivityPubPerson(t *testing.T) {
 		resp := MakeRequest(t, req, http.StatusOK)
 		body := resp.Body.Bytes()
 		assert.Contains(t, string(body), "@context")
-		var m map[string]interface{}
-		DecodeJSON(t, resp, &m)
 
 		var person ap.Person
 		err := person.UnmarshalJSON(body)
