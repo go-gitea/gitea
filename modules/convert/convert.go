@@ -15,6 +15,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -39,7 +40,7 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
 		var canPush bool
@@ -88,14 +89,14 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 			return nil, err
 		}
 		branch.UserCanPush = bp.CanUserPush(user.ID)
-		branch.UserCanMerge = models.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
+		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
 	}
 
 	return branch, nil
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
+func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
@@ -399,7 +400,7 @@ func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock
-func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 	u, err := user_model.GetUserByID(l.OwnerID)
 	if err != nil {
 		return nil

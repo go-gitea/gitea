@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -178,7 +179,7 @@ func GetCommitStatuses(repo *repo_model.Repository, sha string, opts *CommitStat
 		opts.Page = 1
 	}
 	if opts.PageSize <= 0 {
-		opts.Page = ItemsPerPage
+		opts.Page = setting.ItemsPerPage
 	}
 
 	countSession := listCommitStatusesStatement(repo, sha, opts)
@@ -352,4 +353,18 @@ func ParseCommitsWithStatus(oldCommits []*asymkey_model.SignCommit, repo *repo_m
 // hashCommitStatusContext hash context
 func hashCommitStatusContext(context string) string {
 	return fmt.Sprintf("%x", sha1.Sum([]byte(context)))
+}
+
+// ConvertFromGitCommit converts git commits into SignCommitWithStatuses
+func ConvertFromGitCommit(commits []*git.Commit, repo *repo_model.Repository) []*SignCommitWithStatuses {
+	return ParseCommitsWithStatus(
+		asymkey_model.ParseCommitsWithSignature(
+			user_model.ValidateCommitsWithEmails(commits),
+			repo.GetTrustModel(),
+			func(user *user_model.User) (bool, error) {
+				return repo_model.IsOwnerMemberCollaborator(repo, user.ID)
+			},
+		),
+		repo,
+	)
 }

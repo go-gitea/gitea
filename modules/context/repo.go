@@ -17,6 +17,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -118,7 +119,7 @@ type CanCommitToBranchResults struct {
 // CanCommitToBranch returns true if repository is editable and user has proper access level
 //   and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
-	protectedBranch, err := models.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
+	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
 		return CanCommitToBranchResults{}, err
 	}
@@ -825,7 +826,7 @@ func getRefName(ctx *Context, pathType RepoRefType) string {
 		if len(ref) == 0 {
 			// maybe it's a renamed branch
 			return getRefNameFromPath(ctx, path, func(s string) bool {
-				b, exist, err := models.FindRenamedBranch(ctx.Repo.Repository.ID, s)
+				b, exist, err := git_model.FindRenamedBranch(ctx.Repo.Repository.ID, s)
 				if err != nil {
 					log.Error("FindRenamedBranch", err)
 					return false

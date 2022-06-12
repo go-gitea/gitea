@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/structs"
@@ -22,7 +23,7 @@ func TestGetCommitStatuses(t *testing.T) {
 
 	sha1 := "1234123412341234123412341234123412341234"
 
-	statuses, maxResults, err := GetCommitStatuses(repo1, sha1, &CommitStatusOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 50}})
+	statuses, maxResults, err := git_model.GetCommitStatuses(repo1, sha1, &git_model.CommitStatusOptions{ListOptions: db.ListOptions{Page: 1, PageSize: 50}})
 	assert.NoError(t, err)
 	assert.Equal(t, int(maxResults), 5)
 	assert.Len(t, statuses, 5)

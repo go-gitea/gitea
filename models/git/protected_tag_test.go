@@ -2,11 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git_test
 
 import (
 	"testing"
 
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unittest"
 
 	"github.com/stretchr/testify/assert"
@@ -15,42 +16,42 @@ import (
 func TestIsUserAllowed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pt := &ProtectedTag{}
-	allowed, err := IsUserAllowedModifyTag(pt, 1)
+	pt := &git_model.ProtectedTag{}
+	allowed, err := git_model.IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
-	pt = &ProtectedTag{
+	pt = &git_model.ProtectedTag{
 		AllowlistUserIDs: []int64{1},
 	}
-	allowed, err = IsUserAllowedModifyTag(pt, 1)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
-	allowed, err = IsUserAllowedModifyTag(pt, 2)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
-	pt = &ProtectedTag{
+	pt = &git_model.ProtectedTag{
 		AllowlistTeamIDs: []int64{1},
 	}
-	allowed, err = IsUserAllowedModifyTag(pt, 1)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.False(t, allowed)
 
-	allowed, err = IsUserAllowedModifyTag(pt, 2)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
-	pt = &ProtectedTag{
+	pt = &git_model.ProtectedTag{
 		AllowlistUserIDs: []int64{1},
 		AllowlistTeamIDs: []int64{1},
 	}
-	allowed, err = IsUserAllowedModifyTag(pt, 1)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 1)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 
-	allowed, err = IsUserAllowedModifyTag(pt, 2)
+	allowed, err = git_model.IsUserAllowedModifyTag(pt, 2)
 	assert.NoError(t, err)
 	assert.True(t, allowed)
 }
@@ -119,7 +120,7 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 	}
 
 	t.Run("Glob", func(t *testing.T) {
-		protectedTags := []*ProtectedTag{
+		protectedTags := []*git_model.ProtectedTag{
 			{
 				NamePattern:      `*gitea`,
 				AllowlistUserIDs: []int64{1},
@@ -134,14 +135,14 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			isAllowed, err := IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
+			isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
 			assert.NoError(t, err)
 			assert.Equal(t, c.allowed, isAllowed, "case %d: error should match", n)
 		}
 	})
 
 	t.Run("Regex", func(t *testing.T) {
-		protectedTags := []*ProtectedTag{
+		protectedTags := []*git_model.ProtectedTag{
 			{
 				NamePattern:      `/gitea\z/`,
 				AllowlistUserIDs: []int64{1},
@@ -156,7 +157,7 @@ func TestIsUserAllowedToControlTag(t *testing.T) {
 		}
 
 		for n, c := range cases {
-			isAllowed, err := IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
+			isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, c.name, c.userid)
 			assert.NoError(t, err)
 			assert.Equal(t, c.allowed, isAllowed, "case %d: error should match", n)
 		}
