@@ -26,15 +26,14 @@ func init() {
 }
 
 // Renderer implements markup.Renderer
-type Renderer struct{}
+type Renderer struct {
+	markup.BaseRenderer
+}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
-
-// NeedPostProcess implements markup.Renderer
-func (Renderer) NeedPostProcess() bool { return false }
 
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
@@ -46,16 +45,6 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{
 		{Element: "span", AllowAttr: "class", Regexp: regexp.MustCompile(`^term-((fg[ix]?|bg)\d+|container)$`)},
 	}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
-}
-
-// DisplayInIFrame disabled sanitize if return true
-func (Renderer) DisplayInIFrame() bool {
-	return false
 }
 
 // CanRender implements markup.RendererContentDetector

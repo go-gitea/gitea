@@ -97,6 +97,17 @@ type Renderer interface {
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
+type BaseRenderer struct{}
+
+// NeedPostProcess implements markup.Renderer
+func (BaseRenderer) NeedPostProcess() bool { return false }
+
+// SanitizerDisabled disabled sanitize if return true
+func (BaseRenderer) SanitizerDisabled() bool { return false }
+
+// DisplayInIFrame represents whether render the content with an iframe
+func (BaseRenderer) DisplayInIFrame() bool { return false }
+
 // RendererContentDetector detects if the content can be rendered
 // by specified renderer
 type RendererContentDetector interface {

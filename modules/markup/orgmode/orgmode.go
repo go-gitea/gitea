@@ -27,7 +27,9 @@ func init() {
 }
 
 // Renderer implements markup.Renderer for orgmode
-type Renderer struct{}
+type Renderer struct {
+	markup.BaseRenderer
+}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
@@ -45,16 +47,6 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
-}
-
-// DisplayInIFrame disabled sanitize if return true
-func (Renderer) DisplayInIFrame() bool {
-	return false
 }
 
 // Render renders orgmode rawbytes to HTML

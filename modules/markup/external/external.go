@@ -56,10 +56,10 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 
 // SanitizerDisabled disabled sanitize if return true
 func (p *Renderer) SanitizerDisabled() bool {
-	return p.DisableSanitizer
+	return !p.UseIFrame && p.DisableSanitizer
 }
 
-// DisplayInIFrame disabled sanitize if return true
+// DisplayInIFrame represents whether render the content with an iframe
 func (p *Renderer) DisplayInIFrame() bool {
 	return p.UseIFrame
 }
