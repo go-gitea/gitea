@@ -210,9 +210,10 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 	}
 	gitArgs = append(gitArgs, m.GetRemoteName())
 
-	remoteAddr, remoteErr := git.GetRemoteAddress(ctx, repoPath, m.GetRemoteName())
+	remoteURL, remoteErr := git.GetRemoteURL(ctx, repoPath, m.GetRemoteName())
 	if remoteErr != nil {
 		log.Error("SyncMirrors [repo: %-v]: GetRemoteAddress Error %v", m.Repo, remoteErr)
+		return nil, false
 	}
 
 	stdoutBuilder := strings.Builder{}
@@ -291,7 +292,7 @@ func runSync(ctx context.Context, m *repo_model.Mirror) ([]*mirrorSyncResult, bo
 
 	if m.LFS && setting.LFS.StartServer {
 		log.Trace("SyncMirrors [repo: %-v]: syncing LFS objects...", m.Repo)
-		endpoint := lfs.DetermineEndpoint(remoteAddr.String(), m.LFSEndpoint)
+		endpoint := lfs.DetermineEndpoint(remoteURL.String(), m.LFSEndpoint)
 		lfsClient := lfs.NewClient(endpoint, nil)
 		if err = repo_module.StoreMissingLfsObjectsInRepository(ctx, m.Repo, gitRepo, lfsClient); err != nil {
 			log.Error("SyncMirrors [repo: %-v]: failed to synchronize LFS objects for repository: %v", m.Repo, err)

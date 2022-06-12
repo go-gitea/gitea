@@ -74,6 +74,9 @@ func TestMetas(t *testing.T) {
 	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleNumeric
 	testSuccess(markup.IssueNameStyleNumeric)
 
+	externalTracker.ExternalTrackerConfig().ExternalTrackerStyle = markup.IssueNameStyleRegexp
+	testSuccess(markup.IssueNameStyleRegexp)
+
 	repo, err := repo_model.GetRepositoryByID(3)
 	assert.NoError(t, err)
 

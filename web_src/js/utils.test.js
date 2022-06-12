@@ -1,5 +1,5 @@
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref,
+  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch,
 } from './utils.js';
 
 test('basename', () => {
@@ -83,4 +83,18 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1?query')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
   expect(parseIssueHref('https://example.com/sub/sub2/owner/repo/issues/1#hash')).toEqual({owner: 'owner', repo: 'repo', type: 'issues', index: '1'});
   expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
+});
+
+
+test('strSubMatch', () => {
+  expect(strSubMatch('abc', '')).toEqual(['abc']);
+  expect(strSubMatch('abc', 'a')).toEqual(['', 'a', 'bc']);
+  expect(strSubMatch('abc', 'b')).toEqual(['a', 'b', 'c']);
+  expect(strSubMatch('abc', 'c')).toEqual(['ab', 'c']);
+  expect(strSubMatch('abc', 'ac')).toEqual(['', 'a', 'b', 'c']);
+  expect(strSubMatch('abc', 'z')).toEqual(['abc']);
+  expect(strSubMatch('abc', 'az')).toEqual(['abc']);
+
+  expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
+  expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
 });
