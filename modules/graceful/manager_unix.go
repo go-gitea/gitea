@@ -128,7 +128,6 @@ func (g *Manager) handleSignals(ctx context.Context) {
 	)
 
 	pid := syscall.Getpid()
-loop:
 	for {
 		select {
 		case sig := <-signalChannel:
@@ -158,7 +157,7 @@ loop:
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.DoGracefulShutdown()
-			break loop
+			return
 		}
 	}
 }
