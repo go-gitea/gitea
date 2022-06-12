@@ -25,11 +25,11 @@ func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) *api.P
 }
 
 func getMirrorRemoteAddress(repo *repo_model.Repository, remoteName string) (string, error) {
-	u, err := git.GetRemoteAddress(git.DefaultContext, repo.RepoPath(), remoteName)
+	url, err := git.GetRemoteURL(git.DefaultContext, repo.RepoPath(), remoteName)
 	if err != nil {
 		return "", err
 	}
 	// remove confidential information
-	u.User = nil
-	return u.String(), nil
+	url.User = nil
+	return url.String(), nil
 }
