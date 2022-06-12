@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
@@ -18,6 +19,76 @@ import (
 
 	"xorm.io/builder"
 )
+
+// ErrLFSLockNotExist represents a "LFSLockNotExist" kind of error.
+type ErrLFSLockNotExist struct {
+	ID     int64
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockNotExist checks if an error is a ErrLFSLockNotExist.
+func IsErrLFSLockNotExist(err error) bool {
+	_, ok := err.(ErrLFSLockNotExist)
+	return ok
+}
+
+func (err ErrLFSLockNotExist) Error() string {
+	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+// ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
+type ErrLFSUnauthorizedAction struct {
+	RepoID   int64
+	UserName string
+	Mode     perm.AccessMode
+}
+
+// IsErrLFSUnauthorizedAction checks if an error is a ErrLFSUnauthorizedAction.
+func IsErrLFSUnauthorizedAction(err error) bool {
+	_, ok := err.(ErrLFSUnauthorizedAction)
+	return ok
+}
+
+func (err ErrLFSUnauthorizedAction) Error() string {
+	if err.Mode == perm.AccessModeWrite {
+		return fmt.Sprintf("User %s doesn't have write access for lfs lock [rid: %d]", err.UserName, err.RepoID)
+	}
+	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
+}
+
+// ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
+type ErrLFSLockAlreadyExist struct {
+	RepoID int64
+	Path   string
+}
+
+// IsErrLFSLockAlreadyExist checks if an error is a ErrLFSLockAlreadyExist.
+func IsErrLFSLockAlreadyExist(err error) bool {
+	_, ok := err.(ErrLFSLockAlreadyExist)
+	return ok
+}
+
+func (err ErrLFSLockAlreadyExist) Error() string {
+	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
+// ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
+type ErrLFSFileLocked struct {
+	RepoID   int64
+	Path     string
+	UserName string
+}
+
+// IsErrLFSFileLocked checks if an error is a ErrLFSFileLocked.
+func IsErrLFSFileLocked(err error) bool {
+	_, ok := err.(ErrLFSFileLocked)
+	return ok
+}
+
+func (err ErrLFSFileLocked) Error() string {
+	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
+}
 
 // LFSMetaObject stores metadata for LFS tracked files.
 type LFSMetaObject struct {
@@ -239,7 +310,7 @@ func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error
 	for _, v := range lfsObjects {
 		v.ID = 0
 		v.RepositoryID = newRepo.ID
-		if _, err := db.GetEngine(ctx).Insert(v); err != nil {
+		if err := db.Insert(ctx, v); err != nil {
 			return err
 		}
 	}

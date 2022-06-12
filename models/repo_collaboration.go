@@ -10,11 +10,9 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
@@ -119,24 +117,4 @@ func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int
 
 	// Remove all IssueWatches a user has subscribed to in the repository
 	return removeIssueWatchersByRepoID(ctx, uid, repo.ID)
-}
-
-// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
-func IsOwnerMemberCollaborator(repo *repo_model.Repository, userID int64) (bool, error) {
-	if repo.OwnerID == userID {
-		return true, nil
-	}
-	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
-		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
-		Where("team_repo.repo_id = ?", repo.ID).
-		And("team_unit.`type` = ?", unit.TypeCode).
-		And("team_user.uid = ?", userID).Table("team_user").Exist(&organization.TeamUser{})
-	if err != nil {
-		return false, err
-	}
-	if teamMember {
-		return true, nil
-	}
-
-	return db.GetEngine(db.DefaultContext).Get(&repo_model.Collaboration{RepoID: repo.ID, UserID: userID})
 }

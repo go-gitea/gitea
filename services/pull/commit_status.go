@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -17,9 +18,9 @@ import (
 )
 
 // MergeRequiredContextsCommitStatus returns a commit status state for given required contexts
-func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, requiredContexts []string) structs.CommitStatusState {
+func MergeRequiredContextsCommitStatus(commitStatuses []*git_model.CommitStatus, requiredContexts []string) structs.CommitStatusState {
 	if len(requiredContexts) == 0 {
-		status := models.CalcCommitStatus(commitStatuses)
+		status := git_model.CalcCommitStatus(commitStatuses)
 		if status != nil {
 			return status.State
 		}
@@ -38,7 +39,7 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, re
 
 		if targetStatus == "" {
 			targetStatus = structs.CommitStatusPending
-			commitStatuses = append(commitStatuses, &models.CommitStatus{
+			commitStatuses = append(commitStatuses, &git_model.CommitStatus{
 				State:       targetStatus,
 				Context:     ctx,
 				Description: "Pending",
@@ -52,10 +53,10 @@ func MergeRequiredContextsCommitStatus(commitStatuses []*models.CommitStatus, re
 }
 
 // IsCommitStatusContextSuccess returns true if all required status check contexts succeed.
-func IsCommitStatusContextSuccess(commitStatuses []*models.CommitStatus, requiredContexts []string) bool {
+func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requiredContexts []string) bool {
 	// If no specific context is required, require that last commit status is a success
 	if len(requiredContexts) == 0 {
-		status := models.CalcCommitStatus(commitStatuses)
+		status := git_model.CalcCommitStatus(commitStatuses)
 		if status == nil || status.State != structs.CommitStatusSuccess {
 			return false
 		}
@@ -132,7 +133,7 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 		return "", errors.Wrap(err, "LoadBaseRepo")
 	}
 
-	commitStatuses, _, err := models.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{})
+	commitStatuses, _, err := git_model.GetLatestCommitStatus(ctx, pr.BaseRepo.ID, sha, db.ListOptions{})
 	if err != nil {
 		return "", errors.Wrap(err, "GetLatestCommitStatus")
 	}

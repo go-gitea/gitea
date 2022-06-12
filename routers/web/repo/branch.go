@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
@@ -40,7 +41,7 @@ type Branch struct {
 	IsProtected       bool
 	IsDeleted         bool
 	IsIncluded        bool
-	DeletedBranch     *models.DeletedBranch
+	DeletedBranch     *git_model.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
 	LatestPullRequest *models.PullRequest
@@ -119,7 +120,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
 
-	deletedBranch, err := models.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
+	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
@@ -184,7 +185,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 		return nil, nil, 0
 	}
 
-	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
+	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return nil, nil, 0
@@ -231,7 +232,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	return defaultBranchBranch, branches, totalNumOfBranches
 }
 
-func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
+func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*git_model.ProtectedBranch,
 	repoIDToRepo map[int64]*repo_model.Repository,
 	repoIDToGitRepo map[int64]*git.Repository,
 ) *Branch {
@@ -326,7 +327,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	branches := []*Branch{}
 
-	deletedBranches, err := models.GetDeletedBranches(ctx.Repo.Repository.ID)
+	deletedBranches, err := git_model.GetDeletedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		return branches, err
 	}
