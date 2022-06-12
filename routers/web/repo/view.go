@@ -509,6 +509,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())
+		// If the markup is detected by custom markup renderer it should not be reset later on
+		// to not pass it down to the render context.
+		detected := false
+		if markupType == "" {
+			detected = true
+			markupType = markup.DetectRendererType(blob.Name(), bytes.NewReader(buf))
+		}
 		if markupType != "" {
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
@@ -517,8 +524,12 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
+			if !detected {
+				markupType = ""
+			}
 			err := markup.Render(&markup.RenderContext{
 				Ctx:       ctx,
+				Type:      markupType,
 				Filename:  blob.Name(),
 				URLPrefix: path.Dir(treeLink),
 				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
