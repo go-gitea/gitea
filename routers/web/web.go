@@ -730,8 +730,10 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
-			m.Combo("").Get(repo.Settings).
-				Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
+			m.Group("", func() {
+				m.Combo("").Get(repo.Settings).
+					Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
+			}, repo.SettingsCtxData)
 			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo.SettingsAvatar)
 			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
 
