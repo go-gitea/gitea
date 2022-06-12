@@ -117,7 +117,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
-	if err = git.InitWithConfigSync(context.Background()); err != nil {
+	if err = git.InitOnceWithSync(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
 
@@ -202,7 +202,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
-	assert.NoError(t, git.InitWithConfigSync(context.Background()))
+	assert.NoError(t, git.InitOnceWithSync(context.Background()))
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)
