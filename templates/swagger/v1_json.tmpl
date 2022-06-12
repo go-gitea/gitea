@@ -8869,19 +8869,19 @@
         "tags": [
           "repository"
         ],
-        "summary": "Get push mirror of the repository by ID",
-        "operationId": "repoGetPushMirrorByID",
+        "summary": "Get push mirror of the repository by remoteName",
+        "operationId": "repoGetPushMirrorByRemoteName",
         "parameters": [
           {
             "type": "string",
-            "description": "owner of the repo to sync",
+            "description": "owner of the repo",
             "name": "owner",
             "in": "path",
             "required": true
           },
           {
             "type": "string",
-            "description": "name of the repo to sync",
+            "description": "name of the repo",
             "name": "repo",
             "in": "path",
             "required": true
@@ -8913,7 +8913,7 @@
         "tags": [
           "repository"
         ],
-        "summary": "deletes a push mirror from a repository by ID",
+        "summary": "deletes a push mirror from a repository by remoteName",
         "operationId": "repoDeletePushMirror",
         "parameters": [
           {

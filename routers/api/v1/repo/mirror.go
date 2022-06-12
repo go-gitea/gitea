@@ -181,20 +181,20 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 // GetPushMirrorByName get push mirror of a repository by name
 func GetPushMirrorByName(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/push_mirrors/{name} repository repoGetPushMirrorByID
+	// swagger:operation GET /repos/{owner}/{repo}/push_mirrors/{name} repository repoGetPushMirrorByRemoteName
 	// ---
-	// summary: Get push mirror of the repository by ID
+	// summary: Get push mirror of the repository by remoteName
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: owner
 	//   in: path
-	//   description: owner of the repo to sync
+	//   description: owner of the repo
 	//   type: string
 	//   required: true
 	// - name: repo
 	//   in: path
-	//   description: name of the repo to sync
+	//   description: name of the repo
 	//   type: string
 	//   required: true
 	// - name: name
@@ -211,15 +211,15 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 
 	if !setting.Mirror.Enabled {
-		ctx.Error(http.StatusBadRequest, "GetPushMirrorByID", "Mirror feature is disabled")
+		ctx.Error(http.StatusBadRequest, "GetPushMirrorByRemoteName", "Mirror feature is disabled")
 		return
 	}
 
 	mirrorName := ctx.Params(":name")
-	// Get push mirror of a specific repo by ID
+	// Get push mirror of a specific repo by remoteName
 	pushMirror, err := repo_model.GetPushMirrorByRepoIDAndName(ctx.Repo.Repository.ID, mirrorName)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "GetPushMirrorByID", err)
+		ctx.Error(http.StatusBadRequest, "GetPushMirrorByRemoteName", err)
 		return
 	}
 
@@ -267,11 +267,11 @@ func AddPushMirror(ctx *context.APIContext) {
 	CreatePushMirror(ctx, pushMirror)
 }
 
-// DeletePushMirrorByID deletes a push mirror from a repository by ID
-func DeletePushMirrorByID(ctx *context.APIContext) {
+// DeletePushMirrorByRemoteName deletes a push mirror from a repository by remoteName
+func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/push_mirrors/{name} repository repoDeletePushMirror
 	// ---
-	// summary: deletes a push mirror from a repository by ID
+	// summary: deletes a push mirror from a repository by remoteName
 	// produces:
 	// - application/json
 	// parameters:

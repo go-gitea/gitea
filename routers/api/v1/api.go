@@ -980,7 +980,7 @@ func Routes() *web.Route {
 					m.Combo("").Get(repo.ListPushMirrors).
 						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
 					m.Combo("/{name}").
-						Delete(repo.DeletePushMirrorByID).
+						Delete(repo.DeletePushMirrorByRemoteName).
 						Get(repo.GetPushMirrorByName)
 				}, reqAdmin())
 
