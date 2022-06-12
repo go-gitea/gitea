@@ -34,14 +34,11 @@ var (
 	GitExecutable = "git"
 
 	// DefaultContext is the default context to run git commands in
-	// will be overwritten by InitWithConfigSync with HammerContext
+	// will be overwritten by InitXxx with HammerContext
 	DefaultContext = context.Background()
 
 	// SupportProcReceive version >= 2.29.0
 	SupportProcReceive bool
-
-	// initMutex is used to avoid Golang's data race error. see the comments below.
-	initMutex sync.Mutex
 
 	gitVersion *version.Version
 )
@@ -131,15 +128,6 @@ func VersionInfo() string {
 	return fmt.Sprintf(format, args...)
 }
 
-// InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
-// This method doesn't change anything to filesystem
-func InitSimple(ctx context.Context) error {
-	initMutex.Lock()
-	defer initMutex.Unlock()
-
-	return initSimpleInternal(ctx)
-}
-
 // HomeDir is the home dir for git to store the global config file used by Gitea internally
 func HomeDir() string {
 	if setting.RepoRootPath == "" {
@@ -153,11 +141,9 @@ func HomeDir() string {
 	return setting.RepoRootPath
 }
 
-func initSimpleInternal(ctx context.Context) error {
-	// at the moment, when running integration tests, the git.InitXxx would be called twice.
-	// one is called by the GlobalInitInstalled, one is called by TestMain.
-	// so the init functions should be protected by a mutex to avoid Golang's data race error.
-
+// InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
+// This method doesn't change anything to filesystem. At the moment, it is only used by "git serv" sub-command, no data-race
+func InitSimple(ctx context.Context) error {
 	DefaultContext = ctx
 
 	if setting.Git.Timeout.Default > 0 {
@@ -174,33 +160,45 @@ func initSimpleInternal(ctx context.Context) error {
 	return nil
 }
 
-// InitWithConfigSync initializes git module. This method may create directories or write files into filesystem
-func InitWithConfigSync(ctx context.Context) error {
-	initMutex.Lock()
-	defer initMutex.Unlock()
+var initOnce sync.Once
 
-	err := initSimpleInternal(ctx)
+// InitOnceWithSync initializes git module with version check and change global variables, sync gitconfig.
+// This method will update the global variables ONLY ONCE (just like git.CheckLFSVersion -- which is not ideal too),
+// otherwise there will be data-race problem at the moment.
+func InitOnceWithSync(ctx context.Context) (err error) {
+	initOnce.Do(func() {
+		err = InitSimple(ctx)
+		if err != nil {
+			return
+		}
+
+		// Since git wire protocol has been released from git v2.18
+		if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
+			globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
+		}
+
+		// By default partial clones are disabled, enable them from git v2.22
+		if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+			globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
+		}
+
+		// Explicitly disable credential helper, otherwise Git credentials might leak
+		if CheckGitVersionAtLeast("2.9") == nil {
+			globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
+		}
+
+		SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
+	})
 	if err != nil {
 		return err
 	}
+	return syncGitConfig()
+}
 
-	if err = os.MkdirAll(setting.RepoRootPath, os.ModePerm); err != nil {
+// syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
+func syncGitConfig() (err error) {
+	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
 		return fmt.Errorf("unable to create directory %s, err: %w", setting.RepoRootPath, err)
-	}
-
-	if CheckGitVersionAtLeast("2.9") == nil {
-		// Explicitly disable credential helper, otherwise Git credentials might leak
-		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
-	}
-
-	// Since git wire protocol has been released from git v2.18
-	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
-		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
-	}
-
-	// By default partial clones are disabled, enable them from git v2.22
-	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
@@ -235,17 +233,15 @@ func InitWithConfigSync(ctx context.Context) error {
 		}
 	}
 
-	if CheckGitVersionAtLeast("2.29") == nil {
+	if SupportProcReceive {
 		// set support for AGit flow
 		if err := configAddNonExist("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
-		SupportProcReceive = true
 	} else {
 		if err := configUnsetAll("receive.procReceiveRefs", "refs/for"); err != nil {
 			return err
 		}
-		SupportProcReceive = false
 	}
 
 	if runtime.GOOS == "windows" {

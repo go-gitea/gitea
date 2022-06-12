@@ -128,7 +128,7 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tpl, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+			ctx.RenderWithErr(ctx.Tr("form.url_error", addrErr.Host), tpl, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tpl, form)
@@ -139,11 +139,11 @@ func handleMigrateRemoteAddrError(ctx *context.Context, err error, tpl base.TplN
 			ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_local_path"), tpl, form)
 		default:
 			log.Error("Error whilst updating url: %v", err)
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+			ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 		}
 	} else {
 		log.Error("Error whilst updating url: %v", err)
-		ctx.RenderWithErr(ctx.Tr("form.url_error"), tpl, form)
+		ctx.RenderWithErr(ctx.Tr("form.url_error", "unknown"), tpl, form)
 	}
 }
 
