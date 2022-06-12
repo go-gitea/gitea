@@ -19,12 +19,6 @@ import (
 // ErrMirrorNotExist mirror does not exist error
 var ErrMirrorNotExist = errors.New("Mirror does not exist")
 
-// RemoteMirrorer defines base methods for pull/push mirrors.
-type RemoteMirrorer interface {
-	GetRepository() *Repository
-	GetRemoteName() string
-}
-
 // Mirror represents mirror information of a repository.
 type Mirror struct {
 	ID          int64       `xorm:"pk autoincr"`
@@ -123,8 +117,8 @@ func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
 }
 
 // InsertMirror inserts a mirror to database
-func InsertMirror(mirror *Mirror) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(mirror)
+func InsertMirror(ctx context.Context, mirror *Mirror) error {
+	_, err := db.GetEngine(ctx).Insert(mirror)
 	return err
 }
 
@@ -167,4 +161,13 @@ func (repos MirrorRepositoryList) loadAttributes(ctx context.Context) error {
 // LoadAttributes loads the attributes for the given MirrorRepositoryList
 func (repos MirrorRepositoryList) LoadAttributes() error {
 	return repos.loadAttributes(db.DefaultContext)
+}
+
+// GetUserMirrorRepositories returns a list of mirror repositories of given user.
+func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
+	repos := make([]*Repository, 0, 10)
+	return repos, db.GetEngine(db.DefaultContext).
+		Where("owner_id = ?", userID).
+		And("is_mirror = ?", true).
+		Find(&repos)
 }

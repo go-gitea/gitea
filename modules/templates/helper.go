@@ -18,6 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
@@ -32,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
@@ -98,18 +100,19 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"Safe":          Safe,
-		"SafeJS":        SafeJS,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
-		"FileSize":      base.FileSize,
-		"PrettyNumber":  base.PrettyNumber,
-		"Subtract":      base.Subtract,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
+		"Safe":           Safe,
+		"SafeJS":         SafeJS,
+		"JSEscape":       JSEscape,
+		"Str2html":       Str2html,
+		"TimeSince":      timeutil.TimeSince,
+		"TimeSinceUnix":  timeutil.TimeSinceUnix,
+		"RawTimeSince":   timeutil.RawTimeSince,
+		"FileSize":       base.FileSize,
+		"PrettyNumber":   base.PrettyNumber,
+		"JsPrettyNumber": JsPrettyNumber,
+		"Subtract":       base.Subtract,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
 		"Add": func(a ...int) int {
 			sum := 0
 			for _, val := range a {
@@ -392,6 +395,66 @@ func NewFuncMap() []template.FuncMap {
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
 		"DotEscape":   DotEscape,
+		"Iterate": func(arg interface{}) (items []uint64) {
+			count := uint64(0)
+			switch val := arg.(type) {
+			case uint64:
+				count = val
+			case *uint64:
+				count = *val
+			case int64:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int64:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case int:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint:
+				count = uint64(val)
+			case *uint:
+				count = uint64(*val)
+			case int32:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int32:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint32:
+				count = uint64(val)
+			case *uint32:
+				count = uint64(*val)
+			case string:
+				cnt, _ := strconv.ParseInt(val, 10, 64)
+				if cnt < 0 {
+					cnt = 0
+				}
+				count = uint64(cnt)
+			}
+			if count <= 0 {
+				return items
+			}
+			for i := uint64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
 	}}
 }
 
@@ -912,21 +975,44 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	a := remoteAddress{}
-
-	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
-	if err != nil {
-		log.Error("GetRemoteAddress %v", err)
+	if !m.IsMirror {
 		return a
 	}
 
-	if u.User != nil {
-		a.Username = u.User.Username()
-		a.Password, _ = u.User.Password()
+	remoteURL := m.OriginalURL
+	if remoteURL == "" {
+		var err error
+		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
+		if err != nil {
+			log.Error("GetRemoteURL %v", err)
+			return a
+		}
 	}
-	u.User = nil
+
+	u, err := giturl.Parse(remoteURL)
+	if err != nil {
+		log.Error("giturl.Parse %v", err)
+		return a
+	}
+
+	if u.Scheme != "ssh" && u.Scheme != "file" {
+		if u.User != nil {
+			a.Username = u.User.Username()
+			a.Password, _ = u.User.Password()
+		}
+		u.User = nil
+	}
 	a.Address = u.String()
 
 	return a
+}
+
+// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
+// JS will replace the number with locale-specific separators, based on the user's selected language
+func JsPrettyNumber(i interface{}) template.HTML {
+	num := util.NumberIntoInt64(i)
+
+	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
 }

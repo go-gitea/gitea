@@ -116,7 +116,7 @@ func HasDeployKey(keyID, repoID int64) bool {
 
 // AddDeployKey add new deploy key to database and authorized_keys file.
 func AddDeployKey(repoID int64, name, content string, readOnly bool) (*DeployKey, error) {
-	fingerprint, err := calcFingerprint(content)
+	fingerprint, err := CalcFingerprint(content)
 	if err != nil {
 		return nil, err
 	}
@@ -188,6 +188,13 @@ func GetDeployKeyByRepo(ctx context.Context, keyID, repoID int64) (*DeployKey, e
 		return nil, ErrDeployKeyNotExist{0, keyID, repoID}
 	}
 	return key, nil
+}
+
+// IsDeployKeyExistByKeyID return true if there is at least one deploykey with the key id
+func IsDeployKeyExistByKeyID(ctx context.Context, keyID int64) (bool, error) {
+	return db.GetEngine(ctx).
+		Where("key_id = ?", keyID).
+		Get(new(DeployKey))
 }
 
 // UpdateDeployKeyCols updates deploy key information in the specified columns.

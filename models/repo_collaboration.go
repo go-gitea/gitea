@@ -25,9 +25,8 @@ func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 		RepoID: repo.ID,
 		UserID: u.ID,
 	}
-	e := db.GetEngine(ctx)
 
-	has, err := e.Get(collaboration)
+	has, err := db.GetByBean(ctx, collaboration)
 	if err != nil {
 		return err
 	} else if has {
@@ -35,7 +34,7 @@ func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_m
 	}
 	collaboration.Mode = perm.AccessModeWrite
 
-	if _, err = e.InsertOne(collaboration); err != nil {
+	if err = db.Insert(ctx, collaboration); err != nil {
 		return err
 	}
 

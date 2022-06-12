@@ -17,6 +17,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -130,7 +131,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	// find repos user can access (for issue search)
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -176,8 +177,8 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.TeamID = team.ID
 	}
 
-	repoCond := models.SearchRepositoryCondition(opts)
-	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	repoCond := repo_model.SearchRepositoryCondition(opts)
+	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
 		return
