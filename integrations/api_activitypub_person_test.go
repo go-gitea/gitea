@@ -75,7 +75,6 @@ func TestActivityPubPersonInbox(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		appURL := setting.AppURL
 		setting.Federation.Enabled = true
-		setting.Database.LogSQL = true
 		setting.AppURL = srv.URL
 		defer func() {
 			setting.Federation.Enabled = false
