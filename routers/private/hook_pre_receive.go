@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
@@ -40,7 +41,7 @@ type preReceiveContext struct {
 	canWriteCode        bool
 	checkedCanWriteCode bool
 
-	protectedTags    []*models.ProtectedTag
+	protectedTags    []*git_model.ProtectedTag
 	gotProtectedTags bool
 
 	env []string
@@ -155,7 +156,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
+	protectBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -370,7 +371,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = models.GetProtectedTags(ctx.Repo.Repository.ID)
+		ctx.protectedTags, err = git_model.GetProtectedTags(ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -381,7 +382,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 		ctx.gotProtectedTags = true
 	}
 
-	isAllowed, err := models.IsUserAllowedToControlTag(ctx.protectedTags, tagName, ctx.opts.UserID)
+	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx.protectedTags, tagName, ctx.opts.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),

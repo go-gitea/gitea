@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package git
 
 import (
 	"context"
@@ -129,10 +129,11 @@ func IsUserMergeWhitelisted(ctx context.Context, protectBranch *ProtectedBranch,
 
 // IsUserOfficialReviewer check if user is official reviewer for the branch (counts towards required approvals)
 func IsUserOfficialReviewer(protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
-	return isUserOfficialReviewer(db.DefaultContext, protectBranch, user)
+	return IsUserOfficialReviewerCtx(db.DefaultContext, protectBranch, user)
 }
 
-func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
+// IsUserOfficialReviewerCtx check if user is official reviewer for the branch (counts towards required approvals)
+func IsUserOfficialReviewerCtx(ctx context.Context, protectBranch *ProtectedBranch, user *user_model.User) (bool, error) {
 	repo, err := repo_model.GetRepositoryByIDCtx(ctx, protectBranch.RepoID)
 	if err != nil {
 		return false, err
@@ -157,73 +158,6 @@ func isUserOfficialReviewer(ctx context.Context, protectBranch *ProtectedBranch,
 	}
 
 	return inTeam, nil
-}
-
-// HasEnoughApprovals returns true if pr has enough granted approvals.
-func (protectBranch *ProtectedBranch) HasEnoughApprovals(ctx context.Context, pr *PullRequest) bool {
-	if protectBranch.RequiredApprovals == 0 {
-		return true
-	}
-	return protectBranch.GetGrantedApprovalsCount(ctx, pr) >= protectBranch.RequiredApprovals
-}
-
-// GetGrantedApprovalsCount returns the number of granted approvals for pr. A granted approval must be authored by a user in an approval whitelist.
-func (protectBranch *ProtectedBranch) GetGrantedApprovalsCount(ctx context.Context, pr *PullRequest) int64 {
-	sess := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeApprove).
-		And("official = ?", true).
-		And("dismissed = ?", false)
-	if protectBranch.DismissStaleApprovals {
-		sess = sess.And("stale = ?", false)
-	}
-	approvals, err := sess.Count(new(Review))
-	if err != nil {
-		log.Error("GetGrantedApprovalsCount: %v", err)
-		return 0
-	}
-
-	return approvals
-}
-
-// MergeBlockedByRejectedReview returns true if merge is blocked by rejected reviews
-func (protectBranch *ProtectedBranch) MergeBlockedByRejectedReview(ctx context.Context, pr *PullRequest) bool {
-	if !protectBranch.BlockOnRejectedReviews {
-		return false
-	}
-	rejectExist, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeReject).
-		And("official = ?", true).
-		And("dismissed = ?", false).
-		Exist(new(Review))
-	if err != nil {
-		log.Error("MergeBlockedByRejectedReview: %v", err)
-		return true
-	}
-
-	return rejectExist
-}
-
-// MergeBlockedByOfficialReviewRequests block merge because of some review request to official reviewer
-// of from official review
-func (protectBranch *ProtectedBranch) MergeBlockedByOfficialReviewRequests(ctx context.Context, pr *PullRequest) bool {
-	if !protectBranch.BlockOnOfficialReviewRequests {
-		return false
-	}
-	has, err := db.GetEngine(ctx).Where("issue_id = ?", pr.IssueID).
-		And("type = ?", ReviewTypeRequest).
-		And("official = ?", true).
-		Exist(new(Review))
-	if err != nil {
-		log.Error("MergeBlockedByOfficialReviewRequests: %v", err)
-		return true
-	}
-
-	return has
-}
-
-// MergeBlockedByOutdatedBranch returns true if merge is blocked by an outdated head branch
-func (protectBranch *ProtectedBranch) MergeBlockedByOutdatedBranch(pr *PullRequest) bool {
-	return protectBranch.BlockOnOutdatedBranch && pr.CommitsBehind > 0
 }
 
 // GetProtectedFilePatterns parses a semicolon separated list of protected file patterns and returns a glob.Glob slice
@@ -252,13 +186,13 @@ func getFilePatterns(filePatterns string) []glob.Glob {
 }
 
 // MergeBlockedByProtectedFiles returns true if merge is blocked by protected files change
-func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(pr *PullRequest) bool {
+func (protectBranch *ProtectedBranch) MergeBlockedByProtectedFiles(changedProtectedFiles []string) bool {
 	glob := protectBranch.GetProtectedFilePatterns()
 	if len(glob) == 0 {
 		return false
 	}
 
-	return len(pr.ChangedProtectedFiles) > 0
+	return len(changedProtectedFiles) > 0
 }
 
 // IsProtectedFile return if path is protected
@@ -642,7 +576,7 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 	}
 
 	// 3. Update all not merged pull request base branch name
-	_, err = sess.Table(new(PullRequest)).Where("base_repo_id=? AND base_branch=? AND has_merged=?",
+	_, err = sess.Table("pull_request").Where("base_repo_id=? AND base_branch=? AND has_merged=?",
 		repo.ID, from, false).
 		Update(map[string]interface{}{"base_branch": to})
 	if err != nil {
