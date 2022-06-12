@@ -1,5 +1,5 @@
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch,
+  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch, prettyNumber,
 } from './utils.js';
 
 test('basename', () => {
@@ -85,7 +85,6 @@ test('parseIssueHref', () => {
   expect(parseIssueHref('')).toEqual({owner: undefined, repo: undefined, type: undefined, index: undefined});
 });
 
-
 test('strSubMatch', () => {
   expect(strSubMatch('abc', '')).toEqual(['abc']);
   expect(strSubMatch('abc', 'a')).toEqual(['', 'a', 'bc']);
@@ -97,4 +96,15 @@ test('strSubMatch', () => {
 
   expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
   expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
+});
+
+test('prettyNumber', () => {
+  expect(prettyNumber()).toEqual('');
+  expect(prettyNumber(null)).toEqual('');
+  expect(prettyNumber(undefined)).toEqual('');
+  expect(prettyNumber('1200')).toEqual('');
+  expect(prettyNumber(12345678, 'en-US')).toEqual('12,345,678');
+  expect(prettyNumber(12345678, 'de-DE')).toEqual('12.345.678');
+  expect(prettyNumber(12345678, 'be-BE')).toEqual('12 345 678');
+  expect(prettyNumber(12345678, 'hi-IN')).toEqual('1,23,45,678');
 });
