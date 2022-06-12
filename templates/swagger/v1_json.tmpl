@@ -26,7 +26,7 @@
     "/activitypub/user/{username}": {
       "get": {
         "produces": [
-          "application/json"
+          "application/activity+json"
         ],
         "tags": [
           "activitypub"
@@ -52,7 +52,33 @@
     "/activitypub/user/{username}/inbox": {
       "post": {
         "produces": [
-          "application/json"
+          "application/activity+json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Send to the inbox",
+        "operationId": "activitypubPersonInbox",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/activitypub/user/{username}/outbox": {
+      "post": {
+        "produces": [
+          "application/activity+json"
         ],
         "tags": [
           "activitypub"

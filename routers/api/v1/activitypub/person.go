@@ -5,12 +5,15 @@
 package activitypub
 
 import (
+	"io"
 	"net/http"
 	"strings"
 
+	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -23,7 +26,7 @@ func Person(ctx *context.APIContext) {
 	// ---
 	// summary: Returns the person
 	// produces:
-	// - application/json
+	// - application/activity+json
 	// parameters:
 	// - name: username
 	//   in: path
@@ -88,7 +91,7 @@ func PersonInbox(ctx *context.APIContext) {
 	// ---
 	// summary: Send to the inbox
 	// produces:
-	// - application/json
+	// - application/activity+json
 	// parameters:
 	// - name: username
 	//   in: path
@@ -96,9 +99,81 @@ func PersonInbox(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
+	body, err := io.ReadAll(ctx.Req.Body)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Error reading request body", err)
+	}
+
+	var activity ap.Activity
+	activity.UnmarshalJSON(body)
+	/* if activity.Type == ap.ExampleType {
+
+	}*/
+	log.Warn("ActivityStreams type not supported", activity)
+
 	ctx.Status(http.StatusNoContent)
+}
+
+// PersonOutbox function
+func PersonOutbox(ctx *context.APIContext) {
+	// swagger:operation GET /activitypub/user/{username}/outbox activitypub activitypubPersonOutbox
+	// ---
+	// summary: Returns the outbox
+	// produces:
+	// - application/activity+json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityPub"
+
+	user := user.GetUserByParamsName(ctx, "username")
+	if user == nil {
+		return
+	}
+	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+
+	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
+		RequestedUser:   user,
+		Actor:           user,
+		IncludePrivate:  false,
+		OnlyPerformedBy: true,
+		IncludeDeleted:  false,
+		Date:            ctx.FormString("date"),
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Couldn't fetch outbox", err)
+	}
+
+	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
+	for _, action := range feed {
+		/*if action.OpType == ExampleType {
+			activity := ap.ExampleNew()
+			outbox.OrderedItems.Append(activity)
+		}*/
+		log.Debug(action.Content)
+	}
+	outbox.TotalItems = uint(len(outbox.OrderedItems))
+
+	binary, err := outbox.MarshalJSON()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+	}
+
+	var jsonmap map[string]interface{}
+	err = json.Unmarshal(binary, &jsonmap)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
+	}
+
+	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
+
+	ctx.JSON(http.StatusOK, jsonmap)
 }
