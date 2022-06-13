@@ -26,84 +26,27 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-func assertEqual(t *testing.T, s1 string, s2 template.HTML) {
-	if s1 != string(s2) {
-		t.Errorf("Did not receive expected results:\nExpected: %s\nActual:   %s", s1, s2)
+func assertEqual(t *testing.T, expected string, actual template.HTML) {
+	if expected != string(actual) {
+		t.Errorf("Did not receive expected results:\nExpected: %s\nActual:   %s", expected, actual)
 	}
 }
 
 func TestDiffToHTML(t *testing.T) {
 	setting.Cfg = ini.Empty()
-	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineAdd).Content)
 
-	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML("", []dmp.Diff{
+	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
 	}, DiffLineDel).Content)
-
-	assertEqual(t, "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil</span><span class=\"added-code\"> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)</span></span> <span class=\"p\">{</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "<span class=\"k\">if</span> <span class=\"p\">!</span><span class=\"nx\">nohl</span> <span class=\"o\">&amp;&amp;</span> <span class=\""},
-		{Type: dmp.DiffInsert, Text: "p\">(</span><span class=\""},
-		{Type: dmp.DiffEqual, Text: "nx\">lexer</span> <span class=\"o\">!=</span> <span class=\"kc\">nil"},
-		{Type: dmp.DiffInsert, Text: "</span> <span class=\"o\">||</span> <span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nx\">GuessLanguage</span><span class=\"p\">)"},
-		{Type: dmp.DiffEqual, Text: "</span> <span class=\"p\">{</span>"},
-	}, DiffLineAdd).Content)
-
-	assertEqual(t, "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"removed-code\"><span class=\"nx\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\"</span></span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">BaseURL</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Owner</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Repo</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)</span></span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">tagURL</span> <span class=\"o\">:=</span> <span class=\"n"},
-		{Type: dmp.DiffDelete, Text: "x\">fmt</span><span class=\"p\">.</span><span class=\"nf\">Sprintf</span><span class=\"p\">(</span><span class=\"s\">&#34;## [%s](%s/%s/%s/%s?q=&amp;type=all&amp;state=closed&amp;milestone=%d) - %s&#34;</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone\""},
-		{Type: dmp.DiffInsert, Text: "f\">getGiteaTagURL</span><span class=\"p\">(</span><span class=\"nx\">client"},
-		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">BaseURL</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Owner</span><span class=\"p\">,</span> <span class=\"nx\">ge</span><span class=\"p\">.</span><span class=\"nx\">Repo</span><span class=\"p\">,</span> <span class=\"nx\">"},
-		{Type: dmp.DiffDelete, Text: "from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID</span><span class=\"p\">,</span> <span class=\"nx\">time</span><span class=\"p\">.</span><span class=\"nf\">Now</span><span class=\"p\">(</span><span class=\"p\">)</span><span class=\"p\">.</span><span class=\"nf\">Format</span><span class=\"p\">(</span><span class=\"s\">&#34;2006-01-02&#34;</span><span class=\"p\">)"},
-		{Type: dmp.DiffInsert, Text: "ge</span><span class=\"p\">.</span><span class=\"nx\">Milestone</span><span class=\"p\">,</span> <span class=\"nx\">from</span><span class=\"p\">,</span> <span class=\"nx\">milestoneID"},
-		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">)</span>"},
-	}, DiffLineDel).Content)
-
-	assertEqual(t, "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"removed-code\"><span class=\"nx\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "<span class=\"nx\">r</span><span class=\"p\">.</span><span class=\"nf\">WrapperRenderer</span><span class=\"p\">(</span><span class=\"nx\">w</span><span class=\"p\">,</span> <span class=\"nx\">"},
-		{Type: dmp.DiffDelete, Text: "language</span><span "},
-		{Type: dmp.DiffEqual, Text: "c"},
-		{Type: dmp.DiffDelete, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
-		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
-	}, DiffLineDel).Content)
-
-	assertEqual(t, "<span class=\"added-code\">language</span><span class=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs</span></span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffInsert, Text: "language</span><span "},
-		{Type: dmp.DiffEqual, Text: "c"},
-		{Type: dmp.DiffInsert, Text: "lass=\"p\">,</span> <span class=\"kc\">true</span><span class=\"p\">,</span> <span class=\"nx\">attrs"},
-		{Type: dmp.DiffEqual, Text: "</span><span class=\"p\">,</span> <span class=\"kc\">false</span><span class=\"p\">)</span>"},
-	}, DiffLineAdd).Content)
-
-	assertEqual(t, "<span class=\"k\">print</span><span class=\"added-code\"><span class=\"p\">(</span></span><span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span><span class=\"added-code\"><span class=\"p\">)</span></span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "<span class=\"k\">print</span>"},
-		{Type: dmp.DiffInsert, Text: "<span"},
-		{Type: dmp.DiffEqual, Text: " "},
-		{Type: dmp.DiffInsert, Text: "class=\"p\">(</span>"},
-		{Type: dmp.DiffEqual, Text: "<span class=\"sa\"></span><span class=\"s2\">&#34;</span><span class=\"s2\">// </span><span class=\"s2\">&#34;</span><span class=\"p\">,</span> <span class=\"n\">sys</span><span class=\"o\">.</span><span class=\"n\">argv</span>"},
-		{Type: dmp.DiffInsert, Text: "<span class=\"p\">)</span>"},
-	}, DiffLineAdd).Content)
-
-	assertEqual(t, "sh <span class=\"added-code\">&#39;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39;</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "sh &#3"},
-		{Type: dmp.DiffDelete, Text: "4;useradd -u 111 jenkins&#34"},
-		{Type: dmp.DiffInsert, Text: "9;useradd -u $(stat -c &#34;%u&#34; .gitignore) jenkins&#39"},
-		{Type: dmp.DiffEqual, Text: ";"},
-	}, DiffLineAdd).Content)
-
-	assertEqual(t, "<span class=\"x\">							&lt;h<span class=\"added-code\">4 class=&#34;release-list-title df ac&#34;</span>&gt;</span>", diffToHTML("", []dmp.Diff{
-		{Type: dmp.DiffEqual, Text: "<span class=\"x\">							&lt;h"},
-		{Type: dmp.DiffInsert, Text: "4 class=&#"},
-		{Type: dmp.DiffEqual, Text: "3"},
-		{Type: dmp.DiffInsert, Text: "4;release-list-title df ac&#34;"},
-		{Type: dmp.DiffEqual, Text: "&gt;</span>"},
-	}, DiffLineAdd).Content)
 }
 
 func TestParsePatch_skipTo(t *testing.T) {
@@ -592,7 +535,6 @@ index 0000000..6bb8f39
 	if err != nil {
 		t.Errorf("ParsePatch failed: %s", err)
 	}
-	println(result)
 
 	diff2 := `diff --git "a/A \\ B" "b/A \\ B"
 --- "a/A \\ B"
@@ -714,12 +656,22 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 
 func TestDiffToHTML_14231(t *testing.T) {
 	setting.Cfg = ini.Empty()
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code("main.v", "", "		run()\n"), highlight.Code("main.v", "", "		run(db)\n"), true)
+
+	hcd := NewHighlightCodeDiff()
+
+	highlightCodeA := highlight.Code("main.v", "", "		run()\n")
+	highlightCodeB := highlight.Code("main.v", "", "		run(db)\n")
+	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
+	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
+
+	diffRecord := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span></span><span class="o">)</span>
+	hcd.recoverFromPlaceholders(diffRecord)
+
+	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span><span class="o">)</span></span>
 </span></span>`
-	output := diffToHTML("main.v", diffRecord, DiffLineAdd)
+	output := diffToHTML(hcd, diffRecord, DiffLineAdd)
 
 	assertEqual(t, expected, output.Content)
 }

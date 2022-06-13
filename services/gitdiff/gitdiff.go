@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -40,7 +39,7 @@ import (
 	"golang.org/x/text/transform"
 )
 
-// DiffLineType represents the type of a DiffLine.
+// DiffLineType represents the type of DiffLine.
 type DiffLineType uint8
 
 // DiffLineType possible values.
@@ -51,7 +50,7 @@ const (
 	DiffLineSection
 )
 
-// DiffFileType represents the type of a DiffFile.
+// DiffFileType represents the type of DiffFile.
 type DiffFileType uint8
 
 // DiffFileType possible values.
@@ -100,12 +99,12 @@ type DiffLineSectionInfo struct {
 // BlobExcerptChunkSize represent max lines of excerpt
 const BlobExcerptChunkSize = 20
 
-// GetType returns the type of a DiffLine.
+// GetType returns the type of DiffLine.
 func (d *DiffLine) GetType() int {
 	return int(d.Type)
 }
 
-// CanComment returns whether or not a line can get commented
+// CanComment returns whether a line can get commented
 func (d *DiffLine) CanComment() bool {
 	return len(d.Comments) == 0 && d.Type != DiffLineSection
 }
@@ -191,287 +190,14 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-var (
-	unfinishedtagRegex = regexp.MustCompile(`<[^>]*$`)
-	trailingSpanRegex  = regexp.MustCompile(`<span\s*[[:alpha:]="]*?[>]?$`)
-	entityRegex        = regexp.MustCompile(`&[#]*?[0-9[:alpha:]]*$`)
-)
-
-// shouldWriteInline represents combinations where we manually write inline changes
-func shouldWriteInline(diff diffmatchpatch.Diff, lineType DiffLineType) bool {
-	if true &&
-		diff.Type == diffmatchpatch.DiffEqual ||
-		diff.Type == diffmatchpatch.DiffInsert && lineType == DiffLineAdd ||
-		diff.Type == diffmatchpatch.DiffDelete && lineType == DiffLineDel {
-		return true
-	}
-	return false
-}
-
-func fixupBrokenSpans(diffs []diffmatchpatch.Diff) []diffmatchpatch.Diff {
-	// Create a new array to store our fixed up blocks
-	fixedup := make([]diffmatchpatch.Diff, 0, len(diffs))
-
-	// semantically label some numbers
-	const insert, delete, equal = 0, 1, 2
-
-	// record the positions of the last type of each block in the fixedup blocks
-	last := []int{-1, -1, -1}
-	operation := []diffmatchpatch.Operation{diffmatchpatch.DiffInsert, diffmatchpatch.DiffDelete, diffmatchpatch.DiffEqual}
-
-	// create a writer for insert and deletes
-	toWrite := []strings.Builder{
-		{},
-		{},
-	}
-
-	// make some flags for insert and delete
-	unfinishedTag := []bool{false, false}
-	unfinishedEnt := []bool{false, false}
-
-	// store stores the provided text in the writer for the typ
-	store := func(text string, typ int) {
-		(&(toWrite[typ])).WriteString(text)
-	}
-
-	// hasStored returns true if there is stored content
-	hasStored := func(typ int) bool {
-		return (&toWrite[typ]).Len() > 0
-	}
-
-	// stored will return that content
-	stored := func(typ int) string {
-		return (&toWrite[typ]).String()
-	}
-
-	// empty will empty the stored content
-	empty := func(typ int) {
-		(&toWrite[typ]).Reset()
-	}
-
-	// pop will remove the stored content appending to a diff block for that typ
-	pop := func(typ int, fixedup []diffmatchpatch.Diff) []diffmatchpatch.Diff {
-		if hasStored(typ) {
-			if last[typ] > last[equal] {
-				fixedup[last[typ]].Text += stored(typ)
-			} else {
-				fixedup = append(fixedup, diffmatchpatch.Diff{
-					Type: operation[typ],
-					Text: stored(typ),
-				})
-			}
-			empty(typ)
-		}
-		return fixedup
-	}
-
-	// Now we walk the provided diffs and check the type of each block in turn
-	for _, diff := range diffs {
-
-		typ := delete // flag for handling insert or delete typs
-		switch diff.Type {
-		case diffmatchpatch.DiffEqual:
-			// First check if there is anything stored
-			if hasStored(insert) || hasStored(delete) {
-				// There are two reasons for storing content:
-				// 1. Unfinished Entity <- Could be more efficient here by not doing this if we're looking for a tag
-				if unfinishedEnt[insert] || unfinishedEnt[delete] {
-					// we look for a ';' to finish an entity
-					idx := strings.IndexRune(diff.Text, ';')
-					if idx >= 0 {
-						// if we find a ';' store the preceding content to both insert and delete
-						store(diff.Text[:idx+1], insert)
-						store(diff.Text[:idx+1], delete)
-
-						// and remove it from this block
-						diff.Text = diff.Text[idx+1:]
-
-						// reset the ent flags
-						unfinishedEnt[insert] = false
-						unfinishedEnt[delete] = false
-					} else {
-						// otherwise store it all on insert and delete
-						store(diff.Text, insert)
-						store(diff.Text, delete)
-						// and empty this block
-						diff.Text = ""
-					}
-				}
-				// 2. Unfinished Tag
-				if unfinishedTag[insert] || unfinishedTag[delete] {
-					// we look for a '>' to finish a tag
-					idx := strings.IndexRune(diff.Text, '>')
-					if idx >= 0 {
-						store(diff.Text[:idx+1], insert)
-						store(diff.Text[:idx+1], delete)
-						diff.Text = diff.Text[idx+1:]
-						unfinishedTag[insert] = false
-						unfinishedTag[delete] = false
-					} else {
-						store(diff.Text, insert)
-						store(diff.Text, delete)
-						diff.Text = ""
-					}
-				}
-
-				// If we've completed the required tag/entities
-				if !(unfinishedTag[insert] || unfinishedTag[delete] || unfinishedEnt[insert] || unfinishedEnt[delete]) {
-					// pop off the stack
-					fixedup = pop(insert, fixedup)
-					fixedup = pop(delete, fixedup)
-				}
-
-				// If that has left this diff block empty then shortcut
-				if len(diff.Text) == 0 {
-					continue
-				}
-			}
-
-			// check if this block ends in an unfinished tag?
-			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
-			if idx != nil {
-				unfinishedTag[insert] = true
-				unfinishedTag[delete] = true
-			} else {
-				// otherwise does it end in an unfinished entity?
-				idx = entityRegex.FindStringIndex(diff.Text)
-				if idx != nil {
-					unfinishedEnt[insert] = true
-					unfinishedEnt[delete] = true
-				}
-			}
-
-			// If there is an unfinished component
-			if idx != nil {
-				// Store the fragment
-				store(diff.Text[idx[0]:], insert)
-				store(diff.Text[idx[0]:], delete)
-				// and remove it from this block
-				diff.Text = diff.Text[:idx[0]]
-			}
-
-			// If that hasn't left the block empty
-			if len(diff.Text) > 0 {
-				// store the position of the last equal block and store it in our diffs
-				last[equal] = len(fixedup)
-				fixedup = append(fixedup, diff)
-			}
-			continue
-		case diffmatchpatch.DiffInsert:
-			typ = insert
-			fallthrough
-		case diffmatchpatch.DiffDelete:
-			// First check if there is anything stored for this type
-			if hasStored(typ) {
-				// if there is prepend it to this block, empty the storage and reset our flags
-				diff.Text = stored(typ) + diff.Text
-				empty(typ)
-				unfinishedEnt[typ] = false
-				unfinishedTag[typ] = false
-			}
-
-			// check if this block ends in an unfinished tag
-			idx := unfinishedtagRegex.FindStringIndex(diff.Text)
-			if idx != nil {
-				unfinishedTag[typ] = true
-			} else {
-				// otherwise does it end in an unfinished entity
-				idx = entityRegex.FindStringIndex(diff.Text)
-				if idx != nil {
-					unfinishedEnt[typ] = true
-				}
-			}
-
-			// If there is an unfinished component
-			if idx != nil {
-				// Store the fragment
-				store(diff.Text[idx[0]:], typ)
-				// and remove it from this block
-				diff.Text = diff.Text[:idx[0]]
-			}
-
-			// If that hasn't left the block empty
-			if len(diff.Text) > 0 {
-				// if the last block of this type was after the last equal block
-				if last[typ] > last[equal] {
-					// store this blocks content on that block
-					fixedup[last[typ]].Text += diff.Text
-				} else {
-					// otherwise store the position of the last block of this type and store the block
-					last[typ] = len(fixedup)
-					fixedup = append(fixedup, diff)
-				}
-			}
-			continue
-		}
-	}
-
-	// pop off any remaining stored content
-	fixedup = pop(insert, fixedup)
-	fixedup = pop(delete, fixedup)
-
-	return fixedup
-}
-
-func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineType) DiffInline {
+func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType DiffLineType) DiffInline {
 	buf := bytes.NewBuffer(nil)
-	match := ""
-
-	diffs = fixupBrokenSpans(diffs)
-
-	for _, diff := range diffs {
-		if shouldWriteInline(diff, lineType) {
-			if len(match) > 0 {
-				diff.Text = match + diff.Text
-				match = ""
-			}
-			// Chroma HTML syntax highlighting is done before diffing individual lines in order to maintain consistency.
-			// Since inline changes might split in the middle of a chroma span tag or HTML entity, make we manually put it back together
-			// before writing so we don't try insert added/removed code spans in the middle of one of those
-			// and create broken HTML. This is done by moving incomplete HTML forward until it no longer matches our pattern of
-			// a line ending with an incomplete HTML entity or partial/opening <span>.
-
-			// EX:
-			// diffs[{Type: dmp.DiffDelete, Text: "language</span><span "},
-			// {Type: dmp.DiffEqual, Text: "c"},
-			// {Type: dmp.DiffDelete, Text: "lass="p">}]
-
-			// After first iteration
-			// diffs[{Type: dmp.DiffDelete, Text: "language</span>"}, //write out
-			// {Type: dmp.DiffEqual, Text: "<span c"},
-			// {Type: dmp.DiffDelete, Text: "lass="p">,</span>}]
-
-			// After second iteration
-			// {Type: dmp.DiffEqual, Text: ""}, // write out
-			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
-
-			// Final
-			// {Type: dmp.DiffDelete, Text: "<span class="p">,</span>}]
-			// end up writing <span class="removed-code"><span class="p">,</span></span>
-			// Instead of <span class="removed-code">lass="p",</span></span>
-
-			m := trailingSpanRegex.FindStringSubmatchIndex(diff.Text)
-			if m != nil {
-				match = diff.Text[m[0]:m[1]]
-				diff.Text = strings.TrimSuffix(diff.Text, match)
-			}
-			m = entityRegex.FindStringSubmatchIndex(diff.Text)
-			if m != nil {
-				match = diff.Text[m[0]:m[1]]
-				diff.Text = strings.TrimSuffix(diff.Text, match)
-			}
-			// Print an existing closing span first before opening added/remove-code span so it doesn't unintentionally close it
-			if strings.HasPrefix(diff.Text, "</span>") {
-				buf.WriteString("</span>")
-				diff.Text = strings.TrimPrefix(diff.Text, "</span>")
-			}
-			// If we weren't able to fix it then this should avoid broken HTML by not inserting more spans below
-			// The previous/next diff section will contain the rest of the tag that is missing here
-			if strings.Count(diff.Text, "<") != strings.Count(diff.Text, ">") {
-				buf.WriteString(diff.Text)
-				continue
-			}
+	if hcd != nil {
+		for _, tag := range hcd.lineWrapperTags {
+			buf.WriteString(tag)
 		}
+	}
+	for _, diff := range diffs {
 		switch {
 		case diff.Type == diffmatchpatch.DiffEqual:
 			buf.WriteString(diff.Text)
@@ -483,6 +209,11 @@ func diffToHTML(fileName string, diffs []diffmatchpatch.Diff, lineType DiffLineT
 			buf.Write(removedCodePrefix)
 			buf.WriteString(diff.Text)
 			buf.Write(codeTagSuffix)
+		}
+	}
+	if hcd != nil {
+		for range hcd.lineWrapperTags {
+			buf.WriteString("</span>")
 		}
 	}
 	return DiffInlineWithUnicodeEscape(template.HTML(buf.String()))
@@ -555,6 +286,146 @@ func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
+type HighlightCodeDiff struct {
+	placeholderBegin    rune
+	placeholderMaxCount int
+	placeholderCounter  int
+	placeholderTagMap   map[rune]string
+	tagPlaceholderMap   map[string]rune
+
+	lineWrapperTags []string
+}
+
+func NewHighlightCodeDiff() *HighlightCodeDiff {
+	return &HighlightCodeDiff{
+		placeholderBegin:    rune(0xE000), // Private Use Unicode: U+E000..U+F8FF, BMP(0), 6400
+		placeholderMaxCount: 6400,
+		placeholderTagMap:   map[rune]string{},
+		tagPlaceholderMap:   map[string]rune{},
+	}
+}
+
+func (hcd *HighlightCodeDiff) nextPlaceholder() rune {
+	// TODO: handle placeholder rune conflicts ( case 1: counter reaches placeholderMaxCount,  case 2: there are placeholder runes in code )
+	r := hcd.placeholderBegin + rune(hcd.placeholderCounter%hcd.placeholderMaxCount)
+	hcd.placeholderCounter++
+	hcd.placeholderCounter %= hcd.placeholderMaxCount
+	return r
+}
+
+func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string {
+	var tagStack []string
+	res := strings.Builder{}
+	s := highlightCode
+
+	firstRunForLineTags := hcd.lineWrapperTags == nil
+
+	// the standard chroma highlight HTML is "<span class="line [hl]"><span class="cl"> ... </span></span>"
+	for {
+		// find the next HTML tag
+		pos1 := strings.IndexByte(s, '<')
+		pos2 := strings.IndexByte(s, '>')
+		if pos1 == -1 || pos2 == -1 || pos2 < pos1 {
+			break
+		}
+		tag := s[pos1 : pos2+1]
+
+		// write the content before the tag into result string, and consume the tag in the string
+		res.WriteString(s[:pos1])
+		s = s[pos2+1:]
+
+		// the line wrapper tags should be removed before diff
+		if strings.HasPrefix(tag, `<span class="line`) || strings.HasPrefix(tag, `<span class="cl"`) {
+			if firstRunForLineTags {
+				// if this is the first run for converting, save the line wrapper tags for later use, they should be added back
+				hcd.lineWrapperTags = append(hcd.lineWrapperTags, tag)
+			}
+			s = strings.TrimSuffix(s, "</span>")
+			continue
+		}
+
+		var tagInMap string
+		if tag[1] == '/' {
+			// closed tag
+			if len(tagStack) == 0 {
+				break // error, no open tag but see close tag
+			}
+			// make sure the closed tag in map is related to the open tag, to make the diff algorithm can match the open/closed tags
+			// the closed tag should be "</span><!-- <span the-open> -->" for "<span the-open>"
+			tagInMap = tag + "<!-- " + tagStack[len(tagStack)-1] + "-->"
+			tagStack = tagStack[:len(tagStack)-1]
+		} else {
+			tagInMap = tag
+			tagStack = append(tagStack, tag)
+		}
+		placeholder, ok := hcd.tagPlaceholderMap[tagInMap]
+		if !ok {
+			placeholder = hcd.nextPlaceholder()
+			hcd.tagPlaceholderMap[tagInMap] = placeholder
+			hcd.placeholderTagMap[placeholder] = tagInMap
+		}
+		res.WriteRune(placeholder)
+	}
+	res.WriteString(s)
+	return res.String()
+}
+
+func (hcd *HighlightCodeDiff) recoverOneDiff(lastActiveTag string, diff *diffmatchpatch.Diff) (activeTag string) {
+	sb := strings.Builder{}
+	var tagStack []string
+
+	if lastActiveTag != "" {
+		tagStack = append(tagStack, lastActiveTag)
+		sb.WriteString(lastActiveTag)
+	}
+
+	for _, r := range diff.Text {
+		tag, ok := hcd.placeholderTagMap[r]
+		if !ok {
+			sb.WriteRune(r)
+			continue
+		}
+		var tagToRecover string
+		if tag[1] == '/' {
+			tagToRecover = tag[:strings.IndexByte(tag, '>')+1]
+			if len(tagStack) == 0 {
+				continue // if no open tag, skip the closed tag
+			}
+			tagStack = tagStack[:len(tagStack)-1]
+		} else {
+			tagToRecover = tag
+			tagStack = append(tagStack, tag)
+		}
+		sb.WriteString(tagToRecover)
+	}
+
+	if len(tagStack) > 0 {
+		// at the moment, only one-level (non-nested) tag is supported, aka only the last level is used as active tag for next diff
+		tagStack = tagStack[:len(tagStack)-1]
+		// close all open tags
+		for i := len(tagStack) - 1; i >= 0; i-- {
+			tagToClose := tagStack[i]
+			pos := strings.IndexByte(tagToClose, ' ')
+			if pos == -1 {
+				pos = strings.IndexByte(tagToClose, '>')
+			}
+			if pos != -1 {
+				sb.WriteString("</" + tagToClose[1:pos] + ">")
+			}
+		}
+	}
+
+	diff.Text = sb.String()
+	return activeTag
+}
+
+func (hcd *HighlightCodeDiff) recoverFromPlaceholders(diffs []diffmatchpatch.Diff) {
+	var lastActiveTag string
+	for i := range diffs {
+		lastActiveTag = hcd.recoverOneDiff(lastActiveTag, &diffs[i])
+	}
+}
+
 // GetComputedInlineDiffFor computes inline diff for the given line.
 func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) DiffInline {
 	if setting.Git.DisableDiffHighlight {
@@ -597,10 +468,19 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content)
 	}
 
-	diffRecord := diffMatchPatch.DiffMain(highlight.Code(diffSection.FileName, language, diff1[1:]), highlight.Code(diffSection.FileName, language, diff2[1:]), true)
+	highlightCodeA := highlight.Code(diffSection.FileName, language, diff1[1:])
+	highlightCodeB := highlight.Code(diffSection.FileName, language, diff2[1:])
+
+	hcd := NewHighlightCodeDiff()
+	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
+	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
+
+	diffRecord := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
 	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
 
-	return diffToHTML(diffSection.FileName, diffRecord, diffLine.Type)
+	hcd.recoverFromPlaceholders(diffRecord)
+
+	return diffToHTML(hcd, diffRecord, diffLine.Type)
 }
 
 // DiffFile represents a file diff.
@@ -1290,7 +1170,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 	if char == '"' {
 		fmt.Fscanf(rd, "%q ", &name)
 		if len(name) == 0 {
-			log.Error("Reader has no file name: %v", rd)
+			log.Error("Reader has no file name: reader=%+v", rd)
 			return "", true
 		}
 
@@ -1312,7 +1192,7 @@ func readFileName(rd *strings.Reader) (string, bool) {
 		}
 	}
 	if len(name) < 2 {
-		log.Error("Unable to determine name from reader: %v", rd)
+		log.Error("Unable to determine name from reader: reader=%+v", rd)
 		return "", true
 	}
 	return name[2:], ambiguity
