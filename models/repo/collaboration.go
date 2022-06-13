@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -148,4 +149,24 @@ func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.Access
 	}
 
 	return committer.Commit()
+}
+
+// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
+func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
+		Where("team_repo.repo_id = ?", repo.ID).
+		And("team_unit.`type` = ?", unit.TypeCode).
+		And("team_user.uid = ?", userID).Table("team_user").Exist()
+	if err != nil {
+		return false, err
+	}
+	if teamMember {
+		return true, nil
+	}
+
+	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }

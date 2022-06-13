@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -31,8 +31,8 @@ func RenderNewCodeCommentForm(ctx *context.Context) {
 	if !issue.IsPull {
 		return
 	}
-	currentReview, err := models.GetCurrentReview(ctx, ctx.Doer, issue)
-	if err != nil && !models.IsErrReviewNotExist(err) {
+	currentReview, err := issues_model.GetCurrentReview(ctx, ctx.Doer, issue)
+	if err != nil && !issues_model.IsErrReviewNotExist(err) {
 		ctx.ServerError("GetCurrentReview", err)
 		return
 	}
@@ -107,7 +107,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	action := ctx.FormString("action")
 	commentID := ctx.FormInt64("comment_id")
 
-	comment, err := models.GetCommentByID(ctx, commentID)
+	comment, err := issues_model.GetCommentByID(ctx, commentID)
 	if err != nil {
 		ctx.ServerError("GetIssueByID", err)
 		return
@@ -119,7 +119,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	var permResult bool
-	if permResult, err = models.CanMarkConversation(comment.Issue, ctx.Doer); err != nil {
+	if permResult, err = issues_model.CanMarkConversation(comment.Issue, ctx.Doer); err != nil {
 		ctx.ServerError("CanMarkConversation", err)
 		return
 	}
@@ -134,7 +134,7 @@ func UpdateResolveConversation(ctx *context.Context) {
 	}
 
 	if action == "Resolve" || action == "UnResolve" {
-		err = models.MarkConversation(comment, ctx.Doer, action == "Resolve")
+		err = issues_model.MarkConversation(comment, ctx.Doer, action == "Resolve")
 		if err != nil {
 			ctx.ServerError("MarkConversation", err)
 			return
@@ -153,8 +153,8 @@ func UpdateResolveConversation(ctx *context.Context) {
 	})
 }
 
-func renderConversation(ctx *context.Context, comment *models.Comment) {
-	comments, err := models.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line)
+func renderConversation(ctx *context.Context, comment *issues_model.Comment) {
+	comments, err := issues_model.FetchCodeCommentsByLine(ctx, comment.Issue, ctx.Doer, comment.TreePath, comment.Line)
 	if err != nil {
 		ctx.ServerError("FetchCodeCommentsByLine", err)
 		return
@@ -194,15 +194,15 @@ func SubmitReview(ctx *context.Context) {
 
 	reviewType := form.ReviewType()
 	switch reviewType {
-	case models.ReviewTypeUnknown:
+	case issues_model.ReviewTypeUnknown:
 		ctx.ServerError("ReviewType", fmt.Errorf("unknown ReviewType: %s", form.Type))
 		return
 
 	// can not approve/reject your own PR
-	case models.ReviewTypeApprove, models.ReviewTypeReject:
+	case issues_model.ReviewTypeApprove, issues_model.ReviewTypeReject:
 		if issue.IsPoster(ctx.Doer.ID) {
 			var translated string
-			if reviewType == models.ReviewTypeApprove {
+			if reviewType == issues_model.ReviewTypeApprove {
 				translated = ctx.Tr("repo.issues.review.self.approval")
 			} else {
 				translated = ctx.Tr("repo.issues.review.self.rejection")
@@ -221,7 +221,7 @@ func SubmitReview(ctx *context.Context) {
 
 	_, comm, err := pull_service.SubmitReview(ctx, ctx.Doer, ctx.Repo.GitRepo, issue, reviewType, form.Content, form.CommitID, attachments)
 	if err != nil {
-		if models.IsContentEmptyErr(err) {
+		if issues_model.IsContentEmptyErr(err) {
 			ctx.Flash.Error(ctx.Tr("repo.issues.review.content.empty"))
 			ctx.Redirect(fmt.Sprintf("%s/pulls/%d/files", ctx.Repo.RepoLink, issue.Index))
 		} else {
