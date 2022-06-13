@@ -15,6 +15,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
@@ -271,11 +272,11 @@ type Comment struct {
 	RefIssue   *Issue                 `xorm:"-"`
 	RefComment *Comment               `xorm:"-"`
 
-	Commits     []*SignCommitWithStatuses `xorm:"-"`
-	OldCommit   string                    `xorm:"-"`
-	NewCommit   string                    `xorm:"-"`
-	CommitsNum  int64                     `xorm:"-"`
-	IsForcePush bool                      `xorm:"-"`
+	Commits     []*git_model.SignCommitWithStatuses `xorm:"-"`
+	OldCommit   string                              `xorm:"-"`
+	NewCommit   string                              `xorm:"-"`
+	CommitsNum  int64                               `xorm:"-"`
+	IsForcePush bool                                `xorm:"-"`
 }
 
 func init() {
@@ -761,7 +762,7 @@ func (c *Comment) LoadPushCommits(ctx context.Context) (err error) {
 		}
 		defer closer.Close()
 
-		c.Commits = ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
+		c.Commits = git_model.ConvertFromGitCommit(gitRepo.GetCommitsFromIDs(data.CommitIDs), c.Issue.Repo)
 		c.CommitsNum = int64(len(c.Commits))
 	}
 

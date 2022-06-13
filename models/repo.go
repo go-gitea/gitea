@@ -15,6 +15,7 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
@@ -33,9 +34,6 @@ import (
 
 	"xorm.io/builder"
 )
-
-// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
-var ItemsPerPage = 40
 
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
@@ -284,16 +282,16 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
 		&Comment{RefRepoID: repoID},
-		&CommitStatus{RepoID: repoID},
-		&DeletedBranch{RepoID: repoID},
+		&git_model.CommitStatus{RepoID: repoID},
+		&git_model.DeletedBranch{RepoID: repoID},
 		&webhook.HookTask{RepoID: repoID},
-		&LFSLock{RepoID: repoID},
+		&git_model.LFSLock{RepoID: repoID},
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},
 		&Notification{RepoID: repoID},
-		&ProtectedBranch{RepoID: repoID},
-		&ProtectedTag{RepoID: repoID},
+		&git_model.ProtectedBranch{RepoID: repoID},
+		&git_model.ProtectedTag{RepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
 		&Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
@@ -357,14 +355,14 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Remove LFS objects
-	var lfsObjects []*LFSMetaObject
+	var lfsObjects []*git_model.LFSMetaObject
 	if err = sess.Where("repository_id=?", repoID).Find(&lfsObjects); err != nil {
 		return err
 	}
 
 	lfsPaths := make([]string, 0, len(lfsObjects))
 	for _, v := range lfsObjects {
-		count, err := db.CountByBean(ctx, &LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
+		count, err := db.CountByBean(ctx, &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: v.Oid}})
 		if err != nil {
 			return err
 		}
@@ -375,7 +373,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		lfsPaths = append(lfsPaths, v.RelativePath())
 	}
 
-	if _, err := db.DeleteByBean(ctx, &LFSMetaObject{RepositoryID: repoID}); err != nil {
+	if _, err := db.DeleteByBean(ctx, &git_model.LFSMetaObject{RepositoryID: repoID}); err != nil {
 		return err
 	}
 
