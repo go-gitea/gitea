@@ -46,13 +46,27 @@ func Person(ctx *context.APIContext) {
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 	person := ap.PersonNew(ap.IRI(link))
 
-	name := ap.NaturalLanguageValuesNew()
-	err := name.Set("en", ap.Content(username))
+	person.Name = ap.NaturalLanguageValuesNew()
+	err := person.Name.Set("en", ap.Content(user.FullName))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Set name", err)
+		ctx.Error(http.StatusInternalServerError, "Set Name", err)
 		return
 	}
-	person.Name = name
+
+	person.PreferredUsername = ap.NaturalLanguageValuesNew()
+	err = person.PreferredUsername.Set("en", ap.Content(username))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Set PreferredUsername", err)
+		return
+	}
+	
+	person.URL = ap.IRI(setting.AppURL + username)
+
+	person.Icon = ap.Image{
+		Type: ap.ImageType,
+		MediaType: "image/png",
+		URL: ap.IRI(user.AvatarLink()),
+	}
 
 	person.Inbox = nil
 	person.Inbox, _ = ap.Inbox.AddTo(person)
@@ -80,9 +94,12 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
 	}
 
-	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
+	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"} 
 
-	ctx.JSON(http.StatusOK, jsonmap)
+	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
+	ctx.Resp.WriteHeader(http.StatusOK)
+	binary, _ = json.Marshal(jsonmap)
+	ctx.Resp.Write(binary)
 }
 
 // PersonInbox function
