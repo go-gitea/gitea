@@ -194,7 +194,7 @@ func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType Di
 	buf := bytes.NewBuffer(nil)
 	if hcd != nil {
 		for _, tag := range hcd.lineWrapperTags {
-			buf.WriteString(tag)
+			buf.WriteString(tag) // restore the line wrapper tags <span class="line"> and <span class="cl">
 		}
 	}
 	for _, diff := range diffs {
@@ -345,39 +345,36 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string
 		}
 
 		var tagInMap string
-		if tag[1] == '/' {
-			// closed tag
+		if tag[1] == '/' { // for closed tag
 			if len(tagStack) == 0 {
-				break // error, no open tag but see close tag
+				break // invalid diff result, no open tag but see close tag
 			}
 			// make sure the closed tag in map is related to the open tag, to make the diff algorithm can match the open/closed tags
-			// the closed tag should be "</span><!-- <span the-open> -->" for "<span the-open>"
+			// the closed tag will be recorded in the map by key "</span><!-- <span the-open> -->" for "<span the-open>"
 			tagInMap = tag + "<!-- " + tagStack[len(tagStack)-1] + "-->"
 			tagStack = tagStack[:len(tagStack)-1]
-		} else {
+		} else { // for open tag
 			tagInMap = tag
 			tagStack = append(tagStack, tag)
 		}
+
+		// remember the placeholder and tag in the map
 		placeholder, ok := hcd.tagPlaceholderMap[tagInMap]
 		if !ok {
 			placeholder = hcd.nextPlaceholder()
 			hcd.tagPlaceholderMap[tagInMap] = placeholder
 			hcd.placeholderTagMap[placeholder] = tagInMap
 		}
-		res.WriteRune(placeholder)
+
+		res.WriteRune(placeholder) // use the placeholder to replace the tag
 	}
 	res.WriteString(s)
 	return res.String()
 }
 
-func (hcd *HighlightCodeDiff) recoverOneDiff(lastActiveTag string, diff *diffmatchpatch.Diff) (activeTag string) {
+func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 	sb := strings.Builder{}
 	var tagStack []string
-
-	if lastActiveTag != "" {
-		tagStack = append(tagStack, lastActiveTag)
-		sb.WriteString(lastActiveTag)
-	}
 
 	for _, r := range diff.Text {
 		tag, ok := hcd.placeholderTagMap[r]
@@ -389,7 +386,7 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(lastActiveTag string, diff *diffmat
 		if tag[1] == '/' {
 			tagToRecover = tag[:strings.IndexByte(tag, '>')+1]
 			if len(tagStack) == 0 {
-				continue // if no open tag, skip the closed tag
+				continue // if no open tag yet, skip the closed tag
 			}
 			tagStack = tagStack[:len(tagStack)-1]
 		} else {
@@ -400,8 +397,6 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(lastActiveTag string, diff *diffmat
 	}
 
 	if len(tagStack) > 0 {
-		// at the moment, only one-level (non-nested) tag is supported, aka only the last level is used as active tag for next diff
-		tagStack = tagStack[:len(tagStack)-1]
 		// close all open tags
 		for i := len(tagStack) - 1; i >= 0; i-- {
 			tagToClose := tagStack[i]
@@ -416,13 +411,11 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(lastActiveTag string, diff *diffmat
 	}
 
 	diff.Text = sb.String()
-	return activeTag
 }
 
 func (hcd *HighlightCodeDiff) recoverFromPlaceholders(diffs []diffmatchpatch.Diff) {
-	var lastActiveTag string
 	for i := range diffs {
-		lastActiveTag = hcd.recoverOneDiff(lastActiveTag, &diffs[i])
+		hcd.recoverOneDiff(&diffs[i])
 	}
 }
 
