@@ -7,8 +7,8 @@ package org
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/web"
@@ -17,7 +17,7 @@ import (
 
 // RetrieveLabels find all the labels of an organization
 func RetrieveLabels(ctx *context.Context) {
-	labels, err := models.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
+	labels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Org.Organization.ID, ctx.FormString("sort"), db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("RetrieveLabels.GetLabels", err)
 		return
@@ -43,13 +43,13 @@ func NewLabel(ctx *context.Context) {
 		return
 	}
 
-	l := &models.Label{
+	l := &issues_model.Label{
 		OrgID:       ctx.Org.Organization.ID,
 		Name:        form.Title,
 		Description: form.Description,
 		Color:       form.Color,
 	}
-	if err := models.NewLabel(ctx, l); err != nil {
+	if err := issues_model.NewLabel(ctx, l); err != nil {
 		ctx.ServerError("NewLabel", err)
 		return
 	}
@@ -59,10 +59,10 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := models.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
+	l, err := issues_model.GetLabelInOrgByID(ctx, ctx.Org.Organization.ID, form.ID)
 	if err != nil {
 		switch {
-		case models.IsErrOrgLabelNotExist(err):
+		case issues_model.IsErrOrgLabelNotExist(err):
 			ctx.Error(http.StatusNotFound)
 		default:
 			ctx.ServerError("UpdateLabel", err)
@@ -73,7 +73,7 @@ func UpdateLabel(ctx *context.Context) {
 	l.Name = form.Title
 	l.Description = form.Description
 	l.Color = form.Color
-	if err := models.UpdateLabel(l); err != nil {
+	if err := issues_model.UpdateLabel(l); err != nil {
 		ctx.ServerError("UpdateLabel", err)
 		return
 	}
@@ -82,7 +82,7 @@ func UpdateLabel(ctx *context.Context) {
 
 // DeleteLabel delete a label
 func DeleteLabel(ctx *context.Context) {
-	if err := models.DeleteLabel(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx.Org.Organization.ID, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteLabel: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.issues.label_deletion_success"))

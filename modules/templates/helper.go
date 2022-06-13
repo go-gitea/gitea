@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -374,7 +375,7 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*models.Label) template.HTML {
+		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so

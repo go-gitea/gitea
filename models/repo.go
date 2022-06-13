@@ -281,7 +281,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&access_model.Access{RepoID: repo.ID},
 		&Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
-		&Comment{RefRepoID: repoID},
+		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.DeletedBranch{RepoID: repoID},
 		&webhook.HookTask{RepoID: repoID},
@@ -306,18 +306,18 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Labels and related objects
-	if err := deleteLabelsByRepoID(ctx, repoID); err != nil {
+	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Pulls and related objects
-	if err := deletePullsByBaseRepoID(ctx, repoID); err != nil {
+	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByRepoID(ctx, repoID); err != nil {
+	if attachmentPaths, err = issues_model.DeleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
@@ -576,16 +576,11 @@ func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field strin
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repoStatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repoStatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
-}
-
-func repoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
-	return err
+	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
@@ -687,12 +682,11 @@ func CheckRepoStats(ctx context.Context) error {
 				continue
 			}
 
-			rawResult, err := e.Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
+			_, err = e.SQL("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID).Get(&repo.NumForks)
 			if err != nil {
 				log.Error("Select count of forks[%d]: %v", repo.ID, err)
 				continue
 			}
-			repo.NumForks = int(parseCountResult(rawResult))
 
 			if _, err = e.ID(repo.ID).Cols("num_forks").Update(repo); err != nil {
 				log.Error("UpdateRepository[%d]: %v", id, err)
