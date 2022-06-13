@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -756,7 +757,7 @@ func IsUserAllowedToMerge(ctx context.Context, pr *models.PullRequest, p access_
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && models.IsUserMergeWhitelisted(ctx, pr.ProtectedBranch, user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && git_model.IsUserMergeWhitelisted(ctx, pr.ProtectedBranch, user.ID, p)) {
 		return true, nil
 	}
 
@@ -786,23 +787,23 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 		}
 	}
 
-	if !pr.ProtectedBranch.HasEnoughApprovals(ctx, pr) {
+	if !models.HasEnoughApprovals(ctx, pr.ProtectedBranch, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if pr.ProtectedBranch.MergeBlockedByRejectedReview(ctx, pr) {
+	if models.MergeBlockedByRejectedReview(ctx, pr.ProtectedBranch, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
-	if pr.ProtectedBranch.MergeBlockedByOfficialReviewRequests(ctx, pr) {
+	if models.MergeBlockedByOfficialReviewRequests(ctx, pr.ProtectedBranch, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
 	}
 
-	if pr.ProtectedBranch.MergeBlockedByOutdatedBranch(pr) {
+	if models.MergeBlockedByOutdatedBranch(pr.ProtectedBranch, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
@@ -812,7 +813,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *models.PullRequest, ski
 		return nil
 	}
 
-	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr) {
+	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Changed protected files",
 		}

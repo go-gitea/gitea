@@ -20,6 +20,9 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+const ItemsPerPage = 40
+
 // Repository settings
 var (
 	Repository = struct {
