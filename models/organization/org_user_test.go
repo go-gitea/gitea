@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -124,4 +125,31 @@ func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bo
 	members, _, err := org.GetMembers()
 	assert.NoError(t, err)
 	assert.Equal(t, expected, organization.IsUserOrgOwner(members, orgID))
+}
+
+func TestAddOrgUser(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	testSuccess := func(orgID, userID int64, isPublic bool) {
+		org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
+		expectedNumMembers := org.NumMembers
+		if !unittest.BeanExists(t, &organization.OrgUser{OrgID: orgID, UID: userID}) {
+			expectedNumMembers++
+		}
+		assert.NoError(t, organization.AddOrgUser(orgID, userID))
+		ou := &organization.OrgUser{OrgID: orgID, UID: userID}
+		unittest.AssertExistsAndLoadBean(t, ou)
+		assert.Equal(t, isPublic, ou.IsPublic)
+		org = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: orgID}).(*user_model.User)
+		assert.EqualValues(t, expectedNumMembers, org.NumMembers)
+	}
+
+	setting.Service.DefaultOrgMemberVisible = false
+	testSuccess(3, 5, false)
+	testSuccess(3, 5, false)
+	testSuccess(6, 2, false)
+
+	setting.Service.DefaultOrgMemberVisible = true
+	testSuccess(6, 3, true)
+
+	unittest.CheckConsistencyFor(t, &user_model.User{}, &organization.Team{})
 }
