@@ -13,7 +13,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
@@ -92,19 +91,7 @@ func Person(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, &jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
-	}
-
-	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"} 
-
-	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	binary, _ = json.Marshal(jsonmap)
-	ctx.Resp.Write(binary)
+	response(ctx, binary)
 }
 
 // PersonInbox function
@@ -188,16 +175,7 @@ func PersonOutbox(ctx *context.APIContext) {
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, &jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
-	}
-
-	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
-
-	ctx.JSON(http.StatusOK, jsonmap)
+	response(ctx, binary)
 }
 
 // PersonFollowing function
@@ -238,18 +216,11 @@ func PersonFollowing(ctx *context.APIContext) {
 		following.OrderedItems.Append(person)
 	}
 
-	// TODO: move this code into a function
 	binary, err := following.MarshalJSON()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, &jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
-	}
-	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
-	ctx.JSON(http.StatusOK, jsonmap)
+	response(ctx, binary)
 }
 
 // PersonFollowers function
@@ -289,16 +260,9 @@ func PersonFollowers(ctx *context.APIContext) {
 		followers.OrderedItems.Append(person)
 	}
 
-	// TODO: move this code into a function
 	binary, err := followers.MarshalJSON()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
 	}
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, &jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
-	}
-	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
-	ctx.JSON(http.StatusOK, jsonmap)
+	response(ctx, binary)
 }
