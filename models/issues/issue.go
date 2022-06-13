@@ -840,7 +840,7 @@ func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *
 
 // AddTagPRCommitComment adds tag comment for pull request issue
 func AddTagPRCommitComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issueID int64, tagName, commitSHA string) error {
-	issue, err := getIssueByID(ctx, issueID)
+	issue, err := GetIssueByID(ctx, issueID)
 	if err != nil {
 		return err
 	}
