@@ -548,7 +548,7 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests reviews
-func (d *OneDevDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (d *OneDevDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	rawReviews := make([]struct {
 		ID     int64 `json:"id"`
 		UserID int64 `json:"userId"`
@@ -560,7 +560,7 @@ func (d *OneDevDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Revie
 	}, 0, 100)
 
 	err := d.callAPI(
-		fmt.Sprintf("/api/pull-requests/%d/reviews", opts.Reviewable.GetForeignIndex()),
+		fmt.Sprintf("/api/pull-requests/%d/reviews", reviewable.GetForeignIndex()),
 		nil,
 		&rawReviews,
 	)
@@ -584,7 +584,7 @@ func (d *OneDevDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Revie
 
 		poster := d.tryGetUser(review.UserID)
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   opts.Reviewable.GetLocalIndex(),
+			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   poster.ID,
 			ReviewerName: poster.Name,
 			Content:      content,

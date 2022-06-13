@@ -616,8 +616,8 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 }
 
 // GetReviews returns pull requests review
-func (g *GitlabDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
-	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(opts.Reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
+func (g *GitlabDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
+	approvals, resp, err := g.client.MergeRequestApprovals.GetConfiguration(g.repoID, int(reviewable.GetForeignIndex()), gitlab.WithContext(g.ctx))
 	if err != nil {
 		if resp != nil && resp.StatusCode == http.StatusNotFound {
 			log.Error(fmt.Sprintf("GitlabDownloader: while migrating a error occurred: '%s'", err.Error()))
@@ -638,7 +638,7 @@ func (g *GitlabDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Revie
 	reviews := make([]*base.Review, 0, len(approvals.ApprovedBy))
 	for _, user := range approvals.ApprovedBy {
 		reviews = append(reviews, &base.Review{
-			IssueIndex:   opts.Reviewable.GetLocalIndex(),
+			IssueIndex:   reviewable.GetLocalIndex(),
 			ReviewerID:   int64(user.User.ID),
 			ReviewerName: user.User.Username,
 			CreatedAt:    createdAt,

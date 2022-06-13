@@ -14,12 +14,12 @@
 		{{template "base/alert" .}}
 		<div class="ui compact tiny menu">
 			<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=open">
-				{{svg "octicon-project" 16 "mr-2"}}
-				{{.i18n.Tr "repo.issues.open_tab" .OpenCount}}
+				{{svg "octicon-project" 16 "mr-3"}}
+				{{JsPrettyNumber .OpenCount}}&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
 			</a>
 			<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/projects?state=closed">
-				{{svg "octicon-check" 16 "mr-2"}}
-				{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
+				{{svg "octicon-check" 16 "mr-3"}}
+				{{JsPrettyNumber .ClosedCount}}&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
 			</a>
 		</div>
 
@@ -47,8 +47,10 @@
 							{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
-							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.i18n.Tr "repo.issues.open_title"}}
+							{{svg "octicon-check" 16 "mr-3"}}
+							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.i18n.Tr "repo.issues.closed_title"}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}

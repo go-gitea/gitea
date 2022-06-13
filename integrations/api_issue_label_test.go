@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -37,7 +37,7 @@ func TestAPIModifyLabels(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	apiLabel := new(api.Label)
 	DecodeJSON(t, resp, &apiLabel)
-	dbLabel := unittest.AssertExistsAndLoadBean(t, &models.Label{ID: apiLabel.ID, RepoID: repo.ID}).(*models.Label)
+	dbLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: apiLabel.ID, RepoID: repo.ID}).(*issues_model.Label)
 	assert.EqualValues(t, dbLabel.Name, apiLabel.Name)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 
@@ -92,8 +92,8 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
-	_ = unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID, ID: 2}).(*models.Label)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID}).(*issues_model.Issue)
+	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{RepoID: repo.ID, ID: 2}).(*issues_model.Label)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
@@ -106,17 +106,17 @@ func TestAPIAddIssueLabels(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiLabels []*api.Label
 	DecodeJSON(t, resp, &apiLabels)
-	assert.Len(t, apiLabels, unittest.GetCount(t, &models.IssueLabel{IssueID: issue.ID}))
+	assert.Len(t, apiLabels, unittest.GetCount(t, &issues_model.IssueLabel{IssueID: issue.ID}))
 
-	unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: 2})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: 2})
 }
 
 func TestAPIReplaceIssueLabels(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repo.ID}).(*models.Issue)
-	label := unittest.AssertExistsAndLoadBean(t, &models.Label{RepoID: repo.ID}).(*models.Label)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repo.ID}).(*issues_model.Issue)
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{RepoID: repo.ID}).(*issues_model.Label)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
@@ -133,8 +133,8 @@ func TestAPIReplaceIssueLabels(t *testing.T) {
 		assert.EqualValues(t, label.ID, apiLabels[0].ID)
 	}
 
-	unittest.AssertCount(t, &models.IssueLabel{IssueID: issue.ID}, 1)
-	unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
+	unittest.AssertCount(t, &issues_model.IssueLabel{IssueID: issue.ID}, 1)
+	unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 }
 
 func TestAPIModifyOrgLabels(t *testing.T) {
@@ -156,7 +156,7 @@ func TestAPIModifyOrgLabels(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	apiLabel := new(api.Label)
 	DecodeJSON(t, resp, &apiLabel)
-	dbLabel := unittest.AssertExistsAndLoadBean(t, &models.Label{ID: apiLabel.ID, OrgID: owner.ID}).(*models.Label)
+	dbLabel := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: apiLabel.ID, OrgID: owner.ID}).(*issues_model.Label)
 	assert.EqualValues(t, dbLabel.Name, apiLabel.Name)
 	assert.EqualValues(t, strings.TrimLeft(dbLabel.Color, "#"), apiLabel.Color)
 

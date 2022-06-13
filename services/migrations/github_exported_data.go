@@ -1376,7 +1376,7 @@ func (r *GithubExportedDataRestorer) getReviewComments(thread *pullrequestReview
 }
 
 // GetReviews returns pull requests review
-func (r *GithubExportedDataRestorer) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (r *GithubExportedDataRestorer) GetReviews(reviwable base.Reviewable) ([]*base.Review, bool, error) {
 	comments := make(map[string][]pullrequestReviewComment)
 	if err := r.readJSONFiles("pull_request_review_comments", func() interface{} {
 		return &[]pullrequestReviewComment{}

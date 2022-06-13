@@ -248,9 +248,9 @@ func (r *RepositoryRestorer) GetPullRequests(page, perPage int) ([]*base.PullReq
 }
 
 // GetReviews returns pull requests review
-func (r *RepositoryRestorer) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (r *RepositoryRestorer) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	reviews := make([]*base.Review, 0, 10)
-	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", opts.GetForeignIndex()))
+	p := filepath.Join(r.reviewDir(), fmt.Sprintf("%d.yml", reviewable.GetForeignIndex()))
 	_, err := os.Stat(p)
 	if err != nil {
 		if os.IsNotExist(err) {

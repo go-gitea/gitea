@@ -18,6 +18,7 @@ const (
 	ReviewStateApproved         = "APPROVED"
 	ReviewStateChangesRequested = "CHANGES_REQUESTED"
 	ReviewStateCommented        = "COMMENTED"
+	ReviewStateRequestReview    = "REQUEST_REVIEW"
 )
 
 // Review is a standard review information

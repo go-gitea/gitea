@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -16,17 +17,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func fallbackMailSubject(issue *models.Issue) string {
+func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
 type mailCommentContext struct {
 	context.Context
-	Issue      *models.Issue
+	Issue      *issues_model.Issue
 	Doer       *user_model.User
 	ActionType models.ActionType
 	Content    string
-	Comment    *models.Comment
+	Comment    *issues_model.Comment
 }
 
 const (
@@ -57,21 +58,21 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered[0] = ctx.Issue.PosterID
 
 	// =========== Assignees ===========
-	ids, err := models.GetAssigneeIDsByIssue(ctx.Issue.ID)
+	ids, err := issues_model.GetAssigneeIDsByIssue(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
-	ids, err = models.GetParticipantsIDsByIssueID(ctx.Issue.ID)
+	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -98,7 +99,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -145,7 +146,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -171,7 +172,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil

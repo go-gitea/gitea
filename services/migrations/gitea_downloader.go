@@ -614,7 +614,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (g *GiteaDownloader) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	if err := g.client.CheckServerVersionConstraint(">=1.12"); err != nil {
 		log.Info("GiteaDownloader: instance to old, skip GetReviews")
 		return nil, true, nil
@@ -630,7 +630,7 @@ func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review
 		default:
 		}
 
-		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, opts.Reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
+		prl, _, err := g.client.ListPullReviews(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), gitea_sdk.ListPullReviewsOptions{ListOptions: gitea_sdk.ListOptions{
 			Page:     i,
 			PageSize: g.maxPerPage,
 		}})
@@ -639,7 +639,13 @@ func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review
 		}
 
 		for _, pr := range prl {
-			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, opts.Reviewable.GetForeignIndex(), pr.ID)
+			if pr.Reviewer == nil {
+				// Presumably this is a team review which we cannot migrate at present but we have to skip this review as otherwise the review will be mapped on to an incorrect user.
+				// TODO: handle team reviews
+				continue
+			}
+
+			rcl, _, err := g.client.ListPullReviewComments(g.repoOwner, g.repoName, reviewable.GetForeignIndex(), pr.ID)
 			if err != nil {
 				return nil, true, err
 			}
@@ -663,9 +669,9 @@ func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review
 				})
 			}
 
-			allReviews = append(allReviews, &base.Review{
+			review := &base.Review{
 				ID:           pr.ID,
-				IssueIndex:   opts.Reviewable.GetLocalIndex(),
+				IssueIndex:   reviewable.GetLocalIndex(),
 				ReviewerID:   pr.Reviewer.ID,
 				ReviewerName: pr.Reviewer.UserName,
 				Official:     pr.Official,
@@ -674,7 +680,9 @@ func (g *GiteaDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review
 				CreatedAt:    pr.Submitted,
 				State:        string(pr.State),
 				Comments:     reviewComments,
-			})
+			}
+
+			allReviews = append(allReviews, review)
 		}
 
 		if len(prl) < g.maxPerPage {

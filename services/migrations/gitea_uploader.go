@@ -46,14 +46,14 @@ type GiteaLocalUploader struct {
 	repoOwner      string
 	repoName       string
 	repo           *repo_model.Repository
-	labels         map[string]*models.Label
+	labels         map[string]*issues_model.Label
 	milestones     map[string]int64
-	issues         map[int64]*models.Issue
+	issues         map[int64]*issues_model.Issue
 	gitRepo        *git.Repository
 	prHeadCache    map[string]struct{}
 	sameApp        bool
 	userMap        map[int64]int64 // external user id mapping to user id
-	prCache        map[int64]*models.PullRequest
+	prCache        map[int64]*issues_model.PullRequest
 	gitServiceType structs.GitServiceType
 }
 
@@ -64,12 +64,12 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 		doer:        doer,
 		repoOwner:   repoOwner,
 		repoName:    repoName,
-		labels:      make(map[string]*models.Label),
+		labels:      make(map[string]*issues_model.Label),
 		milestones:  make(map[string]int64),
-		issues:      make(map[int64]*models.Issue),
+		issues:      make(map[int64]*issues_model.Issue),
 		prHeadCache: make(map[string]struct{}),
 		userMap:     make(map[int64]int64),
-		prCache:     make(map[int64]*models.PullRequest),
+		prCache:     make(map[int64]*issues_model.PullRequest),
 	}
 }
 
@@ -77,17 +77,17 @@ func NewGiteaLocalUploader(ctx context.Context, doer *user_model.User, repoOwner
 func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	switch tp {
 	case "issue":
-		return db.MaxBatchInsertSize(new(models.Issue))
+		return db.MaxBatchInsertSize(new(issues_model.Issue))
 	case "comment":
-		return db.MaxBatchInsertSize(new(models.Comment))
+		return db.MaxBatchInsertSize(new(issues_model.Comment))
 	case "milestone":
 		return db.MaxBatchInsertSize(new(issues_model.Milestone))
 	case "label":
-		return db.MaxBatchInsertSize(new(models.Label))
+		return db.MaxBatchInsertSize(new(issues_model.Label))
 	case "release":
 		return db.MaxBatchInsertSize(new(models.Release))
 	case "pullrequest":
-		return db.MaxBatchInsertSize(new(models.PullRequest))
+		return db.MaxBatchInsertSize(new(issues_model.PullRequest))
 	}
 	return 10
 }
@@ -217,9 +217,9 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
-	lbs := make([]*models.Label, 0, len(labels))
+	lbs := make([]*issues_model.Label, 0, len(labels))
 	for _, label := range labels {
-		lbs = append(lbs, &models.Label{
+		lbs = append(lbs, &issues_model.Label{
 			RepoID:      g.repo.ID,
 			Name:        label.Name,
 			Description: label.Description,
@@ -227,7 +227,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 		})
 	}
 
-	err := models.NewLabels(lbs...)
+	err := issues_model.NewLabels(lbs...)
 	if err != nil {
 		return err
 	}
@@ -353,9 +353,9 @@ func (g *GiteaLocalUploader) SyncTags() error {
 
 // CreateIssues creates issues
 func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
-	iss := make([]*models.Issue, 0, len(issues))
+	iss := make([]*issues_model.Issue, 0, len(issues))
 	for _, issue := range issues {
-		var labels []*models.Label
+		var labels []*issues_model.Label
 		for _, label := range issue.Labels {
 			lb, ok := g.labels[label.Name]
 			if ok {
@@ -380,7 +380,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			}
 		}
 
-		is := models.Issue{
+		is := issues_model.Issue{
 			RepoID:      g.repo.ID,
 			Repo:        g.repo,
 			Index:       issue.Number,
@@ -458,17 +458,17 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 
 // CreateComments creates comments of issues
 func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
-	cms := make([]*models.Comment, 0, len(comments))
+	cms := make([]*issues_model.Comment, 0, len(comments))
 	for _, comment := range comments {
 		if comment.Type == "" {
 			comment.Type = "comment"
 		}
-		cmType := models.GetCommentTypeByString(comment.Type)
+		cmType := issues_model.GetCommentTypeByString(comment.Type)
 		if cmType == -1 { // ignore
 			continue
 		}
 
-		var issue *models.Issue
+		var issue *issues_model.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
 			return fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
@@ -481,7 +481,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			comment.Updated = comment.Created
 		}
 
-		cm := models.Comment{
+		cm := issues_model.Comment{
 			IssueID:     issue.ID,
 			Type:        cmType,
 			Content:     comment.Content,
@@ -495,15 +495,15 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		switch cmType {
 		/*{"Label":"https://github.com/go-gitea/test_repo/labels/duplicate","LabelColor":"cfd3d7","LabelName":"duplicate","LabelTextColor":"000000"}*/
-		case models.CommentTypeLabel:
+		case issues_model.CommentTypeLabel:
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
 				continue
 			} else {
-				lb, err := models.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
+				lb, err := issues_model.GetLabelByRepoIDAndName(issue.RepoID, data["LabelName"])
 				if err != nil {
-					if models.IsErrLabelNotExist(err) {
+					if issues_model.IsErrLabelNotExist(err) {
 						continue
 					}
 					return err
@@ -517,7 +517,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			}
 
 			/*{"MilestoneTitle":"1.1.0"}*/
-		case models.CommentTypeMilestone:
+		case issues_model.CommentTypeMilestone:
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
@@ -535,7 +535,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 					}
 				}
 			}
-		case models.CommentTypeChangeTitle:
+		case issues_model.CommentTypeChangeTitle:
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
@@ -544,7 +544,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				cm.OldTitle = data["OldTitle"]
 				cm.NewTitle = data["NewTitle"]
 			}
-		case models.CommentTypeCommitRef:
+		case issues_model.CommentTypeCommitRef:
 			data := make(map[string]string)
 			if err := json.Unmarshal([]byte(cm.Content), &data); err != nil {
 				log.Error("unmarshal %s failed: %v", cm.Content, err)
@@ -556,13 +556,13 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 			"Actor":   g.Actor,
 			"Subject": g.Subject,
 		}*/
-		case models.CommentTypeAssignees:
+		case issues_model.CommentTypeAssignees:
 			continue
-		case models.CommentTypeCommentRef, models.CommentTypeIssueRef, models.CommentTypePullRef:
+		case issues_model.CommentTypeCommentRef, issues_model.CommentTypeIssueRef, issues_model.CommentTypePullRef:
 			continue
-		case models.CommentTypeDeleteBranch:
+		case issues_model.CommentTypeDeleteBranch:
 			continue
-		case models.CommentTypePullRequestPush:
+		case issues_model.CommentTypePullRequestPush:
 			continue
 		}
 
@@ -609,7 +609,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 // CreatePullRequests creates pull requests
 func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
-	gprs := make([]*models.PullRequest, 0, len(prs))
+	gprs := make([]*issues_model.PullRequest, 0, len(prs))
 	for _, pr := range prs {
 		gpr, err := g.newPullRequest(pr)
 		if err != nil {
@@ -792,8 +792,8 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	return head, nil
 }
 
-func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullRequest, error) {
-	var labels []*models.Label
+func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
+	var labels []*issues_model.Label
 	for _, label := range pr.Labels {
 		lb, ok := g.labels[label.Name]
 		if ok {
@@ -821,7 +821,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		pr.Updated = pr.Created
 	}
 
-	issue := models.Issue{
+	issue := issues_model.Issue{
 		RepoID:      g.repo.ID,
 		Repo:        g.repo,
 		Title:       pr.Title,
@@ -852,7 +852,7 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 		issue.Reactions = append(issue.Reactions, &res)
 	}
 
-	pullRequest := models.PullRequest{
+	pullRequest := issues_model.PullRequest{
 		HeadRepoID: g.repo.ID,
 		HeadBranch: head,
 		BaseRepoID: g.repo.ID,
@@ -878,26 +878,28 @@ func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*models.PullR
 	return &pullRequest, nil
 }
 
-func convertReviewState(state string) models.ReviewType {
+func convertReviewState(state string) issues_model.ReviewType {
 	switch state {
 	case base.ReviewStatePending:
-		return models.ReviewTypePending
+		return issues_model.ReviewTypePending
 	case base.ReviewStateApproved:
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case base.ReviewStateChangesRequested:
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
 	case base.ReviewStateCommented:
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
+	case base.ReviewStateRequestReview:
+		return issues_model.ReviewTypeRequest
 	default:
-		return models.ReviewTypePending
+		return issues_model.ReviewTypePending
 	}
 }
 
 // CreateReviews create pull request reviews of currently migrated issues
 func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
-	cms := make([]*models.Review, 0, len(reviews))
+	cms := make([]*issues_model.Review, 0, len(reviews))
 	for _, review := range reviews {
-		var issue *models.Issue
+		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
 			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
@@ -906,7 +908,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
 		}
 
-		cm := models.Review{
+		cm := issues_model.Review{
 			Type:        convertReviewState(review.State),
 			IssueID:     issue.ID,
 			Content:     review.Content,
@@ -924,7 +926,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		pr, ok := g.prCache[issue.ID]
 		if !ok {
 			var err error
-			pr, err = models.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
+			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
 			if err != nil {
 				return err
 			}
@@ -959,7 +961,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				_ = writer.Close()
 			}(comment)
 
-			unsignedLine := int64((&models.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine())
+			unsignedLine := int64((&issues_model.Comment{Line: int64(line + comment.Position - 1)}).UnsignedLine())
 			patch, err := git.CutDiffAroundLine(reader, unsignedLine, line < 0, setting.UI.CodeCommentLines)
 			if err != nil {
 				log.Warn("CutDiffAroundLine failed when migrating [%s, %d, %v]", g.gitRepo.Path, unsignedLine, line < 0)
@@ -976,8 +978,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 				comment.UpdatedAt = comment.CreatedAt
 			}
 
-			c := models.Comment{
-				Type:        models.CommentTypeCode,
+			c := issues_model.Comment{
+				Type:        issues_model.CommentTypeCode,
 				IssueID:     issue.ID,
 				Content:     comment.Content,
 				Line:        int64(line + comment.Position - 1),
@@ -998,7 +1000,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		cms = append(cms, &cm)
 	}
 
-	return models.InsertReviews(cms)
+	return issues_model.InsertReviews(cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
@@ -1019,7 +1021,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	// update issue_index
-	if err := models.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
+	if err := issues_model.RecalculateIssueIndexForRepo(g.repo.ID); err != nil {
 		return err
 	}
 

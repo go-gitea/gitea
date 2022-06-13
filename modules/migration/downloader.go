@@ -38,7 +38,7 @@ type Downloader interface {
 	GetAllComments(page, perPage int) ([]*Comment, bool, error)
 	SupportGetRepoComments() bool
 	GetPullRequests(page, perPage int) ([]*PullRequest, bool, error)
-	GetReviews(opts GetReviewOptions) ([]*Review, bool, error)
+	GetReviews(reviewable Reviewable) ([]*Review, bool, error)
 	SupportGetRepoReviews() bool
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 	CleanUp()

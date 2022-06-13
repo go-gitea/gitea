@@ -63,7 +63,7 @@ func (n NullDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bool
 }
 
 // GetReviews returns pull requests review
-func (n NullDownloader) GetReviews(opts GetReviewOptions) ([]*Review, bool, error) {
+func (n NullDownloader) GetReviews(reviewable Reviewable) ([]*Review, bool, error) {
 	return nil, false, &ErrNotSupported{Entity: "Reviews"}
 }
 

@@ -54,7 +54,7 @@ func GetUserOrgsList(user *user_model.User) ([]*MinimalOrg, error) {
 		Join("LEFT", builder.
 			Select("id as repo_id, owner_id as repo_owner_id").
 			From("repository").
-			Where(accessibleRepositoryCondition(user)), "`repository`.repo_owner_id = `team`.org_id").
+			Where(repo_model.AccessibleRepositoryCondition(user)), "`repository`.repo_owner_id = `team`.org_id").
 		Where("`team_user`.uid = ?", user.ID).
 		GroupBy(groupByStr)
 

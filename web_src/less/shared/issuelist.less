@@ -119,6 +119,23 @@
     }
   }
 
+  .branches {
+    display: inline-flex;
+    padding: 0 6px;
+
+    .branch {
+      background-color: var(--color-secondary);
+      border-radius: 3px;
+    }
+
+    .truncated-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 10em;
+    }
+  }
+
   > .item + .item {
     border-top: 1px solid var(--color-secondary);
   }

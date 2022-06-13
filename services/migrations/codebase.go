@@ -570,7 +570,7 @@ func (d *CodebaseDownloader) GetPullRequests(page, perPage int) ([]*base.PullReq
 }
 
 // GetReviews returns pull requests reviews
-func (d *CodebaseDownloader) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (d *CodebaseDownloader) GetReviews(reviwable base.Reviewable) ([]*base.Review, bool, error) {
 	return []*base.Review{}, true, nil
 }
 

@@ -7,8 +7,8 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -19,7 +19,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// Fake issue with assignees
-	issue, err := models.GetIssueWithAttrsByID(1)
+	issue, err := issues_model.GetIssueWithAttrsByID(1)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, len(issue.Assignees))
 
@@ -27,7 +27,7 @@ func TestDeleteNotPassedAssignee(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check if he got removed
-	isAssigned, err := models.IsUserAssignedToIssue(db.DefaultContext, issue, user1)
+	isAssigned, err := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user1)
 	assert.NoError(t, err)
 	assert.True(t, isAssigned)
 

@@ -17,6 +17,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -722,9 +723,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: models.RepositoryListDefaultPageSize,
+				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
 			Private: true,

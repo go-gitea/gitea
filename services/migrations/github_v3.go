@@ -21,7 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v45/github"
 	"golang.org/x/oauth2"
 )
 
@@ -773,28 +773,29 @@ func (g *GithubDownloaderV3) convertGithubReviewComments(cs []*github.PullReques
 }
 
 // GetReviews returns pull requests review
-func (g *GithubDownloaderV3) GetReviews(opts base.GetReviewOptions) ([]*base.Review, bool, error) {
+func (g *GithubDownloaderV3) GetReviews(reviewable base.Reviewable) ([]*base.Review, bool, error) {
 	allReviews := make([]*base.Review, 0, g.maxPerPage)
 	opt := &github.ListOptions{
 		PerPage: g.maxPerPage,
 	}
+	// Get approve/request change reviews
 	for {
 		g.waitAndPickClient()
-		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(opts.Reviewable.GetForeignIndex()), opt)
+		reviews, resp, err := g.getClient().PullRequests.ListReviews(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
 		if err != nil {
 			return nil, true, fmt.Errorf("error while listing repos: %v", err)
 		}
 		g.setRate(&resp.Rate)
 		for _, review := range reviews {
 			r := convertGithubReview(review)
-			r.IssueIndex = opts.Reviewable.GetLocalIndex()
+			r.IssueIndex = reviewable.GetLocalIndex()
 			// retrieve all review comments
 			opt2 := &github.ListOptions{
 				PerPage: g.maxPerPage,
 			}
 			for {
 				g.waitAndPickClient()
-				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(opts.Reviewable.GetForeignIndex()), review.GetID(), opt2)
+				reviewComments, resp, err := g.getClient().PullRequests.ListReviewComments(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), review.GetID(), opt2)
 				if err != nil {
 					return nil, true, fmt.Errorf("error while listing repos: %v", err)
 				}
@@ -812,6 +813,29 @@ func (g *GithubDownloaderV3) GetReviews(opts base.GetReviewOptions) ([]*base.Rev
 			}
 			allReviews = append(allReviews, r)
 		}
+		if resp.NextPage == 0 {
+			break
+		}
+		opt.Page = resp.NextPage
+	}
+	// Get requested reviews
+	for {
+		g.waitAndPickClient()
+		reviewers, resp, err := g.getClient().PullRequests.ListReviewers(g.ctx, g.repoOwner, g.repoName, int(reviewable.GetForeignIndex()), opt)
+		if err != nil {
+			return nil, false, fmt.Errorf("error while listing repos: %v", err)
+		}
+		g.setRate(&resp.Rate)
+		for _, user := range reviewers.Users {
+			r := &base.Review{
+				ReviewerID:   user.GetID(),
+				ReviewerName: user.GetLogin(),
+				State:        base.ReviewStateRequestReview,
+				IssueIndex:   reviewable.GetLocalIndex(),
+			}
+			allReviews = append(allReviews, r)
+		}
+		// TODO: Handle Team requests
 		if resp.NextPage == 0 {
 			break
 		}
