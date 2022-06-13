@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -27,7 +28,7 @@ import (
 )
 
 // DownloadDiffOrPatch will write the patch for the pr to the writer
-func DownloadDiffOrPatch(ctx context.Context, pr *models.PullRequest, w io.Writer, patch, binary bool) error {
+func DownloadDiffOrPatch(ctx context.Context, pr *issues_model.PullRequest, w io.Writer, patch, binary bool) error {
 	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to load base repository ID %d for pr #%d [%d]", pr.BaseRepoID, pr.Index, pr.ID)
 		return err
@@ -54,7 +55,7 @@ var patchErrorSuffices = []string{
 }
 
 // TestPatch will test whether a simple patch will apply
-func TestPatch(pr *models.PullRequest) error {
+func TestPatch(pr *issues_model.PullRequest) error {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("TestPatch: Repo[%d]#%d", pr.BaseRepoID, pr.Index))
 	defer finished()
 
@@ -88,7 +89,7 @@ func TestPatch(pr *models.PullRequest) error {
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 
 	// 2. Check for conflicts
-	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == models.PullRequestStatusEmpty {
+	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
 		return err
 	}
 
@@ -101,7 +102,7 @@ func TestPatch(pr *models.PullRequest) error {
 		log.Trace("Found %d protected files changed", len(pr.ChangedProtectedFiles))
 	}
 
-	pr.Status = models.PullRequestStatusMergeable
+	pr.Status = issues_model.PullRequestStatusMergeable
 
 	return nil
 }
@@ -270,7 +271,7 @@ func AttemptThreeWayMerge(ctx context.Context, gitPath string, gitRepo *git.Repo
 	return conflict, conflictedFiles, nil
 }
 
-func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
+func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *git.Repository, tmpBasePath string) (bool, error) {
 	// 1. checkConflicts resets the conflict status - therefore - reset the conflict status
 	pr.ConflictedFiles = nil
 
@@ -295,7 +296,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 		}
 		if treeHash == baseTree.ID.String() {
 			log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
-			pr.Status = models.PullRequestStatusEmpty
+			pr.Status = issues_model.PullRequestStatusEmpty
 		}
 
 		return false, nil
@@ -329,7 +330,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	// 3b. if the size of that patch is 0 - there can be no conflicts!
 	if stat.Size() == 0 {
 		log.Debug("PullRequest[%d]: Patch is empty - ignoring", pr.ID)
-		pr.Status = models.PullRequestStatusEmpty
+		pr.Status = issues_model.PullRequestStatusEmpty
 		return false, nil
 	}
 
@@ -449,7 +450,7 @@ func checkConflicts(ctx context.Context, pr *models.PullRequest, gitRepo *git.Re
 	// Note: `"err" could be non-nil` is due that if enable 3-way merge, it doesn't return any error on found conflicts.
 	if len(pr.ConflictedFiles) > 0 {
 		if conflict {
-			pr.Status = models.PullRequestStatusConflict
+			pr.Status = issues_model.PullRequestStatusConflict
 			log.Trace("Found %d files conflicted: %v", len(pr.ConflictedFiles), pr.ConflictedFiles)
 
 			return true, nil
@@ -516,8 +517,8 @@ func CheckUnprotectedFiles(repo *git.Repository, oldCommitID, newCommitID string
 }
 
 // checkPullFilesProtection check if pr changed protected files and save results
-func checkPullFilesProtection(pr *models.PullRequest, gitRepo *git.Repository) error {
-	if pr.Status == models.PullRequestStatusEmpty {
+func checkPullFilesProtection(pr *issues_model.PullRequest, gitRepo *git.Repository) error {
+	if pr.Status == issues_model.PullRequestStatusEmpty {
 		pr.ChangedProtectedFiles = nil
 		return nil
 	}

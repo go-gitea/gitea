@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -76,7 +77,7 @@ type Action struct {
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *Comment               `xorm:"-"`
+	Comment     *issues_model.Comment  `xorm:"-"`
 	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
@@ -223,7 +224,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(ctx, a.CommentID)
+		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -238,7 +239,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	issue, err := getIssueByID(ctx, issueID)
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
 		return "#"
 	}
@@ -295,7 +296,7 @@ func (a *Action) GetIssueInfos() []string {
 // with the action.
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -307,7 +308,7 @@ func (a *Action) GetIssueTitle() string {
 // this action.
 func (a *Action) GetIssueContent() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -571,4 +572,21 @@ func NotifyWatchersActions(acts []*Action) error {
 		}
 	}
 	return committer.Commit()
+}
+
+// DeleteIssueActions delete all actions related with issueID
+func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+	// delete actions assigned to this issue
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issueID})
+	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Delete(&Action{})
+	return err
 }
