@@ -174,7 +174,7 @@ func PersonOutbox(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Couldn't fetch outbox", err)
 	}
 
-	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
+	outbox := ap.OrderedCollectionNew(ap.IRI(link))
 	for _, action := range feed {
 		/*if action.OpType == ExampleType {
 			activity := ap.ExampleNew()
@@ -229,7 +229,7 @@ func PersonFollowing(ctx *context.APIContext) {
 		return
 	}
 	
-	following := ap.OrderedCollectionNew(ap.IRI(link+"/following"))
+	following := ap.OrderedCollectionNew(ap.IRI(link))
 	following.TotalItems = uint(len(users))
 
 	for _, user := range users {
@@ -281,7 +281,7 @@ func PersonFollowers(ctx *context.APIContext) {
 		return
 	}
 
-	followers := ap.OrderedCollectionNew(ap.IRI(link+"/followers"))
+	followers := ap.OrderedCollectionNew(ap.IRI(link))
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
