@@ -101,6 +101,58 @@
         }
       }
     },
+    "/activitypub/user/{username}/following": {
+      "get": {
+        "produces": [
+          "application/activity+json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Returns the following collection",
+        "operationId": "activitypubPersonFollowing",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
+    "/activitypub/user/{username}/followers": {
+      "get": {
+        "produces": [
+          "application/activity+json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Returns the followers collection",
+        "operationId": "activitypubPersonFollowers",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [

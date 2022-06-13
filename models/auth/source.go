@@ -30,6 +30,7 @@ const (
 	DLDAP       // 5
 	OAuth2      // 6
 	SSPI        // 7
+	Federated   // 8
 )
 
 // String returns the string name of the LoginType
@@ -176,6 +177,11 @@ func (source *Source) IsOAuth2() bool {
 // IsSSPI returns true of this source is of the SSPI type.
 func (source *Source) IsSSPI() bool {
 	return source.Type == SSPI
+}
+
+// IsFederated returns true of this source is of the Federated type.
+func (source *Source) IsFederated() bool {
+	return source.Type == Federated
 }
 
 // HasTLS returns true of this source supports TLS.

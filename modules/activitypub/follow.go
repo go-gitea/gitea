@@ -1,0 +1,45 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package activitypub
+
+import (
+	"context"
+	"strings"
+
+	"code.gitea.io/gitea/models/auth"
+	user_model "code.gitea.io/gitea/models/user"
+
+	ap "github.com/go-ap/activitypub"
+)
+
+func Follow(ctx context.Context, activity ap.Follow) {
+	actorIRI := activity.Actor.GetID()
+	objectIRI := activity.Object.GetID()
+	actorIRISplit := strings.Split(actorIRI.String(), "/")
+	objectIRISplit := strings.Split(objectIRI.String(), "/")
+	actorName := actorIRISplit[len(actorIRISplit)-1]
+	objectName := objectIRISplit[len(actorIRISplit)-1]
+
+	actorUser, err := user_model.GetUserByName(ctx, actorName)
+	if err != nil {
+		// Create user
+		// TODO: Move this to a function
+		actorUser :=  &user_model.User{
+			Name:      actorName,
+			LoginType: auth.Federated,
+			LoginName: actorIRI.String(),
+		}
+		user_model.CreateUser(actorUser)
+		actorUser, _ = user_model.GetUserByName(ctx, actorName)
+	}
+	objectUser, _ := user_model.GetUserByName(ctx, objectName)
+	
+	user_model.FollowUser(actorUser.ID, objectUser.ID)
+
+	accept := ap.AcceptNew(objectIRI, activity)
+	accept.Actor = activity.Object
+
+	// TODO: send the Accept activity to the object's inbox
+}

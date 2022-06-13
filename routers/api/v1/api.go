@@ -649,6 +649,8 @@ func Routes() *web.Route {
 					m.Get("", activitypub.Person)
 					m.Post("/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
 					m.Get("/outbox", activitypub.PersonOutbox)
+					m.Get("/following", activitypub.PersonFollowing)
+					m.Get("/followers", activitypub.PersonFollowers)
 				})
 			})
 		}

@@ -10,12 +10,14 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
+	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -73,6 +75,9 @@ func Person(ctx *context.APIContext) {
 	person.Outbox = nil
 	person.Outbox, _ = ap.Outbox.AddTo(person)
 
+	person.Following = ap.IRI(link + "/following")
+	person.Followers = ap.IRI(link + "/followers")
+
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
 
@@ -126,9 +131,9 @@ func PersonInbox(ctx *context.APIContext) {
 
 	var activity ap.Activity
 	activity.UnmarshalJSON(body)
-	/* if activity.Type == ap.ExampleType {
-
-	}*/
+	if activity.Type == ap.FollowType {
+		activitypub.Follow(ctx, activity)
+	}
 	log.Warn("ActivityStreams type not supported", activity)
 
 	ctx.Status(http.StatusNoContent)
@@ -192,5 +197,108 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
 
+	ctx.JSON(http.StatusOK, jsonmap)
+}
+
+// PersonFollowing function
+func PersonFollowing(ctx *context.APIContext) {
+	// swagger:operation GET /activitypub/user/{username}/following activitypub activitypubPersonFollowing
+	// ---
+	// summary: Returns the following collection
+	// produces:
+	// - application/activity+json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityPub"
+
+	user := user.GetUserByParamsName(ctx, "username")
+	if user == nil {
+		return
+	}
+	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	
+	users, err := user_model.GetUserFollowing(user, utils.GetListOptions(ctx))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
+		return
+	}
+	
+	following := ap.OrderedCollectionNew(ap.IRI(link+"/following"))
+	following.TotalItems = uint(len(users))
+
+	for _, user := range users {
+		// TODO: handle non-Federated users
+		person := ap.PersonNew(ap.IRI(user.LoginName))
+		following.OrderedItems.Append(person)
+	}
+
+	// TODO: move this code into a function
+	binary, err := following.MarshalJSON()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+	}
+	var jsonmap map[string]interface{}
+	err = json.Unmarshal(binary, &jsonmap)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
+	}
+	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
+	ctx.JSON(http.StatusOK, jsonmap)
+}
+
+// PersonFollowers function
+func PersonFollowers(ctx *context.APIContext) {
+	// swagger:operation GET /activitypub/user/{username}/followers activitypub activitypubPersonFollowers
+	// ---
+	// summary: Returns the followers collection
+	// produces:
+	// - application/activity+json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityPub"
+
+	user := user.GetUserByParamsName(ctx, "username")
+	if user == nil {
+		return
+	}
+	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+
+	users, err := user_model.GetUserFollowers(user, utils.GetListOptions(ctx))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
+		return
+	}
+
+	followers := ap.OrderedCollectionNew(ap.IRI(link+"/followers"))
+	followers.TotalItems = uint(len(users))
+
+	for _, user := range users {
+		person := ap.PersonNew(ap.IRI(user.LoginName))
+		followers.OrderedItems.Append(person)
+	}
+
+	// TODO: move this code into a function
+	binary, err := followers.MarshalJSON()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+	}
+	var jsonmap map[string]interface{}
+	err = json.Unmarshal(binary, &jsonmap)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
+	}
+	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
 	ctx.JSON(http.StatusOK, jsonmap)
 }
