@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
@@ -57,7 +58,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = models.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = issues_model.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -296,7 +297,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
+		pr, err := issues_model.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{

@@ -349,7 +349,7 @@ recommended that pausing only done for a very short period of time.
 
 It is possible to add and remove logging whilst Gitea is running using the `gitea manager logging add` and `remove` subcommands.
 This functionality can only adjust running log systems and cannot be used to start the access or router loggers if they
-were not already initialised. If you wish to start these systems you are advised to adjust the app.ini and (gracefully) restart
+were not already initialized. If you wish to start these systems you are advised to adjust the app.ini and (gracefully) restart
 the Gitea service.
 
 The main intention of these commands is to easily add a temporary logger to investigate problems on running systems where a restart
