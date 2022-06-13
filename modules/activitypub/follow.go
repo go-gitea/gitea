@@ -8,7 +8,6 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
 	ap "github.com/go-ap/activitypub"
@@ -22,24 +21,15 @@ func Follow(ctx context.Context, activity ap.Follow) {
 	actorName := actorIRISplit[len(actorIRISplit)-1]
 	objectName := objectIRISplit[len(actorIRISplit)-1]
 
-	actorUser, err := user_model.GetUserByName(ctx, actorName)
-	if err != nil {
-		// Create user
-		// TODO: Move this to a function
-		actorUser :=  &user_model.User{
-			Name:      actorName,
-			LoginType: auth.Federated,
-			LoginName: actorIRI.String(),
-		}
-		user_model.CreateUser(actorUser)
-		actorUser, _ = user_model.GetUserByName(ctx, actorName)
-	}
+	FederatedUserNew(actorName, actorIRI)
+	actorUser, _ := user_model.GetUserByName(ctx, actorName)
 	objectUser, _ := user_model.GetUserByName(ctx, objectName)
 	
 	user_model.FollowUser(actorUser.ID, objectUser.ID)
 
 	accept := ap.AcceptNew(objectIRI, activity)
 	accept.Actor = activity.Object
+	accept.To = ap.ItemCollection{actorIRI}
 
-	// TODO: send the Accept activity to the object's inbox
+	Send(objectUser, accept)
 }

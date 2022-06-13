@@ -10,14 +10,11 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"net/http"
 	"net/url"
-	"time"
 
 	"code.gitea.io/gitea/modules/activitypub"
 	gitea_context "code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/setting"
 
 	ap "github.com/go-ap/activitypub"
@@ -46,25 +43,6 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 	return
 }
 
-func fetch(iri *url.URL) (b []byte, err error) {
-	req := httplib.NewRequest(iri.String(), http.MethodGet)
-	req.Header("Accept", activitypub.ActivityStreamsContentType)
-	req.Header("Accept-Charset", "utf-8")
-	req.Header("Date", fmt.Sprintf("%s UTC", time.Now().UTC().Format(time.RFC1123)))
-	resp, err := req.Response()
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		err = fmt.Errorf("url IRI fetch [%s] failed with status (%d): %s", iri, resp.StatusCode, resp.Status)
-		return
-	}
-	b, err = io.ReadAll(resp.Body)
-	return
-}
-
 func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, err error) {
 	r := ctx.Req
 
@@ -79,7 +57,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 		return
 	}
 	// 2. Fetch the public key of the other actor
-	b, err := fetch(idIRI)
+	b, err := activitypub.Fetch(idIRI)
 	if err != nil {
 		return
 	}
