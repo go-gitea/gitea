@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -105,7 +106,7 @@ func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err 
 // LinkedRepository returns the linked repo if any
 func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
 	if a.IssueID != 0 {
-		iss, err := models.GetIssueByID(a.IssueID)
+		iss, err := issues_model.GetIssueByID(db.DefaultContext, a.IssueID)
 		if err != nil {
 			return nil, unit.TypeIssues, err
 		}

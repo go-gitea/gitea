@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -715,7 +715,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		defer gitRepo.Close()
 
 		var (
-			pr1, pr2 *models.PullRequest
+			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
@@ -723,7 +723,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		pullNum := unittest.GetCount(t, &models.PullRequest{})
+		pullNum := unittest.GetCount(t, &issues_model.PullRequest{})
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
@@ -759,11 +759,11 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+1)
-			pr1 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+1)
+			pr1 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 				HeadRepoID: repo.ID,
-				Flow:       models.PullRequestFlowAGit,
-			}).(*models.PullRequest)
+				Flow:       issues_model.PullRequestFlowAGit,
+			}).(*issues_model.PullRequest)
 			if !assert.NotEmpty(t, pr1) {
 				return
 			}
@@ -780,12 +780,12 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			pr2 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
+			pr2 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
-				Flow:       models.PullRequestFlowAGit,
-			}).(*models.PullRequest)
+				Flow:       issues_model.PullRequestFlowAGit,
+			}).(*issues_model.PullRequest)
 			if !assert.NotEmpty(t, pr2) {
 				return
 			}
@@ -833,7 +833,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -845,7 +845,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return

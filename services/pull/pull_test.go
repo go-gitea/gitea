@@ -8,7 +8,7 @@ package pull
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/models/unittest"
@@ -38,7 +38,7 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
 
 	assert.NoError(t, pr.LoadBaseRepo())
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
@@ -68,7 +68,7 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
 
-	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2, BaseRepo: baseRepo}).(*models.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo}).(*issues_model.PullRequest)
 
 	assert.NoError(t, pr.LoadBaseRepo())
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())

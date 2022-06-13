@@ -8,20 +8,21 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
-func MailParticipantsComment(ctx context.Context, c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*user_model.User) error {
+func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opType models.ActionType, issue *issues_model.Issue, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	content := c.Content
-	if c.Type == models.CommentTypePullRequestPush {
+	if c.Type == issues_model.CommentTypePullRequestPush {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(
@@ -39,7 +40,7 @@ func MailParticipantsComment(ctx context.Context, c *models.Comment, opType mode
 }
 
 // MailMentionsComment sends email to users mentioned in a code comment
-func MailMentionsComment(ctx context.Context, pr *models.PullRequest, c *models.Comment, mentions []*user_model.User) (err error) {
+func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) (err error) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
