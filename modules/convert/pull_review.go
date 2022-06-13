@@ -8,13 +8,13 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPullReview convert a review to api format
-func ToPullReview(ctx context.Context, r *models.Review, doer *user_model.User) (*api.PullReview, error) {
+func ToPullReview(ctx context.Context, r *issues_model.Review, doer *user_model.User) (*api.PullReview, error) {
 	if err := r.LoadAttributes(ctx); err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			return nil, err
@@ -44,15 +44,15 @@ func ToPullReview(ctx context.Context, r *models.Review, doer *user_model.User) 
 	}
 
 	switch r.Type {
-	case models.ReviewTypeApprove:
+	case issues_model.ReviewTypeApprove:
 		result.State = api.ReviewStateApproved
-	case models.ReviewTypeReject:
+	case issues_model.ReviewTypeReject:
 		result.State = api.ReviewStateRequestChanges
-	case models.ReviewTypeComment:
+	case issues_model.ReviewTypeComment:
 		result.State = api.ReviewStateComment
-	case models.ReviewTypePending:
+	case issues_model.ReviewTypePending:
 		result.State = api.ReviewStatePending
-	case models.ReviewTypeRequest:
+	case issues_model.ReviewTypeRequest:
 		result.State = api.ReviewStateRequestReview
 	}
 
@@ -60,11 +60,11 @@ func ToPullReview(ctx context.Context, r *models.Review, doer *user_model.User) 
 }
 
 // ToPullReviewList convert a list of review to it's api format
-func ToPullReviewList(ctx context.Context, rl []*models.Review, doer *user_model.User) ([]*api.PullReview, error) {
+func ToPullReviewList(ctx context.Context, rl []*issues_model.Review, doer *user_model.User) ([]*api.PullReview, error) {
 	result := make([]*api.PullReview, 0, len(rl))
 	for i := range rl {
 		// show pending reviews only for the user who created them
-		if rl[i].Type == models.ReviewTypePending && !(doer.IsAdmin || doer.ID == rl[i].ReviewerID) {
+		if rl[i].Type == issues_model.ReviewTypePending && !(doer.IsAdmin || doer.ID == rl[i].ReviewerID) {
 			continue
 		}
 		r, err := ToPullReview(ctx, rl[i], doer)
@@ -77,7 +77,7 @@ func ToPullReviewList(ctx context.Context, rl []*models.Review, doer *user_model
 }
 
 // ToPullReviewCommentList convert the CodeComments of an review to it's api format
-func ToPullReviewCommentList(ctx context.Context, review *models.Review, doer *user_model.User) ([]*api.PullReviewComment, error) {
+func ToPullReviewCommentList(ctx context.Context, review *issues_model.Review, doer *user_model.User) ([]*api.PullReviewComment, error) {
 	if err := review.LoadAttributes(ctx); err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			return nil, err

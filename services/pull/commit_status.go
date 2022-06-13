@@ -8,9 +8,9 @@ package pull
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/structs"
 
@@ -83,7 +83,7 @@ func IsCommitStatusContextSuccess(commitStatuses []*git_model.CommitStatus, requ
 }
 
 // IsPullCommitStatusPass returns if all required status checks PASS
-func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, error) {
+func IsPullCommitStatusPass(ctx context.Context, pr *issues_model.PullRequest) (bool, error) {
 	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
 		return false, errors.Wrap(err, "GetLatestCommitStatus")
 	}
@@ -99,7 +99,7 @@ func IsPullCommitStatusPass(ctx context.Context, pr *models.PullRequest) (bool, 
 }
 
 // GetPullRequestCommitStatusState returns pull request merged commit status state
-func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest) (structs.CommitStatusState, error) {
+func GetPullRequestCommitStatusState(ctx context.Context, pr *issues_model.PullRequest) (structs.CommitStatusState, error) {
 	// Ensure HeadRepo is loaded
 	if err := pr.LoadHeadRepoCtx(ctx); err != nil {
 		return "", errors.Wrap(err, "LoadHeadRepo")
@@ -112,15 +112,15 @@ func GetPullRequestCommitStatusState(ctx context.Context, pr *models.PullRequest
 	}
 	defer closer.Close()
 
-	if pr.Flow == models.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
+	if pr.Flow == issues_model.PullRequestFlowGithub && !headGitRepo.IsBranchExist(pr.HeadBranch) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
-	if pr.Flow == models.PullRequestFlowAGit && !git.IsReferenceExist(ctx, headGitRepo.Path, pr.GetGitRefName()) {
+	if pr.Flow == issues_model.PullRequestFlowAGit && !git.IsReferenceExist(ctx, headGitRepo.Path, pr.GetGitRefName()) {
 		return "", errors.New("Head branch does not exist, can not merge")
 	}
 
 	var sha string
-	if pr.Flow == models.PullRequestFlowGithub {
+	if pr.Flow == issues_model.PullRequestFlowGithub {
 		sha, err = headGitRepo.GetBranchCommitID(pr.HeadBranch)
 	} else {
 		sha, err = headGitRepo.GetRefCommitID(pr.GetGitRefName())
