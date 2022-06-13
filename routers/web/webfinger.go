@@ -109,7 +109,7 @@ func WebfingerQuery(ctx *context.Context) {
 			Href: appURL.String() + "api/v1/activitypub/user/" + strings.ToLower(u.Name),
 		},
 		{
-			Rel:  "http://ostatus.org/schema/1.0/subscribe",
+			Rel:      "http://ostatus.org/schema/1.0/subscribe",
 			Template: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
 		},
 	}
