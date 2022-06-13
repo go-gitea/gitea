@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues_test
 
 import (
 	"testing"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -21,20 +22,20 @@ func TestAddTime(t *testing.T) {
 	user3, err := user_model.GetUserByID(3)
 	assert.NoError(t, err)
 
-	issue1, err := GetIssueByID(1)
+	issue1, err := issues_model.GetIssueByID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 
 	// 3661 = 1h 1min 1s
-	trackedTime, err := AddTime(user3, issue1, 3661, time.Now())
+	trackedTime, err := issues_model.AddTime(user3, issue1, 3661, time.Now())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3), trackedTime.UserID)
 	assert.Equal(t, int64(1), trackedTime.IssueID)
 	assert.Equal(t, int64(3661), trackedTime.Time)
 
-	tt := unittest.AssertExistsAndLoadBean(t, &TrackedTime{UserID: 3, IssueID: 1}).(*TrackedTime)
+	tt := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{UserID: 3, IssueID: 1}).(*issues_model.TrackedTime)
 	assert.Equal(t, int64(3661), tt.Time)
 
-	comment := unittest.AssertExistsAndLoadBean(t, &Comment{Type: CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{Type: issues_model.CommentTypeAddTimeManual, PosterID: 3, IssueID: 1}).(*issues_model.Comment)
 	assert.Equal(t, comment.Content, "1 hour 1 minute")
 }
 
@@ -42,39 +43,39 @@ func TestGetTrackedTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// by Issue
-	times, err := GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{IssueID: 1})
+	times, err := issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 1)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{IssueID: -1})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{IssueID: -1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by User
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{UserID: 1})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{UserID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(400), times[0].Time)
 
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{UserID: 3})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{UserID: 3})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 
 	// by Repo
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 2})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{RepositoryID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, times, 3)
 	assert.Equal(t, int64(1), times[0].Time)
-	issue, err := GetIssueByID(times[0].IssueID)
+	issue, err := issues_model.GetIssueByID(db.DefaultContext, times[0].IssueID)
 	assert.NoError(t, err)
 	assert.Equal(t, issue.RepoID, int64(2))
 
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 1})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{RepositoryID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, times, 5)
 
-	times, err = GetTrackedTimes(db.DefaultContext, &FindTrackedTimesOptions{RepositoryID: 10})
+	times, err = issues_model.GetTrackedTimes(db.DefaultContext, &issues_model.FindTrackedTimesOptions{RepositoryID: 10})
 	assert.NoError(t, err)
 	assert.Len(t, times, 0)
 }
@@ -82,7 +83,7 @@ func TestGetTrackedTimes(t *testing.T) {
 func TestTotalTimes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	total, err := TotalTimes(&FindTrackedTimesOptions{IssueID: 1})
+	total, err := issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 1})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -90,7 +91,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.Equal(t, "6 minutes 40 seconds", time)
 	}
 
-	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 2})
+	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 2})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 	for user, time := range total {
@@ -103,7 +104,7 @@ func TestTotalTimes(t *testing.T) {
 		}
 	}
 
-	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 5})
+	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 5})
 	assert.NoError(t, err)
 	assert.Len(t, total, 1)
 	for user, time := range total {
@@ -111,7 +112,7 @@ func TestTotalTimes(t *testing.T) {
 		assert.Equal(t, "1 second", time)
 	}
 
-	total, err = TotalTimes(&FindTrackedTimesOptions{IssueID: 4})
+	total, err = issues_model.TotalTimes(&issues_model.FindTrackedTimesOptions{IssueID: 4})
 	assert.NoError(t, err)
 	assert.Len(t, total, 2)
 }

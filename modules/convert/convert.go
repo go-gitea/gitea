@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -55,7 +55,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git
 			if err != nil {
 				return nil, err
 			}
-			canPush = models.CanMaintainerWriteToBranch(perms, b.Name, user)
+			canPush = issues_model.CanMaintainerWriteToBranch(perms, b.Name, user)
 		}
 
 		return &api.Branch{

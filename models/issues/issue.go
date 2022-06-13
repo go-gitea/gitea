@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -16,7 +16,6 @@ import (
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
-	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -29,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -37,6 +35,71 @@ import (
 	"xorm.io/builder"
 	"xorm.io/xorm"
 )
+
+// ErrIssueNotExist represents a "IssueNotExist" kind of error.
+type ErrIssueNotExist struct {
+	ID     int64
+	RepoID int64
+	Index  int64
+}
+
+// IsErrIssueNotExist checks if an error is a ErrIssueNotExist.
+func IsErrIssueNotExist(err error) bool {
+	_, ok := err.(ErrIssueNotExist)
+	return ok
+}
+
+func (err ErrIssueNotExist) Error() string {
+	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+// ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
+type ErrIssueIsClosed struct {
+	ID     int64
+	RepoID int64
+	Index  int64
+}
+
+// IsErrIssueIsClosed checks if an error is a ErrIssueNotExist.
+func IsErrIssueIsClosed(err error) bool {
+	_, ok := err.(ErrIssueIsClosed)
+	return ok
+}
+
+func (err ErrIssueIsClosed) Error() string {
+	return fmt.Sprintf("issue is closed [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+// ErrNewIssueInsert is used when the INSERT statement in newIssue fails
+type ErrNewIssueInsert struct {
+	OriginalError error
+}
+
+// IsErrNewIssueInsert checks if an error is a ErrNewIssueInsert.
+func IsErrNewIssueInsert(err error) bool {
+	_, ok := err.(ErrNewIssueInsert)
+	return ok
+}
+
+func (err ErrNewIssueInsert) Error() string {
+	return err.OriginalError.Error()
+}
+
+// ErrIssueWasClosed is used when close a closed issue
+type ErrIssueWasClosed struct {
+	ID    int64
+	Index int64
+}
+
+// IsErrIssueWasClosed checks if an error is a ErrIssueWasClosed.
+func IsErrIssueWasClosed(err error) bool {
+	_, ok := err.(ErrIssueWasClosed)
+	return ok
+}
+
+func (err ErrIssueWasClosed) Error() string {
+	return fmt.Sprintf("Issue [%d] %d was already closed", err.ID, err.Index)
+}
 
 // Issue represents an issue or pull request of repository.
 type Issue struct {
@@ -47,14 +110,14 @@ type Issue struct {
 	PosterID         int64                  `xorm:"INDEX"`
 	Poster           *user_model.User       `xorm:"-"`
 	OriginalAuthor   string
-	OriginalAuthorID int64                   `xorm:"index"`
-	Title            string                  `xorm:"name"`
-	Content          string                  `xorm:"LONGTEXT"`
-	RenderedContent  string                  `xorm:"-"`
-	Labels           []*Label                `xorm:"-"`
-	MilestoneID      int64                   `xorm:"INDEX"`
-	Milestone        *issues_model.Milestone `xorm:"-"`
-	Project          *project_model.Project  `xorm:"-"`
+	OriginalAuthorID int64                  `xorm:"index"`
+	Title            string                 `xorm:"name"`
+	Content          string                 `xorm:"LONGTEXT"`
+	RenderedContent  string                 `xorm:"-"`
+	Labels           []*Label               `xorm:"-"`
+	MilestoneID      int64                  `xorm:"INDEX"`
+	Milestone        *Milestone             `xorm:"-"`
+	Project          *project_model.Project `xorm:"-"`
 	Priority         int
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
@@ -73,7 +136,7 @@ type Issue struct {
 
 	Attachments      []*repo_model.Attachment           `xorm:"-"`
 	Comments         []*Comment                         `xorm:"-"`
-	Reactions        issues_model.ReactionList          `xorm:"-"`
+	Reactions        ReactionList                       `xorm:"-"`
 	TotalTrackedTime int64                              `xorm:"-"`
 	Assignees        []*user_model.User                 `xorm:"-"`
 	ForeignReference *foreignreference.ForeignReference `xorm:"-"`
@@ -107,7 +170,8 @@ func init() {
 	db.RegisterModel(new(IssueIndex))
 }
 
-func (issue *Issue) loadTotalTimes(ctx context.Context) (err error) {
+// LoadTotalTimes load total tracked time
+func (issue *Issue) LoadTotalTimes(ctx context.Context) (err error) {
 	opts := FindTrackedTimesOptions{IssueID: issue.ID}
 	issue.TotalTrackedTime, err = opts.toSession(db.GetEngine(ctx)).SumInt(&TrackedTime{}, "time")
 	if err != nil {
@@ -237,7 +301,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 	if issue.Reactions != nil {
 		return nil
 	}
-	reactions, _, err := issues_model.FindReactions(ctx, issues_model.FindReactionsOptions{
+	reactions, _, err := FindReactions(ctx, FindReactionsOptions{
 		IssueID: issue.ID,
 	})
 	if err != nil {
@@ -247,7 +311,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := issues_model.ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
+	if _, err := ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
 		return err
 	}
 
@@ -292,15 +356,16 @@ func (issue *Issue) loadForeignReference(ctx context.Context) (err error) {
 
 func (issue *Issue) loadMilestone(ctx context.Context) (err error) {
 	if (issue.Milestone == nil || issue.Milestone.ID != issue.MilestoneID) && issue.MilestoneID > 0 {
-		issue.Milestone, err = issues_model.GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
-		if err != nil && !issues_model.IsErrMilestoneNotExist(err) {
+		issue.Milestone, err = GetMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByRepoID [repo_id: %d, milestone_id: %d]: %v", issue.RepoID, issue.MilestoneID, err)
 		}
 	}
 	return nil
 }
 
-func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
+// LoadAttributes loads the attribute of this issue.
+func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 	if err = issue.LoadRepo(ctx); err != nil {
 		return
 	}
@@ -345,7 +410,7 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 		return err
 	}
 	if issue.isTimetrackerEnabled(ctx) {
-		if err = issue.loadTotalTimes(ctx); err != nil {
+		if err = issue.LoadTotalTimes(ctx); err != nil {
 			return err
 		}
 	}
@@ -355,11 +420,6 @@ func (issue *Issue) loadAttributes(ctx context.Context) (err error) {
 	}
 
 	return issue.loadReactions(ctx)
-}
-
-// LoadAttributes loads the attribute of this issue.
-func (issue *Issue) LoadAttributes() error {
-	return issue.loadAttributes(db.DefaultContext)
 }
 
 // LoadMilestone load milestone of this issue.
@@ -590,15 +650,6 @@ func ReplaceIssueLabels(issue *Issue, labels []*Label, doer *user_model.User) (e
 	return committer.Commit()
 }
 
-// ReadBy sets issue to be read by given user.
-func (issue *Issue) ReadBy(ctx context.Context, userID int64) error {
-	if err := UpdateIssueUserByRead(userID, issue.ID); err != nil {
-		return err
-	}
-
-	return setIssueNotificationStatusReadIfUnread(ctx, userID, issue.ID)
-}
-
 // UpdateIssueCols updates cols of issue
 func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 	if _, err := db.GetEngine(ctx).ID(issue.ID).Cols(cols...).Update(issue); err != nil {
@@ -609,7 +660,7 @@ func UpdateIssueCols(ctx context.Context, issue *Issue, cols ...string) error {
 
 func changeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed, isMergePull bool) (*Comment, error) {
 	// Reload the issue
-	currentIssue, err := getIssueByID(ctx, issue.ID)
+	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -666,7 +717,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 
 	// Update issue count of milestone
 	if issue.MilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
+		if err := UpdateMilestoneCounters(ctx, issue.MilestoneID); err != nil {
 			return nil, err
 		}
 	}
@@ -730,7 +781,7 @@ func ChangeIssueTitle(issue *Issue, doer *user_model.User, oldTitle string) (err
 	if _, err = CreateCommentCtx(ctx, opts); err != nil {
 		return fmt.Errorf("createComment: %v", err)
 	}
-	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return err
 	}
 
@@ -772,7 +823,7 @@ func ChangeIssueRef(issue *Issue, doer *user_model.User, oldRef string) (err err
 
 // AddDeletePRBranchComment adds delete branch comment for pull request issue
 func AddDeletePRBranchComment(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, issueID int64, branchName string) error {
-	issue, err := getIssueByID(ctx, issueID)
+	issue, err := GetIssueByID(ctx, issueID)
 	if err != nil {
 		return err
 	}
@@ -815,12 +866,12 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 	}
 	defer committer.Close()
 
-	hasContentHistory, err := issues_model.HasIssueContentHistory(ctx, issue.ID, 0)
+	hasContentHistory, err := HasIssueContentHistory(ctx, issue.ID, 0)
 	if err != nil {
 		return fmt.Errorf("HasIssueContentHistory: %v", err)
 	}
 	if !hasContentHistory {
-		if err = issues_model.SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
+		if err = SaveIssueContentHistory(ctx, issue.PosterID, issue.ID, 0,
 			issue.CreatedUnix, issue.Content, true); err != nil {
 			return fmt.Errorf("SaveIssueContentHistory: %v", err)
 		}
@@ -832,12 +883,12 @@ func ChangeIssueContent(issue *Issue, doer *user_model.User, content string) (er
 		return fmt.Errorf("UpdateIssueCols: %v", err)
 	}
 
-	if err = issues_model.SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
+	if err = SaveIssueContentHistory(ctx, doer.ID, issue.ID, 0,
 		timeutil.TimeStampNow(), issue.Content, false); err != nil {
 		return fmt.Errorf("SaveIssueContentHistory: %v", err)
 	}
 
-	if err = issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err = issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return fmt.Errorf("addCrossReferences: %v", err)
 	}
 
@@ -907,13 +958,14 @@ type NewIssueOptions struct {
 	IsPull      bool
 }
 
-func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
+// NewIssueWithIndex creates issue with given index
+func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssueOptions) (err error) {
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
 	if opts.Issue.MilestoneID > 0 {
-		milestone, err := issues_model.GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
-		if err != nil && !issues_model.IsErrMilestoneNotExist(err) {
+		milestone, err := GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
+		if err != nil && !IsErrMilestoneNotExist(err) {
 			return fmt.Errorf("getMilestoneByID: %v", err)
 		}
 
@@ -937,7 +989,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 	}
 
 	if opts.Issue.MilestoneID > 0 {
-		if err := issues_model.UpdateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
+		if err := UpdateMilestoneCounters(ctx, opts.Issue.MilestoneID); err != nil {
 			return err
 		}
 
@@ -987,7 +1039,7 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 		}
 	}
 
-	if err = newIssueUsers(ctx, opts.Repo, opts.Issue); err != nil {
+	if err = NewIssueUsers(ctx, opts.Repo, opts.Issue); err != nil {
 		return err
 	}
 
@@ -1004,36 +1056,11 @@ func newIssue(ctx context.Context, doer *user_model.User, opts NewIssueOptions) 
 			}
 		}
 	}
-	if err = opts.Issue.loadAttributes(ctx); err != nil {
+	if err = opts.Issue.LoadAttributes(ctx); err != nil {
 		return err
 	}
 
-	return opts.Issue.addCrossReferences(ctx, doer, false)
-}
-
-// RecalculateIssueIndexForRepo create issue_index for repo if not exist and
-// update it based on highest index of existing issues assigned to a repo
-func RecalculateIssueIndexForRepo(repoID int64) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := db.UpsertResourceIndex(db.GetEngine(ctx), "issue_index", repoID); err != nil {
-		return err
-	}
-
-	var max int64
-	if _, err := db.GetEngine(ctx).Select(" MAX(`index`)").Table("issue").Where("repo_id=?", repoID).Get(&max); err != nil {
-		return err
-	}
-
-	if _, err := db.GetEngine(ctx).Exec("UPDATE `issue_index` SET max_index=? WHERE group_id=?", max, repoID); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return opts.Issue.AddCrossReferences(ctx, doer, false)
 }
 
 // NewIssue creates new issue with labels for repository.
@@ -1051,13 +1078,13 @@ func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids
 	}
 	defer committer.Close()
 
-	if err = newIssue(ctx, issue.Poster, NewIssueOptions{
+	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 	}); err != nil {
-		if IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
+		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
 		return fmt.Errorf("newIssue: %v", err)
@@ -1114,10 +1141,11 @@ func GetIssueWithAttrsByIndex(repoID, index int64) (*Issue, error) {
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.LoadAttributes()
+	return issue, issue.LoadAttributes(db.DefaultContext)
 }
 
-func getIssueByID(ctx context.Context, id int64) (*Issue, error) {
+// GetIssueByID returns an issue by given ID.
+func GetIssueByID(ctx context.Context, id int64) (*Issue, error) {
 	issue := new(Issue)
 	has, err := db.GetEngine(ctx).ID(id).Get(issue)
 	if err != nil {
@@ -1130,16 +1158,11 @@ func getIssueByID(ctx context.Context, id int64) (*Issue, error) {
 
 // GetIssueWithAttrsByID returns an issue with attributes by given ID.
 func GetIssueWithAttrsByID(id int64) (*Issue, error) {
-	issue, err := getIssueByID(db.DefaultContext, id)
+	issue, err := GetIssueByID(db.DefaultContext, id)
 	if err != nil {
 		return nil, err
 	}
-	return issue, issue.loadAttributes(db.DefaultContext)
-}
-
-// GetIssueByID returns an issue by given ID.
-func GetIssueByID(id int64) (*Issue, error) {
-	return getIssueByID(db.DefaultContext, id)
+	return issue, issue.LoadAttributes(db.DefaultContext)
 }
 
 // GetIssuesByIDs return issues with the given IDs.
@@ -1156,7 +1179,7 @@ func GetIssueIDsByRepoID(ctx context.Context, repoID int64) ([]int64, error) {
 }
 
 // IssuesOptions represents options of an issue.
-type IssuesOptions struct {
+type IssuesOptions struct { //nolint
 	db.ListOptions
 	RepoID             int64 // overwrites RepoCond if not 0
 	RepoCond           builder.Cond
@@ -1534,7 +1557,7 @@ func GetParticipantsIDsByIssueID(issueID int64) ([]int64, error) {
 
 // IsUserParticipantsOfIssue return true if user is participants of an issue
 func IsUserParticipantsOfIssue(user *user_model.User, issue *Issue) bool {
-	userIDs, err := issue.getParticipantIDsByIssue(db.DefaultContext)
+	userIDs, err := issue.GetParticipantIDsByIssue(db.DefaultContext)
 	if err != nil {
 		log.Error(err.Error())
 		return false
@@ -1577,17 +1600,6 @@ const (
 	FilterModeYourRepositories
 )
 
-func parseCountResult(results []map[string][]byte) int64 {
-	if len(results) == 0 {
-		return 0
-	}
-	for _, result := range results[0] {
-		c, _ := strconv.ParseInt(string(result), 10, 64)
-		return c
-	}
-	return 0
-}
-
 // IssueStatsOptions contains parameters accepted by GetIssueStats.
 type IssueStatsOptions struct {
 	RepoID            int64
@@ -1602,14 +1614,15 @@ type IssueStatsOptions struct {
 }
 
 const (
+	// MaxQueryParameters represents the max query parameters
 	// When queries are broken down in parts because of the number
 	// of parameters, attempt to break by this amount
-	maxQueryParameters = 300
+	MaxQueryParameters = 300
 )
 
 // GetIssueStats returns issue statistic information by given conditions.
 func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
-	if len(opts.IssueIDs) <= maxQueryParameters {
+	if len(opts.IssueIDs) <= MaxQueryParameters {
 		return getIssueStatsChunk(opts, opts.IssueIDs)
 	}
 
@@ -1619,7 +1632,7 @@ func GetIssueStats(opts *IssueStatsOptions) (*IssueStats, error) {
 	// ids in a temporary table and join from them.
 	accum := &IssueStats{}
 	for i := 0; i < len(opts.IssueIDs); {
-		chunk := i + maxQueryParameters
+		chunk := i + MaxQueryParameters
 		if chunk > len(opts.IssueIDs) {
 			chunk = len(opts.IssueIDs)
 		}
@@ -1950,7 +1963,7 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 	}
 
 	// Reload the issue
-	currentIssue, err := getIssueByID(ctx, issue.ID)
+	currentIssue, err := GetIssueByID(ctx, issue.ID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -1985,7 +1998,7 @@ func UpdateIssueByAPI(issue *Issue, doer *user_model.User) (statusChangeComment 
 		}
 	}
 
-	if err := issue.addCrossReferences(ctx, doer, true); err != nil {
+	if err := issue.AddCrossReferences(ctx, doer, true); err != nil {
 		return nil, false, err
 	}
 	return statusChangeComment, titleChanged, committer.Commit()
@@ -2016,22 +2029,8 @@ func UpdateIssueDeadline(issue *Issue, deadlineUnix timeutil.TimeStamp, doer *us
 	return committer.Commit()
 }
 
-// DeleteIssue deletes the issue
-func DeleteIssue(issue *Issue) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := deleteIssue(ctx, issue); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-func deleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) error {
+// DeleteInIssue delete records in beans with external key issue_id = ?
+func DeleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) error {
 	e := db.GetEngine(ctx)
 	for _, bean := range beans {
 		if _, err := e.In("issue_id", issueID).Delete(bean); err != nil {
@@ -2041,103 +2040,14 @@ func deleteInIssue(ctx context.Context, issueID int64, beans ...interface{}) err
 	return nil
 }
 
-func deleteIssue(ctx context.Context, issue *Issue) error {
-	e := db.GetEngine(ctx)
-	if _, err := e.ID(issue.ID).NoAutoCondition().Delete(issue); err != nil {
-		return err
-	}
-
-	if issue.IsPull {
-		if _, err := e.ID(issue.RepoID).Decr("num_pulls").Update(new(repo_model.Repository)); err != nil {
-			return err
-		}
-		if issue.IsClosed {
-			if _, err := e.ID(issue.RepoID).Decr("num_closed_pulls").Update(new(repo_model.Repository)); err != nil {
-				return err
-			}
-		}
-	} else {
-		if _, err := e.ID(issue.RepoID).Decr("num_issues").Update(new(repo_model.Repository)); err != nil {
-			return err
-		}
-		if issue.IsClosed {
-			if _, err := e.ID(issue.RepoID).Decr("num_closed_issues").Update(new(repo_model.Repository)); err != nil {
-				return err
-			}
-		}
-	}
-
-	// delete actions assigned to this issue
-	subQuery := builder.Select("`id`").
-		From("`comment`").
-		Where(builder.Eq{"`issue_id`": issue.ID})
-	if _, err := e.In("comment_id", subQuery).Delete(&Action{}); err != nil {
-		return err
-	}
-
-	if _, err := e.Table("action").Where("repo_id = ?", issue.RepoID).
-		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
-		Where("content LIKE ?", strconv.FormatInt(issue.ID, 10)+"|%").
-		Delete(&Action{}); err != nil {
-		return err
-	}
-
-	// find attachments related to this issue and remove them
-	var attachments []*repo_model.Attachment
-	if err := e.In("issue_id", issue.ID).Find(&attachments); err != nil {
-		return err
-	}
-
-	for i := range attachments {
-		admin_model.RemoveStorageWithNotice(ctx, storage.Attachments, "Delete issue attachment", attachments[i].RelativePath())
-	}
-
-	// delete all database data still assigned to this issue
-	if err := deleteInIssue(ctx, issue.ID,
-		&issues_model.ContentHistory{},
-		&Comment{},
-		&IssueLabel{},
-		&IssueDependency{},
-		&IssueAssignees{},
-		&IssueUser{},
-		&Notification{},
-		&issues_model.Reaction{},
-		&IssueWatch{},
-		&Stopwatch{},
-		&TrackedTime{},
-		&project_model.ProjectIssue{},
-		&repo_model.Attachment{},
-		&PullRequest{},
-	); err != nil {
-		return err
-	}
-
-	// References to this issue in other issues
-	if _, err := e.In("ref_issue_id", issue.ID).Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	// Delete dependencies for issues in other repositories
-	if _, err := e.In("dependency_id", issue.ID).Delete(&IssueDependency{}); err != nil {
-		return err
-	}
-
-	// delete from dependent issues
-	if _, err := e.In("dependent_issue_id", issue.ID).Delete(&Comment{}); err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // DependencyInfo represents high level information about an issue which is a dependency of another issue.
 type DependencyInfo struct {
 	Issue                 `xorm:"extends"`
 	repo_model.Repository `xorm:"extends"`
 }
 
-// getParticipantIDsByIssue returns all userIDs who are participated in comments of an issue and issue author
-func (issue *Issue) getParticipantIDsByIssue(ctx context.Context) ([]int64, error) {
+// GetParticipantIDsByIssue returns all userIDs who are participated in comments of an issue and issue author
+func (issue *Issue) GetParticipantIDsByIssue(ctx context.Context) ([]int64, error) {
 	if issue == nil {
 		return nil, nil
 	}
@@ -2196,9 +2106,9 @@ func (issue *Issue) BlockingDependencies(ctx context.Context) (issueDeps []*Depe
 
 func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {
 	if issue.IsPull {
-		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
+		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, true, "num_closed_pulls")
 	} else {
-		err = repoStatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
+		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
 	}
 	return
 }
@@ -2363,6 +2273,17 @@ func UpdateIssuesMigrationsByType(gitServiceType api.GitServiceType, originalAut
 	return err
 }
 
+func migratedIssueCond(tp api.GitServiceType) builder.Cond {
+	return builder.In("issue_id",
+		builder.Select("issue.id").
+			From("issue").
+			InnerJoin("repository", "issue.repo_id = repository.id").
+			Where(builder.Eq{
+				"repository.original_service_type": tp,
+			}),
+	)
+}
+
 // UpdateReactionsMigrationsByType updates all migrated repositories' reactions from gitServiceType to replace originalAuthorID to posterID
 func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, originalAuthorID string, userID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Table("reaction").
@@ -2376,13 +2297,14 @@ func UpdateReactionsMigrationsByType(gitServiceType api.GitServiceType, original
 	return err
 }
 
-func deleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
+// DeleteIssuesByRepoID deletes issues by repositories id
+func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []string, err error) {
 	deleteCond := builder.Select("id").From("issue").Where(builder.Eq{"issue.repo_id": repoID})
 
 	sess := db.GetEngine(ctx)
 	// Delete content histories
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&issues_model.ContentHistory{}); err != nil {
+		Delete(&ContentHistory{}); err != nil {
 		return
 	}
 
@@ -2410,7 +2332,7 @@ func deleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 	}
 
 	if _, err = sess.In("issue_id", deleteCond).
-		Delete(&issues_model.Reaction{}); err != nil {
+		Delete(&Reaction{}); err != nil {
 		return
 	}
 
@@ -2477,3 +2399,50 @@ func (issue *Issue) GetExternalName() string { return issue.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (issue *Issue) GetExternalID() int64 { return issue.OriginalAuthorID }
+
+// CountOrphanedIssues count issues without a repo
+func CountOrphanedIssues() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Table("issue").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).
+		Select("COUNT(`issue`.`id`)").
+		Count()
+}
+
+// DeleteOrphanedIssues delete issues without a repo
+func DeleteOrphanedIssues() error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	var ids []int64
+
+	if err := db.GetEngine(ctx).Table("issue").Distinct("issue.repo_id").
+		Join("LEFT", "repository", "issue.repo_id=repository.id").
+		Where(builder.IsNull{"repository.id"}).GroupBy("issue.repo_id").
+		Find(&ids); err != nil {
+		return err
+	}
+
+	var attachmentPaths []string
+	for i := range ids {
+		paths, err := DeleteIssuesByRepoID(ctx, ids[i])
+		if err != nil {
+			return err
+		}
+		attachmentPaths = append(attachmentPaths, paths...)
+	}
+
+	if err := committer.Commit(); err != nil {
+		return err
+	}
+	committer.Close()
+
+	// Remove issue attachment files.
+	for i := range attachmentPaths {
+		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+	}
+	return nil
+}

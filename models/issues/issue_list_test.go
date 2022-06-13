@@ -2,11 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues_test
 
 import (
 	"testing"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -16,10 +17,10 @@ import (
 func TestIssueList_LoadRepositories(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issueList := IssueList{
-		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 2}).(*Issue),
-		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
+	issueList := issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}).(*issues_model.Issue),
 	}
 
 	repos, err := issueList.LoadRepositories()
@@ -33,9 +34,9 @@ func TestIssueList_LoadRepositories(t *testing.T) {
 func TestIssueList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	setting.Service.EnableTimetracking = true
-	issueList := IssueList{
-		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue),
-		unittest.AssertExistsAndLoadBean(t, &Issue{ID: 4}).(*Issue),
+	issueList := issues_model.IssueList{
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}).(*issues_model.Issue),
 	}
 
 	assert.NoError(t, issueList.LoadAttributes())
@@ -43,7 +44,7 @@ func TestIssueList_LoadAttributes(t *testing.T) {
 		assert.EqualValues(t, issue.RepoID, issue.Repo.ID)
 		for _, label := range issue.Labels {
 			assert.EqualValues(t, issue.RepoID, label.RepoID)
-			unittest.AssertExistsAndLoadBean(t, &IssueLabel{IssueID: issue.ID, LabelID: label.ID})
+			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: issue.ID, LabelID: label.ID})
 		}
 		if issue.PosterID > 0 {
 			assert.EqualValues(t, issue.PosterID, issue.Poster.ID)

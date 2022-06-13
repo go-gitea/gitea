@@ -11,8 +11,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
-	issuesModel "code.gitea.io/gitea/models/issues"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -31,7 +30,7 @@ func GetContentHistoryOverview(ctx *context.Context) {
 	}
 
 	lang := ctx.Locale.Language()
-	editedHistoryCountMap, _ := issuesModel.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
+	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
 			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
@@ -51,7 +50,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		return
 	}
 
-	items, _ := issuesModel.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
+	items, _ := issues_model.FetchIssueContentHistoryList(ctx, issue.ID, commentID)
 
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
@@ -89,8 +88,8 @@ func GetContentHistoryList(ctx *context.Context) {
 
 // canSoftDeleteContentHistory checks whether current user can soft-delete a history revision
 // Admins or owners can always delete history revisions. Normal users can only delete own history revisions.
-func canSoftDeleteContentHistory(ctx *context.Context, issue *models.Issue, comment *models.Comment,
-	history *issuesModel.ContentHistory,
+func canSoftDeleteContentHistory(ctx *context.Context, issue *issues_model.Issue, comment *issues_model.Comment,
+	history *issues_model.ContentHistory,
 ) bool {
 	canSoftDelete := false
 	if ctx.Repo.IsOwner() {
@@ -118,7 +117,7 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	historyID := ctx.FormInt64("history_id")
-	history, prevHistory, err := issuesModel.GetIssueContentHistoryAndPrev(ctx, historyID)
+	history, prevHistory, err := issues_model.GetIssueContentHistoryAndPrev(ctx, historyID)
 	if err != nil {
 		ctx.JSON(http.StatusNotFound, map[string]interface{}{
 			"message": "Can not find the content history",
@@ -127,10 +126,10 @@ func GetContentHistoryDetail(ctx *context.Context) {
 	}
 
 	// get the related comment if this history revision is for a comment, otherwise the history revision is for an issue.
-	var comment *models.Comment
+	var comment *issues_model.Comment
 	if history.CommentID != 0 {
 		var err error
-		if comment, err = models.GetCommentByID(ctx, history.CommentID); err != nil {
+		if comment, err = issues_model.GetCommentByID(ctx, history.CommentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}
@@ -186,16 +185,16 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 	commentID := ctx.FormInt64("comment_id")
 	historyID := ctx.FormInt64("history_id")
 
-	var comment *models.Comment
-	var history *issuesModel.ContentHistory
+	var comment *issues_model.Comment
+	var history *issues_model.ContentHistory
 	var err error
 	if commentID != 0 {
-		if comment, err = models.GetCommentByID(ctx, commentID); err != nil {
+		if comment, err = issues_model.GetCommentByID(ctx, commentID); err != nil {
 			log.Error("can not get comment for issue content history %v. err=%v", historyID, err)
 			return
 		}
 	}
-	if history, err = issuesModel.GetIssueContentHistoryByID(ctx, historyID); err != nil {
+	if history, err = issues_model.GetIssueContentHistoryByID(ctx, historyID); err != nil {
 		log.Error("can not get issue content history %v. err=%v", historyID, err)
 		return
 	}
@@ -208,7 +207,7 @@ func SoftDeleteContentHistory(ctx *context.Context) {
 		return
 	}
 
-	err = issuesModel.SoftDeleteIssueContentHistory(ctx, historyID)
+	err = issues_model.SoftDeleteIssueContentHistory(ctx, historyID)
 	log.Debug("soft delete issue content history. issue=%d, comment=%d, history=%d", issue.ID, commentID, historyID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"ok": err == nil,

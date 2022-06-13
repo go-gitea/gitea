@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -25,7 +25,8 @@ func init() {
 	db.RegisterModel(new(IssueUser))
 }
 
-func newIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
+// NewIssueUsers inserts an issue related users
+func NewIssueUsers(ctx context.Context, repo *repo_model.Repository, issue *Issue) error {
 	assignees, err := repo_model.GetRepoAssignees(ctx, repo)
 	if err != nil {
 		return fmt.Errorf("getAssignees: %v", err)

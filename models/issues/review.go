@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -17,10 +17,46 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
 )
+
+// ErrReviewNotExist represents a "ReviewNotExist" kind of error.
+type ErrReviewNotExist struct {
+	ID int64
+}
+
+// IsErrReviewNotExist checks if an error is a ErrReviewNotExist.
+func IsErrReviewNotExist(err error) bool {
+	_, ok := err.(ErrReviewNotExist)
+	return ok
+}
+
+func (err ErrReviewNotExist) Error() string {
+	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
+}
+
+// ErrNotValidReviewRequest an not allowed review request modify
+type ErrNotValidReviewRequest struct {
+	Reason string
+	UserID int64
+	RepoID int64
+}
+
+// IsErrNotValidReviewRequest checks if an error is a ErrNotValidReviewRequest.
+func IsErrNotValidReviewRequest(err error) bool {
+	_, ok := err.(ErrNotValidReviewRequest)
+	return ok
+}
+
+func (err ErrNotValidReviewRequest) Error() string {
+	return fmt.Sprintf("%s [user_id: %d, repo_id: %d]",
+		err.Reason,
+		err.UserID,
+		err.RepoID)
+}
 
 // ReviewType defines the sort of feedback a review gives
 type ReviewType int
@@ -105,7 +141,7 @@ func (r *Review) loadIssue(ctx context.Context) (err error) {
 	if r.Issue != nil {
 		return
 	}
-	r.Issue, err = getIssueByID(ctx, r.IssueID)
+	r.Issue, err = GetIssueByID(ctx, r.IssueID)
 	return
 }
 
@@ -967,3 +1003,16 @@ func (r *Review) GetExternalName() string { return r.OriginalAuthor }
 
 // GetExternalID ExternalUserRemappable interface
 func (r *Review) GetExternalID() int64 { return r.OriginalAuthorID }
+
+// UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
+func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
+	_, err := db.GetEngine(db.DefaultContext).Table("review").
+		Where("original_author_id = ?", originalAuthorID).
+		And(migratedIssueCond(tp)).
+		Update(map[string]interface{}{
+			"reviewer_id":        posterID,
+			"original_author":    "",
+			"original_author_id": 0,
+		})
+	return err
+}

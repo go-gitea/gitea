@@ -5,7 +5,6 @@
 package models
 
 import (
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -14,6 +13,7 @@ import (
 	"xorm.io/builder"
 )
 
+<<<<<<< HEAD
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
 	noref, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
@@ -136,6 +136,8 @@ func DeleteOrphanedIssues() error {
 	return nil
 }
 
+=======
+>>>>>>> main
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
 func CountNullArchivedRepository() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(repo_model.Repository))
@@ -156,74 +158,6 @@ func CountWrongUserType() (int64, error) {
 // FixWrongUserType fix OrgUser who have wrong type
 func FixWrongUserType() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&user_model.User{Type: 1})
-}
-
-// CountCommentTypeLabelWithEmptyLabel count label comments with empty label
-func CountCommentTypeLabelWithEmptyLabel() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Count(new(Comment))
-}
-
-// FixCommentTypeLabelWithEmptyLabel count label comments with empty label
-func FixCommentTypeLabelWithEmptyLabel() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": CommentTypeLabel, "label_id": 0}).Delete(new(Comment))
-}
-
-// CountCommentTypeLabelWithOutsideLabels count label comments with outside label
-func CountCommentTypeLabelWithOutsideLabels() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where("comment.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))", CommentTypeLabel).
-		Table("comment").
-		Join("inner", "label", "label.id = comment.label_id").
-		Join("inner", "issue", "issue.id = comment.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count(new(Comment))
-}
-
-// FixCommentTypeLabelWithOutsideLabels count label comments with outside label
-func FixCommentTypeLabelWithOutsideLabels() (int64, error) {
-	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM comment WHERE comment.id IN (
-		SELECT il_too.id FROM (
-			SELECT com.id
-				FROM comment AS com
-					INNER JOIN label ON com.label_id = label.id
-					INNER JOIN issue on issue.id = com.issue_id
-					INNER JOIN repository ON issue.repo_id = repository.id
-				WHERE
-					com.type = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id))
-	) AS il_too)`, CommentTypeLabel)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
-}
-
-// CountIssueLabelWithOutsideLabels count label comments with outside label
-func CountIssueLabelWithOutsideLabels() (int64, error) {
-	return db.GetEngine(db.DefaultContext).Where(builder.Expr("(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)")).
-		Table("issue_label").
-		Join("inner", "label", "issue_label.label_id = label.id ").
-		Join("inner", "issue", "issue.id = issue_label.issue_id ").
-		Join("inner", "repository", "issue.repo_id = repository.id").
-		Count(new(IssueLabel))
-}
-
-// FixIssueLabelWithOutsideLabels fix label comments with outside label
-func FixIssueLabelWithOutsideLabels() (int64, error) {
-	res, err := db.GetEngine(db.DefaultContext).Exec(`DELETE FROM issue_label WHERE issue_label.id IN (
-		SELECT il_too.id FROM (
-			SELECT il_too_too.id
-				FROM issue_label AS il_too_too
-					INNER JOIN label ON il_too_too.label_id = label.id
-					INNER JOIN issue on issue.id = il_too_too.issue_id
-					INNER JOIN repository on repository.id = issue.repo_id
-				WHERE
-					(label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != repository.owner_id)
-	) AS il_too )`)
-	if err != nil {
-		return 0, err
-	}
-
-	return res.RowsAffected()
 }
 
 // CountActionCreatedUnixString count actions where created_unix is an empty string

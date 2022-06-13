@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
@@ -48,7 +48,7 @@ func (t *TrackedTime) LoadAttributes() (err error) {
 
 func (t *TrackedTime) loadAttributes(ctx context.Context) (err error) {
 	if t.Issue == nil {
-		t.Issue, err = getIssueByID(ctx, t.IssueID)
+		t.Issue, err = GetIssueByID(ctx, t.IssueID)
 		if err != nil {
 			return
 		}

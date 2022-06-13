@@ -2,13 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package issues
 
 import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
-	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -36,7 +35,7 @@ func (comments CommentList) loadPosters(ctx context.Context) error {
 	posterMaps := make(map[int64]*user_model.User, len(posterIDs))
 	left := len(posterIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -80,7 +79,7 @@ func (comments CommentList) getLabelIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadLabels(ctx context.Context) error {
+func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
 	if len(comments) == 0 {
 		return nil
 	}
@@ -89,7 +88,7 @@ func (comments CommentList) loadLabels(ctx context.Context) error {
 	commentLabels := make(map[int64]*Label, len(labelIDs))
 	left := len(labelIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -140,10 +139,10 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -183,10 +182,10 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 		return nil
 	}
 
-	milestoneMaps := make(map[int64]*issues_model.Milestone, len(milestoneIDs))
+	milestoneMaps := make(map[int64]*Milestone, len(milestoneIDs))
 	left := len(milestoneIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -225,7 +224,7 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 	assignees := make(map[int64]*user_model.User, len(assigneeIDs))
 	left := len(assigneeIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -299,7 +298,7 @@ func (comments CommentList) loadIssues(ctx context.Context) error {
 	issues := make(map[int64]*Issue, len(issueIDs))
 	left := len(issueIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -357,7 +356,7 @@ func (comments CommentList) loadDependentIssues(ctx context.Context) error {
 	issues := make(map[int64]*Issue, len(issueIDs))
 	left := len(issueIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -406,7 +405,7 @@ func (comments CommentList) loadAttachments(ctx context.Context) (err error) {
 	commentsIDs := comments.getCommentIDs()
 	left := len(commentsIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
@@ -449,7 +448,7 @@ func (comments CommentList) getReviewIDs() []int64 {
 	return container.KeysInt64(ids)
 }
 
-func (comments CommentList) loadReviews(ctx context.Context) error {
+func (comments CommentList) loadReviews(ctx context.Context) error { //nolint
 	if len(comments) == 0 {
 		return nil
 	}
@@ -458,7 +457,7 @@ func (comments CommentList) loadReviews(ctx context.Context) error {
 	reviews := make(map[int64]*Review, len(reviewIDs))
 	left := len(reviewIDs)
 	for left > 0 {
-		limit := defaultMaxInSize
+		limit := db.DefaultMaxInSize
 		if left < limit {
 			limit = left
 		}
