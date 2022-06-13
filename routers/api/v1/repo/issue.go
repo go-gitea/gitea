@@ -16,6 +16,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -129,7 +131,7 @@ func SearchIssues(ctx *context.APIContext) {
 	}
 
 	// find repos user can access (for issue search)
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		Private:     false,
 		AllPublic:   true,
 		TopicOnly:   false,
@@ -144,7 +146,7 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.AllLimited = true
 	}
 	if ctx.FormString("owner") != "" {
-		owner, err := user_model.GetUserByName(ctx.FormString("owner"))
+		owner, err := user_model.GetUserByName(ctx, ctx.FormString("owner"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Owner not found", err)
@@ -163,7 +165,7 @@ func SearchIssues(ctx *context.APIContext) {
 			ctx.Error(http.StatusBadRequest, "", "Owner organisation is required for filtering on team")
 			return
 		}
-		team, err := organization.GetTeam(opts.OwnerID, ctx.FormString("team"))
+		team, err := organization.GetTeam(ctx, opts.OwnerID, ctx.FormString("team"))
 		if err != nil {
 			if organization.IsErrTeamNotExist(err) {
 				ctx.Error(http.StatusBadRequest, "Team not found", err)
@@ -175,8 +177,8 @@ func SearchIssues(ctx *context.APIContext) {
 		opts.TeamID = team.ID
 	}
 
-	repoCond := models.SearchRepositoryCondition(opts)
-	repoIDs, _, err := models.SearchRepositoryIDs(opts)
+	repoCond := repo_model.SearchRepositoryCondition(opts)
+	repoIDs, _, err := repo_model.SearchRepositoryIDs(opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchRepositoryByName", err)
 		return
@@ -501,7 +503,7 @@ func getUserIDForFilter(ctx *context.APIContext, queryName string) int64 {
 		return 0
 	}
 
-	user, err := user_model.GetUserByName(userName)
+	user, err := user_model.GetUserByName(ctx, userName)
 	if user_model.IsErrUserNotExist(err) {
 		ctx.NotFound(err)
 		return 0
@@ -629,7 +631,7 @@ func CreateIssue(ctx *context.APIContext) {
 				return
 			}
 
-			valid, err := models.CanBeAssigned(assignee, ctx.Repo.Repository, false)
+			valid, err := access_model.CanBeAssigned(ctx, assignee, ctx.Repo.Repository, false)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "canBeAssigned", err)
 				return

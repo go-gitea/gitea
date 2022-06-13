@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -102,7 +103,7 @@ func ReadThread(ctx *context.APIContext) {
 func getThread(ctx *context.APIContext) *models.Notification {
 	n, err := models.GetNotificationByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)
 		} else {
 			ctx.InternalServerError(err)

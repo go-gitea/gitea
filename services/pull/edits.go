@@ -10,6 +10,7 @@ import (
 	"errors"
 
 	"code.gitea.io/gitea/models"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 )
@@ -26,7 +27,7 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *models.PullRe
 		return err
 	}
 
-	permission, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+	permission, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 	if err != nil {
 		return err
 	}

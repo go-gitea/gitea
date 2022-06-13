@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -129,7 +130,7 @@ func TestUpdateTeam(t *testing.T) {
 	team = unittest.AssertExistsAndLoadBean(t, &organization.Team{Name: "newName"}).(*organization.Team)
 	assert.True(t, strings.HasPrefix(team.Description, "A long description!"))
 
-	access := unittest.AssertExistsAndLoadBean(t, &Access{UserID: 4, RepoID: 3}).(*Access)
+	access := unittest.AssertExistsAndLoadBean(t, &access_model.Access{UserID: 4, RepoID: 3}).(*access_model.Access)
 	assert.EqualValues(t, perm.AccessModeAdmin, access.Mode)
 
 	unittest.CheckConsistencyFor(t, &organization.Team{ID: team.ID})
@@ -161,7 +162,7 @@ func TestDeleteTeam(t *testing.T) {
 	// check that team members don't have "leftover" access to repos
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
-	accessMode, err := AccessLevel(user, repo)
+	accessMode, err := access_model.AccessLevel(user, repo)
 	assert.NoError(t, err)
 	assert.True(t, accessMode < perm.AccessModeWrite)
 }
@@ -197,4 +198,22 @@ func TestRemoveTeamMember(t *testing.T) {
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 1}).(*organization.Team)
 	err := RemoveTeamMember(team, 2)
 	assert.True(t, organization.IsErrLastOrgOwner(err))
+}
+
+func TestRepository_RecalculateAccesses3(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	team5 := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
+
+	has, err := db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: 29, RepoID: 23})
+	assert.NoError(t, err)
+	assert.False(t, has)
+
+	// adding user29 to team5 should add an explicit access row for repo 23
+	// even though repo 23 is public
+	assert.NoError(t, AddTeamMember(team5, user29.ID))
+
+	has, err = db.GetEngine(db.DefaultContext).Get(&access_model.Access{UserID: 29, RepoID: 23})
+	assert.NoError(t, err)
+	assert.True(t, has)
 }

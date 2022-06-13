@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -63,7 +64,7 @@ func DeleteTime(c *context.Context) {
 
 	t, err := models.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			c.NotFound("time not found", err)
 			return
 		}

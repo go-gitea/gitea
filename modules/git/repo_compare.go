@@ -286,6 +286,15 @@ func (repo *Repository) GetPatch(base, head string, w io.Writer) error {
 	return err
 }
 
+// GetFilesChangedBetween returns a list of all files that have been changed between the given commits
+func (repo *Repository) GetFilesChangedBetween(base, head string) ([]string, error) {
+	stdout, _, err := NewCommand(repo.Ctx, "diff", "--name-only", base+".."+head).RunStdString(&RunOpts{Dir: repo.Path})
+	if err != nil {
+		return nil, err
+	}
+	return strings.Split(stdout, "\n"), err
+}
+
 // GetDiffFromMergeBase generates and return patch data from merge base to head
 func (repo *Repository) GetDiffFromMergeBase(base, head string, w io.Writer) error {
 	stderr := new(bytes.Buffer)

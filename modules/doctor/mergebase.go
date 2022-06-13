@@ -92,12 +92,14 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 	if autofix {
 		logger.Info("%d PR mergebases updated of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 	} else {
-		if numPRsUpdated > 0 && err == nil {
+		if numPRsUpdated == 0 {
+			logger.Info("All %d PRs in %d repos have a correct mergebase", numPRs, numRepos)
+		} else if err == nil {
 			logger.Critical("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 			return fmt.Errorf("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
+		} else {
+			logger.Warn("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 		}
-
-		logger.Warn("%d PRs with incorrect mergebases of %d PRs total in %d repos", numPRsUpdated, numPRs, numRepos)
 	}
 
 	return err

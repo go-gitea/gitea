@@ -209,7 +209,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.EqualValues(t, "15", resp.Header().Get("X-Total-Count"))
+	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
 	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
 
 	query.Add("limit", "20")
@@ -217,14 +217,14 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 15)
+	assert.Len(t, apiIssues, 17)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}, "token": {token}}
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 1)
+	assert.Len(t, apiIssues, 2)
 
 	query = url.Values{"milestones": {"milestone1"}, "state": {"all"}, "token": {token}}
 	link.RawQuery = query.Encode()
@@ -252,7 +252,7 @@ func TestAPISearchIssues(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 3)
+	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"owner": {"user3"}, "team": {"team1"}, "token": {token}} // organization + team
 	link.RawQuery = query.Encode()

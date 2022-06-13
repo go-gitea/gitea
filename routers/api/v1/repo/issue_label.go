@@ -111,7 +111,7 @@ func AddIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	labels, err = models.GetLabelsByIssueID(issue.ID)
+	labels, err = models.GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
 		return
@@ -173,7 +173,7 @@ func DeleteIssueLabel(ctx *context.APIContext) {
 		return
 	}
 
-	label, err := models.GetLabelByID(ctx.ParamsInt64(":id"))
+	label, err := models.GetLabelByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrLabelNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -237,7 +237,7 @@ func ReplaceIssueLabels(ctx *context.APIContext) {
 		return
 	}
 
-	labels, err = models.GetLabelsByIssueID(issue.ID)
+	labels, err = models.GetLabelsByIssueID(ctx, issue.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByIssueID", err)
 		return

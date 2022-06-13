@@ -72,7 +72,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 		apiIssue.Milestone = ToAPIMilestone(issue.Milestone)
 	}
 
-	if err := issue.LoadAssignees(); err != nil {
+	if err := issue.LoadAssignees(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
 	if len(issue.Assignees) > 0 {

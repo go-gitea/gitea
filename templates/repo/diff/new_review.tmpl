@@ -1,6 +1,7 @@
 <div class="ui top right pointing dropdown custom" id="review-box">
 	<div class="ui tiny green button btn-review">
 		{{.i18n.Tr "repo.diff.review"}}
+		<span class="ui small label review-comments-counter" data-pending-comment-number="{{.PendingCodeCommentNumber}}">{{.PendingCodeCommentNumber}}</span>
 		{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	</div>
 	<div class="menu review-box">

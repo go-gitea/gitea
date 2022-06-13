@@ -5,6 +5,7 @@
 package db
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -74,8 +75,8 @@ func GetNextResourceIndex(tableName string, groupID int64) (int64, error) {
 }
 
 // DeleteResouceIndex delete resource index
-func DeleteResouceIndex(e Engine, tableName string, groupID int64) error {
-	_, err := e.Exec(fmt.Sprintf("DELETE FROM %s WHERE group_id=?", tableName), groupID)
+func DeleteResouceIndex(ctx context.Context, tableName string, groupID int64) error {
+	_, err := Exec(ctx, fmt.Sprintf("DELETE FROM %s WHERE group_id=?", tableName), groupID)
 	return err
 }
 

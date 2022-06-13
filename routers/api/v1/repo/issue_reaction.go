@@ -49,7 +49,7 @@ func GetIssueCommentReactions(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
@@ -176,7 +176,7 @@ func DeleteIssueCommentReaction(ctx *context.APIContext) {
 }
 
 func changeIssueCommentReaction(ctx *context.APIContext, form api.EditReactionOption, isCreateType bool) {
-	comment, err := models.GetCommentByID(ctx.ParamsInt64(":id"))
+	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if models.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)

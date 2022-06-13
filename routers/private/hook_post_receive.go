@@ -106,7 +106,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := repo_model.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "is_private", "is_template"); err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
@@ -141,7 +141,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetPullRequestByIndex(repo.ID, pullIndex)
+			pr, err := models.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
 			if err != nil && !models.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{

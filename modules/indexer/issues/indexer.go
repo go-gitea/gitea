@@ -291,8 +291,8 @@ func populateIssueIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
+		repos, _, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
@@ -362,7 +362,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 	var ids []int64
-	ids, err := models.GetIssueIDsByRepoID(repo.ID)
+	ids, err := models.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
 	if err != nil {
 		log.Error("getIssueIDsByRepoID failed: %v", err)
 		return

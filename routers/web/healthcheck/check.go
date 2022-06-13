@@ -126,7 +126,7 @@ func checkCache(checks checks) status {
 	}
 
 	st := componentStatus{}
-	if err := cache.Ping(); err != nil {
+	if err := cache.GetCache().Ping(); err != nil {
 		st.Status = fail
 		st.Time = getCheckTime()
 		log.Error("cache ping failed with error: %v", err)

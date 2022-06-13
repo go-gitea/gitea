@@ -58,3 +58,42 @@ export function parseIssueHref(href) {
   const [_, owner, repo, type, index] = /([^/]+)\/([^/]+)\/(issues|pulls)\/([0-9]+)/.exec(path) || [];
   return {owner, repo, type, index};
 }
+
+// return the sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
+// res[even] is unmatched, res[odd] is matched, see unit tests for examples
+export function strSubMatch(full, sub) {
+  const res = [''];
+  let i = 0, j = 0;
+  for (; i < sub.length && j < full.length;) {
+    while (j < full.length) {
+      if (sub[i] === full[j]) {
+        if (res.length % 2 !== 0) res.push('');
+        res[res.length - 1] += full[j];
+        j++;
+        i++;
+      } else {
+        if (res.length % 2 === 0) res.push('');
+        res[res.length - 1] += full[j];
+        j++;
+        break;
+      }
+    }
+  }
+  if (i !== sub.length) {
+    // if the sub string doesn't match the full, only return the full as unmatched.
+    return [full];
+  }
+  if (j < full.length) {
+    // append remaining chars from full to result as unmatched
+    if (res.length % 2 === 0) res.push('');
+    res[res.length - 1] += full.substring(j);
+  }
+  return res;
+}
+
+// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
+export function prettyNumber(num, locale = 'en-US') {
+  if (typeof num !== 'number') return '';
+  const {format} = new Intl.NumberFormat(locale);
+  return format(num);
+}

@@ -389,16 +389,6 @@ In this option, the idea is that the host simply uses the `authorized_keys` that
     sudo chmod +x /usr/local/bin/gitea
     ```
 
-  - For Gitea v1.15.x and earlier. As an administrative user on the host run:
-
-    ```bash
-    cat <<"EOF" | sudo tee /app/gitea/gitea
-    #!/bin/sh
-    ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
-    EOF
-    sudo chmod +x /app/gitea/gitea
-    ```
-
 Here is a detailed explanation what is happening when a SSH request is made:
 
 1. The client adds their SSH public key to Gitea using the webpage.
@@ -431,7 +421,7 @@ Never add the `Gitea Host Key` as a SSH key to a user on the Gitea interface.
 
 In this option, the idea is that the host simply uses the `authorized_keys` that gitea creates but at step 8 above we change the shell that the host runs to ssh directly into the docker and then run the shell there. This means that the `gitea` that is then run is the real docker `gitea`.
 
-- In this case we setup as per SSHing Shim except instead of creating `/usr/local/bin/gitea` or `/app/gitea/gitea`
+- In this case we setup as per SSHing Shim except instead of creating `/usr/local/bin/gitea`
 we create a new shell for the git user. As an administrative user on the host run:
 
   ```bash

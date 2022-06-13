@@ -13,9 +13,13 @@ import (
 	_ "image/jpeg" // Needed for jpeg support
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,8 +71,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 
 	if err = db.DeleteBeans(ctx,
 		&AccessToken{UID: u.ID},
-		&Collaboration{UserID: u.ID},
-		&Access{UserID: u.ID},
+		&repo_model.Collaboration{UserID: u.ID},
+		&access_model.Access{UserID: u.ID},
 		&repo_model.Watch{UserID: u.ID},
 		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
@@ -79,11 +83,16 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&user_model.UserOpenID{UID: u.ID},
 		&issues.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
-		&Collaboration{UserID: u.ID},
 		&Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
+		&pull_model.AutoMerge{DoerID: u.ID},
+		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
 		return fmt.Errorf("deleteBeans: %v", err)
+	}
+
+	if err := auth_model.DeleteOAuth2RelictsByUserID(ctx, u.ID); err != nil {
+		return err
 	}
 
 	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
@@ -117,7 +126,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	{
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
-			protections := make([]*ProtectedBranch, 0, batchSize)
+			protections := make([]*git_model.ProtectedBranch, 0, batchSize)
 			// @perf: We can't filter on DB side by u.ID, as those IDs are serialized as JSON strings.
 			//   We could filter down with `WHERE repo_id IN (reposWithPushPermission(u))`,
 			//   though that query will be quite complex and tricky to maintain (compare `getRepoAssignees()`).
@@ -158,7 +167,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** END: Branch Protections *****
 
 	// ***** START: PublicKey *****
-	if _, err = e.Delete(&asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &asymkey_model.PublicKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deletePublicKeys: %v", err)
 	}
 	// ***** END: PublicKey *****
@@ -170,17 +179,17 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	}
 	// Delete GPGKeyImport(s).
 	for _, key := range keys {
-		if _, err = e.Delete(&asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
+		if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKeyImport{KeyID: key.KeyID}); err != nil {
 			return fmt.Errorf("deleteGPGKeyImports: %v", err)
 		}
 	}
-	if _, err = e.Delete(&asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &asymkey_model.GPGKey{OwnerID: u.ID}); err != nil {
 		return fmt.Errorf("deleteGPGKeys: %v", err)
 	}
 	// ***** END: GPGPublicKey *****
 
 	// Clear assignee.
-	if err = clearAssigneeByUserID(e, u.ID); err != nil {
+	if _, err = db.DeleteByBean(ctx, &IssueAssignees{AssigneeID: u.ID}); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 

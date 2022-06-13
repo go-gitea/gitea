@@ -93,7 +93,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 
 // CreateRepo creates a repository
 func (g *GiteaLocalUploader) CreateRepo(repo *base.Repository, opts base.MigrateOptions) error {
-	owner, err := user_model.GetUserByName(g.repoOwner)
+	owner, err := user_model.GetUserByName(g.ctx, g.repoOwner)
 	if err != nil {
 		return err
 	}
@@ -696,6 +696,8 @@ func convertReviewState(state string) models.ReviewType {
 		return models.ReviewTypeReject
 	case base.ReviewStateCommented:
 		return models.ReviewTypeComment
+	case base.ReviewStateRequestReview:
+		return models.ReviewTypeRequest
 	default:
 		return models.ReviewTypePending
 	}
@@ -826,7 +828,7 @@ func (g *GiteaLocalUploader) Finish() error {
 	}
 
 	g.repo.Status = repo_model.RepositoryReady
-	return repo_model.UpdateRepositoryCols(g.repo, "status")
+	return repo_model.UpdateRepositoryCols(g.ctx, g.repo, "status")
 }
 
 func (g *GiteaLocalUploader) remapUser(source user_model.ExternalUserMigrated, target user_model.ExternalUserRemappable) error {

@@ -28,16 +28,16 @@ func TestCreateOrUpdateIssueWatch(t *testing.T) {
 func TestGetIssueWatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_, exists, err := GetIssueWatch(9, 1)
+	_, exists, err := GetIssueWatch(db.DefaultContext, 9, 1)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 
-	iw, exists, err := GetIssueWatch(2, 2)
+	iw, exists, err := GetIssueWatch(db.DefaultContext, 2, 2)
 	assert.True(t, exists)
 	assert.NoError(t, err)
 	assert.False(t, iw.IsWatching)
 
-	_, exists, err = GetIssueWatch(3, 1)
+	_, exists, err = GetIssueWatch(db.DefaultContext, 3, 1)
 	assert.False(t, exists)
 	assert.NoError(t, err)
 }
@@ -45,22 +45,22 @@ func TestGetIssueWatch(t *testing.T) {
 func TestGetIssueWatchers(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	iws, err := GetIssueWatchers(1, db.ListOptions{})
+	iws, err := GetIssueWatchers(db.DefaultContext, 1, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is inactive, thus 0
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(2, db.ListOptions{})
+	iws, err = GetIssueWatchers(db.DefaultContext, 2, db.ListOptions{})
 	assert.NoError(t, err)
 	// Watcher is explicit not watching
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(5, db.ListOptions{})
+	iws, err = GetIssueWatchers(db.DefaultContext, 5, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has no Watchers
 	assert.Len(t, iws, 0)
 
-	iws, err = GetIssueWatchers(7, db.ListOptions{})
+	iws, err = GetIssueWatchers(db.DefaultContext, 7, db.ListOptions{})
 	assert.NoError(t, err)
 	// Issue has one watcher
 	assert.Len(t, iws, 1)

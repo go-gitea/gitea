@@ -149,7 +149,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	test := func(repoID int64) {
 		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
-		count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), repoID)
+		count, err := countRepoMilestones(db.DefaultContext, repoID)
 		assert.NoError(t, err)
 		assert.EqualValues(t, repo.NumMilestones, count)
 	}
@@ -157,7 +157,7 @@ func TestCountRepoMilestones(t *testing.T) {
 	test(2)
 	test(3)
 
-	count, err := countRepoMilestones(db.GetEngine(db.DefaultContext), unittest.NonexistentID)
+	count, err := countRepoMilestones(db.DefaultContext, unittest.NonexistentID)
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0, count)
 }

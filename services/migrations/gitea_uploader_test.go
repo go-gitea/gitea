@@ -40,7 +40,8 @@ func TestGiteaUploadRepo(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	var (
-		downloader = NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", "", "go-xorm", "builder")
+		ctx        = context.Background()
+		downloader = NewGithubDownloaderV3(ctx, "https://github.com", "", "", "", "go-xorm", "builder")
 		repoName   = "builder-" + time.Now().Format("2006-01-02-15-04-05")
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
@@ -80,7 +81,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, milestones)
 
-	labels, err := models.GetLabelsByRepoID(repo.ID, "", db.ListOptions{})
+	labels, err := models.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 

@@ -75,7 +75,7 @@ func ListNotifications(ctx *context.APIContext) {
 		return
 	}
 
-	nl, err := models.GetNotifications(opts)
+	nl, err := models.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -148,7 +148,7 @@ func ReadNotifications(ctx *context.APIContext) {
 		statuses := ctx.FormStrings("status-types")
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 	}
-	nl, err := models.GetNotifications(opts)
+	nl, err := models.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

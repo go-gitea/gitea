@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -44,12 +45,12 @@ func TestStopwatchExists(t *testing.T) {
 func TestHasUserStopwatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	exists, sw, err := HasUserStopwatch(1)
+	exists, sw, err := HasUserStopwatch(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 	assert.Equal(t, int64(1), sw.ID)
 
-	exists, _, err = HasUserStopwatch(3)
+	exists, _, err = HasUserStopwatch(db.DefaultContext, 3)
 	assert.NoError(t, err)
 	assert.False(t, exists)
 }

@@ -33,7 +33,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiTimes api.TrackedTimeList
 	DecodeJSON(t, resp, &apiTimes)
-	expect, err := models.GetTrackedTimes(&models.FindTrackedTimesOptions{IssueID: issue2.ID})
+	expect, err := models.GetTrackedTimes(db.DefaultContext, &models.FindTrackedTimesOptions{IssueID: issue2.ID})
 	assert.NoError(t, err)
 	assert.Len(t, apiTimes, 3)
 
@@ -83,7 +83,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 
 	// Reset time of user 2 on issue 2
-	trackedSeconds, err := models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
+	trackedSeconds, err := models.GetTrackedSeconds(db.DefaultContext, models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(3661), trackedSeconds)
 
@@ -91,7 +91,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNoContent)
 	session.MakeRequest(t, req, http.StatusNotFound)
 
-	trackedSeconds, err = models.GetTrackedSeconds(models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
+	trackedSeconds, err = models.GetTrackedSeconds(db.DefaultContext, models.FindTrackedTimesOptions{IssueID: 2, UserID: 2})
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), trackedSeconds)
 }
