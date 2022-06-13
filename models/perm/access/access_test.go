@@ -10,7 +10,6 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -42,34 +41,34 @@ func TestAccessLevel(t *testing.T) {
 
 	level, err := access_model.AccessLevel(user2, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeOwner, level)
+	assert.Equal(t, perm_model.AccessModeOwner, level)
 
 	level, err = access_model.AccessLevel(user2, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeOwner, level)
+	assert.Equal(t, perm_model.AccessModeOwner, level)
 
 	level, err = access_model.AccessLevel(user5, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeRead, level)
+	assert.Equal(t, perm_model.AccessModeRead, level)
 
 	level, err = access_model.AccessLevel(user5, repo3)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeNone, level)
+	assert.Equal(t, perm_model.AccessModeNone, level)
 
 	// restricted user has no access to a public repo
 	level, err = access_model.AccessLevel(user29, repo1)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeNone, level)
+	assert.Equal(t, perm_model.AccessModeNone, level)
 
 	// ... unless he's a collaborator
 	level, err = access_model.AccessLevel(user29, repo4)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeWrite, level)
+	assert.Equal(t, perm_model.AccessModeWrite, level)
 
 	// ... or a team member
 	level, err = access_model.AccessLevel(user29, repo24)
 	assert.NoError(t, err)
-	assert.Equal(t, perm.AccessModeRead, level)
+	assert.Equal(t, perm_model.AccessModeRead, level)
 }
 
 func TestHasAccess(t *testing.T) {
@@ -112,7 +111,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 	has, err := db.GetEngine(db.DefaultContext).Get(access)
 	assert.NoError(t, err)
 	assert.True(t, has)
-	assert.Equal(t, perm.AccessModeOwner, access.Mode)
+	assert.Equal(t, perm_model.AccessModeOwner, access.Mode)
 }
 
 func TestRepository_RecalculateAccesses2(t *testing.T) {

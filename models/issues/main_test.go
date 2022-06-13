@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
+
 	_ "code.gitea.io/gitea/models"
 )
 
