@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -78,7 +79,7 @@ func TestAPIPullUpdateByRebase(t *testing.T) {
 	})
 }
 
-func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.PullRequest {
+func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_model.PullRequest {
 	baseRepo, err := repo_service.CreateRepository(actor, actor, models.CreateRepoOptions{
 		Name:        "repo-pr-update",
 		Description: "repo-tmp-pr-update description",
@@ -146,27 +147,27 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *models.Pul
 	assert.NoError(t, err)
 
 	// create Pull
-	pullIssue := &models.Issue{
+	pullIssue := &issues_model.Issue{
 		RepoID:   baseRepo.ID,
 		Title:    "Test Pull -to-update-",
 		PosterID: actor.ID,
 		Poster:   actor,
 		IsPull:   true,
 	}
-	pullRequest := &models.PullRequest{
+	pullRequest := &issues_model.PullRequest{
 		HeadRepoID: headRepo.ID,
 		BaseRepoID: baseRepo.ID,
 		HeadBranch: "newBranch",
 		BaseBranch: "master",
 		HeadRepo:   headRepo,
 		BaseRepo:   baseRepo,
-		Type:       models.PullRequestGitea,
+		Type:       issues_model.PullRequestGitea,
 	}
 	err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 	assert.NoError(t, err)
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "Test Pull -to-update-"}).(*models.Issue)
-	pr, err := models.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"}).(*issues_model.Issue)
+	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 
 	return pr
