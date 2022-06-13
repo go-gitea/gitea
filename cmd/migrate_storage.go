@@ -81,7 +81,7 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
+	return repo_model.IterateAttachment(db.DefaultContext, func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})

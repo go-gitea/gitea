@@ -227,12 +227,12 @@ func DeleteAttachmentsByRelease(releaseID int64) error {
 }
 
 // IterateAttachment iterates attachments; it should not be used when Gitea is servicing users.
-func IterateAttachment(f func(attach *Attachment) error) error {
+func IterateAttachment(ctx context.Context, f func(attach *Attachment) error) error {
 	var start int
 	const batchSize = 100
 	for {
 		attachments := make([]*Attachment, 0, batchSize)
-		if err := db.GetEngine(db.DefaultContext).Limit(batchSize, start).Find(&attachments); err != nil {
+		if err := db.GetEngine(ctx).Limit(batchSize, start).Find(&attachments); err != nil {
 			return err
 		}
 		if len(attachments) == 0 {

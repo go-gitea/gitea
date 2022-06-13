@@ -53,13 +53,13 @@ func SaveIssueContentHistory(ctx context.Context, posterID, issueID, commentID i
 	}
 	// We only keep at most 20 history revisions now. It is enough in most cases.
 	// If there is a special requirement to keep more, we can consider introducing a new setting option then, but not now.
-	keepLimitedContentHistory(ctx, issueID, commentID, 20)
+	KeepLimitedContentHistory(ctx, issueID, commentID, 20)
 	return nil
 }
 
-// keepLimitedContentHistory keeps at most `limit` history revisions, it will hard delete out-dated revisions, sorting by revision interval
+// KeepLimitedContentHistory keeps at most `limit` history revisions, it will hard delete out-dated revisions, sorting by revision interval
 // we can ignore all errors in this function, so we just log them
-func keepLimitedContentHistory(ctx context.Context, issueID, commentID int64, limit int) {
+func KeepLimitedContentHistory(ctx context.Context, issueID, commentID int64, limit int) {
 	type IDEditTime struct {
 		ID         int64
 		EditedUnix timeutil.TimeStamp
