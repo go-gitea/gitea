@@ -26,6 +26,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/avatars"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -98,18 +99,19 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"Safe":          Safe,
-		"SafeJS":        SafeJS,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
-		"FileSize":      base.FileSize,
-		"PrettyNumber":  base.PrettyNumber,
-		"Subtract":      base.Subtract,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
+		"Safe":           Safe,
+		"SafeJS":         SafeJS,
+		"JSEscape":       JSEscape,
+		"Str2html":       Str2html,
+		"TimeSince":      timeutil.TimeSince,
+		"TimeSinceUnix":  timeutil.TimeSinceUnix,
+		"RawTimeSince":   timeutil.RawTimeSince,
+		"FileSize":       base.FileSize,
+		"PrettyNumber":   base.PrettyNumber,
+		"JsPrettyNumber": JsPrettyNumber,
+		"Subtract":       base.Subtract,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
 		"Add": func(a ...int) int {
 			sum := 0
 			for _, val := range a {
@@ -373,7 +375,7 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*models.Label) template.HTML {
+		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -1004,4 +1006,12 @@ func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteNa
 	a.Address = u.String()
 
 	return a
+}
+
+// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
+// JS will replace the number with locale-specific separators, based on the user's selected language
+func JsPrettyNumber(i interface{}) template.HTML {
+	num := util.NumberIntoInt64(i)
+
+	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
 }

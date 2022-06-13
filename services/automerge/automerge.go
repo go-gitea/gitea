@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -52,7 +52,7 @@ func handle(data ...queue.Data) []queue.Data {
 	return nil
 }
 
-func addToQueue(pr *models.PullRequest, sha string) {
+func addToQueue(pr *issues_model.PullRequest, sha string) {
 	if err := prAutoMergeQueue.PushFunc(fmt.Sprintf("%d_%s", pr.ID, sha), func() error {
 		log.Trace("Adding pullID: %d to the pull requests patch checking queue with sha %s", pr.ID, sha)
 		return nil
@@ -62,7 +62,7 @@ func addToQueue(pr *models.PullRequest, sha string) {
 }
 
 // ScheduleAutoMerge if schedule is false and no error, pull can be merged directly
-func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
+func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest, style repo_model.MergeStyle, message string) (scheduled bool, err error) {
 	err = db.WithTx(func(ctx context.Context) error {
 		lastCommitStatus, err := pull_service.GetPullRequestCommitStatusState(ctx, pull)
 		if err != nil {
@@ -79,27 +79,27 @@ func ScheduleAutoMerge(ctx context.Context, doer *user_model.User, pull *models.
 		}
 		scheduled = true
 
-		_, err = models.CreateAutoMergeComment(ctx, models.CommentTypePRScheduledToAutoMerge, pull, doer)
+		_, err = issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRScheduledToAutoMerge, pull, doer)
 		return err
 	}, ctx)
 	return
 }
 
 // RemoveScheduledAutoMerge cancels a previously scheduled pull request
-func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *models.PullRequest) error {
+func RemoveScheduledAutoMerge(ctx context.Context, doer *user_model.User, pull *issues_model.PullRequest) error {
 	return db.WithTx(func(ctx context.Context) error {
 		if err := pull_model.DeleteScheduledAutoMerge(ctx, pull.ID); err != nil {
 			return err
 		}
 
-		_, err := models.CreateAutoMergeComment(ctx, models.CommentTypePRUnScheduledToAutoMerge, pull, doer)
+		_, err := issues_model.CreateAutoMergeComment(ctx, issues_model.CommentTypePRUnScheduledToAutoMerge, pull, doer)
 		return err
 	}, ctx)
 }
 
 // MergeScheduledPullRequest merges a previously scheduled pull request when all checks succeeded
 func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model.Repository) error {
-	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *models.PullRequest) bool {
+	pulls, err := getPullRequestsByHeadSHA(ctx, sha, repo, func(pr *issues_model.PullRequest) bool {
 		return !pr.HasMerged && pr.CanAutoMerge()
 	})
 	if err != nil {
@@ -113,7 +113,7 @@ func MergeScheduledPullRequest(ctx context.Context, sha string, repo *repo_model
 	return nil
 }
 
-func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*models.PullRequest) bool) (map[int64]*models.PullRequest, error) {
+func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.Repository, filter func(*issues_model.PullRequest) bool) (map[int64]*issues_model.PullRequest, error) {
 	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 		return nil, err
 	}
 
-	pulls := make(map[int64]*models.PullRequest)
+	pulls := make(map[int64]*issues_model.PullRequest)
 
 	for _, ref := range refs {
 		// Each pull branch starts with refs/pull/ we then go from there to find the index of the pr and then
@@ -145,10 +145,10 @@ func getPullRequestsByHeadSHA(ctx context.Context, sha string, repo *repo_model.
 				continue
 			}
 
-			p, err := models.GetPullRequestByIndex(ctx, repo.ID, prIndex)
+			p, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, prIndex)
 			if err != nil {
 				// If there is no pull request for this branch, we don't try to merge it.
-				if models.IsErrPullRequestNotExist(err) {
+				if issues_model.IsErrPullRequestNotExist(err) {
 					continue
 				}
 				return nil, err
@@ -168,7 +168,7 @@ func handlePull(pullID int64, sha string) {
 		fmt.Sprintf("Handle AutoMerge of pull[%d] with sha[%s]", pullID, sha))
 	defer finished()
 
-	pr, err := models.GetPullRequestByID(ctx, pullID)
+	pr, err := issues_model.GetPullRequestByID(ctx, pullID)
 	if err != nil {
 		log.Error("GetPullRequestByID[%d]: %v", pullID, err)
 		return

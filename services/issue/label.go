@@ -5,16 +5,16 @@
 package issue
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/notification"
 )
 
 // ClearLabels clears all of an issue's labels
-func ClearLabels(issue *models.Issue, doer *user_model.User) (err error) {
-	if err = models.ClearIssueLabels(issue, doer); err != nil {
+func ClearLabels(issue *issues_model.Issue, doer *user_model.User) (err error) {
+	if err = issues_model.ClearIssueLabels(issue, doer); err != nil {
 		return
 	}
 
@@ -24,18 +24,18 @@ func ClearLabels(issue *models.Issue, doer *user_model.User) (err error) {
 }
 
 // AddLabel adds a new label to the issue.
-func AddLabel(issue *models.Issue, doer *user_model.User, label *models.Label) error {
-	if err := models.NewIssueLabel(issue, label, doer); err != nil {
+func AddLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
+	if err := issues_model.NewIssueLabel(issue, label, doer); err != nil {
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(doer, issue, []*models.Label{label}, nil)
+	notification.NotifyIssueChangeLabels(doer, issue, []*issues_model.Label{label}, nil)
 	return nil
 }
 
 // AddLabels adds a list of new labels to the issue.
-func AddLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
-	if err := models.NewIssueLabels(issue, labels, doer); err != nil {
+func AddLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
+	if err := issues_model.NewIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 
@@ -44,7 +44,7 @@ func AddLabels(issue *models.Issue, doer *user_model.User, labels []*models.Labe
 }
 
 // RemoveLabel removes a label from issue by given ID.
-func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label) error {
+func RemoveLabel(issue *issues_model.Issue, doer *user_model.User, label *issues_model.Label) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -61,12 +61,12 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 	}
 	if !perm.CanWriteIssuesOrPulls(issue.IsPull) {
 		if label.OrgID > 0 {
-			return models.ErrOrgLabelNotExist{}
+			return issues_model.ErrOrgLabelNotExist{}
 		}
-		return models.ErrRepoLabelNotExist{}
+		return issues_model.ErrRepoLabelNotExist{}
 	}
 
-	if err := models.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
+	if err := issues_model.DeleteIssueLabel(ctx, issue, label, doer); err != nil {
 		return err
 	}
 
@@ -74,18 +74,18 @@ func RemoveLabel(issue *models.Issue, doer *user_model.User, label *models.Label
 		return err
 	}
 
-	notification.NotifyIssueChangeLabels(doer, issue, nil, []*models.Label{label})
+	notification.NotifyIssueChangeLabels(doer, issue, nil, []*issues_model.Label{label})
 	return nil
 }
 
 // ReplaceLabels removes all current labels and add new labels to the issue.
-func ReplaceLabels(issue *models.Issue, doer *user_model.User, labels []*models.Label) error {
-	old, err := models.GetLabelsByIssueID(db.DefaultContext, issue.ID)
+func ReplaceLabels(issue *issues_model.Issue, doer *user_model.User, labels []*issues_model.Label) error {
+	old, err := issues_model.GetLabelsByIssueID(db.DefaultContext, issue.ID)
 	if err != nil {
 		return err
 	}
 
-	if err := models.ReplaceIssueLabels(issue, labels, doer); err != nil {
+	if err := issues_model.ReplaceIssueLabels(issue, labels, doer); err != nil {
 		return err
 	}
 

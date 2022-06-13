@@ -7,7 +7,7 @@ package issue
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -27,15 +27,15 @@ func TestIssue_AddLabels(t *testing.T) {
 	}
 	for _, test := range tests {
 		assert.NoError(t, unittest.PrepareTestDatabase())
-		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
-		labels := make([]*models.Label, len(test.labelIDs))
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID}).(*issues_model.Issue)
+		labels := make([]*issues_model.Label, len(test.labelIDs))
 		for i, labelID := range test.labelIDs {
-			labels[i] = unittest.AssertExistsAndLoadBean(t, &models.Label{ID: labelID}).(*models.Label)
+			labels[i] = unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: labelID}).(*issues_model.Label)
 		}
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID}).(*user_model.User)
 		assert.NoError(t, AddLabels(issue, doer, labels))
 		for _, labelID := range test.labelIDs {
-			unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: labelID})
+			unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: labelID})
 		}
 	}
 }
@@ -53,10 +53,10 @@ func TestIssue_AddLabel(t *testing.T) {
 	}
 	for _, test := range tests {
 		assert.NoError(t, unittest.PrepareTestDatabase())
-		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: test.issueID}).(*models.Issue)
-		label := unittest.AssertExistsAndLoadBean(t, &models.Label{ID: test.labelID}).(*models.Label)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: test.issueID}).(*issues_model.Issue)
+		label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: test.labelID}).(*issues_model.Label)
 		doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.doerID}).(*user_model.User)
 		assert.NoError(t, AddLabel(issue, doer, label))
-		unittest.AssertExistsAndLoadBean(t, &models.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
+		unittest.AssertExistsAndLoadBean(t, &issues_model.IssueLabel{IssueID: test.issueID, LabelID: test.labelID})
 	}
 }

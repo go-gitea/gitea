@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -32,11 +33,11 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 				return false, err
 			}
 
-			protectedTags, err := models.GetProtectedTags(rel.Repo.ID)
+			protectedTags, err := git_model.GetProtectedTags(rel.Repo.ID)
 			if err != nil {
 				return false, fmt.Errorf("GetProtectedTags: %v", err)
 			}
-			isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+			isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
 			if err != nil {
 				return false, err
 			}
