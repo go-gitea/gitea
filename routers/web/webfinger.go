@@ -29,6 +29,7 @@ type webfingerLink struct {
 	Rel        string                 `json:"rel,omitempty"`
 	Type       string                 `json:"type,omitempty"`
 	Href       string                 `json:"href,omitempty"`
+	Template   string                 `json:"template,omitempty"`
 	Titles     map[string]string      `json:"titles,omitempty"`
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
@@ -109,10 +110,11 @@ func WebfingerQuery(ctx *context.Context) {
 		},
 		{
 			Rel:  "http://ostatus.org/schema/1.0/subscribe",
-			Href: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
+			Template: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
 		},
 	}
 
+	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
 	ctx.JSON(http.StatusOK, &webfingerJRD{
 		Subject: fmt.Sprintf("acct:%s@%s", url.QueryEscape(u.Name), appURL.Host),
 		Aliases: aliases,
