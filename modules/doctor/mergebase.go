@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -18,13 +18,13 @@ import (
 	"xorm.io/builder"
 )
 
-func iteratePRs(ctx context.Context, repo *repo_model.Repository, each func(*repo_model.Repository, *models.PullRequest) error) error {
+func iteratePRs(ctx context.Context, repo *repo_model.Repository, each func(*repo_model.Repository, *issues_model.PullRequest) error) error {
 	return db.Iterate(
 		ctx,
-		new(models.PullRequest),
+		new(issues_model.PullRequest),
 		builder.Eq{"base_repo_id": repo.ID},
 		func(idx int, bean interface{}) error {
-			return each(repo, bean.(*models.PullRequest))
+			return each(repo, bean.(*issues_model.PullRequest))
 		},
 	)
 }
@@ -35,7 +35,7 @@ func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) erro
 	numPRsUpdated := 0
 	err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		return iteratePRs(ctx, repo, func(repo *repo_model.Repository, pr *models.PullRequest) error {
+		return iteratePRs(ctx, repo, func(repo *repo_model.Repository, pr *issues_model.PullRequest) error {
 			numPRs++
 			pr.BaseRepo = repo
 			repoPath := repo.RepoPath()

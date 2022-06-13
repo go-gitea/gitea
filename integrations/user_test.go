@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -237,8 +237,8 @@ func TestListStopWatches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	stopwatch := unittest.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID}).(*issues_model.Stopwatch)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID}).(*issues_model.Issue)
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
 		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
