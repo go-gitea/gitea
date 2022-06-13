@@ -2,26 +2,21 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package organization
+package organization_test
 
 import (
 	"path/filepath"
 	"testing"
 
+	_ "code.gitea.io/gitea/models/organization"
+	_ "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	_ "code.gitea.io/gitea/models/user"
+	_ "code.gitea.io/gitea/models"
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles: []string{
-			"user.yml",
-			"org_user.yml",
-			"team.yml",
-			"team_repo.yml",
-			"team_unit.yml",
-			"team_user.yml",
-			"repository.yml",
-		},
 	})
 }

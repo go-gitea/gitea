@@ -32,7 +32,7 @@ type Context struct {
 	e Engine
 }
 
-// WithEngine returns a db.Context from a context.Context and db.Engine
+// WithEngine returns a Context from a context.Context and Engine
 func WithEngine(ctx context.Context, e Engine) *Context {
 	return &Context{
 		Context: ctx,

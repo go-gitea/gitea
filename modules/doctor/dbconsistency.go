@@ -64,10 +64,10 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 	return consistencyCheck{
 		Name: name,
 		Counter: func() (int64, error) {
-			return models.CountOrphanedObjects(subject, refobject, joincond)
+			return db.CountOrphanedObjects(subject, refobject, joincond)
 		},
 		Fixer: func() (int64, error) {
-			err := models.DeleteOrphanedObjects(subject, refobject, joincond)
+			err := db.DeleteOrphanedObjects(subject, refobject, joincond)
 			return -1, err
 		},
 	}

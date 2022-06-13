@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package organization
+package organization_test
 
 import (
 	"fmt"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -38,7 +39,7 @@ func TestUserIsPublicMember(t *testing.T) {
 func testUserIsPublicMember(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := user_model.GetUserByID(uid)
 	assert.NoError(t, err)
-	is, err := IsPublicMembership(orgID, user.ID)
+	is, err := organization.IsPublicMembership(orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -66,7 +67,7 @@ func TestIsUserOrgOwner(t *testing.T) {
 func testIsUserOrgOwner(t *testing.T, uid, orgID int64, expected bool) {
 	user, err := user_model.GetUserByID(uid)
 	assert.NoError(t, err)
-	is, err := IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
+	is, err := organization.IsOrganizationOwner(db.DefaultContext, orgID, user.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, is)
 }
@@ -91,7 +92,7 @@ func TestUserListIsPublicMember(t *testing.T) {
 }
 
 func testUserListIsPublicMember(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(db.DefaultContext, orgID)
+	org, err := organization.GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	_, membersIsPublic, err := org.GetMembers()
 	assert.NoError(t, err)
@@ -118,9 +119,9 @@ func TestUserListIsUserOrgOwner(t *testing.T) {
 }
 
 func testUserListIsUserOrgOwner(t *testing.T, orgID int64, expected map[int64]bool) {
-	org, err := GetOrgByID(db.DefaultContext, orgID)
+	org, err := organization.GetOrgByID(db.DefaultContext, orgID)
 	assert.NoError(t, err)
 	members, _, err := org.GetMembers()
 	assert.NoError(t, err)
-	assert.Equal(t, expected, IsUserOrgOwner(members, orgID))
+	assert.Equal(t, expected, organization.IsUserOrgOwner(members, orgID))
 }

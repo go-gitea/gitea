@@ -136,29 +136,6 @@ func DeleteOrphanedIssues() error {
 	return nil
 }
 
-// CountOrphanedObjects count subjects with have no existing refobject anymore
-func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
-	return db.GetEngine(db.DefaultContext).Table("`"+subject+"`").
-		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Select("COUNT(`" + subject + "`.`id`)").
-		Count()
-}
-
-// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
-func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
-	subQuery := builder.Select("`"+subject+"`.id").
-		From("`"+subject+"`").
-		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"})
-	sql, args, err := builder.Delete(builder.In("id", subQuery)).From("`" + subject + "`").ToSQL()
-	if err != nil {
-		return err
-	}
-	_, err = db.GetEngine(db.DefaultContext).Exec(append([]interface{}{sql}, args...)...)
-	return err
-}
-
 // CountNullArchivedRepository counts the number of repositories with is_archived is null
 func CountNullArchivedRepository() (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(repo_model.Repository))
