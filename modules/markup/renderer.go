@@ -179,7 +179,8 @@ func (nopCloser) Close() error { return nil }
 
 func renderIFrame(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	_, err := io.WriteString(output, fmt.Sprintf(`<iframe src="%s%s/%s/render/%s/%s" name="ifd"
-onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no" frameborder="0" style="overflow: hidden"></iframe>`,
+onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no" frameborder="0" style="overflow: hidden"
+sandbox="allow-same-origin allow-scripts"></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
