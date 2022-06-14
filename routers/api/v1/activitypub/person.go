@@ -199,7 +199,7 @@ func PersonFollowing(ctx *context.APIContext) {
 
 	for _, user := range users {
 		// TODO: handle non-Federated users
-		person := ap.PersonNew(ap.IRI(user.LoginName))
+		person := ap.PersonNew(ap.IRI(user.Website))
 		following.OrderedItems.Append(person)
 	}
 
@@ -239,7 +239,7 @@ func PersonFollowers(ctx *context.APIContext) {
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
-		person := ap.PersonNew(ap.IRI(user.LoginName))
+		person := ap.PersonNew(ap.IRI(user.Website))
 		followers.OrderedItems.Append(person)
 	}
 

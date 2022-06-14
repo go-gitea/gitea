@@ -14,6 +14,7 @@ import (
 
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/httplib"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	ap "github.com/go-ap/activitypub"
@@ -43,9 +44,19 @@ func Send(user *user_model.User, activity *ap.Activity) {
 	if err != nil {
 		return
 	}
+	var jsonmap map[string]interface{}
+	err = json.Unmarshal(body, &jsonmap)
+	if err != nil {
+		return
+	}
+	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
+	body, _ = json.Marshal(jsonmap)
 
 	for _, to := range activity.To {
 		client, _ := NewClient(user, setting.AppURL+"api/v1/activitypub/user/"+user.Name+"#main-key")
-		client.Post(body, to.GetID().String())
+		resp, _ := client.Post(body, to.GetID().String())
+		fmt.Println(resp.StatusCode)
+		debug, _ := io.ReadAll(resp.Body)
+		fmt.Println(string(debug))
 	}
 }

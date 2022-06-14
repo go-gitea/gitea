@@ -42,6 +42,7 @@ func Follow(ctx context.Context, activity ap.Follow) {
 	accept := ap.AcceptNew(objectIRI, activity)
 	accept.Actor = ap.Person{ID: objectIRI}
 	accept.To = ap.ItemCollection{ap.IRI(actorIRI.String() + "/inbox")}
+	accept.Object = activity
 
 	Send(objectUser, accept)
 }
