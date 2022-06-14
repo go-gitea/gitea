@@ -55,15 +55,6 @@ type Client struct {
 	pubID       string
 }
 
-var algos []httpsig.Algorithm
-
-func init() {
-	algos = make([]httpsig.Algorithm, len(setting.Federation.Algorithms))
-	for i, algo := range setting.Federation.Algorithms {
-		algos[i] = httpsig.Algorithm(algo)
-	}
-}
-
 // NewClient function
 func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 	if err = containsRequiredHTTPHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
@@ -88,7 +79,7 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 				Proxy: proxy.Proxy(),
 			},
 		},
-		algs:        algos,
+		algs:        setting.HttpsigAlgs,
 		digestAlg:   httpsig.DigestAlgorithm(setting.Federation.DigestAlgorithm),
 		getHeaders:  setting.Federation.GetHeaders,
 		postHeaders: setting.Federation.PostHeaders,
