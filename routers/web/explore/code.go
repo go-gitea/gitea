@@ -5,12 +5,13 @@
 package explore
 
 import (
+	"net/http"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
-	"net/http"
 )
 
 const (
