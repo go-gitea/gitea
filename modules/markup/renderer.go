@@ -44,18 +44,18 @@ type Header struct {
 
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx             context.Context
-	RelativePath    string // relative path from tree root of the branch
-	Type            string
-	IsWiki          bool
-	URLPrefix       string
-	Metas           map[string]string
-	DefaultLink     string
-	GitRepo         *git.Repository
-	ShaExistCache   map[string]bool
-	cancelFn        func()
-	TableOfContents []Header
-	AllowIFrame     bool
+	Ctx              context.Context
+	RelativePath     string // relative path from tree root of the branch
+	Type             string
+	IsWiki           bool
+	URLPrefix        string
+	Metas            map[string]string
+	DefaultLink      string
+	GitRepo          *git.Repository
+	ShaExistCache    map[string]bool
+	cancelFn         func()
+	TableOfContents  []Header
+	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -90,23 +90,23 @@ func (ctx *RenderContext) AddCancel(fn func()) {
 type Renderer interface {
 	Name() string // markup format name
 	Extensions() []string
-	NeedPostProcess() bool
 	SanitizerRules() []setting.MarkupSanitizerRule
-	SanitizerDisabled() bool
-	DisplayInIFrame() bool
 	Render(ctx *RenderContext, input io.Reader, output io.Writer) error
 }
 
-type BaseRenderer struct{}
+// PostProcessRenderer defines an interface for renderers who need post process
+type PostProcessRenderer interface {
+	NeedPostProcess() bool
+}
 
-// NeedPostProcess implements markup.Renderer
-func (BaseRenderer) NeedPostProcess() bool { return false }
+// PostProcessRenderer defines an interface for external renderers
+type ExternalRenderer interface {
+	// SanitizerDisabled disabled sanitize if return true
+	SanitizerDisabled() bool
 
-// SanitizerDisabled disabled sanitize if return true
-func (BaseRenderer) SanitizerDisabled() bool { return false }
-
-// DisplayInIFrame represents whether render the content with an iframe
-func (BaseRenderer) DisplayInIFrame() bool { return false }
+	// DisplayInIFrame represents whether render the content with an iframe
+	DisplayInIFrame() bool
+}
 
 // RendererContentDetector detects if the content can be rendered
 // by specified renderer
@@ -177,10 +177,14 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func renderIFrame(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
-	_, err := io.WriteString(output, fmt.Sprintf(`<iframe src="%s%s/%s/render/%s/%s" name="ifd"
-onload="this.height=ifd.document.body.scrollHeight" width="100%%" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-same-origin allow-scripts"></iframe>`,
+func renderIFrame(ctx *RenderContext, output io.Writer) error {
+	_, err := io.WriteString(output, fmt.Sprintf(`
+<iframe src="%s%s/%s/render/%s/%s"
+name="giteaExternalRender"
+onload="this.height=giteaExternalRender.document.body.scrollHeight"
+width="100%%" scrolling="no" frameborder="0" style="overflow: hidden"
+sandbox="allow-same-origin allow-scripts"
+></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
@@ -202,7 +206,12 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 	var pr2 io.ReadCloser
 	var pw2 io.WriteCloser
 
-	if !renderer.SanitizerDisabled() {
+	var sanitizerDisabled bool
+	if r, ok := renderer.(ExternalRenderer); ok {
+		sanitizerDisabled = r.SanitizerDisabled()
+	}
+
+	if !sanitizerDisabled {
 		pr2, pw2 = io.Pipe()
 		defer func() {
 			_ = pr2.Close()
@@ -221,7 +230,7 @@ func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Wr
 
 	wg.Add(1)
 	go func() {
-		if renderer.NeedPostProcess() {
+		if r, ok := renderer.(PostProcessRenderer); ok && r.NeedPostProcess() {
 			err = PostProcess(ctx, pr, pw2)
 		} else {
 			_, err = io.Copy(pw2, pr)
@@ -268,8 +277,12 @@ func (err ErrUnsupportedRenderExtension) Error() string {
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
 	if renderer, ok := extRenderers[extension]; ok {
-		if renderer.DisplayInIFrame() && ctx.AllowIFrame {
-			return renderIFrame(ctx, renderer, input, output)
+		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
+			if !ctx.InStandalonePage {
+				// for an external render, it could only output its content in a standalone page
+				// otherwise, a <iframe> should be outputted to embed the external rendered page
+				return renderIFrame(ctx, output)
+			}
 		}
 		return render(ctx, renderer, input, output)
 	}
