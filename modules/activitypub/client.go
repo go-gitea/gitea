@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -106,7 +107,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
-	req.Header.Add("Date", fmt.Sprintf("%s UTC", time.Now().UTC().Format(time.RFC1123)))
+	req.Header.Add("Date", strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT"))
 
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {
