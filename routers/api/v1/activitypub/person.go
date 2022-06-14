@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/user"
 
@@ -95,8 +96,13 @@ func Person(ctx *context.APIContext) {
 
 	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
 	ctx.Resp.WriteHeader(http.StatusOK)
-	binary, _ = json.Marshal(jsonmap)
-	_, _ = ctx.Resp.Write(binary)
+	binary, err = json.Marshal(jsonmap)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Marshal", err)
+	}
+	if _, err = ctx.Resp.Write(binary); err != nil {
+		log.Error("write to resp err: %v", err)
+	}
 }
 
 // PersonInbox function
