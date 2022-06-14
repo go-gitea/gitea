@@ -23,7 +23,7 @@
 						<div class="content">
 							<strong>{{.Name}}</strong>
 							<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 					</div>
@@ -63,13 +63,13 @@
 		<p>{{.i18n.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
 	<div class="actions">
-		<div class="ui red basic inverted cancel button">
+		<div class="ui cancel button">
 			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+			{{.i18n.Tr "settings.access_token_deletion_cancel_action"}}
 		</div>
-		<div class="ui green basic inverted ok button">
+		<div class="ui red basic inverted ok button">
 			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+			{{.i18n.Tr "settings.access_token_deletion_confirm_action"}}
 		</div>
 	</div>
 </div>

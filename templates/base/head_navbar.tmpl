@@ -1,7 +1,7 @@
 <div class="ui container" id="navbar">
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/" data-content="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}">
-			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg">
+		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}">
+			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.i18n.Tr "logo"}}" aria-hidden="true">
 		</a>
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>

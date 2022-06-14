@@ -11,9 +11,11 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -84,4 +86,43 @@ func Init() error {
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repository uploads", setting.Repository.Upload.TempPath)
 	admin_model.RemoveAllWithNotice(db.DefaultContext, "Clean up temporary repositories", repo_module.LocalCopyPath())
 	return initPushQueue()
+}
+
+// UpdateRepository updates a repository
+func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err error) {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = repo_module.UpdateRepository(ctx, repo, visibilityChanged); err != nil {
+		return fmt.Errorf("updateRepository: %v", err)
+	}
+
+	return committer.Commit()
+}
+
+// LinkedRepository returns the linked repo if any
+func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
+	if a.IssueID != 0 {
+		iss, err := issues_model.GetIssueByID(db.DefaultContext, a.IssueID)
+		if err != nil {
+			return nil, unit.TypeIssues, err
+		}
+		repo, err := repo_model.GetRepositoryByID(iss.RepoID)
+		unitType := unit.TypeIssues
+		if iss.IsPull {
+			unitType = unit.TypePullRequests
+		}
+		return repo, unitType, err
+	} else if a.ReleaseID != 0 {
+		rel, err := models.GetReleaseByID(db.DefaultContext, a.ReleaseID)
+		if err != nil {
+			return nil, unit.TypeReleases, err
+		}
+		repo, err := repo_model.GetRepositoryByID(rel.RepoID)
+		return repo, unit.TypeReleases, err
+	}
+	return nil, -1, nil
 }

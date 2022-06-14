@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -76,9 +76,9 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		ctx.NotFound("Timetracker is disabled")
 		return
 	}
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -86,7 +86,7 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	opts := &models.FindTrackedTimesOptions{
+	opts := &issues_model.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 		IssueID:      issue.ID,
@@ -122,13 +122,13 @@ func ListTrackedTimes(ctx *context.APIContext) {
 		}
 	}
 
-	count, err := models.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
+	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -180,9 +180,9 @@ func AddTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	form := web.GetForm(ctx).(*api.AddTimeOption)
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -215,7 +215,7 @@ func AddTime(ctx *context.APIContext) {
 		created = form.Created
 	}
 
-	trackedTime, err := models.AddTime(user, issue, form.Time, created)
+	trackedTime, err := issues_model.AddTime(user, issue, form.Time, created)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddTime", err)
 		return
@@ -261,9 +261,9 @@ func ResetIssueTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -280,7 +280,7 @@ func ResetIssueTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.DeleteIssueUserTimes(issue, ctx.Doer)
+	err = issues_model.DeleteIssueUserTimes(issue, ctx.Doer)
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "DeleteIssueUserTimes", err)
@@ -332,9 +332,9 @@ func DeleteTime(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -351,7 +351,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	time, err := models.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
+	time, err := issues_model.GetTrackedTimeByID(ctx.ParamsInt64(":id"))
 	if err != nil {
 		if db.IsErrNotExist(err) {
 			ctx.NotFound(err)
@@ -371,7 +371,7 @@ func DeleteTime(ctx *context.APIContext) {
 		return
 	}
 
-	err = models.DeleteTime(time)
+	err = issues_model.DeleteTime(time)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteTime", err)
 		return
@@ -434,12 +434,12 @@ func ListTrackedTimesByUser(ctx *context.APIContext) {
 		return
 	}
 
-	opts := &models.FindTrackedTimesOptions{
+	opts := &issues_model.FindTrackedTimesOptions{
 		UserID:       user.ID,
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
+	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -504,7 +504,7 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		return
 	}
 
-	opts := &models.FindTrackedTimesOptions{
+	opts := &issues_model.FindTrackedTimesOptions{
 		ListOptions:  utils.GetListOptions(ctx),
 		RepositoryID: ctx.Repo.Repository.ID,
 	}
@@ -541,13 +541,13 @@ func ListTrackedTimesByRepository(ctx *context.APIContext) {
 		}
 	}
 
-	count, err := models.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
+	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimes", err)
 		return
@@ -592,7 +592,7 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/TrackedTimeList"
 
-	opts := &models.FindTrackedTimesOptions{
+	opts := &issues_model.FindTrackedTimesOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		UserID:      ctx.Doer.ID,
 	}
@@ -603,13 +603,13 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 		return
 	}
 
-	count, err := models.CountTrackedTimes(opts)
+	count, err := issues_model.CountTrackedTimes(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	trackedTimes, err := models.GetTrackedTimes(ctx, opts)
+	trackedTimes, err := issues_model.GetTrackedTimes(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetTrackedTimesByUser", err)
 		return

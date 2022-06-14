@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	access "code.gitea.io/gitea/models/perm/access"
@@ -108,7 +107,7 @@ func Home(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
