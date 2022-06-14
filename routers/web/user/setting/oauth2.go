@@ -34,7 +34,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 		return
 	}
 	// TODO validate redirect URI
-	app, err := auth.CreateOAuth2Application(auth.CreateOAuth2ApplicationOptions{
+	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.Doer.ID,
@@ -85,7 +85,7 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsApplications"] = true
 
-	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -110,7 +110,7 @@ func OAuthApplicationsRegenerateSecret(ctx *context.Context) {
 
 // OAuth2ApplicationShow displays the given application
 func OAuth2ApplicationShow(ctx *context.Context) {
-	app, err := auth.GetOAuth2ApplicationByID(ctx.ParamsInt64("id"))
+	app, err := auth.GetOAuth2ApplicationByID(ctx, ctx.ParamsInt64("id"))
 	if err != nil {
 		if auth.IsErrOAuthApplicationNotFound(err) {
 			ctx.NotFound("Application not found", err)
@@ -147,7 +147,7 @@ func RevokeOAuth2Grant(ctx *context.Context) {
 		ctx.ServerError("RevokeOAuth2Grant", fmt.Errorf("user id or grant id is zero"))
 		return
 	}
-	if err := auth.RevokeOAuth2Grant(ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
+	if err := auth.RevokeOAuth2Grant(ctx, ctx.FormInt64("id"), ctx.Doer.ID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}

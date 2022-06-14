@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -37,15 +38,14 @@ type Collaborator struct {
 
 // GetCollaborators returns the collaborators for a repository
 func GetCollaborators(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaborator, error) {
-	e := db.GetEngine(ctx)
-	collaborations, err := getCollaborations(e, repoID, listOptions)
+	collaborations, err := getCollaborations(ctx, repoID, listOptions)
 	if err != nil {
 		return nil, fmt.Errorf("getCollaborations: %v", err)
 	}
 
 	collaborators := make([]*Collaborator, 0, len(collaborations))
 	for _, c := range collaborations {
-		user, err := user_model.GetUserByIDEngine(e, c.UserID)
+		user, err := user_model.GetUserByIDCtx(ctx, c.UserID)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				log.Warn("Inconsistent DB: User: %d is listed as collaborator of %-v but does not exist", c.UserID, repoID)
@@ -85,11 +85,13 @@ func IsCollaborator(ctx context.Context, repoID, userID int64) (bool, error) {
 	return db.GetEngine(ctx).Get(&Collaboration{RepoID: repoID, UserID: userID})
 }
 
-func getCollaborations(e db.Engine, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
+func getCollaborations(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*Collaboration, error) {
 	if listOptions.Page == 0 {
 		collaborations := make([]*Collaboration, 0, 8)
-		return collaborations, e.Find(&collaborations, &Collaboration{RepoID: repoID})
+		return collaborations, db.GetEngine(ctx).Find(&collaborations, &Collaboration{RepoID: repoID})
 	}
+
+	e := db.GetEngine(ctx)
 
 	e = db.SetEnginePagination(e, &listOptions)
 
@@ -147,4 +149,24 @@ func ChangeCollaborationAccessMode(repo *Repository, uid int64, mode perm.Access
 	}
 
 	return committer.Commit()
+}
+
+// IsOwnerMemberCollaborator checks if a provided user is the owner, a collaborator or a member of a team in a repository
+func IsOwnerMemberCollaborator(repo *Repository, userID int64) (bool, error) {
+	if repo.OwnerID == userID {
+		return true, nil
+	}
+	teamMember, err := db.GetEngine(db.DefaultContext).Join("INNER", "team_repo", "team_repo.team_id = team_user.team_id").
+		Join("INNER", "team_unit", "team_unit.team_id = team_user.team_id").
+		Where("team_repo.repo_id = ?", repo.ID).
+		And("team_unit.`type` = ?", unit.TypeCode).
+		And("team_user.uid = ?", userID).Table("team_user").Exist()
+	if err != nil {
+		return false, err
+	}
+	if teamMember {
+		return true, nil
+	}
+
+	return db.GetEngine(db.DefaultContext).Get(&Collaboration{RepoID: repo.ID, UserID: userID})
 }

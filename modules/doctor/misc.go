@@ -75,9 +75,14 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 }
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := models.DoctorUserStarNum(); err != nil {
-		logger.Critical("Unable update User Stars numbers")
-		return err
+	if autofix {
+		if err := models.DoctorUserStarNum(); err != nil {
+			logger.Critical("Unable update User Stars numbers")
+			return err
+		}
+		logger.Info("Updated User Stars numbers.")
+	} else {
+		logger.Info("No check available for User Stars numbers (skipped)")
 	}
 	return nil
 }

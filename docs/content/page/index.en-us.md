@@ -249,6 +249,17 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
         - Webhooks
         - Git Hooks
         - Deploy keys
+- Package Registries
+  - Composer
+  - Conan
+  - Container
+  - Generic
+  - Helm
+  - Maven
+  - NPM
+  - Nuget
+  - PyPI
+  - RubyGems
 
 ## System Requirements
 
@@ -256,7 +267,7 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 - 2 CPU cores and 1GB RAM is typically sufficient for small teams/projects.
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
-- [Git](https://git-scm.com/) version 1.7.2 or later is required. Version 1.9.0 or later is recommended. Also please note:
+- [Git](https://git-scm.com/) version 2.0.0 or later is required.
    - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled when Git >= 2.1.2.
    - Git commit-graph rendering will be enabled automatically when Git >= 2.18.
 
@@ -267,22 +278,21 @@ Windows, on architectures like amd64, i386, ARM, PowerPC, and others.
 
 ## Components
 
-* Web framework: [Chi](http://github.com/go-chi/chi)
+* Web server framework: [Chi](http://github.com/go-chi/chi)
 * ORM: [XORM](https://xorm.io)
-* UI components:
-  * [Semantic UI](http://semantic-ui.com/)
-  * [GitHub Octicons](https://octicons.github.com/)
-  * [Font Awesome](http://fontawesome.io/)
-  * [DropzoneJS](http://www.dropzonejs.com/)
-  * [Highlight](https://highlightjs.org/)
-  * [Clipboard](https://zenorocha.github.io/clipboard.js/)
-  * [CodeMirror](https://codemirror.net/)
-  * [jQuery MiniColors](https://github.com/claviska/jquery-minicolors)
+* UI frameworks:
+  * [jQuery](https://jquery.com)
+  * [Fomantic UI](https://fomantic-ui.com)
+  * [Vue2](https://vuejs.org)
+  * and various components (see package.json)
+* Editors:
+  * [CodeMirror](https://codemirror.net)
+  * [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
+  * [Monaco Editor](https://microsoft.github.io/monaco-editor)
 * Database drivers:
   * [github.com/go-sql-driver/mysql](https://github.com/go-sql-driver/mysql)
   * [github.com/lib/pq](https://github.com/lib/pq)
   * [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
-  * [github.com/pingcap/tidb](https://github.com/pingcap/tidb)
   * [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
 ## Software and Service Support

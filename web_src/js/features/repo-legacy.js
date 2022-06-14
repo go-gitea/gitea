@@ -355,6 +355,11 @@ async function onEditContent(event) {
       initEasyMDEImagePaste(easyMDE, $dropzone[0], $dropzone.find('.files'));
     }
 
+    const $saveButton = $editContentZone.find('.save.button');
+    $textarea.on('ce-quick-submit', () => {
+      $saveButton.trigger('click');
+    });
+
     $editContentZone.find('.cancel.button').on('click', () => {
       $renderContent.show();
       $editContentZone.hide();
@@ -362,7 +367,8 @@ async function onEditContent(event) {
         dz.emit('reload');
       }
     });
-    $editContentZone.find('.save.button').on('click', () => {
+
+    $saveButton.on('click', () => {
       $renderContent.show();
       $editContentZone.hide();
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
@@ -400,7 +406,7 @@ async function onEditContent(event) {
         initCommentContent();
       });
     });
-  } else {
+  } else { // use existing form
     $textarea = $segment.find('textarea');
     easyMDE = getAttachedEasyMDE($textarea);
   }
@@ -455,6 +461,11 @@ export function initRepository() {
         $($(this).data('target')).removeClass('disabled');
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
+    });
+    const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
+    $trackerIssueStyleRadios.on('change input', () => {
+      const checkedVal = $trackerIssueStyleRadios.filter(':checked').val();
+      $('#tracker-issue-style-regex-box').toggleClass('disabled', checkedVal !== 'regexp');
     });
   }
 

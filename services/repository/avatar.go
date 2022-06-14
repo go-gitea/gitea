@@ -44,7 +44,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	defer committer.Close()
 
 	repo.Avatar = ""
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
@@ -117,5 +117,5 @@ func generateAvatar(ctx context.Context, templateRepo, generateRepo *repo_model.
 		return err
 	}
 
-	return repo_model.UpdateRepositoryColsCtx(ctx, generateRepo, "avatar")
+	return repo_model.UpdateRepositoryCols(ctx, generateRepo, "avatar")
 }

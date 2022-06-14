@@ -168,8 +168,6 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		return
 	}
 
-	e := db.GetEngine(ctx)
-
 	var is bool
 	if user != nil {
 		is, err = repo_model.IsCollaborator(ctx, repo.ID, user.ID)
@@ -208,7 +206,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 	}
 
 	// plain user
-	perm.AccessMode, err = accessLevel(e, user, repo)
+	perm.AccessMode, err = accessLevel(ctx, user, repo)
 	if err != nil {
 		return
 	}
@@ -288,7 +286,7 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 		return false, err
 	}
 
-	accessMode, err := accessLevel(db.GetEngine(db.DefaultContext), user, repo)
+	accessMode, err := accessLevel(db.DefaultContext, user, repo)
 	if err != nil {
 		return false, err
 	}
@@ -297,12 +295,7 @@ func IsUserRealRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bo
 }
 
 // IsUserRepoAdmin return true if user has admin right of a repo
-func IsUserRepoAdmin(repo *repo_model.Repository, user *user_model.User) (bool, error) {
-	return IsUserRepoAdminCtx(db.DefaultContext, repo, user)
-}
-
-// IsUserRepoAdminCtx return true if user has admin right of a repo
-func IsUserRepoAdminCtx(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
+func IsUserRepoAdmin(ctx context.Context, repo *repo_model.Repository, user *user_model.User) (bool, error) {
 	if user == nil || repo == nil {
 		return false, nil
 	}
@@ -310,8 +303,7 @@ func IsUserRepoAdminCtx(ctx context.Context, repo *repo_model.Repository, user *
 		return true, nil
 	}
 
-	e := db.GetEngine(ctx)
-	mode, err := accessLevel(e, user, repo)
+	mode, err := accessLevel(ctx, user, repo)
 	if err != nil {
 		return false, err
 	}
@@ -377,7 +369,7 @@ func HasAccess(ctx context.Context, userID int64, repo *repo_model.Repository) (
 	var user *user_model.User
 	var err error
 	if userID > 0 {
-		user, err = user_model.GetUserByIDEngine(db.GetEngine(ctx), userID)
+		user, err = user_model.GetUserByIDCtx(ctx, userID)
 		if err != nil {
 			return false, err
 		}

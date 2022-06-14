@@ -62,7 +62,7 @@ func storageHandler(storageSetting setting.Storage, prefix string, objStore stor
 					w,
 					req,
 					u.String(),
-					http.StatusPermanentRedirect,
+					http.StatusTemporaryRedirect,
 				)
 			})
 		}

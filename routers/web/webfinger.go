@@ -59,7 +59,7 @@ func WebfingerQuery(ctx *context.Context) {
 			return
 		}
 
-		u, err = user_model.GetUserByNameCtx(ctx, parts[0])
+		u, err = user_model.GetUserByName(ctx, parts[0])
 	case "mailto":
 		u, err = user_model.GetUserByEmailContext(ctx, resource.Opaque)
 		if u != nil && u.KeepEmailPrivate {
@@ -79,7 +79,7 @@ func WebfingerQuery(ctx *context.Context) {
 		return
 	}
 
-	if !user_model.IsUserVisibleToViewer(u, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx, u, ctx.Doer) {
 		ctx.Error(http.StatusNotFound)
 		return
 	}

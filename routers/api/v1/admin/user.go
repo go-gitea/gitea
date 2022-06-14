@@ -269,7 +269,7 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.IsRestricted = *form.Restricted
 	}
 
-	if err := user_model.UpdateUser(ctx.ContextUser, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, ctx.ContextUser, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) ||
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) {

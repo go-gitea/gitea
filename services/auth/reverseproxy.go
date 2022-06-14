@@ -63,7 +63,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
 			log.Error("GetUserByName: %v", err)

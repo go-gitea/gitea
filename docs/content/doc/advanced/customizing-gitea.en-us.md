@@ -60,14 +60,15 @@ the url `http://gitea.domain.tld/assets/image.png`.
 
 ## Changing the logo
 
-To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
-`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo and/or favicon clone the Gitea source repository, replace `assets/logo.svg` and/or `assets/favicon.svg` and run
+`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.svg` - Used for site icon, app icon
 - `public/img/logo.png` - Used for Open Graph
-- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 - `public/img/avatar_default.png` - Used as the default avatar image
 - `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
+- `public/img/favicon.svg` - Used for favicon
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 
 In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 

@@ -42,7 +42,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !user_model.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
@@ -195,7 +195,7 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -217,7 +217,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
+		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     project_model.TypeIndividual,
@@ -227,7 +227,7 @@ func Profile(ctx *context.Context) {
 			return
 		}
 	case "watching":
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -249,7 +249,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	default:
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,

@@ -52,15 +52,6 @@ Possible file names for PR default merge message templates:
 - `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
 - `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
 
-Possible file names for PR default merge message templates:
-
-- `.gitea/default_merge_message/MERGE_TEMPLATE.md`
-- `.gitea/default_merge_message/REBASE_TEMPLATE.md`
-- `.gitea/default_merge_message/REBASE-MERGE_TEMPLATE.md`
-- `.gitea/default_merge_message/SQUASH_TEMPLATE.md`
-- `.gitea/default_merge_message/MANUALLY-MERGED_TEMPLATE.md`
-- `.gitea/default_merge_message/REBASE-UPDATE-ONLY_TEMPLATE.md`
-
 You can use the following variables enclosed in `${}` inside these templates which follow [os.Expand](https://pkg.go.dev/os#Expand) syntax:
 
 - BaseRepoOwnerName: Base repository owner name of this pull request

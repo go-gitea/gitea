@@ -45,7 +45,7 @@ func TestIsEmailUsed(t *testing.T) {
 func TestAddEmailAddress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	assert.NoError(t, AddEmailAddress(&EmailAddress{
+	assert.NoError(t, AddEmailAddress(db.DefaultContext, &EmailAddress{
 		Email:       "user1234567890@example.com",
 		LowerEmail:  "user1234567890@example.com",
 		IsPrimary:   true,
@@ -53,7 +53,7 @@ func TestAddEmailAddress(t *testing.T) {
 	}))
 
 	// ErrEmailAlreadyUsed
-	err := AddEmailAddress(&EmailAddress{
+	err := AddEmailAddress(db.DefaultContext, &EmailAddress{
 		Email:      "user1234567890@example.com",
 		LowerEmail: "user1234567890@example.com",
 	})
