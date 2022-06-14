@@ -203,16 +203,16 @@ func init() {
 }
 
 // Renderer implements markup.Renderer
-type Renderer struct {
-	markup.BaseRenderer
-}
+type Renderer struct{}
+
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
+// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer

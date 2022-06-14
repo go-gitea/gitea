@@ -34,6 +34,9 @@ type Renderer struct {
 	*setting.MarkupRenderer
 }
 
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
+var _ markup.ExternalRenderer = (*Renderer)(nil)
+
 // Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName

@@ -26,9 +26,7 @@ func init() {
 }
 
 // Renderer implements markup.Renderer
-type Renderer struct {
-	markup.BaseRenderer
-}
+type Renderer struct{}
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {

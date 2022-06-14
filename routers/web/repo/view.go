@@ -537,7 +537,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				URLPrefix:    path.Dir(treeLink),
 				Metas:        metas,
 				GitRepo:      ctx.Repo.GitRepo,
-				AllowIFrame:  true, // allow possible iframe from UI
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)

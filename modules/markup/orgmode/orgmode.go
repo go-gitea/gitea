@@ -27,16 +27,16 @@ func init() {
 }
 
 // Renderer implements markup.Renderer for orgmode
-type Renderer struct {
-	markup.BaseRenderer
-}
+type Renderer struct{}
+
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
 
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "orgmode"
 }
 
-// NeedPostProcess implements markup.Renderer
+// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer
