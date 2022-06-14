@@ -44,12 +44,12 @@ func TestActivityPubPerson(t *testing.T) {
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/outbox$", username), person.Outbox.GetID().String())
 		assert.Regexp(t, fmt.Sprintf("activitypub/user/%s/inbox$", username), person.Inbox.GetID().String())
 
-		pkey := person.PublicKey
-		assert.NotNil(t, pkey)
+		pubKey := person.PublicKey
+		assert.NotNil(t, pubKey)
 		publicKeyID := keyID + "#main-key"
-		assert.Equal(t, pkey.ID.String(), publicKeyID)
+		assert.Equal(t, pubKey.ID.String(), publicKeyID)
 
-		pubKeyPem := pkey.PublicKeyPem
+		pubKeyPem := pubKey.PublicKeyPem
 		assert.NotNil(t, pubKeyPem)
 		assert.Regexp(t, "^-----BEGIN PUBLIC KEY-----", pubKeyPem)
 	})
