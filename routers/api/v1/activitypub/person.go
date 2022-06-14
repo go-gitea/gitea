@@ -120,8 +120,9 @@ func PersonInbox(ctx *context.APIContext) {
 	activity.UnmarshalJSON(body)
 	if activity.Type == ap.FollowType {
 		activitypub.Follow(ctx, activity)
+	} else {
+		log.Warn("ActivityStreams type not supported", activity)
 	}
-	log.Warn("ActivityStreams type not supported", activity)
 
 	ctx.Status(http.StatusNoContent)
 }

@@ -5,8 +5,6 @@
 package activitypub
 
 import (
-	"strings"
-
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
@@ -14,9 +12,9 @@ import (
 )
 
 func FederatedUserNew(name string, IRI ap.IRI) error {
-	instance := strings.Split(IRI.String(), "/")[2]
 	user :=  &user_model.User{
-		Name:      name + "@" + instance,
+		Name:      name,
+		Email:     name,
 		LoginType: auth.Federated,
 		Website: IRI.String(),
 	}
