@@ -63,6 +63,7 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
+	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
 	err = markup.Render(&markup.RenderContext{
 		Ctx:              ctx,
 		RelativePath:     ctx.Repo.TreePath,

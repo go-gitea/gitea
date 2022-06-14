@@ -543,7 +543,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 			// to prevent iframe load third-party url
-			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src "+setting.AppURL)
+			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
