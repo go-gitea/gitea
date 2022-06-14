@@ -28,12 +28,12 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 		err = fmt.Errorf("ActivityStreams type cannot be converted to one known to have publicKey property: %v", err)
 		return
 	}
-	pkey := person.PublicKey
-	if pkey.ID.String() != keyID.String() {
+	pubKey := person.PublicKey
+	if pubKey.ID.String() != keyID.String() {
 		err = fmt.Errorf("cannot find publicKey with id: %s in %s", keyID, b)
 		return
 	}
-	pubKeyPem := pkey.PublicKeyPem
+	pubKeyPem := pubKey.PublicKeyPem
 	block, _ := pem.Decode([]byte(pubKeyPem))
 	if block == nil || block.Type != "PUBLIC KEY" {
 		err = fmt.Errorf("could not decode publicKeyPem to PUBLIC KEY pem block type")
@@ -61,13 +61,13 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	if err != nil {
 		return
 	}
-	pKey, err := getPublicKeyFromResponse(*ctx, b, idIRI)
+	pubKey, err := getPublicKeyFromResponse(*ctx, b, idIRI)
 	if err != nil {
 		return
 	}
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
-	authenticated = v.Verify(pKey, algo) == nil
+	authenticated = v.Verify(pubKey, algo) == nil
 	return
 }
 
