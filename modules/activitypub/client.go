@@ -11,6 +11,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -54,15 +55,6 @@ type Client struct {
 	pubID       string
 }
 
-var algos []httpsig.Algorithm
-
-func init() {
-	algos = make([]httpsig.Algorithm, len(setting.Federation.Algorithms))
-	for i, algo := range setting.Federation.Algorithms {
-		algos[i] = httpsig.Algorithm(algo)
-	}
-}
-
 // NewClient function
 func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 	if err = containsRequiredHTTPHeaders(http.MethodGet, setting.Federation.GetHeaders); err != nil {
@@ -87,7 +79,7 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 				Proxy: proxy.Proxy(),
 			},
 		},
-		algs:        algos,
+		algs:        setting.HttpsigAlgs,
 		digestAlg:   httpsig.DigestAlgorithm(setting.Federation.DigestAlgorithm),
 		getHeaders:  setting.Federation.GetHeaders,
 		postHeaders: setting.Federation.PostHeaders,
@@ -106,7 +98,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
-	req.Header.Add("Date", fmt.Sprintf("%s UTC", time.Now().UTC().Format(time.RFC1123)))
+	req.Header.Add("Date", strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT"))
 
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {

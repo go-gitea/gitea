@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	ap "github.com/go-ap/activitypub"
@@ -38,35 +37,29 @@ func Person(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	user := user.GetUserByParamsName(ctx, "username")
-	if user == nil {
-		return
-	}
-	username := ctx.Params("username")
-
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 	person := ap.PersonNew(ap.IRI(link))
 
 	person.Name = ap.NaturalLanguageValuesNew()
-	err := person.Name.Set("en", ap.Content(user.FullName))
+	err := person.Name.Set("en", ap.Content(ctx.ContextUser.FullName))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Set Name", err)
 		return
 	}
 
 	person.PreferredUsername = ap.NaturalLanguageValuesNew()
-	err = person.PreferredUsername.Set("en", ap.Content(username))
+	err = person.PreferredUsername.Set("en", ap.Content(ctx.ContextUser.Name))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Set PreferredUsername", err)
 		return
 	}
 
-	person.URL = ap.IRI(setting.AppURL + username)
+	person.URL = ap.IRI(ctx.ContextUser.HTMLURL())
 
 	person.Icon = ap.Image{
 		Type:      ap.ImageType,
 		MediaType: "image/png",
-		URL:       ap.IRI(user.AvatarLink()),
+		URL:       ap.IRI(ctx.ContextUser.AvatarLink()),
 	}
 
 	person.Inbox = nil
@@ -80,7 +73,7 @@ func Person(ctx *context.APIContext) {
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
 
-	publicKeyPem, err := activitypub.GetPublicKey(user)
+	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
 		return
@@ -90,6 +83,7 @@ func Person(ctx *context.APIContext) {
 	binary, err := person.MarshalJSON()
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		return
 	}
 	response(ctx, binary)
 }
@@ -144,15 +138,11 @@ func PersonOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	user := user.GetUserByParamsName(ctx, "username")
-	if user == nil {
-		return
-	}
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   user,
-		Actor:           user,
+		RequestedUser:   ctx.ContextUser,
+		Actor:           ctx.ContextUser,
 		IncludePrivate:  false,
 		OnlyPerformedBy: true,
 		IncludeDeleted:  false,
@@ -196,13 +186,9 @@ func PersonFollowing(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	user := user.GetUserByParamsName(ctx, "username")
-	if user == nil {
-		return
-	}
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 
-	users, err := user_model.GetUserFollowing(user, utils.GetListOptions(ctx))
+	users, err := user_model.GetUserFollowing(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return
@@ -241,13 +227,9 @@ func PersonFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	user := user.GetUserByParamsName(ctx, "username")
-	if user == nil {
-		return
-	}
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 
-	users, err := user_model.GetUserFollowers(user, utils.GetListOptions(ctx))
+	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return

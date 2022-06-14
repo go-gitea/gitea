@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	user_model "code.gitea.io/gitea/models/user"
@@ -22,7 +23,7 @@ func Fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", ActivityStreamsContentType)
 	req.Header("Accept-Charset", "utf-8")
-	req.Header("Date", fmt.Sprintf("%s UTC", time.Now().UTC().Format(time.RFC1123)))
+	req.Header("Date", strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT"))
 	resp, err := req.Response()
 	if err != nil {
 		return

@@ -651,7 +651,7 @@ func Routes() *web.Route {
 					m.Get("/outbox", activitypub.PersonOutbox)
 					m.Get("/following", activitypub.PersonFollowing)
 					m.Get("/followers", activitypub.PersonFollowers)
-				})
+				}, context_service.UserAssignmentAPI())
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)

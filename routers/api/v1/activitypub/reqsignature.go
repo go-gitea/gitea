@@ -5,7 +5,6 @@
 package activitypub
 
 import (
-	"context"
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
@@ -21,7 +20,7 @@ import (
 	"github.com/go-fed/httpsig"
 )
 
-func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p crypto.PublicKey, err error) {
+func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err error) {
 	person := ap.PersonNew(ap.IRI(keyID.String()))
 	err = person.UnmarshalJSON(b)
 	if err != nil {
@@ -30,7 +29,7 @@ func getPublicKeyFromResponse(ctx context.Context, b []byte, keyID *url.URL) (p 
 	}
 	pubKey := person.PublicKey
 	if pubKey.ID.String() != keyID.String() {
-		err = fmt.Errorf("cannot find publicKey with id: %s in %s", keyID, b)
+		err = fmt.Errorf("cannot find publicKey with id: %s in %s", keyID, string(b))
 		return
 	}
 	pubKeyPem := pubKey.PublicKeyPem
@@ -61,7 +60,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	if err != nil {
 		return
 	}
-	pubKey, err := getPublicKeyFromResponse(*ctx, b, idIRI)
+	pubKey, err := getPublicKeyFromResponse(b, idIRI)
 	if err != nil {
 		return
 	}
