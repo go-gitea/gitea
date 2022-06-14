@@ -19,7 +19,7 @@ func response(ctx *context.APIContext, binary []byte) {
 		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
 	}
 
-	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"} 
+	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"}
 
 	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)
 	ctx.Resp.WriteHeader(http.StatusOK)

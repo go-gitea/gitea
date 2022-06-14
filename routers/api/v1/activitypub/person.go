@@ -60,13 +60,13 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Set PreferredUsername", err)
 		return
 	}
-	
+
 	person.URL = ap.IRI(setting.AppURL + username)
 
 	person.Icon = ap.Image{
-		Type: ap.ImageType,
+		Type:      ap.ImageType,
 		MediaType: "image/png",
-		URL: ap.IRI(user.AvatarLink()),
+		URL:       ap.IRI(user.AvatarLink()),
 	}
 
 	person.Inbox = nil
@@ -201,13 +201,13 @@ func PersonFollowing(ctx *context.APIContext) {
 		return
 	}
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
-	
+
 	users, err := user_model.GetUserFollowing(user, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return
 	}
-	
+
 	following := ap.OrderedCollectionNew(ap.IRI(link))
 	following.TotalItems = uint(len(users))
 

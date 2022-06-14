@@ -36,12 +36,12 @@ func Follow(ctx context.Context, activity ap.Follow) {
 	if err != nil {
 		log.Warn("Couldn't find object", err)
 	}
-	
+
 	user_model.FollowUser(actorUser.ID, objectUser.ID)
 
 	accept := ap.AcceptNew(objectIRI, activity)
 	accept.Actor = ap.Person{ID: objectIRI}
-	accept.To = ap.ItemCollection{ap.IRI(actorIRI.String()+"/inbox")}
-	
+	accept.To = ap.ItemCollection{ap.IRI(actorIRI.String() + "/inbox")}
+
 	Send(objectUser, accept)
 }

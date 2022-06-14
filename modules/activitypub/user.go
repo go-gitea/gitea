@@ -12,11 +12,11 @@ import (
 )
 
 func FederatedUserNew(name string, IRI ap.IRI) error {
-	user :=  &user_model.User{
+	user := &user_model.User{
 		Name:      name,
 		Email:     name,
 		LoginType: auth.Federated,
-		Website: IRI.String(),
+		Website:   IRI.String(),
 	}
 	return user_model.CreateUser(user)
 }
