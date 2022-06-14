@@ -7,7 +7,6 @@ package gitdiff
 
 import (
 	"fmt"
-	"html/template"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,36 +16,27 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/ini.v1"
 )
 
-func assertEqual(t *testing.T, expected string, actual template.HTML) {
-	if expected != string(actual) {
-		t.Errorf("Did not receive expected results:\nExpected: %s\nActual:   %s", expected, actual)
-	}
-}
-
 func TestDiffToHTML(t *testing.T) {
-	setting.Cfg = ini.Empty()
-	assertEqual(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
+	assert.Equal(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineAdd).Content)
+	}, DiffLineAdd))
 
-	assertEqual(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
+	assert.Equal(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineDel).Content)
+	}, DiffLineDel))
 }
 
 func TestParsePatch_skipTo(t *testing.T) {
@@ -654,26 +644,42 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 	}
 }
 
-func TestDiffToHTML_14231(t *testing.T) {
-	setting.Cfg = ini.Empty()
-
+func TestDiffWithHighlight(t *testing.T) {
 	hcd := NewHighlightCodeDiff()
-
-	highlightCodeA := highlight.Code("main.v", "", "		run()\n")
-	highlightCodeB := highlight.Code("main.v", "", "		run(db)\n")
-	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
-	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
-
-	diffRecord := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
-	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
-	hcd.recoverFromPlaceholders(diffRecord)
-
+	diffs := hcd.diffWithHighlight(
+		"main.v", "",
+		"		run()\n",
+		"		run(db)\n",
+	)
 	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span><span class="o">)</span></span>
 </span></span>`
-	output := diffToHTML(hcd, diffRecord, DiffLineAdd)
+	output := diffToHTML(hcd, diffs, DiffLineAdd)
+	assert.Equal(t, expected, output)
+}
 
-	assertEqual(t, expected, output.Content)
+func TestDiffWithHighlightPlaceholder(t *testing.T) {
+	hcd := NewHighlightCodeDiff()
+	diffs := hcd.diffWithHighlight(
+		"main.js", "",
+		"a='\uE000'",
+		"a='\uF8FF'",
+	)
+	assert.Equal(t, "", hcd.placeholderTagMap[0xE000])
+	assert.Equal(t, "", hcd.placeholderTagMap[0xF8FF])
+
+	expected := fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="added-code">%s</span>&#39;</span></span>`, "\uF8FF")
+	output := diffToHTML(hcd, diffs, DiffLineAdd)
+	assert.Equal(t, expected, output)
+
+	hcd = NewHighlightCodeDiff()
+	diffs = hcd.diffWithHighlight(
+		"main.js", "",
+		"a='\uE000'",
+		"a='\uF8FF'",
+	)
+	expected = fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="removed-code">%s</span>&#39;</span></span>`, "\uE000")
+	output = diffToHTML(hcd, diffs, DiffLineDel)
+	assert.Equal(t, expected, output)
 }
 
 func TestNoCrashes(t *testing.T) {

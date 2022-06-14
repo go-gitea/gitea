@@ -190,7 +190,7 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType DiffLineType) DiffInline {
+func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType DiffLineType) string {
 	buf := bytes.NewBuffer(nil)
 	if hcd != nil {
 		for _, tag := range hcd.lineWrapperTags {
@@ -216,7 +216,7 @@ func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType Di
 			buf.WriteString("</span>")
 		}
 	}
-	return DiffInlineWithUnicodeEscape(template.HTML(buf.String()))
+	return buf.String()
 }
 
 // GetLine gets a specific line by type (add or del) and file line number
@@ -289,7 +289,7 @@ func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 type HighlightCodeDiff struct {
 	placeholderBegin    rune
 	placeholderMaxCount int
-	placeholderCounter  int
+	placeholderIndex    int
 	placeholderTagMap   map[rune]string
 	tagPlaceholderMap   map[string]rune
 
@@ -305,12 +305,49 @@ func NewHighlightCodeDiff() *HighlightCodeDiff {
 	}
 }
 
+// nextPlaceholder returns 0 if no more placeholder can be used
 func (hcd *HighlightCodeDiff) nextPlaceholder() rune {
-	// TODO: handle placeholder rune conflicts ( case 1: counter reaches placeholderMaxCount,  case 2: there are placeholder runes in code )
-	r := hcd.placeholderBegin + rune(hcd.placeholderCounter%hcd.placeholderMaxCount)
-	hcd.placeholderCounter++
-	hcd.placeholderCounter %= hcd.placeholderMaxCount
-	return r
+	for hcd.placeholderIndex < hcd.placeholderMaxCount {
+		r := hcd.placeholderBegin + rune(hcd.placeholderIndex)
+		hcd.placeholderIndex++
+		// only use non-existing (not used by code) rune as placeholders
+		if _, ok := hcd.placeholderTagMap[r]; !ok {
+			return r
+		}
+	}
+	return 0 // no more available placeholder
+}
+
+func (hcd *HighlightCodeDiff) isInPlaceholderRange(r rune) bool {
+	return hcd.placeholderBegin <= r && r < hcd.placeholderBegin+rune(hcd.placeholderMaxCount)
+}
+
+func (hcd *HighlightCodeDiff) collectUsedRunes(code string) {
+	for _, r := range code {
+		if hcd.isInPlaceholderRange(r) {
+			// put the existing rune (used by code) in map, then this rune won't be used a placeholder anymore.
+			hcd.placeholderTagMap[r] = ""
+		}
+	}
+}
+
+func (hcd *HighlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
+	hcd.collectUsedRunes(codeA)
+	hcd.collectUsedRunes(codeB)
+
+	highlightCodeA := highlight.Code(filename, language, codeA)
+	highlightCodeB := highlight.Code(filename, language, codeB)
+
+	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
+	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
+
+	diffs := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
+	diffs = diffMatchPatch.DiffCleanupEfficiency(diffs)
+
+	for i := range diffs {
+		hcd.recoverOneDiff(&diffs[i])
+	}
+	return diffs
 }
 
 func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string {
@@ -362,12 +399,19 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string
 		placeholder, ok := hcd.tagPlaceholderMap[tagInMap]
 		if !ok {
 			placeholder = hcd.nextPlaceholder()
-			hcd.tagPlaceholderMap[tagInMap] = placeholder
-			hcd.placeholderTagMap[placeholder] = tagInMap
+			if placeholder != 0 {
+				hcd.tagPlaceholderMap[tagInMap] = placeholder
+				hcd.placeholderTagMap[placeholder] = tagInMap
+			}
 		}
 
-		res.WriteRune(placeholder) // use the placeholder to replace the tag
+		if placeholder != 0 {
+			res.WriteRune(placeholder) // use the placeholder to replace the tag
+		} else {
+			res.WriteString(tag) // unfortunately, all private use runes has been exhausted, no more placeholder could be used, so do not covert the tag
+		}
 	}
+
 	res.WriteString(s)
 	return res.String()
 }
@@ -378,7 +422,7 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 
 	for _, r := range diff.Text {
 		tag, ok := hcd.placeholderTagMap[r]
-		if !ok {
+		if !ok || tag == "" {
 			sb.WriteRune(r)
 			continue
 		}
@@ -411,12 +455,6 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 	}
 
 	diff.Text = sb.String()
-}
-
-func (hcd *HighlightCodeDiff) recoverFromPlaceholders(diffs []diffmatchpatch.Diff) {
-	for i := range diffs {
-		hcd.recoverOneDiff(&diffs[i])
-	}
 }
 
 // GetComputedInlineDiffFor computes inline diff for the given line.
@@ -461,19 +499,10 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content)
 	}
 
-	highlightCodeA := highlight.Code(diffSection.FileName, language, diff1[1:])
-	highlightCodeB := highlight.Code(diffSection.FileName, language, diff2[1:])
-
 	hcd := NewHighlightCodeDiff()
-	highlightCodeA = hcd.convertToPlaceholders(highlightCodeA)
-	highlightCodeB = hcd.convertToPlaceholders(highlightCodeB)
-
-	diffRecord := diffMatchPatch.DiffMain(highlightCodeA, highlightCodeB, true)
-	diffRecord = diffMatchPatch.DiffCleanupEfficiency(diffRecord)
-
-	hcd.recoverFromPlaceholders(diffRecord)
-
-	return diffToHTML(hcd, diffRecord, diffLine.Type)
+	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1[1:], diff2[1:])
+	diffHTML := diffToHTML(hcd, diffRecord, diffLine.Type)
+	return DiffInlineWithUnicodeEscape(template.HTML(diffHTML))
 }
 
 // DiffFile represents a file diff.
