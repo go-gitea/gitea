@@ -179,13 +179,15 @@ func (nopCloser) Close() error { return nil }
 
 func renderIFrame(ctx *RenderContext, output io.Writer) error {
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
+	// at the moment, only "allow-scripts" is allowed for sandbox mode.
+	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
 	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
 	_, err := io.WriteString(output, fmt.Sprintf(`
 <iframe src="%s/%s/%s/render/%s/%s"
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-same-origin allow-scripts"
+sandbox="allow-scripts"
 ></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
