@@ -93,6 +93,7 @@ func Person(ctx *context.APIContext) {
 	binary, err = json.Marshal(jsonmap)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Marshal", err)
+		return
 	}
 	if _, err = ctx.Resp.Write(binary); err != nil {
 		log.Error("write to resp err: %v", err)
