@@ -6,6 +6,7 @@ package activitypub
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
@@ -33,7 +34,7 @@ func Person(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 	person := ap.PersonNew(ap.IRI(link))
 
 	person.Name = ap.NaturalLanguageValuesNew()
