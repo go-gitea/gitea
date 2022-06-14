@@ -6,8 +6,6 @@ package explore
 
 import (
 	"net/http"
-
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -55,7 +53,7 @@ func Code(ctx *context.Context) {
 
 		// guest user or non-admin user
 		if ctx.Doer == nil || !isAdmin {
-			repoIDs, err = models.FindUserCodeAccessibleRepoIDs(ctx.Doer)
+			repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx.Doer)
 			if err != nil {
 				ctx.ServerError("SearchResults", err)
 				return

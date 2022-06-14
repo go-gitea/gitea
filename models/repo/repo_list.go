@@ -269,7 +269,7 @@ func UserMentionedRepoCond(id string, userID int64) builder.Cond {
 	)
 }
 
-// userAccessRepoCond returns a condition for selecting all repositories a user has unit independent access to
+// UserAccessRepoCond returns a condition for selecting all repositories a user has unit independent access to
 func UserAccessRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, builder.Select("repo_id").
 		From("`access`").
@@ -290,8 +290,8 @@ func UserCollaborationRepoCond(idStr string, userID int64) builder.Cond {
 	)
 }
 
-// userOrgTeamRepoCond selects repos that the given user has access to through team membership
-func userOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
+// UserOrgTeamRepoCond selects repos that the given user has access to through team membership
+func UserOrgTeamRepoCond(idStr string, userID int64) builder.Cond {
 	return builder.In(idStr, userOrgTeamRepoBuilder(userID))
 }
 
@@ -414,7 +414,7 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 					// A. We have unit independent access
 					UserAccessRepoCond("`repository`.id", opts.OwnerID),
 					// B. We are in a team for
-					userOrgTeamRepoCond("`repository`.id", opts.OwnerID),
+					UserOrgTeamRepoCond("`repository`.id", opts.OwnerID),
 					// C. Public repositories in organizations that we are member of
 					userOrgPublicRepoCondPrivate(opts.OwnerID),
 				),
@@ -616,7 +616,7 @@ func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) bu
 			// Regardless of UnitType
 			cond = cond.Or(
 				UserAccessRepoCond("`repository`.id", user.ID),
-				userOrgTeamRepoCond("`repository`.id", user.ID),
+				UserOrgTeamRepoCond("`repository`.id", user.ID),
 			)
 		} else {
 			// For a specific UnitType
