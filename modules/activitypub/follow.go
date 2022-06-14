@@ -22,8 +22,6 @@ func Follow(ctx context.Context, activity ap.Follow) {
 	actorName := actorIRISplit[len(actorIRISplit)-1] + "@" + actorIRISplit[2]
 	objectName := objectIRISplit[len(objectIRISplit)-1]
 
-	log.Warn("Follow object", activity.Object)
-
 	err := FederatedUserNew(actorName, actorIRI)
 	if err != nil {
 		log.Warn("Couldn't create new user", err)
