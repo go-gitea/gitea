@@ -184,8 +184,8 @@ func renderIFrame(ctx *RenderContext, output io.Writer) error {
 <iframe src="%s/%s/%s/render/%s/%s"
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
-width="100%%" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-same-origin allow-scripts" height="0"
+width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
+sandbox="allow-same-origin allow-scripts"
 ></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
