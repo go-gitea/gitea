@@ -14,7 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -34,16 +35,16 @@ func getIssuesSelection(t testing.TB, htmlDoc *HTMLDoc) *goquery.Selection {
 	return issueList.Find("li").Find(".title")
 }
 
-func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *models.Issue {
+func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *issues_model.Issue {
 	href, exists := issueSelection.Attr("href")
 	assert.True(t, exists)
 	indexStr := href[strings.LastIndexByte(href, '/')+1:]
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", href)
-	return unittest.AssertExistsAndLoadBean(t, &models.Issue{RepoID: repoID, Index: int64(index)}).(*models.Issue)
+	return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repoID, Index: int64(index)}).(*issues_model.Issue)
 }
 
-func assertMatch(t testing.TB, issue *models.Issue, keyword string) {
+func assertMatch(t testing.TB, issue *issues_model.Issue, keyword string) {
 	matches := strings.Contains(strings.ToLower(issue.Title), keyword) ||
 		strings.Contains(strings.ToLower(issue.Content), keyword)
 	for _, comment := range issue.Comments {
@@ -75,7 +76,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	issuesSelection := getIssuesSelection(t, htmlDoc)
 	expectedNumIssues := unittest.GetCount(t,
-		&models.Issue{RepoID: repo.ID, PosterID: user.ID},
+		&issues_model.Issue{RepoID: repo.ID, PosterID: user.ID},
 		unittest.Cond("is_closed=?", false),
 		unittest.Cond("is_pull=?", false),
 	)
@@ -94,10 +95,10 @@ func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
 		RepoID: repo.ID,
 		Index:  1,
-	}).(*models.Issue)
+	}).(*issues_model.Issue)
 	issues.UpdateIssueIndexer(issue)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
@@ -238,7 +239,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Ref from issue title
 	issueRefURL, issueRef := testIssueWithBean(t, "user2", 1, fmt.Sprintf("Title ref #%d", issueBase.Index), "Description")
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -249,7 +250,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Edit title, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "title", "Title no ref")
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -260,7 +261,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Ref from issue content
 	issueRefURL, issueRef = testIssueWithBean(t, "user2", 1, "TitleXRef", fmt.Sprintf("Description ref #%d", issueBase.Index))
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -271,7 +272,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Edit content, neuter ref
 	testIssueChangeInfo(t, "user2", issueRefURL, "content", "Description no ref")
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -283,7 +284,7 @@ func TestIssueCrossReference(t *testing.T) {
 	// Ref from a comment
 	session := loginUser(t, "user2")
 	commentID := testIssueAddComment(t, session, issueRefURL, fmt.Sprintf("Adding ref from comment #%d", issueBase.Index), "")
-	comment := &models.Comment{
+	comment := &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    1,
 		RefIssueID:   issueRef.ID,
@@ -295,7 +296,7 @@ func TestIssueCrossReference(t *testing.T) {
 
 	// Ref from a different repository
 	_, issueRef = testIssueWithBean(t, "user12", 10, "TitleXRef", fmt.Sprintf("Description ref user2/repo1#%d", issueBase.Index))
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{
 		IssueID:      issueBase.ID,
 		RefRepoID:    10,
 		RefIssueID:   issueRef.ID,
@@ -305,13 +306,13 @@ func TestIssueCrossReference(t *testing.T) {
 	})
 }
 
-func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *models.Issue) {
+func testIssueWithBean(t *testing.T, user string, repoID int64, title, content string) (string, *issues_model.Issue) {
 	session := loginUser(t, user)
 	issueURL := testNewIssue(t, session, user, fmt.Sprintf("repo%d", repoID), title, content)
 	indexStr := issueURL[strings.LastIndexByte(issueURL, '/')+1:]
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", issueURL)
-	issue := &models.Issue{RepoID: repoID, Index: int64(index)}
+	issue := &issues_model.Issue{RepoID: repoID, Index: int64(index)}
 	unittest.AssertExistsAndLoadBean(t, issue)
 	return issueURL, issue
 }
@@ -511,10 +512,10 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 func TestGetIssueInfo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	assert.NoError(t, issue.LoadAttributes())
+	assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issue.State())
 
@@ -532,10 +533,10 @@ func TestGetIssueInfo(t *testing.T) {
 func TestUpdateIssueDeadline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 10}).(*models.Issue)
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
-	assert.NoError(t, issueBefore.LoadAttributes())
+	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
 

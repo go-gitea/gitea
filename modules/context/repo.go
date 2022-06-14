@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -83,7 +84,7 @@ type Repository struct {
 
 // CanWriteToBranch checks if the branch is writable by the user
 func (r *Repository) CanWriteToBranch(user *user_model.User, branch string) bool {
-	return models.CanMaintainerWriteToBranch(r.Permission, branch, user)
+	return issues_model.CanMaintainerWriteToBranch(r.Permission, branch, user)
 }
 
 // CanEnableEditor returns true if repository is editable and user has proper access level.
@@ -158,11 +159,11 @@ func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.Use
 }
 
 // CanUseTimetracker returns whether or not a user can use the timetracker.
-func (r *Repository) CanUseTimetracker(issue *models.Issue, user *user_model.User) bool {
+func (r *Repository) CanUseTimetracker(issue *issues_model.Issue, user *user_model.User) bool {
 	// Checking for following:
 	// 1. Is timetracker enabled
 	// 2. Is the user a contributor, admin, poster or assignee and do the repository policies require this?
-	isAssigned, _ := models.IsUserAssignedToIssue(db.DefaultContext, issue, user)
+	isAssigned, _ := issues_model.IsUserAssignedToIssue(db.DefaultContext, issue, user)
 	return r.Repository.IsTimetrackerEnabled() && (!r.Repository.AllowOnlyContributorsToTrackTime() ||
 		r.Permission.CanWriteIssuesOrPulls(issue.IsPull) || issue.IsPoster(user.ID) || isAssigned)
 }
@@ -379,24 +380,16 @@ func repoAssignment(ctx *Context, repo *repo_model.Repository) {
 	ctx.Data["Permission"] = &ctx.Repo.Permission
 
 	if repo.IsMirror {
-
-		// Check if the mirror has finsihed migrationg, only then we can
-		// lookup the mirror informtation the database.
-		finishedMigrating, err := models.HasFinishedMigratingTask(repo.ID)
-		if err != nil {
-			ctx.ServerError("HasFinishedMigratingTask", err)
-			return
-		}
-		if finishedMigrating {
-			ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
-			if err != nil {
-				ctx.ServerError("GetMirrorByRepoID", err)
-				return
-			}
+		ctx.Repo.Mirror, err = repo_model.GetMirrorByRepoID(ctx, repo.ID)
+		if err == nil {
 			ctx.Repo.Mirror.Repo = repo
+			ctx.Data["IsPullMirror"] = true
 			ctx.Data["MirrorEnablePrune"] = ctx.Repo.Mirror.EnablePrune
 			ctx.Data["MirrorInterval"] = ctx.Repo.Mirror.Interval
 			ctx.Data["Mirror"] = ctx.Repo.Mirror
+		} else if err != repo_model.ErrMirrorNotExist {
+			ctx.ServerError("GetMirrorByRepoID", err)
+			return
 		}
 	}
 

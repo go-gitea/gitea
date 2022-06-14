@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -48,7 +48,7 @@ func IssueWatch(ctx *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(ctx.Doer.ID, issue.ID, watch); err != nil {
 		ctx.ServerError("CreateOrUpdateIssueWatch", err)
 		return
 	}
