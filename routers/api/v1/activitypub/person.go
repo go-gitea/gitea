@@ -56,13 +56,13 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Set PreferredUsername", err)
 		return
 	}
-	
+
 	person.URL = ap.IRI(setting.AppURL + username)
 
 	person.Icon = ap.Image{
-		Type: ap.ImageType,
+		Type:      ap.ImageType,
 		MediaType: "image/png",
-		URL: ap.IRI(user.AvatarLink()),
+		URL:       ap.IRI(user.AvatarLink()),
 	}
 
 	person.Inbox = nil
@@ -91,7 +91,7 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Unmarshall", err)
 	}
 
-	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"} 
+	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"}
 
 	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
 	ctx.Resp.WriteHeader(http.StatusOK)
