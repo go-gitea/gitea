@@ -392,3 +392,37 @@ func (wr *lineSeparatedAttributeWriter) Close() error {
 	close(wr.closed)
 	return nil
 }
+
+// Create a check attribute reader for the current repository and provided commit ID
+func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return nil, func() {}
+	}
+
+	checker := &CheckAttributeReader{
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Repo:       repo,
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+	}
+	ctx, cancel := context.WithCancel(repo.Ctx)
+	if err := checker.Init(ctx); err != nil {
+		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+	} else {
+		go func() {
+			err := checker.Run()
+			if err != nil && err != ctx.Err() {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			}
+			cancel()
+		}()
+	}
+	deferable := func() {
+		_ = checker.Close()
+		cancel()
+		deleteTemporaryFile()
+	}
+
+	return checker, deferable
+}
