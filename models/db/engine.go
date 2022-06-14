@@ -15,7 +15,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 	"xorm.io/xorm/names"
 	"xorm.io/xorm/schemas"
@@ -287,27 +286,4 @@ func DeleteAllRecords(tableName string) error {
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
 	return
-}
-
-// CountOrphanedObjects count subjects with have no existing refobject anymore
-func CountOrphanedObjects(subject, refobject, joinCond string) (int64, error) {
-	return GetEngine(DefaultContext).Table("`"+subject+"`").
-		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"}).
-		Select("COUNT(`" + subject + "`.`id`)").
-		Count()
-}
-
-// DeleteOrphanedObjects delete subjects with have no existing refobject anymore
-func DeleteOrphanedObjects(subject, refobject, joinCond string) error {
-	subQuery := builder.Select("`"+subject+"`.id").
-		From("`"+subject+"`").
-		Join("LEFT", "`"+refobject+"`", joinCond).
-		Where(builder.IsNull{"`" + refobject + "`.id"})
-	sql, args, err := builder.Delete(builder.In("id", subQuery)).From("`" + subject + "`").ToSQL()
-	if err != nil {
-		return err
-	}
-	_, err = GetEngine(DefaultContext).Exec(append([]interface{}{sql}, args...)...)
-	return err
 }

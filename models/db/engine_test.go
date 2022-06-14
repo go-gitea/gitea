@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -37,10 +37,10 @@ func TestDumpDatabase(t *testing.T) {
 func TestDeleteOrphanedObjects(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	countBefore, err := db.GetEngine(db.DefaultContext).Count(&models.PullRequest{})
+	countBefore, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 
-	_, err = db.GetEngine(db.DefaultContext).Insert(&models.PullRequest{IssueID: 1000}, &models.PullRequest{IssueID: 1001}, &models.PullRequest{IssueID: 1003})
+	_, err = db.GetEngine(db.DefaultContext).Insert(&issues_model.PullRequest{IssueID: 1000}, &issues_model.PullRequest{IssueID: 1001}, &issues_model.PullRequest{IssueID: 1003})
 	assert.NoError(t, err)
 
 	orphaned, err := db.CountOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
@@ -50,7 +50,7 @@ func TestDeleteOrphanedObjects(t *testing.T) {
 	err = db.DeleteOrphanedObjects("pull_request", "issue", "pull_request.issue_id=issue.id")
 	assert.NoError(t, err)
 
-	countAfter, err := db.GetEngine(db.DefaultContext).Count(&models.PullRequest{})
+	countAfter, err := db.GetEngine(db.DefaultContext).Count(&issues_model.PullRequest{})
 	assert.NoError(t, err)
 	assert.EqualValues(t, countBefore, countAfter)
 }
