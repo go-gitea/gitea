@@ -97,9 +97,10 @@ repositories, `SIGNING_KEY=default` could be used to provide different
 signing keys on a per-repository basis. However, this is clearly not an
 ideal UI and therefore subject to change.
 
-**Since 1.17**, Gitea uses its internal git config (instead of current user's `{UserHome}/.gitconfig` for < 1.17).
+**Since 1.17**, Gitea runs git in its own home directory `[repository].ROOT` and uses its own config `{[repository].ROOT}/.gitconfig`.
 If you have your own customized git config for Gitea, you should set these configs in system git config (aka `/etc/gitconfig`)
-or the Gitea internal git config (aka `{[repository].ROOT}/.gitconfig`).
+or the Gitea internal git config `{[repository].ROOT}/.gitconfig`. 
+Related home files for git command (like `.gnupg`) should also be put in Gitea's git home directory `[repository].ROOT`. 
 
 
 ### `INITIAL_COMMIT`
