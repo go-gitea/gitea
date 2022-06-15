@@ -62,10 +62,8 @@ func Person(ctx *context.APIContext) {
 		URL:       ap.IRI(ctx.ContextUser.AvatarLink()),
 	}
 
-	person.Inbox = nil
-	person.Inbox, _ = ap.Inbox.AddTo(person)
-	person.Outbox = nil
-	person.Outbox, _ = ap.Outbox.AddTo(person)
+	person.Inbox = ap.IRI(link + "/inbox")
+	person.Outbox = ap.IRI(link + "/outbox")
 
 	person.Following = ap.IRI(link + "/following")
 	person.Followers = ap.IRI(link + "/followers")
