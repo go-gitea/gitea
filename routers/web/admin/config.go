@@ -155,7 +155,7 @@ func Config(ctx *context.Context) {
 	if sessionCfg.Provider == "VirtualSession" {
 		var realSession session.Options
 		if err := json.Unmarshal([]byte(sessionCfg.ProviderConfig), &realSession); err != nil {
-			log.Error("Unable to unmarshall session config for virtualed provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
+			log.Error("Unable to unmarshall session config for virtual provider config: %s\nError: %v", sessionCfg.ProviderConfig, err)
 		}
 		sessionCfg.Provider = realSession.Provider
 		sessionCfg.ProviderConfig = realSession.ProviderConfig

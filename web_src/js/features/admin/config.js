@@ -19,7 +19,6 @@ export function initAdminConfigs() {
       }
     }).done((resp) => {
       if (resp) {
-        console.info(resp);
         if (resp.redirect) {
           window.location.href = resp.redirect;
         } else if (resp.version) {
