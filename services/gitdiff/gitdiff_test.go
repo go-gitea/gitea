@@ -651,9 +651,8 @@ func TestDiffWithHighlight(t *testing.T) {
 		"		run()\n",
 		"		run(db)\n",
 	)
-	expected := `<span class="line"><span class="cl">		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span><span class="o">)</span></span>
-</span></span>`
-	output := diffToHTML(hcd, diffs, DiffLineAdd)
+	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span><span class="o">)</span></span>` + "\n"
+	output := diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
 }
 
@@ -667,8 +666,8 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	assert.Equal(t, "", hcd.placeholderTagMap[0xE000])
 	assert.Equal(t, "", hcd.placeholderTagMap[0xF8FF])
 
-	expected := fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="added-code">%s</span>&#39;</span></span>`, "\uF8FF")
-	output := diffToHTML(hcd, diffs, DiffLineAdd)
+	expected := fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="removed-code">%s</span>&#39;</span></span>`, "\uE000")
+	output := diffToHTML(hcd.lineWrapperTags, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 
 	hcd = NewHighlightCodeDiff()
@@ -677,8 +676,8 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 		"a='\uE000'",
 		"a='\uF8FF'",
 	)
-	expected = fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="removed-code">%s</span>&#39;</span></span>`, "\uE000")
-	output = diffToHTML(hcd, diffs, DiffLineDel)
+	expected = fmt.Sprintf(`<span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="added-code">%s</span>&#39;`, "\uF8FF")
+	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
 }
 

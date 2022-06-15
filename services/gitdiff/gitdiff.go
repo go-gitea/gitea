@@ -190,12 +190,10 @@ var (
 	codeTagSuffix     = []byte(`</span>`)
 )
 
-func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType DiffLineType) string {
+func diffToHTML(lineWrapperTags []string, diffs []diffmatchpatch.Diff, lineType DiffLineType) string {
 	buf := bytes.NewBuffer(nil)
-	if hcd != nil {
-		for _, tag := range hcd.lineWrapperTags {
-			buf.WriteString(tag) // restore the line wrapper tags <span class="line"> and <span class="cl">
-		}
+	for _, tag := range lineWrapperTags {
+		buf.WriteString(tag) // restore the line wrapper tags <span class="line"> and <span class="cl">
 	}
 	for _, diff := range diffs {
 		switch {
@@ -211,10 +209,8 @@ func diffToHTML(hcd *HighlightCodeDiff, diffs []diffmatchpatch.Diff, lineType Di
 			buf.Write(codeTagSuffix)
 		}
 	}
-	if hcd != nil {
-		for range hcd.lineWrapperTags {
-			buf.WriteString("</span>")
-		}
+	for range lineWrapperTags {
+		buf.WriteString("</span>")
 	}
 	return buf.String()
 }
@@ -501,7 +497,9 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 
 	hcd := NewHighlightCodeDiff()
 	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1[1:], diff2[1:])
-	diffHTML := diffToHTML(hcd, diffRecord, diffLine.Type)
+	// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
+	// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"
+	diffHTML := diffToHTML(nil, diffRecord, diffLine.Type)
 	return DiffInlineWithUnicodeEscape(template.HTML(diffHTML))
 }
 
