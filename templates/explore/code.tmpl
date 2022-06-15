@@ -3,7 +3,6 @@
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		<form class="ui form ignore-dirty" style="max-width: 100%">
-			<input type="hidden" name="tab" value="{{$.TabName}}">
 			<div class="ui fluid action input">
 				<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
 				<div class="ui dropdown selection{{if .CodeIndexerUnavailable }} disabled{{end}}">
