@@ -8,25 +8,30 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
+const (
+	userActivitypubPrivpem = "activitypub_privpem"
+	userActivitypubPubpem  = "activitypub_pubpem"
+)
+
 // GetKeyPair function
 func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	var settings map[string]*user_model.Setting
-	if settings, err = user_model.GetUserSettings(user.ID, []string{"activitypub_privpem", "activitypub_pubpem"}); err != nil {
+	if settings, err = user_model.GetUserSettings(user.ID, []string{userActivitypubPrivpem, userActivitypubPubpem}); err != nil {
 		return
 	} else if len(settings) == 0 {
 		if priv, pub, err = GenerateKeyPair(); err != nil {
 			return
 		}
-		if err = user_model.SetUserSetting(user.ID, "activitypub_privpem", priv); err != nil {
+		if err = user_model.SetUserSetting(user.ID, userActivitypubPrivpem, priv); err != nil {
 			return
 		}
-		if err = user_model.SetUserSetting(user.ID, "activitypub_pubpem", pub); err != nil {
+		if err = user_model.SetUserSetting(user.ID, userActivitypubPubpem, pub); err != nil {
 			return
 		}
 		return
 	} else {
-		priv = settings["activitypub_privpem"].SettingValue
-		pub = settings["activitypub_pubpem"].SettingValue
+		priv = settings[userActivitypubPrivpem].SettingValue
+		pub = settings[userActivitypubPubpem].SettingValue
 		return
 	}
 }
