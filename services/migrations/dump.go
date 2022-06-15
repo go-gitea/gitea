@@ -632,7 +632,7 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(tp),
 	}
-	if err = updateOptionsUnits(&migrateOpts, units); err != nil {
+	if err := updateOptionsUnits(&migrateOpts, units); err != nil {
 		return err
 	}
 
