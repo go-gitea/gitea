@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -572,7 +573,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	return nil
 }
 
-func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
+func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 	if len(units) == 0 {
 		opts.Wiki = true
 		opts.Issues = true
@@ -585,6 +586,8 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 	} else {
 		for _, unit := range units {
 			switch strings.ToLower(unit) {
+			case "":
+				continue
 			case "wiki":
 				opts.Wiki = true
 			case "issues":
@@ -601,9 +604,12 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			default:
+				return errors.New("invalid unit: " + unit)
 			}
 		}
 	}
+	return nil
 }
 
 // RestoreRepository restore a repository from the disk directory
@@ -626,7 +632,9 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(tp),
 	}
-	updateOptionsUnits(&migrateOpts, units)
+	if err := updateOptionsUnits(&migrateOpts, units); err != nil {
+		return err
+	}
 
 	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
