@@ -26,7 +26,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	defer indexer.Close()
 
 	if _, err := indexer.Init(); err != nil {
-		assert.Fail(t, "Unable to initialise bleve indexer: %v", err)
+		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 

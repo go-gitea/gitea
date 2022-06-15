@@ -91,7 +91,7 @@
 					{{if .Repository.IsMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Mirror).Address}}</td>
+							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName).Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
 							<td class="right aligned">
@@ -116,10 +116,10 @@
 										</div>
 									</div>
 									<div class="inline field {{if .Err_Interval}}error{{end}}">
-										<label for="interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+										<label for="interval">{{.i18n.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
-									{{$address := MirrorRemoteAddress $.Context .Mirror}}
+									{{$address := MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.i18n.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
@@ -168,7 +168,7 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress $.Context .}}
+							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.i18n.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.i18n.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.i18n.Tr "error"}}</div>{{end}}</td>
@@ -220,7 +220,7 @@
 											</div>
 										</details>
 										<div class="inline field {{if .Err_PushMirrorInterval}}error{{end}}">
-											<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval"}}</label>
+											<label for="push_mirror_interval">{{.i18n.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 											<input id="push_mirror_interval" name="push_mirror_interval" value="{{if .push_mirror_interval}}{{.push_mirror_interval}}{{else}}{{.DefaultMirrorInterval}}{{end}}">
 										</div>
 										<div class="field">
@@ -361,16 +361,27 @@
 								<div class="ui radio checkbox">
 								{{$externalTracker := (.Repository.MustGetUnit $.UnitTypeExternalTracker)}}
 								{{$externalTrackerStyle := $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle}}
-									<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="numeric" {{if $externalTrackerStyle}}{{if eq $externalTrackerStyle "numeric"}}checked=""{{end}}{{end}}/>
-									<label>{{.i18n.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">(#1234)</span></label>
+									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="numeric" {{if eq $externalTrackerStyle "numeric"}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.tracker_issue_style.numeric"}} <span class="ui light grey text">#1234</span></label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
-									<input class="hidden" tabindex="0" name="tracker_issue_style" type="radio" value="alphanumeric" {{if $externalTrackerStyle}}{{if eq $externalTracker.ExternalTrackerConfig.ExternalTrackerStyle "alphanumeric"}}checked=""{{end}}{{end}} />
-									<label>{{.i18n.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">(ABC-123, DEFG-234)</span></label>
+									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="alphanumeric" {{if eq $externalTrackerStyle "alphanumeric"}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.tracker_issue_style.alphanumeric"}} <span class="ui light grey text">ABC-123 , DEFG-234</span></label>
 								</div>
 							</div>
+							<div class="field">
+								<div class="ui radio checkbox">
+									<input class="js-tracker-issue-style" name="tracker_issue_style" type="radio" value="regexp" {{if eq $externalTrackerStyle "regexp"}}checked{{end}}>
+									<label>{{.i18n.Tr "repo.settings.tracker_issue_style.regexp"}} <span class="ui light grey text">(ISSUE-\d+) , ISSUE-(\d+)</span></label>
+								</div>
+							</div>
+						</div>
+						<div class="field {{if ne $externalTrackerStyle "regexp"}}disabled{{end}}" id="tracker-issue-style-regex-box">
+							<label for="external_tracker_regexp_pattern">{{.i18n.Tr "repo.settings.tracker_issue_style.regexp_pattern"}}</label>
+							<input id="external_tracker_regexp_pattern" name="external_tracker_regexp_pattern" value="{{(.Repository.MustGetUnit $.UnitTypeExternalTracker).ExternalTrackerConfig.ExternalTrackerRegexpPattern}}">
+							<p class="help">{{.i18n.Tr "repo.settings.tracker_issue_style.regexp_pattern_desc" | Str2html}}</p>
 						</div>
 					</div>
 				</div>

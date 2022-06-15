@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -152,7 +154,7 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
+			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -215,7 +217,7 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -412,7 +414,7 @@ func DeleteTeam(t *organization.Team) error {
 
 	// update branch protections
 	{
-		protections := make([]*ProtectedBranch, 0, 10)
+		protections := make([]*git_model.ProtectedBranch, 0, 10)
 		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)

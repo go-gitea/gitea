@@ -10,7 +10,7 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -65,33 +65,33 @@ func ListIssueComments(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
 
-	opts := &models.FindCommentsOptions{
+	opts := &issues_model.FindCommentsOptions{
 		IssueID: issue.ID,
 		Since:   since,
 		Before:  before,
-		Type:    models.CommentTypeComment,
+		Type:    issues_model.CommentTypeComment,
 	}
 
-	comments, err := models.FindComments(ctx, opts)
+	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
 	}
 
-	totalCount, err := models.CountComments(opts)
+	totalCount, err := issues_model.CountComments(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	if err := models.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
@@ -157,35 +157,35 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 		ctx.Error(http.StatusUnprocessableEntity, "GetQueryBeforeSince", err)
 		return
 	}
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetRawIssueByIndex", err)
 		return
 	}
 	issue.Repo = ctx.Repo.Repository
 
-	opts := &models.FindCommentsOptions{
+	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		IssueID:     issue.ID,
 		Since:       since,
 		Before:      before,
-		Type:        models.CommentTypeUnknown,
+		Type:        issues_model.CommentTypeUnknown,
 	}
 
-	comments, err := models.FindComments(ctx, opts)
+	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
 	}
 
-	if err := models.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
 	var apiComments []*api.TimelineComment
 	for _, comment := range comments {
-		if comment.Type != models.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
+		if comment.Type != issues_model.CommentTypeCode && isXRefCommentAccessible(ctx, ctx.Doer, comment, issue.RepoID) {
 			comment.Issue = issue
 			apiComments = append(apiComments, convert.ToTimelineComment(comment, ctx.Doer))
 		}
@@ -195,9 +195,9 @@ func ListIssueCommentsAndTimeline(ctx *context.APIContext) {
 	ctx.JSON(http.StatusOK, &apiComments)
 }
 
-func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *models.Comment, issueRepoID int64) bool {
+func isXRefCommentAccessible(ctx stdCtx.Context, user *user_model.User, c *issues_model.Comment, issueRepoID int64) bool {
 	// Remove comments that the user has no permissions to see
-	if models.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
+	if issues_model.CommentTypeIsRef(c.Type) && c.RefRepoID != issueRepoID && c.RefRepoID != 0 {
 		var err error
 		// Set RefRepo for description in template
 		c.RefRepo, err = repo_model.GetRepositoryByIDCtx(ctx, c.RefRepoID)
@@ -261,41 +261,41 @@ func ListRepoIssueComments(ctx *context.APIContext) {
 		return
 	}
 
-	opts := &models.FindCommentsOptions{
+	opts := &issues_model.FindCommentsOptions{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
-		Type:        models.CommentTypeComment,
+		Type:        issues_model.CommentTypeComment,
 		Since:       since,
 		Before:      before,
 	}
 
-	comments, err := models.FindComments(ctx, opts)
+	comments, err := issues_model.FindComments(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindComments", err)
 		return
 	}
 
-	totalCount, err := models.CountComments(opts)
+	totalCount, err := issues_model.CountComments(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	if err = models.CommentList(comments).LoadPosters(); err != nil {
+	if err = issues_model.CommentList(comments).LoadPosters(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
 
 	apiComments := make([]*api.Comment, len(comments))
-	if err := models.CommentList(comments).LoadIssues(); err != nil {
+	if err := issues_model.CommentList(comments).LoadIssues(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadIssues", err)
 		return
 	}
-	if err := models.CommentList(comments).LoadPosters(); err != nil {
+	if err := issues_model.CommentList(comments).LoadPosters(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadPosters", err)
 		return
 	}
-	if _, err := models.CommentList(comments).Issues().LoadRepositories(); err != nil {
+	if _, err := issues_model.CommentList(comments).Issues().LoadRepositories(); err != nil {
 		ctx.Error(http.StatusInternalServerError, "LoadRepositories", err)
 		return
 	}
@@ -343,7 +343,7 @@ func CreateIssueComment(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	form := web.GetForm(ctx).(*api.CreateIssueCommentOption)
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
 		return
@@ -399,9 +399,9 @@ func GetIssueComment(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrCommentNotExist(err) {
+		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
@@ -418,7 +418,7 @@ func GetIssueComment(ctx *context.APIContext) {
 		return
 	}
 
-	if comment.Type != models.CommentTypeComment {
+	if comment.Type != issues_model.CommentTypeComment {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
@@ -526,9 +526,9 @@ func EditIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) {
-	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrCommentNotExist(err) {
+		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
@@ -541,7 +541,7 @@ func editIssueComment(ctx *context.APIContext, form api.EditIssueCommentOption) 
 		return
 	}
 
-	if comment.Type != models.CommentTypeComment && comment.Type != models.CommentTypeReview && comment.Type != models.CommentTypeCode {
+	if comment.Type != issues_model.CommentTypeComment && comment.Type != issues_model.CommentTypeReview && comment.Type != issues_model.CommentTypeCode {
 		ctx.Status(http.StatusNoContent)
 		return
 	}
@@ -629,9 +629,9 @@ func DeleteIssueCommentDeprecated(ctx *context.APIContext) {
 }
 
 func deleteIssueComment(ctx *context.APIContext) {
-	comment, err := models.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
+	comment, err := issues_model.GetCommentByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrCommentNotExist(err) {
+		if issues_model.IsErrCommentNotExist(err) {
 			ctx.NotFound(err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetCommentByID", err)
@@ -642,7 +642,7 @@ func deleteIssueComment(ctx *context.APIContext) {
 	if !ctx.IsSigned || (ctx.Doer.ID != comment.PosterID && !ctx.Repo.IsAdmin()) {
 		ctx.Status(http.StatusForbidden)
 		return
-	} else if comment.Type != models.CommentTypeComment {
+	} else if comment.Type != issues_model.CommentTypeComment {
 		ctx.Status(http.StatusNoContent)
 		return
 	}

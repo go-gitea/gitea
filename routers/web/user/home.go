@@ -385,17 +385,17 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	viewType = ctx.FormString("type")
 	switch viewType {
 	case "assigned":
-		filterMode = models.FilterModeAssign
+		filterMode = issues_model.FilterModeAssign
 	case "created_by":
-		filterMode = models.FilterModeCreate
+		filterMode = issues_model.FilterModeCreate
 	case "mentioned":
-		filterMode = models.FilterModeMention
+		filterMode = issues_model.FilterModeMention
 	case "review_requested":
-		filterMode = models.FilterModeReviewRequested
+		filterMode = issues_model.FilterModeReviewRequested
 	case "your_repositories":
 		fallthrough
 	default:
-		filterMode = models.FilterModeYourRepositories
+		filterMode = issues_model.FilterModeYourRepositories
 		viewType = "your_repositories"
 	}
 
@@ -416,7 +416,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	isPullList := unitType == unit.TypePullRequests
-	opts := &models.IssuesOptions{
+	opts := &issues_model.IssuesOptions{
 		IsPull:     util.OptionalBoolOf(isPullList),
 		SortType:   sortType,
 		IsArchived: util.OptionalBoolFalse,
@@ -450,15 +450,15 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	}
 
 	switch filterMode {
-	case models.FilterModeAll:
-	case models.FilterModeYourRepositories:
-	case models.FilterModeAssign:
+	case issues_model.FilterModeAll:
+	case issues_model.FilterModeYourRepositories:
+	case issues_model.FilterModeAssign:
 		opts.AssigneeID = ctx.Doer.ID
-	case models.FilterModeCreate:
+	case issues_model.FilterModeCreate:
 		opts.PosterID = ctx.Doer.ID
-	case models.FilterModeMention:
+	case issues_model.FilterModeMention:
 		opts.MentionedID = ctx.Doer.ID
-	case models.FilterModeReviewRequested:
+	case issues_model.FilterModeReviewRequested:
 		opts.ReviewRequestedID = ctx.Doer.ID
 	}
 
@@ -491,7 +491,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// USING NON-FINAL STATE OF opts FOR A QUERY.
 	var issueCountByRepo map[int64]int64
 	if !forceEmpty {
-		issueCountByRepo, err = models.CountIssuesByRepo(opts)
+		issueCountByRepo, err = issues_model.CountIssuesByRepo(opts)
 		if err != nil {
 			ctx.ServerError("CountIssuesByRepo", err)
 			return
@@ -532,15 +532,15 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	// Slice of Issues that will be displayed on the overview page
 	// USING FINAL STATE OF opts FOR A QUERY.
-	var issues []*models.Issue
+	var issues []*issues_model.Issue
 	if !forceEmpty {
-		issues, err = models.Issues(opts)
+		issues, err = issues_model.Issues(opts)
 		if err != nil {
 			ctx.ServerError("Issues", err)
 			return
 		}
 	} else {
-		issues = []*models.Issue{}
+		issues = []*issues_model.Issue{}
 	}
 
 	// ----------------------------------
@@ -578,9 +578,9 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	// -------------------------------
 	// Fill stats to post to ctx.Data.
 	// -------------------------------
-	var issueStats *models.IssueStats
+	var issueStats *issues_model.IssueStats
 	if !forceEmpty {
-		statsOpts := models.UserIssueStatsOptions{
+		statsOpts := issues_model.UserIssueStatsOptions{
 			UserID:     ctx.Doer.ID,
 			FilterMode: filterMode,
 			IsPull:     isPullList,
@@ -592,13 +592,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			Team:       team,
 		}
 
-		issueStats, err = models.GetUserIssueStats(statsOpts)
+		issueStats, err = issues_model.GetUserIssueStats(statsOpts)
 		if err != nil {
 			ctx.ServerError("GetUserIssueStats Shown", err)
 			return
 		}
 	} else {
-		issueStats = &models.IssueStats{}
+		issueStats = &issues_model.IssueStats{}
 	}
 
 	// Will be posted to ctx.Data.
@@ -623,7 +623,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 
 	ctx.Data["Issues"] = issues
 
-	approvalCounts, err := models.IssueList(issues).GetApprovalCounts(ctx)
+	approvalCounts, err := issues_model.IssueList(issues).GetApprovalCounts(ctx)
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
 		return
@@ -633,11 +633,11 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		if !ok || len(counts) == 0 {
 			return 0
 		}
-		reviewTyp := models.ReviewTypeApprove
+		reviewTyp := issues_model.ReviewTypeApprove
 		if typ == "reject" {
-			reviewTyp = models.ReviewTypeReject
+			reviewTyp = issues_model.ReviewTypeReject
 		} else if typ == "waiting" {
-			reviewTyp = models.ReviewTypeRequest
+			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {
@@ -708,12 +708,12 @@ func getRepoIDs(reposQuery string) []int64 {
 	return repoIDs
 }
 
-func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword string, opts *models.IssuesOptions) ([]int64, error) {
+func issueIDsFromSearch(ctx *context.Context, ctxUser *user_model.User, keyword string, opts *issues_model.IssuesOptions) ([]int64, error) {
 	if len(keyword) == 0 {
 		return []int64{}, nil
 	}
 
-	searchRepoIDs, err := models.GetRepoIDsForIssuesOptions(opts, ctxUser)
+	searchRepoIDs, err := issues_model.GetRepoIDsForIssuesOptions(opts, ctxUser)
 	if err != nil {
 		return nil, fmt.Errorf("GetRepoIDsForIssuesOptions: %v", err)
 	}
