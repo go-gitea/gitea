@@ -59,9 +59,7 @@ func Person(ctx *context.APIContext) {
 		URL:       ap.IRI(ctx.ContextUser.AvatarLink()),
 	}
 
-	person.Inbox = nil
 	person.Inbox, _ = ap.Inbox.AddTo(person)
-	person.Outbox = nil
 	person.Outbox, _ = ap.Outbox.AddTo(person)
 
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
