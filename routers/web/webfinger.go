@@ -108,6 +108,10 @@ func WebfingerQuery(ctx *context.Context) {
 			Type: "application/activity+json",
 			Href: appURL.String() + "api/v1/activitypub/user/" + url.PathEscape(u.Name),
 		},
+		{
+			Rel:      "http://ostatus.org/schema/1.0/subscribe",
+			Template: appURL.String() + "api/v1/authorize_interaction?uri={uri}",
+		},
 	}
 
 	ctx.Resp.Header().Add("Access-Control-Allow-Origin", "*")
