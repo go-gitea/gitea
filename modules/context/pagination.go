@@ -52,7 +52,6 @@ func (p *Pagination) GetParams() template.URL {
 func (p *Pagination) SetDefaultParams(ctx *Context) {
 	p.AddParam(ctx, "sort", "SortType")
 	p.AddParam(ctx, "q", "Keyword")
-	p.AddParam(ctx, "tab", "TabName")
 	// do not add any more uncommon params here!
 	p.AddParam(ctx, "t", "queryType")
 }
