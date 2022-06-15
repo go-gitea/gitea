@@ -1027,7 +1027,7 @@ IS_INPUT_FILE = false
 - RENDER\_COMMAND: External command to render all matching extensions.
 - IS\_INPUT\_FILE: **false** Input is not a standard input but a file param followed `RENDER_COMMAND`.
 - RENDER_CONTENT_MODE: **sanitized** How the content will be rendered.
-  - sanitized: Sanitize the content and render it inside current page, only a few HTML tags and attributes are allowed.
+  - sanitized: Sanitize the content and render it inside current page, default to only allow a few HTML tags and attributes. Customized sanitizer rules can be defined in `[markup.sanitizer.*]`.
   - no-sanitizer: Disable the sanitizer and render the content inside current page. It's **insecure** and may lead to XSS attack if the content contains malicious code.
   - iframe: Render the content in a separate standalone page and embed it into current page by iframe. The iframe is in sandbox mode with same-origin disabled, and the JS code are safely isolated from parent page.
 
