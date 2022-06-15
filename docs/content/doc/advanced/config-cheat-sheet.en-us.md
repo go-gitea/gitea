@@ -631,7 +631,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
   - Built-in networks:
     - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
     - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
-    - `external`: A valid non-private unicast IP, you can access all hosts on public internet. 
+    - `external`: A valid non-private unicast IP, you can access all hosts on public internet.
     - `*`: All hosts are allowed.
   - CIDR list: `1.2.3.0/8` for IPv4 and `2001:db8::/32` for IPv6
   - Wildcard hosts: `*.mydomain.com`, `192.168.100.*`
@@ -763,7 +763,7 @@ Default templates for project boards:
 - `STACKTRACE_LEVEL`: **None**: Default log level at which to log create stack traces. \[Trace, Debug, Info, Warn, Error, Critical, Fatal, None\]
 - `ENABLE_SSH_LOG`: **false**: save ssh log to log file
 - `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
- 
+
 ### Router Log (`log`)
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
@@ -998,9 +998,9 @@ Default templates for project boards:
 
 ## i18n (`i18n`)
 
-- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**:
+- `LANGS`: **en-US,zh-CN,zh-HK,zh-TW,de-DE,fr-FR,nl-NL,lv-LV,ru-RU,uk-UA,ja-JP,es-ES,pt-BR,pt-PT,pl-PL,bg-BG,it-IT,fi-FI,tr-TR,cs-CZ,sr-SP,sv-SE,ko-KR,el-GR,fa-IR,hu-HU,id-ID,ml-IN**:
      List of locales shown in language selector. The first locale will be used as the default if user browser's language doesn't match any locale in the list.
-- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,français,Nederlands,latviešu,русский,日本語,español,português do Brasil,Português de Portugal,polski,български,italiano,suomi,Türkçe,čeština,српски,svenska,한국어,ελληνικά,فارسی,magyar nyelv,bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
+- `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,Français,Nederlands,Latviešu,Русский,Українська,日本語,Español,Português do Brasil,Português de Portugal,Polski,Български,Italiano,Suomi,Türkçe,Čeština,Српски,Svenska,한국어,Ελληνικά,فارسی,Magyar nyelv,Bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
 ## U2F (`U2F`) **DEPRECATED**
 - `APP_ID`: **`ROOT_URL`**: Declares the facet of the application which is used for authentication of previously registered U2F keys. Requires HTTPS.
