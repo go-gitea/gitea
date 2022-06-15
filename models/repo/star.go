@@ -87,9 +87,9 @@ func GetStargazers(repo *Repository, opts db.ListOptions) ([]*user_model.User, e
 	return users, sess.Find(&users)
 }
 
-// ZeroStarRepo clears all stars for a repository and from the user that starred it.
+// ClearRepoStars clears all stars for a repository and from the user that starred it.
 // Used when a repository is set to private.
-func ZeroStarRepo(ctx context.Context, repoID int64) error {
+func ClearRepoStars(ctx context.Context, repoID int64) error {
 	if _, err := db.Exec(ctx, "UPDATE `user` SET num_stars=num_stars-1 WHERE id IN (SELECT `uid` FROM `star` WHERE repo_id = ?)", repoID); err != nil {
 		return err
 	}
