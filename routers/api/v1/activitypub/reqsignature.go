@@ -67,16 +67,6 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
 	authenticated = v.Verify(pubKey, algo) == nil
-	if authenticated {
-		return
-	}
-	// 4. When Gitea and the other ActivityPub server are running on the same machine, the Host header is sometimes incorrect
-	r.Header["Host"] = []string{setting.Domain}
-	v, err = httpsig.NewVerifier(r)
-	if err != nil {
-		return
-	}
-	authenticated = v.Verify(pubKey, algo) == nil
 	return
 }
 
