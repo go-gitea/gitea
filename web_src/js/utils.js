@@ -90,3 +90,10 @@ export function strSubMatch(full, sub) {
   }
   return res;
 }
+
+// pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
+export function prettyNumber(num, locale = 'en-US') {
+  if (typeof num !== 'number') return '';
+  const {format} = new Intl.NumberFormat(locale);
+  return format(num);
+}

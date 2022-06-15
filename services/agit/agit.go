@@ -10,7 +10,8 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -97,9 +98,9 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 			headBranch = curentTopicBranch
 		}
 
-		pr, err := models.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, models.PullRequestFlowAGit)
+		pr, err := issues_model.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
 		if err != nil {
-			if !models.IsErrPullRequestNotExist(err) {
+			if !issues_model.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
 				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
 					"Err": fmt.Sprintf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err),
@@ -134,7 +135,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 				return nil
 			}
 
-			prIssue := &models.Issue{
+			prIssue := &issues_model.Issue{
 				RepoID:   repo.ID,
 				Title:    title,
 				PosterID: pusher.ID,
@@ -143,7 +144,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 				Content:  description,
 			}
 
-			pr := &models.PullRequest{
+			pr := &issues_model.PullRequest{
 				HeadRepoID:   repo.ID,
 				BaseRepoID:   repo.ID,
 				HeadBranch:   headBranch,
@@ -152,12 +153,12 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 				HeadRepo:     repo,
 				BaseRepo:     repo,
 				MergeBase:    "",
-				Type:         models.PullRequestGitea,
-				Flow:         models.PullRequestFlowAGit,
+				Type:         issues_model.PullRequestGitea,
+				Flow:         issues_model.PullRequestFlowAGit,
 			}
 
 			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
-				if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+				if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 					ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
 					return nil
 				}
@@ -249,7 +250,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 			})
 			return nil
 		}
-		comment, err := models.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
+		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
 			notification.NotifyPullRequestPushCommits(pusher, pr, comment)
 		}
@@ -270,7 +271,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 
 // UserNameChanged handle user name change for agit flow pull
 func UserNameChanged(user *user_model.User, newName string) error {
-	pulls, err := models.GetAllUnmergedAgitPullRequestByPoster(user.ID)
+	pulls, err := issues_model.GetAllUnmergedAgitPullRequestByPoster(user.ID)
 	if err != nil {
 		return err
 	}

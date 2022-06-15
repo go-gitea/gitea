@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -146,7 +147,7 @@ func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("updateSize: %v", err)
 	}
 
-	lfsSize, err := models.GetRepoLFSSize(ctx, repo.ID)
+	lfsSize, err := git_model.GetRepoLFSSize(ctx, repo.ID)
 	if err != nil {
 		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
 	}
