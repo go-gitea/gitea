@@ -45,11 +45,11 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
+	if opts.KeyID != "" || opts.AlwaysSign {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
+	if opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 

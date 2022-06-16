@@ -20,11 +20,11 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-// Person function
+// Person function returns the Person actor for a user
 func Person(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/user/{username} activitypub activitypubPerson
 	// ---
-	// summary: Returns the person
+	// summary: Returns the Person actor for a user
 	// produces:
 	// - application/activity+json
 	// parameters:
@@ -86,7 +86,7 @@ func Person(ctx *context.APIContext) {
 	response(ctx, binary)
 }
 
-// PersonInbox function
+// PersonInbox function handles the incoming data for a user inbox
 func PersonInbox(ctx *context.APIContext) {
 	// swagger:operation POST /activitypub/user/{username}/inbox activitypub activitypubPersonInbox
 	// ---
