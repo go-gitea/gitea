@@ -19,6 +19,10 @@ linters:
     - revive
     - gofumpt
     - depguard
+    - nakedret
+    - unconvert
+    - wastedassign
+    - nolintlint
   enable-all: false
   disable-all: true
   fast: false
@@ -32,6 +36,8 @@ run:
     - web_src
 
 linters-settings:
+  nakedret:
+    max-func-lines: 5 
   gocritic:
     disabled-checks:
       - ifElseChain
