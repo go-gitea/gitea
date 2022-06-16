@@ -63,7 +63,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 		var item SyncRequest
 		var repo *repo_model.Repository
 		if m, ok := bean.(*repo_model.Mirror); ok {
-			if m.Repo == nil {
+			if m.GetRepository() == nil {
 				log.Error("Disconnected mirror found: %d", m.ID)
 				return nil
 			}
@@ -73,7 +73,7 @@ func Update(ctx context.Context, pullLimit, pushLimit int) error {
 				ReferenceID: m.RepoID,
 			}
 		} else if m, ok := bean.(*repo_model.PushMirror); ok {
-			if m.Repo == nil {
+			if m.GetRepository() == nil {
 				log.Error("Disconnected push-mirror found: %d", m.ID)
 				return nil
 			}

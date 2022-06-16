@@ -323,19 +323,17 @@ func initRepoCommit(ctx context.Context, tmpPath string, repo *repo_model.Reposi
 		"-m", "Initial commit",
 	}
 
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
-		if sign {
-			args = append(args, "-S"+keyID)
+	sign, keyID, signer, _ := asymkey_service.SignInitialCommit(ctx, tmpPath, u)
+	if sign {
+		args = append(args, "-S"+keyID)
 
-			if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				// need to set the committer to the KeyID owner
-				committerName = signer.Name
-				committerEmail = signer.Email
-			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			args = append(args, "--no-gpg-sign")
+		if repo.GetTrustModel() == repo_model.CommitterTrustModel || repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			// need to set the committer to the KeyID owner
+			committerName = signer.Name
+			committerEmail = signer.Email
 		}
+	} else {
+		args = append(args, "--no-gpg-sign")
 	}
 
 	env = append(env,

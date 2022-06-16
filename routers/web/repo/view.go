@@ -356,11 +356,11 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		ctx.Data["MarkupType"] = string(markupType)
 		var result strings.Builder
 		err := markup.Render(&markup.RenderContext{
-			Ctx:       ctx,
-			Filename:  readmeFile.name,
-			URLPrefix: readmeTreelink,
-			Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:          ctx,
+			RelativePath: ctx.Repo.TreePath,
+			URLPrefix:    readmeTreelink,
+			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+			GitRepo:      ctx.Repo.GitRepo,
 		}, rd, &result)
 		if err != nil {
 			log.Error("Render failed: %v then fallback", err)
@@ -528,18 +528,22 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if !detected {
 				markupType = ""
 			}
+			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Type:      markupType,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:          ctx,
+				Type:         markupType,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        metas,
+				GitRepo:      ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
+			// to prevent iframe load third-party url
+			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
@@ -627,11 +631,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:          ctx,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:      ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)

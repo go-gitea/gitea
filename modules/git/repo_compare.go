@@ -255,13 +255,7 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	if CheckGitVersionAtLeast("1.7.7") == nil {
-		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-		})
-	}
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).Run(&RunOpts{
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})
