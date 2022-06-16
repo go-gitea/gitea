@@ -40,7 +40,7 @@
 				</div>
 				<div class="metas df ac">
 					{{if .PrimaryLanguage }}
-						<a href="{{$.Link}}?tab={{$.TabName}}&q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
+						<a href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
 							<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
 						</a>
 					{{end}}

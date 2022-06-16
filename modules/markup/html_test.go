@@ -38,10 +38,10 @@ func TestRender_Commits(t *testing.T) {
 	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Ctx:       git.DefaultContext,
-			Filename:  ".md",
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx:          git.DefaultContext,
+			RelativePath: ".md",
+			URLPrefix:    TestRepoURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -89,9 +89,9 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
-			Metas:     localMetas,
+			RelativePath: "a.md",
+			URLPrefix:    setting.AppSubURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -133,8 +133,8 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -232,8 +232,8 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -290,8 +290,8 @@ func TestRender_emoji(t *testing.T) {
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
