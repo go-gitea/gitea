@@ -64,7 +64,7 @@ func TestActivityPubMissingPerson(t *testing.T) {
 
 		req := NewRequestf(t, "GET", "/api/v1/activitypub/user/nonexistentuser")
 		resp := MakeRequest(t, req, http.StatusNotFound)
-		assert.Contains(t, resp.Body.String(), "GetUserByName")
+		assert.Contains(t, resp.Body.String(), "user redirect does not exist")
 	})
 }
 
