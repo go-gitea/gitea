@@ -14,6 +14,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -252,7 +254,7 @@ func NotificationSubscriptions(c *context.Context) {
 		}
 	}
 
-	count, err := models.CountIssues(&models.IssuesOptions{
+	count, err := issues_model.CountIssues(&issues_model.IssuesOptions{
 		SubscriberID: c.Doer.ID,
 		IsClosed:     showClosed,
 		IsPull:       issueTypeBool,
@@ -262,7 +264,7 @@ func NotificationSubscriptions(c *context.Context) {
 		c.ServerError("CountIssues", err)
 		return
 	}
-	issues, err := models.Issues(&models.IssuesOptions{
+	issues, err := issues_model.Issues(&issues_model.IssuesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.IssuePagingNum,
 			Page:     page,
@@ -288,8 +290,8 @@ func NotificationSubscriptions(c *context.Context) {
 	}
 	c.Data["CommitStatus"] = commitStatus
 
-	issueList := models.IssueList(issues)
-	approvalCounts, err := issueList.GetApprovalCounts()
+	issueList := issues_model.IssueList(issues)
+	approvalCounts, err := issueList.GetApprovalCounts(c)
 	if err != nil {
 		c.ServerError("ApprovalCounts", err)
 		return
@@ -299,11 +301,11 @@ func NotificationSubscriptions(c *context.Context) {
 		if !ok || len(counts) == 0 {
 			return 0
 		}
-		reviewTyp := models.ReviewTypeApprove
+		reviewTyp := issues_model.ReviewTypeApprove
 		if typ == "reject" {
-			reviewTyp = models.ReviewTypeReject
+			reviewTyp = issues_model.ReviewTypeReject
 		} else if typ == "waiting" {
-			reviewTyp = models.ReviewTypeRequest
+			reviewTyp = issues_model.ReviewTypeRequest
 		}
 		for _, count := range counts {
 			if count.Type == reviewTyp {
@@ -364,7 +366,7 @@ func NotificationWatching(c *context.Context) {
 		orderBy = db.SearchOrderByRecentUpdated
 	}
 
-	repos, count, err := models.SearchRepository(&models.SearchRepoOptions{
+	repos, count, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
