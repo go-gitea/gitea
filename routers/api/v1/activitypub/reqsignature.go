@@ -61,7 +61,7 @@ func fetch(iri *url.URL) (b []byte, err error) {
 		err = fmt.Errorf("url IRI fetch [%s] failed with status (%d): %s", iri, resp.StatusCode, resp.Status)
 		return
 	}
-	b, err = io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize*(1<<20)))
+	b, err = io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 	return
 }
 
