@@ -15,6 +15,7 @@ var (
 	Federation = struct {
 		Enabled             bool
 		ShareUserStatistics bool
+		MaxSize             int64
 		Algorithms          []string
 		DigestAlgorithm     string
 		GetHeaders          []string
@@ -22,6 +23,7 @@ var (
 	}{
 		Enabled:             true,
 		ShareUserStatistics: true,
+		MaxSize:             4,
 		Algorithms:          []string{"rsa-sha256", "rsa-sha512"},
 		DigestAlgorithm:     "SHA-256",
 		GetHeaders:          []string{"(request-target)", "Date"},

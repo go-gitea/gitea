@@ -1087,6 +1087,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `ENABLED`: **true**: Enable/Disable federation capabilities
 - `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
+- `MAX_SIZE`: **4**: Maximum ActivityPub request and response size (MB)
 - `ALGORITHMS`: **rsa-sha256, rsa-sha512**: HTTP signature algorithms
 - `DIGEST_ALGORITHM`: **SHA-256**: HTTP signature digest algorithm
 - `GET_HEADERS`: **(request-target), Date**: GET headers for federation requests
