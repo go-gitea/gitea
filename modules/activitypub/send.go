@@ -54,7 +54,7 @@ func Send(user *user_model.User, activity *ap.Activity) {
 	for _, to := range activity.To {
 		client, _ := NewClient(user, setting.AppURL+"api/v1/activitypub/user/"+user.Name+"#main-key")
 		resp, _ := client.Post(body, to.GetID().String())
-		respBody, _ := io.ReadAll(resp.Body)
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 		log.Debug(string(respBody))
 	}
 }

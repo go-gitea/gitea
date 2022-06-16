@@ -68,6 +68,8 @@ func Person(ctx *context.APIContext) {
 	person.Following = ap.IRI(link + "/following")
 	person.Followers = ap.IRI(link + "/followers")
 
+	person.Liked = ap.IRI(link + "/liked")
+
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
 
@@ -103,7 +105,7 @@ func PersonInbox(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	body, err := io.ReadAll(ctx.Req.Body)
+	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.Federation.MaxSize))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "Error reading request body", err)
 	}
@@ -114,16 +116,18 @@ func PersonInbox(ctx *context.APIContext) {
 		activitypub.Follow(ctx, activity)
 	} else {
 		log.Warn("ActivityStreams type not supported", activity)
+		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
 }
 
-// PersonOutbox function
+// PersonOutbox function returns the user's Outbox OrderedCollection
 func PersonOutbox(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/user/{username}/outbox activitypub activitypubPersonOutbox
 	// ---
-	// summary: Returns the outbox
+	// summary: Returns the Outbox OrderedCollection
 	// produces:
 	// - application/activity+json
 	// parameters:
@@ -167,11 +171,11 @@ func PersonOutbox(ctx *context.APIContext) {
 	response(ctx, binary)
 }
 
-// PersonFollowing function
+// PersonFollowing function returns the user's Following Collection
 func PersonFollowing(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/user/{username}/following activitypub activitypubPersonFollowing
 	// ---
-	// summary: Returns the following collection
+	// summary: Returns the Following Collection
 	// produces:
 	// - application/activity+json
 	// parameters:
@@ -208,11 +212,11 @@ func PersonFollowing(ctx *context.APIContext) {
 	response(ctx, binary)
 }
 
-// PersonFollowers function
+// PersonFollowers function returns the user's Followers Collection
 func PersonFollowers(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/user/{username}/followers activitypub activitypubPersonFollowers
 	// ---
-	// summary: Returns the followers collection
+	// summary: Returns the Followers Collection
 	// produces:
 	// - application/activity+json
 	// parameters:
