@@ -345,6 +345,8 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "405":
+	//     "$ref": "#/responses/empty"
 
 	id := ctx.ParamsInt64(":id")
 	rel, err := models.GetReleaseByID(ctx, id)
@@ -358,6 +360,10 @@ func DeleteRelease(ctx *context.APIContext) {
 		return
 	}
 	if err := release_service.DeleteReleaseByID(ctx, id, ctx.Doer, false); err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
 		return
 	}
