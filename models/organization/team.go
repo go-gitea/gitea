@@ -272,7 +272,8 @@ func IsUsableTeamName(name string) error {
 	}
 }
 
-func getTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
+// GetTeam returns team by given team name and organization.
+func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
 	t := &Team{
 		OrgID:     orgID,
 		LowerName: strings.ToLower(name),
@@ -286,16 +287,11 @@ func getTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
 	return t, nil
 }
 
-// GetTeam returns team by given team name and organization.
-func GetTeam(orgID int64, name string) (*Team, error) {
-	return getTeam(db.DefaultContext, orgID, name)
-}
-
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
 func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetTeam(orgID, name)
+		u, err := GetTeam(db.DefaultContext, orgID, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
@@ -310,11 +306,11 @@ func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]i
 
 // GetOwnerTeam returns team by given team name and organization.
 func GetOwnerTeam(ctx context.Context, orgID int64) (*Team, error) {
-	return getTeam(ctx, orgID, OwnerTeamName)
+	return GetTeam(ctx, orgID, OwnerTeamName)
 }
 
-// GetTeamByIDCtx returns team by given ID.
-func GetTeamByIDCtx(ctx context.Context, teamID int64) (*Team, error) {
+// GetTeamByID returns team by given ID.
+func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 	t := new(Team)
 	has, err := db.GetEngine(ctx).ID(teamID).Get(t)
 	if err != nil {
@@ -323,11 +319,6 @@ func GetTeamByIDCtx(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
-}
-
-// GetTeamByID returns team by given ID.
-func GetTeamByID(teamID int64) (*Team, error) {
-	return GetTeamByIDCtx(db.DefaultContext, teamID)
 }
 
 // GetTeamNamesByID returns team's lower name from a list of team ids.
@@ -346,16 +337,12 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	return teamNames, err
 }
 
-func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, e.
+// GetRepoTeams gets the list of teams that has access to the repository
+func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
+	return teams, db.GetEngine(ctx).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
 		And("team_repo.repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
-}
-
-// GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(repo *repo_model.Repository) ([]*Team, error) {
-	return getRepoTeams(db.GetEngine(db.DefaultContext), repo)
 }

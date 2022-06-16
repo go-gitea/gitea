@@ -154,7 +154,7 @@ func TestSlackPayload(t *testing.T) {
 		require.NotNil(t, pl)
 		require.IsType(t, &SlackPayload{}, pl)
 
-		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/src/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Release created: <http://localhost:3000/test/repo/releases/tag/v1.0|v1.0> by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 	})
 }
 

@@ -34,9 +34,10 @@ var (
 )
 
 var (
-	urlPrefixKey   = parser.NewContextKey()
-	isWikiKey      = parser.NewContextKey()
-	renderMetasKey = parser.NewContextKey()
+	urlPrefixKey     = parser.NewContextKey()
+	isWikiKey        = parser.NewContextKey()
+	renderMetasKey   = parser.NewContextKey()
+	renderContextKey = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -67,6 +68,7 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc.Set(urlPrefixKey, ctx.URLPrefix)
 	pc.Set(isWikiKey, ctx.IsWiki)
 	pc.Set(renderMetasKey, ctx.Metas)
+	pc.Set(renderContextKey, ctx)
 	return pc
 }
 
@@ -203,12 +205,14 @@ func init() {
 // Renderer implements markup.Renderer
 type Renderer struct{}
 
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
+
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
+// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer
@@ -219,11 +223,6 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
 }
 
 // Render implements markup.Renderer

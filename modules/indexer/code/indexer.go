@@ -108,7 +108,7 @@ func index(ctx context.Context, indexer Indexer, repoID int64) error {
 		return err
 	}
 
-	return repo_model.UpdateIndexerStatus(repo, repo_model.RepoIndexerTypeCode, sha)
+	return repo_model.UpdateIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode, sha)
 }
 
 // Init initialize the repo indexer

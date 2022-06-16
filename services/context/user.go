@@ -44,7 +44,7 @@ func userAssignment(ctx *context.Context, errCb func(int, string, interface{})) 
 		ctx.ContextUser = ctx.Doer
 	} else {
 		var err error
-		ctx.ContextUser, err = user_model.GetUserByName(username)
+		ctx.ContextUser, err = user_model.GetUserByName(ctx, username)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				if redirectUserID, err := user_model.LookupUserRedirect(username); err == nil {

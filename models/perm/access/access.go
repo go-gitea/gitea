@@ -30,7 +30,7 @@ func init() {
 	db.RegisterModel(new(Access))
 }
 
-func accessLevel(e db.Engine, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
+func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Repository) (perm.AccessMode, error) {
 	mode := perm.AccessModeNone
 	var userID int64
 	restricted := false
@@ -53,7 +53,7 @@ func accessLevel(e db.Engine, user *user_model.User, repo *repo_model.Repository
 	}
 
 	a := &Access{UserID: userID, RepoID: repo.ID}
-	if has, err := e.Get(a); !has || err != nil {
+	if has, err := db.GetByBean(ctx, a); !has || err != nil {
 		return mode, err
 	}
 	return a.Mode, nil
@@ -84,7 +84,7 @@ func updateUserAccess(accessMap map[int64]*userAccess, user *user_model.User, mo
 }
 
 // FIXME: do cross-comparison so reduce deletions and additions to the minimum?
-func refreshAccesses(e db.Engine, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
+func refreshAccesses(ctx context.Context, repo *repo_model.Repository, accessMap map[int64]*userAccess) (err error) {
 	minMode := perm.AccessModeRead
 	if !repo.IsPrivate {
 		minMode = perm.AccessModeWrite
@@ -104,14 +104,14 @@ func refreshAccesses(e db.Engine, repo *repo_model.Repository, accessMap map[int
 	}
 
 	// Delete old accesses and insert new ones for repository.
-	if _, err = e.Delete(&Access{RepoID: repo.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &Access{RepoID: repo.ID}); err != nil {
 		return fmt.Errorf("delete old accesses: %v", err)
 	}
 	if len(newAccesses) == 0 {
 		return nil
 	}
 
-	if _, err = e.Insert(newAccesses); err != nil {
+	if err = db.Insert(ctx, newAccesses); err != nil {
 		return fmt.Errorf("insert new accesses: %v", err)
 	}
 	return nil
@@ -144,8 +144,6 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		return fmt.Errorf("owner is not an organization: %d", repo.OwnerID)
 	}
 
-	e := db.GetEngine(ctx)
-
 	if err = refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
@@ -176,7 +174,7 @@ func RecalculateTeamAccesses(ctx context.Context, repo *repo_model.Repository, i
 		}
 	}
 
-	return refreshAccesses(e, repo, accessMap)
+	return refreshAccesses(ctx, repo, accessMap)
 }
 
 // RecalculateUserAccess recalculates new access for a single user
@@ -235,10 +233,9 @@ func RecalculateAccesses(ctx context.Context, repo *repo_model.Repository) error
 		return RecalculateTeamAccesses(ctx, repo, 0)
 	}
 
-	e := db.GetEngine(ctx)
 	accessMap := make(map[int64]*userAccess, 20)
 	if err := refreshCollaboratorAccesses(ctx, repo.ID, accessMap); err != nil {
 		return fmt.Errorf("refreshCollaboratorAccesses: %v", err)
 	}
-	return refreshAccesses(e, repo, accessMap)
+	return refreshAccesses(ctx, repo, accessMap)
 }

@@ -15,7 +15,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
@@ -48,7 +48,7 @@ func LFSFiles(ctx *context.Context) {
 	if page <= 1 {
 		page = 1
 	}
-	total, err := models.CountLFSMetaObjects(ctx.Repo.Repository.ID)
+	total, err := git_model.CountLFSMetaObjects(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
 		return
@@ -58,7 +58,7 @@ func LFSFiles(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs")
 	ctx.Data["PageIsSettingsLFS"] = true
-	lfsMetaObjects, err := models.GetLFSMetaObjects(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	lfsMetaObjects, err := git_model.GetLFSMetaObjects(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
 	if err != nil {
 		ctx.ServerError("LFSFiles", err)
 		return
@@ -80,7 +80,7 @@ func LFSLocks(ctx *context.Context) {
 	if page <= 1 {
 		page = 1
 	}
-	total, err := models.CountLFSLockByRepoID(ctx.Repo.Repository.ID)
+	total, err := git_model.CountLFSLockByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
 		return
@@ -90,7 +90,7 @@ func LFSLocks(ctx *context.Context) {
 	pager := context.NewPagination(int(total), setting.UI.ExplorePagingNum, page, 5)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.lfs_locks")
 	ctx.Data["PageIsSettingsLFS"] = true
-	lfsLocks, err := models.GetLFSLockByRepoID(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
+	lfsLocks, err := git_model.GetLFSLockByRepoID(ctx.Repo.Repository.ID, pager.Paginater.Current(), setting.UI.ExplorePagingNum)
 	if err != nil {
 		ctx.ServerError("LFSLocks", err)
 		return
@@ -216,12 +216,12 @@ func LFSLockFile(ctx *context.Context) {
 		return
 	}
 
-	_, err := models.CreateLFSLock(ctx.Repo.Repository, &models.LFSLock{
+	_, err := git_model.CreateLFSLock(ctx.Repo.Repository, &git_model.LFSLock{
 		Path:    lockPath,
 		OwnerID: ctx.Doer.ID,
 	})
 	if err != nil {
-		if models.IsErrLFSLockAlreadyExist(err) {
+		if git_model.IsErrLFSLockAlreadyExist(err) {
 			ctx.Flash.Error(ctx.Tr("repo.settings.lfs_lock_already_exists", originalPath))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/lfs/locks")
 			return
@@ -238,7 +238,7 @@ func LFSUnlock(ctx *context.Context) {
 		ctx.NotFound("LFSUnlock", nil)
 		return
 	}
-	_, err := models.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
+	_, err := git_model.DeleteLFSLockByID(ctx.ParamsInt64("lid"), ctx.Repo.Repository, ctx.Doer, true)
 	if err != nil {
 		ctx.ServerError("LFSUnlock", err)
 		return
@@ -263,9 +263,9 @@ func LFSFileGet(ctx *context.Context) {
 
 	ctx.Data["Title"] = oid
 	ctx.Data["PageIsSettingsLFS"] = true
-	meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
-		if err == models.ErrLFSObjectNotExist {
+		if err == git_model.ErrLFSObjectNotExist {
 			ctx.NotFound("LFSFileGet", nil)
 			return
 		}
@@ -357,7 +357,7 @@ func LFSDelete(ctx *context.Context) {
 		return
 	}
 
-	count, err := models.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
+	count, err := git_model.RemoveLFSMetaObjectByOid(ctx.Repo.Repository.ID, oid)
 	if err != nil {
 		ctx.ServerError("LFSDelete", err)
 		return
@@ -421,12 +421,9 @@ func LFSPointerFiles(ctx *context.Context) {
 		return
 	}
 	ctx.Data["PageIsSettingsLFS"] = true
-	err := git.LoadGitVersion()
-	if err != nil {
-		log.Fatal("Error retrieving git version: %v", err)
-	}
 	ctx.Data["LFSFilesLink"] = ctx.Repo.RepoLink + "/settings/lfs"
 
+	var err error
 	err = func() error {
 		pointerChan := make(chan lfs.PointerBlob)
 		errChan := make(chan error, 1)
@@ -459,8 +456,8 @@ func LFSPointerFiles(ctx *context.Context) {
 				Size: pointerBlob.Size,
 			}
 
-			if _, err := models.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid); err != nil {
-				if err != models.ErrLFSObjectNotExist {
+			if _, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid); err != nil {
+				if err != git_model.ErrLFSObjectNotExist {
 					return err
 				}
 			} else {
@@ -477,12 +474,12 @@ func LFSPointerFiles(ctx *context.Context) {
 					// Can we fix?
 					// OK well that's "simple"
 					// - we need to check whether current user has access to a repo that has access to the file
-					result.Associatable, err = models.LFSObjectAccessible(ctx.Doer, pointerBlob.Oid)
+					result.Associatable, err = git_model.LFSObjectAccessible(ctx.Doer, pointerBlob.Oid)
 					if err != nil {
 						return err
 					}
 					if !result.Associatable {
-						associated, err := models.LFSObjectIsAssociated(pointerBlob.Oid)
+						associated, err := git_model.LFSObjectIsAssociated(pointerBlob.Oid)
 						if err != nil {
 							return err
 						}
@@ -535,7 +532,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		return
 	}
 	oids := ctx.FormStrings("oid")
-	metas := make([]*models.LFSMetaObject, len(oids))
+	metas := make([]*git_model.LFSMetaObject, len(oids))
 	for i, oid := range oids {
 		idx := strings.IndexRune(oid, ' ')
 		if idx < 0 || idx+1 > len(oid) {
@@ -543,7 +540,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 			return
 		}
 		var err error
-		metas[i] = &models.LFSMetaObject{}
+		metas[i] = &git_model.LFSMetaObject{}
 		metas[i].Size, err = strconv.ParseInt(oid[idx+1:], 10, 64)
 		if err != nil {
 			ctx.ServerError("LFSAutoAssociate", fmt.Errorf("illegal oid input: %s %v", oid, err))
@@ -552,7 +549,7 @@ func LFSAutoAssociate(ctx *context.Context) {
 		metas[i].Oid = oid[:idx]
 		// metas[i].RepositoryID = ctx.Repo.Repository.ID
 	}
-	if err := models.LFSAutoAssociate(metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
+	if err := git_model.LFSAutoAssociate(metas, ctx.Doer, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("LFSAutoAssociate", err)
 		return
 	}

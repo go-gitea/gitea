@@ -29,12 +29,14 @@ func init() {
 // Renderer implements markup.Renderer for orgmode
 type Renderer struct{}
 
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
+
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return "orgmode"
 }
 
-// NeedPostProcess implements markup.Renderer
+// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer
@@ -45,11 +47,6 @@ func (Renderer) Extensions() []string {
 // SanitizerRules implements markup.Renderer
 func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 	return []setting.MarkupSanitizerRule{}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
 }
 
 // Render renders orgmode rawbytes to HTML

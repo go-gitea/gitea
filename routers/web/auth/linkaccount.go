@@ -70,7 +70,7 @@ func LinkAccount(ctx *context.Context) {
 			ctx.Data["user_exists"] = true
 		}
 	} else if len(uname) != 0 {
-		u, err := user_model.GetUserByName(uname)
+		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
 			return

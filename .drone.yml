@@ -109,7 +109,7 @@ steps:
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.17 # this step is kept as the lowest version of golang that we support
+    image: golang:1.18 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
@@ -331,7 +331,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
@@ -469,7 +469,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
+      - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -485,7 +485,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
+      - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit

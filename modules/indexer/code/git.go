@@ -38,7 +38,7 @@ func getDefaultBranchSha(ctx context.Context, repo *repo_model.Repository) (stri
 
 // getRepoChanges returns changes to repo since last indexer update
 func getRepoChanges(ctx context.Context, repo *repo_model.Repository, revision string) (*repoChanges, error) {
-	status, err := repo_model.GetIndexerStatus(repo, repo_model.RepoIndexerTypeCode)
+	status, err := repo_model.GetIndexerStatus(ctx, repo, repo_model.RepoIndexerTypeCode)
 	if err != nil {
 		return nil, err
 	}

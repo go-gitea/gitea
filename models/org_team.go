@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -44,7 +46,7 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 			return fmt.Errorf("getMembers: %v", err)
 		}
 		for _, u := range t.Members {
-			if err = repo_model.WatchRepoCtx(ctx, u.ID, repo.ID, true); err != nil {
+			if err = repo_model.WatchRepo(ctx, u.ID, repo.ID, true); err != nil {
 				return fmt.Errorf("watchRepo: %v", err)
 			}
 		}
@@ -147,12 +149,12 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 				continue
 			}
 
-			if err = repo_model.WatchRepoCtx(ctx, user.ID, repo.ID, false); err != nil {
+			if err = repo_model.WatchRepo(ctx, user.ID, repo.ID, false); err != nil {
 				return err
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(e, user.ID, repo.ID); err != nil {
+			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -210,12 +212,12 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 			continue
 		}
 
-		if err = repo_model.WatchRepoCtx(ctx, teamUser.UID, repo.ID, false); err != nil {
+		if err = repo_model.WatchRepo(ctx, teamUser.UID, repo.ID, false); err != nil {
 			return err
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(e, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}
@@ -412,7 +414,7 @@ func DeleteTeam(t *organization.Team) error {
 
 	// update branch protections
 	{
-		protections := make([]*ProtectedBranch, 0, 10)
+		protections := make([]*git_model.ProtectedBranch, 0, 10)
 		err := sess.In("repo_id",
 			builder.Select("id").From("repository").Where(builder.Eq{"owner_id": t.OrgID})).
 			Find(&protections)
@@ -555,7 +557,7 @@ func AddTeamMember(team *organization.Team, userID int64) error {
 		}
 		go func(repos []*repo_model.Repository) {
 			for _, repo := range repos {
-				if err = repo_model.WatchRepoCtx(db.DefaultContext, userID, repo.ID, true); err != nil {
+				if err = repo_model.WatchRepo(db.DefaultContext, userID, repo.ID, true); err != nil {
 					log.Error("watch repo failed: %v", err)
 				}
 			}

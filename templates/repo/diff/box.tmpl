@@ -19,8 +19,8 @@
 			</div>
 			<div class="diff-detail-actions df ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
-					<meter id="viewed-files-summary" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></meter>
-					<label for="viewed-files-summary" id="viewed-files-summary-label" data-text-changed-template="{{.i18n.Tr "repo.pulls.viewed_files_label"}}">
+					<progress id="viewed-files-summary" class="mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
+					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-2" data-text-changed-template="{{.i18n.Tr "repo.pulls.viewed_files_label"}}">
 						{{.i18n.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
 				{{end}}
@@ -180,13 +180,13 @@
 						<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom attached active write tab segment">
-						<textarea class="review-textarea" tabindex="1" name="content"></textarea>
+						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>
 					</div>
 					<div class="ui bottom attached tab preview segment markup">
 					{{$.i18n.Tr "loading"}}
 					</div>
 					<div class="text right edit buttons">
-						<div class="ui basic blue cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
+						<div class="ui basic primary cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
 						<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
 					</div>
 				</div>

@@ -121,12 +121,7 @@ type SearchOptions struct {
 }
 
 // GetProjects returns a list of all projects that have been created in the repository
-func GetProjects(opts SearchOptions) ([]*Project, int64, error) {
-	return GetProjectsCtx(db.DefaultContext, opts)
-}
-
-// GetProjectsCtx returns a list of all projects that have been created in the repository
-func GetProjectsCtx(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
+func GetProjects(ctx context.Context, opts SearchOptions) ([]*Project, int64, error) {
 	e := db.GetEngine(ctx)
 	projects := make([]*Project, 0, setting.UI.IssuePagingNum)
 
@@ -199,14 +194,10 @@ func NewProject(p *Project) error {
 }
 
 // GetProjectByID returns the projects in a repository
-func GetProjectByID(id int64) (*Project, error) {
-	return getProjectByID(db.GetEngine(db.DefaultContext), id)
-}
-
-func getProjectByID(e db.Engine, id int64) (*Project, error) {
+func GetProjectByID(ctx context.Context, id int64) (*Project, error) {
 	p := new(Project)
 
-	has, err := e.ID(id).Get(p)
+	has, err := db.GetEngine(ctx).ID(id).Get(p)
 	if err != nil {
 		return nil, err
 	} else if !has {
@@ -217,20 +208,16 @@ func getProjectByID(e db.Engine, id int64) (*Project, error) {
 }
 
 // UpdateProject updates project properties
-func UpdateProject(p *Project) error {
-	return updateProject(db.GetEngine(db.DefaultContext), p)
-}
-
-func updateProject(e db.Engine, p *Project) error {
-	_, err := e.ID(p.ID).Cols(
+func UpdateProject(ctx context.Context, p *Project) error {
+	_, err := db.GetEngine(ctx).ID(p.ID).Cols(
 		"title",
 		"description",
 	).Update(p)
 	return err
 }
 
-func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
-	if _, err := e.Exec(builder.Update(
+func updateRepositoryProjectCount(ctx context.Context, repoID int64) error {
+	if _, err := db.GetEngine(ctx).Exec(builder.Update(
 		builder.Eq{
 			"`num_projects`": builder.Select("count(*)").From("`project`").
 				Where(builder.Eq{"`project`.`repo_id`": repoID}.
@@ -239,7 +226,7 @@ func updateRepositoryProjectCount(e db.Engine, repoID int64) error {
 		return err
 	}
 
-	if _, err := e.Exec(builder.Update(
+	if _, err := db.GetEngine(ctx).Exec(builder.Update(
 		builder.Eq{
 			"`num_closed_projects`": builder.Select("count(*)").From("`project`").
 				Where(builder.Eq{"`project`.`repo_id`": repoID}.
@@ -293,8 +280,7 @@ func ChangeProjectStatus(p *Project, isClosed bool) error {
 func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 	p.IsClosed = isClosed
 	p.ClosedDateUnix = timeutil.TimeStampNow()
-	e := db.GetEngine(ctx)
-	count, err := e.ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
+	count, err := db.GetEngine(ctx).ID(p.ID).Where("repo_id = ? AND is_closed = ?", p.RepoID, !isClosed).Cols("is_closed", "closed_date_unix").Update(p)
 	if err != nil {
 		return err
 	}
@@ -302,7 +288,7 @@ func changeProjectStatus(ctx context.Context, p *Project, isClosed bool) error {
 		return nil
 	}
 
-	return updateRepositoryProjectCount(e, p.RepoID)
+	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
 // DeleteProjectByID deletes a project from a repository.
@@ -322,8 +308,7 @@ func DeleteProjectByID(id int64) error {
 
 // DeleteProjectByIDCtx deletes a project from a repository.
 func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
-	e := db.GetEngine(ctx)
-	p, err := getProjectByID(e, id)
+	p, err := GetProjectByID(ctx, id)
 	if err != nil {
 		if IsErrProjectNotExist(err) {
 			return nil
@@ -331,17 +316,17 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 		return err
 	}
 
-	if err := deleteProjectIssuesByProjectID(e, id); err != nil {
+	if err := deleteProjectIssuesByProjectID(ctx, id); err != nil {
 		return err
 	}
 
-	if err := deleteBoardByProjectID(e, id); err != nil {
+	if err := deleteBoardByProjectID(ctx, id); err != nil {
 		return err
 	}
 
-	if _, err = e.ID(p.ID).Delete(new(Project)); err != nil {
+	if _, err = db.GetEngine(ctx).ID(p.ID).Delete(new(Project)); err != nil {
 		return err
 	}
 
-	return updateRepositoryProjectCount(e, p.RepoID)
+	return updateRepositoryProjectCount(ctx, p.RepoID)
 }

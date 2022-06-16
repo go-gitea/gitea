@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -32,12 +33,12 @@ func TestCreateNewTagProtected(t *testing.T) {
 		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
-		err = models.InsertProtectedTag(&models.ProtectedTag{
+		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
 			RepoID:      repo.ID,
 			NamePattern: "v-*",
 		})
 		assert.NoError(t, err)
-		err = models.InsertProtectedTag(&models.ProtectedTag{
+		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
 			RepoID:           repo.ID,
 			NamePattern:      "v-1.1",
 			AllowlistUserIDs: []int64{repo.OwnerID},
@@ -87,11 +88,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	protectedTags, err := models.GetProtectedTags(repo.ID)
+	protectedTags, err := git_model.GetProtectedTags(repo.ID)
 	assert.NoError(t, err)
 
 	for _, protectedTag := range protectedTags {
-		err = models.DeleteProtectedTag(protectedTag)
+		err = git_model.DeleteProtectedTag(protectedTag)
 		assert.NoError(t, err)
 	}
 }

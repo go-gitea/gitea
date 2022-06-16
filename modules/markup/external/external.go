@@ -34,6 +34,11 @@ type Renderer struct {
 	*setting.MarkupRenderer
 }
 
+var (
+	_ markup.PostProcessRenderer = (*Renderer)(nil)
+	_ markup.ExternalRenderer    = (*Renderer)(nil)
+)
+
 // Name returns the external tool name
 func (p *Renderer) Name() string {
 	return p.MarkupName
@@ -56,7 +61,12 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 
 // SanitizerDisabled disabled sanitize if return true
 func (p *Renderer) SanitizerDisabled() bool {
-	return p.DisableSanitizer
+	return p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
+}
+
+// DisplayInIFrame represents whether render the content with an iframe
+func (p *Renderer) DisplayInIFrame() bool {
+	return p.RenderContentMode == setting.RenderContentModeIframe
 }
 
 func envMark(envName string) string {
@@ -124,6 +134,8 @@ func (p *Renderer) Render(ctx *markup.RenderContext, input io.Reader, output io.
 		cmd.Stdin = input
 	}
 	cmd.Stdout = output
+	process.SetSysProcAttribute(cmd)
+
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("%s render run command %s %v failed: %v", p.Name(), commands[0], args, err)
 	}

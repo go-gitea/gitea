@@ -102,7 +102,7 @@ func (org *Organization) CanCreateOrgRepo(uid int64) (bool, error) {
 }
 
 func (org *Organization) getTeam(ctx context.Context, name string) (*Team, error) {
-	return getTeam(ctx, org.ID, name)
+	return GetTeam(ctx, org.ID, name)
 }
 
 // GetTeam returns named team of organization.
@@ -203,7 +203,7 @@ func CountOrgMembers(opts *FindOrgMembersOpts) (int64, error) {
 
 // FindOrgMembers loads organization members according conditions
 func FindOrgMembers(opts *FindOrgMembersOpts) (user_model.UserList, map[int64]bool, error) {
-	ous, err := GetOrgUsersByOrgID(opts)
+	ous, err := GetOrgUsersByOrgID(db.DefaultContext, opts)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -248,7 +248,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 		return err
 	}
 
-	isExist, err := user_model.IsUserExist(0, org.Name)
+	isExist, err := user_model.IsUserExist(db.DefaultContext, 0, org.Name)
 	if err != nil {
 		return err
 	} else if isExist {
@@ -281,7 +281,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
-	if err = user_model.GenerateRandomAvatarCtx(ctx, org.AsUser()); err != nil {
+	if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}
 
@@ -348,14 +348,6 @@ func GetOrgByName(name string) (*Organization, error) {
 		return nil, ErrOrgNotExist{0, name}
 	}
 	return u, nil
-}
-
-// CountOrganizations returns number of organizations.
-func CountOrganizations() int64 {
-	count, _ := db.GetEngine(db.DefaultContext).
-		Where("type=1").
-		Count(new(Organization))
-	return count
 }
 
 // DeleteOrganization deletes models associated to an organization.
@@ -425,7 +417,7 @@ func queryUserOrgIDs(userID int64, includePrivate bool) *builder.Builder {
 }
 
 func (opts FindOrgOptions) toConds() builder.Cond {
-	cond := builder.NewCond()
+	var cond builder.Cond = builder.Eq{"`user`.`type`": user_model.UserTypeOrganization}
 	if opts.UserID > 0 {
 		cond = cond.And(builder.In("`user`.`id`", queryUserOrgIDs(opts.UserID, opts.IncludePrivate)))
 	}
@@ -451,18 +443,7 @@ func FindOrgs(opts FindOrgOptions) ([]*Organization, error) {
 func CountOrgs(opts FindOrgOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
 		Where(opts.toConds()).
-		Count(new(user_model.User))
-}
-
-func getOwnedOrgsByUserID(sess db.Engine, userID int64) ([]*Organization, error) {
-	orgs := make([]*Organization, 0, 10)
-	return orgs, sess.
-		Join("INNER", "`team_user`", "`team_user`.org_id=`user`.id").
-		Join("INNER", "`team`", "`team`.id=`team_user`.team_id").
-		Where("`team_user`.uid=?", userID).
-		And("`team`.authorize=?", perm.AccessModeOwner).
-		Asc("`user`.name").
-		Find(&orgs)
+		Count(new(Organization))
 }
 
 // HasOrgOrUserVisible tells if the given user can see the given org or user
@@ -494,17 +475,6 @@ func HasOrgsVisible(orgs []*Organization, user *user_model.User) bool {
 		}
 	}
 	return false
-}
-
-// GetOwnedOrgsByUserID returns a list of organizations are owned by given user ID.
-func GetOwnedOrgsByUserID(userID int64) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext), userID)
-}
-
-// GetOwnedOrgsByUserIDDesc returns a list of organizations are owned by
-// given user ID, ordered descending by the given condition.
-func GetOwnedOrgsByUserIDDesc(userID int64, desc string) ([]*Organization, error) {
-	return getOwnedOrgsByUserID(db.GetEngine(db.DefaultContext).Desc(desc), userID)
 }
 
 // GetOrgsCanCreateRepoByUserID returns a list of organizations where given user ID
@@ -543,12 +513,8 @@ func GetOrgUsersByUserID(uid int64, opts *SearchOrganizationsOptions) ([]*OrgUse
 }
 
 // GetOrgUsersByOrgID returns all organization-user relations by organization ID.
-func GetOrgUsersByOrgID(opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	return getOrgUsersByOrgID(db.GetEngine(db.DefaultContext), opts)
-}
-
-func getOrgUsersByOrgID(e db.Engine, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
-	sess := e.Where("org_id=?", opts.OrgID)
+func GetOrgUsersByOrgID(ctx context.Context, opts *FindOrgMembersOpts) ([]*OrgUser, error) {
+	sess := db.GetEngine(ctx).Where("org_id=?", opts.OrgID)
 	if opts.PublicOnly {
 		sess.And("is_public = ?", true)
 	}
@@ -615,8 +581,8 @@ func AddOrgUser(orgID, uid int64) error {
 	return committer.Commit()
 }
 
-// GetOrgByIDCtx returns the user object by given ID if exists.
-func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
+// GetOrgByID returns the user object by given ID if exists.
+func GetOrgByID(ctx context.Context, id int64) (*Organization, error) {
 	u := new(Organization)
 	has, err := db.GetEngine(ctx).ID(id).Get(u)
 	if err != nil {
@@ -629,11 +595,6 @@ func GetOrgByIDCtx(ctx context.Context, id int64) (*Organization, error) {
 		}
 	}
 	return u, nil
-}
-
-// GetOrgByID returns the user object by given ID if exists.
-func GetOrgByID(id int64) (*Organization, error) {
-	return GetOrgByIDCtx(db.DefaultContext, id)
 }
 
 // RemoveOrgRepo removes all team-repository relations of organization.
@@ -664,9 +625,9 @@ func RemoveOrgRepo(ctx context.Context, orgID, repoID int64) error {
 	return err
 }
 
-func (org *Organization) getUserTeams(e db.Engine, userID int64, cols ...string) ([]*Team, error) {
+func (org *Organization) getUserTeams(ctx context.Context, userID int64, cols ...string) ([]*Team, error) {
 	teams := make([]*Team, 0, org.NumTeams)
-	return teams, e.
+	return teams, db.GetEngine(ctx).
 		Where("`team_user`.org_id = ?", org.ID).
 		Join("INNER", "team_user", "`team_user`.team_id = team.id").
 		Join("INNER", "`user`", "`user`.id=team_user.uid").
@@ -700,7 +661,7 @@ func (org *Organization) GetUserTeamIDs(userID int64) ([]int64, error) {
 // GetUserTeams returns all teams that belong to user,
 // and that the user has joined.
 func (org *Organization) GetUserTeams(userID int64) ([]*Team, error) {
-	return org.getUserTeams(db.GetEngine(db.DefaultContext), userID)
+	return org.getUserTeams(db.DefaultContext, userID)
 }
 
 // AccessibleReposEnvironment operations involving the repositories that are

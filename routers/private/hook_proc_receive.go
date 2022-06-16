@@ -23,7 +23,7 @@ func HookProcReceive(ctx *gitea_context.PrivateContext) {
 		return
 	}
 
-	results := agit.ProcRecive(ctx, opts)
+	results := agit.ProcReceive(ctx, opts)
 	if ctx.Written() {
 		return
 	}

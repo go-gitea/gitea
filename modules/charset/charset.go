@@ -131,7 +131,26 @@ func RemoveBOMIfPresent(content []byte) []byte {
 
 // DetectEncoding detect the encoding of content
 func DetectEncoding(content []byte) (string, error) {
-	if utf8.Valid(content) {
+	// First we check if the content represents valid utf8 content excepting a truncated character at the end.
+
+	// Now we could decode all the runes in turn but this is not necessarily the cheapest thing to do
+	// instead we walk backwards from the end to trim off a the incomplete character
+	toValidate := content
+	end := len(toValidate) - 1
+
+	if end < 0 {
+		// no-op
+	} else if toValidate[end]>>5 == 0b110 {
+		// Incomplete 1 byte extension e.g. © <c2><a9> which has been truncated to <c2>
+		toValidate = toValidate[:end]
+	} else if end > 0 && toValidate[end]>>6 == 0b10 && toValidate[end-1]>>4 == 0b1110 {
+		// Incomplete 2 byte extension e.g. ⛔ <e2><9b><94> which has been truncated to <e2><9b>
+		toValidate = toValidate[:end-1]
+	} else if end > 1 && toValidate[end]>>6 == 0b10 && toValidate[end-1]>>6 == 0b10 && toValidate[end-2]>>3 == 0b11110 {
+		// Incomplete 3 byte extension e.g. 💩 <f0><9f><92><a9> which has been truncated to <f0><9f><92>
+		toValidate = toValidate[:end-2]
+	}
+	if utf8.Valid(toValidate) {
 		log.Debug("Detected encoding: utf-8 (fast)")
 		return "UTF-8", nil
 	}

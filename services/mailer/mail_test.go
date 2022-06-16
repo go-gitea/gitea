@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -46,7 +47,7 @@ const bodyTpl = `
 </html>
 `
 
-func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, comment *models.Comment) {
+func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	mailService := setting.Mailer{
 		From: "test@gitea.com",
@@ -57,9 +58,9 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 
 	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
-	issue = unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer}).(*issues_model.Issue)
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue}).(*issues_model.Comment)
 	return
 }
 
@@ -162,8 +163,8 @@ func TestTemplateSelection(t *testing.T) {
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
-	pull := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
-	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer}).(*issues_model.Issue)
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull}).(*issues_model.Comment)
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   pull, Doer: doer, ActionType: models.ActionCommentPull,
@@ -183,7 +184,7 @@ func TestTemplateServices(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 
-	expect := func(t *testing.T, issue *models.Issue, comment *models.Comment, doer *user_model.User,
+	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
 		actionType models.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
 	) {
 		stpl := texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
@@ -268,8 +269,8 @@ func Test_createReference(t *testing.T) {
 	pullIssue.IsPull = true
 
 	type args struct {
-		issue      *models.Issue
-		comment    *models.Comment
+		issue      *issues_model.Issue
+		comment    *issues_model.Comment
 		actionType models.ActionType
 	}
 	tests := []struct {
