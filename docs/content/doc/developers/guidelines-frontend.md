@@ -27,9 +27,9 @@ The HTML pages are rendered by [Go HTML Template](https://pkg.go.dev/html/templa
 
 The source files can be found in the following directories:
 * **Less styles:** `web_src/less/`
-* **Javascript files:** `web_src/js/`
-* **Vue layouts:** `web_src/js/components/`
-* **HTML templates:** `templates/`
+* **JavaScript files:** `web_src/js/`
+* **Vue components:** `web_src/js/components/`
+* **Go HTML templates:** `templates/`
 
 ## General Guidelines
 
@@ -40,24 +40,29 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 1. Every feature (Fomantic-UI/jQuery module) should be put in separate files/directories.
 2. HTML ids and classes should use kebab-case.
 3. HTML ids and classes used in JavaScript should be unique for the whole project, and should contain 2-3 feature related keywords. We recommend to use the `js-` prefix for classes that are only used in JavaScript.
-4. jQuery events across different features should use their own namespaces.
-5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names to overwrite framework styles. We recommend to use the `us-` prefix for user defined styles.  
+4. jQuery events across different features could use their own namespaces if there are potential conflicts.
+5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names with 2-3 feature related keywords to overwrite framework styles.  
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
 7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
 
 
 ### Framework Usage
 
-Mixing different frameworks together is highly discouraged. A JavaScript module should follow one major framework and follow the framework's best practice.
+Mixing different frameworks together is discouraged, it makes the code difficult to be maintained.
+A JavaScript module should follow one major framework and follow the framework's best practice.
 
 Recommended implementations:
-* Vue + Native
+* Vue + Vanilla JS
 * Fomantic-UI (jQuery)
-* Native only
+* Vanilla JS
 
 Discouraged implementations:
-* Vue + jQuery
-* jQuery + Native
+* Vue + Fomantic-UI (jQuery)
+* jQuery + Vanilla JS
+
+To make UI consistent, Vue components can use Fomantic-UI CSS classes.
+Although mixing different frameworks is discouraged, 
+it should also work if the mixing is necessary and the code is well-designed and maintainable. 
 
 ### `async` Functions
 
@@ -75,7 +80,8 @@ Some lint rules and IDEs also have warnings if the returned Promise is not handl
 
 ### HTML Attributes and `dataset`
 
-We forbid `dataset` usage, its camel-casing behaviour makes it hard to grep for attributes. However there are still some special cases, so the current guideline is:
+The usage of `dataset` is forbidden, its camel-casing behaviour makes it hard to grep for attributes.
+However, there are still some special cases, so the current guideline is:
 
 * For legacy code:
   * `$.data()` should be refactored to `$.attr()`.
@@ -85,6 +91,10 @@ We forbid `dataset` usage, its camel-casing behaviour makes it hard to grep for 
   * `node.dataset` should not be used, use `node.getAttribute` instead. 
   * never bind any user data to a DOM node, use a suitable design pattern to describe the relation between node and data.
 
+
+### Legacy Code
+
+A lot of legacy code already existed before this document's written. It's recommended to refactor legacy code to follow the guidelines.
 
 ### Vue2/Vue3 and JSX
 

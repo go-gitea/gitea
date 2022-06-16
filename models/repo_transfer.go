@@ -10,6 +10,7 @@ import (
 	"os"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -376,7 +377,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 						INNER JOIN issue ON issue.id = com.issue_id
 					WHERE
 						com.type = ? AND issue.repo_id = ? AND ((label.org_id = 0 AND issue.repo_id != label.repo_id) OR (label.repo_id = 0 AND label.org_id != ?))
-		) AS il_too)`, CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
+		) AS il_too)`, issues_model.CommentTypeLabel, repo.ID, newOwner.ID); err != nil {
 			return fmt.Errorf("Unable to remove old org label comments: %v", err)
 		}
 	}

@@ -10,6 +10,11 @@ import (
 	"xorm.io/xorm"
 )
 
+const (
+	// DefaultMaxInSize represents default variables number on IN () in SQL
+	DefaultMaxInSize = 50
+)
+
 // Paginator is the base for different ListOptions types
 type Paginator interface {
 	GetSkipTake() (skip, take int)

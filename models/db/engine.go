@@ -271,11 +271,6 @@ func MaxBatchInsertSize(bean interface{}) int {
 	return 999 / len(t.ColumnsSeq())
 }
 
-// Count returns records number according struct's fields as database query conditions
-func Count(bean interface{}) (int64, error) {
-	return x.Count(bean)
-}
-
 // IsTableNotEmpty returns true if table has at least one record
 func IsTableNotEmpty(tableName string) (bool, error) {
 	return x.Table(tableName).Exist()
