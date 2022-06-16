@@ -5,12 +5,14 @@
 package markup_test
 
 import (
+	"context"
 	"io"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -23,6 +25,13 @@ var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
 	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
+}
+
+func TestMain(m *testing.M) {
+	setting.LoadAllowEmpty()
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
 }
 
 func TestRender_Commits(t *testing.T) {

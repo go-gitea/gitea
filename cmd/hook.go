@@ -308,6 +308,8 @@ func runHookPostReceive(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
+	setup("hooks/post-receive.log", c.Bool("debug"))
+
 	// First of all run update-server-info no matter what
 	if _, _, err := git.NewCommand(ctx, "update-server-info").RunStdString(nil); err != nil {
 		return fmt.Errorf("Failed to call 'git update-server-info': %v", err)
@@ -317,8 +319,6 @@ func runHookPostReceive(c *cli.Context) error {
 	if isInternal, _ := strconv.ParseBool(os.Getenv(repo_module.EnvIsInternal)); isInternal {
 		return nil
 	}
-
-	setup("hooks/post-receive.log", c.Bool("debug"))
 
 	if len(os.Getenv("SSH_ORIGINAL_COMMAND")) == 0 {
 		if setting.OnlyAllowPushIfGiteaEnvironmentSet {
