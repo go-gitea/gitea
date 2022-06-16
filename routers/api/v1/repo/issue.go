@@ -998,9 +998,9 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1008,7 +1008,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 		return
 	}
 
-	deps, err := issue.BlockedByDependencies()
+	deps, err := issue.BlockedByDependencies(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "BlockedByDependencies", err)
 		return
@@ -1026,7 +1026,7 @@ func GetIssueDependencies(ctx *context.APIContext) {
 	skip := (page - 1) * limit
 	max := page * limit
 
-	var issues []*models.Issue
+	var issues []*issues_model.Issue
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
@@ -1087,7 +1087,7 @@ func CreateIssueDependency(ctx *context.APIContext) {
 	//   "404":
 	//     description: the issue does not exist
 
-	createIssueDependency(ctx, models.DependencyTypeBlockedBy)
+	createIssueDependency(ctx, issues_model.DependencyTypeBlockedBy)
 }
 
 // RemoveIssueDependency remove an issue dependency
@@ -1121,7 +1121,7 @@ func RemoveIssueDependency(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Issue"
 
-	removeIssueDependency(ctx, models.DependencyTypeBlockedBy)
+	removeIssueDependency(ctx, issues_model.DependencyTypeBlockedBy)
 }
 
 // GetIssueBlocks list issues that are blocked by this issue
@@ -1164,9 +1164,9 @@ func GetIssueBlocks(ctx *context.APIContext) {
 		return
 	}
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1186,13 +1186,13 @@ func GetIssueBlocks(ctx *context.APIContext) {
 	skip := (page - 1) * limit
 	max := page * limit
 
-	deps, err := issue.BlockingDependencies()
+	deps, err := issue.BlockingDependencies(ctx)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "BlockingDependencies", err)
 		return
 	}
 
-	var issues []*models.Issue
+	var issues []*issues_model.Issue
 	for i, depMeta := range deps {
 		if i < skip || i >= max {
 			continue
@@ -1253,7 +1253,7 @@ func CreateIssueBlocking(ctx *context.APIContext) {
 	//   "404":
 	//     description: the issue does not exist
 
-	createIssueDependency(ctx, models.DependencyTypeBlocking)
+	createIssueDependency(ctx, issues_model.DependencyTypeBlocking)
 }
 
 // RemoveIssueBlocking unblock the issue given in the body by the issue in path
@@ -1287,18 +1287,18 @@ func RemoveIssueBlocking(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/Issue"
 
-	removeIssueDependency(ctx, models.DependencyTypeBlocking)
+	removeIssueDependency(ctx, issues_model.DependencyTypeBlocking)
 }
 
-func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
+func createIssueDependency(ctx *context.APIContext, t issues_model.DependencyType) {
 	if !ctx.Repo.Repository.IsDependenciesEnabled() {
 		ctx.NotFound()
 		return
 	}
 
-	dep, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	dep, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1317,9 +1317,9 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	issue, err := models.GetIssueByIndex(repo.ID, form.Index)
+	issue, err := issues_model.GetIssueByIndex(repo.ID, form.Index)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1327,7 +1327,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	if t == models.DependencyTypeBlockedBy {
+	if t == issues_model.DependencyTypeBlockedBy {
 		perm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, ctx.Doer)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
@@ -1345,7 +1345,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			}
 		}
 
-		err = models.CreateIssueDependency(ctx.Doer, issue, dep)
+		err = issues_model.CreateIssueDependency(ctx.Doer, issue, dep)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 			return
@@ -1368,7 +1368,7 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 			}
 		}
 
-		err = models.CreateIssueDependency(ctx.Doer, dep, issue)
+		err = issues_model.CreateIssueDependency(ctx.Doer, dep, issue)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 			return
@@ -1378,15 +1378,15 @@ func createIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 	ctx.JSON(http.StatusCreated, convert.ToAPIIssue(dep))
 }
 
-func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
+func removeIssueDependency(ctx *context.APIContext, t issues_model.DependencyType) {
 	if !ctx.Repo.Repository.IsDependenciesEnabled() {
 		ctx.NotFound()
 		return
 	}
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1405,9 +1405,9 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		return
 	}
 
-	dep, err := models.GetIssueWithAttrsByIndex(repo.ID, form.Index)
+	dep, err := issues_model.GetIssueWithAttrsByIndex(repo.ID, form.Index)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IsErrIssueNotExist", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -1432,7 +1432,7 @@ func removeIssueDependency(ctx *context.APIContext, t models.DependencyType) {
 		}
 	}
 
-	err = models.RemoveIssueDependency(ctx.Doer, issue, dep, t)
+	err = issues_model.RemoveIssueDependency(ctx.Doer, issue, dep, t)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateIssueDependency", err)
 		return
