@@ -27,6 +27,11 @@ const (
 	httpsigExpirationTime      = 60
 )
 
+// Gets the current time as an RFC 2616 formatted string
+func CurrentTime() string {
+	return strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT")
+}
+
 func containsRequiredHTTPHeaders(method string, headers []string) error {
 	var hasRequestTarget, hasDate, hasDigest bool
 	for _, header := range headers {
@@ -98,8 +103,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
 	req.Header.Add("Accept-Charset", "utf-8")
-	req.Header.Add("Date", strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT"))
-
+	req.Header.Add("Date", CurrentTime())
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {
 		return

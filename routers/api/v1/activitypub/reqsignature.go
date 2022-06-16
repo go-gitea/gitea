@@ -12,8 +12,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/activitypub"
 	gitea_context "code.gitea.io/gitea/modules/context"
@@ -50,7 +48,7 @@ func fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", activitypub.ActivityStreamsContentType)
 	req.Header("Accept-Charset", "utf-8")
-	req.Header("Date", strings.ReplaceAll(time.Now().UTC().Format(time.RFC1123), "UTC", "GMT"))
+	req.Header("Date", activitypub.CurrentTime())
 	resp, err := req.Response()
 	if err != nil {
 		return
