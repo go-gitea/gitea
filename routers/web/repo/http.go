@@ -19,14 +19,15 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -181,7 +182,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		if repoExist {
-			p, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			p, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				ctx.ServerError("GetUserRepoPermission", err)
 				return
@@ -204,21 +205,21 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 
 		environ = []string{
-			models.EnvRepoUsername + "=" + username,
-			models.EnvRepoName + "=" + reponame,
-			models.EnvPusherName + "=" + ctx.Doer.Name,
-			models.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
-			models.EnvAppURL + "=" + setting.AppURL,
+			repo_module.EnvRepoUsername + "=" + username,
+			repo_module.EnvRepoName + "=" + reponame,
+			repo_module.EnvPusherName + "=" + ctx.Doer.Name,
+			repo_module.EnvPusherID + fmt.Sprintf("=%d", ctx.Doer.ID),
+			repo_module.EnvAppURL + "=" + setting.AppURL,
 		}
 
 		if !ctx.Doer.KeepEmailPrivate {
-			environ = append(environ, models.EnvPusherEmail+"="+ctx.Doer.Email)
+			environ = append(environ, repo_module.EnvPusherEmail+"="+ctx.Doer.Email)
 		}
 
 		if isWiki {
-			environ = append(environ, models.EnvRepoIsWiki+"=true")
+			environ = append(environ, repo_module.EnvRepoIsWiki+"=true")
 		} else {
-			environ = append(environ, models.EnvRepoIsWiki+"=false")
+			environ = append(environ, repo_module.EnvRepoIsWiki+"=false")
 		}
 	}
 
@@ -269,7 +270,7 @@ func httpBase(ctx *context.Context) (h *serviceHandler) {
 		}
 	}
 
-	environ = append(environ, models.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
+	environ = append(environ, repo_module.EnvRepoID+fmt.Sprintf("=%d", repo.ID))
 
 	w := ctx.Resp
 	r := ctx.Req

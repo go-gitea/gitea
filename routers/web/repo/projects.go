@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
@@ -70,7 +70,7 @@ func Projects(ctx *context.Context) {
 		total = repo.NumClosedProjects
 	}
 
-	projects, count, err := project_model.GetProjects(project_model.SearchOptions{
+	projects, count, err := project_model.GetProjects(ctx, project_model.SearchOptions{
 		RepoID:   repo.ID,
 		Page:     page,
 		IsClosed: util.OptionalBoolOf(isShowClosed),
@@ -182,7 +182,7 @@ func ChangeProjectStatus(ctx *context.Context) {
 
 // DeleteProject delete a project
 func DeleteProject(ctx *context.Context) {
-	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -213,7 +213,7 @@ func EditProject(ctx *context.Context) {
 	ctx.Data["PageIsEditProjects"] = true
 	ctx.Data["CanWriteProjects"] = ctx.Repo.Permission.CanWrite(unit.TypeProjects)
 
-	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -245,7 +245,7 @@ func EditProjectPost(ctx *context.Context) {
 		return
 	}
 
-	p, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	p, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -261,7 +261,7 @@ func EditProjectPost(ctx *context.Context) {
 
 	p.Title = form.Title
 	p.Description = form.Content
-	if err = project_model.UpdateProject(p); err != nil {
+	if err = project_model.UpdateProject(ctx, p); err != nil {
 		ctx.ServerError("UpdateProjects", err)
 		return
 	}
@@ -272,7 +272,7 @@ func EditProjectPost(ctx *context.Context) {
 
 // ViewProject renders the project board for a project
 func ViewProject(ctx *context.Context) {
-	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -286,7 +286,7 @@ func ViewProject(ctx *context.Context) {
 		return
 	}
 
-	boards, err := project_model.GetBoards(project.ID)
+	boards, err := project_model.GetBoards(ctx, project.ID)
 	if err != nil {
 		ctx.ServerError("GetProjectBoards", err)
 		return
@@ -296,13 +296,13 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := models.LoadIssuesFromBoardList(boards)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
 
-	linkedPrsMap := make(map[int64][]*models.Issue)
+	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
 		for _, issue := range issuesList {
 			var referencedIds []int64
@@ -313,7 +313,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := models.Issues(&models.IssuesOptions{
+				if linkedPrs, err := issues_model.Issues(&issues_model.IssuesOptions{
 					IssueIDs: referencedIds,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
@@ -358,7 +358,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			continue
 		}
 
-		if err := models.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -385,7 +385,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -395,7 +395,7 @@ func DeleteProjectBoard(ctx *context.Context) {
 		return
 	}
 
-	pb, err := project_model.GetBoard(ctx.ParamsInt64(":boardID"))
+	pb, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return
@@ -434,7 +434,7 @@ func AddBoardToProjectPost(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -474,7 +474,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		return nil, nil
 	}
 
-	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("", nil)
@@ -484,7 +484,7 @@ func checkProjectBoardChangePermissions(ctx *context.Context) (*project_model.Pr
 		return nil, nil
 	}
 
-	board, err := project_model.GetBoard(ctx.ParamsInt64(":boardID"))
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 	if err != nil {
 		ctx.ServerError("GetProjectBoard", err)
 		return nil, nil
@@ -523,7 +523,7 @@ func EditProjectBoard(ctx *context.Context) {
 		board.Sorting = form.Sorting
 	}
 
-	if err := project_model.UpdateBoard(board); err != nil {
+	if err := project_model.UpdateBoard(ctx, board); err != nil {
 		ctx.ServerError("UpdateProjectBoard", err)
 		return
 	}
@@ -566,7 +566,7 @@ func MoveIssues(ctx *context.Context) {
 		return
 	}
 
-	project, err := project_model.GetProjectByID(ctx.ParamsInt64(":id"))
+	project, err := project_model.GetProjectByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if project_model.IsErrProjectNotExist(err) {
 			ctx.NotFound("ProjectNotExist", nil)
@@ -589,7 +589,7 @@ func MoveIssues(ctx *context.Context) {
 			Title:     ctx.Tr("repo.projects.type.uncategorized"),
 		}
 	} else {
-		board, err = project_model.GetBoard(ctx.ParamsInt64(":boardID"))
+		board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":boardID"))
 		if err != nil {
 			if project_model.IsErrProjectBoardNotExist(err) {
 				ctx.NotFound("ProjectBoardNotExist", nil)
@@ -622,9 +622,9 @@ func MoveIssues(ctx *context.Context) {
 		issueIDs = append(issueIDs, issue.IssueID)
 		sortedIssueIDs[issue.Sorting] = issue.IssueID
 	}
-	movedIssues, err := models.GetIssuesByIDs(issueIDs)
+	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IssueNotExisting", nil)
 		} else {
 			ctx.ServerError("GetIssueByID", err)

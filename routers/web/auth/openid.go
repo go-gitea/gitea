@@ -217,7 +217,7 @@ func signInOpenIDVerify(ctx *context.Context) {
 	}
 
 	if u == nil && nickname != "" {
-		u, _ = user_model.GetUserByName(nickname)
+		u, _ = user_model.GetUserByName(ctx, nickname)
 		if err != nil {
 			if !user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(err.Error(), tplSignInOpenID, &forms.SignInOpenIDForm{
@@ -307,7 +307,7 @@ func ConnectOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplConnectOID, &form)
 			return
@@ -434,7 +434,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 
 	// add OpenID for the user
 	userOID := &user_model.UserOpenID{UID: u.ID, URI: oid}
-	if err = user_model.AddUserOpenID(userOID); err != nil {
+	if err = user_model.AddUserOpenID(ctx, userOID); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", oid), tplSignUpOID, &form)
 			return

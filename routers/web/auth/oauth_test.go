@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
@@ -21,7 +22,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToke
 	assert.NoError(t, err)
 	assert.NotNil(t, signingKey)
 
-	response, terr := newAccessTokenResponse(grant, signingKey, signingKey)
+	response, terr := newAccessTokenResponse(db.DefaultContext, grant, signingKey, signingKey)
 	assert.Nil(t, terr)
 	assert.NotNil(t, response)
 
@@ -43,7 +44,7 @@ func createAndParseToken(t *testing.T, grant *auth.OAuth2Grant) *oauth2.OIDCToke
 func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	grants, err := auth.GetOAuth2GrantsByUserID(3)
+	grants, err := auth.GetOAuth2GrantsByUserID(db.DefaultContext, 3)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 
@@ -59,7 +60,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.False(t, oidcToken.EmailVerified)
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	grants, err = auth.GetOAuth2GrantsByUserID(user.ID)
+	grants, err = auth.GetOAuth2GrantsByUserID(db.DefaultContext, user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
 

@@ -190,3 +190,15 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 	}
 	return i, nil
 }
+
+// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
+func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+	var revList []string
+	_, err := walkShowRef(repo.Ctx, repo.Path, "", 0, 0, func(walkSha, refname string) error {
+		if walkSha == sha && strings.HasPrefix(refname, prefix) {
+			revList = append(revList, refname)
+		}
+		return nil
+	})
+	return revList, err
+}

@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -122,7 +123,7 @@ func Search(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions:        utils.GetListOptions(ctx),
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
@@ -191,7 +192,7 @@ func Search(ctx *context.APIContext) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,
@@ -209,7 +210,7 @@ func Search(ctx *context.APIContext) {
 			})
 			return
 		}
-		accessMode, err := models.AccessLevel(ctx.Doer, repo)
+		accessMode, err := access_model.AccessLevel(ctx.Doer, repo)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, api.SearchError{
 				OK:    false,
@@ -343,7 +344,7 @@ func Generate(ctx *context.APIContext) {
 		return
 	}
 
-	opts := models.GenerateRepoOptions{
+	opts := repo_module.GenerateRepoOptions{
 		Name:          form.Name,
 		DefaultBranch: form.DefaultBranch,
 		Description:   form.Description,
@@ -364,7 +365,7 @@ func Generate(ctx *context.APIContext) {
 	ctxUser := ctx.Doer
 	var err error
 	if form.Owner != ctxUser.Name {
-		ctxUser, err = user_model.GetUserByName(form.Owner)
+		ctxUser, err = user_model.GetUserByName(ctx, form.Owner)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.JSON(http.StatusNotFound, map[string]interface{}{
@@ -555,7 +556,7 @@ func GetByID(ctx *context.APIContext) {
 		return
 	}
 
-	perm, err := models.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 		return
@@ -716,7 +717,7 @@ func updateBasicProperties(ctx *context.APIContext, opts api.EditRepoOption) err
 		repo.DefaultBranch = *opts.DefaultBranch
 	}
 
-	if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
+	if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateRepository", err)
 		return err
 	}
@@ -961,7 +962,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	// get the mirror from the repo
-	mirror, err := repo_model.GetMirrorByRepoID(repo.ID)
+	mirror, err := repo_model.GetMirrorByRepoID(ctx, repo.ID)
 	if err != nil {
 		log.Error("Failed to get mirror: %s", err)
 		ctx.Error(http.StatusInternalServerError, "MirrorInterval", err)
@@ -999,7 +1000,7 @@ func updateMirror(ctx *context.APIContext, opts api.EditRepoOption) error {
 	}
 
 	// finally update the mirror in the DB
-	if err := repo_model.UpdateMirror(mirror); err != nil {
+	if err := repo_model.UpdateMirror(ctx, mirror); err != nil {
 		log.Error("Failed to Set Mirror Interval: %s", err)
 		ctx.Error(http.StatusUnprocessableEntity, "MirrorInterval", err)
 		return err
@@ -1035,7 +1036,7 @@ func Delete(ctx *context.APIContext) {
 	owner := ctx.Repo.Owner
 	repo := ctx.Repo.Repository
 
-	canDelete, err := models.CanUserDelete(repo, ctx.Doer)
+	canDelete, err := repo_module.CanUserDelete(repo, ctx.Doer)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CanUserDelete", err)
 		return

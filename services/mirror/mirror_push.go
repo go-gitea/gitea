@@ -66,6 +66,7 @@ func AddPushMirrorRemote(ctx context.Context, m *repo_model.PushMirror, addr str
 // RemovePushMirrorRemote removes the push mirror remote.
 func RemovePushMirrorRemote(ctx context.Context, m *repo_model.PushMirror) error {
 	cmd := git.NewCommand(ctx, "remote", "rm", m.RemoteName)
+	_ = m.GetRepository()
 
 	if _, _, err := cmd.RunStdString(&git.RunOpts{Dir: m.Repo.RepoPath()}); err != nil {
 		return err
@@ -99,6 +100,8 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		return false
 	}
 
+	_ = m.GetRepository()
+
 	m.LastError = ""
 
 	ctx, _, finished := process.GetManager().AddContext(ctx, fmt.Sprintf("Syncing PushMirror %s/%s to %s", m.Repo.OwnerName, m.Repo.Name, m.RemoteName))
@@ -128,7 +131,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
-		remoteAddr, err := git.GetRemoteAddress(ctx, path, m.RemoteName)
+		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
@@ -144,7 +147,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 			defer gitRepo.Close()
 
-			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
+			endpoint := lfs.DetermineEndpoint(remoteURL.String(), "")
 			lfsClient := lfs.NewClient(endpoint, nil)
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.SanitizeErrorCredentialURLs(err)

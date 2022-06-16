@@ -65,7 +65,7 @@ func Migrate(ctx *context.APIContext) {
 		err       error
 	)
 	if len(form.RepoOwner) != 0 {
-		repoOwner, err = user_model.GetUserByName(form.RepoOwner)
+		repoOwner, err = user_model.GetUserByName(ctx, form.RepoOwner)
 	} else if form.RepoOwnerID != 0 {
 		repoOwner, err = user_model.GetUserByID(form.RepoOwnerID)
 	} else {

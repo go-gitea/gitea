@@ -8,8 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -19,7 +20,7 @@ import (
 // ToAPIPullRequest assumes following fields have been assigned with valid values:
 // Required - Issue
 // Optional - Merger
-func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_model.User) *api.PullRequest {
+func ToAPIPullRequest(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) *api.PullRequest {
 	var (
 		baseBranch *git.Branch
 		headBranch *git.Branch
@@ -43,7 +44,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		return nil
 	}
 
-	p, err := models.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
+	p, err := access_model.GetUserRepoPermission(ctx, pr.BaseRepo, doer)
 	if err != nil {
 		log.Error("GetUserRepoPermission[%d]: %v", pr.BaseRepoID, err)
 		p.AccessMode = perm.AccessModeNone
@@ -113,7 +114,7 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		}
 	}
 
-	if pr.Flow == models.PullRequestFlowAGit {
+	if pr.Flow == issues_model.PullRequestFlowAGit {
 		gitRepo, err := git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 		if err != nil {
 			log.Error("OpenRepository[%s]: %v", pr.GetGitRefName(), err)
@@ -131,8 +132,8 @@ func ToAPIPullRequest(ctx context.Context, pr *models.PullRequest, doer *user_mo
 		apiPullRequest.Head.Name = ""
 	}
 
-	if pr.HeadRepo != nil && pr.Flow == models.PullRequestFlowGithub {
-		p, err := models.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
+	if pr.HeadRepo != nil && pr.Flow == issues_model.PullRequestFlowGithub {
+		p, err := access_model.GetUserRepoPermission(ctx, pr.HeadRepo, doer)
 		if err != nil {
 			log.Error("GetUserRepoPermission[%d]: %v", pr.HeadRepoID, err)
 			p.AccessMode = perm.AccessModeNone

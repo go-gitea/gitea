@@ -6,12 +6,12 @@
 package forms
 
 import (
-	stdContext "context"
 	"net/http"
 	"net/url"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -102,7 +102,7 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
@@ -142,8 +142,10 @@ type RepoSettingForm struct {
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
+	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnablePackages                        bool
 	EnablePulls                           bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
@@ -592,6 +594,7 @@ type MergePullRequestForm struct {
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
@@ -599,31 +602,6 @@ type MergePullRequestForm struct {
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// SetDefaults if not provided for mergestyle and commit message
-func (f *MergePullRequestForm) SetDefaults(ctx stdContext.Context, pr *models.PullRequest) (err error) {
-	if f.Do == "" {
-		f.Do = "merge"
-	}
-
-	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
-	if len(f.MergeTitleField) == 0 {
-		switch f.Do {
-		case "merge", "rebase-merge":
-			f.MergeTitleField, err = pr.GetDefaultMergeMessage(ctx)
-		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage(ctx)
-		}
-	}
-
-	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
-	if len(f.MergeMessageField) > 0 {
-		f.MergeTitleField += "\n\n" + f.MergeMessageField
-		f.MergeMessageField = ""
-	}
-
-	return
 }
 
 // CodeCommentForm form for adding code comments for PRs
@@ -647,7 +625,7 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string
-	Type     string `binding:"Required;In(approve,comment,reject)"`
+	Type     string
 	CommitID string
 	Files    []string
 }
@@ -658,17 +636,19 @@ func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) bind
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ReviewType will return the corresponding reviewtype for type
-func (f SubmitReviewForm) ReviewType() models.ReviewType {
+// ReviewType will return the corresponding ReviewType for type
+func (f SubmitReviewForm) ReviewType() issues_model.ReviewType {
 	switch f.Type {
 	case "approve":
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case "comment":
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
 	case "reject":
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
+	case "":
+		return issues_model.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
-		return models.ReviewTypeUnknown
+		return issues_model.ReviewTypeUnknown
 	}
 }
 
@@ -676,7 +656,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
-	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+	return (reviewType == issues_model.ReviewTypeComment || reviewType == issues_model.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
 }
 

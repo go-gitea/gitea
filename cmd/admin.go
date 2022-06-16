@@ -17,6 +17,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -490,7 +491,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := user_model.GetUserByName(uname)
+	user, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		return err
 	}
@@ -659,7 +660,7 @@ func runDeleteUser(c *cli.Context) error {
 	if c.IsSet("email") {
 		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = user_model.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
 		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
@@ -689,7 +690,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	user, err := user_model.GetUserByName(c.String("username"))
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
 		return err
 	}
@@ -722,9 +723,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: models.RepositoryListDefaultPageSize,
+				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
 			Private: true,

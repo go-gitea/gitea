@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -106,6 +107,7 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Get("/api/healthz", healthcheck.Check)
 
 	r.NotFound(web.Wrap(installNotFound))
 	return r

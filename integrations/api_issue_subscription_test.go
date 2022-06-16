@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -21,18 +21,18 @@ import (
 func TestAPIIssueSubscriptions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue1 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
-	issue2 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
-	issue3 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
-	issue4 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 4}).(*models.Issue)
-	issue5 := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 8}).(*models.Issue)
+	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
+	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
+	issue3 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
+	issue4 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 4}).(*issues_model.Issue)
+	issue5 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 8}).(*issues_model.Issue)
 
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue1.PosterID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	testSubscription := func(issue *models.Issue, isWatching bool) {
+	testSubscription := func(issue *issues_model.Issue, isWatching bool) {
 		issueRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
 
 		urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/subscriptions/check?token=%s", issueRepo.OwnerName, issueRepo.Name, issue.Index, token)

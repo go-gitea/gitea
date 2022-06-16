@@ -468,7 +468,7 @@
 						{{range .BlockingDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
-									<a class="title" href="{{.Issue.Link}}">
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
 									<div class="text small">
@@ -495,7 +495,7 @@
 						{{range .BlockedByDependencies}}
 							<div class="item dependency{{if .Issue.IsClosed}} is-closed{{end}} df ac sb">
 								<div class="item-left df jc fc f1">
-									<a class="title" href="{{.Issue.Link}}">
+									<a class="title tooltip" href="{{.Issue.Link}}" data-content="#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}">
 										#{{.Issue.Index}} {{.Issue.Title | RenderEmoji}}
 									</a>
 									<div class="text small">
@@ -567,6 +567,15 @@
 				</div>
 			{{end}}
 		{{end}}
+
+		<div class="ui divider"></div>
+		<div class="ui equal width compact grid">
+			<div class="row ac">
+				{{$issueReferenceLink := printf "%s#%d" .Issue.Repo.FullName .Issue.Index}}
+				<span class="text column truncate">{{.i18n.Tr "repo.issues.reference_link" $issueReferenceLink}}</span>
+				<button class="ui two wide button column p-3" data-clipboard-text="{{$issueReferenceLink}}">{{svg "octicon-copy" 14}}</button>
+			</div>
+		</div>
 
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>

@@ -5,6 +5,7 @@
 package user
 
 import (
+	goctx "context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -15,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -39,9 +41,11 @@ func GetNotificationCount(c *context.Context) {
 	}
 
 	c.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := models.GetNotificationCount(c.Doer, models.NotificationStatusUnread)
+		count, err := models.GetNotificationCount(c, c.Doer, models.NotificationStatusUnread)
 		if err != nil {
-			c.ServerError("GetNotificationCount", err)
+			if err != goctx.Canceled {
+				log.Error("Unable to GetNotificationCount for user:%-v: %v", c.Doer, err)
+			}
 			return -1
 		}
 
@@ -84,7 +88,7 @@ func getNotifications(c *context.Context) {
 		status = models.NotificationStatusUnread
 	}
 
-	total, err := models.GetNotificationCount(c.Doer, status)
+	total, err := models.GetNotificationCount(c, c.Doer, status)
 	if err != nil {
 		c.ServerError("ErrGetNotificationCount", err)
 		return
@@ -98,7 +102,7 @@ func getNotifications(c *context.Context) {
 	}
 
 	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
-	notifications, err := models.NotificationsForUser(c.Doer, statuses, page, perPage)
+	notifications, err := models.NotificationsForUser(c, c.Doer, statuses, page, perPage)
 	if err != nil {
 		c.ServerError("ErrNotificationsForUser", err)
 		return
@@ -395,5 +399,5 @@ func NotificationWatching(c *context.Context) {
 
 // NewAvailable returns the notification counts
 func NewAvailable(ctx *context.Context) {
-	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx.Doer)})
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: models.CountUnread(ctx, ctx.Doer.ID)})
 }

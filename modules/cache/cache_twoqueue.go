@@ -199,6 +199,11 @@ func (c *TwoQueueCache) StartAndGC(opts mc.Options) error {
 	return err
 }
 
+// Ping tests if the cache is alive.
+func (c *TwoQueueCache) Ping() error {
+	return mc.GenericPing(c)
+}
+
 func init() {
 	mc.Register("twoqueue", &TwoQueueCache{})
 }

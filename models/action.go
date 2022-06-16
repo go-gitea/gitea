@@ -15,7 +15,9 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -75,7 +77,7 @@ type Action struct {
 	RepoID      int64                  `xorm:"INDEX"`
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *Comment               `xorm:"-"`
+	Comment     *issues_model.Comment  `xorm:"-"`
 	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
 	RefName     string
 	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
@@ -221,9 +223,8 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 	if a == nil {
 		return "#"
 	}
-	e := db.GetEngine(ctx)
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = getCommentByID(e, a.CommentID)
+		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -238,7 +239,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	issue, err := getIssueByID(e, issueID)
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
 		return "#"
 	}
@@ -295,7 +296,7 @@ func (a *Action) GetIssueInfos() []string {
 // with the action.
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -307,7 +308,7 @@ func (a *Action) GetIssueTitle() string {
 // this action.
 func (a *Action) GetIssueContent() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -339,19 +340,20 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 		return nil, err
 	}
 
-	e := db.GetEngine(ctx)
-	sess := e.Where(cond)
+	sess := db.GetEngine(ctx).Where(cond).
+		Select("`action`.*"). // this line will avoid select other joined table's columns
+		Join("INNER", "repository", "`repository`.id = `action`.repo_id")
 
 	opts.SetDefaultValues()
 	sess = db.SetSessionPagination(sess, &opts)
 
 	actions := make([]*Action, 0, opts.PageSize)
 
-	if err := sess.Desc("created_unix").Find(&actions); err != nil {
+	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
 
-	if err := ActionList(actions).loadAttributes(e); err != nil {
+	if err := ActionList(actions).loadAttributes(ctx); err != nil {
 		return nil, fmt.Errorf("LoadAttributes: %v", err)
 	}
 
@@ -392,7 +394,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	if opts.RequestedRepo != nil {
@@ -417,7 +419,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 	}
 
 	if !opts.IncludePrivate {
-		cond = cond.And(builder.Eq{"is_private": false})
+		cond = cond.And(builder.Eq{"`action`.is_private": false})
 	}
 	if !opts.IncludeDeleted {
 		cond = cond.And(builder.Eq{"is_deleted": false})
@@ -430,8 +432,8 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 		} else {
 			dateHigh := dateLow.Add(86399000000000) // 23h59m59s
 
-			cond = cond.And(builder.Gte{"created_unix": dateLow.Unix()})
-			cond = cond.And(builder.Lte{"created_unix": dateHigh.Unix()})
+			cond = cond.And(builder.Gte{"`action`.created_unix": dateLow.Unix()})
+			cond = cond.And(builder.Lte{"`action`.created_unix": dateHigh.Unix()})
 		}
 	}
 
@@ -491,7 +493,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
 			act.ID = 0
 			act.UserID = act.Repo.Owner.ID
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new actioner: %v", err)
 			}
 		}
@@ -501,14 +503,14 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 			permIssue = make([]bool, len(watchers))
 			permPR = make([]bool, len(watchers))
 			for i, watcher := range watchers {
-				user, err := user_model.GetUserByIDEngine(e, watcher.UserID)
+				user, err := user_model.GetUserByIDCtx(ctx, watcher.UserID)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
 					permPR[i] = false
 					continue
 				}
-				perm, err := GetUserRepoPermission(ctx, repo, user)
+				perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
 				if err != nil {
 					permCode[i] = false
 					permIssue[i] = false
@@ -544,7 +546,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 				}
 			}
 
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new action: %v", err)
 			}
 		}
@@ -570,4 +572,21 @@ func NotifyWatchersActions(acts []*Action) error {
 		}
 	}
 	return committer.Commit()
+}
+
+// DeleteIssueActions delete all actions related with issueID
+func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+	// delete actions assigned to this issue
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issueID})
+	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Delete(&Action{})
+	return err
 }

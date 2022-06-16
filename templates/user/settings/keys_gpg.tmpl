@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
 	{{.i18n.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<div class="ui blue tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
+		<div class="ui primary tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -50,7 +50,7 @@
 						{{$.i18n.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
-						<a class="ui blue tiny show-panel button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
+						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
 				</div>
 				<div class="left floated content">

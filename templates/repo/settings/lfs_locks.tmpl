@@ -13,7 +13,7 @@
 					{{$.CsrfTokenHtml}}
 					<div class="ui fluid action input">
 						<input name="path" value="" placeholder="{{.i18n.Tr "repo.settings.lfs_lock_path"}}" autofocus>
-						<button class="ui blue button">{{.i18n.Tr "repo.settings.lfs_lock"}}</button>
+						<button class="ui primary button">{{.i18n.Tr "repo.settings.lfs_lock"}}</button>
 					</div>
 				</form>
 			</div>
@@ -43,7 +43,7 @@
 							<td class="right aligned">
 								<form action="{{$.LFSFilesLink}}/locks/{{$lock.ID}}/unlock" method="POST">
 									{{$.CsrfTokenHtml}}
-									<button class="ui blue button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{$.i18n.Tr "repo.settings.lfs_force_unlock"}}</button>
+									<button class="ui primary button"><span class="btn-octicon">{{svg "octicon-lock"}}</span>{{$.i18n.Tr "repo.settings.lfs_force_unlock"}}</button>
 								</form>
 							</td>
 						</tr>

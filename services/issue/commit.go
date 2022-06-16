@@ -15,6 +15,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/references"
@@ -75,22 +77,22 @@ func timeLogToAmount(str string) int64 {
 	return a
 }
 
-func issueAddTime(issue *models.Issue, doer *user_model.User, time time.Time, timeLog string) error {
+func issueAddTime(issue *issues_model.Issue, doer *user_model.User, time time.Time, timeLog string) error {
 	amount := timeLogToAmount(timeLog)
 	if amount == 0 {
 		return nil
 	}
 
-	_, err := models.AddTime(doer, issue, amount, time)
+	_, err := issues_model.AddTime(doer, issue, amount, time)
 	return err
 }
 
 // getIssueFromRef returns the issue referenced by a ref. Returns a nil *Issue
 // if the provided ref references a non-existent issue.
-func getIssueFromRef(repo *repo_model.Repository, index int64) (*models.Issue, error) {
-	issue, err := models.GetIssueByIndex(repo.ID, index)
+func getIssueFromRef(repo *repo_model.Repository, index int64) (*issues_model.Issue, error) {
+	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			return nil, nil
 		}
 		return nil, err
@@ -111,7 +113,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 
 		refMarked := make(map[markKey]bool)
 		var refRepo *repo_model.Repository
-		var refIssue *models.Issue
+		var refIssue *issues_model.Issue
 		var err error
 		for _, ref := range references.FindAllIssueReferences(c.Message) {
 
@@ -131,7 +133,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 				continue
 			}
 
-			perm, err := models.GetUserRepoPermission(db.DefaultContext, refRepo, doer)
+			perm, err := access_model.GetUserRepoPermission(db.DefaultContext, refRepo, doer)
 			if err != nil {
 				return err
 			}
@@ -152,7 +154,7 @@ func UpdateIssuesCommit(doer *user_model.User, repo *repo_model.Repository, comm
 			}
 
 			message := fmt.Sprintf(`<a href="%s/commit/%s">%s</a>`, html.EscapeString(repo.Link()), html.EscapeString(url.PathEscape(c.Sha1)), html.EscapeString(strings.SplitN(c.Message, "\n", 2)[0]))
-			if err = models.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
+			if err = issues_model.CreateRefComment(doer, refRepo, refIssue, message, c.Sha1); err != nil {
 				return err
 			}
 

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 	"image/png"
 	"io"
@@ -25,11 +26,11 @@ func (repo *Repository) CustomAvatarRelativePath() string {
 
 // RelAvatarLink returns a relative link to the repository's avatar.
 func (repo *Repository) RelAvatarLink() string {
-	return repo.relAvatarLink(db.GetEngine(db.DefaultContext))
+	return repo.relAvatarLink(db.DefaultContext)
 }
 
 // generateRandomAvatar generates a random avatar for repository.
-func generateRandomAvatar(e db.Engine, repo *Repository) error {
+func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 	idToString := fmt.Sprintf("%d", repo.ID)
 
 	seed := idToString
@@ -51,14 +52,14 @@ func generateRandomAvatar(e db.Engine, repo *Repository) error {
 
 	log.Info("New random avatar created for repository: %d", repo.ID)
 
-	if _, err := e.ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
+	if _, err := db.GetEngine(ctx).ID(repo.ID).Cols("avatar").NoAutoTime().Update(repo); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (repo *Repository) relAvatarLink(e db.Engine) string {
+func (repo *Repository) relAvatarLink(ctx context.Context) string {
 	// If no avatar - path is empty
 	avatarPath := repo.CustomAvatarRelativePath()
 	if len(avatarPath) == 0 {
@@ -66,7 +67,7 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 		case "image":
 			return setting.RepoAvatar.FallbackImage
 		case "random":
-			if err := generateRandomAvatar(e, repo); err != nil {
+			if err := generateRandomAvatar(ctx, repo); err != nil {
 				log.Error("generateRandomAvatar: %v", err)
 			}
 		default:
@@ -79,12 +80,12 @@ func (repo *Repository) relAvatarLink(e db.Engine) string {
 
 // AvatarLink returns a link to the repository's avatar.
 func (repo *Repository) AvatarLink() string {
-	return repo.avatarLink(db.GetEngine(db.DefaultContext))
+	return repo.avatarLink(db.DefaultContext)
 }
 
 // avatarLink returns user avatar absolute link.
-func (repo *Repository) avatarLink(e db.Engine) string {
-	link := repo.relAvatarLink(e)
+func (repo *Repository) avatarLink(ctx context.Context) string {
+	link := repo.relAvatarLink(ctx)
 	// we only prepend our AppURL to our known (relative, internal) avatar link to get an absolute URL
 	if strings.HasPrefix(link, "/") && !strings.HasPrefix(link, "//") {
 		return setting.AppURL + strings.TrimPrefix(link, setting.AppSubURL)[1:]

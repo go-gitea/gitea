@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	ini "gopkg.in/ini.v1"
 )
@@ -245,7 +246,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
+		log.Info("%s Log: %s(%s:%s)", util.ToTitleCase(key), util.ToTitleCase(name), provider, levelName)
 	}
 
 	AddLogDescription(key, &description)
@@ -331,7 +332,7 @@ func newLogService() {
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
+		log.Info("Gitea Log Mode: %s(%s:%s)", util.ToTitleCase(name), util.ToTitleCase(provider), levelName)
 	}
 
 	AddLogDescription(log.DEFAULT, &description)
