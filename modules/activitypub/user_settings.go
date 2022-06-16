@@ -8,7 +8,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 )
 
-// GetKeyPair function
+// GetKeyPair function returns a user's private and public keys
 func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	var settings map[string]*user_model.Setting
 	settings, err = user_model.GetUserSettings(user.ID, []string{user_model.UserActivityPubPrivPem, user_model.UserActivityPubPubPem})
@@ -32,13 +32,13 @@ func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 	}
 }
 
-// GetPublicKey function
+// GetPublicKey function returns a user's public key
 func GetPublicKey(user *user_model.User) (pub string, err error) {
 	pub, _, err = GetKeyPair(user)
 	return
 }
 
-// GetPrivateKey function
+// GetPrivateKey function returns a user's private key
 func GetPrivateKey(user *user_model.User) (priv string, err error) {
 	_, priv, err = GetKeyPair(user)
 	return
