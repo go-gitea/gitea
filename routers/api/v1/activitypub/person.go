@@ -84,19 +84,9 @@ func Person(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "Unmarshal", err)
 		return
 	}
-
 	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"}
-
-	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
-	ctx.Resp.WriteHeader(http.StatusOK)
-	binary, err = json.Marshal(jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Marshal", err)
-		return
-	}
-	if _, err = ctx.Resp.Write(binary); err != nil {
-		log.Error("write to resp err: %v", err)
-	}
+	ctx.JSON(http.StatusOK, jsonmap)
+	ctx.Resp.Header().Set("Content-Type", activitypub.ActivityStreamsContentType)
 }
 
 // PersonInbox function
