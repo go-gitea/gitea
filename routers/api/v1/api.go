@@ -647,7 +647,7 @@ func Routes() *web.Route {
 			m.Group("/activitypub", func() {
 				m.Group("/user/{username}", func() {
 					m.Get("", activitypub.Person)
-					m.Post("/inbox", activitypub.ReqSignature(), activitypub.PersonInbox)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
 				}, context_service.UserAssignmentAPI())
 			})
 		}

@@ -42,6 +42,9 @@ func newFederationService() {
 		return
 	}
 
+	// Get MaxSize in bytes instead of MiB
+	Federation.MaxSize = 1 << 20 * Federation.MaxSize
+
 	HttpsigAlgs = make([]httpsig.Algorithm, len(Federation.Algorithms))
 	for i, alg := range Federation.Algorithms {
 		HttpsigAlgs[i] = httpsig.Algorithm(alg)
