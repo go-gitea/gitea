@@ -87,7 +87,7 @@ func Person(ctx *context.APIContext) {
 
 	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"}
 
-	ctx.Resp.Header().Add("Content-Type", "application/activity+json")
+	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)
 	ctx.Resp.WriteHeader(http.StatusOK)
 	binary, err = json.Marshal(jsonmap)
 	if err != nil {
