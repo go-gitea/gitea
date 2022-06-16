@@ -651,6 +651,13 @@ func Routes() *web.Route {
 					m.Get("/outbox", activitypub.PersonOutbox)
 					m.Get("/following", activitypub.PersonFollowing)
 					m.Get("/followers", activitypub.PersonFollowers)
+					m.Get("/liked", activitypub.PersonLiked)
+					m.Group("/{reponame}", func() {
+						m.Get("", activitypub.Repo)
+						m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.RepoInbox)
+						m.Get("/outbox", activitypub.RepoOutbox)
+						m.Get("/followers", activitypub.RepoFollowers)
+					}, repoAssignment())
 				}, context_service.UserAssignmentAPI())
 			})
 		}

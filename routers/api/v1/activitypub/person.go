@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/forgefed"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
@@ -82,7 +84,7 @@ func Person(ctx *context.APIContext) {
 
 	binary, err := person.MarshalJSON()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
 		return
 	}
 	response(ctx, binary)
@@ -166,7 +168,7 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	binary, err := outbox.MarshalJSON()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
 	}
 	response(ctx, binary)
 }
@@ -207,7 +209,7 @@ func PersonFollowing(ctx *context.APIContext) {
 
 	binary, err := following.MarshalJSON()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
 	}
 	response(ctx, binary)
 }
@@ -247,7 +249,51 @@ func PersonFollowers(ctx *context.APIContext) {
 
 	binary, err := followers.MarshalJSON()
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
+	}
+	response(ctx, binary)
+}
+
+// PersonLiked function returns the user's Liked Collection
+func PersonLiked(ctx *context.APIContext) {
+	// swagger:operation GET /activitypub/user/{username}/followers activitypub activitypubPersonLiked
+	// ---
+	// summary: Returns the Liked Collection
+	// produces:
+	// - application/activity+json
+	// parameters:
+	// - name: username
+	//   in: path
+	//   description: username of the user
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ActivityPub"
+
+	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+
+	repos, count, err  := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+		Actor:              ctx.Doer,
+		Private:            ctx.IsSigned,
+		StarredByID:        ctx.ContextUser.ID,
+	})
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserStarred", err)
+		return
+	}
+
+	liked := ap.OrderedCollectionNew(ap.IRI(link))
+	liked.TotalItems = uint(count)
+
+	for _, repo := range repos {
+		repo := forgefed.RepositoryNew(ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + repo.OwnerName + "/" + repo.Name))
+		liked.OrderedItems.Append(repo)
+	}
+
+	binary, err := liked.MarshalJSON()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
 	}
 	response(ctx, binary)
 }
