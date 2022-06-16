@@ -311,7 +311,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
+	if _, err := reactions.LoadUsers(ctx, issue.Repo); err != nil {
 		return err
 	}
 

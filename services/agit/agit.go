@@ -82,7 +82,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 			continue
 		}
 
-		headBranch := ""
+		var headBranch string
 		userName := strings.ToLower(opts.UserName)
 
 		if len(curentTopicBranch) == 0 {
@@ -110,7 +110,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 
 			// create a new pull request
 			if len(title) == 0 {
-				has := false
+				var has bool
 				title, has = opts.GitPushOptions["title"]
 				if !has || len(title) == 0 {
 					commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])

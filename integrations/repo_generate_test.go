@@ -46,7 +46,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, tem
 		"repo_name":   generateRepoName,
 		"git_content": "true",
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)

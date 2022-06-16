@@ -537,7 +537,7 @@ func GetReviewByIssueIDAndUserID(ctx context.Context, issueID, userID int64) (*R
 func GetTeamReviewerByIssueIDAndTeamID(ctx context.Context, issueID, teamID int64) (review *Review, err error) {
 	review = new(Review)
 
-	has := false
+	var has bool
 	if has, err = db.GetEngine(ctx).SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = ?)",
 		issueID, teamID).
 		Get(review); err != nil {

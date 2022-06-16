@@ -286,7 +286,7 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 		Cols("hook_task.delivered").
 		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
 		OrderBy("hook_task.delivered desc").
-		Limit(1, int(numberDeliveriesToKeep)).
+		Limit(1, numberDeliveriesToKeep).
 		Find(&deliveryDates)
 	if err != nil {
 		return err

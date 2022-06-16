@@ -733,7 +733,7 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -843,7 +843,7 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		log.Error("RenderNote: %v", err)
 		return ""
 	}
-	return template.HTML(string(fullMessage))
+	return template.HTML(fullMessage)
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.

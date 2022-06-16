@@ -181,7 +181,7 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTagObjectID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -216,7 +216,7 @@ headerLoop:
 
 // ReadTreeID reads a tree ID from a cat-file --batch stream, throwing away the rest of the stream.
 func ReadTreeID(rd *bufio.Reader, size int64) (string, error) {
-	id := ""
+	var id string
 	var n int64
 headerLoop:
 	for {
@@ -328,7 +328,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 	// Deal with the 20-byte SHA
 	idx = 0
 	for idx < 20 {
-		read := 0
+		var read int
 		read, err = rd.Read(shaBuf[idx:20])
 		n += read
 		if err != nil {
