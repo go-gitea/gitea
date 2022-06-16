@@ -12,6 +12,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	testOps := unittest.TestOptions{GiteaRootPath: filepath.Join("..", "..")}
-	unittest.MainTest(m, &testOps)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+	})
 }
