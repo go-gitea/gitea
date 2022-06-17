@@ -315,7 +315,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = repo_model.DeletePushMirrorByID(m.ID); err != nil {
+		if err = repo_model.DeletePushMirrors(repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -368,8 +368,8 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-			if err := repo_model.DeletePushMirrorByID(m.ID); err != nil {
-				log.Error("DeletePushMirrorByID %v", err)
+			if err := repo_model.DeletePushMirrors(repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+				log.Error("DeletePushMirrors %v", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return

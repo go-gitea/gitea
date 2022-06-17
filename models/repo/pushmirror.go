@@ -28,6 +28,11 @@ type PushMirror struct {
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
 }
+type PushMirrorOptions struct {
+	ID         int64
+	RepoID     int64
+	RemoteName string
+}
 
 func init() {
 	db.RegisterModel(new(PushMirror))
@@ -63,48 +68,53 @@ func UpdatePushMirror(m *PushMirror) error {
 	return err
 }
 
-// DeletePushMirrorByID deletes a push-mirrors by ID
-// WARNING: This does not check if this PushMirror belongs to a RepoID
-func DeletePushMirrorByID(ID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(ID).Delete(&PushMirror{})
-	return err
-}
-
-// DeletePushMirrorByRepoIDAndName deletes a push-mirrors by remote name
-func DeletePushMirrorByRepoIDAndName(repoID int64, remoteName string) error {
-	_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", repoID, remoteName).Delete(&PushMirror{})
-	return err
-}
-
 // DeletePushMirrorsByRepoID deletes all push-mirrors by repoID
 func DeletePushMirrorsByRepoID(repoID int64) error {
 	_, err := db.GetEngine(db.DefaultContext).Delete(&PushMirror{RepoID: repoID})
 	return err
 }
 
-// GetPushMirrorByID returns push-mirror information.
-// WARNING: You must ensure that this PushMirror belongs to the repository you are intending to use it with
-func GetPushMirrorByID(ID int64) (*PushMirror, error) {
-	m := &PushMirror{}
-	has, err := db.GetEngine(db.DefaultContext).ID(ID).Get(m)
-	if err != nil {
-		return nil, err
-	} else if !has {
-		return nil, ErrPushMirrorNotExist
+func DeletePushMirrors(opts PushMirrorOptions) error {
+	if opts.RepoID > 0 {
+		//delete using remoteName
+		if opts.RemoteName != "" {
+			_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Delete(&PushMirror{})
+			return err
+		}
+		// delete using ID
+		if opts.ID > 0 {
+			_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND id = ?", opts.RepoID, opts.ID).Delete(&PushMirror{})
+			return err
+		}
+		return errors.New("PushMirror ID or RemoteName required")
+	} else {
+		return errors.New("repoID required and must be set")
 	}
-	return m, nil
 }
 
-// GetPushMirrorByRepoIDAndName returns push-mirror information.
-func GetPushMirrorByRepoIDAndName(repoID int64, remoteName string) (*PushMirror, error) {
-	m := &PushMirror{}
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", repoID, remoteName).Get(m)
+func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
+	mirror := &PushMirror{}
+	var exist bool
+	var err error
+	if opts.RepoID > 0 {
+		//get pushMirror using remoteName
+		if opts.RemoteName != "" {
+			exist, err = db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Get(mirror)
+		}
+		// get pushMirror using ID
+		if opts.ID > 0 {
+			exist, err = db.GetEngine(db.DefaultContext).Where("repo_id = ? AND id = ?", opts.RepoID, opts.ID).Get(mirror)
+		}
+	} else {
+		// if no repoId provided then get pushMirror using only its ID
+		exist, err = db.GetEngine(db.DefaultContext).ID(opts.ID).Get(mirror)
+	}
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrPushMirrorNotExist
 	}
-	return m, nil
+	return mirror, nil
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.

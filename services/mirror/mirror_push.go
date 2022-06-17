@@ -94,7 +94,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, err := repo_model.GetPushMirrorByID(mirrorID)
+	m, err := repo_model.GetPushMirrors(repo_model.PushMirrorOptions{ID: mirrorID})
 	if err != nil {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
