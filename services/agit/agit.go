@@ -5,15 +5,14 @@
 package agit
 
 import (
+	"context"
 	"fmt"
-	"net/http"
 	"os"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -22,7 +21,7 @@ import (
 )
 
 // ProcReceive handle proc receive work
-func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []private.HookProcReceiveRefResult {
+func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, opts *private.HookOptions) ([]private.HookProcReceiveRefResult, error) {
 	// TODO: Add more options?
 	var (
 		topicBranch string
@@ -32,10 +31,9 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 	)
 
 	results := make([]private.HookProcReceiveRefResult, 0, len(opts.OldCommitIDs))
-	repo := ctx.Repo.Repository
-	gitRepo := ctx.Repo.GitRepo
-	ownerName := ctx.Repo.Repository.OwnerName
-	repoName := ctx.Repo.Repository.Name
+
+	ownerName := repo.OwnerName
+	repoName := repo.Name
 
 	topicBranch = opts.GitPushOptions["topic"]
 	_, forcePush = opts.GitPushOptions["force-push"]
@@ -101,11 +99,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 		pr, err := issues_model.GetUnmergedPullRequest(repo.ID, repo.ID, headBranch, baseBranchName, issues_model.PullRequestFlowAGit)
 		if err != nil {
 			if !issues_model.IsErrPullRequestNotExist(err) {
-				log.Error("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
-				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"Err": fmt.Sprintf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err),
-				})
-				return nil
+				return nil, fmt.Errorf("Failed to get unmerged agit flow pull request in repository: %s/%s Error: %v", ownerName, repoName, err)
 			}
 
 			// create a new pull request
@@ -115,11 +109,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 				if !has || len(title) == 0 {
 					commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])
 					if err != nil {
-						log.Error("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err)
-						ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-							"Err": fmt.Sprintf("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err),
-						})
-						return nil
+						return nil, fmt.Errorf("Failed to get commit %s in repository: %s/%s Error: %v", opts.NewCommitIDs[i], ownerName, repoName, err)
 					}
 					title = strings.Split(commit.CommitMessage, "\n")[0]
 				}
@@ -128,11 +118,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 
 			pusher, err := user_model.GetUserByID(opts.UserID)
 			if err != nil {
-				log.Error("Failed to get user. Error: %v", err)
-				ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-					"Err": fmt.Sprintf("Failed to get user. Error: %v", err),
-				})
-				return nil
+				return nil, fmt.Errorf("Failed to get user. Error: %v", err)
 			}
 
 			prIssue := &issues_model.Issue{
@@ -158,12 +144,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 			}
 
 			if err := pull_service.NewPullRequest(ctx, repo, prIssue, []int64{}, []string{}, pr, []int64{}); err != nil {
-				if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
-					ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err.Error())
-					return nil
-				}
-				ctx.Error(http.StatusInternalServerError, "NewPullRequest", err.Error())
-				return nil
+				return nil, err
 			}
 
 			log.Trace("Pull request created: %d/%d", repo.ID, prIssue.ID)
@@ -179,20 +160,12 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 
 		// update exist pull request
 		if err := pr.LoadBaseRepoCtx(ctx); err != nil {
-			log.Error("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Unable to load base repository for PR[%d] Error: %v", pr.ID, err),
-			})
-			return nil
+			return nil, fmt.Errorf("Unable to load base repository for PR[%d] Error: %v", pr.ID, err)
 		}
 
 		oldCommitID, err := gitRepo.GetRefCommitID(pr.GetGitRefName())
 		if err != nil {
-			log.Error("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err),
-			})
-			return nil
+			return nil, fmt.Errorf("Unable to get ref commit id in base repository for PR[%d] Error: %v", pr.ID, err)
 		}
 
 		if oldCommitID == opts.NewCommitIDs[i] {
@@ -208,11 +181,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 		if !forcePush {
 			output, _, err := git.NewCommand(ctx, "rev-list", "--max-count=1", oldCommitID, "^"+opts.NewCommitIDs[i]).RunStdString(&git.RunOpts{Dir: repo.RepoPath(), Env: os.Environ()})
 			if err != nil {
-				log.Error("Unable to detect force push between: %s and %s in %-v Error: %v", oldCommitID, opts.NewCommitIDs[i], repo, err)
-				ctx.JSON(http.StatusInternalServerError, private.Response{
-					Err: fmt.Sprintf("Fail to detect force push: %v", err),
-				})
-				return nil
+				return nil, fmt.Errorf("Fail to detect force push: %v", err)
 			} else if len(output) > 0 {
 				results = append(results, private.HookProcReceiveRefResult{
 					OriginalRef: opts.RefFullNames[i],
@@ -226,29 +195,17 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 
 		pr.HeadCommitID = opts.NewCommitIDs[i]
 		if err = pull_service.UpdateRef(ctx, pr); err != nil {
-			log.Error("Failed to update pull ref. Error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Failed to update pull ref. Error: %v", err),
-			})
-			return nil
+			return nil, fmt.Errorf("Failed to update pull ref. Error: %v", err)
 		}
 
 		pull_service.AddToTaskQueue(pr)
 		pusher, err := user_model.GetUserByID(opts.UserID)
 		if err != nil {
-			log.Error("Failed to get user. Error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Failed to get user. Error: %v", err),
-			})
-			return nil
+			return nil, fmt.Errorf("Failed to get user. Error: %v", err)
 		}
 		err = pr.LoadIssue()
 		if err != nil {
-			log.Error("Failed to load pull issue. Error: %v", err)
-			ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
-				"Err": fmt.Sprintf("Failed to load pull issue. Error: %v", err),
-			})
-			return nil
+			return nil, fmt.Errorf("Failed to load pull issue. Error: %v", err)
 		}
 		comment, err := issues_model.CreatePushPullComment(ctx, pusher, pr, oldCommitID, opts.NewCommitIDs[i])
 		if err == nil && comment != nil {
@@ -266,7 +223,7 @@ func ProcReceive(ctx *context.PrivateContext, opts *private.HookOptions) []priva
 		})
 	}
 
-	return results
+	return results, nil
 }
 
 // UserNameChanged handle user name change for agit flow pull
