@@ -254,16 +254,10 @@ func syncGitConfig() (err error) {
 	// Disable the security check because Gitea runs the git CLI from within the
 	// repository. See https://github.com/go-gitea/gitea/issues/19455 for the full discussion.
 	// safe.directory accept * was introduced in https://github.com/git/git/blob/main/Documentation/RelNotes/2.30.4.txt
-	if CheckGitVersionAtLeast("2.30.4") == nil {
-		if err := configAddNonExist("safe.directory", "*"); err != nil {
-			return err
-		}
-	} else {
-		if err := configSet("safe.directory", setting.RepoRootPath); err != nil {
-			return err
-		}
+	// Although only supported by Git 2.30.4/2.31.3/2.32.2/2.33.3/2.34.3/2.35.3/2.36 and later - this setting is tolerated by earlier versions
+	if err := configAddNonExist("safe.directory", "*"); err != nil {
+		return err
 	}
-
 	if runtime.GOOS == "windows" {
 		if err := configSet("core.longpaths", "true"); err != nil {
 			return err
