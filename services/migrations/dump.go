@@ -182,10 +182,8 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
-			} else {
-				if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
-					return err
-				}
+			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
+				return err
 			}
 		}
 	}
