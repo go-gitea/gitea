@@ -238,6 +238,9 @@ func syncGitConfig() (err error) {
 		if err := configSet("gc.writeCommitGraph", "true"); err != nil {
 			return err
 		}
+		if err := configSet("fetch.writeCommitGraph", "true"); err != nil {
+			return err
+		}
 	}
 
 	if SupportProcReceive {
