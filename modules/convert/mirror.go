@@ -5,16 +5,18 @@
 package convert
 
 import (
+	"errors"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
 // ToPushMirror convert from repo_model.PushMirror and remoteAddress to api.TopicResponse
-func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) *api.PushMirror {
+func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) (*api.PushMirror, error) {
 	remoteAddress, err := getMirrorRemoteAddress(repo, pm.RemoteName)
 	if err != nil {
-		return nil
+		return nil, errors.New("error getting mirror RemoteAddress")
 	}
 	return &api.PushMirror{
 		RepoName:       repo.Name,
@@ -24,7 +26,7 @@ func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) *api.P
 		LastUpdateUnix: pm.LastUpdateUnix.FormatLong(),
 		LastError:      pm.LastError,
 		Interval:       pm.Interval.String(),
-	}
+	}, nil
 }
 
 func getMirrorRemoteAddress(repo *repo_model.Repository, remoteName string) (string, error) {
