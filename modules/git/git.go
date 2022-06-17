@@ -251,14 +251,12 @@ func syncGitConfig() (err error) {
 		}
 	}
 
-	if CheckGitVersionAtLeast("2.36") == nil {
-		//
-		// Disable the security check because Gitea runs the git CLI from within the
-		// repository. See https://github.com/go-gitea/gitea/issues/19455 for the full discussion.
-		//
-		if err := checkAndSetConfig("safe.directory", "*", true); err != nil {
-			return err
-		}
+	//
+	// Disable the security check because Gitea runs the git CLI from within the
+	// repository. See https://github.com/go-gitea/gitea/issues/19455 for the full discussion.
+	//
+	if err := configAddNonExist("safe.directory", "*"); err != nil {
+		return err
 	}
 
 	if runtime.GOOS == "windows" {
