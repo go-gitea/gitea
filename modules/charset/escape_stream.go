@@ -151,11 +151,8 @@ func (e *escapeStreamer) brokenRune(bs []byte) error {
 	if err := e.PassthroughHTMLStreamer.Text(fmt.Sprintf("<%X>", bs)); err != nil {
 		return err
 	}
-	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
-		return err
-	}
 
-	return nil
+	return e.PassthroughHTMLStreamer.EndTag("span")
 }
 
 func (e *escapeStreamer) ambiguousRune(r, c rune) error {
@@ -183,11 +180,8 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
 		return err
 	}
-	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
-		return err
-	}
 
-	return nil
+	return e.PassthroughHTMLStreamer.EndTag("span")
 }
 
 func (e *escapeStreamer) invisibleRune(r rune) error {
@@ -215,11 +209,8 @@ func (e *escapeStreamer) invisibleRune(r rune) error {
 	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
 		return err
 	}
-	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
-		return err
-	}
 
-	return nil
+	return e.PassthroughHTMLStreamer.EndTag("span")
 }
 
 type runeCountType struct {
@@ -244,7 +235,7 @@ func (counts runeCountType) needsEscape() bool {
 type runeType int
 
 const (
-	basicASCIIRuneType runeType = iota
+	basicASCIIRuneType runeType = iota //nolint <- This is technically deadcode but its self-documenting so it should stay
 	brokenRuneType
 	nonBasicASCIIRuneType
 	ambiguousRuneType
