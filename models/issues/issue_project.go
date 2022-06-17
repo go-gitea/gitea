@@ -29,7 +29,7 @@ func (i *Issue) loadProject(ctx context.Context) (err error) {
 		}
 		i.Project = &p
 	}
-	return
+	return err
 }
 
 // ProjectID return project id if issue was assigned to one

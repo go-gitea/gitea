@@ -1036,7 +1036,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 		}
 		line += tail
 	}
-	return
+	return line, err
 }
 
 func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {

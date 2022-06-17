@@ -45,7 +45,7 @@ func wrapNewlines(w io.Writer, prefix, value []byte) (sum int64, err error) {
 	}
 	n, err = w.Write([]byte("\n"))
 	sum += int64(n)
-	return
+	return sum, err
 }
 
 // Event is an eventsource event, not all fields need to be set

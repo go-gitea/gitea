@@ -176,7 +176,7 @@ func ReadBatchLine(rd *bufio.Reader) (sha []byte, typ string, size int64, err er
 	typ = typ[:idx]
 
 	size, err = strconv.ParseInt(sizeStr, 10, 64)
-	return
+	return sha, typ, size, err
 }
 
 // ReadTagObjectID reads a tag object ID hash from a cat-file --batch stream, throwing away the rest of the stream.
@@ -337,7 +337,7 @@ func ParseTreeLine(rd *bufio.Reader, modeBuf, fnameBuf, shaBuf []byte) (mode, fn
 		idx += read
 	}
 	sha = shaBuf
-	return
+	return mode, fname, sha, n, err
 }
 
 var callerPrefix string

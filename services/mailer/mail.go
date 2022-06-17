@@ -498,5 +498,5 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 	if !ok {
 		template = "issue/default"
 	}
-	return
+	return typeName, name, template
 }

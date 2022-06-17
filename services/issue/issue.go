@@ -129,7 +129,7 @@ func UpdateAssignees(issue *issues_model.Issue, oneAssignee string, multipleAssi
 		}
 	}
 
-	return
+	return err
 }
 
 // DeleteIssue deletes an issue

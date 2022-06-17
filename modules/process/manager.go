@@ -183,7 +183,7 @@ func (pm *Manager) nextPID() (start time.Time, pid IDType) {
 		return
 	}
 	pid = IDType(string(pid) + "-" + strconv.FormatInt(pm.next, 10))
-	return
+	return start, pid
 }
 
 // Remove a process from the ProcessManager.

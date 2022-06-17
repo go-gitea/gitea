@@ -1121,7 +1121,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return
+			return cancel
 		})
 
 		m.Group("/pulls/{index}", func() {

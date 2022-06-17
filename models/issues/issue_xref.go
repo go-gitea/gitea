@@ -258,7 +258,7 @@ func (comment *Comment) LoadRefComment() (err error) {
 		return nil
 	}
 	comment.RefComment, err = GetCommentByID(db.DefaultContext, comment.RefCommentID)
-	return
+	return err
 }
 
 // LoadRefIssue loads comment that created this reference from database
@@ -270,7 +270,7 @@ func (comment *Comment) LoadRefIssue() (err error) {
 	if err == nil {
 		err = comment.RefIssue.LoadRepo(db.DefaultContext)
 	}
-	return
+	return err
 }
 
 // CommentTypeIsRef returns true if CommentType is a reference from another issue
