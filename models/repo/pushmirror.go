@@ -76,7 +76,7 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 
 func DeletePushMirrors(opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
-		//delete using remoteName
+		// delete using remoteName
 		if opts.RemoteName != "" {
 			_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Delete(&PushMirror{})
 			return err
@@ -87,9 +87,8 @@ func DeletePushMirrors(opts PushMirrorOptions) error {
 			return err
 		}
 		return errors.New("PushMirror ID or RemoteName required")
-	} else {
-		return errors.New("repoID required and must be set")
 	}
+	return errors.New("repoID required and must be set")
 }
 
 func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
@@ -97,7 +96,7 @@ func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
 	var exist bool
 	var err error
 	if opts.RepoID > 0 {
-		//get pushMirror using remoteName
+		// get pushMirror using remoteName
 		if opts.RemoteName != "" {
 			exist, err = db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Get(mirror)
 		}
