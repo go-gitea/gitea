@@ -89,8 +89,10 @@ func (l *ChannelledLog) Start() {
 				l.closeLogger()
 				return
 			}
+			l.emptyQueue()
 			l.loggerProvider.Flush()
 		case <-l.close:
+			l.emptyQueue()
 			l.closeLogger()
 			return
 		}
@@ -107,6 +109,20 @@ func (l *ChannelledLog) LogEvent(event *Event) error {
 		return ErrTimeout{
 			Name:     l.name,
 			Provider: l.provider,
+		}
+	}
+}
+
+func (l *ChannelledLog) emptyQueue() bool {
+	for {
+		select {
+		case event, ok := <-l.queue:
+			if !ok {
+				return false
+			}
+			l.loggerProvider.LogEvent(event)
+		default:
+			return true
 		}
 	}
 }
