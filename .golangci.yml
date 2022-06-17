@@ -40,7 +40,7 @@ linters-settings:
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
-    max-func-lines: 5 
+    max-func-lines: 0 
   gocritic:
     disabled-checks:
       - ifElseChain
