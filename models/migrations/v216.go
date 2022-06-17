@@ -7,7 +7,38 @@ package migrations
 import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
+
+type improveActionTableIndicesAction struct {
+	ID          int64 `xorm:"pk autoincr"`
+	UserID      int64 // Receiver user id.
+	OpType      int
+	ActUserID   int64 // Action user id.
+	RepoID      int64
+	CommentID   int64 `xorm:"INDEX"`
+	IsDeleted   bool  `xorm:"NOT NULL DEFAULT false"`
+	RefName     string
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
+	Content     string             `xorm:"TEXT"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
+}
+
+// TableName sets the name of this table
+func (a *improveActionTableIndicesAction) TableName() string {
+	return "action"
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (a *improveActionTableIndicesAction) TableIndices() []*schemas.Index {
+	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
+	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
+
+	repoIndex := schemas.NewIndex("r_c_u_d", schemas.IndexType)
+	repoIndex.AddColumn("repo_id", "created_unix", "user_id", "is_deleted")
+
+	return []*schemas.Index{actUserIndex, repoIndex}
+}
 
 func improveActionTableIndices(x *xorm.Engine) error {
 	{
@@ -31,20 +62,5 @@ func improveActionTableIndices(x *xorm.Engine) error {
 			return err
 		}
 	}
-	{
-		type Action struct {
-			ID          int64 `xorm:"pk autoincr"`
-			UserID      int64 `xorm:"INDEX(u_ua_and_r)"` // Receiver user id.
-			OpType      int
-			ActUserID   int64 `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r)"` // Action user id.
-			RepoID      int64 `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r)"`
-			CommentID   int64 `xorm:"INDEX"`
-			IsDeleted   bool  `xorm:"NOT NULL DEFAULT false"`
-			RefName     string
-			IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
-			Content     string             `xorm:"TEXT"`
-			CreatedUnix timeutil.TimeStamp `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r) created"`
-		}
-		return x.Sync2(&Action{})
-	}
+	return x.Sync2(&improveActionTableIndicesAction{})
 }

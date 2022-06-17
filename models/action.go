@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // ActionType represents the type of an action.
@@ -70,11 +71,11 @@ const (
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX(u_ua_and_r)"` // Receiver user id.
+	UserID      int64 // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64                  `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r)"` // Action user id.
-	ActUser     *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r)"`
+	ActUserID   int64            // Action user id.
+	ActUser     *user_model.User `xorm:"-"`
+	RepoID      int64
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
 	Comment     *issues_model.Comment  `xorm:"-"`
@@ -82,11 +83,22 @@ type Action struct {
 	RefName     string
 	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX(u_ua_and_r) INDEX(ua_and_r) INDEX(r) created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 func init() {
 	db.RegisterModel(new(Action))
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (a *Action) TableIndices() []*schemas.Index {
+	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
+	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
+
+	repoIndex := schemas.NewIndex("r_c_u_d", schemas.IndexType)
+	repoIndex.AddColumn("repo_id", "created_unix", "user_id", "is_deleted")
+
+	return []*schemas.Index{actUserIndex, repoIndex}
 }
 
 // GetOpType gets the ActionType of this action.
