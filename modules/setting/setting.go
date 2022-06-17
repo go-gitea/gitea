@@ -641,7 +641,9 @@ func newSecurity() {
 	}
 }
 
-func newSSH(sec *ini.Section) {
+func newServerSSH() {
+	sec := Cfg.Section("server")
+
 	if len(SSH.Domain) == 0 {
 		SSH.Domain = Domain
 	}
@@ -769,6 +771,10 @@ func newOauth2() {
 
 func newAdmin() {
 	sec := Cfg.Section("admin")
+	if err := sec.MapTo(&Admin); err != nil {
+		log.Fatal("Fail to map Admin settings: %v", err)
+	}
+
 	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
 }
 
@@ -780,14 +786,39 @@ func newLog() {
 	forcePathSeparator(LogRootPath)
 }
 
-func newServer() {
+func newServerProtocolAcme() {
 	sec := Cfg.Section("server")
 
-	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
+	AcmeURL = sec.Key("ACME_URL").MustString("")
+	AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	if sec.HasKey("ACME_ACCEPTTOS") {
+		AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
+	} else {
+		deprecatedSetting("server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS")
+		AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
+	}
+	if !AcmeTOS {
+		log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
+	}
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	if sec.HasKey("ACME_DIRECTORY") {
+		AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
+	} else {
+		deprecatedSetting("server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY")
+		AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
+	}
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	if sec.HasKey("ACME_EMAIL") {
+		AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
+	} else {
+		deprecatedSetting("server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL")
+		AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
+	}
+}
 
-	Domain = sec.Key("DOMAIN").MustString("localhost")
-	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
-	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+func newServerProtocol() {
+	sec := Cfg.Section("server")
 
 	Protocol = HTTP
 	protocolCfg := sec.Key("PROTOCOL").String()
@@ -801,33 +832,9 @@ func newServer() {
 			deprecatedSetting("server", "ENABLE_LETSENCRYPT", "server", "ENABLE_ACME")
 			EnableAcme = sec.Key("ENABLE_LETSENCRYPT").MustBool(false)
 		}
+
 		if EnableAcme {
-			AcmeURL = sec.Key("ACME_URL").MustString("")
-			AcmeCARoot = sec.Key("ACME_CA_ROOT").MustString("")
-			// FIXME: DEPRECATED to be removed in v1.18.0
-			if sec.HasKey("ACME_ACCEPTTOS") {
-				AcmeTOS = sec.Key("ACME_ACCEPTTOS").MustBool(false)
-			} else {
-				deprecatedSetting("server", "LETSENCRYPT_ACCEPTTOS", "server", "ACME_ACCEPTTOS")
-				AcmeTOS = sec.Key("LETSENCRYPT_ACCEPTTOS").MustBool(false)
-			}
-			if !AcmeTOS {
-				log.Fatal("ACME TOS is not accepted (ACME_ACCEPTTOS).")
-			}
-			// FIXME: DEPRECATED to be removed in v1.18.0
-			if sec.HasKey("ACME_DIRECTORY") {
-				AcmeLiveDirectory = sec.Key("ACME_DIRECTORY").MustString("https")
-			} else {
-				deprecatedSetting("server", "LETSENCRYPT_DIRECTORY", "server", "ACME_DIRECTORY")
-				AcmeLiveDirectory = sec.Key("LETSENCRYPT_DIRECTORY").MustString("https")
-			}
-			// FIXME: DEPRECATED to be removed in v1.18.0
-			if sec.HasKey("ACME_EMAIL") {
-				AcmeEmail = sec.Key("ACME_EMAIL").MustString("")
-			} else {
-				deprecatedSetting("server", "LETSENCRYPT_EMAIL", "server", "ACME_EMAIL")
-				AcmeEmail = sec.Key("LETSENCRYPT_EMAIL").MustString("")
-			}
+			newServerProtocolAcme()
 		} else {
 			CertFile = sec.Key("CERT_FILE").String()
 			KeyFile = sec.Key("KEY_FILE").String()
@@ -838,6 +845,7 @@ func newServer() {
 				KeyFile = filepath.Join(CustomPath, KeyFile)
 			}
 		}
+
 		SSLMinimumVersion = sec.Key("SSL_MIN_VERSION").MustString("")
 		SSLMaximumVersion = sec.Key("SSL_MAX_VERSION").MustString("")
 		SSLCurvePreferences = sec.Key("SSL_CURVE_PREFERENCES").Strings(",")
@@ -854,8 +862,10 @@ func newServer() {
 		case "http+unix":
 			Protocol = HTTPUnix
 		}
+
 		UnixSocketPermissionRaw := sec.Key("UNIX_SOCKET_PERMISSION").MustString("666")
 		UnixSocketPermissionParsed, err := strconv.ParseUint(UnixSocketPermissionRaw, 8, 32)
+
 		if err != nil || UnixSocketPermissionParsed > 0o777 {
 			log.Fatal("Failed to parse unixSocketPermission: %s", UnixSocketPermissionRaw)
 		}
@@ -865,6 +875,18 @@ func newServer() {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	}
+}
+
+func newServer() {
+	sec := Cfg.Section("server")
+
+	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
+	Domain = sec.Key("DOMAIN").MustString("localhost")
+	HTTPAddr = sec.Key("HTTP_ADDR").MustString("0.0.0.0")
+	HTTPPort = sec.Key("HTTP_PORT").MustString("3000")
+
+	newServerProtocol()
+
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
@@ -916,15 +938,18 @@ func newServer() {
 			defaultLocalURL += net.JoinHostPort(HTTPAddr, HTTPPort) + "/"
 		}
 	}
+
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
+
 	if len(StaticRootPath) == 0 {
 		StaticRootPath = AppWorkPath
 	}
+
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
@@ -955,7 +980,7 @@ func newServer() {
 		LandingPageURL = LandingPage(landingPage)
 	}
 
-	newSSH(sec)
+	newServerSSH()
 }
 
 func newTime() {
@@ -1018,6 +1043,10 @@ func newOther() {
 
 func newUI() {
 	sec := Cfg.Section("ui")
+
+	if err := sec.MapTo(&UI); err != nil {
+		log.Fatal("Failed to map UI settings: %v", err)
+	}
 
 	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)
 	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
@@ -1087,6 +1116,50 @@ func newU2F() {
 	}
 }
 
+func newMarkDown() {
+	sec := Cfg.Section("markdown")
+	if err := sec.MapTo(&Markdown); err != nil {
+		log.Fatal("Failed to map Markdown settings: %v", err)
+	}
+}
+
+func newAPI() {
+	sec := Cfg.Section("api")
+	if err := sec.MapTo(&API); err != nil {
+		log.Fatal("Failed to map API settings: %v", err)
+	}
+
+	// Check if has app suburl.
+	appURL, err := url.Parse(AppURL)
+	if err != nil {
+		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
+	}
+
+	u := *appURL
+	u.Path = path.Join(u.Path, "api", "swagger")
+	API.SwaggerURL = u.String()
+}
+
+func newMetrics() {
+	sec := Cfg.Section("metrics")
+	if err := sec.MapTo(&Metrics); err != nil {
+		log.Fatal("Failed to map Metrics settings: %v", err)
+	}
+}
+
+func newCamo() {
+	sec := Cfg.Section("camo")
+	if err := sec.MapTo(&Camo); err != nil {
+		log.Fatal("Failed to map Camo settings: %v", err)
+	}
+
+	if Camo.Enabled {
+		if Camo.ServerURL == "" || Camo.HMACKey == "" {
+			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
+		}
+	}
+}
+
 func validateConfig(allowEmpty bool, extraConfig string) {
 	isFile, err := util.IsFile(CustomConf)
 	if err != nil {
@@ -1131,27 +1204,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newRepository()
 	newPictureService()
 	newPackages()
-
-	if err := Cfg.Section("ui").MapTo(&UI); err != nil {
-		log.Fatal("Failed to map UI settings: %v", err)
-	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
-		log.Fatal("Failed to map Markdown settings: %v", err)
-	} else if err = Cfg.Section("admin").MapTo(&Admin); err != nil {
-		log.Fatal("Fail to map Admin settings: %v", err)
-	} else if err = Cfg.Section("api").MapTo(&API); err != nil {
-		log.Fatal("Failed to map API settings: %v", err)
-	} else if err = Cfg.Section("metrics").MapTo(&Metrics); err != nil {
-		log.Fatal("Failed to map Metrics settings: %v", err)
-	} else if err = Cfg.Section("camo").MapTo(&Camo); err != nil {
-		log.Fatal("Failed to map Camo settings: %v", err)
-	}
-
-	if Camo.Enabled {
-		if Camo.ServerURL == "" || Camo.HMACKey == "" {
-			log.Fatal(`Camo settings require "SERVER_URL" and HMAC_KEY`)
-		}
-	}
-
+	newMarkDown()
+	newAPI()
+	newMetrics()
+	newCamo()
 	newGit()
 	newMirror()
 	newI18n()
@@ -1160,16 +1216,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newMarkup()
 	newU2F()
 
-	// Check if has app suburl.
-	appURL, err := url.Parse(AppURL)
-	if err != nil {
-		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
-	}
-
-	u := *appURL
-	u.Path = path.Join(u.Path, "api", "swagger")
-	API.SwaggerURL = u.String()
-
+	var err error
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
 		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
