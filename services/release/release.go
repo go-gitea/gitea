@@ -295,6 +295,20 @@ func DeleteReleaseByID(id int64, doer *user_model.User, delTag bool) error {
 	}
 
 	if delTag {
+		protectedTags, err := models.GetProtectedTags(rel.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetProtectedTags: %v", err)
+		}
+		isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+		if err != nil {
+			return err
+		}
+		if !isAllowed {
+			return models.ErrProtectedTagName{
+				TagName: rel.TagName,
+			}
+		}
+
 		if stdout, err := git.NewCommand("tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunInDir(repo.RepoPath()); err != nil && !strings.Contains(err.Error(), "not found") {
