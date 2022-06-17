@@ -1,6 +1,11 @@
 import $ from 'jquery';
+import Cite from 'citation-js';
+import '@citation-js/plugin-software-formats';
+import '@citation-js/plugin-bibtex';
+import {plugins} from '@citation-js/core';
 
 const {csrfToken} = window.config;
+const {pageData} = window.config;
 
 function getArchive($target, url, first) {
   $.ajax({
@@ -93,6 +98,75 @@ export function initRepoCloneLink() {
 
   $inputLink.on('click', () => {
     $inputLink.select();
+  });
+}
+
+export function initCitationFileCopyContent() {
+  const defaultCitationFormat = 'apa'; // apa or bibtex
+
+  const $citationCopyApa = $('#citation-copy-apa');
+  const $citationCopyBibtex = $('#citation-copy-bibtex');
+  const $inputContent = $('#citation-copy-content');
+
+  if ((!$citationCopyApa.length && !$citationCopyBibtex.length) || !$inputContent.length) {
+    return;
+  }
+
+  const initInputCitationValue = () => {
+    const {fileContent} = pageData;
+    const config = plugins.config.get('@bibtex');
+    config.constants.fieldTypes.doi = ['field', 'literal'];
+    config.constants.fieldTypes.version = ['field', 'literal'];
+    const citationFormatter = new Cite(fileContent);
+    const apaOutput = citationFormatter.format('bibliography', {
+      template: 'apa',
+      lang: 'en-US'
+    });
+    const bibtexOutput = citationFormatter.format('bibtex', {
+      lang: 'en-US'
+    });
+    $citationCopyBibtex.attr('data-text', bibtexOutput);
+    $citationCopyApa.attr('data-text', apaOutput);
+  };
+  initInputCitationValue();
+
+  const updateUi = () => {
+    let isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
+    if (isBibtex && $citationCopyApa.length === 0) {
+      isBibtex = false;
+    } else if (!isBibtex && $citationCopyBibtex.length === 0) {
+      isBibtex = true;
+    }
+    const copyContent = (isBibtex ? $citationCopyBibtex : $citationCopyApa).attr('data-text');
+    $inputContent.val(copyContent);
+
+    if (isBibtex) {
+      $citationCopyBibtex.addClass('primary');
+      $citationCopyApa.removeClass('primary');
+    } else {
+      $citationCopyBibtex.removeClass('primary');
+      $citationCopyApa.addClass('primary');
+    }
+  };
+  updateUi();
+
+  setTimeout(() => {
+    // restore animation after first init
+    $citationCopyApa.removeClass('no-transition');
+    $citationCopyBibtex.removeClass('no-transition');
+  }, 100);
+
+  $citationCopyApa.on('click', () => {
+    localStorage.setItem('citation-copy-format', 'apa');
+    updateUi();
+  });
+  $citationCopyBibtex.on('click', () => {
+    localStorage.setItem('citation-copy-format', 'bibtex');
+    updateUi();
+  });
+
+  $inputContent.on('click', () => {
+    $inputContent.select();
   });
 }
 

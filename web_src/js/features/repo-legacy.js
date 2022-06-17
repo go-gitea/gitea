@@ -17,6 +17,7 @@ import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
   initRepoCloneLink,
+  initCitationFileCopyContent,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
@@ -499,6 +500,7 @@ export function initRepository() {
   }
 
   initRepoCloneLink();
+  initCitationFileCopyContent();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
 

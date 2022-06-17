@@ -7,9 +7,13 @@
     "node": ">= 14"
   },
   "dependencies": {
+    "@citation-js/core": "0.6.1",
+    "@citation-js/plugin-bibtex": "0.6.1",
+    "@citation-js/plugin-software-formats": "0.6.0",
     "@claviska/jquery-minicolors": "2.3.6",
     "@primer/octicons": "17.2.0",
     "add-asset-webpack-plugin": "2.0.1",
+    "citation-js": "0.6.2",
     "css-loader": "6.7.1",
     "dropzone": "6.0.0-beta.2",
     "easymde": "2.16.1",
