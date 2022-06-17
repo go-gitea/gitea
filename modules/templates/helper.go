@@ -976,7 +976,7 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	a := remoteAddress{}
-	if !m.IsMirror {
+	if m.IsMirror {
 		return a
 	}
 
