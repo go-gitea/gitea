@@ -30,6 +30,7 @@ func iteratePRs(ctx context.Context, repo *repo_model.Repository, each func(*rep
 }
 
 func checkPRMergeBase(ctx context.Context, logger log.Logger, autofix bool) error {
+	git.InitOnceWithSync(ctx)
 	numRepos := 0
 	numPRs := 0
 	numPRsUpdated := 0
