@@ -595,34 +595,56 @@ func deprecatedSetting(oldSection, oldKey, newSection, newKey string) {
 	}
 }
 
-// loadFromConf initializes configuration context.
-// NOTE: do not print any log except error.
-func loadFromConf(allowEmpty bool, extraConfig string) {
-	Cfg = ini.Empty()
+func newSecurity() {
+	sec := Cfg.Section("security")
+	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
+	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
+	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
+	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
+	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 
-	if WritePIDFile && len(PIDFile) > 0 {
-		createPIDFile(PIDFile)
+	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
+	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+
+	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
+	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
+	if len(ReverseProxyTrustedProxies) == 0 {
+		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
 	}
 
-	isFile, err := util.IsFile(CustomConf)
-	if err != nil {
-		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
+	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
+	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
+	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
+	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
+	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
+	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
+	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
+	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+
+	InternalToken = loadInternalToken(sec)
+	if InstallLock && InternalToken == "" {
+		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
+		generateSaveInternalToken()
 	}
-	if isFile {
-		if err := Cfg.Append(CustomConf); err != nil {
-			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
+
+	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
+	if len(cfgdata) == 0 {
+		cfgdata = []string{"off"}
+	}
+	PasswordComplexity = make([]string, 0, len(cfgdata))
+	for _, name := range cfgdata {
+		name := strings.ToLower(strings.Trim(name, `"`))
+		if name != "" {
+			PasswordComplexity = append(PasswordComplexity, name)
 		}
-	} else if !allowEmpty {
-		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
-	} // else: no config file, a config file might be created at CustomConf later (might not)
-
-	if extraConfig != "" {
-		if err = Cfg.Append([]byte(extraConfig)); err != nil {
-			log.Fatal("Unable to append more config: %v", err)
-		}
 	}
+}
 
-	Cfg.NameMapper = ini.SnackCase
+func newSSH(sec *ini.Section) {
+	if len(SSH.Domain) == 0 {
+		SSH.Domain = Domain
+	}
 
 	homeDir, err := util.HomeDir()
 	if err != nil {
@@ -630,12 +652,137 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 	homeDir = strings.ReplaceAll(homeDir, "\\", "/")
 
-	LogLevel = getLogLevel(Cfg.Section("log"), "LEVEL", log.INFO)
-	StacktraceLogLevel = getStacktraceLogLevel(Cfg.Section("log"), "STACKTRACE_LEVEL", "None")
-	LogRootPath = Cfg.Section("log").Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
-	forcePathSeparator(LogRootPath)
+	SSH.RootPath = path.Join(homeDir, ".ssh")
 
+	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
+	if len(serverCiphers) > 0 {
+		SSH.ServerCiphers = serverCiphers
+	}
+
+	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
+	if len(serverKeyExchanges) > 0 {
+		SSH.ServerKeyExchanges = serverKeyExchanges
+	}
+
+	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
+	if len(serverMACs) > 0 {
+		SSH.ServerMACs = serverMACs
+	}
+
+	SSH.KeyTestPath = os.TempDir()
+
+	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
+		log.Fatal("Failed to map SSH settings: %v", err)
+	}
+
+	for i, key := range SSH.ServerHostKeys {
+		if !filepath.IsAbs(key) {
+			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
+		}
+	}
+
+	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
+	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
+	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
+
+	// When disable SSH, start builtin server value is ignored.
+	if SSH.Disabled {
+		SSH.StartBuiltinServer = false
+	}
+
+	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
+	for _, caKey := range trustedUserCaKeys {
+		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
+		if err != nil {
+			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
+		}
+
+		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
+	}
+
+	if len(trustedUserCaKeys) > 0 {
+		// Set the default as email,username otherwise we can leave it empty
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
+	} else {
+		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
+	}
+
+	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
+
+	if !SSH.Disabled && !SSH.StartBuiltinServer {
+		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
+			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
+		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
+			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
+		}
+
+		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
+			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
+			if err := os.WriteFile(fname,
+				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0o600); err != nil {
+				log.Fatal("Failed to create '%s': %v", fname, err)
+			}
+		}
+	}
+
+	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
+
+	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
+	for _, key := range minimumKeySizes {
+		if key.MustInt() != -1 {
+			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
+		} else {
+			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
+		}
+	}
+
+	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
+	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
+	SSH.AuthorizedPrincipalsBackup = false
+	SSH.CreateAuthorizedPrincipalsFile = false
+
+	if SSH.AuthorizedPrincipalsEnabled {
+		SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
+		SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
+	}
+
+	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
+	SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandTemplate)
+	SSH.AuthorizedKeysCommandTemplateTemplate = template.Must(template.New("").Parse(SSH.AuthorizedKeysCommandTemplate))
+	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
+	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
+
+	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
+	SSH.User = Cfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
+}
+
+func newOauth2() {
+	sec := Cfg.Section("oauth2")
+	if err := sec.MapTo(&OAuth2); err != nil {
+		log.Fatal("Failed to OAuth2 settings: %v", err)
+	}
+
+	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
+		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
+	}
+}
+
+func newAdmin() {
+	sec := Cfg.Section("admin")
+	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
+}
+
+func newLog() {
+	sec := Cfg.Section("log")
+	LogLevel = getLogLevel(sec, "LEVEL", log.INFO)
+	StacktraceLogLevel = getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", "None")
+	LogRootPath = sec.Key("ROOT_PATH").MustString(path.Join(AppWorkPath, "log"))
+	forcePathSeparator(LogRootPath)
+}
+
+func newServer() {
 	sec := Cfg.Section("server")
+
 	AppName = Cfg.Section("").Key("APP_NAME").MustString("Gitea: Git with a cup of tea")
 
 	Domain = sec.Key("DOMAIN").MustString("localhost")
@@ -808,163 +955,15 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		LandingPageURL = LandingPage(landingPage)
 	}
 
-	if len(SSH.Domain) == 0 {
-		SSH.Domain = Domain
-	}
-	SSH.RootPath = path.Join(homeDir, ".ssh")
-	serverCiphers := sec.Key("SSH_SERVER_CIPHERS").Strings(",")
-	if len(serverCiphers) > 0 {
-		SSH.ServerCiphers = serverCiphers
-	}
-	serverKeyExchanges := sec.Key("SSH_SERVER_KEY_EXCHANGES").Strings(",")
-	if len(serverKeyExchanges) > 0 {
-		SSH.ServerKeyExchanges = serverKeyExchanges
-	}
-	serverMACs := sec.Key("SSH_SERVER_MACS").Strings(",")
-	if len(serverMACs) > 0 {
-		SSH.ServerMACs = serverMACs
-	}
-	SSH.KeyTestPath = os.TempDir()
-	if err = Cfg.Section("server").MapTo(&SSH); err != nil {
-		log.Fatal("Failed to map SSH settings: %v", err)
-	}
-	for i, key := range SSH.ServerHostKeys {
-		if !filepath.IsAbs(key) {
-			SSH.ServerHostKeys[i] = filepath.Join(AppDataPath, key)
-		}
-	}
+	newSSH(sec)
+}
 
-	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
-	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
-	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
+func newTime() {
+	var err error
 
-	// When disable SSH, start builtin server value is ignored.
-	if SSH.Disabled {
-		SSH.StartBuiltinServer = false
-	}
+	sec := Cfg.Section("time")
 
-	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
-	for _, caKey := range trustedUserCaKeys {
-		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
-		if err != nil {
-			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
-		}
-
-		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
-	}
-	if len(trustedUserCaKeys) > 0 {
-		// Set the default as email,username otherwise we can leave it empty
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
-	} else {
-		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("off")
-	}
-
-	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
-
-	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
-		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
-		}
-
-		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
-			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := os.WriteFile(fname,
-				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0o600); err != nil {
-				log.Fatal("Failed to create '%s': %v", fname, err)
-			}
-		}
-	}
-
-	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
-	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
-	for _, key := range minimumKeySizes {
-		if key.MustInt() != -1 {
-			SSH.MinimumKeySizes[strings.ToLower(key.Name())] = key.MustInt()
-		} else {
-			delete(SSH.MinimumKeySizes, strings.ToLower(key.Name()))
-		}
-	}
-
-	SSH.AuthorizedKeysBackup = sec.Key("SSH_AUTHORIZED_KEYS_BACKUP").MustBool(true)
-	SSH.CreateAuthorizedKeysFile = sec.Key("SSH_CREATE_AUTHORIZED_KEYS_FILE").MustBool(true)
-
-	SSH.AuthorizedPrincipalsBackup = false
-	SSH.CreateAuthorizedPrincipalsFile = false
-	if SSH.AuthorizedPrincipalsEnabled {
-		SSH.AuthorizedPrincipalsBackup = sec.Key("SSH_AUTHORIZED_PRINCIPALS_BACKUP").MustBool(true)
-		SSH.CreateAuthorizedPrincipalsFile = sec.Key("SSH_CREATE_AUTHORIZED_PRINCIPALS_FILE").MustBool(true)
-	}
-
-	SSH.ExposeAnonymous = sec.Key("SSH_EXPOSE_ANONYMOUS").MustBool(false)
-	SSH.AuthorizedKeysCommandTemplate = sec.Key("SSH_AUTHORIZED_KEYS_COMMAND_TEMPLATE").MustString(SSH.AuthorizedKeysCommandTemplate)
-
-	SSH.AuthorizedKeysCommandTemplateTemplate = template.Must(template.New("").Parse(SSH.AuthorizedKeysCommandTemplate))
-
-	SSH.PerWriteTimeout = sec.Key("SSH_PER_WRITE_TIMEOUT").MustDuration(PerWriteTimeout)
-	SSH.PerWritePerKbTimeout = sec.Key("SSH_PER_WRITE_PER_KB_TIMEOUT").MustDuration(PerWritePerKbTimeout)
-
-	if err = Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
-		log.Fatal("Failed to OAuth2 settings: %v", err)
-		return
-	}
-
-	if !filepath.IsAbs(OAuth2.JWTSigningPrivateKeyFile) {
-		OAuth2.JWTSigningPrivateKeyFile = filepath.Join(AppDataPath, OAuth2.JWTSigningPrivateKeyFile)
-	}
-
-	sec = Cfg.Section("admin")
-	Admin.DefaultEmailNotification = sec.Key("DEFAULT_EMAIL_NOTIFICATIONS").MustString("enabled")
-
-	sec = Cfg.Section("security")
-	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
-	SecretKey = sec.Key("SECRET_KEY").MustString("!#@FDEWREWR&*(")
-	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
-	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
-	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
-
-	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
-	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
-
-	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
-	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
-	if len(ReverseProxyTrustedProxies) == 0 {
-		ReverseProxyTrustedProxies = []string{"127.0.0.0/8", "::1/128"}
-	}
-
-	MinPasswordLength = sec.Key("MIN_PASSWORD_LENGTH").MustInt(6)
-	ImportLocalPaths = sec.Key("IMPORT_LOCAL_PATHS").MustBool(false)
-	DisableGitHooks = sec.Key("DISABLE_GIT_HOOKS").MustBool(true)
-	DisableWebhooks = sec.Key("DISABLE_WEBHOOKS").MustBool(false)
-	OnlyAllowPushIfGiteaEnvironmentSet = sec.Key("ONLY_ALLOW_PUSH_IF_GITEA_ENVIRONMENT_SET").MustBool(true)
-	PasswordHashAlgo = sec.Key("PASSWORD_HASH_ALGO").MustString("pbkdf2")
-	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
-	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
-	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
-
-	InternalToken = loadInternalToken(sec)
-	if InstallLock && InternalToken == "" {
-		// if Gitea has been installed but the InternalToken hasn't been generated (upgrade from an old release), we should generate
-		generateSaveInternalToken()
-	}
-
-	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
-	if len(cfgdata) == 0 {
-		cfgdata = []string{"off"}
-	}
-	PasswordComplexity = make([]string, 0, len(cfgdata))
-	for _, name := range cfgdata {
-		name := strings.ToLower(strings.Trim(name, `"`))
-		if name != "" {
-			PasswordComplexity = append(PasswordComplexity, name)
-		}
-	}
-
-	newAttachmentService()
-	newLFSService()
-
-	timeFormatKey := Cfg.Section("time").Key("FORMAT").MustString("")
+	timeFormatKey := sec.Key("FORMAT").MustString("")
 	if timeFormatKey != "" {
 		TimeFormat = map[string]string{
 			"ANSIC":       time.ANSIC,
@@ -995,7 +994,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 
-	zone := Cfg.Section("time").Key("DEFAULT_UI_LOCATION").String()
+	zone := sec.Key("DEFAULT_UI_LOCATION").String()
 	if zone != "" {
 		DefaultUILocation, err = time.LoadLocation(zone)
 		if err != nil {
@@ -1007,12 +1006,55 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	if DefaultUILocation == nil {
 		DefaultUILocation = time.Local
 	}
+}
 
-	RunUser = Cfg.Section("").Key("RUN_USER").MustString(user.CurrentUsername())
+func newOther() {
+	sec := Cfg.Section("other")
+
+	ShowFooterBranding = sec.Key("SHOW_FOOTER_BRANDING").MustBool(false)
+	ShowFooterVersion = sec.Key("SHOW_FOOTER_VERSION").MustBool(true)
+	ShowFooterTemplateLoadTime = sec.Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
+}
+
+func newUI() {
+	sec := Cfg.Section("ui")
+
+	UI.ShowUserEmail = sec.Key("SHOW_USER_EMAIL").MustBool(true)
+	UI.DefaultShowFullName = sec.Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
+	UI.SearchRepoDescription = sec.Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
+	UI.UseServiceWorker = sec.Key("USE_SERVICE_WORKER").MustBool(false)
+
+	UI.ReactionsMap = make(map[string]bool)
+	for _, reaction := range UI.Reactions {
+		UI.ReactionsMap[reaction] = true
+	}
+	UI.CustomEmojisMap = make(map[string]string)
+	for _, emoji := range UI.CustomEmojis {
+		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
+	}
+}
+
+func newI18n() {
+	sec := Cfg.Section("i18n")
+
+	Langs = sec.Key("LANGS").Strings(",")
+	if len(Langs) == 0 {
+		Langs = defaultI18nLangs()
+	}
+	Names = sec.Key("NAMES").Strings(",")
+	if len(Names) == 0 {
+		Names = defaultI18nNames()
+	}
+}
+
+func newOverall() {
+	sec := Cfg.Section("")
+
+	RunUser = sec.Key("RUN_USER").MustString(user.CurrentUsername())
 	// The following is a purposefully undocumented option. Please do not run Gitea as root. It will only cause future headaches.
 	// Please don't use root as a bandaid to "fix" something that is broken, instead the broken thing should instead be fixed properly.
-	unsafeAllowRunAsRoot := Cfg.Section("").Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
-	RunMode = Cfg.Section("").Key("RUN_MODE").MustString("prod")
+	unsafeAllowRunAsRoot := sec.Key("I_AM_BEING_UNSAFE_RUNNING_AS_ROOT").MustBool(false)
+	RunMode = sec.Key("RUN_MODE").MustString("prod")
 	IsProd = strings.EqualFold(RunMode, "prod")
 	// Does not check run user when the install lock is off.
 	if InstallLock {
@@ -1030,14 +1072,66 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 		log.Critical("You are running Gitea using the root user, and have purposely chosen to skip built-in protections around this. You have been warned against this.")
 	}
+}
 
-	SSH.BuiltinServerUser = Cfg.Section("server").Key("BUILTIN_SSH_SERVER_USER").MustString(RunUser)
-	SSH.User = Cfg.Section("server").Key("SSH_USER").MustString(SSH.BuiltinServerUser)
+func newU2F() {
+	sec := Cfg.Section("U2F")
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	U2F.AppID = strings.TrimSuffix(AppURL, "/")
+	if sec.HasKey("APP_ID") {
+		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
+		U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	} else if sec.HasKey("APP_ID") {
+		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
+		U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
+	}
+}
 
+func validateConfig(allowEmpty bool, extraConfig string) {
+	isFile, err := util.IsFile(CustomConf)
+	if err != nil {
+		log.Error("Unable to check if %s is a file. Error: %v", CustomConf, err)
+	}
+	if isFile {
+		if err := Cfg.Append(CustomConf); err != nil {
+			log.Fatal("Failed to load custom conf '%s': %v", CustomConf, err)
+		}
+	} else if !allowEmpty {
+		log.Fatal("Unable to find configuration file: %q.\nEnsure you are running in the correct environment or set the correct configuration file with -c.", CustomConf)
+	} // else: no config file, a config file might be created at CustomConf later (might not)
+
+	if extraConfig != "" {
+		if err = Cfg.Append([]byte(extraConfig)); err != nil {
+			log.Fatal("Unable to append more config: %v", err)
+		}
+	}
+}
+
+// loadFromConf initializes configuration context.
+// NOTE: do not print any log except error.
+func loadFromConf(allowEmpty bool, extraConfig string) {
+	var err error
+
+	if WritePIDFile && len(PIDFile) > 0 {
+		createPIDFile(PIDFile)
+	}
+
+	validateConfig(allowEmpty, extraConfig)
+
+	Cfg = ini.Empty()
+	Cfg.NameMapper = ini.SnackCase
+
+	newLog()
+	newServer()
+	newOauth2()
+	newAdmin()
+	newSecurity()
+	newAttachmentService()
+	newLFSService()
+	newTime()
+	newOverall()
 	newRepository()
-
 	newPictureService()
-
 	newPackages()
 
 	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
@@ -1060,56 +1154,27 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		}
 	}
 
+	newGit()
+	newMirror()
+	newI18n()
+	newOther()
+	newUI()
+	newMarkup()
+	newU2F()
+
+	// Check if has app suburl.
+	appURL, err := url.Parse(AppURL)
+	if err != nil {
+		log.Fatal("Invalid ROOT_URL '%s': %s", AppURL, err)
+	}
+
 	u := *appURL
 	u.Path = path.Join(u.Path, "api", "swagger")
 	API.SwaggerURL = u.String()
 
-	newGit()
-
-	newMirror()
-
-	Langs = Cfg.Section("i18n").Key("LANGS").Strings(",")
-	if len(Langs) == 0 {
-		Langs = defaultI18nLangs()
-	}
-	Names = Cfg.Section("i18n").Key("NAMES").Strings(",")
-	if len(Names) == 0 {
-		Names = defaultI18nNames()
-	}
-
-	ShowFooterBranding = Cfg.Section("other").Key("SHOW_FOOTER_BRANDING").MustBool(false)
-	ShowFooterVersion = Cfg.Section("other").Key("SHOW_FOOTER_VERSION").MustBool(true)
-	ShowFooterTemplateLoadTime = Cfg.Section("other").Key("SHOW_FOOTER_TEMPLATE_LOAD_TIME").MustBool(true)
-
-	UI.ShowUserEmail = Cfg.Section("ui").Key("SHOW_USER_EMAIL").MustBool(true)
-	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
-	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
-	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
-
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {
 		log.Error("Unable to check if %s is a file. Error: %v", path.Join(CustomPath, "robots.txt"), err)
-	}
-
-	newMarkup()
-
-	UI.ReactionsMap = make(map[string]bool)
-	for _, reaction := range UI.Reactions {
-		UI.ReactionsMap[reaction] = true
-	}
-	UI.CustomEmojisMap = make(map[string]string)
-	for _, emoji := range UI.CustomEmojis {
-		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F.AppID = strings.TrimSuffix(AppURL, "/")
-	if Cfg.Section("U2F").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("U2F").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-	} else if Cfg.Section("u2f").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("u2f").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 	}
 }
 
