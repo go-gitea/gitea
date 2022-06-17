@@ -1110,16 +1110,14 @@ func validateConfig(allowEmpty bool, extraConfig string) {
 // loadFromConf initializes configuration context.
 // NOTE: do not print any log except error.
 func loadFromConf(allowEmpty bool, extraConfig string) {
-	var err error
+	Cfg = ini.Empty()
+	Cfg.NameMapper = ini.SnackCase
 
 	if WritePIDFile && len(PIDFile) > 0 {
 		createPIDFile(PIDFile)
 	}
 
 	validateConfig(allowEmpty, extraConfig)
-
-	Cfg = ini.Empty()
-	Cfg.NameMapper = ini.SnackCase
 
 	newLog()
 	newServer()
@@ -1134,7 +1132,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newPictureService()
 	newPackages()
 
-	if err = Cfg.Section("ui").MapTo(&UI); err != nil {
+	if err := Cfg.Section("ui").MapTo(&UI); err != nil {
 		log.Fatal("Failed to map UI settings: %v", err)
 	} else if err = Cfg.Section("markdown").MapTo(&Markdown); err != nil {
 		log.Fatal("Failed to map Markdown settings: %v", err)
