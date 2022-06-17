@@ -357,7 +357,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		var result strings.Builder
 		err := markup.Render(&markup.RenderContext{
 			Ctx:          ctx,
-			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name),
+			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // For README renderer, ctx.Repo.TreePath just the path without file name
 			URLPrefix:    readmeTreelink,
 			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 			GitRepo:      ctx.Repo.GitRepo,
