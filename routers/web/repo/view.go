@@ -730,9 +730,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 func checkCitationFile(ctx *context.Context) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
-	if err != nil {
-		return
-	} else {
+	if err == nil {
 		allEntries, err := tree.ListEntries()
 		if err != nil {
 		} else {
