@@ -730,25 +730,32 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 func checkCitationFile(ctx *context.Context) {
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
-	if err == nil {
-		allEntries, err := tree.ListEntries()
-		if err != nil {
-		} else {
-			allEntries.CustomSort(base.NaturalSortLess)
-			for _, entry := range allEntries {
-				if entry.Name() == "CITATION.cff" {
-					ctx.Data["haveCitationFile"] = true
-					// Read Citation file contents
-					blob := entry.Blob()
-					dataRc, _ := blob.DataAsync()
-					buf := make([]byte, 1024)
-					n, _ := util.ReadAtMost(dataRc, buf)
-					buf = buf[:n]
-					dataRc.Close()
-					ctx.PageData["fileContent"] = string(buf)
-					break
-				}
+	if err != nil {
+		return
+	}
+	allEntries, err := tree.ListEntries()
+	if err != nil {
+		return
+	}
+	allEntries.CustomSort(base.NaturalSortLess)
+	for _, entry := range allEntries {
+		if entry.Name() == "CITATION.cff" {
+			ctx.Data["haveCitationFile"] = true
+			// Read Citation file contents
+			blob := entry.Blob()
+			dataRc, err := blob.DataAsync()
+			if err != nil {
+				return
 			}
+			buf := make([]byte, 1024)
+			n, _ := util.ReadAtMost(dataRc, buf)
+			if err != nil {
+				return
+			}
+			buf = buf[:n]
+			dataRc.Close()
+			ctx.PageData["fileContent"] = string(buf)
+			break
 		}
 	}
 }
@@ -762,7 +769,9 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
-	checkCitationFile(ctx)
+	if !ctx.Repo.Repository.IsEmpty {
+		checkCitationFile(ctx)
+	}
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
