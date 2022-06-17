@@ -345,14 +345,37 @@ func (m *MultiChannelledLog) Start() {
 				m.closeLoggers()
 				return
 			}
+			m.emptyQueue()
 			m.rwmutex.RLock()
 			for _, logger := range m.loggers {
 				logger.Flush()
 			}
 			m.rwmutex.RUnlock()
 		case <-m.close:
+			m.emptyQueue()
 			m.closeLoggers()
 			return
+		}
+	}
+}
+
+func (m *MultiChannelledLog) emptyQueue() bool {
+	for {
+		select {
+		case event, ok := <-m.queue:
+			if !ok {
+				return false
+			}
+			m.rwmutex.RLock()
+			for _, logger := range m.loggers {
+				err := logger.LogEvent(event)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			m.rwmutex.RUnlock()
+		default:
+			return true
 		}
 	}
 }
