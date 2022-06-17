@@ -428,7 +428,7 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 			continue
 		}
 		var tagToRecover string
-		if tag[1] == '/' {
+		if tag[1] == '/' { // Closing tag
 			// only get the tag itself, ignore the trailing comment (for how the comment is generated, see the code in `convert` function)
 			tagToRecover = tag[:strings.IndexByte(tag, '>')+1]
 			if len(tagStack) == 0 {
