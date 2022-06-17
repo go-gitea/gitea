@@ -5,11 +5,13 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -28,22 +30,22 @@ type ActivityAuthorData struct {
 
 // ActivityStats represets issue and pull request information.
 type ActivityStats struct {
-	OpenedPRs                   PullRequestList
+	OpenedPRs                   issues_model.PullRequestList
 	OpenedPRAuthorCount         int64
-	MergedPRs                   PullRequestList
+	MergedPRs                   issues_model.PullRequestList
 	MergedPRAuthorCount         int64
-	OpenedIssues                IssueList
+	OpenedIssues                issues_model.IssueList
 	OpenedIssueAuthorCount      int64
-	ClosedIssues                IssueList
+	ClosedIssues                issues_model.IssueList
 	ClosedIssueAuthorCount      int64
-	UnresolvedIssues            IssueList
+	UnresolvedIssues            issues_model.IssueList
 	PublishedReleases           []*Release
 	PublishedReleaseAuthorCount int64
 	Code                        *git.CodeActivityStats
 }
 
 // GetActivityStats return stats for repository at given time range
-func GetActivityStats(repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
+func GetActivityStats(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, releases, issues, prs, code bool) (*ActivityStats, error) {
 	stats := &ActivityStats{Code: &git.CodeActivityStats{}}
 	if releases {
 		if err := stats.FillReleases(repo.ID, timeFrom); err != nil {
@@ -64,11 +66,11 @@ func GetActivityStats(repo *repo_model.Repository, timeFrom time.Time, releases,
 		return nil, fmt.Errorf("FillUnresolvedIssues: %v", err)
 	}
 	if code {
-		gitRepo, err := git.OpenRepository(repo.RepoPath())
+		gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 		if err != nil {
 			return nil, fmt.Errorf("OpenRepository: %v", err)
 		}
-		defer gitRepo.Close()
+		defer closer.Close()
 
 		code, err := gitRepo.GetCodeActivityStats(timeFrom, repo.DefaultBranch)
 		if err != nil {
@@ -80,12 +82,12 @@ func GetActivityStats(repo *repo_model.Repository, timeFrom time.Time, releases,
 }
 
 // GetActivityStatsTopAuthors returns top author stats for git commits for all branches
-func GetActivityStatsTopAuthors(repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+func GetActivityStatsTopAuthors(ctx context.Context, repo *repo_model.Repository, timeFrom time.Time, count int) ([]*ActivityAuthorData, error) {
+	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
 	if err != nil {
 		return nil, fmt.Errorf("OpenRepository: %v", err)
 	}
-	defer gitRepo.Close()
+	defer closer.Close()
 
 	code, err := gitRepo.GetCodeActivityStats(timeFrom, "")
 	if err != nil {
@@ -126,7 +128,7 @@ func GetActivityStatsTopAuthors(repo *repo_model.Repository, timeFrom time.Time,
 			user.Commits += v.Commits
 		}
 	}
-	v := make([]*ActivityAuthorData, 0)
+	v := make([]*ActivityAuthorData, 0, len(users))
 	for _, u := range users {
 		v = append(v, u)
 	}
@@ -211,7 +213,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 	// Merged pull requests
 	sess := pullRequestsForActivityStatement(repoID, fromTime, true)
 	sess.OrderBy("pull_request.merged_unix DESC")
-	stats.MergedPRs = make(PullRequestList, 0)
+	stats.MergedPRs = make(issues_model.PullRequestList, 0)
 	if err = sess.Find(&stats.MergedPRs); err != nil {
 		return err
 	}
@@ -229,7 +231,7 @@ func (stats *ActivityStats) FillPullRequests(repoID int64, fromTime time.Time) e
 	// Opened pull requests
 	sess = pullRequestsForActivityStatement(repoID, fromTime, false)
 	sess.OrderBy("issue.created_unix ASC")
-	stats.OpenedPRs = make(PullRequestList, 0)
+	stats.OpenedPRs = make(issues_model.PullRequestList, 0)
 	if err = sess.Find(&stats.OpenedPRs); err != nil {
 		return err
 	}
@@ -270,7 +272,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	// Closed issues
 	sess := issuesForActivityStatement(repoID, fromTime, true, false)
 	sess.OrderBy("issue.closed_unix DESC")
-	stats.ClosedIssues = make(IssueList, 0)
+	stats.ClosedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.ClosedIssues); err != nil {
 		return err
 	}
@@ -285,7 +287,7 @@ func (stats *ActivityStats) FillIssues(repoID int64, fromTime time.Time) error {
 	// New issues
 	sess = issuesForActivityStatement(repoID, fromTime, false, false)
 	sess.OrderBy("issue.created_unix ASC")
-	stats.OpenedIssues = make(IssueList, 0)
+	stats.OpenedIssues = make(issues_model.IssueList, 0)
 	if err = sess.Find(&stats.OpenedIssues); err != nil {
 		return err
 	}
@@ -311,7 +313,7 @@ func (stats *ActivityStats) FillUnresolvedIssues(repoID int64, fromTime time.Tim
 		sess.And("issue.is_pull = ?", prs)
 	}
 	sess.OrderBy("issue.updated_unix DESC")
-	stats.UnresolvedIssues = make(IssueList, 0)
+	stats.UnresolvedIssues = make(issues_model.IssueList, 0)
 	return sess.Find(&stats.UnresolvedIssues)
 }
 

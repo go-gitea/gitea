@@ -1,0 +1,31 @@
+{{if eq .PackageDescriptor.Package.Type "pypi"}}
+	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.pypi.install"}}</label>
+				<div class="markup"><pre class="code-block"><code>pip install --extra-index-url {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/pypi/simple {{.PackageDescriptor.Package.Name}}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{.i18n.Tr "packages.pypi.documentation" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+	{{if or .PackageDescriptor.Metadata.Description .PackageDescriptor.Metadata.LongDescription .PackageDescriptor.Metadata.Summary}}
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">
+			<p>{{if .PackageDescriptor.Metadata.Summary}}{{.PackageDescriptor.Metadata.Summary}}{{end}}</p>
+			{{if .PackageDescriptor.Metadata.LongDescription}}
+				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.LongDescription}}
+			{{else if .PackageDescriptor.Metadata.Description}}
+				{{RenderMarkdownToHtml .PackageDescriptor.Metadata.Description}}
+			{{end}}
+		</div>
+	{{end}}
+	{{if .PackageDescriptor.Metadata.RequiresPython}}
+		<h4 class="ui top attached header">{{.i18n.Tr "packages.requirements"}}</h4>
+		<div class="ui attached segment">
+			{{.i18n.Tr "packages.pypi.requires"}}: {{.PackageDescriptor.Metadata.RequiresPython}}
+		</div>
+	{{end}}
+{{end}}

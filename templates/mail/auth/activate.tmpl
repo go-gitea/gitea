@@ -2,12 +2,13 @@
 <html>
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-	<title>{{.i18n.Tr "mail.activate_account.title" .DisplayName}}</title>
+	<meta name="format-detection" content="telephone=no,date=no,address=no,email=no,url=no"/>
+	<title>{{.i18n.Tr "mail.activate_account.title" (.DisplayName|DotEscape)}}</title>
 </head>
 
 {{ $activate_url := printf "%suser/activate?code=%s" AppUrl (QueryEscape .Code)}}
 <body>
-	<p>{{.i18n.Tr "mail.activate_account.text_1" .DisplayName AppName | Str2html}}</p><br>
+	<p>{{.i18n.Tr "mail.activate_account.text_1" (.DisplayName|DotEscape) AppName | Str2html}}</p><br>
 	<p>{{.i18n.Tr "mail.activate_account.text_2" .ActiveCodeLives | Str2html}}</p><p><a href="{{$activate_url}}">{{$activate_url}}</a></p><br>
 	<p>{{.i18n.Tr "mail.link_not_working_do_paste"}}</p>
 

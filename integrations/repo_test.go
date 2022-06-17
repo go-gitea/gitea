@@ -135,7 +135,7 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 	assert.Equal(t, setting.AppURL+"user2/repo1.git", link)
 	link, exists = htmlDoc.doc.Find("#repo-clone-ssh").Attr("data-link")
 	assert.True(t, exists, "The template has changed")
-	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.BuiltinServerUser, setting.SSH.Domain, setting.SSH.Port)
+	sshURL := fmt.Sprintf("ssh://%s@%s:%d/user2/repo1.git", setting.SSH.User, setting.SSH.Domain, setting.SSH.Port)
 	assert.Equal(t, sshURL, link)
 }
 
@@ -155,7 +155,7 @@ func TestViewRepoWithSymlinks(t *testing.T) {
 		return fmt.Sprintf("%s: %s", file, cls)
 	})
 	assert.Len(t, items, 5)
-	assert.Equal(t, "a: svg octicon-file-directory", items[0])
+	assert.Equal(t, "a: svg octicon-file-directory-fill", items[0])
 	assert.Equal(t, "link_b: svg octicon-file-submodule", items[1])
 	assert.Equal(t, "link_d: svg octicon-file-symlink-file", items[2])
 	assert.Equal(t, "link_hi: svg octicon-file-symlink-file", items[3])

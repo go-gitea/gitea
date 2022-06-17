@@ -32,9 +32,12 @@ type WriteCloserError interface {
 // This is needed otherwise the git cat-file will hang for invalid repositories.
 func EnsureValidGitRepository(ctx context.Context, repoPath string) error {
 	stderr := strings.Builder{}
-	err := NewCommandContext(ctx, "rev-parse").
+	err := NewCommand(ctx, "rev-parse").
 		SetDescription(fmt.Sprintf("%s rev-parse [repo_path: %s]", GitExecutable, repoPath)).
-		RunInDirFullPipeline(repoPath, nil, &stderr, nil)
+		Run(&RunOpts{
+			Dir:    repoPath,
+			Stderr: &stderr,
+		})
 	if err != nil {
 		return ConcatenateError(err, (&stderr).String())
 	}
@@ -54,14 +57,25 @@ func CatFileBatchCheck(ctx context.Context, repoPath string) (WriteCloserError, 
 		<-closed
 	}
 
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch-check").
+		err := NewCommand(ctx, "cat-file", "--batch-check").
 			SetDescription(fmt.Sprintf("%s cat-file --batch-check [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			Run(&RunOpts{
+				Dir:    repoPath,
+				Stdin:  batchStdinReader,
+				Stdout: batchStdoutWriter,
+				Stderr: &stderr,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))
@@ -93,14 +107,25 @@ func CatFileBatch(ctx context.Context, repoPath string) (WriteCloserError, *bufi
 		<-closed
 	}
 
+	// Ensure cancel is called as soon as the provided context is cancelled
+	go func() {
+		<-ctx.Done()
+		cancel()
+	}()
+
 	_, filename, line, _ := runtime.Caller(2)
 	filename = strings.TrimPrefix(filename, callerPrefix)
 
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommandContext(ctx, "cat-file", "--batch").
+		err := NewCommand(ctx, "cat-file", "--batch").
 			SetDescription(fmt.Sprintf("%s cat-file --batch [repo_path: %s] (%s:%d)", GitExecutable, repoPath, filename, line)).
-			RunInDirFullPipeline(repoPath, batchStdoutWriter, &stderr, batchStdinReader)
+			Run(&RunOpts{
+				Dir:    repoPath,
+				Stdin:  batchStdinReader,
+				Stdout: batchStdoutWriter,
+				Stderr: &stderr,
+			})
 		if err != nil {
 			_ = batchStdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 			_ = batchStdinReader.CloseWithError(ConcatenateError(err, (&stderr).String()))

@@ -42,54 +42,45 @@ const (
 	tplPostInstall base.TplName = "post-install"
 )
 
-var supportedDbTypeNames []map[string]string // use a slice to keep order
-func getDbTypeNames() []map[string]string {
-	if supportedDbTypeNames == nil {
-		for _, t := range setting.SupportedDatabaseTypes {
-			supportedDbTypeNames = append(supportedDbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
-		}
+// getSupportedDbTypeNames returns a slice for supported database types and names. The slice is used to keep the order
+func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
+	for _, t := range setting.SupportedDatabaseTypes {
+		dbTypeNames = append(dbTypeNames, map[string]string{"type": t, "name": setting.DatabaseTypeNames[t]})
 	}
-	return supportedDbTypeNames
+	return dbTypeNames
 }
 
 // Init prepare for rendering installation page
 func Init(next http.Handler) http.Handler {
-	var rnd = templates.HTMLRenderer()
-
+	rnd := templates.HTMLRenderer()
+	dbTypeNames := getSupportedDbTypeNames()
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 		if setting.InstallLock {
 			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, 200, string(tplPostInstall), nil)
+			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
 			return
 		}
-		var locale = middleware.Locale(resp, req)
-		var startTime = time.Now()
-		var ctx = context.Context{
+		locale := middleware.Locale(resp, req)
+		startTime := time.Now()
+		ctx := context.Context{
 			Resp:    context.NewResponse(resp),
 			Flash:   &middleware.Flash{},
 			Locale:  locale,
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
+				"i18n":          locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
-				"DbTypeNames":   getDbTypeNames(),
-				"i18n":          locale,
-				"Language":      locale.Language(),
-				"Lang":          locale.Language(),
+				"DbTypeNames":   dbTypeNames,
 				"AllLangs":      translation.AllLangs(),
-				"CurrentURL":    setting.AppSubURL + req.URL.RequestURI(),
 				"PageStartTime": startTime,
 
 				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
 			},
 		}
-		for _, lang := range translation.AllLangs() {
-			if lang.Lang == locale.Language() {
-				ctx.Data["LangName"] = lang.Name
-				break
-			}
-		}
+		defer ctx.Close()
+
 		ctx.Req = context.WithContext(req, &ctx)
 		next.ServeHTTP(resp, ctx.Req)
 	})
@@ -145,6 +136,7 @@ func Install(ctx *context.Context) {
 		form.SMTPHost = setting.MailService.Host
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
+		form.SMTPPasswd = setting.MailService.Passwd
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
@@ -418,7 +410,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	if form.LFSRootPath != "" {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("true")
-		cfg.Section("server").Key("LFS_CONTENT_PATH").SetValue(form.LFSRootPath)
+		cfg.Section("lfs").Key("PATH").SetValue(form.LFSRootPath)
 		var lfsJwtSecret string
 		if lfsJwtSecret, err = generate.NewJwtSecretBase64(); err != nil {
 			ctx.RenderWithErr(ctx.Tr("install.lfs_jwt_secret_failed", err), tplInstall, &form)
@@ -464,6 +456,10 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
 
+	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
+
+	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
+
 	cfg.Section("security").Key("INSTALL_LOCK").SetValue("true")
 
 	var internalToken string
@@ -508,13 +504,17 @@ func SubmitInstall(ctx *context.Context) {
 	// Create admin account
 	if len(form.AdminName) > 0 {
 		u := &user_model.User{
-			Name:     form.AdminName,
-			Email:    form.AdminEmail,
-			Passwd:   form.AdminPasswd,
-			IsAdmin:  true,
-			IsActive: true,
+			Name:    form.AdminName,
+			Email:   form.AdminEmail,
+			Passwd:  form.AdminPasswd,
+			IsAdmin: true,
 		}
-		if err = user_model.CreateUser(u); err != nil {
+		overwriteDefault := &user_model.CreateUserOverwriteOptions{
+			IsRestricted: util.OptionalBoolFalse,
+			IsActive:     util.OptionalBoolTrue,
+		}
+
+		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -523,7 +523,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = user_model.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays

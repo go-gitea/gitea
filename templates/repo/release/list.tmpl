@@ -40,7 +40,7 @@
 										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
 										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
 										{{if (and $.CanCreateRelease $release.IsTag)}}
-											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName | PathEscapeSegments}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.i18n.Tr "repo.release.new_release"}}</a>
+											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.i18n.Tr "repo.release.new_release"}}</a>
 										{{end}}
 										{{if (and ($.Permission.CanWrite $.UnitTypeCode) $release.IsTag)}}
 											<a class="ui red delete-button mr-3" data-url="{{$.RepoLink}}/tags/delete" data-id="{{.ID}}">
@@ -65,7 +65,7 @@
 				<li class="ui grid">
 					<div class="ui four wide column meta mt-2">
 						{{if .IsTag}}
-							{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>{{end}}
+							{{if .CreatedUnix}}<span class="time">{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}</span>{{end}}
 						{{else}}
 							{{if .IsDraft}}
 								<span class="ui yellow label">{{$.i18n.Tr "repo.release.draft"}}</span>
@@ -99,7 +99,7 @@
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
 								{{ end }}
-								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
+								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
 							</p>
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
@@ -132,7 +132,7 @@
 									{{$.i18n.Tr "repo.released_this"}}
 								</span>
 								{{if .CreatedUnix}}
-									<span class="time">{{TimeSinceUnix .CreatedUnix $.Lang}}</span>
+									<span class="time">{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}</span>
 								{{end}}
 								{{if not .IsDraft}}
 									| <span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}...{{.Target | PathEscapeSegments}}">{{$.i18n.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.i18n.Tr "repo.release.ahead.target" .Target}}</span>

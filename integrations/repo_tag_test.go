@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,26 +30,26 @@ func TestCreateNewTagProtected(t *testing.T) {
 	t.Run("API", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		err := release.CreateNewTag(owner, repo, "master", "v-1", "first tag")
+		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)
 
-		err = models.InsertProtectedTag(&models.ProtectedTag{
+		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
 			RepoID:      repo.ID,
 			NamePattern: "v-*",
 		})
 		assert.NoError(t, err)
-		err = models.InsertProtectedTag(&models.ProtectedTag{
+		err = git_model.InsertProtectedTag(&git_model.ProtectedTag{
 			RepoID:           repo.ID,
 			NamePattern:      "v-1.1",
 			AllowlistUserIDs: []int64{repo.OwnerID},
 		})
 		assert.NoError(t, err)
 
-		err = release.CreateNewTag(owner, repo, "master", "v-2", "second tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-2", "second tag")
 		assert.Error(t, err)
 		assert.True(t, models.IsErrProtectedTagName(err))
 
-		err = release.CreateNewTag(owner, repo, "master", "v-1.1", "third tag")
+		err = release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1.1", "third tag")
 		assert.NoError(t, err)
 	})
 
@@ -66,10 +67,10 @@ func TestCreateNewTagProtected(t *testing.T) {
 
 			doGitClone(dstPath, u)(t)
 
-			_, err = git.NewCommand("tag", "v-2").RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "tag", "v-2").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.NoError(t, err)
 
-			_, err = git.NewCommand("push", "--tags").RunInDir(dstPath)
+			_, _, err = git.NewCommand(git.DefaultContext, "push", "--tags").RunStdString(&git.RunOpts{Dir: dstPath})
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), "Tag v-2 is protected")
 		})
@@ -87,11 +88,11 @@ func TestCreateNewTagProtected(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	protectedTags, err := models.GetProtectedTags(repo.ID)
+	protectedTags, err := git_model.GetProtectedTags(repo.ID)
 	assert.NoError(t, err)
 
 	for _, protectedTag := range protectedTags {
-		err = models.DeleteProtectedTag(protectedTag)
+		err = git_model.DeleteProtectedTag(protectedTag)
 		assert.NoError(t, err)
 	}
 }

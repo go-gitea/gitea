@@ -189,7 +189,7 @@ func (logger *WriterLogger) createMsg(buf *[]byte, event *Event) {
 		*buf = append(*buf, ' ')
 	}
 
-	var msg = []byte(event.msg)
+	msg := []byte(event.msg)
 	if len(msg) > 0 && msg[len(msg)-1] == '\n' {
 		msg = msg[:len(msg)-1]
 	}

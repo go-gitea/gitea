@@ -8,13 +8,11 @@ package migrations
 import (
 	"errors"
 
-	"github.com/google/go-github/v39/github"
+	"github.com/google/go-github/v45/github"
 )
 
-var (
-	// ErrRepoNotCreated returns the error that repository not created
-	ErrRepoNotCreated = errors.New("repository is not created yet")
-)
+// ErrRepoNotCreated returns the error that repository not created
+var ErrRepoNotCreated = errors.New("repository is not created yet")
 
 // IsRateLimitError returns true if the err is github.RateLimitError
 func IsRateLimitError(err error) bool {

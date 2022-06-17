@@ -58,7 +58,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 					req := NewRequestf(b, "GET", "/api/v1/repos/%s/branches", repo.FullName())
 					resp := session.MakeRequest(b, req, http.StatusOK)
 					DecodeJSON(b, resp, &branches)
-					b.ResetTimer() //We measure from here
+					b.ResetTimer() // We measure from here
 					if len(branches) != 0 {
 						for i := 0; i < b.N; i++ {
 							req := NewRequestf(b, "GET", "/api/v1/repos/%s/commits?sha=%s", repo.FullName(), branches[i%len(branches)].Name)

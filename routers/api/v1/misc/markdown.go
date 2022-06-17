@@ -78,6 +78,7 @@ func Markdown(ctx *context.APIContext) {
 		}
 
 		if err := markdown.Render(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: urlPrefix,
 			Metas:     meta,
 			IsWiki:    form.Wiki,
@@ -87,6 +88,7 @@ func Markdown(ctx *context.APIContext) {
 		}
 	default:
 		if err := markdown.RenderRaw(&markup.RenderContext{
+			Ctx:       ctx,
 			URLPrefix: form.Context,
 		}, strings.NewReader(form.Text), ctx.Resp); err != nil {
 			ctx.InternalServerError(err)
@@ -117,7 +119,9 @@ func MarkdownRaw(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 	defer ctx.Req.Body.Close()
-	if err := markdown.RenderRaw(&markup.RenderContext{}, ctx.Req.Body, ctx.Resp); err != nil {
+	if err := markdown.RenderRaw(&markup.RenderContext{
+		Ctx: ctx,
+	}, ctx.Req.Body, ctx.Resp); err != nil {
 		ctx.InternalServerError(err)
 		return
 	}

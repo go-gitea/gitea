@@ -89,7 +89,7 @@ chain in **iptables**. Configure it in `/etc/fail2ban/jail.d/gitea-docker.conf`:
 [gitea-docker]
 enabled = true
 filter = gitea
-logpath = /home/git/gitea/log/gitea.log
+logpath = /var/lib/gitea/log/gitea.log
 maxretry = 10
 findtime = 3600
 bantime = 900

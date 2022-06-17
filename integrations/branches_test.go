@@ -9,8 +9,9 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/translation/i18n"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewBranches(t *testing.T) {

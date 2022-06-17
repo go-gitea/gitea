@@ -29,7 +29,7 @@
 						</a>
 					</span>
 					<span class="message dib ellipsis mr-2">
-						<span>{{RenderCommitMessage $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
+						<span>{{RenderCommitMessage $.Context $commit.Subject $.RepoLink $.Repository.ComposeMetas}}</span>
 					</span>
 					<span class="tags df ac">
 						{{range $commit.Refs}}

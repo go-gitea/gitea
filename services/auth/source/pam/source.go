@@ -5,7 +5,7 @@
 package pam
 
 import (
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/json"
 )
 
@@ -22,8 +22,8 @@ type Source struct {
 	EmailDomain    string
 	SkipLocalTwoFA bool `json:",omitempty"` // Skip Local 2fa for users authenticated with this source
 
-	// reference to the loginSource
-	loginSource *login.Source
+	// reference to the authSource
+	authSource *auth.Source
 }
 
 // FromDB fills up a PAMConfig from serialized format.
@@ -36,11 +36,11 @@ func (source *Source) ToDB() ([]byte, error) {
 	return json.Marshal(source)
 }
 
-// SetLoginSource sets the related LoginSource
-func (source *Source) SetLoginSource(loginSource *login.Source) {
-	source.loginSource = loginSource
+// SetAuthSource sets the related AuthSource
+func (source *Source) SetAuthSource(authSource *auth.Source) {
+	source.authSource = authSource
 }
 
 func init() {
-	login.RegisterTypeConfig(login.PAM, &Source{})
+	auth.RegisterTypeConfig(auth.PAM, &Source{})
 }

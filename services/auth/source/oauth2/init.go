@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"sync"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -52,19 +52,19 @@ func Init() error {
 	// Unlock our mutex
 	gothRWMutex.Unlock()
 
-	return initOAuth2LoginSources()
+	return initOAuth2Sources()
 }
 
 // ResetOAuth2 clears existing OAuth2 providers and loads them from DB
 func ResetOAuth2() error {
 	ClearProviders()
-	return initOAuth2LoginSources()
+	return initOAuth2Sources()
 }
 
-// initOAuth2LoginSources is used to load and register all active OAuth2 providers
-func initOAuth2LoginSources() error {
-	loginSources, _ := login.GetActiveOAuth2ProviderLoginSources()
-	for _, source := range loginSources {
+// initOAuth2Sources is used to load and register all active OAuth2 providers
+func initOAuth2Sources() error {
+	authSources, _ := auth.GetActiveOAuth2ProviderSources()
+	for _, source := range authSources {
 		oauth2Source, ok := source.Cfg.(*Source)
 		if !ok {
 			continue

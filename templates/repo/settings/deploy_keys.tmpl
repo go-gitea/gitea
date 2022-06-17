@@ -8,9 +8,9 @@
 			{{.i18n.Tr "repo.settings.deploy_keys"}}
 			<div class="ui right">
 			{{if not .DisableSSH}}
-				<div class="ui blue tiny show-panel button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.settings.add_deploy_key"}}</div>
+				<div class="ui primary tiny show-panel button" data-panel="#add-deploy-key-panel">{{.i18n.Tr "repo.settings.add_deploy_key"}}</div>
 			{{else}}
-				<div class="ui blue tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
+				<div class="ui primary tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
 			{{end}}
 			</div>
 		</h4>

@@ -41,12 +41,11 @@ type Engine interface {
 	Delete(...interface{}) (int64, error)
 	Exec(...interface{}) (sql.Result, error)
 	Find(interface{}, ...interface{}) error
-	Get(interface{}) (bool, error)
+	Get(beans ...interface{}) (bool, error)
 	ID(interface{}) *xorm.Session
 	In(string, ...interface{}) *xorm.Session
 	Incr(column string, arg ...interface{}) *xorm.Session
 	Insert(...interface{}) (int64, error)
-	InsertOne(interface{}) (int64, error)
 	Iterate(interface{}, xorm.IterFunc) error
 	Join(joinOperator string, tablename interface{}, condition string, args ...interface{}) *xorm.Session
 	SQL(interface{}, ...interface{}) *xorm.Session
@@ -59,11 +58,13 @@ type Engine interface {
 	Sync2(...interface{}) error
 	Select(string) *xorm.Session
 	NotIn(string, ...interface{}) *xorm.Session
-	OrderBy(string) *xorm.Session
+	OrderBy(interface{}, ...interface{}) *xorm.Session
 	Exist(...interface{}) (bool, error)
 	Distinct(...string) *xorm.Session
 	Query(...interface{}) ([]map[string][]byte, error)
 	Cols(...string) *xorm.Session
+	Context(ctx context.Context) *xorm.Session
+	Ping() error
 }
 
 // TableInfo returns table's information via an object
@@ -120,7 +121,7 @@ func newXORMEngine() (*xorm.Engine, error) {
 	return engine, nil
 }
 
-//SyncAllTables sync the schemas of all tables, is required by unit test code
+// SyncAllTables sync the schemas of all tables, is required by unit test code
 func SyncAllTables() error {
 	return x.StoreEngine("InnoDB").Sync2(tables...)
 }
@@ -268,11 +269,6 @@ func MaxBatchInsertSize(bean interface{}) int {
 		return 50
 	}
 	return 999 / len(t.ColumnsSeq())
-}
-
-// Count returns records number according struct's fields as database query conditions
-func Count(bean interface{}) (int64, error) {
-	return x.Count(bean)
 }
 
 // IsTableNotEmpty returns true if table has at least one record

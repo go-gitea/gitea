@@ -5,7 +5,7 @@
 package oauth2_test
 
 import (
-	"code.gitea.io/gitea/models/login"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
@@ -14,9 +14,9 @@ import (
 // It tightly binds the interfaces and implementation without breaking go import cycles
 
 type sourceInterface interface {
-	login.Config
-	login.SourceSettable
-	login.RegisterableSource
+	auth_model.Config
+	auth_model.SourceSettable
+	auth_model.RegisterableSource
 	auth.PasswordAuthenticator
 }
 

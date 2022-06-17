@@ -12,7 +12,8 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."),
-		"notice.yml",
-	)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles:  []string{"notice.yml"},
+	})
 }

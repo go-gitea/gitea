@@ -1,0 +1,19 @@
+{{if .dependencies}}
+<p><strong>{{.title}}</strong></p>
+<table class="ui single line very basic table">
+	<thead>
+		<tr>
+			<th class="eleven wide">{{.root.i18n.Tr "packages.dependency.id"}}</th>
+			<th class="five wide">{{.root.i18n.Tr "packages.dependency.version"}}</th>
+		</tr>
+	</thead>
+	<tbody>
+		{{range .dependencies}}
+		<tr>
+			<td>{{.Name}}</td>
+			<td>{{range $i, $v := .Version}}{{if gt $i 0}}, {{end}}{{$v.Restriction}}{{$v.Version}}{{end}}</td>
+		</tr>
+		{{end}}
+	</tbody>
+</table>
+{{end}}

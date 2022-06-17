@@ -14,7 +14,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."), "")
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles:  []string{""}, // load nothing
+	})
 }
 
 type testItem1 struct {

@@ -23,9 +23,7 @@ type (
 	DingtalkPayload dingtalk.Payload
 )
 
-var (
-	_ PayloadConvertor = &DingtalkPayload{}
-)
+var _ PayloadConvertor = &DingtalkPayload{}
 
 // JSONPayload Marshals the DingtalkPayload to json
 func (d *DingtalkPayload) JSONPayload() ([]byte, error) {
@@ -135,7 +133,6 @@ func (d *DingtalkPayload) Review(p *api.PullRequestPayload, event webhook_model.
 
 		title = fmt.Sprintf("[%s] Pull request review %s : #%d %s", p.Repository.FullName, action, p.Index, p.PullRequest.Title)
 		text = p.Review.Content
-
 	}
 
 	return createDingtalkPayload(title, title+"\r\n\r\n"+text, "view pull request", p.PullRequest.HTMLURL), nil

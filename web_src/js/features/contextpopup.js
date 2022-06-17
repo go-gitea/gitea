@@ -1,5 +1,5 @@
+import $ from 'jquery';
 import Vue from 'vue';
-
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
 

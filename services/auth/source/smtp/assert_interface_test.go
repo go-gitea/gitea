@@ -5,7 +5,7 @@
 package smtp_test
 
 import (
-	"code.gitea.io/gitea/models/login"
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/smtp"
 )
@@ -15,11 +15,11 @@ import (
 
 type sourceInterface interface {
 	auth.PasswordAuthenticator
-	login.Config
-	login.SkipVerifiable
-	login.HasTLSer
-	login.UseTLSer
-	login.SourceSettable
+	auth_model.Config
+	auth_model.SkipVerifiable
+	auth_model.HasTLSer
+	auth_model.UseTLSer
+	auth_model.SourceSettable
 }
 
 var _ (sourceInterface) = &smtp.Source{}

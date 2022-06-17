@@ -23,8 +23,7 @@ func init() {
 }
 
 // GitBucketDownloaderFactory defines a GitBucket downloader factory
-type GitBucketDownloaderFactory struct {
-}
+type GitBucketDownloaderFactory struct{}
 
 // New returns a Downloader related to this factory according MigrateOptions
 func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateOptions) (base.Downloader, error) {
@@ -64,9 +63,4 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 // SupportGetRepoComments return true if it supports get repo comments
 func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 	return false
-}
-
-// GetReviews is not supported
-func (g *GitBucketDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
-	return nil, &base.ErrNotSupported{Entity: "Reviews"}
 }

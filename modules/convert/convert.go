@@ -11,10 +11,14 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -36,15 +40,22 @@ func ToEmail(email *user_model.EmailAddress) *api.Email {
 }
 
 // ToBranch convert a git.Commit and git.Branch to an api.Branch
-func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *models.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
+func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *git_model.ProtectedBranch, user *user_model.User, isRepoAdmin bool) (*api.Branch, error) {
 	if bp == nil {
 		var hasPerm bool
+		var canPush bool
 		var err error
 		if user != nil {
-			hasPerm, err = models.HasAccessUnit(user, repo, unit.TypeCode, perm.AccessModeWrite)
+			hasPerm, err = access_model.HasAccessUnit(db.DefaultContext, user, repo, unit.TypeCode, perm.AccessModeWrite)
 			if err != nil {
 				return nil, err
 			}
+
+			perms, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
+			if err != nil {
+				return nil, err
+			}
+			canPush = issues_model.CanMaintainerWriteToBranch(perms, b.Name, user)
 		}
 
 		return &api.Branch{
@@ -54,7 +65,7 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 			RequiredApprovals:   0,
 			EnableStatusCheck:   false,
 			StatusCheckContexts: []string{},
-			UserCanPush:         hasPerm,
+			UserCanPush:         canPush,
 			UserCanMerge:        hasPerm,
 		}, nil
 	}
@@ -73,19 +84,19 @@ func ToBranch(repo *repo_model.Repository, b *git.Branch, c *git.Commit, bp *mod
 	}
 
 	if user != nil {
-		permission, err := models.GetUserRepoPermission(repo, user)
+		permission, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 		if err != nil {
 			return nil, err
 		}
 		branch.UserCanPush = bp.CanUserPush(user.ID)
-		branch.UserCanMerge = models.IsUserMergeWhitelisted(bp, user.ID, permission)
+		branch.UserCanMerge = git_model.IsUserMergeWhitelisted(db.DefaultContext, bp, user.ID, permission)
 	}
 
 	return branch, nil
 }
 
 // ToBranchProtection convert a ProtectedBranch to api.BranchProtection
-func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
+func ToBranchProtection(bp *git_model.ProtectedBranch) *api.BranchProtection {
 	pushWhitelistUsernames, err := user_model.GetUserNamesByIDs(bp.WhitelistUserIDs)
 	if err != nil {
 		log.Error("GetUserNamesByIDs (WhitelistUserIDs): %v", err)
@@ -98,15 +109,15 @@ func ToBranchProtection(bp *models.ProtectedBranch) *api.BranchProtection {
 	if err != nil {
 		log.Error("GetUserNamesByIDs (ApprovalsWhitelistUserIDs): %v", err)
 	}
-	pushWhitelistTeams, err := models.GetTeamNamesByID(bp.WhitelistTeamIDs)
+	pushWhitelistTeams, err := organization.GetTeamNamesByID(bp.WhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (WhitelistTeamIDs): %v", err)
 	}
-	mergeWhitelistTeams, err := models.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
+	mergeWhitelistTeams, err := organization.GetTeamNamesByID(bp.MergeWhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (MergeWhitelistTeamIDs): %v", err)
 	}
-	approvalsWhitelistTeams, err := models.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
+	approvalsWhitelistTeams, err := organization.GetTeamNamesByID(bp.ApprovalsWhitelistTeamIDs)
 	if err != nil {
 		log.Error("GetTeamNamesByID (ApprovalsWhitelistTeamIDs): %v", err)
 	}
@@ -280,7 +291,7 @@ func ToDeployKey(apiLink string, key *asymkey_model.DeployKey) *api.DeployKey {
 }
 
 // ToOrganization convert user_model.User to api.Organization
-func ToOrganization(org *models.Organization) *api.Organization {
+func ToOrganization(org *organization.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
 		AvatarURL:                 org.AsUser().AvatarLink(),
@@ -295,20 +306,52 @@ func ToOrganization(org *models.Organization) *api.Organization {
 }
 
 // ToTeam convert models.Team to api.Team
-func ToTeam(team *models.Team) *api.Team {
-	if team == nil {
-		return nil
+func ToTeam(team *organization.Team, loadOrg ...bool) (*api.Team, error) {
+	teams, err := ToTeams([]*organization.Team{team}, len(loadOrg) != 0 && loadOrg[0])
+	if err != nil || len(teams) == 0 {
+		return nil, err
+	}
+	return teams[0], nil
+}
+
+// ToTeams convert models.Team list to api.Team list
+func ToTeams(teams []*organization.Team, loadOrgs bool) ([]*api.Team, error) {
+	if len(teams) == 0 || teams[0] == nil {
+		return nil, nil
 	}
 
-	return &api.Team{
-		ID:                      team.ID,
-		Name:                    team.Name,
-		Description:             team.Description,
-		IncludesAllRepositories: team.IncludesAllRepositories,
-		CanCreateOrgRepo:        team.CanCreateOrgRepo,
-		Permission:              team.Authorize.String(),
-		Units:                   team.GetUnitNames(),
+	cache := make(map[int64]*api.Organization)
+	apiTeams := make([]*api.Team, len(teams))
+	for i := range teams {
+		if err := teams[i].GetUnits(); err != nil {
+			return nil, err
+		}
+
+		apiTeams[i] = &api.Team{
+			ID:                      teams[i].ID,
+			Name:                    teams[i].Name,
+			Description:             teams[i].Description,
+			IncludesAllRepositories: teams[i].IncludesAllRepositories,
+			CanCreateOrgRepo:        teams[i].CanCreateOrgRepo,
+			Permission:              teams[i].AccessMode.String(),
+			Units:                   teams[i].GetUnitNames(),
+			UnitsMap:                teams[i].GetUnitsMap(),
+		}
+
+		if loadOrgs {
+			apiOrg, ok := cache[teams[i].OrgID]
+			if !ok {
+				org, err := organization.GetOrgByID(db.DefaultContext, teams[i].OrgID)
+				if err != nil {
+					return nil, err
+				}
+				apiOrg = ToOrganization(org)
+				cache[teams[i].OrgID] = apiOrg
+			}
+			apiTeams[i].Organization = apiOrg
+		}
 	}
+	return apiTeams, nil
 }
 
 // ToAnnotatedTag convert git.Tag to api.AnnotatedTag
@@ -344,8 +387,8 @@ func ToTopicResponse(topic *repo_model.Topic) *api.TopicResponse {
 	}
 }
 
-// ToOAuth2Application convert from login.OAuth2Application to api.OAuth2Application
-func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
+// ToOAuth2Application convert from auth.OAuth2Application to api.OAuth2Application
+func ToOAuth2Application(app *auth.OAuth2Application) *api.OAuth2Application {
 	return &api.OAuth2Application{
 		ID:           app.ID,
 		Name:         app.Name,
@@ -357,7 +400,7 @@ func ToOAuth2Application(app *login.OAuth2Application) *api.OAuth2Application {
 }
 
 // ToLFSLock convert a LFSLock to api.LFSLock
-func ToLFSLock(l *models.LFSLock) *api.LFSLock {
+func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 	u, err := user_model.GetUserByID(l.OwnerID)
 	if err != nil {
 		return nil

@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -105,9 +105,9 @@ func DelIssueSubscription(ctx *context.APIContext) {
 }
 
 func setIssueSubscription(ctx *context.APIContext, watch bool) {
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -116,7 +116,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	user, err := user_model.GetUserByName(ctx.Params(":user"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":user"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -127,13 +127,13 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 		return
 	}
 
-	//only admin and user for itself can change subscription
-	if user.ID != ctx.User.ID && !ctx.User.IsAdmin {
-		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.User.Name, user.Name))
+	// only admin and user for itself can change subscription
+	if user.ID != ctx.Doer.ID && !ctx.Doer.IsAdmin {
+		ctx.Error(http.StatusForbidden, "User", fmt.Errorf("%s is not permitted to change subscriptions for %s", ctx.Doer.Name, user.Name))
 		return
 	}
 
-	current, err := models.CheckIssueWatch(user, issue)
+	current, err := issues_model.CheckIssueWatch(user, issue)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CheckIssueWatch", err)
 		return
@@ -146,7 +146,7 @@ func setIssueSubscription(ctx *context.APIContext, watch bool) {
 	}
 
 	// Update watch state
-	if err := models.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
+	if err := issues_model.CreateOrUpdateIssueWatch(user.ID, issue.ID, watch); err != nil {
 		ctx.Error(http.StatusInternalServerError, "CreateOrUpdateIssueWatch", err)
 		return
 	}
@@ -186,9 +186,9 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -197,7 +197,7 @@ func CheckIssueSubscription(ctx *context.APIContext) {
 		return
 	}
 
-	watching, err := models.CheckIssueWatch(ctx.User, issue)
+	watching, err := issues_model.CheckIssueWatch(ctx.Doer, issue)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -252,9 +252,9 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	issue, err := models.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	issue, err := issues_model.GetIssueByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetIssueByIndex", err)
@@ -263,13 +263,13 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 		return
 	}
 
-	iwl, err := models.GetIssueWatchers(issue.ID, utils.GetListOptions(ctx))
+	iwl, err := issues_model.GetIssueWatchers(ctx, issue.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetIssueWatchers", err)
 		return
 	}
 
-	var userIDs = make([]int64, 0, len(iwl))
+	userIDs := make([]int64, 0, len(iwl))
 	for _, iw := range iwl {
 		userIDs = append(userIDs, iw.UserID)
 	}
@@ -281,10 +281,10 @@ func GetIssueSubscribers(ctx *context.APIContext) {
 	}
 	apiUsers := make([]*api.User, 0, len(users))
 	for _, v := range users {
-		apiUsers = append(apiUsers, convert.ToUser(v, ctx.User))
+		apiUsers = append(apiUsers, convert.ToUser(v, ctx.Doer))
 	}
 
-	count, err := models.CountIssueWatchers(issue.ID)
+	count, err := issues_model.CountIssueWatchers(ctx, issue.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "CountIssueWatchers", err)
 		return

@@ -8,7 +8,7 @@ ListenAddress ::
 ${SSH_MAX_STARTUPS}
 ${SSH_MAX_SESSIONS}
 
-LogLevel INFO
+LogLevel ${SSH_LOG_LEVEL}
 
 HostKey /data/ssh/ssh_host_ed25519_key
 ${SSH_ED25519_CERT}
@@ -41,3 +41,5 @@ Banner none
 Subsystem sftp /usr/lib/ssh/sftp-server
 
 AcceptEnv GIT_PROTOCOL
+
+${SSH_INCLUDE_FILE}

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -21,22 +22,22 @@ import (
 )
 
 // CreateNewBranch creates a new repository branch
-func CreateNewBranch(doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
+func CreateNewBranch(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldBranchName, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(git.DefaultContext, repo, branchName); err != nil {
+	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
 	}
 
-	if !git.IsBranchExist(git.DefaultContext, repo.RepoPath(), oldBranchName) {
+	if !git.IsBranchExist(ctx, repo.RepoPath(), oldBranchName) {
 		return models.ErrBranchDoesNotExist{
 			BranchName: oldBranchName,
 		}
 	}
 
-	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
-		Branch: fmt.Sprintf("%s:%s%s", oldBranchName, git.BranchPrefix, branchName),
-		Env:    models.PushingEnvironment(doer, repo),
+		Branch: fmt.Sprintf("%s%s:%s%s", git.BranchPrefix, oldBranchName, git.BranchPrefix, branchName),
+		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
@@ -47,29 +48,15 @@ func CreateNewBranch(doer *user_model.User, repo *repo_model.Repository, oldBran
 	return nil
 }
 
-// GetBranch returns a branch by its name
-func GetBranch(repo *repo_model.Repository, branch string) (*git.Branch, error) {
-	if len(branch) == 0 {
-		return nil, fmt.Errorf("GetBranch: empty string for branch")
-	}
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer gitRepo.Close()
-
-	return gitRepo.GetBranch(branch)
-}
-
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
-func GetBranches(repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
-	return git.GetBranchesByPath(repo.RepoPath(), skip, limit)
+func GetBranches(ctx context.Context, repo *repo_model.Repository, skip, limit int) ([]*git.Branch, int, error) {
+	return git.GetBranchesByPath(ctx, repo.RepoPath(), skip, limit)
 }
 
 // checkBranchName validates branch name with existing repository branches
 func checkBranchName(ctx context.Context, repo *repo_model.Repository, name string) error {
-	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(refName string) error {
+	_, err := git.WalkReferences(ctx, repo.RepoPath(), func(_, refName string) error {
 		branchRefName := strings.TrimPrefix(refName, git.BranchPrefix)
 		switch {
 		case branchRefName == name:
@@ -98,16 +85,16 @@ func checkBranchName(ctx context.Context, repo *repo_model.Repository, name stri
 }
 
 // CreateNewBranchFromCommit creates a new repository branch
-func CreateNewBranchFromCommit(doer *user_model.User, repo *repo_model.Repository, commit, branchName string) (err error) {
+func CreateNewBranchFromCommit(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, commit, branchName string) (err error) {
 	// Check if branch name can be used
-	if err := checkBranchName(git.DefaultContext, repo, branchName); err != nil {
+	if err := checkBranchName(ctx, repo, branchName); err != nil {
 		return err
 	}
 
-	if err := git.Push(git.DefaultContext, repo.RepoPath(), git.PushOptions{
+	if err := git.Push(ctx, repo.RepoPath(), git.PushOptions{
 		Remote: repo.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", commit, git.BranchPrefix, branchName),
-		Env:    models.PushingEnvironment(doer, repo),
+		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err
@@ -132,7 +119,7 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 		return "from_not_exist", nil
 	}
 
-	if err := models.RenameBranch(repo, from, to, func(isDefault bool) error {
+	if err := git_model.RenameBranch(repo, from, to, func(isDefault bool) error {
 		err2 := gitRepo.RenameBranch(from, to)
 		if err2 != nil {
 			return err2
@@ -149,9 +136,13 @@ func RenameBranch(repo *repo_model.Repository, doer *user_model.User, gitRepo *g
 	}); err != nil {
 		return "", err
 	}
+	refID, err := gitRepo.GetRefCommitID(git.BranchPrefix + to)
+	if err != nil {
+		return "", err
+	}
 
 	notification.NotifyDeleteRef(doer, repo, "branch", git.BranchPrefix+from)
-	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to)
+	notification.NotifyCreateRef(doer, repo, "branch", git.BranchPrefix+to, refID)
 
 	return "", nil
 }
@@ -168,7 +159,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		return ErrBranchIsDefault
 	}
 
-	isProtected, err := models.IsProtectedBranch(repo.ID, branchName)
+	isProtected, err := git_model.IsProtectedBranch(repo.ID, branchName)
 	if err != nil {
 		return err
 	}
@@ -206,7 +197,7 @@ func DeleteBranch(doer *user_model.User, repo *repo_model.Repository, gitRepo *g
 		log.Error("Update: %v", err)
 	}
 
-	if err := models.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
+	if err := git_model.AddDeletedBranch(repo.ID, branchName, commit.ID.String(), doer.ID); err != nil {
 		log.Warn("AddDeletedBranch: %v", err)
 	}
 

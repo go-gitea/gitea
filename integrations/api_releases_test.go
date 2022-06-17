@@ -25,12 +25,11 @@ func TestAPIListReleases(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	session := loginUser(t, user2.LowerName)
-	token := getTokenForLoggedInUser(t, session)
+	token := getUserToken(t, user2.LowerName)
 
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/releases", user2.Name, repo.Name))
 	link.RawQuery = url.Values{"token": {token}}.Encode()
-	resp := session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
+	resp := MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 	var apiReleases []*api.Release
 	DecodeJSON(t, resp, &apiReleases)
 	if assert.Len(t, apiReleases, 3) {
@@ -53,13 +52,11 @@ func TestAPIListReleases(t *testing.T) {
 
 	// test filter
 	testFilterByLen := func(auth bool, query url.Values, expectedLength int, msgAndArgs ...string) {
-		link.RawQuery = query.Encode()
 		if auth {
 			query.Set("token", token)
-			resp = session.MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
-		} else {
-			resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		}
+		link.RawQuery = query.Encode()
+		resp = MakeRequest(t, NewRequest(t, "GET", link.String()), http.StatusOK)
 		DecodeJSON(t, resp, &apiReleases)
 		assert.Len(t, apiReleases, expectedLength, msgAndArgs)
 	}
@@ -87,12 +84,13 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
-	unittest.AssertExistsAndLoadBean(t, &models.Release{
+	rel := &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
-		Note:    newRelease.Note,
-	})
+	}
+	unittest.AssertExistsAndLoadBean(t, rel)
+	assert.EqualValues(t, newRelease.Note, rel.Note)
 
 	return &newRelease
 }
@@ -105,7 +103,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -140,12 +138,13 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
-	unittest.AssertExistsAndLoadBean(t, &models.Release{
+	rel := &models.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
-		Note:    newRelease.Note,
-	})
+	}
+	unittest.AssertExistsAndLoadBean(t, rel)
+	assert.EqualValues(t, rel.Note, newRelease.Note)
 }
 
 func TestAPICreateReleaseToDefaultBranch(t *testing.T) {
@@ -167,7 +166,7 @@ func TestAPICreateReleaseToDefaultBranchOnExistingTag(t *testing.T) {
 	session := loginUser(t, owner.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 

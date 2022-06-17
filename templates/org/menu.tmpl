@@ -3,6 +3,11 @@
 		<a class="{{if .PageIsViewRepositories}}active{{end}} item" href="{{$.Org.HomeLink}}">
 			{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
 		</a>
+		{{if .IsPackageEnabled}}
+		<a class="item" href="{{$.Org.HomeLink}}/-/packages">
+			{{svg "octicon-package"}} {{.i18n.Tr "packages.title"}}
+		</a>
+		{{end}}
 		{{if .IsOrganizationMember}}
 			<a class="{{if $.PageIsOrgMembers}}active{{end}} item" href="{{$.OrgLink}}/members">
 				{{svg "octicon-organization"}}&nbsp;{{$.i18n.Tr "org.people"}}

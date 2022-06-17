@@ -18,7 +18,7 @@
 					<h4 class="ui top attached header">
 						{{.i18n.Tr "repo.quick_guide"}}
 					</h4>
-					<div class="ui attached guide table segment">
+					<div class="ui attached guide table segment empty-repo-guide">
 						<div class="item">
 							<h3>{{.i18n.Tr "repo.clone_this_repo"}} <small>{{.i18n.Tr "repo.clone_helper" "http://git-scm.com/book/en/Git-Basics-Getting-a-Git-Repository" | Str2html}}</small></h3>
 							<div class="ui action small input">
@@ -37,7 +37,7 @@ git init
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
+git remote add origin <span class="clone-url"></span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
@@ -46,18 +46,23 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 							<div class="item">
 								<h3>{{.i18n.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
-									<pre><code>git remote add origin <span class="clone-url">{{$.CloneLink.HTTPS}}</span>
+									<pre><code>git remote add origin <span class="clone-url"></span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							<script defer>
-								/* eslint-disable no-undef */
-								const cloneUrls = document.getElementsByClassName('clone-url');
-								if (cloneUrls) {
-									for (let i = 0; i < cloneUrls.length; i++) {
-										cloneUrls[i].textContent = (isSSH ? sshButton : httpsButton).getAttribute('data-link');
+							<!-- the clone-url content will be updated by initRepoCloneLink, the code below is used to avoid UI flicking  -->
+							<script>
+								(() => {
+									const proto = localStorage.getItem('repo-clone-protocol') || 'https';
+									const btn = document.getElementById(`repo-clone-${proto}`);
+									const cloneUrls = document.getElementsByClassName('clone-url');
+									// it's ok if we didn't find the btn here, initRepoCloneLink will take all the work
+									if (btn) {
+										for (let i = 0; i < cloneUrls.length; i++) {
+											cloneUrls[i].textContent = btn.getAttribute('data-link');
+										}
 									}
-								}
+								})();
 							</script>
 						{{end}}
 					{{else}}

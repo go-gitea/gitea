@@ -20,11 +20,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const content = "Wiki contents for unit tests"
-const message = "Wiki commit message for unit tests"
+const (
+	content = "Wiki contents for unit tests"
+	message = "Wiki commit message for unit tests"
+)
 
 func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
-	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -122,7 +124,7 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 	}
@@ -174,7 +176,7 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 		if title != "Home" {

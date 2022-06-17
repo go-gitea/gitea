@@ -42,9 +42,9 @@ To maintain understandable code and avoid circular dependencies it is important 
   - `modules/setting`: Store all system configurations read from ini files and has been referenced by everywhere. But they should be used as function parameters when possible.
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
-- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
-  - `routers/api` Conatins routers for `/api/v1` aims to handle RESTful API requests. 
-  - `routers/install` Could only reponse when system is INSTALL mode. 
+- `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) must not depend on routers.
+  - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests. 
+  - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false). 
   - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
   - `routers/web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
@@ -103,8 +103,18 @@ i.e. `servcies/user`, `models/repository`.
 
 ### Import Alias
 
-Since there are many package levels and sub packages, so you will find `modules/user`, `models/user`, `services/user`. When these packages are import into one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So we recommand to always use import alias. To differ from package variables which are commonly use camelCase, just use **snake_case** as import package alias.
+Since there are some packages which use the same package name, it is possible that you find packages like `modules/user`, `models/user`, and `services/user`. When these packages are imported in one Go file, it's difficult to know which package we are using and if it's a variable name or an import name. So, we always recommend to use import aliases. To differ from package variables which are commonly in camelCase, just use **snake_case** for import aliases.
 i.e. `import user_service "code.gitea.io/gitea/services/user"`
+
+### Important Gotchas
+
+- Never write `x.Update(exemplar)` without an explicit `WHERE` clause:
+  - This will cause all rows in the table to be updated with the non-zero values of the exemplar - including IDs.
+  - You should usually write `x.ID(id).Update(exemplar)`.
+- If during a migration you are inserting into a table using `x.Insert(exemplar)` where the ID is preset:
+  - You will need to ``SET IDENTITY_INSERT `table` ON`` for the MSSQL variant (the migration will fail otherwise)
+  - However, you will also need to update the id sequence for postgres - the migration will silently pass here but later insertions will fail:
+    ``SELECT setval('table_name_id_seq', COALESCE((SELECT MAX(id)+1 FROM `table_name`), 1), false)``
 
 ### Future Tasks
 
@@ -112,4 +122,4 @@ Currently, we are creating some refactors to do the following things:
 
 - Correct that codes which doesn't follow the rules.
 - There are too many files in `models`, so we are moving some of them into a sub package `models/xxx`.
-- Some `modules` sub packages should be moved to `services` because they depends on `models`.
+- Some `modules` sub packages should be moved to `services` because they depend on `models`.

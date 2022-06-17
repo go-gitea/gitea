@@ -5,10 +5,11 @@
 package mailer
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -16,16 +17,17 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func fallbackMailSubject(issue *models.Issue) string {
+func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
 type mailCommentContext struct {
-	Issue      *models.Issue
+	context.Context
+	Issue      *issues_model.Issue
 	Doer       *user_model.User
 	ActionType models.ActionType
 	Content    string
-	Comment    *models.Comment
+	Comment    *issues_model.Comment
 }
 
 const (
@@ -38,9 +40,8 @@ const (
 // 1. Repository watchers (except for WIP pull requests) and users who are participated in comments.
 // 2. Users who are not in 1. but get mentioned in current issue/comment.
 func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_model.User) error {
-
 	// Required by the mail composer; make sure to load these before calling the async function
-	if err := ctx.Issue.LoadRepo(); err != nil {
+	if err := ctx.Issue.LoadRepo(ctx); err != nil {
 		return fmt.Errorf("LoadRepo(): %v", err)
 	}
 	if err := ctx.Issue.LoadPoster(); err != nil {
@@ -57,21 +58,21 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered[0] = ctx.Issue.PosterID
 
 	// =========== Assignees ===========
-	ids, err := models.GetAssigneeIDsByIssue(ctx.Issue.ID)
+	ids, err := issues_model.GetAssigneeIDsByIssue(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
-	ids, err = models.GetParticipantsIDsByIssueID(ctx.Issue.ID)
+	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -80,7 +81,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
 	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
-		ids, err = repo_model.GetRepoWatchersIDs(db.DefaultContext, ctx.Issue.RepoID)
+		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
 		}
@@ -98,7 +99,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -125,6 +126,10 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 	langMap := make(map[string][]*user_model.User)
 	for _, user := range users {
+		if !user.IsActive {
+			// Exclude deactivated users
+			continue
+		}
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
@@ -141,7 +146,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
+		if !models.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -167,7 +172,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -181,6 +186,7 @@ func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
+			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
 			ActionType: opType,

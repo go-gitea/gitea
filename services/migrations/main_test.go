@@ -17,7 +17,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+	})
 }
 
 func timePtr(t time.Time) *time.Time {
@@ -223,15 +225,15 @@ func assertRepositoryEqual(t *testing.T, expected, actual *base.Repository) {
 }
 
 func assertReviewEqual(t *testing.T, expected, actual *base.Review) {
-	assert.Equal(t, expected.ID, actual.ID)
-	assert.Equal(t, expected.IssueIndex, actual.IssueIndex)
-	assert.Equal(t, expected.ReviewerID, actual.ReviewerID)
-	assert.Equal(t, expected.ReviewerName, actual.ReviewerName)
-	assert.Equal(t, expected.Official, actual.Official)
-	assert.Equal(t, expected.CommitID, actual.CommitID)
-	assert.Equal(t, expected.Content, actual.Content)
-	assertTimeEqual(t, expected.CreatedAt, actual.CreatedAt)
-	assert.Equal(t, expected.State, actual.State)
+	assert.Equal(t, expected.ID, actual.ID, "ID")
+	assert.Equal(t, expected.IssueIndex, actual.IssueIndex, "IsssueIndex")
+	assert.Equal(t, expected.ReviewerID, actual.ReviewerID, "ReviewerID")
+	assert.Equal(t, expected.ReviewerName, actual.ReviewerName, "ReviewerName")
+	assert.Equal(t, expected.Official, actual.Official, "Official")
+	assert.Equal(t, expected.CommitID, actual.CommitID, "CommitID")
+	assert.Equal(t, expected.Content, actual.Content, "Content")
+	assert.WithinDuration(t, expected.CreatedAt, actual.CreatedAt, 10*time.Second)
+	assert.Equal(t, expected.State, actual.State, "State")
 	assertReviewCommentsEqual(t, expected.Comments, actual.Comments)
 }
 

@@ -50,7 +50,8 @@ Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working 
 
 ### Prepare environment
 
-Check that Git is installed on the server. If it is not, install it first.
+Check that Git is installed on the server. If it is not, install it first. Gitea requires Git version >= 2.0.
+
 ```sh
 git --version
 ```

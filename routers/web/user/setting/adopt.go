@@ -28,11 +28,11 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	dir := ctx.FormString("id")
 	action := ctx.FormString("action")
 
-	ctxUser := ctx.User
+	ctxUser := ctx.Doer
 	root := user_model.UserPath(ctxUser.LowerName)
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, dir)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, dir)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return

@@ -30,7 +30,7 @@
 
 				{{.i18n.Tr "mail.issue.action.force_push" .Doer.Name .Comment.Issue.PullRequest.HeadBranch $oldCommitLink $newCommitLink | Str2html}}
 			{{else}}
-				{{.i18n.Tr (TrN .i18n.Lang (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n") .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
+				{{.i18n.TrN (len .Comment.Commits) "mail.issue.action.push_1" "mail.issue.action.push_n" .Doer.Name .Comment.Issue.PullRequest.HeadBranch (len .Comment.Commits) | Str2html}}
 			{{end}}
 		</p>
 	{{end}}

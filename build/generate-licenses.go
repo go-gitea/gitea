@@ -1,5 +1,4 @@
 //go:build ignore
-// +build ignore
 
 package main
 
@@ -34,7 +33,6 @@ func main() {
 	flag.Parse()
 
 	file, err := os.CreateTemp(os.TempDir(), prefix)
-
 	if err != nil {
 		log.Fatalf("Failed to create temp file. %s", err)
 	}
@@ -66,7 +64,6 @@ func main() {
 	}
 
 	gz, err := gzip.NewReader(file)
-
 	if err != nil {
 		log.Fatalf("Failed to gunzip the archive. %s", err)
 	}
@@ -100,7 +97,6 @@ func main() {
 			continue
 		}
 		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
-
 		if err != nil {
 			log.Fatalf("Failed to create new file. %s", err)
 		}

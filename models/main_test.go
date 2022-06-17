@@ -7,6 +7,7 @@ package models
 import (
 	"testing"
 
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -26,14 +27,12 @@ func TestFixturesAreConsistent(t *testing.T) {
 	unittest.CheckConsistencyFor(t,
 		&user_model.User{},
 		&repo_model.Repository{},
-		&Issue{},
-		&PullRequest{},
-		&Milestone{},
-		&Label{},
-		&Team{},
+		&organization.Team{},
 		&Action{})
 }
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, "..")
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: "..",
+	})
 }

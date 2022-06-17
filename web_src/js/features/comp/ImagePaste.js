@@ -1,3 +1,4 @@
+import $ from 'jquery';
 const {csrfToken} = window.config;
 
 async function uploadFile(file, uploadUrl) {
@@ -64,7 +65,7 @@ export function initCompImagePaste($target) {
     for (const textarea of this.querySelectorAll('textarea')) {
       textarea.addEventListener('paste', async (e) => {
         for (const img of clipboardPastedImages(e)) {
-          const name = img.name.substr(0, img.name.lastIndexOf('.'));
+          const name = img.name.slice(0, img.name.lastIndexOf('.'));
           insertAtCursor(textarea, `![${name}]()`);
           const data = await uploadFile(img, uploadUrl);
           replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
@@ -80,7 +81,7 @@ export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
   const uploadUrl = dropzone.getAttribute('data-upload-url');
   easyMDE.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
-      const name = img.name.substr(0, img.name.lastIndexOf('.'));
+      const name = img.name.slice(0, img.name.lastIndexOf('.'));
       const data = await uploadFile(img, uploadUrl);
       const pos = easyMDE.codemirror.getCursor();
       easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);

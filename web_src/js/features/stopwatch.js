@@ -1,6 +1,7 @@
+import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
+const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 let updateTimeInterval = null; // holds setInterval id when active
 
 export function initStopwatch() {
@@ -110,7 +111,7 @@ async function updateStopwatchWithCallback(callback, timeout) {
 async function updateStopwatch() {
   const data = await $.ajax({
     type: 'GET',
-    url: `${appSubUrl}/api/v1/user/stopwatches`,
+    url: `${appSubUrl}/user/stopwatches`,
     headers: {'X-Csrf-Token': csrfToken},
   });
 
@@ -126,6 +127,10 @@ function updateStopwatchData(data) {
   const watch = data[0];
   const btnEl = $('.active-stopwatch-trigger');
   if (!watch) {
+    if (updateTimeInterval) {
+      clearInterval(updateTimeInterval);
+      updateTimeInterval = null;
+    }
     btnEl.addClass('hidden');
   } else {
     const {repo_owner_name, repo_name, issue_index, seconds} = watch;

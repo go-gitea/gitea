@@ -8,11 +8,13 @@ import (
 	"fmt"
 	"net/url"
 
-	"github.com/unknwon/i18n"
+	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/translation/i18n"
+
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []Header, lang string) ast.Node {
+func createTOCNode(toc []markup.Header, lang string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
 

@@ -12,8 +12,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
-
-	"github.com/unknwon/i18n"
+	"code.gitea.io/gitea/modules/translation/i18n"
 )
 
 // Seconds-based time units

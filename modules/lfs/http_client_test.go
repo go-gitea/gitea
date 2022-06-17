@@ -23,8 +23,7 @@ func (f RoundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 	return f(req), nil
 }
 
-type DummyTransferAdapter struct {
-}
+type DummyTransferAdapter struct{}
 
 func (a *DummyTransferAdapter) Name() string {
 	return "dummy"
@@ -82,7 +81,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 			Objects: []*ObjectResponse{
 				{
 					Error: &ObjectError{
-						Code:    404,
+						Code:    http.StatusNotFound,
 						Message: "Object not found",
 					},
 				},
@@ -172,7 +171,7 @@ func TestHTTPClientDownload(t *testing.T) {
 	})}
 	dummy := &DummyTransferAdapter{}
 
-	var cases = []struct {
+	cases := []struct {
 		endpoint      string
 		expectederror string
 	}{
@@ -279,7 +278,7 @@ func TestHTTPClientUpload(t *testing.T) {
 	})}
 	dummy := &DummyTransferAdapter{}
 
-	var cases = []struct {
+	cases := []struct {
 		endpoint      string
 		expectederror string
 	}{

@@ -17,9 +17,7 @@ type ResponseWriter interface {
 	Size() int
 }
 
-var (
-	_ ResponseWriter = &Response{}
-)
+var _ ResponseWriter = &Response{}
 
 // Response represents a response
 type Response struct {

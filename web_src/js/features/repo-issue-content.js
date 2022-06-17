@@ -1,7 +1,7 @@
+import $ from 'jquery';
 import {svg} from '../svg.js';
 
 const {appSubUrl, csrfToken} = window.config;
-
 let i18nTextEdited;
 let i18nTextOptions;
 let i18nTextDeleteFromHistory;
@@ -109,7 +109,7 @@ export function initRepoIssueContentHistory() {
   if (!issueIndex) return;
 
   const $itemIssue = $('.repository.issue .timeline-item.comment.first'); // issue(PR) main content
-  const $comments = $('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, code rerview comments
+  const $comments = $('.repository.issue .comment-list .comment'); // includes: issue(PR) comments, review comments, code comments
   if (!$itemIssue.length && !$comments.length) return;
 
   const repoLink = $('#repolink').val();

@@ -12,7 +12,6 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
 )
 
@@ -34,38 +33,18 @@ func SetDefaultBranch(ctx *gitea_context.PrivateContext) {
 	ownerName := ctx.Params(":owner")
 	repoName := ctx.Params(":repo")
 	branch := ctx.Params(":branch")
-	repo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
-	if err != nil {
-		log.Error("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err)
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to get repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
-		return
-	}
-	if repo.OwnerName == "" {
-		repo.OwnerName = ownerName
-	}
 
-	repo.DefaultBranch = branch
-	gitRepo, err := git.OpenRepository(repo.RepoPath())
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, private.Response{
-			Err: fmt.Sprintf("Failed to get git repository: %s/%s Error: %v", ownerName, repoName, err),
-		})
-		return
-	}
-	if err := gitRepo.SetDefaultBranch(repo.DefaultBranch); err != nil {
+	ctx.Repo.Repository.DefaultBranch = branch
+	if err := ctx.Repo.GitRepo.SetDefaultBranch(ctx.Repo.Repository.DefaultBranch); err != nil {
 		if !git.IsErrUnsupportedVersion(err) {
-			gitRepo.Close()
 			ctx.JSON(http.StatusInternalServerError, private.Response{
 				Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 			})
 			return
 		}
 	}
-	gitRepo.Close()
 
-	if err := repo_model.UpdateDefaultBranch(repo); err != nil {
+	if err := repo_model.UpdateDefaultBranch(ctx.Repo.Repository); err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to set default branch on repository: %s/%s Error: %v", ownerName, repoName, err),
 		})

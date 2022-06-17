@@ -1,0 +1,71 @@
+{{template "base/head" .}}
+<div class="page-content repository settings options">
+	{{template "user/overview/header" .}}
+	<div class="ui container">
+		{{template "base/alert" .}}
+		<p><a href="{{.PackageDescriptor.FullWebLink}}">{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</a> / <strong>{{.i18n.Tr "repo.settings"}}</strong></p>
+		<h4 class="ui top attached header">
+			{{.i18n.Tr "packages.settings.link"}}
+		</h4>
+		<div class="ui attached segment">
+			<p>{{.i18n.Tr "packages.settings.link.description"}}</p>
+			<form class="ui form" action="{{.Link}}" method="post">
+				{{template "base/disable_form_autofill"}}
+				{{.CsrfTokenHtml}}
+				<input type="hidden" name="action" value="link">
+				<div class="field">
+					<div class="ui clearable selection dropdown">
+						{{$repoID := 0}}
+						{{if .PackageDescriptor.Repository}}
+							{{$repoID = .PackageDescriptor.Repository.ID}}
+						{{end}}
+						<input type="hidden" name="repo_id" value="{{$repoID}}">
+						<i class="dropdown icon"></i>
+						<div class="default text">{{.i18n.Tr "packages.settings.link.select"}}</div>
+						<div class="menu">
+							{{range .Repos}}
+								<div class="item" data-value="{{.ID}}">{{.Name}}</div>
+							{{end}}
+						</div>
+					</div>
+				</div>
+				<div class="field">
+					<button class="ui green button">{{.i18n.Tr "packages.settings.link.button"}}</button>
+				</div>
+			</form>
+		</div>
+		<h4 class="ui top attached error header">
+			{{.i18n.Tr "repo.settings.danger_zone"}}
+		</h4>
+		<div class="ui attached error table danger segment">
+			<div class="item">
+				<div class="ui right">
+					<button class="ui basic red show-modal button" data-modal="#delete-package-modal">{{.i18n.Tr "packages.settings.delete"}}</button>
+				</div>
+				<div>
+					<h5>{{.i18n.Tr "packages.settings.delete"}}</h5>
+					<p>{{.i18n.Tr "packages.settings.delete.description"}}</p>
+				</div>
+				<div class="ui tiny modal" id="delete-package-modal">
+					<div class="header">
+						{{.i18n.Tr "packages.settings.delete"}}
+					</div>
+					<div class="content">
+						<div class="ui warning message text left">
+							{{.i18n.Tr "packages.settings.delete.notice" .PackageDescriptor.Package.Name .PackageDescriptor.Version.Version}}
+						</div>
+						<form class="ui form" action="{{.Link}}" method="post">
+							{{.CsrfTokenHtml}}
+							<input type="hidden" name="action" value="delete">
+							<div class="text right actions">
+								<div class="ui cancel button">{{.i18n.Tr "cancel"}}</div>
+								<button class="ui red button">{{.i18n.Tr "ok"}}</button>
+							</div>
+						</form>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{{template "base/footer" .}}

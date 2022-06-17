@@ -29,13 +29,13 @@ func TestDetermineLocalEndpoint(t *testing.T) {
 
 	rootdotgit, _ := os.MkdirTemp("", "lfs_test")
 	defer os.RemoveAll(rootdotgit)
-	os.Mkdir(filepath.Join(rootdotgit, ".git"), 0700)
+	os.Mkdir(filepath.Join(rootdotgit, ".git"), 0o700)
 
 	lfsroot, _ := os.MkdirTemp("", "lfs_test")
 	defer os.RemoveAll(lfsroot)
 
 	// Test cases
-	var cases = []struct {
+	cases := []struct {
 		cloneurl string
 		lfsurl   string
 		expected *url.URL

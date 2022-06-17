@@ -37,11 +37,15 @@ var CmdRestoreRepository = cli.Command{
 			Value: "",
 			Usage: "Restore destination repository name",
 		},
-		cli.StringFlag{
+		cli.StringSliceFlag{
 			Name:  "units",
-			Value: "",
-			Usage: `Which items will be restored, one or more units should be separated as comma.
+			Value: nil,
+			Usage: `Which items will be restored, one or more units should be repeated with this flag.
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
+		},
+		cli.BoolFlag{
+			Name:  "validation",
+			Usage: "Sanity check the content of the files before trying to load them",
 		},
 	},
 }
@@ -58,6 +62,7 @@ func runRestoreRepository(c *cli.Context) error {
 		c.String("owner_name"),
 		c.String("repo_name"),
 		c.StringSlice("units"),
+		c.Bool("validation"),
 	)
 	if statusCode == http.StatusOK {
 		return nil

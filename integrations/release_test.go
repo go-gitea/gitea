@@ -14,10 +14,10 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title string, preRelease, draft bool) {
@@ -43,7 +43,7 @@ func createNewRelease(t *testing.T, session *TestSession, repoURL, tag, title st
 	}
 	req = NewRequestWithValues(t, "POST", link, postData)
 
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 
 	test.RedirectURL(resp) // check that redirect URL exists
 }

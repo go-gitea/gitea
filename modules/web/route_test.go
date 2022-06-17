@@ -67,7 +67,7 @@ func TestRoute2(t *testing.T) {
 				route = 1
 			})
 		}, func(resp http.ResponseWriter, req *http.Request) {
-			resp.WriteHeader(200)
+			resp.WriteHeader(http.StatusOK)
 		})
 
 		r.Group("/issues/{index}", func() {

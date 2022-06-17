@@ -5,11 +5,14 @@
 package markup_test
 
 import (
+	"context"
 	"io"
 	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/emoji"
+	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 	. "code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/setting"
@@ -24,29 +27,37 @@ var localMetas = map[string]string{
 	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
 }
 
+func TestMain(m *testing.M) {
+	setting.LoadAllowEmpty()
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
+}
+
 func TestRender_Commits(t *testing.T) {
 	setting.AppURL = TestAppURL
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  ".md",
-			URLPrefix: TestRepoURL,
-			Metas:     localMetas,
+			Ctx:          git.DefaultContext,
+			RelativePath: ".md",
+			URLPrefix:    TestRepoURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
 	}
 
-	var sha = "65f1bf27bc3bf70f64657658635e66094edbcb4d"
-	var repo = TestRepoURL
-	var commit = util.URLJoin(repo, "commit", sha)
-	var tree = util.URLJoin(repo, "tree", sha, "src")
+	sha := "65f1bf27bc3bf70f64657658635e66094edbcb4d"
+	repo := TestRepoURL
+	commit := util.URLJoin(repo, "commit", sha)
+	tree := util.URLJoin(repo, "tree", sha, "src")
 
-	var file = util.URLJoin(repo, "commit", sha, "example.txt")
-	var fileWithExtra = file + ":"
-	var fileWithHash = file + "#L2"
-	var fileWithHasExtra = file + "#L2:"
-	var commitCompare = util.URLJoin(repo, "compare", sha+"..."+sha)
-	var commitCompareWithHash = commitCompare + "#L2"
+	file := util.URLJoin(repo, "commit", sha, "example.txt")
+	fileWithExtra := file + ":"
+	fileWithHash := file + "#L2"
+	fileWithHasExtra := file + "#L2:"
+	commitCompare := util.URLJoin(repo, "compare", sha+"..."+sha)
+	commitCompareWithHash := commitCompare + "#L2"
 
 	test(sha, `<p><a href="`+commit+`" rel="nofollow"><code>65f1bf27bc</code></a></p>`)
 	test(sha[:7], `<p><a href="`+commit[:len(commit)-(40-7)]+`" rel="nofollow"><code>65f1bf2</code></a></p>`)
@@ -78,9 +89,9 @@ func TestRender_CrossReferences(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: setting.AppSubURL,
-			Metas:     localMetas,
+			RelativePath: "a.md",
+			URLPrefix:    setting.AppSubURL,
+			Metas:        localMetas,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -95,13 +106,22 @@ func TestRender_CrossReferences(t *testing.T) {
 	test(
 		"/home/gitea/go-gitea/gitea#12345",
 		`<p>/home/gitea/go-gitea/gitea#12345</p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "go-gitea", "gitea", "issues", "12345")+`" class="ref-issue" rel="nofollow">go-gitea/gitea#12345</a></p>`)
+	test(
+		util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345"),
+		`<p><a href="`+util.URLJoin(TestAppURL, "gogitea", "some-repo-name", "issues", "12345")+`" class="ref-issue" rel="nofollow">gogitea/some-repo-name#12345</a></p>`)
 }
 
 func TestMisc_IsSameDomain(t *testing.T) {
 	setting.AppURL = TestAppURL
 
-	var sha = "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
-	var commit = util.URLJoin(TestRepoURL, "commit", sha)
+	sha := "b6dd6210eaebc915fd5be5579c58cce4da2e2579"
+	commit := util.URLJoin(TestRepoURL, "commit", sha)
 
 	assert.True(t, IsSameDomain(commit))
 	assert.False(t, IsSameDomain("http://google.com/ncr"))
@@ -113,8 +133,8 @@ func TestRender_links(t *testing.T) {
 
 	test := func(input, expected string) {
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -212,8 +232,8 @@ func TestRender_email(t *testing.T) {
 
 	test := func(input, expected string) {
 		res, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(res))
@@ -270,8 +290,8 @@ func TestRender_emoji(t *testing.T) {
 	test := func(input, expected string) {
 		expected = strings.ReplaceAll(expected, "&", "&amp;")
 		buffer, err := RenderString(&RenderContext{
-			Filename:  "a.md",
-			URLPrefix: TestRepoURL,
+			RelativePath: "a.md",
+			URLPrefix:    TestRepoURL,
 		}, input)
 		assert.NoError(t, err)
 		assert.Equal(t, strings.TrimSpace(expected), strings.TrimSpace(buffer))
@@ -289,7 +309,7 @@ func TestRender_emoji(t *testing.T) {
 			`<p><span class="emoji" aria-label="`+emoji.GemojiData[i].Description+`">`+emoji.GemojiData[i].Emoji+`</span></p>`)
 	}
 
-	//Text that should be turned into or recognized as emoji
+	// Text that should be turned into or recognized as emoji
 	test(
 		":gitea:",
 		`<p><span class="emoji" aria-label="gitea"><img alt=":gitea:" src="`+setting.StaticURLPrefix+`/assets/img/emoji/gitea.png"/></span></p>`)
@@ -470,7 +490,7 @@ func TestRender_RelativeImages(t *testing.T) {
 func Test_ParseClusterFuzz(t *testing.T) {
 	setting.AppURL = TestAppURL
 
-	var localMetas = map[string]string{
+	localMetas := map[string]string{
 		"user": "go-gitea",
 		"repo": "gitea",
 	}
@@ -500,7 +520,7 @@ func Test_ParseClusterFuzz(t *testing.T) {
 func TestIssue16020(t *testing.T) {
 	setting.AppURL = TestAppURL
 
-	var localMetas = map[string]string{
+	localMetas := map[string]string{
 		"user": "go-gitea",
 		"repo": "gitea",
 	}
@@ -545,4 +565,17 @@ func TestFuzz(t *testing.T) {
 	err := PostProcess(&renderContext, strings.NewReader(s), io.Discard)
 
 	assert.NoError(t, err)
+}
+
+func TestIssue18471(t *testing.T) {
+	data := `http://domain/org/repo/compare/783b039...da951ce`
+
+	var res strings.Builder
+	err := PostProcess(&RenderContext{
+		URLPrefix: "https://example.com",
+		Metas:     localMetas,
+	}, strings.NewReader(data), &res)
+
+	assert.NoError(t, err)
+	assert.Equal(t, res.String(), "<a href=\"http://domain/org/repo/compare/783b039...da951ce\" class=\"compare\"><code class=\"nohighlight\">783b039...da951ce</code></a>")
 }

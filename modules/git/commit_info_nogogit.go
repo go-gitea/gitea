@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -104,7 +103,7 @@ func getLastCommitForPathsByCache(ctx context.Context, commitID, treePath string
 	defer cancel()
 
 	var unHitEntryPaths []string
-	var results = make(map[string]*Commit)
+	results := make(map[string]*Commit)
 	for _, p := range paths {
 		lastCommit, err := cache.Get(commitID, path.Join(treePath, p), wr, rd)
 		if err != nil {

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -20,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -32,13 +34,14 @@ import (
 var pushQueue queue.Queue
 
 // handle passed PR IDs and test the PRs
-func handle(data ...queue.Data) {
+func handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.([]*repo_module.PushUpdateOptions)
 		if err := pushUpdates(opts); err != nil {
 			log.Error("pushUpdate failed: %v", err)
 		}
 	}
+	return nil
 }
 
 func initPushQueue() error {
@@ -77,19 +80,23 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 		return nil
 	}
 
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("PushUpdates: %s/%s", optsList[0].RepoUserName, optsList[0].RepoName))
+	defer finished()
+
 	repo, err := repo_model.GetRepositoryByOwnerAndName(optsList[0].RepoUserName, optsList[0].RepoName)
 	if err != nil {
 		return fmt.Errorf("GetRepositoryByOwnerAndName failed: %v", err)
 	}
 
 	repoPath := repo.RepoPath()
-	gitRepo, err := git.OpenRepository(repoPath)
+
+	gitRepo, err := git.OpenRepository(ctx, repoPath)
 	if err != nil {
-		return fmt.Errorf("OpenRepository: %v", err)
+		return fmt.Errorf("OpenRepository[%s]: %v", repoPath, err)
 	}
 	defer gitRepo.Close()
 
-	if err = models.UpdateRepoSize(db.DefaultContext, repo); err != nil {
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -99,7 +106,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 	for _, opts := range optsList {
 		if opts.IsNewRef() && opts.IsDelRef() {
-			return fmt.Errorf("Old and new revisions are both %s", git.EmptySHA)
+			return fmt.Errorf("old and new revisions are both %s", git.EmptySHA)
 		}
 		if opts.IsTag() { // If is tag reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -139,7 +146,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}, commits)
 
 				addTags = append(addTags, tagName)
-				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName)
+				notification.NotifyCreateRef(pusher, repo, "tag", opts.RefFullName, opts.NewCommitID)
 			}
 		} else if opts.IsBranch() { // If is branch reference
 			if pusher == nil || pusher.ID != opts.PusherID {
@@ -175,7 +182,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 							}
 						}
 						// Update the is empty and default_branch columns
-						if err := repo_model.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+						if err := repo_model.UpdateRepositoryCols(db.DefaultContext, repo, "default_branch", "is_empty"); err != nil {
 							return fmt.Errorf("UpdateRepositoryCols: %v", err)
 						}
 					}
@@ -184,14 +191,14 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeLimit: %v", err)
 					}
-					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName)
+					notification.NotifyCreateRef(pusher, repo, "branch", opts.RefFullName, opts.NewCommitID)
 				} else {
 					l, err = newCommit.CommitsBeforeUntil(opts.OldCommitID)
 					if err != nil {
 						return fmt.Errorf("newCommit.CommitsBeforeUntil: %v", err)
 					}
 
-					isForce, err := repo_module.IsForcePush(opts)
+					isForce, err := repo_module.IsForcePush(ctx, opts)
 					if err != nil {
 						log.Error("isForcePush %s:%s failed: %v", repo.FullName(), branch, err)
 					}
@@ -216,10 +223,37 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
 					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
-				commits.CompareURL = repo.ComposeCompareURL(opts.OldCommitID, opts.NewCommitID)
+
+				oldCommitID := opts.OldCommitID
+				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
+					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
+					if err != nil && !git.IsErrNotExist(err) {
+						log.Error("unable to GetCommit %s from %-v: %v", oldCommitID, repo, err)
+					}
+					if oldCommit != nil {
+						for i := 0; i < oldCommit.ParentCount(); i++ {
+							commitID, _ := oldCommit.ParentID(i)
+							if !commitID.IsZero() {
+								oldCommitID = commitID.String()
+								break
+							}
+						}
+					}
+				}
+
+				if oldCommitID == git.EmptySHA && repo.DefaultBranch != branch {
+					oldCommitID = repo.DefaultBranch
+				}
+
+				if oldCommitID != git.EmptySHA {
+					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
+				} else {
+					commits.CompareURL = ""
+				}
+
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
+				if err = git_model.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
@@ -236,7 +270,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
-			if err = repo_model.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+			if err = repo_model.WatchIfAuto(db.DefaultContext, opts.PusherID, repo.ID, true); err != nil {
 				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		} else {
@@ -294,7 +328,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		if err != nil {
 			return fmt.Errorf("GetTag: %v", err)
 		}
-		commit, err := tag.Commit()
+		commit, err := tag.Commit(gitRepo)
 		if err != nil {
 			return fmt.Errorf("Commit: %v", err)
 		}
@@ -307,7 +341,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			sig = commit.Committer
 		}
 		var author *user_model.User
-		var createdAt = time.Unix(1, 0)
+		createdAt := time.Unix(1, 0)
 
 		if sig != nil {
 			var ok bool
@@ -366,7 +400,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 	}
 
 	if len(newReleases) > 0 {
-		if err = models.InsertReleasesContext(ctx, newReleases); err != nil {
+		if err = db.Insert(ctx, newReleases); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 	}

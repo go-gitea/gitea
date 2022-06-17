@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
@@ -39,6 +40,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
+	EscapeStatus   charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -231,11 +233,12 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			language = ""
 		}
 	}
-	var lines = make([]string, 0)
+	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
+	escapeStatus := charset.EscapeStatus{}
 
-	var i = 0
-	var commitCnt = 0
+	i := 0
+	commitCnt := 0
 	for _, part := range blameParts {
 		for index, line := range part.Lines {
 			i++
@@ -252,7 +255,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 				commitCnt++
 
 				// User avatar image
-				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Data["Lang"].(string))
+				commitSince := timeutil.TimeSinceUnix(timeutil.TimeStamp(commit.Author.When.Unix()), ctx.Locale.Language())
 
 				var avatar string
 				if commit.User != nil {
@@ -277,11 +280,14 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 			fileName := fmt.Sprintf("%v", ctx.Data["FileName"])
 			line = highlight.Code(fileName, language, line)
 
+			br.EscapeStatus, line = charset.EscapeControlString(line)
 			br.Code = gotemplate.HTML(line)
 			rows = append(rows, br)
+			escapeStatus = escapeStatus.Or(br.EscapeStatus)
 		}
 	}
 
+	ctx.Data["EscapeStatus"] = escapeStatus
 	ctx.Data["BlameRows"] = rows
 	ctx.Data["CommitCnt"] = commitCnt
 }

@@ -96,9 +96,7 @@ func SlackLinkToRef(repoURL, ref string) string {
 	return SlackLinkFormatter(url, refName)
 }
 
-var (
-	_ PayloadConvertor = &SlackPayload{}
-)
+var _ PayloadConvertor = &SlackPayload{}
 
 // Create implements PayloadConvertor Create method
 func (s *SlackPayload) Create(p *api.CreatePayload) (api.Payloader, error) {

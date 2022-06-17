@@ -42,7 +42,7 @@ func DeletePublicKey(doer *user_model.User, id int64) (err error) {
 	committer.Close()
 
 	if key.Type == asymkey_model.KeyTypePrincipal {
-		return asymkey_model.RewriteAllPrincipalKeys()
+		return asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext)
 	}
 
 	return asymkey_model.RewriteAllPublicKeys()

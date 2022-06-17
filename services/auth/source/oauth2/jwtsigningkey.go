@@ -25,7 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	ini "gopkg.in/ini.v1"
 )
 
@@ -410,7 +410,7 @@ func loadOrCreateAsymmetricKey() (interface{}, error) {
 				return err
 			}
 
-			f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+			f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 			if err != nil {
 				return err
 			}

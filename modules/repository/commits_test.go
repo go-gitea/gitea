@@ -50,7 +50,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository)
-	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(repo.RepoPath(), "/user2/repo16")
+	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
 	assert.NotNil(t, headCommit)

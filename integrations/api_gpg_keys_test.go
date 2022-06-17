@@ -28,15 +28,18 @@ func TestGPGKeys(t *testing.T) {
 		token       string
 		results     []int
 	}{
-		{name: "NoLogin", makeRequest: MakeRequest, token: "",
+		{
+			name: "NoLogin", makeRequest: MakeRequest, token: "",
 			results: []int{http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized, http.StatusUnauthorized},
 		},
-		{name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
-			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusUnprocessableEntity, http.StatusNotFound, http.StatusCreated, http.StatusNotFound, http.StatusCreated}},
+		{
+			name: "LoggedAsUser2", makeRequest: session.MakeRequest, token: token,
+			results: []int{http.StatusOK, http.StatusOK, http.StatusNotFound, http.StatusNoContent, http.StatusUnprocessableEntity, http.StatusNotFound, http.StatusCreated, http.StatusNotFound, http.StatusCreated},
+		},
 	}
 
 	for _, tc := range tt {
-		//Basic test on result code
+		// Basic test on result code
 		t.Run(tc.name, func(t *testing.T) {
 			t.Run("ViewOwnGPGKeys", func(t *testing.T) {
 				testViewOwnGPGKeys(t, tc.makeRequest, tc.token, tc.results[0])
@@ -66,28 +69,27 @@ func TestGPGKeys(t *testing.T) {
 		})
 	}
 
-	//Check state after basic add
+	// Check state after basic add
 	t.Run("CheckState", func(t *testing.T) {
-
 		var keys []*api.GPGKey
 
-		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+token) //GET all keys
+		req := NewRequest(t, "GET", "/api/v1/user/gpg_keys?token="+token) // GET all keys
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &keys)
 		assert.Len(t, keys, 1)
 
-		primaryKey1 := keys[0] //Primary key 1
+		primaryKey1 := keys[0] // Primary key 1
 		assert.EqualValues(t, "38EA3BCED732982C", primaryKey1.KeyID)
 		assert.Len(t, primaryKey1.Emails, 1)
 		assert.EqualValues(t, "user2@example.com", primaryKey1.Emails[0].Email)
 		assert.True(t, primaryKey1.Emails[0].Verified)
 
-		subKey := primaryKey1.SubsKey[0] //Subkey of 38EA3BCED732982C
+		subKey := primaryKey1.SubsKey[0] // Subkey of 38EA3BCED732982C
 		assert.EqualValues(t, "70D7C694D17D03AD", subKey.KeyID)
 		assert.Empty(t, subKey.Emails)
 
 		var key api.GPGKey
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+token) //Primary key 1
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(primaryKey1.ID, 10)+"?token="+token) // Primary key 1
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "38EA3BCED732982C", key.KeyID)
@@ -95,14 +97,14 @@ func TestGPGKeys(t *testing.T) {
 		assert.EqualValues(t, "user2@example.com", key.Emails[0].Email)
 		assert.True(t, key.Emails[0].Verified)
 
-		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+token) //Subkey of 38EA3BCED732982C
+		req = NewRequest(t, "GET", "/api/v1/user/gpg_keys/"+strconv.FormatInt(subKey.ID, 10)+"?token="+token) // Subkey of 38EA3BCED732982C
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &key)
 		assert.EqualValues(t, "70D7C694D17D03AD", key.KeyID)
 		assert.Empty(t, key.Emails)
 	})
 
-	//Check state after basic add
+	// Check state after basic add
 	t.Run("CheckCommits", func(t *testing.T) {
 		t.Run("NotSigned", func(t *testing.T) {
 			var branch api.Branch
@@ -182,7 +184,7 @@ INx/MmBfmtCq05FqNclvU+sj2R3N1JJOtBOjZrJHQbJhzoILou8AkxeX1A+q9OAz
 }
 
 func testCreateValidGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	//User2 <user2@example.com> //primary & activated
+	// User2 <user2@example.com> //primary & activated
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQENBFmGVsMBCACuxgZ7W7rI9xN08Y4M7B8yx/6/I4Slm94+wXf8YNRvAyqj30dW
@@ -216,7 +218,7 @@ uy6MA3VSB99SK9ducGmE1Jv8mcziREroz2TEGr0zPs6h
 }
 
 func testCreateValidSecondaryEmailGPGKey(t *testing.T, makeRequest makeRequestFunc, token string, expected int) {
-	//User2 <user2-2@example.com> //secondary and not activated
+	// User2 <user2-2@example.com> //secondary and not activated
 	testCreateGPGKey(t, makeRequest, token, expected, `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 mQGNBGC2K2cBDAC1+Xgk+8UfhASVgRngQi4rnQ8k0t+bWsBz4Czd26+cxVDRwlTT

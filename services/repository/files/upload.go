@@ -5,12 +5,14 @@
 package files
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -31,7 +33,7 @@ type UploadRepoFileOptions struct {
 
 type uploadInfo struct {
 	upload        *models.Upload
-	lfsMetaObject *models.LFSMetaObject
+	lfsMetaObject *git_model.LFSMetaObject
 }
 
 func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, original error) error {
@@ -40,7 +42,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 			continue
 		}
 		if !info.lfsMetaObject.Existing {
-			if _, err := models.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
+			if _, err := git_model.RemoveLFSMetaObjectByOid(t.repo.ID, info.lfsMetaObject.Oid); err != nil {
 				original = fmt.Errorf("%v, %v", original, err)
 			}
 		}
@@ -49,7 +51,7 @@ func cleanUpAfterFailure(infos *[]uploadInfo, t *TemporaryUploadRepository, orig
 }
 
 // UploadRepoFiles uploads files to the given repository
-func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
+func UploadRepoFiles(ctx context.Context, repo *repo_model.Repository, doer *user_model.User, opts *UploadRepoFileOptions) error {
 	if len(opts.Files) == 0 {
 		return nil
 	}
@@ -64,7 +66,7 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 	for i, upload := range uploads {
 		// Check file is not lfs locked, will return nil if lock setting not enabled
 		filepath := path.Join(opts.TreePath, upload.Name)
-		lfsLock, err := models.GetTreePathLock(repo.ID, filepath)
+		lfsLock, err := git_model.GetTreePathLock(repo.ID, filepath)
 		if err != nil {
 			return err
 		}
@@ -73,14 +75,14 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 			if err != nil {
 				return err
 			}
-			return models.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: u.Name}
+			return git_model.ErrLFSFileLocked{RepoID: repo.ID, Path: filepath, UserName: u.Name}
 		}
 
 		names[i] = upload.Name
 		infos[i] = uploadInfo{upload: upload}
 	}
 
-	t, err := NewTemporaryUploadRepository(repo)
+	t, err := NewTemporaryUploadRepository(ctx, repo)
 	if err != nil {
 		return err
 	}
@@ -97,6 +99,7 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 		filename2attribute2info, err = t.gitRepo.CheckAttribute(git.CheckAttributeOpts{
 			Attributes: []string{"filter"},
 			Filenames:  names,
+			CachedOnly: true,
 		})
 		if err != nil {
 			return err
@@ -121,7 +124,7 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 	committer := doer
 
 	// Now commit the tree
-	commitHash, err := t.CommitTree(author, committer, treeHash, opts.Message, opts.Signoff)
+	commitHash, err := t.CommitTree(opts.LastCommitID, author, committer, treeHash, opts.Message, opts.Signoff)
 	if err != nil {
 		return err
 	}
@@ -131,7 +134,7 @@ func UploadRepoFiles(repo *repo_model.Repository, doer *user_model.User, opts *U
 		if infos[i].lfsMetaObject == nil {
 			continue
 		}
-		infos[i].lfsMetaObject, err = models.NewLFSMetaObject(infos[i].lfsMetaObject)
+		infos[i].lfsMetaObject, err = git_model.NewLFSMetaObject(infos[i].lfsMetaObject)
 		if err != nil {
 			// OK Now we need to cleanup
 			return cleanUpAfterFailure(&infos, t, err)
@@ -173,7 +176,7 @@ func copyUploadedLFSFileIntoRepository(info *uploadInfo, filename2attribute2info
 			return err
 		}
 
-		info.lfsMetaObject = &models.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
+		info.lfsMetaObject = &git_model.LFSMetaObject{Pointer: pointer, RepositoryID: t.repo.ID}
 
 		if objectHash, err = t.HashObject(strings.NewReader(pointer.StringContent())); err != nil {
 			return err

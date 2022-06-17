@@ -13,9 +13,9 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubURL, newBranchName string, expectedStatus int) string {
@@ -30,7 +30,7 @@ func testCreateBranch(t testing.TB, session *TestSession, user, repo, oldRefSubU
 		"new_branch_name": newBranchName,
 	})
 	resp := session.MakeRequest(t, req, expectedStatus)
-	if expectedStatus != http.StatusFound {
+	if expectedStatus != http.StatusSeeOther {
 		return ""
 	}
 	return test.RedirectURL(resp)
@@ -51,37 +51,37 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "feature/test1",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test1"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.require_error"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "feature=test1",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature=test1"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      strings.Repeat("b", 101),
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "form.NewBranchName") + i18n.Tr("en", "form.max_size_error", "100"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "master",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.branch_already_exists", "master"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "master/test",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.branch_name_conflict", "master/test", "master"),
 		},
 		{
@@ -92,21 +92,21 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 		{
 			OldRefSubURL:   "commit/65f1bf27bc3bf70f64657658635e66094edbcb4d",
 			NewBranch:      "feature/test3",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test3"),
 		},
 		{
 			OldRefSubURL:   "branch/master",
 			NewBranch:      "v1.0.0",
 			CreateRelease:  "v1.0.0",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.tag_collision", "v1.0.0"),
 		},
 		{
 			OldRefSubURL:   "tag/v1.0.0",
 			NewBranch:      "feature/test4",
 			CreateRelease:  "v1.0.1",
-			ExpectedStatus: http.StatusFound,
+			ExpectedStatus: http.StatusSeeOther,
 			FlashMessage:   i18n.Tr("en", "repo.branch.create_success", "feature/test4"),
 		},
 	}
@@ -116,7 +116,7 @@ func testCreateBranches(t *testing.T, giteaURL *url.URL) {
 			createNewRelease(t, session, "/user2/repo1", test.CreateRelease, test.CreateRelease, false, false)
 		}
 		redirectURL := testCreateBranch(t, session, "user2", "repo1", test.OldRefSubURL, test.NewBranch, test.ExpectedStatus)
-		if test.ExpectedStatus == http.StatusFound {
+		if test.ExpectedStatus == http.StatusSeeOther {
 			req := NewRequest(t, "GET", redirectURL)
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			htmlDoc := NewHTMLParser(t, resp.Body)
@@ -135,7 +135,7 @@ func TestCreateBranchInvalidCSRF(t *testing.T) {
 		"_csrf":           "fake_csrf",
 		"new_branch_name": "test",
 	})
-	resp := session.MakeRequest(t, req, http.StatusFound)
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	loc := resp.Header().Get("Location")
 	assert.Equal(t, setting.AppSubURL+"/", loc)
 	resp = session.MakeRequest(t, NewRequest(t, "GET", loc), http.StatusOK)

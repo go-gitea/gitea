@@ -22,6 +22,12 @@ file can be unpacked and used to restore an instance.
 
 {{< toc >}}
 
+## Backup Consistency
+
+To ensure the consistency of the Gitea instance, it must be shutdown during backup.
+
+Gitea consists of a database, files and git repositories, all of which change when it is used. For instance, when a migration is in progress, a transaction is created in the database while the git repository is being copied over. If the backup happens in the middle of the migration, the git repository may be incomplete although the database claims otherwise because it was dumped afterwards. The only way to avoid such race conditions is by stopping the Gitea instance during the backups.
+
 ## Backup Command (`dump`)
 
 Switch to the user running Gitea: `su git`. Run `./gitea dump -c /path/to/app.ini` in the Gitea installation
@@ -48,6 +54,17 @@ Inside the `gitea-dump-1482906742.zip` file, will be the following:
 Intermediate backup files are created in a temporary directory specified either with the
 `--tempdir` command-line parameter or the `TMPDIR` environment variable.
 
+## Backup the database
+
+The SQL dump created by `gitea dump` uses XORM and Gitea admins may prefer to use the native the MySQL and PostgreSQL dump tools instead. There are still open issues when using XORM for dumping the database that may cause problems when attempting to restore it.
+
+```sh
+# mysql
+mysqldump -u$USER -p$PASS --database $DATABASE > gitea-db.sql
+# postgres
+pgdump -U $USER $DATABASE > gitea-db.sql
+```
+
 ### Using Docker (`dump`)
 
 There are a few caveats for using the `dump` command with Docker.
@@ -57,7 +74,7 @@ The command has to be executed with the `RUN_USER = <OS_USERNAME>` specified in 
 Example:
 
 ```none
-docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf "name=<NAME_OF_DOCKER_CONTAINER>") bash -c '/app/gitea/gitea dump -c </path/to/app.ini>'
+docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf 'name=^<NAME_OF_DOCKER_CONTAINER>$') bash -c '/user/local/bin/gitea dump -c </path/to/app.ini>'
 ```
 
 \*Note: `--tempdir` refers to the temporary directory of the docker environment used by Gitea; if you have not specified a custom `--tempdir`, then Gitea uses `/tmp` or the `TMPDIR` environment variable of the docker container. For `--tempdir` adjust your `docker exec` command options accordingly.
@@ -95,3 +112,59 @@ Repository Git Hooks should be regenerated if installation method is changed (eg
 With Gitea running, and from the directory Gitea's binary is located, execute: `./gitea admin regenerate hooks`
 
 This ensures that application and configuration file paths in repository Git Hooks are consistent and applicable to the current installation. If these paths are not updated, repository `push` actions will fail.
+
+### Using Docker (`restore`)
+
+There is also no support for a recovery command in a Docker-based gitea instance. The restore process contains the same steps as described in the previous section but with different paths.
+
+Example:
+
+```sh
+# open bash session in container
+docker exec --user git -it 2a83b293548e bash
+# unzip your backup file within the container
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+# restore the gitea data
+mv data/* /data/gitea
+# restore the repositories itself
+mv repos/* /data/git/repositories/
+# adjust file permissions
+chown -R git:git /data
+# Regenerate Git Hooks
+/usr/local/bin/gitea -c '/data/gitea/conf/app.ini' admin regenerate hooks
+```
+
+The default user in the gitea container is `git` (1000:1000). Please replace `2a83b293548e` with your gitea container id or name.
+
+These are the default paths used in the container:
+
+```text
+DEFAULT CONFIGURATION:
+     CustomPath:  /data/gitea (GITEA_CUSTOM)
+     CustomConf:  /data/gitea/conf/app.ini
+     AppPath:     /usr/local/bin/gitea
+     AppWorkPath: /usr/local/bin
+```
+
+### Using Docker-rootless (`restore`)
+
+The restore workflow in Docker-rootless containers differs only in the directories to be used:
+
+```sh
+# open bash session in container
+docker exec --user git -it 2a83b293548e bash
+# unzip your backup file within the container
+unzip gitea-dump-1610949662.zip
+cd gitea-dump-1610949662
+# restore the app.ini
+mv data/conf/app.ini /etc/gitea/app.ini
+# restore the gitea data
+mv data/* /var/lib/gitea
+# restore the repositories itself
+mv repos/* /var/lib/gitea/git/repositories
+# adjust file permissions
+chown -R git:git /etc/gitea/app.ini /var/lib/gitea
+# Regenerate Git Hooks
+/usr/local/bin/gitea -c '/etc/gitea/app.ini' admin regenerate hooks
+```

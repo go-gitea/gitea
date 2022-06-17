@@ -60,12 +60,23 @@ type ExternalLoginUser struct {
 	LastName          string
 	NickName          string
 	Description       string
-	AvatarURL         string
+	AvatarURL         string `xorm:"TEXT"`
 	Location          string
 	AccessToken       string `xorm:"TEXT"`
 	AccessTokenSecret string `xorm:"TEXT"`
 	RefreshToken      string `xorm:"TEXT"`
 	ExpiresAt         time.Time
+}
+
+type ExternalUserMigrated interface {
+	GetExternalName() string
+	GetExternalID() int64
+}
+
+type ExternalUserRemappable interface {
+	GetUserID() int64
+	RemapExternalUser(externalName string, externalID, userID int64) error
+	ExternalUserMigrated
 }
 
 func init() {

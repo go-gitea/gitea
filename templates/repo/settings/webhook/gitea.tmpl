@@ -1,5 +1,5 @@
 {{if eq .HookType "gitea"}}
-	<p>{{.i18n.Tr "repo.settings.add_webhook_desc" "https://docs.gitea.io/en-us/webhooks/" | Str2html}}</p>
+	<p>{{.i18n.Tr "repo.settings.add_web_hook_desc" "https://docs.gitea.io/en-us/webhooks/" (.i18n.Tr "repo.settings.web_hook_name_gitea") | Str2html}}</p>
 	<form class="ui form" action="{{.BaseLink}}/gitea/{{or .Webhook.ID "new"}}" method="post">
 		{{template "base/disable_form_autofill"}}
 		{{.CsrfTokenHtml}}

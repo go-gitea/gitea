@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export default function initRepoGraphGit() {
   const graphContainer = document.getElementById('git-graph-container');
   if (!graphContainer) return;

@@ -6,9 +6,12 @@ package db
 
 import (
 	"fmt"
+	"strconv"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
+	"xorm.io/xorm"
 	"xorm.io/xorm/schemas"
 )
 
@@ -38,4 +41,17 @@ func ConvertUtf8ToUtf8mb4() error {
 	}
 
 	return nil
+}
+
+// Cell2Int64 converts a xorm.Cell type to int64,
+// and handles possible irregular cases.
+func Cell2Int64(val xorm.Cell) int64 {
+	switch (*val).(type) {
+	case []uint8:
+		log.Trace("Cell2Int64 ([]uint8): %v", *val)
+
+		v, _ := strconv.ParseInt(string((*val).([]uint8)), 10, 64)
+		return v
+	}
+	return (*val).(int64)
 }

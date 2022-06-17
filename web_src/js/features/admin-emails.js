@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initAdminEmails() {
   function linkEmailAction(e) {
     const $this = $(this);

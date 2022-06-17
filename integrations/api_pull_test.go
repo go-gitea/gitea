@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -33,7 +33,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 	var pulls []*api.PullRequest
 	DecodeJSON(t, resp, &pulls)
-	expectedLen := unittest.GetCount(t, &models.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
+	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
 }
 
@@ -42,7 +42,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 	defer prepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{Status: models.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false)).(*models.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false)).(*issues_model.PullRequest)
 	pr.LoadIssue()
 	issue_service.ChangeTitle(pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
@@ -77,7 +77,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 		Base:  "master",
 		Title: "create a failure pr",
 	})
-	session.MakeRequest(t, req, 201)
+	session.MakeRequest(t, req, http.StatusCreated)
 	session.MakeRequest(t, req, http.StatusUnprocessableEntity) // second request should fail
 }
 
@@ -105,7 +105,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 
 	req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), opts)
 
-	res := session.MakeRequest(t, req, 201)
+	res := session.MakeRequest(t, req, http.StatusCreated)
 	pull := new(api.PullRequest)
 	DecodeJSON(t, res, pull)
 
@@ -165,7 +165,7 @@ func TestAPIEditPull(t *testing.T) {
 		Title: "create a success pr",
 	})
 	pull := new(api.PullRequest)
-	resp := session.MakeRequest(t, req, 201)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "master", pull.Base.Name)
 
@@ -173,12 +173,12 @@ func TestAPIEditPull(t *testing.T) {
 		Base:  "feature/1",
 		Title: "edit a this pr",
 	})
-	resp = session.MakeRequest(t, req, 201)
+	resp = session.MakeRequest(t, req, http.StatusCreated)
 	DecodeJSON(t, resp, pull)
 	assert.EqualValues(t, "feature/1", pull.Base.Name)
 
 	req = NewRequestWithJSON(t, http.MethodPatch, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d?token=%s", owner10.Name, repo10.Name, pull.Index, token), &api.EditPullRequestOption{
 		Base: "not-exist",
 	})
-	session.MakeRequest(t, req, 404)
+	session.MakeRequest(t, req, http.StatusNotFound)
 }

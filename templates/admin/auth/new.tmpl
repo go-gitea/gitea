@@ -14,7 +14,7 @@
 				<div class="inline required field {{if .Err_Type}}error{{end}}">
 					<label>{{.i18n.Tr "admin.auths.auth_type"}}</label>
 					<div class="ui selection type dropdown">
-						<input type="hidden" id="auth_type" name="type" value="{{.type.Int}}">
+						<input type="hidden" id="auth_type" name="type" value="{{.type}}">
 						<div class="text">{{.CurrentTypeName}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">

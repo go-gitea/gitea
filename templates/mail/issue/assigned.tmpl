@@ -9,7 +9,7 @@
 </head>
 
 {{$repo_url := printf "<a href='%s'>%s</a>" (Escape .Issue.Repo.HTMLURL) (Escape .Issue.Repo.FullName)}}
-{{$link := printf "<a href='%s'>#%d</a>" (Escape .Link) (Escape .Issue.Index)}}
+{{$link := printf "<a href='%s'>#%d</a>" (Escape .Link) .Issue.Index}}
 <body>
 	<p>
 		{{if .IsPull}}

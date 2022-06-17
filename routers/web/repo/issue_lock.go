@@ -5,9 +5,7 @@
 package repo
 
 import (
-	"net/http"
-
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
@@ -34,8 +32,8 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := models.LockIssue(&models.IssueLockOptions{
-		Doer:   ctx.User,
+	if err := issues_model.LockIssue(&issues_model.IssueLockOptions{
+		Doer:   ctx.Doer,
 		Issue:  issue,
 		Reason: form.Reason,
 	}); err != nil {
@@ -43,12 +41,11 @@ func LockIssue(ctx *context.Context) {
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }
 
 // UnlockIssue unlocks a previously locked issue.
 func UnlockIssue(ctx *context.Context) {
-
 	issue := GetActionIssue(ctx)
 	if ctx.Written() {
 		return
@@ -60,13 +57,13 @@ func UnlockIssue(ctx *context.Context) {
 		return
 	}
 
-	if err := models.UnlockIssue(&models.IssueLockOptions{
-		Doer:  ctx.User,
+	if err := issues_model.UnlockIssue(&issues_model.IssueLockOptions{
+		Doer:  ctx.Doer,
 		Issue: issue,
 	}); err != nil {
 		ctx.ServerError("UnlockIssue", err)
 		return
 	}
 
-	ctx.Redirect(issue.HTMLURL(), http.StatusSeeOther)
+	ctx.Redirect(issue.HTMLURL())
 }

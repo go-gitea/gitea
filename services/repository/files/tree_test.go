@@ -29,7 +29,7 @@ func TestGetTreeBySHA(t *testing.T) {
 	ctx.SetParams(":id", "1")
 	ctx.SetParams(":sha", sha)
 
-	tree, err := GetTreeBySHA(ctx.Repo.Repository, ctx.Params(":sha"), page, perPage, true)
+	tree, err := GetTreeBySHA(ctx, ctx.Repo.Repository, ctx.Repo.GitRepo, ctx.Params(":sha"), page, perPage, true)
 	assert.NoError(t, err)
 	expectedTree := &api.GitTreeResponse{
 		SHA: "65f1bf27bc3bf70f64657658635e66094edbcb4d",
