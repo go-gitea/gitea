@@ -462,10 +462,16 @@ github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2/go.mod 
 github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31/go.mod h1:Ogl1Tioa0aV7gstGFO7KhffUsb9M4ydbEbbxpcEDc24=
 github.com/go-ap/activitypub v0.0.0-20220606130025-d23c21aea068 h1:Xzxc/HjHFAwJTieEWcC1SjBHVBq+Y1xPgk7WWcG3sjs=
 github.com/go-ap/activitypub v0.0.0-20220606130025-d23c21aea068/go.mod h1:h5U5YGW+z4mVF3XH6bKfBmsJinRVuKpS23uYqJfGSbo=
+github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b h1:+RjYfEfoZdM3wHFs752dlOpGaoRhwRRyQxjajg08LcQ=
+github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b/go.mod h1:DE3vvc6Didgfd3k7M1Mos6qMDFNmMrxJmYVMHG9h9Io=
 github.com/go-ap/errors v0.0.0-20220529131844-4c7dbeabb369 h1:z09Qf9XB5lU3NBZnrsN9VJqrIgwKLrsBVUgrir4zL9A=
 github.com/go-ap/errors v0.0.0-20220529131844-4c7dbeabb369/go.mod h1:yENIaXEY5AiFL/qGTBBcPuk40I5SLyZzwrQj2ID5PHQ=
+github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f h1:kJhGo4NApJP0Lt9lkJnfmuTnRWVFbCynY0kiTxpPUR4=
+github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f/go.mod h1:KHkKFKZvc05lr79+RGoq/zG8YjWi3+FK60Bxd+mpCew=
 github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660 h1:AUG8+r0Q/zbNUAi5CWVBK5oUhOZDX3Kkr+oWURaJIfU=
 github.com/go-ap/jsonld v0.0.0-20200327122108-fafac2de2660/go.mod h1:jyveZeGw5LaADntW+UEsMjl3IlIwk+DxlYNsbofQkGA=
+github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d h1:Z/oRXMlZHjvjIqDma1FrIGL3iE5YL7MUI0bwYEZ6qbA=
+github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d/go.mod h1:jyveZeGw5LaADntW+UEsMjl3IlIwk+DxlYNsbofQkGA=
 github.com/go-asn1-ber/asn1-ber v1.5.4 h1:vXT6d/FNDiELJnLb6hGNa309LMsrCoYFvpwHDF0+Y1A=
 github.com/go-asn1-ber/asn1-ber v1.5.4/go.mod h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=
 github.com/go-chi/chi/v5 v5.0.1/go.mod h1:DslCQbL2OYiznFReuXYUmQ2hGd1aDpCnlMNITLSKoi8=
