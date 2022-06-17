@@ -728,6 +728,33 @@ func checkHomeCodeViewable(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
+func checkCitationFile(ctx *context.Context) {
+	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
+	if err != nil {
+		return
+	} else {
+		allEntries, err := tree.ListEntries()
+		if err != nil {
+		} else {
+			allEntries.CustomSort(base.NaturalSortLess)
+			for _, entry := range allEntries {
+				if entry.Name() == "CITATION.cff" {
+					ctx.Data["haveCitationFile"] = true
+					// Read Citation file contents
+					blob := entry.Blob()
+					dataRc, _ := blob.DataAsync()
+					buf := make([]byte, 1024)
+					n, _ := util.ReadAtMost(dataRc, buf)
+					buf = buf[:n]
+					dataRc.Close()
+					ctx.PageData["fileContent"] = string(buf)
+					break
+				}
+			}
+		}
+	}
+}
+
 // Home render repository home page
 func Home(ctx *context.Context) {
 	isFeed, _, showFeedType := feed.GetFeedType(ctx.Params(":reponame"), ctx.Req)
@@ -737,7 +764,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
-
+	checkCitationFile(ctx)
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
