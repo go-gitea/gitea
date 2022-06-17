@@ -192,8 +192,9 @@ var (
 
 func diffToHTML(lineWrapperTags []string, diffs []diffmatchpatch.Diff, lineType DiffLineType) string {
 	buf := bytes.NewBuffer(nil)
+	// restore the line wrapper tags <span class="line"> and <span class="cl">, if necessary
 	for _, tag := range lineWrapperTags {
-		buf.WriteString(tag) // restore the line wrapper tags <span class="line"> and <span class="cl">
+		buf.WriteString(tag)
 	}
 	for _, diff := range diffs {
 		switch {
@@ -282,6 +283,11 @@ func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
+// HighlightCodeDiff is used to do diff with highlighted HTML code.
+// The HTML tags will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
+// These Unicode placeholders are friendly to the diff.
+// Then after diff, the placeholders in diff result will be recovered to the HTML tags.
+// It's guaranteed that the tags in final diff result are paired correctly.
 type HighlightCodeDiff struct {
 	placeholderBegin    rune
 	placeholderMaxCount int
@@ -346,26 +352,25 @@ func (hcd *HighlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	return diffs
 }
 
-func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string {
+func (hcd *HighlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	var tagStack []string
 	res := strings.Builder{}
-	s := highlightCode
 
 	firstRunForLineTags := hcd.lineWrapperTags == nil
 
 	// the standard chroma highlight HTML is "<span class="line [hl]"><span class="cl"> ... </span></span>"
 	for {
 		// find the next HTML tag
-		pos1 := strings.IndexByte(s, '<')
-		pos2 := strings.IndexByte(s, '>')
+		pos1 := strings.IndexByte(htmlCode, '<')
+		pos2 := strings.IndexByte(htmlCode, '>')
 		if pos1 == -1 || pos2 == -1 || pos2 < pos1 {
 			break
 		}
-		tag := s[pos1 : pos2+1]
+		tag := htmlCode[pos1 : pos2+1]
 
 		// write the content before the tag into result string, and consume the tag in the string
-		res.WriteString(s[:pos1])
-		s = s[pos2+1:]
+		res.WriteString(htmlCode[:pos1])
+		htmlCode = htmlCode[pos2+1:]
 
 		// the line wrapper tags should be removed before diff
 		if strings.HasPrefix(tag, `<span class="line`) || strings.HasPrefix(tag, `<span class="cl"`) {
@@ -373,7 +378,7 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string
 				// if this is the first run for converting, save the line wrapper tags for later use, they should be added back
 				hcd.lineWrapperTags = append(hcd.lineWrapperTags, tag)
 			}
-			s = strings.TrimSuffix(s, "</span>")
+			htmlCode = strings.TrimSuffix(htmlCode, "</span>")
 			continue
 		}
 
@@ -404,11 +409,11 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(highlightCode string) string
 		if placeholder != 0 {
 			res.WriteRune(placeholder) // use the placeholder to replace the tag
 		} else {
-			res.WriteString(tag) // unfortunately, all private use runes has been exhausted, no more placeholder could be used, so do not covert the tag
+			res.WriteString(tag) // unfortunately, all private use runes has been exhausted, no more placeholder could be used, so do not convert the tag
 		}
 	}
-
-	res.WriteString(s)
+	// write the remaining string
+	res.WriteString(htmlCode)
 	return res.String()
 }
 
@@ -419,14 +424,15 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 	for _, r := range diff.Text {
 		tag, ok := hcd.placeholderTagMap[r]
 		if !ok || tag == "" {
-			sb.WriteRune(r)
+			sb.WriteRune(r) // if the run is not a placeholder, write it as it is
 			continue
 		}
 		var tagToRecover string
 		if tag[1] == '/' {
+			// only get the tag itself, ignore the trailing comment (for how the comment is generated, see the code in `convert` function)
 			tagToRecover = tag[:strings.IndexByte(tag, '>')+1]
 			if len(tagStack) == 0 {
-				continue // if no open tag yet, skip the closed tag
+				continue // if no open tag in stack yet, skip the closed tag
 			}
 			tagStack = tagStack[:len(tagStack)-1]
 		} else {
@@ -440,13 +446,11 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 		// close all open tags
 		for i := len(tagStack) - 1; i >= 0; i-- {
 			tagToClose := tagStack[i]
-			pos := strings.IndexByte(tagToClose, ' ')
-			if pos == -1 {
-				pos = strings.IndexByte(tagToClose, '>')
-			}
+			// get the closed tag "</span>" from "<span class=...>" or "<span>"
+			pos := strings.IndexAny(tagToClose, " >")
 			if pos != -1 {
 				sb.WriteString("</" + tagToClose[1:pos] + ">")
-			}
+			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML open tag
 		}
 	}
 
