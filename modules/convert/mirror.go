@@ -12,7 +12,10 @@ import (
 
 // ToPushMirror convert from repo_model.PushMirror and remoteAddress to api.TopicResponse
 func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) *api.PushMirror {
-	remoteAddress, _ := getMirrorRemoteAddress(repo, pm.RemoteName)
+	remoteAddress, err := getMirrorRemoteAddress(repo, pm.RemoteName)
+	if err != nil {
+		return nil
+	}
 	return &api.PushMirror{
 		RepoName:       repo.Name,
 		RemoteName:     pm.RemoteName,
