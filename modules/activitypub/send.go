@@ -22,8 +22,6 @@ import (
 func Fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", ActivityStreamsContentType)
-	req.Header("Accept-Charset", "utf-8")
-	req.Header("Date", CurrentTime())
 	resp, err := req.Response()
 	if err != nil {
 		return

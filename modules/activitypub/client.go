@@ -103,7 +103,6 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 		return
 	}
 	req.Header.Add("Content-Type", ActivityStreamsContentType)
-	req.Header.Add("Accept-Charset", "utf-8")
 	req.Header.Add("Date", CurrentTime())
 	signer, _, err := httpsig.NewSigner(c.algs, c.digestAlg, c.postHeaders, httpsig.Signature, httpsigExpirationTime)
 	if err != nil {
