@@ -251,6 +251,19 @@ func syncGitConfig() (err error) {
 		}
 	}
 
+	// Due to CVE-2022-24765, git now denies access to git directories which are not owned by current user
+	// however, some docker users and samba users find it difficult to configure their systems so that Gitea's git repositories are owned by the Gitea user. (Possibly Windows Service users - but ownership in this case should really be set correctly on the filesystem.)
+	// see issue: https://github.com/go-gitea/gitea/issues/19455
+	// Fundamentally the problem lies with the uid-gid-mapping mechanism for filesystems in docker on windows (and to a lesser extent samba).
+	// Docker's configuration mechanism for local filesystems provides no way of setting this mapping and although there is a mechanism for setting this uid through using cifs mounting it is complicated and essentially undocumented
+	// Thus the owner uid/gid for files on these filesystems will be marked as root.
+	// As Gitea now always use its internal git config file, and access to the git repositories is managed through Gitea,
+	// it is now safe to set "safe.directory=*" for internal usage only.
+	// Please note: the wildcard "*" is only supported by Git 2.30.4/2.31.3/2.32.2/2.33.3/2.34.3/2.35.3/2.36 and later
+	// Although only supported by Git 2.30.4/2.31.3/2.32.2/2.33.3/2.34.3/2.35.3/2.36 and later - this setting is tolerated by earlier versions
+	if err := configAddNonExist("safe.directory", "*"); err != nil {
+		return err
+	}
 	if runtime.GOOS == "windows" {
 		if err := configSet("core.longpaths", "true"); err != nil {
 			return err
