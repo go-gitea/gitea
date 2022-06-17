@@ -160,7 +160,7 @@ type SearchRepoOptions struct {
 	LowerNames []string
 	// When specified true, apply some filters over the conditions:
 	// - Don't show forks, when opts.Fork is OptionalBoolNone.
-	// - Do not display repositories that lacks a description, icon and topic.
+	// - Do not display repositories that don't have a description, an icon and topics.
 	OnlyShowRelevant bool
 }
 
