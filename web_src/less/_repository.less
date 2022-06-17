@@ -1055,10 +1055,6 @@
         .merge-section {
           background-color: var(--color-box-body);
 
-          .item {
-            padding: .25rem 0;
-          }
-
           .item-section {
             display: flex;
             align-items: center;
@@ -1225,6 +1221,10 @@
       textarea {
         height: 200px;
         font-family: var(--fonts-monospace);
+      }
+
+      .CodeMirror-scroll {
+        max-height: 85vh;
       }
     }
   }
@@ -2105,6 +2105,10 @@
           }
         }
       }
+    }
+
+    .form .CodeMirror-scroll {
+      max-height: 85vh;
     }
 
     @media @mediaSm {
@@ -3044,9 +3048,10 @@ td.blob-excerpt {
 }
 
 .file-header {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  overflow-x: scroll;
   padding: 8px 12px !important;
 }
 
@@ -3058,6 +3063,7 @@ td.blob-excerpt {
 .file-info-entry {
   display: flex;
   align-items: center;
+  width: max-content;
 }
 
 .file-info-entry + .file-info-entry {
@@ -3077,6 +3083,18 @@ td.blob-excerpt {
 .wiki-content-footer .ui.message.unicode-escape-prompt {
   p {
     display: none;
+  }
+}
+
+.wiki-content-toc {
+  > ul > li {
+    margin-bottom: 4px;
+  }
+
+  ul {
+    margin: 0;
+    list-style: none;
+    padding-left: 1em;
   }
 }
 

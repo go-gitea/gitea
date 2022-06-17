@@ -28,17 +28,12 @@ type CheckAttributeOpts struct {
 
 // CheckAttribute return the Blame object of file
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return nil, fmt.Errorf("git version missing: %v", err)
-	}
-
 	env := []string{}
 
-	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.IndexFile) > 0 {
 		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
 	}
-	if len(opts.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.WorkTree) > 0 {
 		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
 	}
 
@@ -61,8 +56,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		}
 	}
 
-	// git check-attr --cached first appears in git 1.7.8
-	if opts.CachedOnly && CheckGitVersionAtLeast("1.7.8") == nil {
+	if opts.CachedOnly {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 
@@ -126,16 +120,16 @@ type CheckAttributeReader struct {
 	cancel      context.CancelFunc
 }
 
-// Init initializes the cmd
+// Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	cmdArgs := []string{"check-attr", "--stdin", "-z"}
 
-	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(c.IndexFile) > 0 {
 		cmdArgs = append(cmdArgs, "--cached")
 		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
 	}
 
-	if len(c.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(c.WorkTree) > 0 {
 		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
 	}
 
@@ -165,17 +159,10 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return err
 	}
 
-	if CheckGitVersionAtLeast("1.8.5") == nil {
-		lw := new(nulSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	} else {
-		lw := new(lineSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	}
+	lw := new(nulSeparatedAttributeWriter)
+	lw.attributes = make(chan attributeTriple, 5)
+	lw.closed = make(chan struct{})
+	c.stdOut = lw
 	return nil
 }
 
@@ -404,4 +391,38 @@ func (wr *lineSeparatedAttributeWriter) Close() error {
 	close(wr.attributes)
 	close(wr.closed)
 	return nil
+}
+
+// Create a check attribute reader for the current repository and provided commit ID
+func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return nil, func() {}
+	}
+
+	checker := &CheckAttributeReader{
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Repo:       repo,
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+	}
+	ctx, cancel := context.WithCancel(repo.Ctx)
+	if err := checker.Init(ctx); err != nil {
+		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+	} else {
+		go func() {
+			err := checker.Run()
+			if err != nil && err != ctx.Err() {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			}
+			cancel()
+		}()
+	}
+	deferable := func() {
+		_ = checker.Close()
+		cancel()
+		deleteTemporaryFile()
+	}
+
+	return checker, deferable
 }

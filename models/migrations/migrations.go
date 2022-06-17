@@ -421,7 +421,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialised")
+		return fmt.Errorf("Database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -955,7 +955,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+// modifyColumn will modify column's type or other property. SQLITE is not supported
 func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error

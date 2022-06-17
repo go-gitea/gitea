@@ -25,6 +25,22 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
+type ErrUserDoesNotHaveAccessToRepo struct {
+	UserID   int64
+	RepoName string
+}
+
+// IsErrUserDoesNotHaveAccessToRepo checks if an error is a ErrRepoFileAlreadyExists.
+func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
+	_, ok := err.(ErrUserDoesNotHaveAccessToRepo)
+	return ok
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
+	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
 var (
 	reservedRepoNames    = []string{".", "..", "-"}
 	reservedRepoPatterns = []string{"*.git", "*.wiki", "*.rss", "*.atom"}
@@ -414,6 +430,9 @@ func (repo *Repository) ComposeMetas() map[string]string {
 			switch unit.ExternalTrackerConfig().ExternalTrackerStyle {
 			case markup.IssueNameStyleAlphanumeric:
 				metas["style"] = markup.IssueNameStyleAlphanumeric
+			case markup.IssueNameStyleRegexp:
+				metas["style"] = markup.IssueNameStyleRegexp
+				metas["regexp"] = unit.ExternalTrackerConfig().ExternalTrackerRegexpPattern
 			default:
 				metas["style"] = markup.IssueNameStyleNumeric
 			}
@@ -739,4 +758,35 @@ func CountRepositories(ctx context.Context, opts CountRepositoryOptions) (int64,
 		return 0, fmt.Errorf("countRepositories: %v", err)
 	}
 	return count, nil
+}
+
+// StatsCorrectNumClosed update repository's issue related numbers
+func StatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
+	_, err := db.Exec(ctx, "UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
+	return err
+}
+
+// UpdateRepoIssueNumbers update repository issue numbers
+func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed bool) error {
+	e := db.GetEngine(ctx)
+	if isPull {
+		if _, err := e.ID(repoID).Decr("num_pulls").Update(new(Repository)); err != nil {
+			return err
+		}
+		if isClosed {
+			if _, err := e.ID(repoID).Decr("num_closed_pulls").Update(new(Repository)); err != nil {
+				return err
+			}
+		}
+	} else {
+		if _, err := e.ID(repoID).Decr("num_issues").Update(new(Repository)); err != nil {
+			return err
+		}
+		if isClosed {
+			if _, err := e.ID(repoID).Decr("num_closed_issues").Update(new(Repository)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

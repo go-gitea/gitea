@@ -7,7 +7,6 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
@@ -288,7 +287,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})

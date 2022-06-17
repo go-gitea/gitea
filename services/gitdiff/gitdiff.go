@@ -20,8 +20,9 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	pull_model "code.gitea.io/gitea/models/pull"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/analyze"
@@ -81,7 +82,7 @@ type DiffLine struct {
 	Match       int
 	Type        DiffLineType
 	Content     string
-	Comments    []*models.Comment
+	Comments    []*issues_model.Comment
 	SectionInfo *DiffLineSectionInfo
 }
 
@@ -703,8 +704,8 @@ type Diff struct {
 }
 
 // LoadComments loads comments into each line
-func (diff *Diff) LoadComments(ctx context.Context, issue *models.Issue, currentUser *user_model.User) error {
-	allComments, err := models.FetchCodeComments(ctx, issue, currentUser)
+func (diff *Diff) LoadComments(ctx context.Context, issue *issues_model.Issue, currentUser *user_model.User) error {
+	allComments, err := issues_model.FetchCodeComments(ctx, issue, currentUser)
 	if err != nil {
 		return err
 	}
@@ -1219,8 +1220,8 @@ func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio
 		} else if curFileLFSPrefix && strings.HasPrefix(line[1:], lfs.MetaFileOidPrefix) {
 			oid := strings.TrimPrefix(line[1:], lfs.MetaFileOidPrefix)
 			if len(oid) == 64 {
-				m := &models.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
-				count, err := db.Count(m)
+				m := &git_model.LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}}
+				count, err := db.CountByBean(db.DefaultContext, m)
 
 				if err == nil && count > 0 {
 					curFile.IsBin = true
@@ -1416,37 +1417,8 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}
 	diff.Start = opts.SkipTo
 
-	var checker *git.CheckAttributeReader
-
-	if git.CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
-		if err == nil {
-			defer deleteTemporaryFile()
-
-			checker = &git.CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-				Repo:       gitRepo,
-				IndexFile:  indexFilename,
-				WorkTree:   worktree,
-			}
-			ctx, cancel := context.WithCancel(gitRepo.Ctx)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-			} else {
-				go func() {
-					err := checker.Run()
-					if err != nil && err != ctx.Err() {
-						log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-					}
-					cancel()
-				}()
-			}
-			defer func() {
-				_ = checker.Close()
-				cancel()
-			}()
-		}
-	}
+	checker, deferable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	defer deferable()
 
 	for _, diffFile := range diff.Files {
 
@@ -1519,7 +1491,7 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 
 // SyncAndGetUserSpecificDiff is like GetDiff, except that user specific data such as which files the given user has already viewed on the given PR will also be set
 // Additionally, the database asynchronously is updated if files have changed since the last review
-func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *models.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
+func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_model.PullRequest, gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff, error) {
 	diff, err := GetDiff(gitRepo, opts, files...)
 	if err != nil {
 		return nil, err
@@ -1582,7 +1554,7 @@ outer:
 }
 
 // CommentAsDiff returns c.Patch as *Diff
-func CommentAsDiff(c *models.Comment) (*Diff, error) {
+func CommentAsDiff(c *issues_model.Comment) (*Diff, error) {
 	diff, err := ParsePatch(setting.Git.MaxGitDiffLines,
 		setting.Git.MaxGitDiffLineCharacters, setting.Git.MaxGitDiffFiles, strings.NewReader(c.Patch), "")
 	if err != nil {
@@ -1600,7 +1572,7 @@ func CommentAsDiff(c *models.Comment) (*Diff, error) {
 }
 
 // CommentMustAsDiff executes AsDiff and logs the error instead of returning
-func CommentMustAsDiff(c *models.Comment) *Diff {
+func CommentMustAsDiff(c *issues_model.Comment) *Diff {
 	if c == nil {
 		return nil
 	}

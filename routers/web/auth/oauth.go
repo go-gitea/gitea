@@ -215,7 +215,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			Nonce: grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
-			idToken.Name = user.FullName
+			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
 			idToken.Picture = user.AvatarLink()

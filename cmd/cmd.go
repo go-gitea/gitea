@@ -68,7 +68,7 @@ Ensure you are running in the correct environment or set the correct configurati
 If this is the intended configuration file complete the [database] section.`, setting.CustomConf)
 	}
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("unable to initialise the database using the configuration in %q. Error: %v", setting.CustomConf, err)
+		return fmt.Errorf("unable to initialize the database using the configuration in %q. Error: %v", setting.CustomConf, err)
 	}
 	return nil
 }
