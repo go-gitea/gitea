@@ -1,3 +1,6 @@
+# confog for changelog tool
+# source: https://gitea.com/gitea/changelog
+
 # The full repository name
 repo: go-gitea/gitea
 
