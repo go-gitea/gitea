@@ -9,6 +9,7 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/markbates/goth/gothic"
 	"html"
 	"io"
 	"net/http"
@@ -1103,6 +1104,12 @@ func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, res
 
 	if len(errorName) > 0 {
 		errorDescription := request.FormValue("error_description")
+
+		// Delete the goth session
+		err := gothic.Logout(response, request)
+		if err != nil {
+			return nil, goth.User{}, err
+		}
 
 		return nil, goth.User{}, errCallback{
 			Code:        errorName,
