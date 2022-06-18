@@ -74,7 +74,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 func ReqHTTPSignature() func(ctx *gitea_context.APIContext) {
 	return func(ctx *gitea_context.APIContext) {
 		if authenticated, err := verifyHTTPSignatures(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, "verifyHttpSignatures", err)
+			ctx.ServerError("verifyHttpSignatures", err)
 		} else if !authenticated {
 			ctx.Error(http.StatusForbidden, "reqSignature", "request signature verification failed")
 		}
