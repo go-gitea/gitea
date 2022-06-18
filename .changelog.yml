@@ -19,6 +19,10 @@ groups:
     labels:
       - kind/security
   -
+    name: FEDERATION
+    labels:
+      - theme/federation
+  -
     name: FEATURES
     labels:
       - kind/feature

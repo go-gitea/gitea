@@ -27,6 +27,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Remove deprecated SSH ciphers from default (#18697)
 * FEDERATION
   * Return statistic information for nodeinfo (#19561)
+  * Add Webfinger endpoint (#19462)
+  * Store the foreign ID of issues during migration (#18446)
 * FEATURES
   * Automatically render wiki TOC (#19873)
   * Adding button to link accounts from user settings (#19792)
@@ -36,7 +38,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve reviewing PR UX (#19612)
   * Add API to check if team has repo access (#19540)
   * Add support for rendering console output with colors (#19497)
-  * Add Webfinger endpoint (#19462)
   * Add Helm Chart registry (#19406)
   * Add Goroutine stack inspector to admin/monitor (#19207)
   * RSS/Atom support for Repos (#19055)
@@ -44,7 +45,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Allow to mark files in a PR as viewed (#19007)
   * Add Index to comment for migrations and mirroring (#18806)
   * Add health check endpoint (#18465)
-  * Store the foreign ID of issues during migration  (#18446)
   * Add packagist webhook (#18224)
   * Add "Allow edits from maintainer" feature (#18002)
   * Add apply-patch, basic revert and cherry-pick functionality (#17902)
