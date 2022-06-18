@@ -1161,6 +1161,13 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
+		m.Group("/render", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
+			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.RenderFile)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+
 		m.Group("/commits", func() {
 			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
 			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)

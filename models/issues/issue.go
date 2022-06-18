@@ -1430,7 +1430,7 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 		cond = cond.And(
 			builder.Or(
 				repo_model.UserOwnedRepoCond(userID),                          // owned repos
-				repo_model.UserCollaborationRepoCond(repoIDstr, userID),       // collaboration repos
+				repo_model.UserAccessRepoCond(repoIDstr, userID),              // user can access repo in a unit independent way
 				repo_model.UserAssignedRepoCond(repoIDstr, userID),            // user has been assigned accessible public repos
 				repo_model.UserMentionedRepoCond(repoIDstr, userID),           // user has been mentioned accessible public repos
 				repo_model.UserCreateIssueRepoCond(repoIDstr, userID, isPull), // user has created issue/pr accessible public repos
@@ -1499,7 +1499,7 @@ func GetRepoIDsForIssuesOptions(opts *IssuesOptions, user *user_model.User) ([]i
 
 	opts.setupSessionNoLimit(sess)
 
-	accessCond := repo_model.AccessibleRepositoryCondition(user)
+	accessCond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
 	if err := sess.Where(accessCond).
 		Distinct("issue.repo_id").
 		Table("issue").
