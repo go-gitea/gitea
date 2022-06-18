@@ -270,7 +270,7 @@ func PersonLiked(ctx *context.APIContext) {
 	liked.TotalItems = uint(count)
 
 	for _, repo := range repos {
-		repo := forgefed.RepositoryNew(ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + repo.OwnerName + "/" + repo.Name))
+		repo := forgefed.RepositoryNew(ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + repo.OwnerName + "/" + repo.Name))
 		liked.OrderedItems.Append(repo)
 	}
 

@@ -22,7 +22,7 @@ import (
 
 // Repo function
 func Repo(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/user/{username}/{reponame} activitypub activitypubRepo
+	// swagger:operation GET /activitypub/repo/{username}/{reponame} activitypub activitypubRepo
 	// ---
 	// summary: Returns the repository
 	// produces:
@@ -71,7 +71,7 @@ func Repo(ctx *context.APIContext) {
 
 // RepoInbox function
 func RepoInbox(ctx *context.APIContext) {
-	// swagger:operation POST /activitypub/user/{username}/{reponame}/inbox activitypub activitypubRepoInbox
+	// swagger:operation POST /activitypub/repo/{username}/{reponame}/inbox activitypub activitypubRepoInbox
 	// ---
 	// summary: Send to the inbox
 	// produces:
@@ -109,7 +109,7 @@ func RepoInbox(ctx *context.APIContext) {
 
 // RepoOutbox function
 func RepoOutbox(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/user/{username}/outbox activitypub activitypubPersonOutbox
+	// swagger:operation GET /activitypub/repo/{username}/outbox activitypub activitypubPersonOutbox
 	// ---
 	// summary: Returns the outbox
 	// produces:
@@ -158,7 +158,7 @@ func RepoOutbox(ctx *context.APIContext) {
 
 // RepoFollowers function
 func RepoFollowers(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/user/{username}/{reponame}/followers activitypub activitypubRepoFollowers
+	// swagger:operation GET /activitypub/repo/{username}/{reponame}/followers activitypub activitypubRepoFollowers
 	// ---
 	// summary: Returns the followers collection
 	// produces:
