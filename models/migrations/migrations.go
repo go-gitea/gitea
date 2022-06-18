@@ -387,6 +387,8 @@ var migrations = []Migration{
 	NewMigration("Add auto merge table", addAutoMergeTable),
 	// v215 -> v216
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
+	NewMigration("Improve Action table indices", improveActionTableIndices),
 }
 
 // GetCurrentDBVersion returns the current db version
