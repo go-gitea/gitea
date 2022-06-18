@@ -308,6 +308,8 @@ func NewHighlightCodeDiff() *HighlightCodeDiff {
 }
 
 // nextPlaceholder returns 0 if no more placeholder can be used
+// the diff is done line by line, usually there are only a few (no more than 10) placeholders in one line
+// so the placeholderMaxCount is impossible to be exhausted in real cases.
 func (hcd *HighlightCodeDiff) nextPlaceholder() rune {
 	for hcd.placeholderIndex < hcd.placeholderMaxCount {
 		r := hcd.placeholderBegin + rune(hcd.placeholderIndex)
@@ -424,7 +426,7 @@ func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 	for _, r := range diff.Text {
 		tag, ok := hcd.placeholderTagMap[r]
 		if !ok || tag == "" {
-			sb.WriteRune(r) // if the run is not a placeholder, write it as it is
+			sb.WriteRune(r) // if the rune is not a placeholder, write it as it is
 			continue
 		}
 		var tagToRecover string
