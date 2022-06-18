@@ -942,6 +942,10 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
+					if git.IsErrNotExist(err) {
+						ctx.NotFound("GetTagCommit", err)
+						return
+					}
 					ctx.ServerError("GetTagCommit", err)
 					return
 				}
