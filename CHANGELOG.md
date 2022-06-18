@@ -8,7 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * BREAKING
   * Use "main" as default branch name (#19354)
-  * use go1.18 to build gitea (#19099)
+  * Use go1.18 to build gitea (#19099)
   * Add the possibility to allow the user to have a favicon which differs from the main logo (#18542)
   * Change initial TrustModel to committer (#18335)
   * Upgrade Alpine from 3.13 to 3.15 (#18050)
@@ -17,7 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * FEATURES
   * Automatically render wiki TOC (#19873)
   * Adding button to link accounts from user settings (#19792)
-  * feat: allow set default merge style while creating repo (#19751)
+  * Allow set default merge style while creating repo (#19751)
   * Add API to serve blob or LFS file content (#19689)
   * Auto merge pull requests when all checks succeeded via WebUI (#19648)
   * Improve reviewing PR UX (#19612)
@@ -29,7 +29,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * RSS/Atom support for Repos (#19055)
   * Add button for issue deletion (#19032)
   * Allow to mark files in a PR as viewed (#19007)
-  * [API] Allow removing issues (#18879)
   * add Index to comment for migrations and mirroring (#18806)
   * Add health check endpoint (#18465)
   * store the foreign ID of issues during migration  (#18446)
@@ -46,6 +45,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Provide configuration to allow camo-media proxying (#12802)
   * Auto merge pull requests when all checks succeeded via API (#9307)
 * API
+  * Allow removing issues (#18879)
   * Implement http signatures support for the API (#17565)
 * ENHANCEMENTS
   * Add dbconsistency checks for Stopwatches (#20010)
@@ -131,7 +131,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * New cron task: delete old system notices (#19219)
   * Add Redis Sentinel Authentication Support (#19213)
   * Add auto logging of goroutine pid label (#19212)
-  *  Set OpenGraph title to DisplayName in profile pages  (#19206)
+  * Set OpenGraph title to DisplayName in profile pages  (#19206)
   * Add pprof labels in processes and for lifecycles (#19202)
   * Let web and API routes have different auth methods group (#19168)
   * Rename `ctx.User` to `ctx.Doer` (#19161)
@@ -269,7 +269,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add `contrib/upgrade.sh` (#18286)
 * MISC
   * Fix aria for logo (#19955)
-  * fix(CI/CD): correct CI variable. (#19886)
   * Update JS dependencies (#19767)
   * In code search, get code unit accessible repos in one (main) query (#19764)
   * Enable packages by default again (#19746)
