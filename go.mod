@@ -29,6 +29,7 @@ require (
 	github.com/felixge/fgprof v0.9.2
 	github.com/gliderlabs/ssh v0.3.4
 	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
+	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-enry/go-enry/v2 v2.8.2
@@ -163,7 +164,6 @@ require (
 	github.com/fullstorydev/grpcurl v1.8.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f // indirect
-	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
