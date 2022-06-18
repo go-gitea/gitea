@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/forgefed"
-	//repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
@@ -66,7 +65,7 @@ func Repo(ctx *context.APIContext) {
 	repo.Outbox = ap.IRI(link + "/outbox")
 	repo.Followers = ap.IRI(link + "/followers")
 	repo.Team = ap.IRI(link + "/team")
-	
+
 	response(ctx, repo)
 }
 
@@ -100,7 +99,7 @@ func RepoInbox(ctx *context.APIContext) {
 	var activity ap.Activity
 	activity.UnmarshalJSON(body)
 	if activity.Type == ap.FollowType {
-		//activitypub.Follow(ctx, activity)
+		// activitypub.Follow(ctx, activity)
 	} else {
 		log.Warn("ActivityStreams type not supported", activity)
 	}

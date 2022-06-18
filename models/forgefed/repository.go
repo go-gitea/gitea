@@ -5,9 +5,8 @@
 package forgefed
 
 import (
-	"github.com/valyala/fastjson"
-
 	ap "github.com/go-ap/activitypub"
+	"github.com/valyala/fastjson"
 )
 
 const (

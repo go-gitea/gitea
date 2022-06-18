@@ -20,7 +20,6 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	ap "github.com/go-ap/activitypub"
-	"github.com/go-ap/jsonld"
 )
 
 // Person function returns the Person actor for a user
@@ -257,10 +256,10 @@ func PersonLiked(ctx *context.APIContext) {
 
 	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
 
-	repos, count, err  := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
-		Actor:              ctx.Doer,
-		Private:            ctx.IsSigned,
-		StarredByID:        ctx.ContextUser.ID,
+	repos, count, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
+		Actor:       ctx.Doer,
+		Private:     ctx.IsSigned,
+		StarredByID: ctx.ContextUser.ID,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserStarred", err)
