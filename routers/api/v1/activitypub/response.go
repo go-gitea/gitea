@@ -18,7 +18,7 @@ import (
 func response(ctx *context.APIContext, v interface{}) {
 	binary, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI), jsonld.IRI(ap.SecurityContextURI)).Marshal(v)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Marshal", err)
+		ctx.ServerError("Marshal", err)
 		return
 	}
 	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)

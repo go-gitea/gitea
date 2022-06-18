@@ -104,7 +104,7 @@ func PersonInbox(ctx *context.APIContext) {
 
 	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.Federation.MaxSize))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Error reading request body", err)
+		ctx.ServerError("Error reading request body", err)
 	}
 
 	var activity ap.Activity
@@ -148,7 +148,7 @@ func PersonOutbox(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Couldn't fetch outbox", err)
+		ctx.ServerError("Couldn't fetch outbox", err)
 	}
 
 	outbox := ap.OrderedCollectionNew(ap.IRI(link))
@@ -185,7 +185,7 @@ func PersonFollowing(ctx *context.APIContext) {
 
 	users, err := user_model.GetUserFollowing(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
+		ctx.ServerError("GetUserFollowing", err)
 		return
 	}
 
@@ -222,7 +222,7 @@ func PersonFollowers(ctx *context.APIContext) {
 
 	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
+		ctx.ServerError("GetUserFollowers", err)
 		return
 	}
 
@@ -262,7 +262,7 @@ func PersonLiked(ctx *context.APIContext) {
 		StarredByID: ctx.ContextUser.ID,
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserStarred", err)
+		ctx.ServerError("GetUserStarred", err)
 		return
 	}
 

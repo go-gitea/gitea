@@ -48,7 +48,7 @@ func Repo(ctx *context.APIContext) {
 	repo.Name = ap.NaturalLanguageValuesNew()
 	err := repo.Name.Set("en", ap.Content(ctx.Repo.Repository.Name))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Set Name", err)
+		ctx.ServerError("Set Name", err)
 		return
 	}
 
@@ -57,7 +57,7 @@ func Repo(ctx *context.APIContext) {
 	repo.Summary = ap.NaturalLanguageValuesNew()
 	err = repo.Summary.Set("en", ap.Content(ctx.Repo.Repository.Description))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Set Description", err)
+		ctx.ServerError("Set Description", err)
 		return
 	}
 
@@ -93,7 +93,7 @@ func RepoInbox(ctx *context.APIContext) {
 
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Error reading request body", err)
+		ctx.ServerError("Error reading request body", err)
 	}
 
 	var activity ap.Activity
@@ -140,7 +140,7 @@ func RepoOutbox(ctx *context.APIContext) {
 		Date:            ctx.FormString("date"),
 	})
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Couldn't fetch outbox", err)
+		ctx.ServerError("Couldn't fetch outbox", err)
 	}
 
 	outbox := ap.OrderedCollectionNew(ap.IRI(link))
@@ -182,7 +182,7 @@ func RepoFollowers(ctx *context.APIContext) {
 
 	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
+		ctx.ServerError("GetUserFollowers", err)
 		return
 	}
 
