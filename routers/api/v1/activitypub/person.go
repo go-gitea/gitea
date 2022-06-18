@@ -10,11 +10,11 @@ import (
 
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	ap "github.com/go-ap/activitypub"
+	"github.com/go-ap/jsonld"
 )
 
 // Person function returns the Person actor for a user
@@ -72,28 +72,13 @@ func Person(ctx *context.APIContext) {
 	}
 	person.PublicKey.PublicKeyPem = publicKeyPem
 
-	binary, err := person.MarshalJSON()
+	binary, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI), jsonld.IRI(ap.SecurityContextURI)).Marshal(person)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
+		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
 		return
 	}
-
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(binary, &jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Unmarshal", err)
-		return
-	}
-
-	jsonmap["@context"] = []string{"https://www.w3.org/ns/activitystreams", "https://w3id.org/security/v1"}
-
 	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)
 	ctx.Resp.WriteHeader(http.StatusOK)
-	binary, err = json.Marshal(jsonmap)
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Marshal", err)
-		return
-	}
 	if _, err = ctx.Resp.Write(binary); err != nil {
 		log.Error("write to resp err: %v", err)
 	}
