@@ -670,7 +670,9 @@ func RestoreFromGithubExportedData(ctx context.Context, baseDir, ownerName, repo
 	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GithubService,
 	}
-	updateOptionsUnits(&migrateOpts, units)
+	if err := updateOptionsUnits(&migrateOpts, units); err != nil {
+		return err
+	}
 
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
 	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
