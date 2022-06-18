@@ -13,7 +13,8 @@ import (
 )
 
 // ToPushMirror convert from repo_model.PushMirror and remoteAddress to api.TopicResponse
-func ToPushMirror(pm *repo_model.PushMirror, repo *repo_model.Repository) (*api.PushMirror, error) {
+func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
+	repo := pm.GetRepository()
 	remoteAddress, err := getMirrorRemoteAddress(repo, pm.RemoteName)
 	if err != nil {
 		return nil, errors.New("error getting mirror RemoteAddress")

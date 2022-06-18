@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 )
 
 // ErrPushMirrorNotExist mirror does not exist error
@@ -32,6 +33,20 @@ type PushMirrorOptions struct {
 	ID         int64
 	RepoID     int64
 	RemoteName string
+}
+
+func (opts *PushMirrorOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.RemoteName != "" {
+		cond = cond.And(builder.Eq{"remote_name": opts.RemoteName})
+	}
+	if opts.ID > 0 {
+		cond = cond.And(builder.Eq{"id": opts.ID})
+	}
+	return cond
 }
 
 func init() {
@@ -76,17 +91,8 @@ func DeletePushMirrorsByRepoID(repoID int64) error {
 
 func DeletePushMirrors(opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
-		// delete using remoteName
-		if opts.RemoteName != "" {
-			_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Delete(&PushMirror{})
-			return err
-		}
-		// delete using ID
-		if opts.ID > 0 {
-			_, err := db.GetEngine(db.DefaultContext).Where("repo_id = ? AND id = ?", opts.RepoID, opts.ID).Delete(&PushMirror{})
-			return err
-		}
-		return errors.New("PushMirror ID or RemoteName required")
+		_, err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).Delete(&PushMirror{})
+		return err
 	}
 	return errors.New("repoID required and must be set")
 }
@@ -95,19 +101,7 @@ func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
 	mirror := &PushMirror{}
 	var exist bool
 	var err error
-	if opts.RepoID > 0 {
-		// get pushMirror using remoteName
-		if opts.RemoteName != "" {
-			exist, err = db.GetEngine(db.DefaultContext).Where("repo_id = ? AND remote_name = ?", opts.RepoID, opts.RemoteName).Get(mirror)
-		}
-		// get pushMirror using ID
-		if opts.ID > 0 {
-			exist, err = db.GetEngine(db.DefaultContext).Where("repo_id = ? AND id = ?", opts.RepoID, opts.ID).Get(mirror)
-		}
-	} else {
-		// if no repoId provided then get pushMirror using only its ID
-		exist, err = db.GetEngine(db.DefaultContext).ID(opts.ID).Get(mirror)
-	}
+	exist, err = db.GetEngine(db.DefaultContext).Where(opts.toConds()).Get(mirror)
 	if err != nil {
 		return nil, err
 	} else if !exist {
