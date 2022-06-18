@@ -9,7 +9,6 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
-	"github.com/markbates/goth/gothic"
 	"html"
 	"io"
 	"net/http"
@@ -38,6 +37,7 @@ import (
 	"gitea.com/go-chi/binding"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 )
 
 const (
