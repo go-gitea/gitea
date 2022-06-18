@@ -199,6 +199,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find OAuth2AuthorizationCode without existing OAuth2Grant
 		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
 			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
+		// find stopwatches without existing user
+		genericOrphanCheck("Orphaned Stopwatches without existing User",
+			"stopwatch", "user", "stopwatch.user_id=user.id"),
+		// find stopwatches without existing issue
+		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
+			"stopwatch", "issue", "stopwatch.issue_id=issue.id"),
 	)
 
 	for _, c := range consistencyChecks {
