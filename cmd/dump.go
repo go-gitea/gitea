@@ -22,7 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"gitea.com/go-chi/session"
-	archiver "github.com/mholt/archiver/v3"
+	"github.com/mholt/archiver/v3"
 	"github.com/urfave/cli"
 )
 
@@ -439,8 +439,23 @@ func addRecursiveExclude(w archiver.Writer, insidePath, absPath string, excludeA
 				}
 			}
 		} else {
-			if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
-				return err
+			// only copy regular files and symlink regular files, skip non-regular files like socket/pipe/...
+			shouldAdd := file.Mode().IsRegular()
+			if !shouldAdd && file.Mode()&os.ModeSymlink == os.ModeSymlink {
+				target, err := filepath.EvalSymlinks(currentAbsPath)
+				if err != nil {
+					return err
+				}
+				targetStat, err := os.Stat(target)
+				if err != nil {
+					return err
+				}
+				shouldAdd = targetStat.Mode().IsRegular()
+			}
+			if shouldAdd {
+				if err = addFile(w, currentInsidePath, currentAbsPath, verbose); err != nil {
+					return err
+				}
 			}
 		}
 	}

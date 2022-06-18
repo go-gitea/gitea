@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	ap "github.com/go-ap/activitypub"
+	"github.com/go-ap/jsonld"
 )
 
 // Person function returns the Person actor for a user
@@ -82,12 +83,7 @@ func Person(ctx *context.APIContext) {
 	}
 	person.PublicKey.PublicKeyPem = publicKeyPem
 
-	binary, err := person.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
-		return
-	}
-	response(ctx, binary)
+	response(ctx, person)
 }
 
 // PersonInbox function handles the incoming data for a user inbox
@@ -166,11 +162,7 @@ func PersonOutbox(ctx *context.APIContext) {
 	}
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
 
-	binary, err := outbox.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
-	}
-	response(ctx, binary)
+	response(ctx, outbox)
 }
 
 // PersonFollowing function returns the user's Following Collection
@@ -207,11 +199,7 @@ func PersonFollowing(ctx *context.APIContext) {
 		following.OrderedItems.Append(person)
 	}
 
-	binary, err := following.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
-	}
-	response(ctx, binary)
+	response(ctx, following)
 }
 
 // PersonFollowers function returns the user's Followers Collection
@@ -247,11 +235,7 @@ func PersonFollowers(ctx *context.APIContext) {
 		followers.OrderedItems.Append(person)
 	}
 
-	binary, err := followers.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
-	}
-	response(ctx, binary)
+	response(ctx, followers)
 }
 
 // PersonLiked function returns the user's Liked Collection
@@ -291,9 +275,5 @@ func PersonLiked(ctx *context.APIContext) {
 		liked.OrderedItems.Append(repo)
 	}
 
-	binary, err := liked.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
-	}
-	response(ctx, binary)
+	response(ctx, liked)
 }

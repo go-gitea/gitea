@@ -67,12 +67,7 @@ func Repo(ctx *context.APIContext) {
 	repo.Followers = ap.IRI(link + "/followers")
 	repo.Team = ap.IRI(link + "/team")
 	
-	binary, err := repo.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
-		return
-	}
-	response(ctx, binary)
+	response(ctx, repo)
 }
 
 // RepoInbox function
@@ -159,11 +154,7 @@ func RepoOutbox(ctx *context.APIContext) {
 	}
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
 
-	binary, err := outbox.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
-	}
-	response(ctx, binary)
+	response(ctx, outbox)
 }
 
 // RepoFollowers function
@@ -204,9 +195,5 @@ func RepoFollowers(ctx *context.APIContext) {
 		followers.OrderedItems.Append(person)
 	}
 
-	binary, err := followers.MarshalJSON()
-	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Serialize", err)
-	}
-	response(ctx, binary)
+	response(ctx, followers)
 }

@@ -22,6 +22,7 @@ import (
 func Fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", ActivityStreamsContentType)
+	req.Header("User-Agent", "Gitea/"+setting.AppVer)
 	resp, err := req.Response()
 	if err != nil {
 		return

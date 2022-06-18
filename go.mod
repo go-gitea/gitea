@@ -26,6 +26,7 @@ require (
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.4
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
+	github.com/felixge/fgprof v0.9.2
 	github.com/gliderlabs/ssh v0.3.4
 	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
 	github.com/go-chi/chi/v5 v5.0.7
