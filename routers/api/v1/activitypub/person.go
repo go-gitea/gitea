@@ -40,14 +40,14 @@ func Person(ctx *context.APIContext) {
 	person.Name = ap.NaturalLanguageValuesNew()
 	err := person.Name.Set("en", ap.Content(ctx.ContextUser.FullName))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Set Name", err)
+		ctx.ServerError("Set Name", err)
 		return
 	}
 
 	person.PreferredUsername = ap.NaturalLanguageValuesNew()
 	err = person.PreferredUsername.Set("en", ap.Content(ctx.ContextUser.Name))
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "Set PreferredUsername", err)
+		ctx.ServerError("Set PreferredUsername", err)
 		return
 	}
 
@@ -67,14 +67,14 @@ func Person(ctx *context.APIContext) {
 
 	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetPublicKey", err)
+		ctx.ServerError("GetPublicKey", err)
 		return
 	}
 	person.PublicKey.PublicKeyPem = publicKeyPem
 
 	binary, err := jsonld.WithContext(jsonld.IRI(ap.ActivityBaseURI), jsonld.IRI(ap.SecurityContextURI)).Marshal(person)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "MarshalJSON", err)
+		ctx.ServerError("MarshalJSON", err)
 		return
 	}
 	ctx.Resp.Header().Add("Content-Type", activitypub.ActivityStreamsContentType)
