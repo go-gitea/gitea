@@ -47,6 +47,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 func fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", activitypub.ActivityStreamsContentType)
+	req.Header("User-Agent", "Gitea/"+setting.AppVer)
 	resp, err := req.Response()
 	if err != nil {
 		return
