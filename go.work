@@ -1,5 +1,0 @@
-go 1.18
-
-use .
-
-replace github.com/go-ap/activitypub => /home/ta180m/Code/activitypub
