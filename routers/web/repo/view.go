@@ -729,12 +729,26 @@ func checkHomeCodeViewable(ctx *context.Context) {
 }
 
 func checkCitationFile(ctx *context.Context) {
+	// Check if repo is not empty and if we are on repo src
+	if ctx.Repo.Repository.IsEmpty {
+		return
+	}
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+	if len(entry.Name()) != 0 {
+		return
+	}
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
 	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.SubTree", git.IsErrNotExist, err)
 		return
 	}
 	allEntries, err := tree.ListEntries()
 	if err != nil {
+		ctx.ServerError("ListEntries", err)
 		return
 	}
 	allEntries.CustomSort(base.NaturalSortLess)
@@ -745,11 +759,13 @@ func checkCitationFile(ctx *context.Context) {
 			blob := entry.Blob()
 			dataRc, err := blob.DataAsync()
 			if err != nil {
+				ctx.ServerError("Data", err)
 				return
 			}
 			buf := make([]byte, 1024)
 			n, _ := util.ReadAtMost(dataRc, buf)
 			if err != nil {
+				ctx.ServerError("Data", err)
 				return
 			}
 			buf = buf[:n]
@@ -769,9 +785,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
-	if !ctx.Repo.Repository.IsEmpty {
-		checkCitationFile(ctx)
-	}
+	checkCitationFile(ctx)
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
