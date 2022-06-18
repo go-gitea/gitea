@@ -265,7 +265,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Improve dashboard's repo list performance (#18963)
   * Avoid database lookups for `DescriptionHTML` (#18924)
   * Remove CodeMirror dependencies (#18911)
-  * Update JS dependencies (#18898)
   * Disable unnecessary mirroring elements (#18527)
   * Disable unnecessary OpenID/OAuth2 elements (#18491)
   * Disable unnecessary GitHooks elements (#18485)
