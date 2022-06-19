@@ -35,11 +35,11 @@ func GetKeyPair(user *user_model.User) (pub, priv string, err error) {
 // GetPublicKey function returns a user's public key
 func GetPublicKey(user *user_model.User) (pub string, err error) {
 	pub, _, err = GetKeyPair(user)
-	return
+	return pub, err
 }
 
 // GetPrivateKey function returns a user's private key
 func GetPrivateKey(user *user_model.User) (priv string, err error) {
 	_, priv, err = GetKeyPair(user)
-	return
+	return priv, err
 }
