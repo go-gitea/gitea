@@ -25,7 +25,7 @@
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
-				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.i18n -}}
+				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.i18n -}}
 				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.i18n.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.i18n.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
