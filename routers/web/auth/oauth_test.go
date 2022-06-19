@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -63,6 +64,24 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	grants, err = auth.GetOAuth2GrantsByUserID(db.DefaultContext, user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)
+
+	// Scopes: openid profile email
+	oidcToken = createAndParseToken(t, grants[0])
+	assert.Equal(t, user.Name, oidcToken.Name)
+	assert.Equal(t, user.Name, oidcToken.PreferredUsername)
+	assert.Equal(t, user.HTMLURL(), oidcToken.Profile)
+	assert.Equal(t, user.AvatarLink(), oidcToken.Picture)
+	assert.Equal(t, user.Website, oidcToken.Website)
+	assert.Equal(t, user.UpdatedUnix, oidcToken.UpdatedAt)
+	assert.Equal(t, user.Email, oidcToken.Email)
+	assert.Equal(t, user.IsActive, oidcToken.EmailVerified)
+
+	// set DefaultShowFullName to true
+	oldDefaultShowFullName := setting.UI.DefaultShowFullName
+	setting.UI.DefaultShowFullName = true
+	defer func() {
+		setting.UI.DefaultShowFullName = oldDefaultShowFullName
+	}()
 
 	// Scopes: openid profile email
 	oidcToken = createAndParseToken(t, grants[0])
