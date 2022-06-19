@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import Vue from 'vue';
+import {createApp} from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
 
@@ -20,14 +20,12 @@ export default function initContextPopups() {
     el.innerHTML = '<div></div>';
     this.parentNode.insertBefore(el, this.nextSibling);
 
-    const View = Vue.extend({
+    const view = createApp({
       render: (createElement) => createElement(ContextPopup),
     });
 
-    const view = new View();
-
     try {
-      view.$mount(el.firstChild);
+      view.mount(el.firstChild);
     } catch (err) {
       console.error(err);
       el.textContent = 'ContextPopup failed to load';

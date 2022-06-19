@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {vueDelimiters} from './VueComponentLoader.js';
 
@@ -37,8 +37,7 @@ export function initRepoBranchTagDropdown(selector) {
       });
     });
     $data.remove();
-    new Vue({
-      el: this,
+    createApp({
       delimiters: vueDelimiters,
       data,
       computed: {
@@ -99,7 +98,7 @@ export function initRepoBranchTagDropdown(selector) {
         document.body.addEventListener('click', (event) => {
           if (this.$el.contains(event.target)) return;
           if (this.menuVisible) {
-            Vue.set(this, 'menuVisible', false);
+            this.menuVisible = false;
           }
         });
       },
@@ -135,7 +134,7 @@ export function initRepoBranchTagDropdown(selector) {
             if (this.submitForm) {
               $(`#${this.branchForm}`).trigger('submit');
             }
-            Vue.set(this, 'menuVisible', false);
+            this.menuVisible = false;
           }
         },
         createNewBranch() {
@@ -143,7 +142,7 @@ export function initRepoBranchTagDropdown(selector) {
           $(this.$refs.newBranchForm).trigger('submit');
         },
         focusSearchField() {
-          Vue.nextTick(() => {
+          nextTick(() => {
             this.$refs.searchField.focus();
           });
         },
@@ -212,6 +211,6 @@ export function initRepoBranchTagDropdown(selector) {
           }
         }
       }
-    });
+    }).mount(this);
   });
 }

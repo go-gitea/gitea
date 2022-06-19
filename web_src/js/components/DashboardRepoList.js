@@ -1,11 +1,11 @@
-import Vue from 'vue';
+import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
-function initVueComponents() {
-  Vue.component('repo-search', {
+function initVueComponents(app) {
+  app.component('repo-search', {
     delimiters: vueDelimiters,
     props: {
       searchLimit: {
@@ -141,7 +141,7 @@ function initVueComponents() {
       $(this.$el).find('.tooltip').popup();
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
-      Vue.nextTick(() => {
+      nextTick(() => {
         this.$refs.search.focus();
       });
     },
@@ -189,7 +189,7 @@ function initVueComponents() {
         this.reposFilter = filter;
         this.repos = [];
         this.page = 1;
-        Vue.set(this.counts, `${filter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.counts[`${filter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
 
@@ -258,7 +258,7 @@ function initVueComponents() {
         this.page = 1;
         this.repos = [];
         this.setCheckboxes();
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
 
@@ -280,7 +280,7 @@ function initVueComponents() {
         this.page = 1;
         this.repos = [];
         this.setCheckboxes();
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
 
@@ -294,7 +294,7 @@ function initVueComponents() {
           this.page = 1;
         }
         this.repos = [];
-        Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, 0);
+        this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = 0;
         this.searchRepos();
       },
 
@@ -328,7 +328,7 @@ function initVueComponents() {
           if (searchedQuery === '' && searchedMode === '' && this.archivedFilter === 'both') {
             this.reposTotalCount = count;
           }
-          Vue.set(this.counts, `${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`, count);
+          this.counts[`${this.reposFilter}:${this.archivedFilter}:${this.privateFilter}`] = count;
           this.finalPage = Math.ceil(count / this.searchLimit);
           this.updateHistory();
           this.isLoading = false;
@@ -353,18 +353,14 @@ function initVueComponents() {
   });
 }
 
-
 export function initDashboardRepoList() {
   const el = document.getElementById('dashboard-repo-list');
   const dashboardRepoListData = pageData.dashboardRepoList || null;
   if (!el || !dashboardRepoListData) return;
 
-  initVueSvg();
-  initVueComponents();
-  new Vue({
-    el,
+  const app = createApp({
     delimiters: vueDelimiters,
-    data: () => {
+    data() {
       return {
         searchLimit: dashboardRepoListData.searchLimit || 0,
         subUrl: appSubUrl,
@@ -372,4 +368,7 @@ export function initDashboardRepoList() {
       };
     },
   });
+  initVueSvg(app);
+  initVueComponents(app);
+  app.mount(el);
 }

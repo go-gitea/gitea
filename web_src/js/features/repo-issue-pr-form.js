@@ -1,12 +1,12 @@
-import Vue from 'vue';
+import {createApp} from 'vue';
 import PullRequestMergeForm from '../components/PullRequestMergeForm.vue';
 
 export default function initPullRequestMergeForm() {
   const el = document.getElementById('pull-request-merge-form');
   if (!el) return;
 
-  const View = Vue.extend({
+  const View = createApp({
     render: (createElement) => createElement(PullRequestMergeForm),
   });
-  new View().$mount(el);
+  View.mount(el);
 }
