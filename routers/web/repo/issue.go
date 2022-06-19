@@ -878,6 +878,11 @@ func DeleteIssue(ctx *context.Context) {
 		return
 	}
 
+	if issue.IsPull {
+		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
+		return
+	}
+
 	ctx.Redirect(fmt.Sprintf("%s/issues", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
 }
 
