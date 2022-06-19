@@ -21,7 +21,7 @@ var (
 		GetHeaders          []string
 		PostHeaders         []string
 	}{
-		Enabled:             true,
+		Enabled:             false,
 		ShareUserStatistics: true,
 		MaxSize:             4,
 		Algorithms:          []string{"rsa-sha256", "rsa-sha512", "ed25519"},
