@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/auth"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -231,6 +232,10 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 			ctx.Data["SignedUserID"] = ctx.Doer.ID
 			ctx.Data["SignedUserName"] = ctx.Doer.Name
 			ctx.Data["IsAdmin"] = ctx.Doer.IsAdmin
+			ctx.Doer.SetLastLogin()
+			if err := user_model.UpdateUserCols(ctx, ctx.Doer, "last_login_unix"); err != nil {
+				log.Error("Couldn't update last login of %s: %s", ctx.Doer.Name, err)
+			}
 		} else {
 			ctx.Data["SignedUserID"] = int64(0)
 			ctx.Data["SignedUserName"] = ""
