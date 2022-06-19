@@ -105,7 +105,7 @@ type HookTask struct {
 	HookID          int64
 	UUID            string
 	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"TEXT"`
+	PayloadContent  string `xorm:"LONGTEXT"`
 	EventType       HookEventType
 	IsDelivered     bool
 	Delivered       int64
@@ -113,9 +113,9 @@ type HookTask struct {
 
 	// History info.
 	IsSucceed       bool
-	RequestContent  string        `xorm:"TEXT"`
+	RequestContent  string        `xorm:"LONGTEXT"`
 	RequestInfo     *HookRequest  `xorm:"-"`
-	ResponseContent string        `xorm:"TEXT"`
+	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
 }
 
