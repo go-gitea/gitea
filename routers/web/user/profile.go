@@ -36,6 +36,12 @@ func Profile(ctx *context.Context) {
 		return
 	}
 
+	if strings.Contains(ctx.ContextUser.Name, "@") {
+		ctx.Resp.Header().Add("Location", ctx.ContextUser.Website)
+		ctx.Resp.WriteHeader(http.StatusTemporaryRedirect)
+		return
+	}
+
 	if ctx.ContextUser.IsOrganization() {
 		org.Home(ctx)
 		return
