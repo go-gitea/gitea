@@ -42,26 +42,5 @@ func (a *improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 }
 
 func improveActionTableIndices(x *xorm.Engine) error {
-	{
-		type Action struct {
-			ID          int64 `xorm:"pk autoincr"`
-			UserID      int64 `xorm:"INDEX"` // Receiver user id.
-			OpType      int
-			ActUserID   int64 `xorm:"INDEX"` // Action user id.
-			RepoID      int64 `xorm:"INDEX"`
-			CommentID   int64 `xorm:"INDEX"`
-			IsDeleted   bool  `xorm:"INDEX NOT NULL DEFAULT false"`
-			RefName     string
-			IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
-			Content     string             `xorm:"TEXT"`
-			CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		}
-		if err := x.Sync2(&Action{}); err != nil {
-			return err
-		}
-		if err := x.DropIndexes(&Action{}); err != nil {
-			return err
-		}
-	}
 	return x.Sync2(&improveActionTableIndicesAction{})
 }
