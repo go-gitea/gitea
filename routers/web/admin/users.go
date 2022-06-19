@@ -416,8 +416,6 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	purge := ctx.FormBool("purge")
-
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
@@ -427,7 +425,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	if err = user_service.DeleteUser(ctx, u, purge); err != nil {
+	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))

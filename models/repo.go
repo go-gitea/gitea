@@ -343,7 +343,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
-		return fmt.Errorf("unable delete projects for repo[%d]: %v", repoID, err)
+		return fmt.Errorf("unable to delete projects for repo[%d]: %v", repoID, err)
 	}
 
 	// Remove LFS objects
