@@ -23,8 +23,10 @@ import (
 	"code.gitea.io/gitea/modules/avatar"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/packages"
 )
 
 // DeleteUser completely and permanently deletes everything of a user,
@@ -122,7 +124,11 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		}
 
 		// Delete Packages
-		// FIXME:
+		if setting.Packages.Enabled {
+			if _, err := packages.RemoveAllPackages(ctx, u.ID); err != nil {
+				return err
+			}
+		}
 	}
 
 	ctx, committer, err := db.TxContext()
