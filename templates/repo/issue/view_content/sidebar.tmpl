@@ -660,11 +660,19 @@
 			</button>
 			<div class="ui basic modal" id="delete">
 				<div class="ui icon header">
-					{{.i18n.Tr "repo.issues.delete.title"}}
+					{{if .Issue.IsPull}}
+						{{.i18n.Tr "repo.pulls.delete.title"}}
+					{{else}}
+						{{.i18n.Tr "repo.issues.delete.title"}}
+					{{end}}
 				</div>
 				<div class="content center">
 					<p>
-						{{.i18n.Tr "repo.issues.delete.text"}}
+						{{if .Issue.IsPull}}
+							{{.i18n.Tr "repo.pulls.delete.text"}}
+						{{else}}
+							{{.i18n.Tr "repo.issues.delete.text"}}
+						{{end}}
 					</p>
 				</div>
 				<form action="{{.Issue.Link}}/delete" method="post">
