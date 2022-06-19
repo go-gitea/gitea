@@ -679,12 +679,7 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	purge := false
-	if c.IsSet("purge") {
-		purge = c.Bool("purge")
-	}
-
-	return user_service.DeleteUser(ctx, user, purge)
+	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
 }
 
 func runGenerateAccessToken(c *cli.Context) error {

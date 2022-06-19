@@ -214,16 +214,7 @@
 			</div>
 			<p class="help">{{.i18n.Tr "admin.users.purge_help"}}</p>
 		</div>
-		<div class="text right actions">
-			<div class="ui red basic inverted cancel button">
-				{{svg "octicon-x"}}
-				{{.i18n.Tr "modal.no"}}
-			</div>
-			<button class="ui green basic inverted ok button">
-				{{svg "octicon-check"}}
-				{{.i18n.Tr "modal.yes"}}
-			</button>
-		</div>
+		{{template "base/delete_modal_actions" .}}
 	</form>
 </div>
 {{template "base/footer" .}}

@@ -37,6 +37,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 
 	if purge {
 		// Disable the user first
+		// NOTE: This is deliberately not within a transaction as it must disable the user immediately to prevent any further action by the user to be purged.
 		if err := user_model.UpdateUserCols(ctx, &user_model.User{
 			ID:              u.ID,
 			IsActive:        false,
@@ -58,6 +59,12 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 		})
 
 		// Delete all repos belonging to this user
+		// Now this is not within a transaction because there are internal transactions within the DeleteRepository
+		// BUT: the db will still be consistent even if a number of repos have already been deleted.
+		// And in fact we want to capture any repositories that are being created in other transactions in the meantime
+		//
+		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
+		// but such a function would likely get out of date
 		for {
 			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 				ListOptions: db.ListOptions{
@@ -75,12 +82,18 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 			}
 			for _, repo := range repos {
 				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
-					return fmt.Errorf("unable to delete repositories for %s[%d]. Error: %v", u.Name, u.ID, err)
+					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %v", repo.Name, u.Name, u.ID, err)
 				}
 			}
 		}
 
-		// Delete Orgs
+		// Remove from Organizations and delete last owner organizations
+		// Now this is not within a transaction because there are internal transactions within the DeleteOrganization
+		// BUT: the db will still be consistent even if a number of organizations memberships and organizations have already been deleted
+		// And in fact we want to capture any organization additions that are being created in other transactions in the meantime
+		//
+		// An alternative option here would be write a function which would delete all organizations but it seems
+		// but such a function would likely get out of date
 		for {
 			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 				ListOptions: db.ListOptions{
