@@ -12,7 +12,7 @@ var (
 		Enabled             bool
 		ShareUserStatistics bool
 	}{
-		Enabled:             true,
+		Enabled:             false,
 		ShareUserStatistics: true,
 	}
 )
