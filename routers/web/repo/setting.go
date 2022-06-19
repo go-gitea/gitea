@@ -892,16 +892,6 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	// find the owner team of the organization the repo belongs too and
-	// check if the user we're trying to add is an owner.
-	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
-	for _, team := range teams {
-		if team.IsOwnerTeam() && team.IsMember(u.ID) {
-			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-			return
-		}
-	}
-
 	if !u.IsActive {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_inactive_user"))
 		ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
@@ -919,6 +909,23 @@ func CollaborationPost(ctx *context.Context) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
+	}
+
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
+		if err != nil {
+			ctx.ServerError("GetRepoTeams", err)
+			return
+		}
+
+		for _, team := range teams {
+			if team.IsOwnerTeam() && team.IsMember(u.ID) {
+				ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+				return
+			}
+		}
 	}
 
 	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
