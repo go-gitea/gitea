@@ -106,3 +106,10 @@ PATH = integrations/gitea-integration-mssql/data/lfs
 
 [packages]
 ENABLED = true
+
+[markup.html]
+ENABLED = false
+FILE_EXTENSIONS = .html
+RENDER_COMMAND = `go run tools/external_renderer.go`
+IS_INPUT_FILE = false
+RENDER_CONTENT_MODE=sanitized
