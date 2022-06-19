@@ -416,10 +416,7 @@ func DeleteUser(ctx *context.Context) {
 		return
 	}
 
-	purge := false
-	if ctx.FormString("purge") != "" {
-		purge = true
-	}
+	purge := ctx.FormBool("purge")
 
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
