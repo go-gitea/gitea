@@ -914,17 +914,12 @@ func CollaborationPost(ctx *context.Context) {
 	// find the owner team of the organization the repo belongs too and
 	// check if the user we're trying to add is an owner.
 	if ctx.Repo.Repository.Owner.IsOrganization() {
-		teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
-		if err != nil {
-			ctx.ServerError("GetRepoTeams", err)
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
 			return
-		}
-
-		for _, team := range teams {
-			if team.IsOwnerTeam() && team.IsMember(u.ID) {
-				ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
-				return
-			}
+		} else if isOwner {
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
 		}
 	}
 
