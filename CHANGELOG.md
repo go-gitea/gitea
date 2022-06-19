@@ -12,7 +12,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Nuke the incorrect permission report on /api/v1/notifications (#19761)
   * Refactor git module, make Gitea use internal git config (#19732)
   * Remove `RequireHighlightJS` field, update plantuml example. (#19615)
-  * Upgrade required git version to 2.0 (#19577)
+  * Increase minimal required git version to 2.0 (#19577)
   * Add a directory prefix `gitea-src-VERSION` to release-tar-file (#19396)
   * Use "main" as default branch name (#19354)
   * Make cron task no notice on success (#19221)
