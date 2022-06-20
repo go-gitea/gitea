@@ -42,7 +42,7 @@ func (issue *Issue) LoadAssignees(ctx context.Context) (err error) {
 	if len(issue.Assignees) > 0 {
 		issue.Assignee = issue.Assignees[0]
 	}
-	return
+	return err
 }
 
 // GetAssigneeIDsByIssue returns the IDs of users assigned to an issue
@@ -167,5 +167,5 @@ func MakeIDsFromAPIAssigneesToAdd(oneAssignee string, multipleAssignees []string
 	// Get the IDs of all assignees
 	assigneeIDs, err = user_model.GetUserIDsByNames(requestAssignees, false)
 
-	return
+	return assigneeIDs, err
 }
