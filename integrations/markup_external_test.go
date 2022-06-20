@@ -11,11 +11,18 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestExternalMarkupRenderer(t *testing.T) {
 	defer prepareTestEnv(t)()
+	if !setting.Database.UseSQLite3 {
+		t.Skip()
+		return
+	}
+
 	const repoURL = "user30/renderer"
 	req := NewRequest(t, "GET", repoURL+"/src/branch/master/README.html")
 	resp := MakeRequest(t, req, http.StatusOK)
