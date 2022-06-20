@@ -624,6 +624,13 @@ func RegisterRoutes(m *web.Route) {
 				return
 			}
 		})
+
+		m.Group("/runners", func() {
+			m.Get("", admin.Runners)
+			m.Combo("/new").Get(admin.NewRunner).Post(bindIgnErr(forms.AdminCreateRunnerForm{}), admin.NewRunnerPost)
+			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.AdminEditRunnerForm{}), admin.EditRunnerPost)
+			m.Post("/{runnerid}/delete", admin.DeleteRunner)
+		})
 	}, func(ctx *context.Context) {
 		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled

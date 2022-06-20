@@ -24,7 +24,7 @@ func PushToQueue(task *bots_model.Build) {
 
 // Dispatch assign a task to a runner
 func Dispatch(task *bots_model.Build) (*bots_model.Runner, error) {
-	runner, err := bots_model.GetUsableRunner(bots_model.GetRunnerOptions{
+	runner, err := bots_model.GetUsableRunner(bots_model.FindRunnerOptions{
 		RepoID: task.RepoID,
 	})
 	if err != nil {

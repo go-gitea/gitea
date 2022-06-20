@@ -4,8 +4,8 @@
 		<div class="ui vertical following fluid accordion text menu">
 			{{range $file, $jobs := .WorkflowsStatuses}}
 			<div class="item">
-				<a class="active title"><i class="dropdown icon"></i> <b>{{ $file }}</b></a>
-				<div class="active content menu">
+				<a class="title"><i class="dropdown icon"></i> <b>{{ $file }}</b></a>
+				<div class="content">
 					{{range $jobname, $job := $jobs}}
 						{{template "repo/builds/status" $job.Status}}
 						<a class="item" href="#{{$file}}__{{$jobname}}">{{ $jobname }}</a>

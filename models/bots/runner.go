@@ -8,6 +8,8 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/builder"
@@ -25,16 +27,18 @@ func (err ErrRunnerNotExist) Error() string {
 // Runner represents runner machines
 type Runner struct {
 	ID          int64
-	UUID        string `xorm:"CHAR(36) UNIQUE"`
-	Name        string `xorm:"VARCHAR(32) UNIQUE"`
-	OS          string `xorm:"VARCHAR(16) index"` // the runner running os
-	Arch        string `xorm:"VARCHAR(16) index"` // the runner running architecture
-	Type        string `xorm:"VARCHAR(16)"`
-	OwnerID     int64  `xorm:"index"` // org level runner, 0 means system
-	RepoID      int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
-	Description string `xorm:"TEXT"`
-	Base        int    // 0 native 1 docker 2 virtual machine
-	RepoRange   string // glob match which repositories could use this runner
+	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
+	Name        string                 `xorm:"VARCHAR(32) UNIQUE"`
+	OS          string                 `xorm:"VARCHAR(16) index"` // the runner running os
+	Arch        string                 `xorm:"VARCHAR(16) index"` // the runner running architecture
+	Type        string                 `xorm:"VARCHAR(16)"`
+	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
+	Owner       *user_model.User       `xorm:"-"`
+	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
+	Repo        *repo_model.Repository `xorm:"-"`
+	Description string                 `xorm:"TEXT"`
+	Base        int                    // 0 native 1 docker 2 virtual machine
+	RepoRange   string                 // glob match which repositories could use this runner
 	Token       string
 	LastOnline  timeutil.TimeStamp `xorm:"index"`
 	Created     timeutil.TimeStamp `xorm:"created"`
@@ -44,16 +48,28 @@ func (Runner) TableName() string {
 	return "bots_runner"
 }
 
+func (r *Runner) OwnType() string {
+	if r.OwnerID == 0 {
+		return "Global Type"
+	}
+	if r.RepoID == 0 {
+		return r.Owner.Name
+	}
+
+	return r.Repo.FullName()
+}
+
 func init() {
 	db.RegisterModel(&Runner{})
 }
 
-type GetRunnerOptions struct {
+type FindRunnerOptions struct {
+	db.ListOptions
 	RepoID  int64
 	OwnerID int64
 }
 
-func (opts GetRunnerOptions) toCond() builder.Cond {
+func (opts FindRunnerOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
@@ -65,8 +81,24 @@ func (opts GetRunnerOptions) toCond() builder.Cond {
 	return cond
 }
 
+func CountRunners(opts FindRunnerOptions) (int64, error) {
+	return db.GetEngine(db.DefaultContext).
+		Table("bots_runner").
+		Where(opts.toCond()).
+		Count()
+}
+
+func FindRunners(opts FindRunnerOptions) (runners RunnerList, err error) {
+	sess := db.GetEngine(db.DefaultContext).
+		Where(opts.toCond())
+	if opts.Page > 0 {
+		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	return runners, sess.Find(&runners)
+}
+
 // GetUsableRunner returns the usable runner
-func GetUsableRunner(opts GetRunnerOptions) (*Runner, error) {
+func GetUsableRunner(opts FindRunnerOptions) (*Runner, error) {
 	var runner Runner
 	has, err := db.GetEngine(db.DefaultContext).
 		Where(opts.toCond()).

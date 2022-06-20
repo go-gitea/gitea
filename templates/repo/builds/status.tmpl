@@ -1,14 +1,12 @@
-<div class="issue-item-icon">
-	{{if .IsPending}}
-		<i class="commit-status circle icon gray"></i>
-	{{end}}
-	{{if .IsRunning}}
-		<i class="commit-status circle icon yellow"></i>
-	{{end}}
-	{{if .IsSuccess}}
-		<i class="commit-status check icon green"></i>
-	{{end}}
-	{{if .IsFailed}}
-		<i class="commit-status warning icon red"></i>
-	{{end}}
-</div>
+{{if .IsPending}}
+	<i class="commit-status circle icon gray"></i>
+{{end}}
+{{if .IsRunning}}
+	<i class="commit-status circle icon yellow"></i>
+{{end}}
+{{if .IsSuccess}}
+	<i class="commit-status check icon green"></i>
+{{end}}
+{{if .IsFailed}}
+	<i class="commit-status warning icon red"></i>
+{{end}}

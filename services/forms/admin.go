@@ -71,3 +71,27 @@ func (f *AdminDashboardForm) Validate(req *http.Request, errs binding.Errors) bi
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
+
+// AdminCreateRunnerForm form for admin to create runner
+type AdminCreateRunnerForm struct {
+	Name string `binding:"Required"`
+	Type string
+}
+
+// Validate validates form fields
+func (f *AdminCreateRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AdminEditRunnerForm form for admin to create runner
+type AdminEditRunnerForm struct {
+	Name string `binding:"Required"`
+	Type string
+}
+
+// Validate validates form fields
+func (f *AdminEditRunnerForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
