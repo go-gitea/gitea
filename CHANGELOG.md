@@ -13,14 +13,14 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Set Setpgid on child git processes (#19865) (#19881)
   * Import git from alpine 3.16 repository as 2.30.4 is needed for `safe.directory = '*'` to work but alpine 3.13 has 2.30.3 (#19876)
   * Ensure responses are context.ResponseWriters (#19843) (#19859)
-  * Fix count bug (#19850)
+  * Fix incorrect usage of `Count` function (#19850)
   * Fix raw endpoint PDF file headers (#19825) (#19826)
   * Make WIP prefixes case insensitive, e.g. allow `Draft` as a WIP prefix (#19780) (#19811)
-  * Fix NotificationUnreadCount (#19802)
+  * Don't return 500 on NotificationUnreadCount (#19802)
   * Prevent NPE when cache service is disabled (#19703) (#19783)
   * Detect truncated utf-8 characters at the end of content as still representing utf-8 (#19773) (#19774)
   * Fix doctor pq: syntax error at or near "." quote user table name (#19765) (#19770)
-  * Fix bug (#19757)
+  * Fix bug with assigneees (#19757)
 
 ## [1.16.8](https://github.com/go-gitea/gitea/releases/tag/v1.16.8) - 2022-05-16
 
