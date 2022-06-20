@@ -137,7 +137,7 @@ func PersonOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
@@ -145,19 +145,19 @@ func PersonOutbox(ctx *context.APIContext) {
 		IncludePrivate:  false,
 		OnlyPerformedBy: true,
 		IncludeDeleted:  false,
-		Date:            ctx.FormString("date"),
 	})
 	if err != nil {
 		ctx.ServerError("Couldn't fetch outbox", err)
 	}
 
-	outbox := ap.OrderedCollectionNew(ap.IRI(link))
+	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
 	for _, action := range feed {
-		/*if action.OpType == ExampleType {
-			activity := ap.ExampleNew()
+		if action.OpType == models.ActionCommentIssue {
+			log.Debug("action", action)
+			activity := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
+			activity.Content.Set("en", ap.Content(action.Content))
 			outbox.OrderedItems.Append(activity)
-		}*/
-		log.Debug(action.Content)
+		}
 	}
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
 
@@ -181,7 +181,7 @@ func PersonFollowing(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	users, err := user_model.GetUserFollowing(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
@@ -189,7 +189,7 @@ func PersonFollowing(ctx *context.APIContext) {
 		return
 	}
 
-	following := ap.OrderedCollectionNew(ap.IRI(link))
+	following := ap.OrderedCollectionNew(ap.IRI(link + "/following"))
 	following.TotalItems = uint(len(users))
 
 	for _, user := range users {
@@ -218,7 +218,7 @@ func PersonFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
@@ -226,7 +226,7 @@ func PersonFollowers(ctx *context.APIContext) {
 		return
 	}
 
-	followers := ap.OrderedCollectionNew(ap.IRI(link))
+	followers := ap.OrderedCollectionNew(ap.IRI(link + "/followers"))
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
@@ -254,7 +254,7 @@ func PersonLiked(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	repos, count, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
@@ -266,7 +266,7 @@ func PersonLiked(ctx *context.APIContext) {
 		return
 	}
 
-	liked := ap.OrderedCollectionNew(ap.IRI(link))
+	liked := ap.OrderedCollectionNew(ap.IRI(link + "/liked"))
 	liked.TotalItems = uint(count)
 
 	for _, repo := range repos {

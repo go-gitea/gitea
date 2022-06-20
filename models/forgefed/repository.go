@@ -21,15 +21,6 @@ type Repository struct {
 	Forks ap.Item `jsonld:"forks,omitempty"`
 }
 
-// GetItemByType instantiates a new Repository object if the type matches
-// otherwise it defaults to existing activitypub package typer function.
-func GetItemByType(typ ap.ActivityVocabularyType) (ap.Item, error) {
-	if typ == RepositoryType {
-		return RepositoryNew(""), nil
-	}
-	return ap.GetItemByType(typ)
-}
-
 // RepositoryNew initializes a Repository type actor
 func RepositoryNew(id ap.ID) *Repository {
 	a := ap.ActorNew(id, RepositoryType)

@@ -42,7 +42,7 @@ func Repo(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
 	repo := forgefed.RepositoryNew(ap.IRI(link))
 
 	repo.Name = ap.NaturalLanguageValuesNew()
@@ -52,7 +52,7 @@ func Repo(ctx *context.APIContext) {
 		return
 	}
 
-	repo.AttributedTo = ap.IRI(strings.TrimSuffix(link, "/"+ctx.Repo.Repository.Name))
+	repo.AttributedTo = ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name)
 
 	repo.Summary = ap.NaturalLanguageValuesNew()
 	err = repo.Summary.Set("en", ap.Content(ctx.Repo.Repository.Description))
@@ -129,7 +129,7 @@ func RepoOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
@@ -143,7 +143,7 @@ func RepoOutbox(ctx *context.APIContext) {
 		ctx.ServerError("Couldn't fetch outbox", err)
 	}
 
-	outbox := ap.OrderedCollectionNew(ap.IRI(link))
+	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
 	for _, action := range feed {
 		/*if action.OpType == ExampleType {
 			activity := ap.ExampleNew()
@@ -178,7 +178,7 @@ func RepoFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + strings.TrimSuffix(ctx.Req.URL.EscapedPath(), "/")
+	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
 
 	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
 	if err != nil {
@@ -186,7 +186,7 @@ func RepoFollowers(ctx *context.APIContext) {
 		return
 	}
 
-	followers := ap.OrderedCollectionNew(ap.IRI(link))
+	followers := ap.OrderedCollectionNew(ap.IRI(link + "/followers"))
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
