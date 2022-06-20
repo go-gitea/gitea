@@ -62,7 +62,7 @@ func (ctx *Context) Value(key interface{}) interface{} {
 
 // WithContext returns this engine tied to this context
 func (ctx *Context) WithContext(other context.Context) *Context {
-	return newContext(ctx, ctx.e.Context(ctx), ctx.transaction)
+	return newContext(ctx, ctx.e.Context(other), ctx.transaction)
 }
 
 // Engined structs provide an Engine
