@@ -319,13 +319,7 @@ func (repo *Repository) LoadUnits(ctx context.Context) (err error) {
 
 // UnitEnabled if this repository has the given unit enabled
 func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) {
-	if err := db.WithContext(func(ctx *db.Context) error {
-		result = repo.UnitEnabledCtx(ctx, tp)
-		return nil
-	}); err != nil {
-		log.Error("repo.UnitEnabled: %v", err)
-	}
-	return result
+	return repo.UnitEnabledCtx(db.DefaultContext, tp)
 }
 
 // UnitEnabled if this repository has the given unit enabled
