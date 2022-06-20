@@ -15,18 +15,21 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/routers"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestActivityPubPerson(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		setting.Federation.Enabled = true
-		defer func() {
-			setting.Federation.Enabled = false
-		}()
+	setting.Federation.Enabled = true
+	c = routers.NormalRoutes()
+	defer func() {
+		setting.Federation.Enabled = false
+		c = routers.NormalRoutes()
+	}()
 
+	onGiteaRun(t, func(*testing.T, *url.URL) {
 		username := "user2"
 		req := NewRequestf(t, "GET", fmt.Sprintf("/api/v1/activitypub/user/%s", username))
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -56,12 +59,14 @@ func TestActivityPubPerson(t *testing.T) {
 }
 
 func TestActivityPubMissingPerson(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		setting.Federation.Enabled = true
-		defer func() {
-			setting.Federation.Enabled = false
-		}()
+	setting.Federation.Enabled = true
+	c = routers.NormalRoutes()
+	defer func() {
+		setting.Federation.Enabled = false
+		c = routers.NormalRoutes()
+	}()
 
+	onGiteaRun(t, func(*testing.T, *url.URL) {
 		req := NewRequestf(t, "GET", "/api/v1/activitypub/user/nonexistentuser")
 		resp := MakeRequest(t, req, http.StatusNotFound)
 		assert.Contains(t, resp.Body.String(), "user redirect does not exist")
@@ -69,15 +74,20 @@ func TestActivityPubMissingPerson(t *testing.T) {
 }
 
 func TestActivityPubPersonInbox(t *testing.T) {
+	setting.Federation.Enabled = true
+	c = routers.NormalRoutes()
+	defer func() {
+		setting.Federation.Enabled = false
+		c = routers.NormalRoutes()
+	}()
+
 	srv := httptest.NewServer(c)
 	defer srv.Close()
 
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		appURL := setting.AppURL
-		setting.Federation.Enabled = true
 		setting.AppURL = srv.URL
 		defer func() {
-			setting.Federation.Enabled = false
 			setting.Database.LogSQL = false
 			setting.AppURL = appURL
 		}()
