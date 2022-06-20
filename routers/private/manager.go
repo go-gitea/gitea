@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	"xorm.io/xorm"
 )
 
 // FlushQueues flushes all the Queues
@@ -63,6 +65,18 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 			Err: fmt.Sprintf("Error during release and reopen: %v", err),
 		})
 		return
+	}
+	ctx.PlainText(http.StatusOK, "success")
+}
+
+// SetLogSQL re-sets database SQL logging
+func SetLogSQL(ctx *context.PrivateContext) {
+	on := ctx.FormBool("on")
+	e := db.GetEngine(ctx)
+	if x, ok := e.(*xorm.Engine); ok {
+		x.ShowSQL(on)
+	} else if sess, ok := e.(*xorm.Session); ok {
+		sess.Engine().ShowSQL(on)
 	}
 	ctx.PlainText(http.StatusOK, "success")
 }
