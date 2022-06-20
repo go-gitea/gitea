@@ -257,7 +257,7 @@ func ToHook(repoLink string, w *webhook.Webhook) *api.Hook {
 
 	return &api.Hook{
 		ID:      w.ID,
-		Type:    string(w.Type),
+		Type:    w.Type,
 		URL:     fmt.Sprintf("%s/settings/hooks/%d", repoLink, w.ID),
 		Active:  w.IsActive,
 		Config:  config,

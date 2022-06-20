@@ -131,7 +131,7 @@ func (opts *FindNotificationOptions) ToSession(ctx context.Context) *xorm.Sessio
 // GetNotifications returns all notifications that fit to the given options.
 func GetNotifications(ctx context.Context, options *FindNotificationOptions) (nl NotificationList, err error) {
 	err = options.ToSession(ctx).OrderBy("notification.updated_unix DESC").Find(&nl)
-	return
+	return nl, err
 }
 
 // CountNotifications count all notifications that fit to the given options and ignore pagination.
@@ -291,7 +291,7 @@ func getNotificationsByIssueID(ctx context.Context, issueID int64) (notification
 	err = db.GetEngine(ctx).
 		Where("issue_id = ?", issueID).
 		Find(&notifications)
-	return
+	return notifications, err
 }
 
 func notificationExists(notifications []*Notification, issueID, userID int64) bool {
@@ -370,7 +370,7 @@ func NotificationsForUser(ctx context.Context, user *user_model.User, statuses [
 	}
 
 	err = sess.Find(&notifications)
-	return
+	return notifications, err
 }
 
 // CountUnread count unread notifications for a user
@@ -401,7 +401,7 @@ func (n *Notification) loadAttributes(ctx context.Context) (err error) {
 	if err = n.loadComment(ctx); err != nil {
 		return
 	}
-	return
+	return err
 }
 
 func (n *Notification) loadRepo(ctx context.Context) (err error) {
@@ -730,7 +730,7 @@ func GetNotificationCount(ctx context.Context, user *user_model.User, status Not
 		Where("user_id = ?", user.ID).
 		And("status = ?", status).
 		Count(&Notification{})
-	return
+	return count, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
