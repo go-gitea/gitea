@@ -748,7 +748,7 @@ func DoctorUserStarNum() (err error) {
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return
+	return err
 }
 
 // DeleteDeployKey delete deploy keys

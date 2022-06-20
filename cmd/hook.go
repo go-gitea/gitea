@@ -792,7 +792,7 @@ func writeDataPktLine(out io.Writer, data []byte) error {
 	if err != nil {
 		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
-	if 4 != lr {
+	if lr != 4 {
 		return fail("Internal Server Error", "Pkt-Line response failed: %v", err)
 	}
 

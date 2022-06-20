@@ -104,7 +104,7 @@ done
 		giteaHookTpls = append(giteaHookTpls, "")
 	}
 
-	return
+	return hookNames, hookTpls, giteaHookTpls
 }
 
 // CreateDelegateHooks creates all the hooks scripts for the repo

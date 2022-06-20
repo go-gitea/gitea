@@ -363,7 +363,7 @@ func updateApprovalWhitelist(ctx context.Context, repo *repo_model.Repository, c
 		whitelist = append(whitelist, userID)
 	}
 
-	return
+	return whitelist, err
 }
 
 // updateUserWhitelist checks whether the user whitelist changed and returns a whitelist with
@@ -392,7 +392,7 @@ func updateUserWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		whitelist = append(whitelist, userID)
 	}
 
-	return
+	return whitelist, err
 }
 
 // updateTeamWhitelist checks whether the team whitelist changed and returns a whitelist with
@@ -415,7 +415,7 @@ func updateTeamWhitelist(ctx context.Context, repo *repo_model.Repository, curre
 		}
 	}
 
-	return
+	return whitelist, err
 }
 
 // DeleteProtectedBranch removes ProtectedBranch relation between the user and repository.
@@ -539,7 +539,7 @@ func FindRenamedBranch(repoID int64, from string) (branch *RenamedBranch, exist 
 	}
 	exist, err = db.GetEngine(db.DefaultContext).Get(branch)
 
-	return
+	return branch, exist, err
 }
 
 // RenameBranch rename a branch
