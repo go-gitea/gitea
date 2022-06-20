@@ -680,7 +680,7 @@ type accessibleReposEnv struct {
 	user    *user_model.User
 	team    *Team
 	teamIDs []int64
-	e       db.Engine
+	ctx     context.Context
 	keyword string
 	orderBy db.SearchOrderBy
 }
@@ -706,7 +706,7 @@ func AccessibleReposEnv(ctx context.Context, org *Organization, userID int64) (A
 		org:     org,
 		user:    user,
 		teamIDs: teamIDs,
-		e:       db.GetEngine(ctx),
+		ctx:     ctx,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}, nil
 }
@@ -717,7 +717,7 @@ func (org *Organization) AccessibleTeamReposEnv(team *Team) AccessibleReposEnvir
 	return &accessibleReposEnv{
 		org:     org,
 		team:    team,
-		e:       db.GetEngine(db.DefaultContext),
+		ctx:     db.DefaultContext,
 		orderBy: db.SearchOrderByRecentUpdated,
 	}
 }
@@ -744,7 +744,7 @@ func (env *accessibleReposEnv) cond() builder.Cond {
 }
 
 func (env *accessibleReposEnv) CountRepos() (int64, error) {
-	repoCount, err := env.e.
+	repoCount, err := db.GetEngine(env.ctx).
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
 		Distinct("`repository`.id").
@@ -761,7 +761,7 @@ func (env *accessibleReposEnv) RepoIDs(page, pageSize int) ([]int64, error) {
 	}
 
 	repoIDs := make([]int64, 0, pageSize)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id").
 		Where(env.cond()).
@@ -783,7 +783,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		OrderBy(string(env.orderBy)).
 		Find(&repos)
@@ -791,7 +791,7 @@ func (env *accessibleReposEnv) Repos(page, pageSize int) ([]*repo_model.Reposito
 
 func (env *accessibleReposEnv) MirrorRepoIDs() ([]int64, error) {
 	repoIDs := make([]int64, 0, 10)
-	return repoIDs, env.e.
+	return repoIDs, db.GetEngine(env.ctx).
 		Table("repository").
 		Join("INNER", "team_repo", "`team_repo`.repo_id=`repository`.id AND `repository`.is_mirror=?", true).
 		Where(env.cond()).
@@ -812,7 +812,7 @@ func (env *accessibleReposEnv) MirrorRepos() ([]*repo_model.Repository, error) {
 		return repos, nil
 	}
 
-	return repos, env.e.
+	return repos, db.GetEngine(env.ctx).
 		In("`repository`.id", repoIDs).
 		Find(&repos)
 }
