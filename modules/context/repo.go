@@ -734,7 +734,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 	}
-	return
+	return cancel
 }
 
 // RepoRefType type of repo reference
@@ -942,6 +942,10 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 
 				ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetTagCommit(refName)
 				if err != nil {
+					if git.IsErrNotExist(err) {
+						ctx.NotFound("GetTagCommit", err)
+						return
+					}
 					ctx.ServerError("GetTagCommit", err)
 					return
 				}
@@ -997,7 +1001,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		return
+		return cancel
 	}
 }
 

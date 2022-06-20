@@ -142,5 +142,5 @@ func DeleteOldSystemNotices(olderThan time.Duration) (err error) {
 	}
 
 	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Notice{})
-	return
+	return err
 }

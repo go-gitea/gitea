@@ -59,7 +59,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	}
 
 	if opts.Actor != nil {
-		var exprCond builder.Cond = builder.Expr("org_user.org_id = `user`.id")
+		exprCond := builder.Expr("org_user.org_id = `user`.id")
 
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {

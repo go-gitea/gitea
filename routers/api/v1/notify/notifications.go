@@ -63,5 +63,5 @@ func subjectToSource(value []string) (result []models.NotificationSource) {
 			result = append(result, models.NotificationSourceRepository)
 		}
 	}
-	return
+	return result
 }

@@ -287,7 +287,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	}
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
 			subject = fallback
@@ -302,8 +302,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
@@ -498,5 +498,5 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 	if !ok {
 		template = "issue/default"
 	}
-	return
+	return typeName, name, template
 }

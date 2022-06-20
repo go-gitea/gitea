@@ -168,7 +168,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		RegisteredClaims: jwt.RegisteredClaims{ // nolint
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
