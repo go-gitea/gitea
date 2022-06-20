@@ -354,10 +354,10 @@ func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
 			return err
 		}
 	default:
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue INNER JOIN project ON project.id = project_issue.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_issue FROM project_issue INNER JOIN project ON project.id = project_issue.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
