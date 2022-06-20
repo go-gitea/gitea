@@ -245,6 +245,6 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
 }

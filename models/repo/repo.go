@@ -280,7 +280,7 @@ func (repo *Repository) CommitLink(commitID string) (result string) {
 	} else {
 		result = repo.HTMLURL() + "/commit/" + url.PathEscape(commitID)
 	}
-	return
+	return result
 }
 
 // APIURL returns the repository API URL
@@ -325,7 +325,7 @@ func (repo *Repository) UnitEnabled(tp unit.Type) (result bool) {
 	}); err != nil {
 		log.Error("repo.UnitEnabled: %v", err)
 	}
-	return
+	return result
 }
 
 // UnitEnabled if this repository has the given unit enabled
@@ -546,7 +546,7 @@ func (repo *Repository) DescriptionHTML(ctx context.Context) template.HTML {
 		log.Error("Failed to render description for %s (ID: %d): %v", repo.Name, repo.ID, err)
 		return template.HTML(markup.Sanitize(repo.Description))
 	}
-	return template.HTML(markup.Sanitize(string(desc)))
+	return template.HTML(markup.Sanitize(desc))
 }
 
 // CloneLink represents different types of clone URLs of repository.

@@ -75,7 +75,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		if lexer == nil {
 			// include language-x class as part of commonmark spec
-			if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
+			if _, err := w.WriteString(`<code class="chroma language-` + lang + `">`); err != nil {
 				return ""
 			}
 			if _, err := w.WriteString(html.EscapeString(source)); err != nil {
@@ -83,7 +83,7 @@ func Render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 			}
 		} else {
 			// include language-x class as part of commonmark spec
-			if _, err := w.WriteString(`<code class="chroma language-` + string(lang) + `">`); err != nil {
+			if _, err := w.WriteString(`<code class="chroma language-` + lang + `">`); err != nil {
 				return ""
 			}
 			lexer = chroma.Coalesce(lexer)

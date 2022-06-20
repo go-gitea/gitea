@@ -1088,8 +1088,16 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 ## Federation (`federation`)
 
-- `ENABLED`: **true**: Enable/Disable federation capabilities
+- `ENABLED`: **false**: Enable/Disable federation capabilities
 - `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
+- `MAX_SIZE`: **4**: Maximum federation request and response size (MB)
+
+ WARNING: Changing the settings below can break federation.
+
+- `ALGORITHMS`: **rsa-sha256, rsa-sha512, ed25519**: HTTP signature algorithms
+- `DIGEST_ALGORITHM`: **SHA-256**: HTTP signature digest algorithm
+- `GET_HEADERS`: **(request-target), Date**: GET headers for federation requests
+- `POST_HEADERS`: **(request-target), Date, Digest**: POST headers for federation requests
 
 ## Packages (`packages`)
 

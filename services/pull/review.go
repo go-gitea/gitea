@@ -318,5 +318,5 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 
 	notification.NotifyPullRevieweDismiss(doer, review, comment)
 
-	return
+	return comment, err
 }

@@ -103,7 +103,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (pb *Board) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", pb.ID)
+func (b *Board) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
 	return err
 }

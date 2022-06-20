@@ -101,5 +101,5 @@ func (repo *Repository) Close() (err error) {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
-	return
+	return err
 }
