@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
@@ -109,7 +110,13 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(userIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", userIDs).Find(&users); err != nil {
+
+		orderBy := "name"
+		if setting.UI.DefaultShowFullName {
+			orderBy = "full_name"
+		}
+
+		if err = e.In("id", userIDs).OrderBy(orderBy).Find(&users); err != nil {
 			return nil, err
 		}
 	}
@@ -167,6 +174,11 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 		)))))
 	}
 
+	orderBy := "name"
+	if setting.UI.DefaultShowFullName {
+		orderBy = "full_name"
+	}
+
 	users := make([]*user_model.User, 0, 8)
-	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy(orderBy).Find(&users)
 }

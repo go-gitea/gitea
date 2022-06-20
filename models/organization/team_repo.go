@@ -81,5 +81,6 @@ func GetTeamsWithAccessToRepo(ctx context.Context, orgID, repoID int64, mode per
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		And("team_repo.org_id = ?", orgID).
 		And("team_repo.repo_id = ?", repoID).
+		OrderBy("name").
 		Find(&teams)
 }
