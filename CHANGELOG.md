@@ -17,6 +17,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Use "main" as default branch name (#19354)
   * Make cron task no notice on success (#19221)
   * Add pam account authorization check (#19040)
+  * Show messages for users if the ROOT_URL is wrong, show JavaScript errors (#18971)
   * Refactor mirror code & fix StartToMirror (#18904)
   * Remove deprecated SSH ciphers from default (#18697)
   * Add the possibility to allow the user to have a favicon which differs from the main logo (#18542)
@@ -191,6 +192,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Prevent double click new issue/pull/comment button (#16157)
   * Show issue assignee on project board (#15232)
 * BUGFIXES
+  * Alter hook_task TEXT fields to LONGTEXT (#20038) (#20041)
+  * Respond with a 401 on git push when password isn't changed yet (#20026) (#20027)
   * Return 404 when tag is broken (#20017) (#20024)
   * Write Commit-Graphs in RepositoryDumper (#20004)
   * Use DisplayName() instead of FullName in Oauth Provider (#19991)
