@@ -902,8 +902,9 @@ steps:
     image: techknowlogick/drone-docker:latest
     pull: always
     settings:
-      auto_tag: true
-      auto_tag_suffix: linux-amd64
+      # Either set auto_tag: true or add latest to tags once 1.17.0 is released
+      auto_tag: false
+      tags: ${DRONE_TAG}-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -920,8 +921,9 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
-      auto_tag_suffix: linux-amd64-rootless
+      # Either set auto_tag: true or add latest to tags once 1.17.0 is released
+      auto_tag: false
+      tags: ${DRONE_TAG}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1126,8 +1128,9 @@ steps:
     image: techknowlogick/drone-docker:latest
     pull: always
     settings:
-      auto_tag: true
-      auto_tag_suffix: linux-arm64
+      # Either set auto_tag: true or add latest to tags once 1.17.0 is released
+      auto_tag: false
+      tags: ${DRONE_TAG}-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1144,8 +1147,9 @@ steps:
     image: techknowlogick/drone-docker:latest
     settings:
       dockerfile: Dockerfile.rootless
-      auto_tag: true
-      auto_tag_suffix: linux-arm64-rootless
+      # Either set auto_tag: true or add latest to tags once 1.17.0 is released
+      auto_tag: false
+      tags: ${DRONE_TAG}-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1299,7 +1303,7 @@ steps:
     image: plugins/manifest
     pull: always
     settings:
-      auto_tag: true
+      auto_tag: false
       ignore_missing: true
       spec: docker/manifest.rootless.tmpl
       password:
@@ -1310,7 +1314,7 @@ steps:
   - name: manifest
     image: plugins/manifest
     settings:
-      auto_tag: true
+      auto_tag: false
       ignore_missing: true
       spec: docker/manifest.tmpl
       password:
@@ -1342,7 +1346,6 @@ steps:
   - name: manifest-rootless
     pull: always
     image: plugins/manifest
-    pull: always
     settings:
       auto_tag: false
       ignore_missing: true
