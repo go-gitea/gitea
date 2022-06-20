@@ -9,7 +9,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * BUGFIXES
   * Fix permission check for delete tag (#19985) (#20001)
   * Only log non ErrNotExist errors in git.GetNote  (#19884) (#19905)
-  *  Use exact search instead of fuzzy search for branch filter dropdown (#19885) (#19893)
+  * Use exact search instead of fuzzy search for branch filter dropdown (#19885) (#19893)
   * Set Setpgid on child git processes (#19865) (#19881)
   * Import git from alpine 3.16 repository as 2.30.4 is needed for `safe.directory = '*'` to work but alpine 3.13 has 2.30.3 (#19876)
   * Ensure responses are context.ResponseWriters (#19843) (#19859)
