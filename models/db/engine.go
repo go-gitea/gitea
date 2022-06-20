@@ -285,5 +285,5 @@ func DeleteAllRecords(tableName string) error {
 // GetMaxID will return max id of the table
 func GetMaxID(beanOrTableName interface{}) (maxID int64, err error) {
 	_, err = x.Select("MAX(id)").Table(beanOrTableName).Get(&maxID)
-	return
+	return maxID, err
 }

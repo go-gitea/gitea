@@ -72,7 +72,7 @@ func (m *Manager) GetLevelDB(connection string) (db *leveldb.DB, err error) {
 	if recovered != nil {
 		panic(recovered)
 	}
-	return
+	return db, err
 }
 
 func (m *Manager) getLevelDB(connection string) (*leveldb.DB, error) {

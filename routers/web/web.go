@@ -138,7 +138,7 @@ func Routes() *web.Route {
 
 	// redirect default favicon to the path of the custom favicon with a default as a fallback
 	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), http.StatusMovedPermanently)
 	})
 
 	common := []interface{}{}
@@ -1121,7 +1121,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return
+			return cancel
 		})
 
 		m.Group("/pulls/{index}", func() {

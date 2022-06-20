@@ -348,7 +348,7 @@ func convertResult(searchResult *elastic.SearchResult, kw string, pageSize int) 
 		// FIXME: There is no way to get the position the keyword on the content currently on the same request.
 		// So we get it from content, this may made the query slower. See
 		// https://discuss.elastic.co/t/fetching-position-of-keyword-in-matched-document/94291
-		var startIndex, endIndex int = -1, -1
+		var startIndex, endIndex int
 		c, ok := hit.Highlight["content"]
 		if ok && len(c) > 0 {
 			// FIXME: Since the highlighting content will include <em> and </em> for the keywords,

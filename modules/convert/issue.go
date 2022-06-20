@@ -123,7 +123,7 @@ func ToTrackedTime(t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	if t.User != nil {
 		apiT.UserName = t.User.Name
 	}
-	return
+	return apiT
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
