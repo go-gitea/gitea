@@ -8,11 +8,10 @@ export function initVueEnv() {
   if (vueEnvInited) return;
   vueEnvInited = true;
 
-  /* As far as I could tell, this is no longer possible.
-   * But there seem not to be a guide what to do instead.
-  const isProd = window.config.runModeIsProd;
-  Vue.config.devtools = !isProd;
-  */
+  // As far as I could tell, this is no longer possible.
+  // But there seem not to be a guide what to do instead.
+  // const isProd = window.config.runModeIsProd;
+  // Vue.config.devtools = !isProd;
 }
 
 let vueSvgInited = false;
