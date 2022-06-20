@@ -37,6 +37,7 @@ import (
 	"gitea.com/go-chi/binding"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 )
 
 const (
@@ -1098,23 +1099,30 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
+	// Make sure that the response is not an error response.
+	errorName := request.FormValue("error")
+
+	if len(errorName) > 0 {
+		errorDescription := request.FormValue("error_description")
+
+		// Delete the goth session
+		err := gothic.Logout(response, request)
+		if err != nil {
+			return nil, goth.User{}, err
+		}
+
+		return nil, goth.User{}, errCallback{
+			Code:        errorName,
+			Description: errorDescription,
+		}
+	}
+
+	// Proceed to authenticate through goth.
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
-		}
-		// goth does not provide the original error message
-		// https://github.com/markbates/goth/issues/348
-		if strings.Contains(err.Error(), "server response missing access_token") || strings.Contains(err.Error(), "could not find a matching session for this request") {
-			errorCode := request.FormValue("error")
-			errorDescription := request.FormValue("error_description")
-			if errorCode != "" || errorDescription != "" {
-				return nil, goth.User{}, errCallback{
-					Code:        errorCode,
-					Description: errorDescription,
-				}
-			}
 		}
 		return nil, goth.User{}, err
 	}
