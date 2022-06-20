@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/1.16.9) - 2022-06-20
+## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-06-20
 
 * BUGFIXES
   * Fix permission check for delete tag (#19985) (#20001)
