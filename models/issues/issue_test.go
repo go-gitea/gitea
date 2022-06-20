@@ -152,8 +152,8 @@ func TestIssues(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: 1,
-				SortType:   "oldest",
+				AssigneeIDs: []int64{1},
+				SortType:    "oldest",
 			},
 			[]int64{1, 6},
 		},
@@ -354,7 +354,7 @@ func TestGetRepoIDsForIssuesOptions(t *testing.T) {
 	}{
 		{
 			issues_model.IssuesOptions{
-				AssigneeID: 2,
+				AssigneeIDs: []int64{2},
 			},
 			[]int64{3, 32},
 		},

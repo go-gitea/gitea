@@ -122,7 +122,7 @@ func MustAllowPulls(ctx *context.Context) {
 	}
 }
 
-func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption util.OptionalBool) {
+func issues(ctx *context.Context, milestoneID string, projectID int64, isPullOption util.OptionalBool) {
 	var err error
 	viewType := ctx.FormString("type")
 	sortType := ctx.FormString("sort")
@@ -132,7 +132,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	var (
-		assigneeID        = ctx.FormInt64("assignee")
+		assigneeID        = ctx.FormString("assignee")
 		posterID          int64
 		mentionedID       int64
 		reviewRequestedID int64
@@ -146,7 +146,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		case "mentioned":
 			mentionedID = ctx.Doer.ID
 		case "assigned":
-			assigneeID = ctx.Doer.ID
+			assigneeID = strconv.Itoa(int(ctx.Doer.ID))
 		case "review_requested":
 			reviewRequestedID = ctx.Doer.ID
 		}
@@ -223,10 +223,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
-	var mileIDs []int64
-	if milestoneID > 0 {
-		mileIDs = []int64{milestoneID}
-	}
+	mileIDs, _ := base.StringsToInt64s(strings.Split(milestoneID, ","))
+
+	assigneeIDs, _ := base.StringsToInt64s(strings.Split(assigneeID, ","))
 
 	var issues []*issues_model.Issue
 	if forceEmpty {
@@ -238,7 +237,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 				PageSize: setting.UI.IssuePagingNum,
 			},
 			RepoID:            repo.ID,
-			AssigneeID:        assigneeID,
+			AssigneeIDs:       assigneeIDs,
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
@@ -319,8 +318,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["Labels"] = labels
 	ctx.Data["NumLabels"] = len(labels)
 
-	if ctx.FormInt64("assignee") == 0 {
-		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
+	if ctx.FormString("assignee") == "0" {
+		assigneeID = "0" // Reset ID to prevent unexpected selection of assignee.
 	}
 
 	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
@@ -363,6 +362,8 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["ViewType"] = viewType
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
+	ctx.Data["mileIDs"] = mileIDs
+	ctx.Data["AssigneeIDs"] = assigneeIDs
 	ctx.Data["AssigneeID"] = assigneeID
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
@@ -402,7 +403,7 @@ func Issues(ctx *context.Context) {
 		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
 	}
 
-	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
+	issues(ctx, ctx.FormString("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
 	if ctx.Written() {
 		return
 	}
@@ -2296,7 +2297,7 @@ func SearchIssues(ctx *context.Context) {
 			issuesOpt.PosterID = ctxUserID
 		}
 		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeID = ctxUserID
+			issuesOpt.AssigneeIDs = []int64{ctxUserID}
 		}
 		if ctx.FormBool("mentioned") {
 			issuesOpt.MentionedID = ctxUserID
@@ -2459,7 +2460,7 @@ func ListIssues(ctx *context.Context) {
 			UpdatedBeforeUnix: before,
 			UpdatedAfterUnix:  since,
 			PosterID:          createdByID,
-			AssigneeID:        assignedByID,
+			AssigneeIDs:       []int64{assignedByID},
 			MentionedID:       mentionedByID,
 		}
 
