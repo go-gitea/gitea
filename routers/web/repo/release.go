@@ -98,11 +98,13 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	tagListStart, tagListEnd := listOptions.GetStartEnd()
-	if !isTagList {
-		// tags are used for compare feature witch needs all tags
-		tagListStart, tagListEnd = 0, 0
+	// TODO(20073) tags are used for compare feature witch needs all tags
+	// filtering is doen at the client side atm
+	tagListStart, tagListEnd := 0, 0
+	if isTagList {
+		tagListStart, tagListEnd = listOptions.GetStartEnd()
 	}
+
 	tags, err := ctx.Repo.GitRepo.GetTags(tagListStart, tagListEnd)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
