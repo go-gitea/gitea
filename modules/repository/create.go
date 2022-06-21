@@ -7,15 +7,21 @@ package repository
 import (
 	"context"
 	"fmt"
+	"os"
+	"path"
 	"strings"
+	"unicode/utf8"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
 
@@ -108,7 +114,7 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 			}
 		}
 
-		if err := models.CheckDaemonExportOK(ctx, repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -132,4 +138,112 @@ func CreateRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (
 	}
 
 	return repo, nil
+}
+
+// UpdateRepoSize updates the repository size, calculating it using util.GetDirectorySize
+func UpdateRepoSize(ctx context.Context, repo *repo_model.Repository) error {
+	size, err := util.GetDirectorySize(repo.RepoPath())
+	if err != nil {
+		return fmt.Errorf("updateSize: %v", err)
+	}
+
+	lfsSize, err := git_model.GetRepoLFSSize(ctx, repo.ID)
+	if err != nil {
+		return fmt.Errorf("updateSize: GetLFSMetaObjects: %v", err)
+	}
+
+	return repo_model.UpdateRepoSize(ctx, repo.ID, size+lfsSize)
+}
+
+// CheckDaemonExportOK creates/removes git-daemon-export-ok for git-daemon...
+func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error {
+	if err := repo.GetOwner(ctx); err != nil {
+		return err
+	}
+
+	// Create/Remove git-daemon-export-ok for git-daemon...
+	daemonExportFile := path.Join(repo.RepoPath(), `git-daemon-export-ok`)
+
+	isExist, err := util.IsExist(daemonExportFile)
+	if err != nil {
+		log.Error("Unable to check if %s exists. Error: %v", daemonExportFile, err)
+		return err
+	}
+
+	isPublic := !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePublic
+	if !isPublic && isExist {
+		if err = util.Remove(daemonExportFile); err != nil {
+			log.Error("Failed to remove %s: %v", daemonExportFile, err)
+		}
+	} else if isPublic && !isExist {
+		if f, err := os.Create(daemonExportFile); err != nil {
+			log.Error("Failed to create %s: %v", daemonExportFile, err)
+		} else {
+			f.Close()
+		}
+	}
+
+	return nil
+}
+
+// UpdateRepository updates a repository with db context
+func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
+	repo.LowerName = strings.ToLower(repo.Name)
+
+	if utf8.RuneCountInString(repo.Description) > 255 {
+		repo.Description = string([]rune(repo.Description)[:255])
+	}
+	if utf8.RuneCountInString(repo.Website) > 255 {
+		repo.Website = string([]rune(repo.Website)[:255])
+	}
+
+	e := db.GetEngine(ctx)
+
+	if _, err = e.ID(repo.ID).AllCols().Update(repo); err != nil {
+		return fmt.Errorf("update: %v", err)
+	}
+
+	if err = UpdateRepoSize(ctx, repo); err != nil {
+		log.Error("Failed to update size for repository: %v", err)
+	}
+
+	if visibilityChanged {
+		if err = repo.GetOwner(ctx); err != nil {
+			return fmt.Errorf("getOwner: %v", err)
+		}
+		if repo.Owner.IsOrganization() {
+			// Organization repository need to recalculate access table when visibility is changed.
+			if err = access_model.RecalculateTeamAccesses(ctx, repo, 0); err != nil {
+				return fmt.Errorf("recalculateTeamAccesses: %v", err)
+			}
+		}
+
+		// If repo has become private, we need to set its actions to private.
+		if repo.IsPrivate {
+			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&models.Action{
+				IsPrivate: true,
+			})
+			if err != nil {
+				return err
+			}
+		}
+
+		// Create/Remove git-daemon-export-ok for git-daemon...
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
+			return err
+		}
+
+		forkRepos, err := repo_model.GetRepositoriesByForkID(ctx, repo.ID)
+		if err != nil {
+			return fmt.Errorf("getRepositoriesByForkID: %v", err)
+		}
+		for i := range forkRepos {
+			forkRepos[i].IsPrivate = repo.IsPrivate || repo.Owner.Visibility == api.VisibleTypePrivate
+			if err = UpdateRepository(ctx, forkRepos[i], true); err != nil {
+				return fmt.Errorf("updateRepository[%d]: %v", forkRepos[i].ID, err)
+			}
+		}
+	}
+
+	return nil
 }

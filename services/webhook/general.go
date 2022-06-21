@@ -141,7 +141,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 
 func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	refLink := linkFormatter(p.Repository.HTMLURL+"/src/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
+	refLink := linkFormatter(p.Repository.HTMLURL+"/releases/tag/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
 
 	switch p.Action {
 	case api.HookReleasePublished:

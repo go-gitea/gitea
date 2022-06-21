@@ -9,7 +9,7 @@ import (
 	"context"
 	"errors"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -18,7 +18,7 @@ import (
 var ErrUserHasNoPermissionForAction = errors.New("user not allowed to do this action")
 
 // SetAllowEdits allow edits from maintainers to PRs
-func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *models.PullRequest, allow bool) error {
+func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *issues_model.PullRequest, allow bool) error {
 	if doer == nil || !pr.Issue.IsPoster(doer.ID) {
 		return ErrUserHasNoPermissionForAction
 	}
@@ -37,5 +37,5 @@ func SetAllowEdits(ctx context.Context, doer *user_model.User, pr *models.PullRe
 	}
 
 	pr.AllowMaintainerEdit = allow
-	return models.UpdateAllowEdits(ctx, pr)
+	return issues_model.UpdateAllowEdits(ctx, pr)
 }

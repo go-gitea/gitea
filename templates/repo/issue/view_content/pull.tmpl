@@ -251,8 +251,14 @@
 						{{$.i18n.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
 					</div>
 				{{end}}
+
 				{{$notAllOverridableChecksOk := or .IsBlockedByApprovals .IsBlockedByRejection .IsBlockedByOfficialReviewRequests .IsBlockedByOutdatedBranch .IsBlockedByChangedProtectedFiles (and .EnableStatusCheck (not .RequiredStatusCheckState.IsSuccess))}}
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+
+				{{/* admin can merge without checks, writer can merge when checkes succeed */}}
+				{{$canMergeNow := and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
+				{{/* admin and writer both can make an auto merge schedule */}}
+
+				{{if $canMergeNow}}
 					{{if $notAllOverridableChecksOk}}
 						<div class="item">
 							<i class="icon icon-octicon">{{svg "octicon-dot-fill"}}</i>
@@ -277,8 +283,7 @@
 					{{end}}
 				{{end}}
 
-				{{$canAutoMerge = true}}
-				{{if (gt .Issue.PullRequest.CommitsBehind 0)}}
+				{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
 					<div class="ui divider"></div>
 					<div class="item item-section">
 						<div class="item-section-left">
@@ -317,112 +322,111 @@
 					</div>
 				{{end}}
 
-				{{if and (or $.IsRepoAdmin (not $notAllOverridableChecksOk)) (or (not .AllowMerge) (not .RequireSigned) .WillSign)}}
-					{{if .AllowMerge}}
-						{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
-						{{$approvers := .Issue.PullRequest.GetApprovers}}
-						{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+				{{if .AllowMerge}} {{/* user is allowed to merge */}}
+					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
+					{{$approvers := .Issue.PullRequest.GetApprovers}}
+					{{if or $prUnit.PullRequestsConfig.AllowMerge $prUnit.PullRequestsConfig.AllowRebase $prUnit.PullRequestsConfig.AllowRebaseMerge $prUnit.PullRequestsConfig.AllowSquash}}
+						{{$hasPendingPullRequestMergeTip := ""}}
+						{{if .HasPendingPullRequestMerge}}
+							{{$createdPRMergeStr := TimeSinceUnix .PendingPullRequestMerge.CreatedUnix $.i18n.Lang}}
+							{{$hasPendingPullRequestMergeTip = $.i18n.Tr "repo.pulls.auto_merge_has_pending_schedule" .PendingPullRequestMerge.Doer.Name $createdPRMergeStr}}
+						{{end}}
+						<div class="ui divider"></div>
+						<script>
+							<!-- /* eslint-disable */ -->
+							(() => {
+								const defaultMergeTitle = {{.DefaultMergeMessage}};
+								const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
+								const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
+								const mergeForm = {
+									'baseLink': {{.Link}},
+									'textCancel': {{$.i18n.Tr "cancel"}},
+									'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+									'textAutoMergeButtonWhenSucceed': {{$.i18n.Tr "repo.pulls.auto_merge_button_when_succeed"}},
+									'textAutoMergeWhenSucceed': {{$.i18n.Tr "repo.pulls.auto_merge_when_succeed"}},
+									'textAutoMergeCancelSchedule': {{$.i18n.Tr "repo.pulls.auto_merge_cancel_schedule"}},
 
-							<div class="ui divider"></div>
+									'canMergeNow': {{$canMergeNow}},
+									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+									'pullHeadCommitID': {{.PullHeadCommitID}},
+									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
+									'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
 
-							<script>
-								<!-- /* eslint-disable */ -->
-								(() => {
-									const defaultMergeTitle = {{.DefaultMergeMessage}};
-									const defaultSquashMergeTitle = {{.DefaultSquashMergeMessage}};
-									const defaultMergeMessage = 'Reviewed-on: ' + {{$.Issue.HTMLURL}} + '\n' + {{$approvers}};
-									const mergeForm = {
-										'baseLink': {{.Link}},
-										'textCancel': {{$.i18n.Tr "cancel"}},
-										'textDeleteBranch': {{$.i18n.Tr "repo.branch.delete" .HeadTarget}},
+									'hasPendingPullRequestMerge': {{.HasPendingPullRequestMerge}},
+									'hasPendingPullRequestMergeTip': {{$hasPendingPullRequestMergeTip}},
+								};
 
-										'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
-										'pullHeadCommitID': {{.PullHeadCommitID}},
-										'isPullBranchDeletable': {{.IsPullBranchDeletable}},
-										'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
-										'mergeMessageFieldPlaceHolder': {{$.i18n.Tr "repo.editor.commit_message_desc"}},
-									};
-									mergeForm['mergeStyles'] = [
-										{
-											'name': 'merge',
-											'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
-											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
-											'mergeTitleFieldText': defaultMergeTitle,
-											'mergeMessageFieldText': defaultMergeMessage,
-										},
-										{
-											'name': 'rebase',
-											'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
-											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
-											'hideMergeMessageTexts': true,
-										},
-										{
-											'name': 'rebase-merge',
-											'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
-											'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
-											'mergeTitleFieldText': defaultMergeTitle,
-											'mergeMessageFieldText': defaultMergeMessage,
-										},
-										{
-											'name': 'squash',
-											'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
-											'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
-											'mergeTitleFieldText': defaultSquashMergeTitle,
-											'mergeMessageFieldText': defaultMergeMessage,
-										},
-										{
-											'name': 'manually-merged',
-											'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
-											'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
-											'hideMergeMessageTexts': true,
-										}
-									];
-									window.config.pageData.pullRequestMergeForm = mergeForm;
-								})();
-							</script>
+								const generalHideAutoMerge = mergeForm.canMergeNow && mergeForm.allOverridableChecksOk; // if this PR can be merged now, then hide the auto merge
+								mergeForm['mergeStyles'] = [
+									{
+										'name': 'merge',
+										'allowed': {{$prUnit.PullRequestsConfig.AllowMerge}},
+										'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_pull_request"}},
+										'mergeTitleFieldText': defaultMergeTitle,
+										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
+									},
+									{
+										'name': 'rebase',
+										'allowed': {{$prUnit.PullRequestsConfig.AllowRebase}},
+										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_pull_request"}},
+										'hideMergeMessageTexts': true,
+										'hideAutoMerge': generalHideAutoMerge,
+									},
+									{
+										'name': 'rebase-merge',
+										'allowed': {{$prUnit.PullRequestsConfig.AllowRebaseMerge}},
+										'textDoMerge': {{$.i18n.Tr "repo.pulls.rebase_merge_commit_pull_request"}},
+										'mergeTitleFieldText': defaultMergeTitle,
+										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
+									},
+									{
+										'name': 'squash',
+										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
+										'textDoMerge': {{$.i18n.Tr "repo.pulls.squash_merge_pull_request"}},
+										'mergeTitleFieldText': defaultSquashMergeTitle,
+										'mergeMessageFieldText': defaultMergeMessage,
+										'hideAutoMerge': generalHideAutoMerge,
+									},
+									{
+										'name': 'manually-merged',
+										'allowed': {{and $prUnit.PullRequestsConfig.AllowManualMerge $.IsRepoAdmin}},
+										'textDoMerge': {{$.i18n.Tr "repo.pulls.merge_manually"}},
+										'hideMergeMessageTexts': true,
+										'hideAutoMerge': true,
+									}
+								];
+								window.config.pageData.pullRequestMergeForm = mergeForm;
+							})();
+						</script>
 
-							<div id="pull-request-merge-form"></div>
+						<div id="pull-request-merge-form"></div>
 
-							{{if .ShowMergeInstructions}}
-								<div class="instruct-toggle mt-3"> {{$.i18n.Tr "repo.pulls.merge_instruction_hint" | Safe}} </div>
-								<div class="instruct-content" style="display:none">
-									<div class="ui divider"></div>
-									<div><h3 class="di">{{$.i18n.Tr "step1"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step1_desc"}}</div>
-									<div class="ui secondary segment">
-										{{if eq .Issue.PullRequest.Flow 0}}
-											<div>git checkout -b {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}} {{.Issue.PullRequest.BaseBranch}}</div>
-											<div>git pull {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.HTMLURL}}{{else}}origin{{end}} {{.Issue.PullRequest.HeadBranch}}</div>
-										{{else}}
-											<div>git fetch origin {{.Issue.PullRequest.GetGitRefName}}:{{.Issue.PullRequest.HeadBranch}}</div>
-										{{end}}
-									</div>
-									<div><h3 class="di">{{$.i18n.Tr "step2"}} </h3>{{$.i18n.Tr "repo.pulls.merge_instruction_step2_desc"}}</div>
-									<div class="ui secondary segment">
-										<div>git checkout {{.Issue.PullRequest.BaseBranch}}</div>
-										<div>git merge --no-ff {{if ne .Issue.PullRequest.HeadRepo.ID .Issue.PullRequest.BaseRepo.ID}}{{.Issue.PullRequest.HeadRepo.OwnerName}}-{{end}}{{.Issue.PullRequest.HeadBranch}}</div>
-										<div>git push origin {{.Issue.PullRequest.BaseBranch}}</div>
-									</div>
-								</div>
-							{{end}}
-						{{else}}
-							<div class="ui divider"></div>
-							<div class="item text red">
-								{{svg "octicon-x"}}
-								{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
-							</div>
-							<div class="item">
-								{{svg "octicon-info"}}
-								{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
-							</div>
+						{{if .ShowMergeInstructions}}
+							{{template "repo/issue/view_content/pull_merge_instruction" (dict "i18n" .i18n "Issue" .Issue)}}
 						{{end}}
 					{{else}}
+						{{/* no merge style was set in repo setting: not or ($prUnit.PullRequestsConfig.AllowMerge ...) */}}
 						<div class="ui divider"></div>
+						<div class="item text red">
+							{{svg "octicon-x"}}
+							{{$.i18n.Tr "repo.pulls.no_merge_desc"}}
+						</div>
 						<div class="item">
 							{{svg "octicon-info"}}
-							{{$.i18n.Tr "repo.pulls.no_merge_access"}}
+							{{$.i18n.Tr "repo.pulls.no_merge_helper"}}
 						</div>
-					{{end}}
-				{{end}}
+					{{end}} {{/* end if the repo was set to use any merge style */}}
+				{{else}}
+					{{/* user is not allowed to merge */}}
+					<div class="ui divider"></div>
+					<div class="item">
+						{{svg "octicon-info"}}
+						{{$.i18n.Tr "repo.pulls.no_merge_access"}}
+					</div>
+				{{end}} {{/* end if user is allowed to merge or not */}}
 			{{else}}
 				{{/* Merge conflict without specific file. Suggest manual merge, only if all reviews and status checks OK. */}}
 				{{if .IsBlockedByApprovals}}
@@ -475,44 +479,6 @@
 						{{$.i18n.Tr "repo.pulls.cannot_auto_merge_helper"}}
 					</div>
 				{{end}}
-			{{end}}
-
-			{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
-				<div class="item df ac sb">
-					<div>
-						<i class="icon icon-octicon">{{svg "octicon-alert"}}</i>
-						{{$.i18n.Tr "repo.pulls.outdated_with_base_branch"}}
-					</div>
-					<div>
-						{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
-							<div class="dib">
-								<div class="ui buttons update-button">
-									<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
-										<span class="button-text">
-											{{$.i18n.Tr "repo.pulls.update_branch"}}
-										</span>
-									</button>
-
-									<div class="ui dropdown icon button no-text">
-										{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-										<div class="menu">
-											<div class="item active selected" data-do="{{.Link}}/update">{{$.i18n.Tr "repo.pulls.update_branch"}}</div>
-											<div class="item" data-do="{{.Link}}/update?style=rebase">{{$.i18n.Tr "repo.pulls.update_branch_rebase"}}</div>
-										</div>
-									</div>
-								</div>
-							</div>
-						{{end}}
-						{{if and .UpdateAllowed (not .UpdateByRebaseAllowed)}}
-							<form action="{{.Link}}/update" method="post">
-								{{.CsrfTokenHtml}}
-								<button class="ui compact button" data-do="update">
-									<span class="ui text">{{$.i18n.Tr "repo.pulls.update_branch"}}</span>
-								</button>
-							</form>
-						{{end}}
-					</div>
-				</div>
 			{{end}}
 
 			{{if $.StillCanManualMerge}}

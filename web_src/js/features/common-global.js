@@ -4,6 +4,7 @@ import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
+import {attachDropdownAria} from './aria.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -97,24 +98,27 @@ export function initGlobalCommon() {
   }
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown({
+  const $uiDropdowns = $('.ui.dropdown');
+  $uiDropdowns.filter(':not(.custom)').dropdown({
     fullTextSearch: 'exact'
   });
-  $('.jump.dropdown').dropdown({
+  $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
       $('.tooltip').popup('hide');
     },
     fullTextSearch: 'exact'
   });
-  $('.slide.up.dropdown').dropdown({
+  $uiDropdowns.filter('.slide.up').dropdown({
     transition: 'slide up',
     fullTextSearch: 'exact'
   });
-  $('.upward.dropdown').dropdown({
+  $uiDropdowns.filter('.upward').dropdown({
     direction: 'upward',
     fullTextSearch: 'exact'
   });
+  attachDropdownAria($uiDropdowns);
+
   $('.ui.checkbox').checkbox();
 
   // init popups

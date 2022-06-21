@@ -24,11 +24,6 @@ type CommitTreeOpts struct {
 
 // CommitTree creates a commit from a given tree id for the user with provided message
 func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opts CommitTreeOpts) (SHA1, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return SHA1{}, err
-	}
-
 	commitTimeStr := time.Now().Format(time.RFC3339)
 
 	// Because this may call hooks we should pass in the environment
@@ -50,24 +45,23 @@ func (repo *Repository) CommitTree(author, committer *Signature, tree *Tree, opt
 	_, _ = messageBytes.WriteString(opts.Message)
 	_, _ = messageBytes.WriteString("\n")
 
-	if CheckGitVersionAtLeast("1.7.9") == nil && (opts.KeyID != "" || opts.AlwaysSign) {
+	if opts.KeyID != "" || opts.AlwaysSign {
 		cmd.AddArguments(fmt.Sprintf("-S%s", opts.KeyID))
 	}
 
-	if CheckGitVersionAtLeast("2.0.0") == nil && opts.NoGPGSign {
+	if opts.NoGPGSign {
 		cmd.AddArguments("--no-gpg-sign")
 	}
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	err = cmd.Run(&RunOpts{
+	err := cmd.Run(&RunOpts{
 		Env:    env,
 		Dir:    repo.Path,
 		Stdin:  messageBytes,
 		Stdout: stdout,
 		Stderr: stderr,
 	})
-
 	if err != nil {
 		return SHA1{}, ConcatenateError(err, stderr.String())
 	}

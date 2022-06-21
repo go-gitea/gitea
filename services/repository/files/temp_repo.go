@@ -229,11 +229,6 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	err := git.LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
@@ -253,34 +248,31 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		args = []string{"commit-tree", treeHash}
 	}
 
-	// Determine if we should sign
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		var sign bool
-		var keyID string
-		var signer *git.Signature
-		if parent != "" {
-			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
-		} else {
-			sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
-		}
-		if sign {
-			args = append(args, "-S"+keyID)
-			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-					// Add trailers
-					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-authored-by: ")
-					_, _ = messageBytes.WriteString(committerSig.String())
-					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-committed-by: ")
-					_, _ = messageBytes.WriteString(committerSig.String())
-					_, _ = messageBytes.WriteString("\n")
-				}
-				committerSig = signer
+	var sign bool
+	var keyID string
+	var signer *git.Signature
+	if parent != "" {
+		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
+	} else {
+		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
+	}
+	if sign {
+		args = append(args, "-S"+keyID)
+		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
+				// Add trailers
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-authored-by: ")
+				_, _ = messageBytes.WriteString(committerSig.String())
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString(committerSig.String())
+				_, _ = messageBytes.WriteString("\n")
 			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			args = append(args, "--no-gpg-sign")
+			committerSig = signer
 		}
+	} else {
+		args = append(args, "--no-gpg-sign")
 	}
 
 	if signoff {

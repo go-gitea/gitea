@@ -76,7 +76,8 @@ func calcFingerprintNative(publicKeyContent string) (string, error) {
 	return ssh.FingerprintSHA256(pk), nil
 }
 
-func calcFingerprint(publicKeyContent string) (string, error) {
+// CalcFingerprint calculate public key's fingerprint
+func CalcFingerprint(publicKeyContent string) (string, error) {
 	// Call the method based on configuration
 	var (
 		fnName, fp string

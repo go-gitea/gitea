@@ -62,7 +62,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}
 
 	channelUniqueQueue, err := NewChannelUniqueQueue(wrappedHandle, ChannelUniqueQueueConfiguration{

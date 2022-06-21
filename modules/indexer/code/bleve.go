@@ -392,7 +392,7 @@ func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, ke
 
 	searchResults := make([]*SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
-		var startIndex, endIndex int = -1, -1
+		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
 			locationStart := int(location.Start)

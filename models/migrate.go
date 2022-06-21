@@ -10,8 +10,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/structs"
-
-	"xorm.io/builder"
 )
 
 // InsertMilestones creates milestones of repository.
@@ -41,7 +39,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 }
 
 // InsertIssues insert issues to database
-func InsertIssues(issues ...*Issue) error {
+func InsertIssues(issues ...*issues_model.Issue) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -56,14 +54,14 @@ func InsertIssues(issues ...*Issue) error {
 	return committer.Commit()
 }
 
-func insertIssue(ctx context.Context, issue *Issue) error {
+func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 	sess := db.GetEngine(ctx)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
-	issueLabels := make([]IssueLabel, 0, len(issue.Labels))
+	issueLabels := make([]issues_model.IssueLabel, 0, len(issue.Labels))
 	for _, label := range issue.Labels {
-		issueLabels = append(issueLabels, IssueLabel{
+		issueLabels = append(issueLabels, issues_model.IssueLabel{
 			IssueID: issue.ID,
 			LabelID: label.ID,
 		})
@@ -95,7 +93,7 @@ func insertIssue(ctx context.Context, issue *Issue) error {
 }
 
 // InsertIssueComments inserts many comments of issues.
-func InsertIssueComments(comments []*Comment) error {
+func InsertIssueComments(comments []*issues_model.Comment) error {
 	if len(comments) == 0 {
 		return nil
 	}
@@ -127,7 +125,8 @@ func InsertIssueComments(comments []*Comment) error {
 	}
 
 	for issueID := range issueIDs {
-		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?", issueID, CommentTypeComment, issueID); err != nil {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+			issueID, issues_model.CommentTypeComment, issueID); err != nil {
 			return err
 		}
 	}
@@ -135,7 +134,7 @@ func InsertIssueComments(comments []*Comment) error {
 }
 
 // InsertPullRequests inserted pull requests
-func InsertPullRequests(prs ...*PullRequest) error {
+func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -182,37 +181,13 @@ func InsertReleases(rels ...*Release) error {
 	return committer.Commit()
 }
 
-func migratedIssueCond(tp structs.GitServiceType) builder.Cond {
-	return builder.In("issue_id",
-		builder.Select("issue.id").
-			From("issue").
-			InnerJoin("repository", "issue.repo_id = repository.id").
-			Where(builder.Eq{
-				"repository.original_service_type": tp,
-			}),
-	)
-}
-
-// UpdateReviewsMigrationsByType updates reviews' migrations information via given git service type and original id and poster id
-func UpdateReviewsMigrationsByType(tp structs.GitServiceType, originalAuthorID string, posterID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Table("review").
-		Where("original_author_id = ?", originalAuthorID).
-		And(migratedIssueCond(tp)).
-		Update(map[string]interface{}{
-			"reviewer_id":        posterID,
-			"original_author":    "",
-			"original_author_id": 0,
-		})
-	return err
-}
-
 // UpdateMigrationsByType updates all migrated repositories' posterid from gitServiceType to replace originalAuthorID to posterID
 func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, userID int64) error {
-	if err := UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateIssuesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
 
-	if err := UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateCommentsMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
 
@@ -220,8 +195,8 @@ func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, us
 		return err
 	}
 
-	if err := UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := issues_model.UpdateReactionsMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
-	return UpdateReviewsMigrationsByType(tp, externalUserID, userID)
+	return issues_model.UpdateReviewsMigrationsByType(tp, externalUserID, userID)
 }

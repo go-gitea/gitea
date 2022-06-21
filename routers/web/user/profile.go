@@ -195,7 +195,7 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -227,7 +227,7 @@ func Profile(ctx *context.Context) {
 			return
 		}
 	case "watching":
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -249,7 +249,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	default:
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -276,6 +276,7 @@ func Profile(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "tab", "TabName")
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
 		pager.AddParam(ctx, "language", "Language")
 	}

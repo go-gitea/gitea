@@ -1,6 +1,6 @@
 module code.gitea.io/gitea
 
-go 1.17
+go 1.18
 
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
@@ -15,6 +15,7 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma v0.10.0
 	github.com/blevesearch/bleve/v2 v2.3.2
+	github.com/buildkite/terminal-to-html/v3 v3.6.1
 	github.com/caddyserver/certmagic v0.16.1
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.0
@@ -25,10 +26,14 @@ require (
 	github.com/editorconfig/editorconfig-core-go/v2 v2.4.4
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
+	github.com/felixge/fgprof v0.9.2
 	github.com/gliderlabs/ssh v0.3.4
+	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
+	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-enry/go-enry/v2 v2.8.2
+	github.com/go-fed/httpsig v1.1.1-0.20201223112313-55836744818e
 	github.com/go-git/go-billy/v5 v5.3.1
 	github.com/go-git/go-git/v5 v5.4.3-0.20210630082519-b4368b2a2ca4
 	github.com/go-ldap/ldap/v3 v3.4.3
@@ -41,7 +46,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.4.1
-	github.com/google/go-github/v39 v39.2.0
+	github.com/google/go-github/v45 v45.0.0
 	github.com/google/pprof v0.0.0-20220509035851-59ca7ad80af3
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
@@ -98,12 +103,13 @@ require (
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
-	xorm.io/builder v0.3.10
-	xorm.io/xorm v1.2.5
+	xorm.io/builder v0.3.11
+	xorm.io/xorm v1.3.1
 )
 
 require (
 	cloud.google.com/go v0.99.0 // indirect
+	git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20200411073322-f0bcc40f0bf2 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20211209120228-48547f28849e // indirect
 	github.com/Microsoft/go-winio v0.5.2 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20220407094043-a94812496cf5 // indirect
@@ -157,6 +163,7 @@ require (
 	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/fullstorydev/grpcurl v1.8.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
+	github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
@@ -249,6 +256,7 @@ require (
 	github.com/toqueteos/webbrowser v1.2.0 // indirect
 	github.com/ulikunitz/xz v0.5.10 // indirect
 	github.com/unknwon/com v1.0.1 // indirect
+	github.com/valyala/fastjson v1.6.3 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xanzy/ssh-agent v0.3.1 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
