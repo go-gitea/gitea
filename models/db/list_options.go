@@ -58,7 +58,7 @@ func (opts *ListOptions) GetSkipTake() (skip, take int) {
 func (opts *ListOptions) GetStartEnd() (start, end int) {
 	start, take := opts.GetSkipTake()
 	end = start + take
-	return
+	return start, end
 }
 
 // SetDefaultValues sets default values

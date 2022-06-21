@@ -358,7 +358,7 @@ func rawMerge(ctx context.Context, pr *issues_model.PullRequest, doer *user_mode
 	committer := sig
 
 	// Determine if we should sign
-	signArg := ""
+	var signArg string
 	sign, keyID, signer, _ := asymkey_service.SignMerge(ctx, pr, doer, tmpBasePath, "HEAD", trackingBranch)
 	if sign {
 		signArg = "-S" + keyID
@@ -858,7 +858,7 @@ func MergedManually(pr *issues_model.PullRequest, doer *user_model.User, baseGit
 		pr.Merger = doer
 		pr.MergerID = doer.ID
 
-		merged := false
+		var merged bool
 		if merged, err = pr.SetMerged(ctx); err != nil {
 			return err
 		} else if !merged {

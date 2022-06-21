@@ -389,6 +389,8 @@ var migrations = []Migration{
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
 	// v216 -> v217
 	NewMigration("Improve Action table indices", improveActionTableIndices),
+	// v217 -> v218
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -337,7 +338,7 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--fixed-value", "--get", key, value).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -357,7 +358,7 @@ func configUnsetAll(key, value string) error {
 	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--fixed-value", "--unset-all", key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all", key, regexp.QuoteMeta(value)).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 		}
