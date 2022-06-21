@@ -4,9 +4,10 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-06-20
+## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-06-21
 
 * BUGFIXES
+  * Release page show all tags in compare dropdown (#20070) (#20071)
   * Fix permission check for delete tag (#19985) (#20001)
   * Only log non ErrNotExist errors in git.GetNote  (#19884) (#19905)
   * Use exact search instead of fuzzy search for branch filter dropdown (#19885) (#19893)
