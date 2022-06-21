@@ -74,18 +74,20 @@ func InitLocales() {
 	}
 
 	matcher = language.NewMatcher(supportedTags)
-	for i := range setting.Names {
-		key := "locale_" + setting.Langs[i] + ".ini"
-		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
-		}
-	}
+
 	if len(setting.Langs) != 0 {
 		defaultLangName := setting.Langs[0]
 		if defaultLangName != "en-US" {
 			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
 		}
 		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
+	}
+
+	for i := range setting.Names {
+		key := "locale_" + setting.Langs[i] + ".ini"
+		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+		}
 	}
 
 	langs, descs := i18n.DefaultLocales.ListLangNameDesc()

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"gopkg.in/ini.v1"
 )
@@ -24,16 +25,18 @@ var (
 type locale struct {
 	store    *LocaleStore
 	langName string
-	langDesc string
 	messages *ini.File
 }
 
 type LocaleStore struct {
-	// at the moment, all these fields are readonly after initialization
-	langNames   []string
-	langDescs   []string
-	localeMap   map[string]*locale
-	defaultLang string
+	// After initializing has finished, these fields are read-only.
+	langNames          []string
+	langDescs          []string
+	translationKeys    []string
+	translationValues  []string
+	localeMap          map[string]*locale
+	defaultLang        string
+	defaultLangKeysLen int
 }
 
 func NewLocaleStore() *LocaleStore {
@@ -50,11 +53,55 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 		UnescapeValueCommentSymbols: true,
 	}, localeFile, otherLocaleFiles...)
 	if err == nil {
-		iniFile.BlockMode = false
-		lc := &locale{store: ls, langName: langName, langDesc: langDesc, messages: iniFile}
-		ls.langNames = append(ls.langNames, lc.langName)
-		ls.langDescs = append(ls.langDescs, lc.langDesc)
-		ls.localeMap[lc.langName] = lc
+		// Common code between production and development.
+		ls.langNames = append(ls.langNames, langName)
+		ls.langDescs = append(ls.langDescs, langDesc)
+
+		// Make a distinquishment between production and development.
+		// For development, live-reload of the translation files is important.
+		// For production, we can do some expensive work and then make the querying fast.
+		if setting.IsProd {
+			// If the language is the default language, then we go trough all keys. These keys
+			// will become the keys that we consider to support and take into account while going
+			// trough querying translation keys.
+			if langName == ls.defaultLang {
+				// Store all key, value into two slices.
+				for _, section := range iniFile.Sections() {
+					for _, key := range section.Keys() {
+						ls.translationKeys = append(ls.translationKeys, section.Name()+"#"+key.Name())
+						ls.translationValues = append(ls.translationValues, key.Value())
+					}
+				}
+				ls.defaultLangKeysLen = len(ls.translationKeys)
+			} else {
+				// Go trough all the keys that the defaultLang has and append it to translationValues.
+				// If the lang doesn't have a value for the translation, use the defaultLang's one.
+				for i := 0; i < ls.defaultLangKeysLen; i++ {
+					splitted := strings.SplitN(ls.translationKeys[i], "#", 1)
+					// TODO: optimize for repeated sequential access of section.
+					section, err := iniFile.GetSection(splitted[0])
+					if err != nil {
+						// Section not found? Use the defaultLang's value for this translation key.
+						ls.translationValues = append(ls.translationValues, ls.translationValues[i])
+						continue
+					}
+					key, err := section.GetKey(splitted[1])
+					if err != nil {
+						// Key not found? Use the defaultLang's value for this translation key.
+						ls.translationValues = append(ls.translationValues, ls.translationValues[i])
+						continue
+					}
+					ls.translationValues = append(ls.translationValues, key.Value())
+				}
+			}
+			// Help Go's GC.
+			iniFile = nil
+		} else {
+			// Add the language to the localeMap.
+			iniFile.BlockMode = false
+			lc := &locale{store: ls, langName: langName, messages: iniFile}
+			ls.localeMap[lc.langName] = lc
+		}
 	}
 	return err
 }
