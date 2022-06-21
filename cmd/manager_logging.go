@@ -399,8 +399,7 @@ func runSetLogSQL(c *cli.Context) error {
 	defer cancel()
 	setup("manager", c.Bool("debug"))
 
-	off := c.Bool("off")
-	statusCode, msg := private.SetLogSQL(ctx, !off)
+	statusCode, msg := private.SetLogSQL(ctx, !c.Bool("off"))
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
