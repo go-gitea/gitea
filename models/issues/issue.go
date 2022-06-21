@@ -1300,22 +1300,19 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
-	milestoneCount := len(opts.MilestoneIDs)
-	if milestoneCount > 0 {
-		noMileIDs := make([]int64, 0, milestoneCount)
-		hasNoMilestone := false
-		for _, milestoneID := range opts.MilestoneIDs {
-			if milestoneID > 0 {
-				sess.And("issue.milestone_id = ?", milestoneID)
-				break
-			} else if milestoneID < 0 {
-				noMileIDs = append(noMileIDs, -milestoneID)
-				hasNoMilestone = true
-			}
+	var mileIDs, noMileIDs []int64
+	for _, milestoneID := range opts.MilestoneIDs {
+		if milestoneID > 0 {
+			mileIDs = append(mileIDs, milestoneID)
+		} else if milestoneID < 0 {
+			noMileIDs = append(noMileIDs, -milestoneID)
 		}
-		if hasNoMilestone {
-			sess.NotIn("issue.milestone_id", noMileIDs)
-		}
+	}
+	if len(mileIDs) > 0 {
+		sess.In("issue.milestone_id", mileIDs)
+	}
+	if len(noMileIDs) > 0 {
+		sess.NotIn("issue.milestone_id", noMileIDs)
 	}
 
 	if opts.UpdatedAfterUnix != 0 {
@@ -1349,10 +1346,9 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.And(builder.Eq{"repository.is_archived": opts.IsArchived.IsTrue()})
 	}
 
-	labelsCount := len(opts.LabelIDs)
-	if labelsCount > 0 {
-		noLabelsIDs := make([]int64, 0, labelsCount)
-		hasNoLabel := false
+	if opts.LabelIDs != nil {
+		var noLabelsIDs []int64
+
 		for i, labelID := range opts.LabelIDs {
 			if labelID > 0 {
 				sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
@@ -1360,10 +1356,9 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 			} else if labelID < 0 {
 				// sess.Where("issue.id not in (select issue_id from issue_label where label_id = ?)", -labelID)
 				noLabelsIDs = append(noLabelsIDs, -labelID)
-				hasNoLabel = true
 			}
 		}
-		if hasNoLabel {
+		if len(noLabelsIDs) > 0 {
 			sess.NotIn("issue.id",
 				builder.Select("issue_id").
 					From("issue_label").
@@ -1466,20 +1461,26 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeIDs []int64) *xorm.Session {
-	noAssigneeIds := make([]int64, 0, len(assigneeIDs))
+	var noAssigneeIds []int64
+	hasAssignee := false
 	for _, assigneeID := range assigneeIDs {
-		if assigneeID > 0 {
-			return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-				And("issue_assignees.assignee_id = ?", assigneeID)
-		} else if assigneeID < 0 {
+		if assigneeID < 0 {
 			noAssigneeIds = append(noAssigneeIds, -assigneeID)
+		} else if assigneeID > 0 {
+			hasAssignee = true
 		}
 	}
-
-	return sess.NotIn("issue.id",
-		builder.Select("issue_id").
-			From("issue_assignees").
-			Where(builder.In("assignee_id", noAssigneeIds)))
+	if len(noAssigneeIds) > 0 {
+		return sess.NotIn("issue.id",
+			builder.Select("issue_id").
+				From("issue_assignees").
+				Where(builder.In("assignee_id", noAssigneeIds)))
+	}
+	if hasAssignee {
+		return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			In("issue_assignees.assignee_id", assigneeIDs)
+	}
+	return nil
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
@@ -1701,56 +1702,39 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 		}
 
 		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-		if err != nil {
-			log.Warn("Malformed Labels argument: %s", opts.Labels)
-		} else {
-			labelsCount := len(labelIDs)
-			if labelsCount > 0 {
-				noLabelsIDs := make([]int64, 0, labelsCount)
-				hasNoLabel := false
+		if len(labelIDs) > 0 {
+			if err != nil {
+				log.Warn("Malformed Labels argument: %s", opts.Labels)
+			} else {
 				for i, labelID := range labelIDs {
 					if labelID > 0 {
 						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
 							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
 					} else if labelID < 0 {
-						// sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
-						noLabelsIDs = append(noLabelsIDs, -labelID)
-						hasNoLabel = true
+						sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
 					}
-				}
-				if hasNoLabel {
-					sess.NotIn("issue.id", builder.Select("issue_id").From("issue_label").Where(builder.In("label_id", noLabelsIDs)))
 				}
 			}
 		}
 
-		milestoneIDs, err := base.StringsToInt64s(strings.Split(opts.MilestoneID, ","))
-		if err != nil {
-			log.Warn("Malformed Milestone argument: %s", opts.MilestoneID)
-		} else {
-			milestoneCount := len(milestoneIDs)
-			if milestoneCount > 0 {
-				noMileIDs := make([]int64, 0, milestoneCount)
-				hasNoMilestone := false
-				for _, milestoneID := range milestoneIDs {
-					if milestoneID > 0 {
-						sess.And("issue.milestone_id = ?", milestoneID)
-						break
-					} else if milestoneID < 0 {
-						noMileIDs = append(noMileIDs, -milestoneID)
-						hasNoMilestone = true
-					}
-				}
-				if hasNoMilestone {
-					sess.NotIn("issue.milestone_id", noMileIDs)
-				}
+		var mileIDs, noMileIDs []int64
+		milestoneIDs, _ := base.StringsToInt64s(strings.Split(opts.MilestoneID, ","))
+		for _, milestoneID := range milestoneIDs {
+			if milestoneID > 0 {
+				mileIDs = append(mileIDs, milestoneID)
+			} else if milestoneID < 0 {
+				noMileIDs = append(noMileIDs, -milestoneID)
 			}
 		}
+		if len(mileIDs) > 0 {
+			sess.In("issue.milestone_id", mileIDs)
+		}
+		if len(noMileIDs) > 0 {
+			sess.NotIn("issue.milestone_id", noMileIDs)
+		}
 
-		assigneeIDs, err := base.StringsToInt64s(strings.Split(opts.AssigneeID, ","))
-		if err != nil {
-			log.Warn("Malformed Assignee argument: %s", opts.AssigneeID)
-		} else if len(assigneeIDs) > 0 {
+		assigneeIDs, _ := base.StringsToInt64s(strings.Split(opts.AssigneeID, ","))
+		if len(assigneeIDs) > 0 {
 			applyAssigneeCondition(sess, assigneeIDs)
 		}
 
