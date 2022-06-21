@@ -1302,15 +1302,18 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	milestoneCount := len(opts.MilestoneIDs)
 	if milestoneCount > 0 {
-		if opts.MilestoneIDs[0] > 0 {
-			sess.And("issue.milestone_id = ?", opts.MilestoneIDs[0])
-		} else if opts.MilestoneIDs[0] < 0 {
-			noMileIDs := make([]int64, 0, milestoneCount)
-			for _, milestoneID := range opts.MilestoneIDs {
-				if milestoneID < 0 {
-					noMileIDs = append(noMileIDs, -milestoneID)
-				}
+		noMileIDs := make([]int64, 0, milestoneCount)
+		hasNoMilestone := false
+		for _, milestoneID := range opts.MilestoneIDs {
+			if milestoneID > 0 {
+				sess.And("issue.milestone_id = ?", milestoneID)
+				break
+			} else if milestoneID < 0 {
+				noMileIDs = append(noMileIDs, -milestoneID)
+				hasNoMilestone = true
 			}
+		}
+		if hasNoMilestone {
 			sess.NotIn("issue.milestone_id", noMileIDs)
 		}
 	}
@@ -1463,22 +1466,19 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 }
 
 func applyAssigneeCondition(sess *xorm.Session, assigneeIDs []int64) *xorm.Session {
-	if assigneeIDs[0] > 0 {
-		return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-			And("issue_assignees.assignee_id = ?", assigneeIDs[0])
-	} else if assigneeIDs[0] < 0 {
-		noAssigneeIds := make([]int64, 0, len(assigneeIDs))
-		for _, assigneeID := range assigneeIDs {
-			if assigneeID < 0 {
-				noAssigneeIds = append(noAssigneeIds, -assigneeID)
-			}
+	noAssigneeIds := make([]int64, 0, len(assigneeIDs))
+	for _, assigneeID := range assigneeIDs {
+		if assigneeID > 0 {
+			return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+				And("issue_assignees.assignee_id = ?", assigneeID)
+		} else if assigneeID < 0 {
+			noAssigneeIds = append(noAssigneeIds, -assigneeID)
 		}
-		return sess.NotIn("issue.id",
-			builder.Select("issue_id").
-				From("issue_assignees").
-				Where(builder.In("assignee_id", noAssigneeIds)))
 	}
-	return sess
+	return sess.NotIn("issue.id",
+		builder.Select("issue_id").
+			From("issue_assignees").
+			Where(builder.In("assignee_id", noAssigneeIds)))
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
@@ -1729,15 +1729,18 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 		} else {
 			milestoneCount := len(milestoneIDs)
 			if milestoneCount > 0 {
-				if milestoneIDs[0] > 0 {
-					sess.And("issue.milestone_id = ?", milestoneIDs[0])
-				} else if milestoneIDs[0] < 0 {
-					noMileIDs := make([]int64, 0, milestoneCount)
-					for _, milestoneID := range milestoneIDs {
-						if milestoneID < 0 {
-							noMileIDs = append(noMileIDs, -milestoneID)
-						}
+				noMileIDs := make([]int64, 0, milestoneCount)
+				hasNoMilestone := false
+				for _, milestoneID := range milestoneIDs {
+					if milestoneID > 0 {
+						sess.And("issue.milestone_id = ?", milestoneID)
+						break
+					} else if milestoneID < 0 {
+						noMileIDs = append(noMileIDs, -milestoneID)
+						hasNoMilestone = true
 					}
+				}
+				if hasNoMilestone {
 					sess.NotIn("issue.milestone_id", noMileIDs)
 				}
 			}
