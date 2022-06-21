@@ -69,5 +69,5 @@ repositories.
 
 The owner team will be created when the organization is created, and the creator will become the first member of the owner team.
 Every member of an organization must be in at least one team. The owner team cannot be deleted and only
-members of the owner team can create a new team. The admin team can be created to manage some of the repositories, whose members can do anything with these repositories.
+members of the owner team can create a new team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories.
 The Generate team can be created by the owner team to do the operations allowed by their permissions.
