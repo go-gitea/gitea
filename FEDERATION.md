@@ -45,15 +45,3 @@ When opening a pull request to a remote repository, the pull request can be rend
 ## Migrations
 
 If you change your username or the name of repository, Gitea handles this similarly to how Mastodon does. Gitea will send a `Move` activity to your followers and update your actor to point to the new actor.
-
-## Example
-
-Aviva has an account on Gitea instance dev.example and Luke has an account on Gitea instance forge.example. Luke would like to create an issue on Aviva's Game of Life repository at dev.example/aviva/game-of-life. First, he clicks the `New Issue` button at the Game of Life repository. Since Luke does not have an account on dev.example, a pop-up box appears asking him to type in his instance, forge.example. He is redirected to forge.example/aviva@dev.example/game-of-life, where he can now create a new issue normally. Once he finishes creating the issue, his instance sends a `Create` activity to the dev.example/aviva/game-of-life actor, which creates the new issue on dev.example as well.
-
-Next, Aviva replies to Luke's issue from her own instance. This sends a `Create` activity to forge.example, and the comment is created on Luke's instance.
-
-I was writing an example scenario for the FEDERATION.md file and have ran into a problem. Let's say we have three people, Alice, Bobert, and Charlie. Alice and Bobert are on different instances and Bobert would like to create an issue on one of Alice's repositories. When he tries to create the issue on Alice's instance, he is redirected to his own instance, where the remote repo is rendered and he can create the issue. Once he finishes creating the issue, his instance sends a `Create` activity back to Alice's instance. So far no problems. However, what if Charlie then creates an issue on Alice's repository, how does Bobert's copy of the repo on his own instance know about Charlie's new issue?
-
-If Bobert is a collaborator on Alice's repo, there's no problem because Alice's repo will send updates out to everyone in the repo's `Team` collection. However, if he is not, then when Bobert views the list of issues of the remote repo on his own instance, his instance will have to send out a request to fetch all the issues open on Alice's repo. OK, so that's not too bad either.
-
-The real problem is supporting things like issue search on Bobert's instance. 
