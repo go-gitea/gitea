@@ -1300,11 +1300,12 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
-	if opts.MilestoneIDs != nil {
+	milestoneCount := len(opts.MilestoneIDs)
+	if milestoneCount > 0 {
 		if opts.MilestoneIDs[0] > 0 {
 			sess.And("issue.milestone_id = ?", opts.MilestoneIDs[0])
 		} else if opts.MilestoneIDs[0] < 0 {
-			noMileIDs := make([]int64, 0, len(opts.MilestoneIDs))
+			noMileIDs := make([]int64, 0, milestoneCount)
 			for _, milestoneID := range opts.MilestoneIDs {
 				if milestoneID < 0 {
 					noMileIDs = append(noMileIDs, -milestoneID)
