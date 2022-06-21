@@ -1300,19 +1300,24 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
 	}
 
-	var mileIDs, noMileIDs []int64
-	for _, milestoneID := range opts.MilestoneIDs {
-		if milestoneID > 0 {
-			mileIDs = append(mileIDs, milestoneID)
-		} else if milestoneID < 0 {
-			noMileIDs = append(noMileIDs, -milestoneID)
+	if len(opts.MilestoneIDs) > 0 {
+		var mileIDs, noMileIDs []int64
+		hasMile, hasNoMile := false, false
+		for _, milestoneID := range opts.MilestoneIDs {
+			if milestoneID > 0 {
+				mileIDs = append(mileIDs, milestoneID)
+				hasMile = true
+			} else if milestoneID < 0 {
+				noMileIDs = append(noMileIDs, -milestoneID)
+				hasNoMile = true
+			}
 		}
-	}
-	if len(mileIDs) > 0 {
-		sess.In("issue.milestone_id", mileIDs)
-	}
-	if len(noMileIDs) > 0 {
-		sess.NotIn("issue.milestone_id", noMileIDs)
+		if hasMile {
+			sess.In("issue.milestone_id", mileIDs)
+		}
+		if hasNoMile {
+			sess.NotIn("issue.milestone_id", noMileIDs)
+		}
 	}
 
 	if opts.UpdatedAfterUnix != 0 {
