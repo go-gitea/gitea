@@ -175,13 +175,17 @@ var (
 					},
 				},
 			}, {
-				Name:   "log-sql",
-				Usage:  "Set LogSQL",
+				Name:  "log-sql",
+				Usage: "Set LogSQL",
+				Flags: []cli.Flag{
+					cli.BoolFlag{
+						Name: "debug",
+					}, cli.BoolFlag{
+						Name:  "off",
+						Usage: "Switch off SQL logging",
+					},
+				},
 				Action: runSetLogSQL,
-			}, {
-				Name:   "no-log-sql",
-				Usage:  "Switch off LogSQL",
-				Action: runUnSetLogSQL,
 			},
 		},
 	}
@@ -391,19 +395,12 @@ func runReleaseReopenLogging(c *cli.Context) error {
 }
 
 func runSetLogSQL(c *cli.Context) error {
-	return runSetLogSQLFlag(c, true)
-}
-
-func runUnSetLogSQL(c *cli.Context) error {
-	return runSetLogSQLFlag(c, false)
-}
-
-func runSetLogSQLFlag(c *cli.Context, set bool) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 	setup("manager", c.Bool("debug"))
 
-	statusCode, msg := private.SetLogSQL(ctx, set)
+	off := c.Bool("off")
+	statusCode, msg := private.SetLogSQL(ctx, !off)
 	switch statusCode {
 	case http.StatusInternalServerError:
 		return fail("InternalServerError", msg)
