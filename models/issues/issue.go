@@ -1475,6 +1475,7 @@ func applyAssigneeCondition(sess *xorm.Session, assigneeIDs []int64) *xorm.Sessi
 			noAssigneeIds = append(noAssigneeIds, -assigneeID)
 		}
 	}
+
 	return sess.NotIn("issue.id",
 		builder.Select("issue_id").
 			From("issue_assignees").
