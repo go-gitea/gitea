@@ -26,6 +26,7 @@ type Locale interface {
 // LangType represents a lang type
 type LangType struct {
 	Lang, Name string // these fields are used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
+	Offset     int
 }
 
 var (
@@ -90,11 +91,11 @@ func InitLocales() {
 		}
 	}
 
-	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
+	langs, descs, offsets := i18n.DefaultLocales.ListLangNameDescOffsets()
 	allLangs = make([]*LangType, 0, len(langs))
 	allLangMap = map[string]*LangType{}
 	for i, v := range langs {
-		l := &LangType{v, descs[i]}
+		l := &LangType{v, descs[i], offsets[i]}
 		allLangs = append(allLangs, l)
 		allLangMap[v] = l
 	}
@@ -114,17 +115,21 @@ func Match(tags ...language.Tag) language.Tag {
 // locale represents the information of localization.
 type locale struct {
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
+	Offset         int
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
 	langName := "unknown"
+	offset := 0
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
+		offset = l.Offset
 	}
 	return &locale{
 		Lang:     lang,
 		LangName: langName,
+		Offset:   offset,
 	}
 }
 
@@ -135,7 +140,7 @@ func (l *locale) Language() string {
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
 	if setting.IsProd {
-		return i18n.Tr(l.Lang, format, args...)
+		return i18n.TrOffset(l.Offset, format, args...)
 	}
 
 	// in development, we should show an error if a translation key is missing

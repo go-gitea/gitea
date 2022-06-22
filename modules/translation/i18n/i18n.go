@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mph"
 	"code.gitea.io/gitea/modules/setting"
 
 	"gopkg.in/ini.v1"
@@ -30,14 +31,17 @@ type locale struct {
 
 type LocaleStore struct {
 	// After initializing has finished, these fields are read-only.
-	langNames          []string
-	langDescs          []string
-	langOffsets        []int
-	translationKeys    []string
-	translationValues  []string
-	localeMap          map[string]*locale
-	defaultLang        string
-	defaultLangKeysLen int
+	langNames   []string
+	langDescs   []string
+	langOffsets []int
+	// Hashed values of the keys. Used for the construction of the mph.
+	translationKeysHashed []string
+	translationKeys       []string
+	translationValues     []string
+	hashFunction          *mph.ConstructedHashFunction
+	localeMap             map[string]*locale
+	defaultLang           string
+	defaultLangKeysLen    int
 }
 
 func NewLocaleStore() *LocaleStore {
@@ -69,13 +73,14 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 				// Store all key, value into two slices.
 				for _, section := range iniFile.Sections() {
 					for _, key := range section.Keys() {
-						key := strings.TrimPrefix(section.Name()+"."+key.Name(). "DEFAULT.")
-					
-						ls.translationKeys = append(ls.translationKeys, key)
+						ls.translationKeys = append(ls.translationKeys, section.Name()+"#"+key.Name())
+						ls.translationKeysHashed = append(ls.translationKeysHashed, strings.TrimPrefix(section.Name()+"."+key.Name(), "DEFAULT."))
 						ls.translationValues = append(ls.translationValues, key.Value())
 					}
 				}
+
 				ls.defaultLangKeysLen = len(ls.translationKeys)
+				ls.hashFunction = mph.Build(ls.translationKeysHashed)
 			} else {
 				// Go trough all the keys that the defaultLang has and append it to translationValues.
 				// If the lang doesn't have a value for the translation, use the defaultLang's one.
@@ -101,7 +106,7 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 			iniFile = nil
 
 			// Specify the offset for translationValues.
-			ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets))
+			ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets)+1)
 		} else {
 			// Add the language to the localeMap.
 			iniFile.BlockMode = false
@@ -193,4 +198,34 @@ func ResetDefaultLocales() {
 // Tr use default locales to translate content to target language.
 func Tr(lang, trKey string, trArgs ...interface{}) string {
 	return DefaultLocales.Tr(lang, trKey, trArgs...)
+}
+
+func TrOffset(offset int, trKey string, trArgs ...interface{}) string {
+	idx := DefaultLocales.hashFunction.Get(trKey) * uint32(offset)
+	trMsg := DefaultLocales.translationValues[idx]
+
+	if len(trArgs) > 0 {
+		fmtArgs := make([]interface{}, 0, len(trArgs))
+		for _, arg := range trArgs {
+			val := reflect.ValueOf(arg)
+			if val.Kind() == reflect.Slice {
+				// before, it can accept Tr(lang, key, a, [b, c], d, [e, f]) as Sprintf(msg, a, b, c, d, e, f), it's an unstable behavior
+				// now, we restrict the strange behavior and only support:
+				// 1. Tr(lang, key, [slice-items]) as Sprintf(msg, items...)
+				// 2. Tr(lang, key, args...) as Sprintf(msg, args...)
+				if len(trArgs) == 1 {
+					for i := 0; i < val.Len(); i++ {
+						fmtArgs = append(fmtArgs, val.Index(i).Interface())
+					}
+				} else {
+					log.Error("the args for i18n shouldn't contain uncertain slices, key=%q, args=%v", trKey, trArgs)
+					break
+				}
+			} else {
+				fmtArgs = append(fmtArgs, arg)
+			}
+		}
+		return fmt.Sprintf(trMsg, fmtArgs...)
+	}
+	return trMsg
 }
