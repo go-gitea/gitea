@@ -20,7 +20,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -509,10 +508,17 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
+	size := ctx.FormInt("limit")
+	if size <= 0 {
+		size = setting.UI.FeedPagingNum
+	} else if size > setting.API.MaxResponseItems {
+		size = setting.API.MaxResponseItems
+	}
+
 	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     ctx.FormInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+			PageSize: size,
 		},
 		Actor:              ctx.Doer,
 		Keyword:            ctx.FormTrim("q"),
