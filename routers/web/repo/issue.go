@@ -223,6 +223,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, 5)
 
+	var mileIDs []int64
+	if milestoneID > 0 {
+		mileIDs = []int64{milestoneID}
+	}
+
 	var issues []*issues_model.Issue
 	if forceEmpty {
 		issues = []*issues_model.Issue{}
@@ -237,7 +242,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 			PosterID:          posterID,
 			MentionedID:       mentionedID,
 			ReviewRequestedID: reviewRequestedID,
-			MilestoneIDs:      []int64{milestoneID},
+			MilestoneIDs:      mileIDs,
 			ProjectID:         projectID,
 			IsClosed:          util.OptionalBoolOf(isShowClosed),
 			IsPull:            isPullOption,

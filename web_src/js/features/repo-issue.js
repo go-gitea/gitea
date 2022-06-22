@@ -153,7 +153,7 @@ export function initRepoIssueList() {
   $('.menu a.nolabels').on('click', () => {
     let labelurl = 'labels=', labelpos = [...document.querySelectorAll('.label-filter-item')].map((i) => { return i.getAttribute('data-label-id') }).join(',-');
     const nolabelids = `-${labelpos}`;
-    if ((labelpos = window.location.search.includes(labelurl))) {
+    if ((labelpos = window.location.search.indexOf(labelurl)) !== -1) {
       labelurl = window.location.search.slice(labelpos);
       if ((labelpos = labelurl.indexOf('&')) !== -1) {
         return window.location.search = window.location.search.replace(labelurl.slice(0, labelpos), `labels=${nolabelids}`);
