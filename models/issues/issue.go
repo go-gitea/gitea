@@ -1305,7 +1305,7 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	if len(opts.MilestoneIDs) > 0 {
 		if opts.MilestoneIDs[0] > 0 {
-			sess.And("issue.milestone_id = ?", opts.MilestoneIDs[0])
+			sess.In("issue.milestone_id", opts.MilestoneIDs)
 		} else if opts.MilestoneIDs[0] == -1 {
 			sess.And("issue.milestone_id = 0")
 		}
