@@ -16,7 +16,7 @@ You can star repositories on another instance. The full name of a remote reposit
 
 ## Organizations
 
-You can add users from other instances to organizations. An instance has a name and an instance, so its full name would look like `orgname@instance.com`. This indicates that the organization data resides on `instance.com`. To prevent syncronization errors, this data is only synchronized one-way to other instances.
+You can add users from other instances to organizations. An organization has a name and an instance, so its full name would look like `orgname@instance.com`. This indicates that the organization data resides on `instance.com`. To prevent syncronization errors, this data is only synchronized one-way to other instances.
 
 ## Collaborators
 
