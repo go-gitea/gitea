@@ -45,7 +45,7 @@
   },
   "devDependencies": {
     "@happy-dom/jest-environment": "4.0.1",
-    "@playwright/test": "1.18.1",
+    "@playwright/test": "1.22.2",
     "eslint": "8.15.0",
     "eslint-plugin-html": "6.2.0",
     "eslint-plugin-import": "2.26.0",

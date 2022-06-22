@@ -132,15 +132,10 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
 
-<<<<<<< HEAD
-=======
 ifneq ($(NO_DEPS_PLAYWRIGHT),1)
 	PLAYWRIGHT_FLAGS += --with-deps
 endif
 
-#To update swagger use: GO111MODULE=on go get -u github.com/go-swagger/go-swagger/cmd/swagger
-SWAGGER := $(GO) run github.com/go-swagger/go-swagger/cmd/swagger
->>>>>>> d2c9f5bba (Simplify Makefile)
 SWAGGER_SPEC := templates/swagger/v1_json.tmpl
 SWAGGER_SPEC_S_TMPL := s|"basePath": *"/api/v1"|"basePath": "{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|g
 SWAGGER_SPEC_S_JSON := s|"basePath": *"{{AppSubUrl \| JSEscape \| Safe}}/api/v1"|"basePath": "/api/v1"|g
