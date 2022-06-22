@@ -500,6 +500,72 @@ steps:
 
 ---
 kind: pipeline
+type: docker
+name: testing-e2e
+
+platform:
+  os: linux
+  arch: amd64
+
+#depends_on:
+#  - testing-amd64
+#  - testing-arm64
+
+trigger:
+  event:
+    - push
+    - tag
+    - pull_request
+
+services:
+  - name: pgsql
+    pull: default
+    image: postgres:10
+    environment:
+      POSTGRES_DB: test
+      POSTGRES_PASSWORD: postgres
+
+steps:
+  - name: fetch-tags
+    image: docker:git
+    commands:
+      - git fetch --tags --force
+    when:
+      event:
+        exclude:
+          - pull_request
+
+  - name: tag-pre-condition
+    pull: always
+    image: drone/git
+    commands:
+      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+
+  - name: build
+    pull: always
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - make build
+    environment:
+      GOPROXY: https://goproxy.cn # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata sqlite sqlite_unlock_notify
+
+  - name: test-e2e
+    image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
+    commands:
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - timeout -s ABRT 40m make test-e2e-pgsql
+    environment:
+      GOPROXY: https://goproxy.cn
+      TAGS: bindata
+      USE_REPO_TEST_DIR: 1
+    depends_on:
+      - build
+
+---
+kind: pipeline
 name: update_translations
 
 platform:
