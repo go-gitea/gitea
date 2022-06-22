@@ -164,29 +164,29 @@ export function initRepoIssueList() {
   });
 
   $('.menu a.nomilestones').on('click', () => {
-    let milestoneurl = 'milestone=', milestonepos = [...document.querySelectorAll('.milestone-filter-item')].map((i) => { return i.getAttribute('data-milestone-id') }).join(',-');
-    const milestoneids = `-${milestonepos}`;
-    if ((milestonepos = window.location.search.includes(milestoneurl))) {
+    let milestoneurl = 'milestone=', milestonepos;
+    if ((milestonepos = window.location.search.indexOf(milestoneurl)) !== -1) {
       milestoneurl = window.location.search.slice(milestonepos);
       if ((milestonepos = milestoneurl.indexOf('&')) !== -1) {
-        return window.location.search = window.location.search.replace(milestoneurl.slice(0, milestonepos), `milestone=${milestoneids}`);
+        return window.location.search = window.location.search.replace(milestoneurl.slice(0, milestonepos), 'milestone=-1');
       }
-      return window.location.search = window.location.search.replace(milestoneurl, `milestone=${milestoneids}`);
+      return window.location.search = window.location.search.replace(milestoneurl, 'milestone=-1');
     }
-    return window.location.search += (!window.location.search.includes('?') ? '?' : '&') + milestoneurl + milestoneids;
+    milestonepos = (!window.location.search.includes('?') ? '?' : '&');
+    return window.location.search += `${milestonepos}${milestoneurl}-1`;
   });
 
   $('.menu a.noassignees').on('click', () => {
-    let assigneeurl = 'assignee=', assigneepos = [...document.querySelectorAll('.assignee-filter-item')].map((i) => { return i.getAttribute('data-assignee-id') }).join(',-');
-    const assigneeids = `-${assigneepos}`;
-    if ((assigneepos = window.location.search.includes(assigneeurl))) {
+    let assigneeurl = 'assignee=', assigneepos;
+    if ((assigneepos = window.location.search.indexOf(assigneeurl)) !== -1) {
       assigneeurl = window.location.search.slice(assigneepos);
       if ((assigneepos = assigneeurl.indexOf('&')) !== -1) {
-        return window.location.search = window.location.search.replace(assigneeurl.slice(0, assigneepos), `assignee=${assigneeids}`);
+        return window.location.search = window.location.search.replace(assigneeurl.slice(0, assigneepos), `assignee=-1`);
       }
-      return window.location.search = window.location.search.replace(assigneeurl, `assignee=${assigneeids}`);
+      return window.location.search = window.location.search.replace(assigneeurl, `assignee=-1`);
     }
-    return window.location.search += (!window.location.search.includes('?') ? '?' : '&') + assigneeurl + assigneeids;
+    assigneepos = (!window.location.search.includes('?') ? '?' : '&');
+    return window.location.search += `${assigneepos}${assigneeurl}-1`;
   });
 }
 

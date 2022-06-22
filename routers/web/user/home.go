@@ -453,7 +453,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	case issues_model.FilterModeAll:
 	case issues_model.FilterModeYourRepositories:
 	case issues_model.FilterModeAssign:
-		opts.AssigneeIDs = []int64{ctx.Doer.ID}
+		opts.AssigneeID = ctx.Doer.ID
 	case issues_model.FilterModeCreate:
 		opts.PosterID = ctx.Doer.ID
 	case issues_model.FilterModeMention:

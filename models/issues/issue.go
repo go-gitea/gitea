@@ -1183,7 +1183,7 @@ type IssuesOptions struct { //nolint
 	db.ListOptions
 	RepoID             int64 // overwrites RepoCond if not 0
 	RepoCond           builder.Cond
-	AssigneeIDs        []int64
+	AssigneeID         int64
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
@@ -1284,8 +1284,11 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 		sess.And("issue.is_closed=?", opts.IsClosed.IsTrue())
 	}
 
-	if len(opts.AssigneeIDs) > 0 {
-		applyAssigneeCondition(sess, opts.AssigneeIDs)
+	if opts.AssigneeID > 0 {
+		applyAssigneeCondition(sess, opts.AssigneeID)
+	} else if opts.AssigneeID == -1 {
+		sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+			And(builder.Eq{"repo_id": opts.RepoID}))
 	}
 
 	if opts.PosterID > 0 {
@@ -1301,22 +1304,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
-		var mileIDs, noMileIDs []int64
-		hasMile, hasNoMile := false, false
-		for _, milestoneID := range opts.MilestoneIDs {
-			if milestoneID > 0 {
-				mileIDs = append(mileIDs, milestoneID)
-				hasMile = true
-			} else if milestoneID < 0 {
-				noMileIDs = append(noMileIDs, -milestoneID)
-				hasNoMile = true
-			}
-		}
-		if hasMile {
-			sess.In("issue.milestone_id", mileIDs)
-		}
-		if hasNoMile {
-			sess.NotIn("issue.milestone_id", noMileIDs)
+		if opts.MilestoneIDs[0] > 0 {
+			sess.And("issue.milestone_id = ?", opts.MilestoneIDs[0])
+		} else if opts.MilestoneIDs[0] == -1 {
+			sess.And("issue.milestone_id = 0")
 		}
 	}
 
@@ -1466,26 +1457,9 @@ func issuePullAccessibleRepoCond(repoIDstr string, userID int64, org *organizati
 	return cond
 }
 
-func applyAssigneeCondition(sess *xorm.Session, assigneeIDs []int64) *xorm.Session {
-	var noAssigneeIds []int64
-	hasNoAssignee := false
-	for _, assigneeID := range assigneeIDs {
-		if assigneeID > 0 {
-			return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
-				In("issue_assignees.assignee_id", assigneeIDs)
-		} else if assigneeID < 0 {
-			noAssigneeIds = append(noAssigneeIds, -assigneeID)
-			hasNoAssignee = true
-		}
-	}
-
-	if hasNoAssignee {
-		return sess.NotIn("issue.id",
-			builder.Select("issue_id").
-				From("issue_assignees").
-				Where(builder.In("assignee_id", noAssigneeIds)))
-	}
-	return sess
+func applyAssigneeCondition(sess *xorm.Session, assigneeID int64) *xorm.Session {
+	return sess.Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+		And("issue_assignees.assignee_id = ?", assigneeID)
 }
 
 func applyPosterCondition(sess *xorm.Session, posterID int64) *xorm.Session {
@@ -1647,8 +1621,8 @@ const (
 type IssueStatsOptions struct {
 	RepoID            int64
 	Labels            string
-	MilestoneID       string
-	AssigneeID        string
+	MilestoneID       int64
+	AssigneeID        int64
 	MentionedID       int64
 	PosterID          int64
 	ReviewRequestedID int64
@@ -1706,57 +1680,53 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.In("issue.id", issueIDs)
 		}
 
-		labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
-		if err != nil {
-			log.Warn("Malformed Labels argument: %s", opts.Labels)
-		} else if len(labelIDs) > 0 {
-			var noLabelsIDs []int64
-			hasNoLabel := false
-			for i, labelID := range labelIDs {
+		if strings.Contains(opts.Labels, ",") {
+			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
+			if err != nil {
+				log.Warn("Malformed Labels argument: %s", opts.Labels)
+			} else {
+				var noLabelsIDs []int64
+				hasNoLabel := false
+				for i, labelID := range labelIDs {
+					if labelID > 0 {
+						sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
+							fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					} else if labelID < 0 {
+						// sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
+						noLabelsIDs = append(noLabelsIDs, -labelID)
+						hasNoLabel = true
+					}
+				}
+				if hasNoLabel {
+					sess.NotIn("issue.id", builder.Select("issue_id").From("issue_label").Where(builder.In("label_id", noLabelsIDs)))
+				}
+			}
+		} else if len(opts.Labels) > 0 {
+			labelID, err := strconv.ParseInt(opts.Labels, 10, 64)
+			if err != nil {
+				log.Warn("Malformed Labels argument: %s", opts.Labels)
+			} else {
 				if labelID > 0 {
-					sess.Join("INNER", fmt.Sprintf("issue_label il%d", i),
-						fmt.Sprintf("issue.id = il%[1]d.issue_id AND il%[1]d.label_id = %[2]d", i, labelID))
+					sess.Join("INNER", "issue_label il",
+						fmt.Sprintf("issue.id = il.issue_id AND il.label_id = %d", labelID))
 				} else if labelID < 0 {
-					// sess.Where("issue.id NOT IN (SELECT issue_id FROM issue_label WHERE label_id = ?)", -labelID)
-					noLabelsIDs = append(noLabelsIDs, -labelID)
-					hasNoLabel = true
+					sess.Join("INNER", "issue_label il",
+						fmt.Sprintf("issue.id = il.issue_id AND il.label_id <> %d", -labelID))
 				}
-			}
-			if hasNoLabel {
-				sess.NotIn("issue.id",
-					builder.Select("issue_id").
-						From("issue_label").
-						Where(builder.In("label_id", noLabelsIDs)))
 			}
 		}
 
-		milestoneIDs, err := base.StringsToInt64s(strings.Split(opts.MilestoneID, ","))
-		if err != nil {
-			log.Warn("Malformed Milestone argument: %s", opts.MilestoneID)
-		} else if len(milestoneIDs) > 0 {
-			var mileIDs, noMileIDs []int64
-			hasMile, hasNoMile := false, false
-			for _, milestoneID := range milestoneIDs {
-				if milestoneID > 0 {
-					mileIDs = append(mileIDs, milestoneID)
-					hasMile = true
-				} else if milestoneID < 0 {
-					noMileIDs = append(noMileIDs, -milestoneID)
-					hasNoMile = true
-				}
-			}
-			if hasMile {
-				sess.In("issue.milestone_id", mileIDs)
-			} else if hasNoMile {
-				sess.NotIn("issue.milestone_id", noMileIDs)
-			}
+		if opts.MilestoneID > 0 {
+			sess.And("issue.milestone_id = ?", opts.MilestoneID)
+		} else if opts.MilestoneID == -1 {
+			sess.And("issue.milestone_id = 0")
 		}
 
-		assigneeIDs, err := base.StringsToInt64s(strings.Split(opts.AssigneeID, ","))
-		if err != nil {
-			log.Warn("Malformed MilAssignee argument: %s", opts.AssigneeID)
-		} else if len(assigneeIDs) > 0 {
-			applyAssigneeCondition(sess, assigneeIDs)
+		if opts.AssigneeID > 0 {
+			applyAssigneeCondition(sess, opts.AssigneeID)
+		} else if opts.AssigneeID == -1 {
+			sess.NotIn("issue.id", builder.Select("issue.id").From("issue").Join("INNER", "issue_assignees", "issue.id = issue_assignees.issue_id").
+				And(builder.Eq{"repo_id": opts.RepoID}))
 		}
 
 		if opts.PosterID > 0 {
@@ -1860,13 +1830,13 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 			return nil, err
 		}
 	case FilterModeAssign:
-		stats.OpenCount, err = applyAssigneeCondition(sess(cond), []int64{opts.UserID}).
+		stats.OpenCount, err = applyAssigneeCondition(sess(cond), opts.UserID).
 			And("issue.is_closed = ?", false).
 			Count(new(Issue))
 		if err != nil {
 			return nil, err
 		}
-		stats.ClosedCount, err = applyAssigneeCondition(sess(cond), []int64{opts.UserID}).
+		stats.ClosedCount, err = applyAssigneeCondition(sess(cond), opts.UserID).
 			And("issue.is_closed = ?", true).
 			Count(new(Issue))
 		if err != nil {
@@ -1914,7 +1884,7 @@ func GetUserIssueStats(opts UserIssueStatsOptions) (*IssueStats, error) {
 	}
 
 	cond = cond.And(builder.Eq{"issue.is_closed": opts.IsClosed})
-	stats.AssignCount, err = applyAssigneeCondition(sess(cond), []int64{opts.UserID}).Count(new(Issue))
+	stats.AssignCount, err = applyAssigneeCondition(sess(cond), opts.UserID).Count(new(Issue))
 	if err != nil {
 		return nil, err
 	}
@@ -1958,8 +1928,8 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 
 	switch filterMode {
 	case FilterModeAssign:
-		applyAssigneeCondition(openCountSession, []int64{uid})
-		applyAssigneeCondition(closedCountSession, []int64{uid})
+		applyAssigneeCondition(openCountSession, uid)
+		applyAssigneeCondition(closedCountSession, uid)
 	case FilterModeCreate:
 		applyPosterCondition(openCountSession, uid)
 		applyPosterCondition(closedCountSession, uid)

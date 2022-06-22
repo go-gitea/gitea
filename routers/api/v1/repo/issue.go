@@ -259,7 +259,7 @@ func SearchIssues(ctx *context.APIContext) {
 			issuesOpt.PosterID = ctxUserID
 		}
 		if ctx.FormBool("assigned") {
-			issuesOpt.AssigneeIDs = []int64{ctxUserID}
+			issuesOpt.AssigneeID = ctxUserID
 		}
 		if ctx.FormBool("mentioned") {
 			issuesOpt.MentionedID = ctxUserID
@@ -473,7 +473,7 @@ func ListIssues(ctx *context.APIContext) {
 			UpdatedBeforeUnix: before,
 			UpdatedAfterUnix:  since,
 			PosterID:          createdByID,
-			AssigneeIDs:       []int64{assignedByID},
+			AssigneeID:        assignedByID,
 			MentionedID:       mentionedByID,
 		}
 
