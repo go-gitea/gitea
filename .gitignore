@@ -118,3 +118,5 @@ prime/
 
 # Manpage
 /man
+test-results/
+playwright-report/

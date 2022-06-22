@@ -183,6 +183,7 @@ help:
 	@echo " - test                             test everything"
 	@echo " - test-frontend                    test frontend files"
 	@echo " - test-backend                     test backend files"
+	@echo " - test-e2e[\#TestSpecificName]     test end to end using playwright"
 	@echo " - webpack                          build webpack files"
 	@echo " - svg                              build svg files"
 	@echo " - fomantic                         build fomantic files"
@@ -494,6 +495,26 @@ test-mssql\#%: integrations.mssql.test generate-ini-mssql
 test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.mssql.test -test.failfast
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=integrations/mssql.ini ./migrations.individual.mssql.test -test.failfast
+
+.PHONY: test-e2e
+test-e2e: test-e2e-pgsql
+
+.PHONY: test-e2e\#%
+test-e2e\#%: test-e2e-pgsql\#%
+	echo "Why do I need this?"
+
+# Can I share the database with integration tests? Is it cleaned up between tests?
+.PHONY: test-e2e-pgsql
+test-e2e-pgsql: build generate-ini-pgsql
+	npx playwright install --with-deps
+	GITEA_ROOT="$(CURDIR)" ./$(EXECUTABLE) web -c integrations/pgsql.ini --quiet & \
+	(wait $i && npx playwright test && killall gitea)
+
+.PHONY: test-e2e-pgsql\#%
+test-e2e-pgsql\#%: build generate-ini-pgsql
+	npx playwright install --with-deps
+	GITEA_ROOT="$(CURDIR)" ./$(EXECUTABLE) web -c integrations/pgsql.ini --quiet & \
+	(wait $i && npx playwright test $* && killall gitea)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
