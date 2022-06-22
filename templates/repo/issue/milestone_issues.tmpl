@@ -70,7 +70,7 @@
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}">{{.i18n.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							<a class="item noassignees">{{.i18n.Tr "repo.issues.filter_noassginees"}}</a>
 							{{range .Assignees}}
-								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item assignee-filter-item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}" data-assignee-id="{{.ID}}">
+								<a class="{{if eq $.AssigneeID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&assignee={{.ID}}">
 									{{avatar . 28 "mr-2"}}
 									{{.GetDisplayName}}
 								</a>
