@@ -69,7 +69,9 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 				// Store all key, value into two slices.
 				for _, section := range iniFile.Sections() {
 					for _, key := range section.Keys() {
-						ls.translationKeys = append(ls.translationKeys, section.Name()+"#"+key.Name())
+						key := strings.TrimPrefix(section.Name()+"."+key.Name(). "DEFAULT.")
+					
+						ls.translationKeys = append(ls.translationKeys, key)
 						ls.translationValues = append(ls.translationValues, key.Value())
 					}
 				}
@@ -115,8 +117,8 @@ func (ls *LocaleStore) HasLang(langName string) bool {
 	return ok
 }
 
-func (ls *LocaleStore) ListLangNameDesc() (names, desc []string) {
-	return ls.langNames, ls.langDescs
+func (ls *LocaleStore) ListLangNameDescOffsets() (names, desc []string, offsets []int) {
+	return ls.langNames, ls.langDescs, ls.langOffsets
 }
 
 // SetDefaultLang sets default language as a fallback
