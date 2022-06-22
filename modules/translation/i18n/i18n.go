@@ -32,6 +32,7 @@ type LocaleStore struct {
 	// After initializing has finished, these fields are read-only.
 	langNames          []string
 	langDescs          []string
+	langOffsets        []int
 	translationKeys    []string
 	translationValues  []string
 	localeMap          map[string]*locale
@@ -96,6 +97,9 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 			}
 			// Help Go's GC.
 			iniFile = nil
+
+			// Specify the offset for translationValues.
+			ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets))
 		} else {
 			// Add the language to the localeMap.
 			iniFile.BlockMode = false
