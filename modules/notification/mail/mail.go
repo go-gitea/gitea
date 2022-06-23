@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -29,21 +30,21 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyCreateIssueComment Issue[%d] #%d in [%d]", issue.ID, issue.Index, issue.RepoID))
 	defer finished()
 
 	var act models.ActionType
-	if comment.Type == models.CommentTypeClose {
+	if comment.Type == issues_model.CommentTypeClose {
 		act = models.ActionCloseIssue
-	} else if comment.Type == models.CommentTypeReopen {
+	} else if comment.Type == issues_model.CommentTypeReopen {
 		act = models.ActionReopenIssue
-	} else if comment.Type == models.CommentTypeComment {
+	} else if comment.Type == issues_model.CommentTypeComment {
 		act = models.ActionCommentIssue
-	} else if comment.Type == models.CommentTypeCode {
+	} else if comment.Type == issues_model.CommentTypeCode {
 		act = models.ActionCommentIssue
-	} else if comment.Type == models.CommentTypePullRequestPush {
+	} else if comment.Type == issues_model.CommentTypePullRequestPush {
 		act = 0
 	}
 
@@ -52,13 +53,13 @@ func (m *mailNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *rep
 	}
 }
 
-func (m *mailNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
+func (m *mailNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := mailer.MailParticipants(issue, issue.Poster, models.ActionCreateIssue, mentions); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
-func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, isClosed bool) {
+func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, isClosed bool) {
 	var actionType models.ActionType
 	if issue.IsPull {
 		if isClosed {
@@ -79,34 +80,34 @@ func (m *mailNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *mod
 	}
 }
 
-func (m *mailNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string) {
+func (m *mailNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	if err := issue.LoadPullRequest(); err != nil {
 		log.Error("issue.LoadPullRequest: %v", err)
 		return
 	}
-	if issue.IsPull && models.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
+	if issue.IsPull && issues_model.HasWorkInProgressPrefix(oldTitle) && !issue.PullRequest.IsWorkInProgress() {
 		if err := mailer.MailParticipants(issue, doer, models.ActionPullRequestReadyForReview, nil); err != nil {
 			log.Error("MailParticipants: %v", err)
 		}
 	}
 }
 
-func (m *mailNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
+func (m *mailNotifier) NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := mailer.MailParticipants(pr.Issue, pr.Issue.Poster, models.ActionCreatePullRequest, mentions); err != nil {
 		log.Error("MailParticipants: %v", err)
 	}
 }
 
-func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models.Review, comment *models.Comment, mentions []*user_model.User) {
+func (m *mailNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRequestReview Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
 
 	var act models.ActionType
-	if comment.Type == models.CommentTypeClose {
+	if comment.Type == issues_model.CommentTypeClose {
 		act = models.ActionCloseIssue
-	} else if comment.Type == models.CommentTypeReopen {
+	} else if comment.Type == issues_model.CommentTypeReopen {
 		act = models.ActionReopenIssue
-	} else if comment.Type == models.CommentTypeComment {
+	} else if comment.Type == issues_model.CommentTypeComment {
 		act = models.ActionCommentPull
 	}
 	if err := mailer.MailParticipantsComment(ctx, comment, act, pr.Issue, mentions); err != nil {
@@ -114,7 +115,7 @@ func (m *mailNotifier) NotifyPullRequestReview(pr *models.PullRequest, r *models
 	}
 }
 
-func (m *mailNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comment *models.Comment, mentions []*user_model.User) {
+func (m *mailNotifier) NotifyPullRequestCodeComment(pr *issues_model.PullRequest, comment *issues_model.Comment, mentions []*user_model.User) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRequestCodeComment Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
 
@@ -123,7 +124,7 @@ func (m *mailNotifier) NotifyPullRequestCodeComment(pr *models.PullRequest, comm
 	}
 }
 
-func (m *mailNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *models.Issue, assignee *user_model.User, removed bool, comment *models.Comment) {
+func (m *mailNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *issues_model.Issue, assignee *user_model.User, removed bool, comment *issues_model.Comment) {
 	// mail only sent to added assignees and not self-assignee
 	if !removed && doer.ID != assignee.ID && (assignee.EmailNotifications() == user_model.EmailNotificationsEnabled || assignee.EmailNotifications() == user_model.EmailNotificationsOnMention) {
 		ct := fmt.Sprintf("Assigned #%d.", issue.Index)
@@ -133,7 +134,7 @@ func (m *mailNotifier) NotifyIssueChangeAssignee(doer *user_model.User, issue *m
 	}
 }
 
-func (m *mailNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *models.Issue, reviewer *user_model.User, isRequest bool, comment *models.Comment) {
+func (m *mailNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *issues_model.Issue, reviewer *user_model.User, isRequest bool, comment *issues_model.Comment) {
 	if isRequest && doer.ID != reviewer.ID && (reviewer.EmailNotifications() == user_model.EmailNotificationsEnabled || reviewer.EmailNotifications() == user_model.EmailNotificationsOnMention) {
 		ct := fmt.Sprintf("Requested to review %s.", issue.HTMLURL())
 		if err := mailer.SendIssueAssignedMail(issue, doer, ct, comment, []*user_model.User{reviewer}); err != nil {
@@ -142,7 +143,7 @@ func (m *mailNotifier) NotifyPullReviewRequest(doer *user_model.User, issue *mod
 	}
 }
 
-func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user_model.User) {
+func (m *mailNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 	if err := pr.LoadIssue(); err != nil {
 		log.Error("pr.LoadIssue: %v", err)
 		return
@@ -152,7 +153,7 @@ func (m *mailNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user
 	}
 }
 
-func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *models.PullRequest, comment *models.Comment) {
+func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *issues_model.PullRequest, comment *issues_model.Comment) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRequestPushCommits Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
 
@@ -179,7 +180,7 @@ func (m *mailNotifier) NotifyPullRequestPushCommits(doer *user_model.User, pr *m
 	m.NotifyCreateIssueComment(doer, comment.Issue.Repo, comment.Issue, comment, nil)
 }
 
-func (m *mailNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment) {
+func (m *mailNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mailNotifier.NotifyPullRevieweDismiss Review[%d] in Issue[%d]", review.ID, review.IssueID))
 	defer finished()
 

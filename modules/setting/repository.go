@@ -20,6 +20,9 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+const ItemsPerPage = 40
+
 // Repository settings
 var (
 	Repository = struct {
@@ -71,6 +74,7 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
@@ -192,6 +196,7 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
@@ -205,6 +210,7 @@ var (
 			// https://help.github.com/articles/closing-issues-via-commit-messages
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
 			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
+			DefaultMergeStyle:                        "merge",
 			DefaultMergeMessageCommitsLimit:          50,
 			DefaultMergeMessageSize:                  5 * 1024,
 			DefaultMergeMessageAllAuthors:            false,

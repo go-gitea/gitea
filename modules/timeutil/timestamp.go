@@ -57,7 +57,7 @@ func (ts TimeStamp) AsTime() (tm time.Time) {
 // AsTimeInLocation convert timestamp as time.Time in Local locale
 func (ts TimeStamp) AsTimeInLocation(loc *time.Location) (tm time.Time) {
 	tm = time.Unix(int64(ts), 0).In(loc)
-	return
+	return tm
 }
 
 // AsTimePtr convert timestamp as *time.Time in Local locale

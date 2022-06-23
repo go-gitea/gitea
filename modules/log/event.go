@@ -89,8 +89,10 @@ func (l *ChannelledLog) Start() {
 				l.closeLogger()
 				return
 			}
+			l.emptyQueue()
 			l.loggerProvider.Flush()
 		case <-l.close:
+			l.emptyQueue()
 			l.closeLogger()
 			return
 		}
@@ -107,6 +109,20 @@ func (l *ChannelledLog) LogEvent(event *Event) error {
 		return ErrTimeout{
 			Name:     l.name,
 			Provider: l.provider,
+		}
+	}
+}
+
+func (l *ChannelledLog) emptyQueue() bool {
+	for {
+		select {
+		case event, ok := <-l.queue:
+			if !ok {
+				return false
+			}
+			l.loggerProvider.LogEvent(event)
+		default:
+			return true
 		}
 	}
 }
@@ -345,14 +361,37 @@ func (m *MultiChannelledLog) Start() {
 				m.closeLoggers()
 				return
 			}
+			m.emptyQueue()
 			m.rwmutex.RLock()
 			for _, logger := range m.loggers {
 				logger.Flush()
 			}
 			m.rwmutex.RUnlock()
 		case <-m.close:
+			m.emptyQueue()
 			m.closeLoggers()
 			return
+		}
+	}
+}
+
+func (m *MultiChannelledLog) emptyQueue() bool {
+	for {
+		select {
+		case event, ok := <-m.queue:
+			if !ok {
+				return false
+			}
+			m.rwmutex.RLock()
+			for _, logger := range m.loggers {
+				err := logger.LogEvent(event)
+				if err != nil {
+					fmt.Println(err)
+				}
+			}
+			m.rwmutex.RUnlock()
+		default:
+			return true
 		}
 	}
 }

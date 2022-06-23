@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/upload"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/services/attachment"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // UploadIssueAttachment response for Issue/PR attachments
@@ -95,7 +95,7 @@ func GetAttachment(ctx *context.Context) {
 		return
 	}
 
-	repository, unitType, err := models.LinkedRepository(attach)
+	repository, unitType, err := repo_service.LinkedRepository(attach)
 	if err != nil {
 		ctx.ServerError("LinkedRepository", err)
 		return

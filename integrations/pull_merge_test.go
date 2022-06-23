@@ -19,6 +19,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -233,12 +234,12 @@ func TestCantMergeConflict(t *testing.T) {
 			Name:    "repo1",
 		}).(*repo_model.Repository)
 
-		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "conflict",
 			BaseBranch: "base",
-		}).(*models.PullRequest)
+		}).(*issues_model.PullRequest)
 
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
@@ -335,12 +336,12 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
 		assert.NoError(t, err)
-		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "unrelated",
 			BaseBranch: "base",
-		}).(*models.PullRequest)
+		}).(*issues_model.PullRequest)
 
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
@@ -387,7 +388,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &models.Issue{
+		pullIssue := &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "PR with conflict!",
 			PosterID: user.ID,
@@ -395,26 +396,26 @@ func TestConflictChecking(t *testing.T) {
 			IsPull:   true,
 		}
 
-		pullRequest := &models.PullRequest{
+		pullRequest := &issues_model.PullRequest{
 			HeadRepoID: baseRepo.ID,
 			BaseRepoID: baseRepo.ID,
 			HeadBranch: "important-secrets",
 			BaseBranch: "main",
 			HeadRepo:   baseRepo,
 			BaseRepo:   baseRepo,
-			Type:       models.PullRequestGitea,
+			Type:       issues_model.PullRequestGitea,
 		}
 		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 		assert.NoError(t, err)
 
-		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "PR with conflict!"}).(*models.Issue)
-		conflictingPR, err := models.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"}).(*issues_model.Issue)
+		conflictingPR, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 		assert.NoError(t, err)
 
 		// Ensure conflictedFiles is populated.
 		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
 		// Check if status is correct.
-		assert.Equal(t, models.PullRequestStatusConflict, conflictingPR.Status)
+		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
 		assert.False(t, conflictingPR.Mergeable())
 	})
