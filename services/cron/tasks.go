@@ -147,11 +147,6 @@ func GetTask(name string) *Task {
 func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
 	log.Debug("Registering task: %s", name)
 
-	i18nKey := "admin.dashboard." + name
-	if _, ok := translation.TryTr("en-US", i18nKey); !ok {
-		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
-	}
-
 	_, err := setting.GetCronSettings(name, config)
 	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", name, err)

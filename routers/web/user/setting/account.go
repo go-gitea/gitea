@@ -146,7 +146,7 @@ func EmailPost(ctx *context.Context) {
 				log.Error("Set cache(MailResendLimit) fail: %v", err)
 			}
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", address, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/account")
 		return
 	}
@@ -208,7 +208,7 @@ func EmailPost(ctx *context.Context) {
 				log.Error("Set cache(MailResendLimit) fail: %v", err)
 			}
 		}
-		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())))
+		ctx.Flash.Info(ctx.Tr("settings.add_email_confirmation_sent", email.Email, timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)))
 	} else {
 		ctx.Flash.Success(ctx.Tr("settings.add_email_success"))
 	}

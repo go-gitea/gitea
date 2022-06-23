@@ -85,7 +85,7 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 				// Go trough all the keys that the defaultLang has and append it to translationValues.
 				// If the lang doesn't have a value for the translation, use the defaultLang's one.
 				for i := 0; i < ls.defaultLangKeysLen; i++ {
-					splitted := strings.SplitN(ls.translationKeys[i], "#", 1)
+					splitted := strings.SplitN(ls.translationKeys[i], "#", 2)
 					// TODO: optimize for repeated sequential access of section.
 					section, err := iniFile.GetSection(splitted[0])
 					if err != nil {
@@ -106,7 +106,10 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 			iniFile = nil
 
 			// Specify the offset for translationValues.
-			ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets)+1)
+			ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets))
+
+			// Stub info for `HasLang`
+			ls.localeMap[langName] = nil
 		} else {
 			// Add the language to the localeMap.
 			iniFile.BlockMode = false
@@ -201,7 +204,7 @@ func Tr(lang, trKey string, trArgs ...interface{}) string {
 }
 
 func TrOffset(offset int, trKey string, trArgs ...interface{}) string {
-	idx := DefaultLocales.hashFunction.Get(trKey) * uint32(offset)
+	idx := DefaultLocales.hashFunction.Get(trKey) + uint32(offset)*uint32(DefaultLocales.defaultLangKeysLen)
 	trMsg := DefaultLocales.translationValues[idx]
 
 	if len(trArgs) > 0 {

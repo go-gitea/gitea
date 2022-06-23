@@ -82,13 +82,13 @@ func TestTimeSince(t *testing.T) {
 }
 
 func TestTimeSincePro(t *testing.T) {
-	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, "en"))
+	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, translation.NewLocale("en-US")))
 
 	// test that a difference of `diff` yields the expected string
 	test := func(expected string, diff time.Duration) {
-		actual := timeSincePro(BaseDate, BaseDate.Add(diff), "en")
+		actual := timeSincePro(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
 		assert.Equal(t, expected, actual)
-		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, "en"))
+		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, translation.NewLocale("en-US")))
 	}
 	test("1 second", time.Second)
 	test("2 seconds", 2*time.Second)
@@ -171,7 +171,7 @@ func TestComputeTimeDiff(t *testing.T) {
 func TestMinutesToFriendly(t *testing.T) {
 	// test that a number of minutes yields the expected string
 	test := func(expected string, minutes int) {
-		actual := MinutesToFriendly(minutes, "en")
+		actual := MinutesToFriendly(minutes, translation.NewLocale("en-US"))
 		assert.Equal(t, expected, actual)
 	}
 	test("1 minute", 1)

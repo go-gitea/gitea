@@ -75,8 +75,8 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 	locale := translation.NewLocale(language)
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
-		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
+		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
+		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale),
 		"Code":              code,
 		"Language":          locale.Language(),
 		// helper
@@ -126,7 +126,7 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
+		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 		"Language":        locale.Language(),
