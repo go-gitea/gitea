@@ -31,49 +31,44 @@ function clipboardPastedImages(e) {
 
 
 function insertAtCursor(field, value) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
-    field.selectionStart = startPos + value.length;
-    field.selectionEnd = startPos + value.length;
+  if (field.getTextArea().selectionStart || field.getTextArea().selectionStart === 0) {
+    const startPos = field.getTextArea().selectionStart;
+    const endPos = field.getTextArea().selectionEnd;
+    field.setValue(field.getValue().substring(0, startPos) + value + field.getValue().substring(endPos, field.getValue().length));
+    field.getTextArea().electionStart = startPos + value.length;
+    field.getTextArea().selectionEnd = startPos + value.length;
   } else {
-    field.value += value;
+    field.setValue(field.getValue() + value);
   }
 }
 
 function replaceAndKeepCursor(field, oldval, newval) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.replace(oldval, newval);
-    field.selectionStart = startPos + newval.length - oldval.length;
-    field.selectionEnd = endPos + newval.length - oldval.length;
+  if (field.getTextArea().selectionStart || field.getTextArea().selectionStart === 0) {
+    const startPos = field.getTextArea().selectionStart;
+    const endPos = field.getTextArea().selectionEnd;
+    field.setValue(field.getValue().replace(oldval, newval));
+    field.getTextArea().selectionStart = startPos + newval.length - oldval.length;
+    field.getTextArea().selectionEnd = endPos + newval.length - oldval.length;
   } else {
-    field.value = field.value.replace(oldval, newval);
+    field.setValue(field.getValue().replace(oldval, newval));
   }
 }
 
 export function initCompImagePaste($target) {
-  $target.each(function () {
-    const dropzone = this.querySelector('.dropzone');
-    if (!dropzone) {
-      return;
-    }
-    const uploadUrl = dropzone.getAttribute('data-upload-url');
-    const dropzoneFiles = dropzone.querySelector('.files');
-    for (const textarea of this.querySelectorAll('textarea')) {
-      textarea.addEventListener('paste', async (e) => {
-        for (const img of clipboardPastedImages(e)) {
-          const name = img.name.slice(0, img.name.lastIndexOf('.'));
-          insertAtCursor(textarea, `![${name}]()`);
-          const data = await uploadFile(img, uploadUrl);
-          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          dropzoneFiles.appendChild(input[0]);
-        }
-      }, false);
-    }
+  const dropzone = $target[0].querySelector('.dropzone');
+  if (!dropzone) {
+    return;
+  }
+  const uploadUrl = dropzone.getAttribute('data-upload-url');
+  const dropzoneFiles = dropzone.querySelector('.files');
+  $(document).on('paste', '.CodeMirror', async function (e) {
+    const img = clipboardPastedImages(e.originalEvent);
+    const name = img[0].name.substring(0, img[0].name.lastIndexOf('.'));
+    insertAtCursor(this.CodeMirror, `![${name}]()`);
+    const data = await uploadFile(img[0], uploadUrl);
+    replaceAndKeepCursor(this.CodeMirror, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
+    const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+    dropzoneFiles.appendChild(input[0]);
   });
 }
 
