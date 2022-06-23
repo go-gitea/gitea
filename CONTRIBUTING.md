@@ -86,8 +86,8 @@ Here's how to run the test suite:
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
 |``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |  
-|[More details about integrations](integrations/README.md)  |
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](tests/integration) test for SQLite |  
+|[More details about integrations](tests/integration/README.md)  |
 
 ## Vendoring
 
@@ -167,7 +167,7 @@ import (
 
 To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The Gitea code is divided into the following parts:
 
-- **integration:** Integrations tests
+- **integration:** Integration tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
 - **models/fixtures:** Sample model data used in integration tests.
 - **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
