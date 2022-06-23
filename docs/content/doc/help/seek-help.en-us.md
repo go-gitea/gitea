@@ -22,7 +22,7 @@ menu:
 
 1. Your `app.ini` (with any sensitive data scrubbed as necessary).
 2. The Gitea logs, and any other appropriate log files for the situation.
-    * The logs may be outputted to console by default. If you need to collect logs from files, 
+    * The logs are likely to be outputted to console. If you need to collect logs from files, 
       you could copy the following config into your `app.ini` (remove all other `[log]` sections),
       then you can find the `gitea.log` in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
     ```ini
