@@ -24,7 +24,7 @@ menu:
 2. The Gitea logs, and any other appropriate log files for the situation.
     * The logs are likely to be outputted to console. If you need to collect logs from files, 
       you could copy the following config into your `app.ini` (remove all other `[log]` sections),
-      then you can find the `gitea.log` in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
+      then you can find the `*.log` files in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
     ```ini
     ; To show all SQL logs, you can also set LOG_SQL=true in the [database] section 
     [log]
@@ -34,9 +34,9 @@ menu:
     XORM=console,file
     ENABLE_XORM_LOG=true
     [log.file.router]
-    FILE_NAME=gitea.log
+    FILE_NAME=router.log
     [log.file.xorm]
-    FILE_NAME=gitea.log
+    FILE_NAME=xorm.log
     ``` 
 3. Any error messages you are seeing.
 4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
