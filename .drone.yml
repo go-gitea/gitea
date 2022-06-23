@@ -552,6 +552,7 @@ steps:
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get update
       - apt-get install build-essential --yes
+      - export TEST_PGSQL_SCHEMA=''
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
     environment:
@@ -561,7 +562,6 @@ steps:
       USE_REPO_TEST_DIR: 1
       NO_DEPS_PLAYWRIGHT: 1
       TEST_LOGGER: console,file # Debug
-      TEST_PGSQL_SCHEMA: ''
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       NPX_FLAGS: '--yes'
     depends_on: [deps-backend, deps-frontend]
