@@ -515,6 +515,10 @@ trigger:
   event:
     - pull_request
 
+volumes:
+  - name: deps
+    temp: {}
+
 services:
   - name: pgsql
     pull: default
@@ -525,11 +529,20 @@ services:
       POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'
 
 steps:
-  - name: tag-pre-condition
+  - name: deps-frontend
+    image: node:16
     pull: always
-    image: drone/git
     commands:
-      - git update-ref refs/heads/tag_test ${DRONE_COMMIT_SHA}
+      - make deps-frontend
+
+  - name: deps-backend
+    image: golang:1.18
+    pull: always
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
@@ -537,10 +550,12 @@ steps:
     commands:
       - curl -sL https://go.dev/dl/go1.18.3.linux-amd64.tar.gz -o go1.18.3.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.18.3.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
+      - apt-get update
+      - apt-get install build-essential --yes
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
     environment:
-      GOPROXY: https://goproxy.cn
+      GOPROXY: https://goproxy.io
       GOSUMDB: sum.golang.org
       TAGS: bindata
       USE_REPO_TEST_DIR: 1
@@ -549,6 +564,10 @@ steps:
       TEST_PGSQL_SCHEMA: ''
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       NPX_FLAGS: '--yes'
+    depends_on: [deps-backend, deps-frontend]
+    volumes:
+      - name: deps
+        path: /go
 
 ---
 kind: pipeline
