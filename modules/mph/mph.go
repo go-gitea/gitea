@@ -61,7 +61,7 @@ func Build(keys []string) *ConstructedHashFunction {
 	// the bucker a perfect hash function(no collision between the keys).
 
 	// Store for each entry within a bucket if a key has hashed to that entry.
-	tempEvaluatedIdx := make([]int, len(levelOneEntries))
+	tempEvaluatedIdx := make([]bool, len(levelOneEntries))
 
 	// Store all hashed indexes, so it's easier to clean the variable up.
 	var evaluatedIndexs []int
@@ -75,22 +75,22 @@ func Build(keys []string) *ConstructedHashFunction {
 			// Create the hash for this value.
 			n := int(murmur3.Sum32WithSeed([]byte(keys[i]), seed)) & levelOneMask
 			// Check if this hash is a collision.
-			if tempEvaluatedIdx[n] != 0 {
+			if tempEvaluatedIdx[n] {
 				// A collision, reset everything and try a new seed.
 				for _, n := range evaluatedIndexs {
-					tempEvaluatedIdx[n] = 0
+					tempEvaluatedIdx[n] = false
 				}
 				seed++
 				goto trySeed
 			}
 			// Mark this index has being used.
-			tempEvaluatedIdx[n] = i
+			tempEvaluatedIdx[n] = true
 
 			// Add the index to the evaluated indexes.
 			evaluatedIndexs = append(evaluatedIndexs, n)
-		}
-		for value, idx := range tempEvaluatedIdx {
-			levelOneEntries[value] = uint32(idx)
+
+			// This somehow doesn't cause conflicts. So we just leave it here.
+			levelOneEntries[n] = uint32(i)
 		}
 
 		// No collisions detected, save this seed for this bucket.
