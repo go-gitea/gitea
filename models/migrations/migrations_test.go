@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		giteaConf = path.Join(filepath.Dir(setting.AppPath), "integrations/sqlite.ini")
+		giteaConf = path.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
 		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
@@ -206,7 +206,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip += skip
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {

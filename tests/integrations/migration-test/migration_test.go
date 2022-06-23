@@ -18,7 +18,6 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/integrations"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/models/unittest"
@@ -27,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests/integrations"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -61,7 +61,7 @@ func initMigrationTest(t *testing.T) func() {
 
 	assert.True(t, len(setting.RepoRootPath) != 0)
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -90,7 +90,7 @@ func initMigrationTest(t *testing.T) func() {
 }
 
 func availableVersions() ([]string, error) {
-	migrationsDir, err := os.Open("integrations/migration-test")
+	migrationsDir, err := os.Open("tests/integrations/migration-test")
 	if err != nil {
 		return nil, err
 	}
@@ -116,7 +116,7 @@ func availableVersions() ([]string, error) {
 }
 
 func readSQLFromFile(version string) (string, error) {
-	filename := fmt.Sprintf("integrations/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
+	filename := fmt.Sprintf("tests/integrations/migration-test/gitea-v%s.%s.sql.gz", version, setting.Database.Type)
 
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		return "", nil
