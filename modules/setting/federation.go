@@ -31,7 +31,7 @@ var (
 	}
 )
 
-// Constant slice of httpsig algorithm objects
+// HttpsigAlgs is a constant slice of httpsig algorithm objects
 var HttpsigAlgs []httpsig.Algorithm
 
 func newFederationService() {
