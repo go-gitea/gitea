@@ -3,6 +3,8 @@ reportUnusedDisableDirectives: true
 
 ignorePatterns:
   - /web_src/js/vendor
+  - /templates/base/head_script.tmpl
+  - /templates/repo/issue/view_content/pull.tmpl
 
 parserOptions:
   sourceType: module
@@ -15,9 +17,6 @@ plugins:
   - eslint-plugin-html
   - eslint-plugin-jquery
 
-extends:
-  - plugin:vue/recommended
-
 env:
   es2022: true
   node: true
@@ -29,7 +28,9 @@ settings:
   html/html-extensions: [".tmpl"]
 
 overrides:
-  - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl"]
+  - files: ["web_src/**/*.vue"]
+    parser: vue-eslint-parser
+  - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl", "docs/**/*.js"]
     env:
       browser: true
       node: false
@@ -502,11 +503,37 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
+  vue/attribute-hyphenation: [2]
   vue/attributes-order: [0]
   vue/component-definition-name-casing: [0]
+  vue/component-tags-order: [2]
+  vue/first-attribute-linebreak: [2]
+  vue/html-closing-bracket-newline: [2]
   vue/html-closing-bracket-spacing: [0]
+  vue/html-end-tags: [2]
+  vue/html-indent: [2]
+  vue/html-quotes: [2]
+  vue/html-self-closing: [2]
   vue/max-attributes-per-line: [0]
+  vue/multiline-html-element-content-newline: [2]
+  vue/mustache-interpolation-spacing: [2]
+  vue/no-lone-template: [2]
+  vue/no-multi-spaces: [2]
+  vue/no-multiple-slot-args: [2]
+  vue/no-side-effects-in-computed-properties: [2]
+  vue/no-spaces-around-equal-signs-in-attribute: [2]
+  vue/no-template-shadow: [2]
+  vue/no-v-html: [2]
   vue/one-component-per-file: [0]
+  vue/order-in-components: [2]
+  vue/prop-name-casing: [2]
+  vue/require-default-prop: [2]
+  vue/require-prop-types: [2]
+  vue/singleline-html-element-content-newline: [2]
+  vue/this-in-template: [2]
+  vue/v-bind-style: [2]
+  vue/v-on-style: [2]
+  vue/v-slot-style: [2]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]

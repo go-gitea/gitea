@@ -10,8 +10,9 @@
       -d '{"context": "test/context", "description": "description", "state": "${state}", "target_url": "http://localhost"}'
   -->
   <div>
-    <!-- eslint-disable -->
-    <div v-if="mergeForm.hasPendingPullRequestMerge" v-html="mergeForm.hasPendingPullRequestMergeTip" class="ui info message"></div>
+    <div v-if="mergeForm.hasPendingPullRequestMerge" class="ui info message">
+      {{ mergeForm.hasPendingPullRequestMergeTip }}
+    </div>
 
     <div class="ui form" v-if="showActionForm">
       <form :action="mergeForm.baseLink+'/merge'" method="post">
