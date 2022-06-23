@@ -25,8 +25,8 @@ menu:
     * The logs may be outputted to console by default. If you need to collect logs from files, 
       you could copy the following config into your `app.ini` (remove all other `[log]` sections),
       then you can find the `gitea.log` in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
-    ```
-    ; To show all SQLs, you could also set LOG_SQL=true in [database] section 
+    ```ini
+    ; To show all SQL logs, you can also set LOG_SQL=true in the [database] section 
     [log]
     LEVEL=debug
     MODE=console,file
