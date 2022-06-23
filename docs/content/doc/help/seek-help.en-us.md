@@ -33,6 +33,7 @@ menu:
     ROUTER=console,file
     XORM=console,file
     ENABLE_XORM_LOG=true
+    FILE_NAME=gitea.log
     [log.file.router]
     FILE_NAME=router.log
     [log.file.xorm]
