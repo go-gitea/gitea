@@ -62,6 +62,9 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 		ls.langNames = append(ls.langNames, langName)
 		ls.langDescs = append(ls.langDescs, langDesc)
 
+		// Specify the offset for translationValues.
+		ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets))
+
 		// Make a distinquishment between production and development.
 		// For development, live-reload of the translation files is important.
 		// For production, we can do some expensive work and then make the querying fast.
