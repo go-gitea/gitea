@@ -42,15 +42,15 @@ func TestMain(m *testing.M) {
 }
 
 func TestTimeSince(t *testing.T) {
-	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, "en"))
+	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, translation.NewLocale("en-US")))
 
 	// test that each diff in `diffs` yields the expected string
 	test := func(expected string, diffs ...time.Duration) {
 		t.Run(expected, func(t *testing.T) {
 			for _, diff := range diffs {
-				actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
+				actual := timeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
 				assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
-				actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
+				actual = timeSince(BaseDate.Add(diff), BaseDate, translation.NewLocale("en-US"))
 				assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
 			}
 		})
@@ -138,7 +138,7 @@ func TestComputeTimeDiff(t *testing.T) {
 	test := func(base int64, str string, offsets ...int64) {
 		for _, offset := range offsets {
 			t.Run(fmt.Sprintf("%s:%d", str, offset), func(t *testing.T) {
-				diff, diffStr := computeTimeDiff(base+offset, "en")
+				diff, diffStr := computeTimeDiff(base+offset, translation.NewLocale("en"))
 				assert.Equal(t, offset, diff)
 				assert.Equal(t, str, diffStr)
 			})

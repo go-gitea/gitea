@@ -55,7 +55,6 @@ func GetContentHistoryList(ctx *context.Context) {
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	lang := ctx.Locale.Language()
 	var results []map[string]interface{}
 	for _, item := range items {
 		var actionText string
@@ -67,7 +66,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		} else {
 			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
-		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
+		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale)
 
 		username := item.UserName
 		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {
