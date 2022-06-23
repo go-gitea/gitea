@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -88,7 +88,7 @@ func HomeSitemap(ctx *context.Context) {
 		}
 	}
 
-	_, cnt, err := models.SearchRepository(&models.SearchRepoOptions{
+	_, cnt, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 1,
 		},
