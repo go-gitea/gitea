@@ -22,11 +22,13 @@ type ConstructedHashFunction struct {
 // Ref: http://cmph.sourceforge.net/papers/esa09.pdf.
 func Build(keys []string) *ConstructedHashFunction {
 	// These values are not described in the paper as the paper allows any universal hash
-	// function(with certain bounds) in which case we use murmur3 and mask to avoid "overflow".
+	// function(with certain bounds) in which case we use murmur3 and mask to avoid "overflow",
+	// this could be replaced by module but this is a more performant easy "hack" to do this.
 
 	// Construct values for the first level of hash function.
-	// This is used to map the strings to `nextPow2(len(keys)/4)` amount of buckets.
-	levelZeroBuckets := make([]uint32, nextPow2(len(keys)/4))
+	// This is used to map the strings to `nextPow2(len(keys)/3)` amount of buckets.
+	// This seems to be across benchmarks one of faster values for the use-case.
+	levelZeroBuckets := make([]uint32, nextPow2(len(keys)/3))
 	levelZeroMask := len(levelZeroBuckets) - 1
 	// Construct values for the second level of hash functions.
 	// This is used for the hash function to find the index within a specific bucket.
