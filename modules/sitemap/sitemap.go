@@ -12,6 +12,9 @@ import (
 	"time"
 )
 
+// sitemapFileLimit contains the maximum size of a sitemap file
+const sitemapFileLimit = 50 * 1024 * 1024
+
 // Url represents a single sitemap entry
 type URL struct {
 	URL     string     `xml:"loc"`
@@ -59,7 +62,7 @@ func (s *Sitemap) WriteTo(w io.Writer) (int64, error) {
 	if err := buf.WriteByte('\n'); err != nil {
 		return 0, err
 	}
-	if buf.Len() > 50*1024*1024 {
+	if buf.Len() > sitemapFileLimit {
 		return 0, fmt.Errorf("The sitemap is too big: %d", buf.Len())
 	}
 	return buf.WriteTo(w)

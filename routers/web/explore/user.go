@@ -45,6 +45,10 @@ func RenderUserSearch(ctx *context.Context, opts *user_model.SearchUserOptions, 
 		opts.Page = 1
 	}
 
+	if isSitemap {
+		opts.PageSize = setting.UI.SitemapPagingNum
+	}
+
 	var (
 		users   []*user_model.User
 		count   int64

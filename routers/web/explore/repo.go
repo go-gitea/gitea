@@ -43,6 +43,10 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		page = 1
 	}
 
+	if isSitemap {
+		opts.PageSize = setting.UI.SitemapPagingNum
+	}
+
 	var (
 		repos   []*repo_model.Repository
 		count   int64

@@ -70,7 +70,7 @@ func TestTooManyURLs(t *testing.T) {
 
 func TestSitemapTooBig(t *testing.T) {
 	s := NewSitemap()
-	s.Add(URL{URL: strings.Repeat("b", 50*1024*1024)})
+	s.Add(URL{URL: strings.Repeat("b", sitemapFileLimit)})
 	buf := &bytes.Buffer{}
 	_, err := s.WriteTo(buf)
 	assert.EqualError(t, err, "The sitemap is too big: 52428931")
