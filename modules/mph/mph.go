@@ -96,7 +96,7 @@ func Build(keys []string) *ConstructedHashFunction {
 		}
 
 		// No collisions detected, save this seed for this bucket.
-		levelZeroBuckets[int(bucket.originialIdx)] = uint32(seed)
+		levelZeroBuckets[bucket.originialIdx] = seed
 	}
 
 	// Return the table.
