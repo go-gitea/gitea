@@ -1,7 +1,5 @@
 * text=auto eol=lf
 *.tmpl linguist-language=Handlebars
-/.eslintrc linguist-language=YAML
-/.stylelintrc linguist-language=YAML
 /public/vendor/** -text -eol linguist-vendored
 /vendor/** -text -eol linguist-vendored
 /web_src/fomantic/build/** linguist-generated
