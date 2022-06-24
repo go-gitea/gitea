@@ -55,7 +55,7 @@ func Test_Sanitizer(t *testing.T) {
 func TestSanitizeNonEscape(t *testing.T) {
 	descStr := "<scrİpt>&lt;script&gt;alert(document.domain)&lt;/script&gt;</scrİpt>"
 
-	output := template.HTML(Sanitize(string(descStr)))
+	output := template.HTML(Sanitize(descStr))
 	if strings.Contains(string(output), "<script>") {
 		t.Errorf("un-escaped <script> in output: %q", output)
 	}

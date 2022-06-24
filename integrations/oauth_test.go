@@ -197,7 +197,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
 	req.Header.Add("Authorization", "Basic ZGE3ZGEzYmEtOWExMy00MTY3LTg1NmYtMzg5OWRlMGIwMTM4OmJsYWJsYQ==")
-	resp = MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusBadRequest)
 
 	// missing header
 	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -206,7 +206,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
 	})
-	resp = MakeRequest(t, req, http.StatusBadRequest)
+	MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestRefreshTokenInvalidation(t *testing.T) {

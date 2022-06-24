@@ -105,7 +105,7 @@ func Projects(ctx *context.Context) {
 
 	numPages := 0
 	if count > 0 {
-		numPages = int((int(count) - 1) / setting.UI.IssuePagingNum)
+		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
