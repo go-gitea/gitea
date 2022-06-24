@@ -721,7 +721,7 @@ func RegisterRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 	}, context_service.UserAssignmentWeb())
 

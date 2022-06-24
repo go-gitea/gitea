@@ -141,6 +141,7 @@ func Dashboard(ctx *context.Context) {
 		OnlyPerformedBy: false,
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
+		ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
 	})
 	if err != nil {
 		ctx.ServerError("GetFeeds", err)
