@@ -20,6 +20,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // CreateCodeComment creates a comment on the code line
@@ -271,51 +272,70 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *issues_model.Comment, err error) {
-	review, err := issues_model.GetReviewByID(ctx, reviewID)
-	if err != nil {
-		return
-	}
+func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss, dismissAntecessors bool) (comment *issues_model.Comment, err error) {
+	var review *issues_model.Review
+	if err = db.WithTx(func(ctx context.Context) error {
+		review, err = issues_model.GetReviewByID(ctx, reviewID)
+		if err != nil {
+			return err
+		}
 
-	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
-		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
-	}
+		if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
+			return fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+		}
 
-	if err = issues_model.DismissReview(review, isDismiss); err != nil {
-		return
-	}
+		if err = issues_model.DismissReview(review, isDismiss); err != nil {
+			return err
+		}
 
-	if !isDismiss {
-		return nil, nil
-	}
+		if dismissAntecessors {
+			reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
+				IssueID:    review.IssueID,
+				ReviewerID: review.ReviewerID,
+				Dismissed:  util.OptionalBoolFalse,
+			})
+			if err != nil {
+				return err
+			}
+			for _, oldReview := range reviews {
+				if err = issues_model.DismissReview(oldReview, true); err != nil {
+					return err
+				}
+			}
+		}
 
-	// load data for notify
-	if err = review.LoadAttributes(ctx); err != nil {
-		return
-	}
-	if err = review.Issue.LoadPullRequest(); err != nil {
-		return
-	}
-	if err = review.Issue.LoadAttributes(ctx); err != nil {
-		return
-	}
+		if !isDismiss {
+			return nil
+		}
 
-	comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
-		Doer:     doer,
-		Content:  message,
-		Type:     issues_model.CommentTypeDismissReview,
-		ReviewID: review.ID,
-		Issue:    review.Issue,
-		Repo:     review.Issue.Repo,
-	})
-	if err != nil {
-		return
+		// load data for notify
+		if err = review.LoadAttributes(ctx); err != nil {
+			return err
+		}
+		if err = review.Issue.LoadPullRequestCtx(ctx); err != nil {
+			return err
+		}
+		if err = review.Issue.LoadAttributes(ctx); err != nil {
+			return err
+		}
+
+		comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
+			Doer:     doer,
+			Content:  message,
+			Type:     issues_model.CommentTypeDismissReview,
+			ReviewID: review.ID,
+			Issue:    review.Issue,
+			Repo:     review.Issue.Repo,
+		})
+
+		return err
+	}, ctx); err != nil {
+		return nil, err
 	}
 
 	comment.Review = review
 	comment.Poster = doer
 	comment.Issue = review.Issue
-
 	notification.NotifyPullRevieweDismiss(doer, review, comment)
 
 	return comment, err
