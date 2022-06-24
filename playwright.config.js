@@ -8,7 +8,7 @@ const BASE_URL = process.env.GITEA_URL ? process.env.GITEA_URL.replace(/\/$/g, '
  * @type {import('@playwright/test').PlaywrightTestConfig}
  */
 const config = {
-  testDir: './tests/e2e/', 
+  testDir: './tests/e2e/',
   testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
 
   /* Maximum time one test can run for. */

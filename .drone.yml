@@ -507,9 +507,8 @@ platform:
   os: linux
   arch: amd64
 
-#depends_on:
-#  - testing-amd64
-#  - testing-arm64
+depends_on:
+  - compliance
 
 trigger:
   event:
@@ -554,6 +553,7 @@ steps:
       - apt-get install build-essential --yes
       - export TEST_PGSQL_SCHEMA=''
       - ./build/test-env-prepare.sh
+      - make build
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
     environment:
       GOPROXY: https://goproxy.io

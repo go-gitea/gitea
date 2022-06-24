@@ -29,15 +29,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/modules/web"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli"
 
 	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 )
-
-var c *web.Route
 
 func TestMain(m *testing.M) {
 	defer log.Close()
@@ -207,7 +204,7 @@ func initE2eTest() {
 		defer db.Close()
 	}
 
-	//routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
+	// routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {
