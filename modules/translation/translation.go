@@ -115,7 +115,9 @@ func Match(tags ...language.Tag) language.Tag {
 // locale represents the information of localization.
 type locale struct {
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
-	Offset         int
+	// Stores the offset for the locale. The value is utilized by the 'TrOffset' function
+	// to change the translation key's found index (for the default language) to the locale's index.
+	Offset int
 }
 
 // NewLocale return a locale

@@ -208,6 +208,8 @@ func Tr(lang, trKey string, trArgs ...interface{}) string {
 	return DefaultLocales.Tr(lang, trKey, trArgs...)
 }
 
+// TrOffset uses the default-locales to translate content to target language.
+// It uses the pre-computed translation keys->values.
 func TrOffset(offset int, trKey string, trArgs ...interface{}) string {
 	// Get the offset of the translation key.
 	keyOffset := DefaultLocales.keyToOffset[trKey]
