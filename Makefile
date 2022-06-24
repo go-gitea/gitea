@@ -242,9 +242,13 @@ clean:
 	$(GO) clean -i ./...
 	rm -rf $(EXECUTABLE) $(DIST) $(BINDATA_DEST) $(BINDATA_HASH) \
 		integrations*.test \
+		e2e*.test \
 		tests/integration/gitea-integration-pgsql/ tests/integration/gitea-integration-mysql/ tests/integration/gitea-integration-mysql8/ tests/integration/gitea-integration-sqlite/ \
 		tests/integration/gitea-integration-mssql/ tests/integration/indexers-mysql/ tests/integration/indexers-mysql8/ tests/integration/indexers-pgsql tests/integration/indexers-sqlite \
 		tests/integration/indexers-mssql tests/mysql.ini tests/mysql8.ini tests/pgsql.ini tests/mssql.ini man/
+		tests/e2e/gitea-integration-pgsql/ tests/e2e/gitea-integration-mysql/ tests/e2e/gitea-integration-mysql8/ tests/e2e/gitea-integration-sqlite/ \
+		tests/e2e/gitea-integration-mssql/ tests/e2e/indexers-mysql/ tests/e2e/indexers-mysql8/ tests/e2e/indexers-pgsql tests/e2e/indexers-sqlite \
+		tests/e2e/indexers-mssql
 
 .PHONY: fmt
 fmt:
@@ -512,57 +516,61 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 
 .PHONY: test-e2e%
 # Use only file logging for end-to-end tests
-test-e2e%: TEST_LOGGER ?= file TEST_TYPE ?= e2e
+test-e2e%: TEST_LOGGER ?= file
+test-e2e%: TEST_TYPE ?= e2e
 
 .PHONY: test-e2e
 test-e2e: test-e2e-sqlite
 
-.PHONY: test-e2e\#%
-test-e2e\#%: test-e2e-sqlite\#%
-# Kind of a hack to get makefile to accept passing arguement
-	true
-
 .PHONY: test-e2e-sqlite
-test-e2e-sqlite: TAGS+=sqlite sqlite_unlock_notify
-test-e2e-sqlite: build generate-ini-sqlite
+test-e2e-sqlite: e2e.sqlite.test generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=tests/sqlite.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test
 
 .PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: TAGS+=sqlite sqlite_unlock_notify
-test-e2e-sqlite\#%: build generate-ini-sqlite
+test-e2e-sqlite\#%: e2e.sqlite.test generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/sqlite.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run $(subst .,/,$*)
+
+.PHONY: test-e2e-mysql
+test-e2e-mysql: e2e.mysql.test generate-ini-mysql
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test
+
+.PHONY: test-e2e-mysql\#%
+test-e2e-mysql\#%: e2e.mysql.test generate-ini-mysql
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-e2e-mysql8
-test-e2e-mysql8: build generate-ini-mysql8
+test-e2e-mysql8: e2e.mysql8.test generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_URL="http://localhost:3004" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/mysql8.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test
 
 .PHONY: test-e2e-mysql8\#%
-test-e2e-mysql8\#%: build generate-ini-mysql8
+test-e2e-mysql8\#%: e2e.mysql8.test generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_URL="http://localhost:3004" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/mysql8.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test -test.run $(subst .,/,$*)
 
 .PHONY: test-e2e-pgsql
-test-e2e-pgsql: build generate-ini-pgsql
+test-e2e-pgsql: e2e.pgsql.test generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_URL="http://localhost:3002" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/pgsql.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test
 
 .PHONY: test-e2e-pgsql\#%
-test-e2e-pgsql\#%: build generate-ini-pgsql
+test-e2e-pgsql\#%: e2e.pgsql.test generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_URL="http://localhost:3002" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/pgsql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run $(subst .,/,$*)
 
 .PHONY: test-e2e-mssql
-test-e2e-mssql: build generate-ini-mssql
+test-e2e-mssql: e2e.mssql.test generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/mssql.ini ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test
 
 .PHONY: test-e2e-mssql\#%
-test-e2e-mssql\#%: build generate-ini-mssql
+test-e2e-mssql\#%: e2e.mssql.test generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT=$(CURDIR) GITEA_URL="http://localhost:3003" GITEA_EXECUTABLE=$(EXECUTABLE) GITEA_CONF=$(CURDIR)/tests/mssql.ini E2E_TESTS=$* ./tools/e2e/run_e2e.sh
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test -test.run $(subst .,/,$*)
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
@@ -648,6 +656,21 @@ migrations.individual.mssql.test: $(GO_SOURCES)
 .PHONY: migrations.individual.sqlite.test
 migrations.individual.sqlite.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
+
+e2e.mysql.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
+
+e2e.mysql8.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql8.test
+
+e2e.pgsql.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
+
+e2e.mssql.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mssql.test
+
+e2e.sqlite.test: git-check $(GO_SOURCES)
+	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
 check: test

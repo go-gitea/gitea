@@ -73,6 +73,16 @@ cpu.out
 /tests/integration/indexers-pgsql
 /tests/integration/indexers-sqlite
 /tests/integration/indexers-mssql
+/tests/e2e/gitea-e2e-mysql
+/tests/e2e/gitea-e2e-mysql8
+/tests/e2e/gitea-e2e-pgsql
+/tests/e2e/gitea-e2e-sqlite
+/tests/e2e/gitea-e2e-mssql
+/tests/e2e/indexers-mysql
+/tests/e2e/indexers-mysql8
+/tests/e2e/indexers-pgsql
+/tests/e2e/indexers-sqlite
+/tests/e2e/indexers-mssql
 /tests/sqlite.ini
 /tests/mysql.ini
 /tests/mysql8.ini

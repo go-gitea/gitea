@@ -1,14 +1,14 @@
 // @ts-check
 import {devices} from '@playwright/test';
 
-const BASE_URL = process.env.GITEA_URL ? process.env.GITEA_URL : 'http://localhost:3000';
+const BASE_URL = process.env.GITEA_URL ? process.env.GITEA_URL.replace(/\/$/g, '') : 'http://localhost:3000';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  * @type {import('@playwright/test').PlaywrightTestConfig}
  */
 const config = {
-  testDir: './tools/e2e/tests',   // TODO: Change this to the ./web_src/ dir?
+  testDir: './tests/e2e/', 
   testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
 
   /* Maximum time one test can run for. */
