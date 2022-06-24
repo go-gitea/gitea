@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,9 +48,9 @@ func TestTimeSince(t *testing.T) {
 		t.Run(expected, func(t *testing.T) {
 			for _, diff := range diffs {
 				actual := timeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
-				assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
+				assert.Equal(t, translation.NewLocale("en-US").Tr("tool.ago", expected), actual)
 				actual = timeSince(BaseDate.Add(diff), BaseDate, translation.NewLocale("en-US"))
-				assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
+				assert.Equal(t, translation.NewLocale("en-US").Tr("tool.from_now", expected), actual)
 			}
 		})
 	}

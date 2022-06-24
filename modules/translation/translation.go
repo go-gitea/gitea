@@ -43,7 +43,7 @@ func AllLangs() []*LangType {
 
 // TryTr tries to do the translation, if no translation, it returns (format, false)
 func TryTr(lang, format string, args ...interface{}) (string, bool) {
-	s := i18n.Tr(lang, format, args...)
+	s := i18n.DefaultLocales.Tr(lang, format, args...)
 	// now the i18n library is not good enough and we can only use this hacky method to detect whether the transaction exists
 	idx := strings.IndexByte(format, '.')
 	defaultText := format
