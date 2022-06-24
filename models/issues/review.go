@@ -484,6 +484,7 @@ type GetReviewOptions struct {
 	Official       util.OptionalBool
 	Stale          util.OptionalBool
 	Dismissed      util.OptionalBool
+	LatestOnly     bool
 }
 
 // GetReviewByOpts return reviews based on GetReviewOptions
@@ -517,35 +518,35 @@ func GetReviewByOpts(ctx context.Context, opts *GetReviewOptions) ([]*Review, er
 		sess.Where("dismissed=?", opts.Dismissed.IsTrue())
 	}
 
+	if opts.LatestOnly {
+		sess.Where(builder.In("review.id",
+			builder.Select("max(id)").From("review").
+				Where(builder.Eq{
+					"issue_id":           opts.IssueID,
+					"original_author_id": 0,
+					"reviewer_team_id":   0,
+					"dismissed":          opts.Dismissed.IsTrue(),
+				}.And(builder.In(
+					"type",
+					ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest,
+				))).
+				GroupBy("issue_id, reviewer_id").
+				OrderBy("review.updated_unix ASC")).
+			Or(builder.In("review.id",
+				builder.Select("max(id)").From("review").
+					Where(builder.Eq{
+						"issue_id":           opts.IssueID,
+						"original_author_id": 0,
+						"reviewer_id":        0,
+					}.And(builder.Neq{
+						"reviewer_team_id": 0,
+					})).
+					GroupBy("issue_id, reviewer_team_id").
+					OrderBy("review.updated_unix ASC"))))
+	}
+
 	reviews := make([]*Review, 0, opts.PageSize)
 	return reviews, sess.Find(&reviews)
-}
-
-// GetReviewersByIssueID gets the latest review of each reviewer for a pull request
-func GetReviewersByIssueID(issueID int64) ([]*Review, error) {
-	reviews := make([]*Review, 0, 10)
-
-	sess := db.GetEngine(db.DefaultContext)
-
-	// Get latest review of each reviewer, sorted in order they were made
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id = 0 AND type in (?, ?, ?) AND dismissed = ? AND original_author_id = 0 GROUP BY issue_id, reviewer_id) ORDER BY review.updated_unix ASC",
-		issueID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, false).
-		Find(&reviews); err != nil {
-		return nil, err
-	}
-
-	teamReviewRequests := make([]*Review, 0, 5)
-	if err := sess.SQL("SELECT * FROM review WHERE id IN (SELECT max(id) as id FROM review WHERE issue_id = ? AND reviewer_team_id <> 0 AND original_author_id = 0 GROUP BY issue_id, reviewer_team_id) ORDER BY review.updated_unix ASC",
-		issueID).
-		Find(&teamReviewRequests); err != nil {
-		return nil, err
-	}
-
-	if len(teamReviewRequests) > 0 {
-		reviews = append(reviews, teamReviewRequests...)
-	}
-
-	return reviews, nil
 }
 
 // GetReviewersFromOriginalAuthorsByIssueID gets the latest review of each original authors for a pull request

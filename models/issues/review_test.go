@@ -11,6 +11,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -133,7 +134,11 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := issues_model.GetReviewersByIssueID(issue.ID)
+	allReviews, err := issues_model.GetReviewByOpts(db.DefaultContext, &issues_model.GetReviewOptions{
+		IssueID:    issue.ID,
+		Dismissed:  util.OptionalBoolFalse,
+		LatestOnly: true,
+	})
 	for _, reviewer := range allReviews {
 		assert.NoError(t, reviewer.LoadReviewer())
 	}
