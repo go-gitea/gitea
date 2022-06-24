@@ -485,7 +485,7 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
-	if setting.UI.DefaultShowFullName {
+	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
 		return base.EllipsisString(u.FullName, length)
 	}
 	return base.EllipsisString(u.Name, length)
@@ -611,16 +611,17 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if {
+	if setting.OAuth2Client.Username == "userid" {
+		if db.AlphaDashDotPipePattern.MatchString(name) {
+			// Note: usually this error is normally caught up earlier in the UI
+			return db.ErrNameCharsNotAllowed{Name: name}
+		}
+	} else {
+		// Validate username make sure it satisfies requirement.
 		if db.AlphaDashDotPattern.MatchString(name) {
 			// Note: usually this error is normally caught up earlier in the UI
 			return db.ErrNameCharsNotAllowed{Name: name}
 		}
-	}
-	// Validate username make sure it satisfies requirement.
-	if db.AlphaDashDotPattern.MatchString(name) {
-		// Note: usually this error is normally caught up earlier in the UI
-		return db.ErrNameCharsNotAllowed{Name: name}
 	}
 	return db.IsUsableName(reservedUsernames, reservedUserPatterns, name)
 }
