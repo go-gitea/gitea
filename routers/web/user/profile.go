@@ -188,6 +188,7 @@ func Profile(ctx *context.Context) {
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
+			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
@@ -276,6 +277,7 @@ func Profile(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "tab", "TabName")
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
 		pager.AddParam(ctx, "language", "Language")
 	}

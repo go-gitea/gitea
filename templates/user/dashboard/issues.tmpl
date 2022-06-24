@@ -61,11 +61,11 @@
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								{{svg "octicon-issue-opened" 16 "mr-3"}}
-								{{JsPrettyNumber .ShownIssueStats.OpenCount}}&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
+								{{JsPrettyNumber .IssueStats.OpenCount}}&nbsp;{{.i18n.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								{{svg "octicon-issue-closed" 16 "mr-3"}}
-								{{JsPrettyNumber .ShownIssueStats.ClosedCount}}&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
+								{{JsPrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.i18n.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>

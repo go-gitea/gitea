@@ -174,7 +174,12 @@ func initIntegrationTest() {
 	setting.LoadForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
+
+	if err := git.InitOnceWithSync(context.Background()); err != nil {
+		log.Fatal("git.InitOnceWithSync: %v", err)
+	}
 	git.CheckLFSVersion()
+
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
@@ -275,7 +280,7 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitOnceWithSync(context.Background()))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -433,7 +438,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -576,7 +581,7 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitOnceWithSync(context.Background()))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

@@ -23,6 +23,58 @@
   },
   "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
+    "/activitypub/user/{username}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Returns the Person actor for a user",
+        "operationId": "activitypubPerson",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
+    "/activitypub/user/{username}/inbox": {
+      "post": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Send to the inbox",
+        "operationId": "activitypubPersonInbox",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "204": {
+            "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
     "/admin/cron": {
       "get": {
         "produces": [
@@ -9187,6 +9239,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "405": {
+            "$ref": "#/responses/empty"
           }
         }
       }
@@ -9270,6 +9325,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "405": {
+            "$ref": "#/responses/empty"
           }
         }
       },
@@ -10038,6 +10096,9 @@
           "404": {
             "$ref": "#/responses/notFound"
           },
+          "405": {
+            "$ref": "#/responses/empty"
+          },
           "409": {
             "$ref": "#/responses/conflict"
           }
@@ -10124,6 +10185,9 @@
           },
           "404": {
             "$ref": "#/responses/notFound"
+          },
+          "405": {
+            "$ref": "#/responses/empty"
           },
           "409": {
             "$ref": "#/responses/conflict"
@@ -13324,6 +13388,17 @@
         "token_last_eight": {
           "type": "string",
           "x-go-name": "TokenLastEight"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ActivityPub": {
+      "description": "ActivityPub type",
+      "type": "object",
+      "properties": {
+        "@context": {
+          "type": "string",
+          "x-go-name": "Context"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -19065,6 +19140,12 @@
         "items": {
           "$ref": "#/definitions/AccessToken"
         }
+      }
+    },
+    "ActivityPub": {
+      "description": "ActivityPub",
+      "schema": {
+        "$ref": "#/definitions/ActivityPub"
       }
     },
     "AnnotatedTag": {

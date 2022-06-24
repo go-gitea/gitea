@@ -138,7 +138,7 @@ func Routes() *web.Route {
 
 	// redirect default favicon to the path of the custom favicon with a default as a fallback
 	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), http.StatusMovedPermanently)
 	})
 
 	common := []interface{}{}
@@ -721,7 +721,7 @@ func RegisterRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 	}, context_service.UserAssignmentWeb())
 
@@ -1121,7 +1121,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return
+			return cancel
 		})
 
 		m.Group("/pulls/{index}", func() {
@@ -1159,6 +1159,13 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
 			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
+		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+
+		m.Group("/render", func() {
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
+			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.RenderFile)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/commits", func() {
