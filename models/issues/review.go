@@ -566,6 +566,7 @@ func MarkReviewsAsNotStale(issueID int64, commitID string) (err error) {
 }
 
 // DismissReview change the dismiss status of a review
+// only if dismiss status changed and type is either approve or reject
 func DismissReview(review *Review, isDismiss bool) (err error) {
 	if review.Dismissed == isDismiss || (review.Type != ReviewTypeApprove && review.Type != ReviewTypeReject) {
 		return nil

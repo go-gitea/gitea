@@ -258,7 +258,7 @@ func (issue *Issue) loadPoster(ctx context.Context) (err error) {
 	return err
 }
 
-func (issue *Issue) loadPullRequest(ctx context.Context) (err error) {
+func (issue *Issue) LoadPullRequestCtx(ctx context.Context) (err error) {
 	if issue.IsPull && issue.PullRequest == nil {
 		issue.PullRequest, err = GetPullRequestByIssueID(ctx, issue.ID)
 		if err != nil {
@@ -274,7 +274,7 @@ func (issue *Issue) loadPullRequest(ctx context.Context) (err error) {
 
 // LoadPullRequest loads pull request info
 func (issue *Issue) LoadPullRequest() error {
-	return issue.loadPullRequest(db.DefaultContext)
+	return issue.LoadPullRequestCtx(db.DefaultContext)
 }
 
 func (issue *Issue) loadComments(ctx context.Context) (err error) {
@@ -390,7 +390,7 @@ func (issue *Issue) LoadAttributes(ctx context.Context) (err error) {
 		return
 	}
 
-	if err = issue.loadPullRequest(ctx); err != nil && !IsErrPullRequestNotExist(err) {
+	if err = issue.LoadPullRequestCtx(ctx); err != nil && !IsErrPullRequestNotExist(err) {
 		// It is possible pull request is not yet created.
 		return err
 	}
@@ -545,7 +545,7 @@ func ClearIssueLabels(issue *Issue, doer *user_model.User) (err error) {
 
 	if err := issue.LoadRepo(ctx); err != nil {
 		return err
-	} else if err = issue.loadPullRequest(ctx); err != nil {
+	} else if err = issue.LoadPullRequestCtx(ctx); err != nil {
 		return err
 	}
 
