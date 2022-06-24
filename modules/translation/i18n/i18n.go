@@ -65,13 +65,12 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 		// Specify the offset for translationValues.
 		ls.langOffsets = append(ls.langOffsets, len(ls.langOffsets))
 
-		// Make a distinquishment between production and development.
+		// Distinguish between production and development
 		// For development, live-reload of the translation files is important.
 		// For production, we can do some expensive work and then make the querying fast.
 		if setting.IsProd {
-			// If the language is the default language, then we go trough all keys. These keys
-			// will become the keys that we consider to support and take into account while going
-			// trough querying translation keys.
+			// If the language is the default language, then we go through all keys. These keys
+			// will be the only keys that we take into account while querying for a translation
 			if langName == ls.defaultLang {
 				idx := 0
 				// Store all key, value into two slices.
