@@ -500,26 +500,27 @@ func GetReviewByOpts(ctx context.Context, opts *GetReviewOptions) ([]*Review, er
 	}
 
 	if opts.IssueID != 0 {
-		sess.Where("issue_id=?", opts.IssueID)
+		sess = sess.Where("issue_id=?", opts.IssueID)
 	}
 	if opts.ReviewerID != 0 {
-		sess.Where("reviewer_id=?", opts.ReviewerID)
+		sess = sess.Where("reviewer_id=?", opts.ReviewerID)
 	}
 	if opts.ReviewerTeamID != 0 {
-		sess.Where("reviewerTeam_id=?", opts.ReviewerTeamID)
+		sess = sess.Where("reviewerTeam_id=?", opts.ReviewerTeamID)
 	}
 	if !opts.Official.IsNone() {
-		sess.Where("official=?", opts.Official.IsTrue())
+		sess = sess.Where("official=?", opts.Official.IsTrue())
 	}
 	if !opts.Stale.IsNone() {
-		sess.Where("stale=?", opts.Stale.IsTrue())
+		sess = sess.Where("stale=?", opts.Stale.IsTrue())
 	}
 	if !opts.Dismissed.IsNone() {
-		sess.Where("dismissed=?", opts.Dismissed.IsTrue())
+		sess = sess.Where("dismissed=?", opts.Dismissed.IsTrue())
 	}
 
 	if opts.LatestOnly {
-		sess.Where(builder.In("review.id",
+		// Get latest review of each reviewer, sorted in order they were made
+		sess = sess.Where(builder.In("review.id",
 			builder.Select("max(id)").From("review").
 				Where(builder.Eq{
 					"issue_id":           opts.IssueID,
@@ -532,6 +533,7 @@ func GetReviewByOpts(ctx context.Context, opts *GetReviewOptions) ([]*Review, er
 				))).
 				GroupBy("issue_id, reviewer_id").
 				OrderBy("review.updated_unix ASC")).
+			// Get latest review of each review-team, sorted in order they were made
 			Or(builder.In("review.id",
 				builder.Select("max(id)").From("review").
 					Where(builder.Eq{
