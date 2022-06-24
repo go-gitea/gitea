@@ -264,7 +264,9 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	// Get posters.
+	totalTime := int64(0)
 	for i := range issues {
+		totalTime += issues[i].TotalTrackedTime
 		// Check read status
 		if !ctx.IsSigned {
 			issues[i].IsRead = true
@@ -281,6 +283,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	}
 
 	ctx.Data["Issues"] = issues
+	ctx.Data["TotalTime"] = totalTime
 	ctx.Data["CommitLastStatus"] = lastStatus
 	ctx.Data["CommitStatuses"] = commitStatuses
 

@@ -1,5 +1,6 @@
 <div class="issue list">
 	{{ $approvalCounts := .ApprovalCounts}}
+	<h1>TOTAL TIME SPENT: {{ .TotalTime | Sec2Time }}</h1>
 	{{range .Issues}}
 		<li class="item df py-3">
 			<div class="issue-item-left df">
@@ -51,6 +52,7 @@
 							#{{.Index}}
 						{{end}}
 					</a>
+
 					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
 					{{if .OriginalAuthor }}
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
