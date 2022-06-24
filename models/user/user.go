@@ -485,6 +485,9 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
+	if setting.UI.DefaultShowFullName {
+		return base.EllipsisString(u.FullName, length)
+	}
 	return base.EllipsisString(u.Name, length)
 }
 
@@ -607,6 +610,13 @@ var (
 
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
+	// Validate username make sure it satisfies requirement.
+	if {
+		if db.AlphaDashDotPattern.MatchString(name) {
+			// Note: usually this error is normally caught up earlier in the UI
+			return db.ErrNameCharsNotAllowed{Name: name}
+		}
+	}
 	// Validate username make sure it satisfies requirement.
 	if db.AlphaDashDotPattern.MatchString(name) {
 		// Note: usually this error is normally caught up earlier in the UI

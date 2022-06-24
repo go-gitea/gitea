@@ -18,6 +18,9 @@ var (
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
+
+	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
+	AlphaDashDotPipePattern = regexp.MustCompile(`[^\w-\.\|]`)
 )
 
 // ErrNameReserved represents a "reserved name" error.
