@@ -124,12 +124,15 @@ func ChangeProjectAssign(issue *Issue, doer *user_model.User, newProjectID int64
 func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.User, newProjectID int64) error {
 	oldProjectID := issue.projectID(ctx)
 
-	newProject, err := project_model.GetProjectByID(ctx, newProjectID)
-	if err != nil {
-		return err
-	}
-	if newProject.RepoID != issue.RepoID {
-		return fmt.Errorf("issue's repository is not the same as project's repository")
+	// Only check if we add a new project and not remove it.
+	if newProjectID > 0 {
+		newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+		if err != nil {
+			return err
+		}
+		if newProject.RepoID != issue.RepoID {
+			return fmt.Errorf("issue's repository is not the same as project's repository")
+		}
 	}
 
 	if _, err := db.GetEngine(ctx).Where("project_issue.issue_id=?", issue.ID).Delete(&project_model.ProjectIssue{}); err != nil {
