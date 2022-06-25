@@ -15,6 +15,14 @@ import (
 )
 
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *issues_model.Issue, oldMilestoneID int64) error {
+	has, err := issues_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+	if err != nil {
+		return fmt.Errorf("GetMilestoneByRepoID: %v", err)
+	}
+	if !has {
+		return fmt.Errorf("GetMilestoneByRepoID: issue doesn't exist")
+	}
+
 	if err := issues_model.UpdateIssueCols(ctx, issue, "milestone_id"); err != nil {
 		return err
 	}

@@ -1042,7 +1042,8 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
-	if projectID > 0 {
+	// User must also be able to see the project.
+	if projectID > 0 && ctx.Repo.CanRead(unit.TypeProjects) {
 		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
@@ -2503,6 +2504,10 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
+		if issue.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("some issue's repoID is incorrect", errors.New("some issue's repoID is incorrect"))
+			return
+		}
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
