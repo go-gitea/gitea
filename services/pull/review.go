@@ -273,69 +273,58 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss, dismissAntecessors bool) (comment *issues_model.Comment, err error) {
-	var review *issues_model.Review
-	if err = db.WithTx(func(ctx context.Context) error {
-		review, err = issues_model.GetReviewByID(ctx, reviewID)
-		if err != nil {
-			return err
-		}
-
-		if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
-			return fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
-		}
-
-		if err = issues_model.DismissReview(review, isDismiss); err != nil {
-			return err
-		}
-
-		if dismissAntecessors {
-			reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
-				IssueID:    review.IssueID,
-				ReviewerID: review.ReviewerID,
-				Dismissed:  util.OptionalBoolFalse,
-			})
-			if err != nil {
-				return err
-			}
-			for _, oldReview := range reviews {
-				if err = issues_model.DismissReview(oldReview, true); err != nil {
-					return err
-				}
-			}
-		}
-
-		if !isDismiss {
-			return nil
-		}
-
-		// load data for notify
-		if err = review.LoadAttributes(ctx); err != nil {
-			return err
-		}
-		if err = review.Issue.LoadPullRequestCtx(ctx); err != nil {
-			return err
-		}
-		if err = review.Issue.LoadAttributes(ctx); err != nil {
-			return err
-		}
-
-		comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
-			Doer:     doer,
-			Content:  message,
-			Type:     issues_model.CommentTypeDismissReview,
-			ReviewID: review.ID,
-			Issue:    review.Issue,
-			Repo:     review.Issue.Repo,
-		})
-
-		return err
-	}, ctx); err != nil {
+	review, err := issues_model.GetReviewByID(ctx, reviewID)
+	if err != nil {
 		return nil, err
 	}
 
-	if !isDismiss {
-		return
+	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
+		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
 	}
+
+	if err = issues_model.DismissReview(review, isDismiss); err != nil {
+		return nil, err
+	}
+
+	if dismissAntecessors {
+		reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
+			IssueID:    review.IssueID,
+			ReviewerID: review.ReviewerID,
+			Dismissed:  util.OptionalBoolFalse,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, oldReview := range reviews {
+			if err = issues_model.DismissReview(oldReview, true); err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	if !isDismiss {
+		return nil, nil
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+	if err = review.Issue.LoadPullRequestCtx(ctx); err != nil {
+		return nil, err
+	}
+	if err = review.Issue.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	comment, err = issues_model.CreateComment(&issues_model.CreateCommentOptions{
+		Doer:     doer,
+		Content:  message,
+		Type:     issues_model.CommentTypeDismissReview,
+		ReviewID: review.ID,
+		Issue:    review.Issue,
+		Repo:     review.Issue.Repo,
+	})
 
 	comment.Review = review
 	comment.Poster = doer
