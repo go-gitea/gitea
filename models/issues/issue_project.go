@@ -132,6 +132,14 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 		return err
 	}
 
+	newProject, err := project_model.GetProjectByID(ctx, newProjectID)
+	if err != nil {
+		return err
+	}
+	if newProject.RepoID != issue.RepoID {
+		return fmt.Errorf("Issue's repository is not the same as project's repository")
+	}
+
 	if oldProjectID > 0 || newProjectID > 0 {
 		if _, err := CreateCommentCtx(ctx, &CreateCommentOptions{
 			Type:         CommentTypeProject,
