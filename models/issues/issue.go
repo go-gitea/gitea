@@ -743,10 +743,7 @@ func doChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.Use
 }
 
 // ChangeIssueStatus changes issue status to open or closed.
-func ChangeIssueStatus(ctx context.Context, issue *Issue, repoID int64, doer *user_model.User, isClosed bool) (*Comment, error) {
-	if issue.RepoID != repoID {
-		return nil, fmt.Errorf("issue's repository is not correct")
-	}
+func ChangeIssueStatus(ctx context.Context, issue *Issue, doer *user_model.User, isClosed bool) (*Comment, error) {
 	if err := issue.LoadRepo(ctx); err != nil {
 		return nil, err
 	}

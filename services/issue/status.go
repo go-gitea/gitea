@@ -15,13 +15,13 @@ import (
 )
 
 // ChangeStatus changes issue status to open or closed.
-func ChangeStatus(issue *issues_model.Issue, repoID int64, doer *user_model.User, closed bool) error {
-	return changeStatusCtx(db.DefaultContext, issue, repoID, doer, closed)
+func ChangeStatus(issue *issues_model.Issue, doer *user_model.User, closed bool) error {
+	return changeStatusCtx(db.DefaultContext, issue, doer, closed)
 }
 
 // changeStatusCtx changes issue status to open or closed.
 // TODO: if context is not db.DefaultContext we get a deadlock!!!
-func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, repoID int64, doer *user_model.User, closed bool) error {
+func changeStatusCtx(ctx context.Context, issue *issues_model.Issue, doer *user_model.User, closed bool) error {
 	comment, err := issues_model.ChangeIssueStatus(ctx, issue, doer, closed)
 	if err != nil {
 		if issues_model.IsErrDependenciesLeft(err) && closed {
