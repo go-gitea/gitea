@@ -100,7 +100,8 @@ ideal UI and therefore subject to change.
 **Since 1.17**, Gitea runs git in its own home directory `[repository].ROOT` and uses its own config `{[repository].ROOT}/.gitconfig`.
 If you have your own customized git config for Gitea, you should set these configs in system git config (aka `/etc/gitconfig`)
 or the Gitea internal git config `{[repository].ROOT}/.gitconfig`. 
-Related home files for git command (like `.gnupg`) should also be put in Gitea's git home directory `[repository].ROOT`. 
+Related home files for git command (like `.gnupg`) should also be put in Gitea's git home directory `[repository].ROOT`.\
+If you like to keep the `.gnupg` directory outside of `{[repository].ROOT}/`, consider setting the `$GNUPGHOME` environment variable to your preferred location.
 
 
 ### `INITIAL_COMMIT`
