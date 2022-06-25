@@ -10,6 +10,7 @@ import (
 	"reflect"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 
 	"gopkg.in/ini.v1"
 )
@@ -120,6 +121,8 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 			// try to use default locale's translation
 			if msg, ok := def.textMap[textIdx]; ok {
 				trMsg = msg
+			} else if !setting.IsProd {
+				log.Error("missing i18n translation key: %q", trKey)
 			}
 		}
 	}
