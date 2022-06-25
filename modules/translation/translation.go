@@ -100,8 +100,8 @@ func InitLocales() {
 	matcher = language.NewMatcher(supportedTags)
 
 	// Make sure en-US is always the first in the slice.
-	setting.Names = moveToFront("en-US", setting.Names)
-
+	setting.Names = moveToFront("English", setting.Names)
+	setting.Langs = moveToFront("en-US", setting.Langs)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
