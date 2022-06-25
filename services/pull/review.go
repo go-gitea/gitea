@@ -333,6 +333,10 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 		return nil, err
 	}
 
+	if !isDismiss {
+		return
+	}
+
 	comment.Review = review
 	comment.Poster = doer
 	comment.Issue = review.Issue
