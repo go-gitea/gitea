@@ -13,7 +13,7 @@ import (
 var (
 	ErrLocaleAlreadyExist = common.ErrLocaleAlreadyExist
 
-	DefaultLocales (LocaleStore) = NewLocaleStore(false)
+	DefaultLocales = NewLocaleStore(false)
 )
 
 func NewLocaleStore(isProd bool) LocaleStore {
