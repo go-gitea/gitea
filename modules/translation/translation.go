@@ -48,11 +48,15 @@ func InitLocales() {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
-	localFiles := make(map[string][]byte, len(localeNames))
+	localFiles := make(map[string]interface{}, len(localeNames))
 	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
+		if options.IsDynamic() {
+			localFiles[name] = "options/locale/" + name
+		} else {
+			localFiles[name], err = options.Locale(name)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
 		}
 	}
 

@@ -45,6 +45,9 @@ func NewLocaleStore() *localeStore {
 	if err != nil {
 		log.Error("Unable to create new watcher for locale files. Locale files will not auto-reloaded. Error: %v", err)
 	}
+	if err := watcher.Add("options/locale/"); err != nil {
+		log.Error("Unable to add options/locale/ to the watch list: %v", err)
+	}
 
 	store := &localeStore{
 		localeMap:  make(map[string]*locale),
@@ -74,11 +77,23 @@ func (ls *localeStore) Run() {
 		}
 		ls.watcherLock.Lock()
 		watcher.Close()
+
 		var err error
 		ls.watcher, err = fsnotify.NewWatcher()
-		ls.watcherLock.Unlock()
-		ls.refreshLocales()
 		if err != nil {
+			ls.watcherLock.Unlock()
+			log.Error("Unable to create a new FS watcher. Locale files will not auto-reloaded. Error: %v", err)
+			return
+		}
+
+		if err := ls.watcher.Add("options/locale/"); err != nil {
+			ls.watcherLock.Unlock()
+			log.Error("Unable to add options/locale/ to the watch list: Locale files will not auto-reloaded. Error: %v", err)
+			return
+		}
+		ls.watcherLock.Unlock()
+
+		if err := ls.refreshLocales(); err != nil {
 			log.Error("Unable to create new watcher for locale files. Locale files will not auto-reloaded. Error: %v", err)
 			return
 		}
