@@ -50,8 +50,7 @@ sub = Changed Sub String
 	result = ls.Tr("lang2", "section.mixed")
 	assert.Equal(t, `test value; <span style="color: red; background: none;">more text</span>`, result)
 
-	langs, descs, offsets := ls.ListLangNameDescOffsets()
+	langs, descs := ls.ListLangNameDesc()
 	assert.Equal(t, []string{"lang1", "lang2"}, langs)
 	assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
-	assert.Equal(t, []int{0, 1}, offsets)
 }

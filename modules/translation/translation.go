@@ -26,7 +26,6 @@ type Locale interface {
 // LangType represents a lang type
 type LangType struct {
 	Lang, Name string // these fields are used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
-	Offset     int
 }
 
 var (
@@ -43,7 +42,7 @@ func AllLangs() []*LangType {
 
 // TryTr tries to do the translation, if no translation, it returns (format, false)
 func TryTr(lang, format string, args ...interface{}) (string, bool) {
-	s := i18n.DefaultLocales.Tr(lang, format, args...)
+	s := i18n.Tr(lang, format, args...)
 	// now the i18n library is not good enough and we can only use this hacky method to detect whether the transaction exists
 	idx := strings.IndexByte(format, '.')
 	defaultText := format
@@ -51,29 +50,6 @@ func TryTr(lang, format string, args ...interface{}) (string, bool) {
 		defaultText = format[idx+1:]
 	}
 	return s, s != defaultText
-}
-
-// moveToFront moves needle to the front of haystack, in place if possible.
-// Ref: https://github.com/golang/go/wiki/SliceTricks#move-to-front-or-prepend-if-not-present-in-place-if-possible
-func moveToFront(needle string, haystack []string) []string {
-	if len(haystack) != 0 && haystack[0] == needle {
-		return haystack
-	}
-	prev := needle
-	for i, elem := range haystack {
-		switch {
-		case i == 0:
-			haystack[0] = needle
-			prev = elem
-		case elem == needle:
-			haystack[i] = prev
-			return haystack
-		default:
-			haystack[i] = prev
-			prev = elem
-		}
-	}
-	return append(haystack, prev)
 }
 
 // InitLocales loads the locales
@@ -98,17 +74,12 @@ func InitLocales() {
 	}
 
 	matcher = language.NewMatcher(supportedTags)
-
-	// Make sure en-US is always the first in the slice.
-	setting.Names = moveToFront("English", setting.Names)
-	setting.Langs = moveToFront("en-US", setting.Langs)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
-
 	if len(setting.Langs) != 0 {
 		defaultLangName := setting.Langs[0]
 		if defaultLangName != "en-US" {
@@ -117,11 +88,11 @@ func InitLocales() {
 		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 	}
 
-	langs, descs, offsets := i18n.DefaultLocales.ListLangNameDescOffsets()
+	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
 	allLangs = make([]*LangType, 0, len(langs))
 	allLangMap = map[string]*LangType{}
 	for i, v := range langs {
-		l := &LangType{v, descs[i], offsets[i]}
+		l := &LangType{v, descs[i]}
 		allLangs = append(allLangs, l)
 		allLangMap[v] = l
 	}
@@ -141,23 +112,17 @@ func Match(tags ...language.Tag) language.Tag {
 // locale represents the information of localization.
 type locale struct {
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
-	// Stores the offset for the locale. The value is utilized by the 'TrOffset' function
-	// to change the translation key's found index (for the default language) to the locale's index.
-	Offset int
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
 	langName := "unknown"
-	offset := 0
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
-		offset = l.Offset
 	}
 	return &locale{
 		Lang:     lang,
 		LangName: langName,
-		Offset:   offset,
 	}
 }
 
@@ -168,7 +133,7 @@ func (l *locale) Language() string {
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
 	if setting.IsProd {
-		return i18n.TrOffset(l.Offset, format, args...)
+		return i18n.Tr(l.Lang, format, args...)
 	}
 
 	// in development, we should show an error if a translation key is missing
