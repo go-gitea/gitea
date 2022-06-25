@@ -325,10 +325,14 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 		Issue:    review.Issue,
 		Repo:     review.Issue.Repo,
 	})
+	if err != nil {
+		return
+	}
 
 	comment.Review = review
 	comment.Poster = doer
 	comment.Issue = review.Issue
+
 	notification.NotifyPullRevieweDismiss(doer, review, comment)
 
 	return comment, err
