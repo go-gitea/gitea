@@ -30,7 +30,7 @@ func TestOk(t *testing.T) {
 		testReal(NewSitemapIndex(), "sitemapindex", urls, expected)
 	}
 
-	ts := time.Unix(1651322008, 0)
+	ts := time.Unix(1651322008, 0).UTC()
 
 	test(
 		[]URL{},
@@ -40,7 +40,7 @@ func TestOk(t *testing.T) {
 		[]URL{
 			{URL: "https://gitea.io/test1", LastMod: &ts},
 		},
-		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T14:33:28+02:00</lastmod></url>",
+		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>",
 	)
 	test(
 		[]URL{
@@ -53,7 +53,7 @@ func TestOk(t *testing.T) {
 			{URL: "https://gitea.io/test1", LastMod: &ts},
 			{URL: "https://gitea.io/test2", LastMod: nil},
 		},
-		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T14:33:28+02:00</lastmod></url>"+
+		"<url><loc>https://gitea.io/test1</loc><lastmod>2022-04-30T12:33:28Z</lastmod></url>"+
 			"<url><loc>https://gitea.io/test2</loc></url>",
 	)
 }
