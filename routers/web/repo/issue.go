@@ -2508,10 +2508,6 @@ func UpdateIssueStatus(ctx *context.Context) {
 		return
 	}
 	for _, issue := range issues {
-		if issue.RepoID != ctx.Repo.Repository.ID {
-			ctx.NotFound("some issue's repoID is incorrect", errors.New("some issue's repoID is incorrect"))
-			return
-		}
 		if issue.IsClosed != isClosed {
 			if err := issue_service.ChangeStatus(issue, ctx.Doer, isClosed); err != nil {
 				if issues_model.IsErrDependenciesLeft(err) {
