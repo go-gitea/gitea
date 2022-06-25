@@ -14,10 +14,9 @@ import (
 
 var (
 	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errors.New("Name is empty")
+	ErrNameEmpty = errors.New("name is empty")
 
-	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
+	validUsernamePattern = regexp.MustCompile(`^[\da-zA-Z][-.\w]+$`)
 )
 
 // ErrNameReserved represents a "reserved name" error.
@@ -88,4 +87,9 @@ func IsUsableName(names, patterns []string, name string) error {
 	}
 
 	return nil
+}
+
+// IsUsableName checks if name is valid
+func IsValidUsername(name string) bool {
+	return validUsernamePattern.MatchString(name)
 }

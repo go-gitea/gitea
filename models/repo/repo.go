@@ -48,7 +48,7 @@ var (
 
 // IsUsableRepoName returns true when repository is usable
 func IsUsableRepoName(name string) error {
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if db.IsValidUsername(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}

@@ -608,7 +608,7 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if db.AlphaDashDotPattern.MatchString(name) {
+	if db.IsValidUsername(name) {
 		// Note: usually this error is normally caught up earlier in the UI
 		return db.ErrNameCharsNotAllowed{Name: name}
 	}
