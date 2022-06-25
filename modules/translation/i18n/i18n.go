@@ -69,9 +69,8 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile inte
 		// For development, live-reload of the translation files is important.
 		// For production, we can do some expensive work and then make the querying fast.
 		if setting.IsProd {
-			// If the language is the default language, then we go through all keys. These keys
-			// will be the only keys that we take into account while querying for a translation
-			if langName == ls.defaultLang {
+			// use en-US as the hardcoded default/fallback language.
+			if langName == "en-US" {
 				idx := 0
 				// Store all key, value into two slices.
 				for _, section := range iniFile.Sections() {

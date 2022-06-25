@@ -53,6 +53,29 @@ func TryTr(lang, format string, args ...interface{}) (string, bool) {
 	return s, s != defaultText
 }
 
+// moveToFront moves needle to the front of haystack, in place if possible.
+// Ref: https://github.com/golang/go/wiki/SliceTricks#move-to-front-or-prepend-if-not-present-in-place-if-possible
+func moveToFront(needle string, haystack []string) []string {
+	if len(haystack) != 0 && haystack[0] == needle {
+		return haystack
+	}
+	prev := needle
+	for i, elem := range haystack {
+		switch {
+		case i == 0:
+			haystack[0] = needle
+			prev = elem
+		case elem == needle:
+			haystack[i] = prev
+			return haystack
+		default:
+			haystack[i] = prev
+			prev = elem
+		}
+	}
+	return append(haystack, prev)
+}
+
 // InitLocales loads the locales
 func InitLocales() {
 	i18n.ResetDefaultLocales()
@@ -76,19 +99,22 @@ func InitLocales() {
 
 	matcher = language.NewMatcher(supportedTags)
 
-	if len(setting.Langs) != 0 {
-		defaultLangName := setting.Langs[0]
-		if defaultLangName != "en-US" {
-			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
-		}
-		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
-	}
+	// Make sure en-US is always the first in the slice.
+	setting.Names = moveToFront("en-US", setting.Names)
 
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
 		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
+	}
+
+	if len(setting.Langs) != 0 {
+		defaultLangName := setting.Langs[0]
+		if defaultLangName != "en-US" {
+			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+		}
+		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 	}
 
 	langs, descs, offsets := i18n.DefaultLocales.ListLangNameDescOffsets()
