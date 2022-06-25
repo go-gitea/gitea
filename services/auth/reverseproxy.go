@@ -37,11 +37,7 @@ type ReverseProxy struct{}
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
-	webAuthUser := strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
-	if len(webAuthUser) == 0 {
-		return ""
-	}
-	return webAuthUser
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
 }
 
 // Name represents the name of auth method
@@ -76,11 +72,7 @@ func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) *user_model.User {
 
 // getEmail extracts the email from the "setting.ReverseProxyAuthEmail" header
 func (r *ReverseProxy) getEmail(req *http.Request) string {
-	webAuthEmail := strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthEmail))
-	if len(webAuthEmail) == 0 {
-		return ""
-	}
-	return webAuthEmail
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthEmail))
 }
 
 // getUserFromAuthEmail extracts the username from the "setting.ReverseProxyAuthEmail" header
