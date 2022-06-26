@@ -418,7 +418,7 @@ func (c *Commit) LoadBranchName() (err error) {
 	}
 
 	c.Branch, err = c.GetBranchName()
-	return
+	return err
 }
 
 // GetTagName gets the current tag name for given commit

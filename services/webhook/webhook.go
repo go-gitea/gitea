@@ -70,7 +70,7 @@ var webhooks = map[webhook_model.HookType]*webhook{
 
 // RegisterWebhook registers a webhook
 func RegisterWebhook(name string, webhook *webhook) {
-	webhooks[webhook_model.HookType(name)] = webhook
+	webhooks[name] = webhook
 }
 
 // IsValidHookTaskType returns true if a webhook registered
@@ -78,7 +78,7 @@ func IsValidHookTaskType(name string) bool {
 	if name == webhook_model.GITEA || name == webhook_model.GOGS {
 		return true
 	}
-	_, ok := webhooks[webhook_model.HookType(name)]
+	_, ok := webhooks[name]
 	return ok
 }
 

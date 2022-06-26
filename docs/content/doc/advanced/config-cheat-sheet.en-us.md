@@ -174,6 +174,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
+- `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
 - `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
@@ -1088,7 +1089,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 ## Federation (`federation`)
 
-- `ENABLED`: **true**: Enable/Disable federation capabilities
+- `ENABLED`: **false**: Enable/Disable federation capabilities
 - `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
 - `MAX_SIZE`: **4**: Maximum federation request and response size (MB)
 

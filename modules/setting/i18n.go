@@ -40,12 +40,12 @@ func defaultI18nLangs() (res []string) {
 	for i := 0; i < len(defaultI18nLangNames); i += 2 {
 		res = append(res, defaultI18nLangNames[i])
 	}
-	return
+	return res
 }
 
 func defaultI18nNames() (res []string) {
 	for i := 0; i < len(defaultI18nLangNames); i += 2 {
 		res = append(res, defaultI18nLangNames[i+1])
 	}
-	return
+	return res
 }

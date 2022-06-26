@@ -459,7 +459,7 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	}
 
 	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
-	return
+	return err
 }
 
 func notifyWatchers(ctx context.Context, actions ...*Action) error {
