@@ -21,7 +21,7 @@
 						<a class="title" href="{{.FullWebLink}}">{{.Version.LowerVersion}}</a>
 					</div>
 					<div class="desc issue-item-bottom-row df ac fw my-1">
-						{{$.i18n.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.i18n.Lang) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+						{{$.i18n.Tr "packages.published_by" (TimeSinceUnix .Version.CreatedUnix $.i18n) .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 					</div>
 				</div>
 			</li>
