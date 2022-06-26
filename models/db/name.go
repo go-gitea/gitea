@@ -89,7 +89,7 @@ func IsUsableName(names, patterns []string, name string) error {
 	return nil
 }
 
-// IsUsableName checks if name is valid
+// IsValidUsername checks if name is valid
 func IsValidUsername(name string) bool {
 	return validUsernamePattern.MatchString(name)
 }
