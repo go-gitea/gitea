@@ -274,7 +274,7 @@ func MustChangePassword(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMustChangePassword)
 }
 
-// MustChangePasswordPost response for updating a user's password after his/her
+// MustChangePasswordPost response for updating a user's password after their
 // account was created by an admin
 func MustChangePasswordPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.MustChangePasswordForm)
