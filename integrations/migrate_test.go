@@ -74,7 +74,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		// Step 2: load the form
 		htmlDoc := NewHTMLParser(t, resp.Body)
-		link, exists := htmlDoc.doc.Find("form.ui.form[action^=\"/repo/migrate\"]").Attr("action")
+		link, exists := htmlDoc.doc.Find(`form.ui.form[action^="/repo/migrate"]`).Attr("action")
 		assert.True(t, exists, "The template has changed")
 		// Step 4: submit the migration to only migrate issues
 		migratedRepoName := "otherrepo"
