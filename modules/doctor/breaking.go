@@ -66,7 +66,7 @@ func checkUserName(ctx context.Context, logger log.Logger, _ bool) error {
 	if err := iterateUserAccounts(ctx, func(u *user.User) error {
 		if err := user.IsUsableUsername(u.Name); err != nil {
 			invalidUserCount++
-			logger.Warn("User[id=%d] have not a valid username: %v", u.ID, u.Name, err)
+			logger.Warn("User[id=%d] have not a valid username: %v", u.ID, err)
 		}
 		return nil
 	}); err != nil {
