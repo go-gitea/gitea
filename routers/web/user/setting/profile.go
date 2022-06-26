@@ -23,7 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -136,7 +136,7 @@ func ProfilePost(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_profile_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -425,7 +425,7 @@ func UpdateUserLang(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_language_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 

@@ -629,7 +629,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
 
 		if setting.CacheService.Enabled {
@@ -658,7 +658,7 @@ func Activate(ctx *context.Context) {
 			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
-				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
 				if setting.CacheService.Enabled {
