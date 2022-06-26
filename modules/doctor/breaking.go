@@ -66,7 +66,7 @@ func checkUserName(ctx context.Context, logger log.Logger, _ bool) error {
 	if err := iterateUserAccounts(ctx, func(u *user.User) error {
 		if err := user.IsUsableUsername(u.Name); err != nil {
 			invalidUserCount++
-			logger.Warn("User[id=%d] have not a valid username: %v", u.ID, err)
+			logger.Warn("User[id=%d] does not have a valid username: %v", u.ID, err)
 		}
 		return nil
 	}); err != nil {
@@ -90,7 +90,7 @@ func init() {
 		Priority:  9,
 	})
 	Register(&Check{
-		Title:     "Check if users has an valid username",
+		Title:     "Check if users have a valid username",
 		Name:      "check-user-name",
 		IsDefault: false,
 		Run:       checkUserName,
