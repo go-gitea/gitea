@@ -7,7 +7,7 @@ package cron
 import (
 	"time"
 
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 )
 
 // Config represents a basic configuration interface that cron task
@@ -15,7 +15,7 @@ type Config interface {
 	IsEnabled() bool
 	DoRunAtStart() bool
 	GetSchedule() string
-	FormatMessage(locale, name, status, doer string, args ...interface{}) string
+	FormatMessage(locale translation.Locale, name, status, doer string, args ...interface{}) string
 	DoNoticeOnSuccess() bool
 }
 
@@ -69,9 +69,9 @@ func (b *BaseConfig) DoNoticeOnSuccess() bool {
 
 // FormatMessage returns a message for the task
 // Please note the `status` string will be concatenated with `admin.dashboard.cron.` and `admin.dashboard.task.` to provide locale messages. Similarly `name` will be composed with `admin.dashboard.` to provide the locale name for the task.
-func (b *BaseConfig) FormatMessage(locale, name, status, doer string, args ...interface{}) string {
+func (b *BaseConfig) FormatMessage(locale translation.Locale, name, status, doer string, args ...interface{}) string {
 	realArgs := make([]interface{}, 0, len(args)+2)
-	realArgs = append(realArgs, i18n.Tr(locale, "admin.dashboard."+name))
+	realArgs = append(realArgs, locale.Tr("admin.dashboard."+name))
 	if doer == "" {
 		realArgs = append(realArgs, "(Cron)")
 	} else {
@@ -81,7 +81,7 @@ func (b *BaseConfig) FormatMessage(locale, name, status, doer string, args ...in
 		realArgs = append(realArgs, args...)
 	}
 	if doer == "" {
-		return i18n.Tr(locale, "admin.dashboard.cron."+status, realArgs...)
+		return locale.Tr("admin.dashboard.cron."+status, realArgs...)
 	}
-	return i18n.Tr(locale, "admin.dashboard.task."+status, realArgs...)
+	return locale.Tr("admin.dashboard.task."+status, realArgs...)
 }

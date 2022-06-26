@@ -5,6 +5,7 @@
 package translation
 
 import (
+	"path"
 	"sort"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/text/language"
 )
@@ -40,31 +42,35 @@ func AllLangs() []*LangType {
 	return allLangs
 }
 
-// TryTr tries to do the translation, if no translation, it returns (format, false)
-func TryTr(lang, format string, args ...interface{}) (string, bool) {
-	s := i18n.Tr(lang, format, args...)
-	// now the i18n library is not good enough and we can only use this hacky method to detect whether the transaction exists
-	idx := strings.IndexByte(format, '.')
-	defaultText := format
-	if idx > 0 {
-		defaultText = format[idx+1:]
-	}
-	return s, s != defaultText
-}
-
 // InitLocales loads the locales
 func InitLocales() {
-	i18n.ResetDefaultLocales()
+	i18n.ResetDefaultLocales(setting.IsProd)
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
-	localFiles := make(map[string][]byte, len(localeNames))
+	localFiles := make(map[string]interface{}, len(localeNames))
 	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
+		if options.IsDynamic() {
+			// Try to check if CustomPath has the file, otherwise fallback to StaticRootPath
+			value := path.Join(setting.CustomPath, "options/locale", name)
+
+			isFile, err := util.IsFile(value)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
+
+			if isFile {
+				localFiles[name] = value
+			} else {
+				localFiles[name] = path.Join(setting.StaticRootPath, "options/locale", name)
+			}
+		} else {
+			localFiles[name], err = options.Locale(name)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
 		}
 	}
 
@@ -76,6 +82,7 @@ func InitLocales() {
 	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
+
 		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
@@ -132,16 +139,7 @@ func (l *locale) Language() string {
 
 // Tr translates content to target language.
 func (l *locale) Tr(format string, args ...interface{}) string {
-	if setting.IsProd {
-		return i18n.Tr(l.Lang, format, args...)
-	}
-
-	// in development, we should show an error if a translation key is missing
-	s, ok := TryTr(l.Lang, format, args...)
-	if !ok {
-		log.Error("missing i18n translation key: %q", format)
-	}
-	return s
+	return i18n.Tr(l.Lang, format, args...)
 }
 
 // Language specific rules for translating plural texts
