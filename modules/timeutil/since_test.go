@@ -137,7 +137,7 @@ func TestComputeTimeDiff(t *testing.T) {
 	test := func(base int64, str string, offsets ...int64) {
 		for _, offset := range offsets {
 			t.Run(fmt.Sprintf("%s:%d", str, offset), func(t *testing.T) {
-				diff, diffStr := computeTimeDiff(base+offset, translation.NewLocale("en"))
+				diff, diffStr := computeTimeDiff(base+offset, translation.NewLocale("en-US"))
 				assert.Equal(t, offset, diff)
 				assert.Equal(t, str, diffStr)
 			})

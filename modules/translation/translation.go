@@ -5,6 +5,7 @@
 package translation
 
 import (
+	"path"
 	"sort"
 	"strings"
 
@@ -12,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/util"
 
 	"golang.org/x/text/language"
 )
@@ -51,7 +53,19 @@ func InitLocales() {
 	localFiles := make(map[string]interface{}, len(localeNames))
 	for _, name := range localeNames {
 		if options.IsDynamic() {
-			localFiles[name] = "options/locale/" + name
+			// Try to check if CustomPath has the file, otherwise fallback to StaticRootPath
+			value := path.Join(setting.CustomPath, "options/locale", name)
+
+			isFile, err := util.IsFile(value)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
+
+			if isFile {
+				localFiles[name] = value
+			} else {
+				localFiles[name] = path.Join(setting.StaticRootPath, "options/locale", name)
+			}
 		} else {
 			localFiles[name], err = options.Locale(name)
 			if err != nil {
@@ -68,6 +82,7 @@ func InitLocales() {
 	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
+
 		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
