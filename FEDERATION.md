@@ -45,3 +45,5 @@ When opening a pull request to a remote repository, the pull request can be rend
 ## Migrations
 
 If you change your username or the name of repository, Gitea handles this similarly to how Mastodon does. Gitea will send a `Move` activity to your followers and update your actor to point to the new actor.
+
+Changing your instance or a repository's instance is more difficult, since this requires the data to be migrated between instances, but it could be handled in a similar way.
