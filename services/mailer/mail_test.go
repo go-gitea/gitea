@@ -61,7 +61,7 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer}).(*issues_model.Issue)
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue}).(*issues_model.Comment)
-	return
+	return doer, repo, issue, comment
 }
 
 func TestComposeIssueCommentMessage(t *testing.T) {

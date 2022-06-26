@@ -30,7 +30,7 @@ func round(s float64) int64 {
 }
 
 func computeTimeDiffFloor(diff int64, lang string) (int64, string) {
-	diffStr := ""
+	var diffStr string
 	switch {
 	case diff <= 0:
 		diff = 0
@@ -88,7 +88,7 @@ func computeTimeDiffFloor(diff int64, lang string) (int64, string) {
 }
 
 func computeTimeDiff(diff int64, lang string) (int64, string) {
-	diffStr := ""
+	var diffStr string
 	switch {
 	case diff <= 0:
 		diff = 0

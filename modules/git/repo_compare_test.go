@@ -117,8 +117,8 @@ func TestReadWritePullHead(t *testing.T) {
 		return
 	}
 
-	assert.Len(t, string(headContents), 40)
-	assert.True(t, string(headContents) == newCommit)
+	assert.Len(t, headContents, 40)
+	assert.True(t, headContents == newCommit)
 
 	// Remove file after the test
 	err = repo.RemoveReference(PullPrefix + "1/head")

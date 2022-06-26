@@ -127,7 +127,7 @@
 
 					<div class="field">
 						<div class="ui checkbox">
-							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if .Branch.EnableStatusCheck}}checked{{end}}>
+							<input class="enable-statuscheck" name="enable_status_check" type="checkbox" data-target="#statuscheck_contexts_box" {{if eq (len .branch_status_check_contexts) 0}}disabled{{end}} {{if .Branch.EnableStatusCheck}}checked{{end}}>
 							<label>{{.i18n.Tr "repo.settings.protect_check_status_contexts"}}</label>
 							<p class="help">{{.i18n.Tr "repo.settings.protect_check_status_contexts_desc"}}</p>
 						</div>

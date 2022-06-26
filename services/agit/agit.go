@@ -80,7 +80,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 			continue
 		}
 
-		headBranch := ""
+		var headBranch string
 		userName := strings.ToLower(opts.UserName)
 
 		if len(curentTopicBranch) == 0 {
@@ -104,7 +104,7 @@ func ProcReceive(ctx context.Context, repo *repo_model.Repository, gitRepo *git.
 
 			// create a new pull request
 			if len(title) == 0 {
-				has := false
+				var has bool
 				title, has = opts.GitPushOptions["title"]
 				if !has || len(title) == 0 {
 					commit, err := gitRepo.GetCommit(opts.NewCommitIDs[i])

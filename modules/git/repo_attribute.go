@@ -334,7 +334,7 @@ func (wr *lineSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
 						wr.tmp = []byte(remaining[3:])
 						break
 					}
-					return l, fmt.Errorf("unexpected tail %s", string(remaining))
+					return l, fmt.Errorf("unexpected tail %s", remaining)
 				}
 				_, _ = sb.WriteRune(rn)
 				remaining = tail
