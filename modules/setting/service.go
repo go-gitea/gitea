@@ -96,7 +96,7 @@ func (a AllowedVisibility) ToVisibleTypeSlice() (result []structs.VisibleType) {
 			result = append(result, structs.VisibleType(i))
 		}
 	}
-	return
+	return result
 }
 
 func newService() {

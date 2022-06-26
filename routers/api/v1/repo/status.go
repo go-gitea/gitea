@@ -57,7 +57,7 @@ func NewCommitStatus(ctx *context.APIContext) {
 		return
 	}
 	status := &git_model.CommitStatus{
-		State:       api.CommitStatusState(form.State),
+		State:       form.State,
 		TargetURL:   form.TargetURL,
 		Description: form.Description,
 		Context:     form.Context,

@@ -46,7 +46,7 @@ Gitea 支援作為 OAuth2 提供者，能讓第三方程式能在使用者同意
 **備註：** 此範例未使用 PKCE。
 
 1. 重新導向使用者到 authorization endpoint 以獲得他同意授權存取資源：
-    <!-- 1. Redirect to user to the authorization endpoint in order to get his/her consent for accessing the resources: -->
+    <!-- 1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources: -->
 
    ```curl
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE

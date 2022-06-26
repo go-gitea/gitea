@@ -34,7 +34,7 @@ func Fetch(iri *url.URL) (b []byte, err error) {
 		return
 	}
 	b, err = io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
-	return
+	return b, err
 }
 
 func Send(user *user_model.User, activity *ap.Activity) {

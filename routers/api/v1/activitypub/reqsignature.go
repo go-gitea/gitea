@@ -39,7 +39,7 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 		return
 	}
 	p, err = x509.ParsePKIXPublicKey(block.Bytes)
-	return
+	return p, err
 }
 
 func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, err error) {
@@ -67,7 +67,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
 	authenticated = v.Verify(pubKey, algo) == nil
-	return
+	return authenticated, err
 }
 
 // ReqHTTPSignature function
