@@ -794,7 +794,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
-			ctx.Data["i18n"] = locale
+			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
