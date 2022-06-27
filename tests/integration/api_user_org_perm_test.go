@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +23,7 @@ type apiUserOrgPermTestCase struct {
 }
 
 func TestTokenNeeded(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/users/user1/orgs/user6/permissions")
@@ -30,7 +31,7 @@ func TestTokenNeeded(t *testing.T) {
 }
 
 func sampleTest(t *testing.T, auoptc apiUserOrgPermTestCase) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, auoptc.LoginUser)
 	token := getTokenForLoggedInUser(t, session)
@@ -123,7 +124,7 @@ func TestCanReadUser(t *testing.T) {
 }
 
 func TestUnknowUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session)
@@ -137,7 +138,7 @@ func TestUnknowUser(t *testing.T) {
 }
 
 func TestUnknowOrganization(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session)

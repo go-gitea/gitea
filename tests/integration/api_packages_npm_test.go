@@ -18,12 +18,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageNpm(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	token := fmt.Sprintf("Bearer %s", getTokenForLoggedInUser(t, loginUser(t, user.Name)))
@@ -69,7 +70,7 @@ func TestPackageNpm(t *testing.T) {
 	filename := fmt.Sprintf("%s-%s.tgz", strings.Split(packageName, "/")[1], packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
 		req = addTokenAuthHeader(req, token)
@@ -101,7 +102,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
 		req = addTokenAuthHeader(req, token)
@@ -109,7 +110,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/-/%s/%s", root, packageVersion, filename))
 		req = addTokenAuthHeader(req, token)
@@ -125,7 +126,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, "does-not-exist"))
 		req = addTokenAuthHeader(req, token)
@@ -156,7 +157,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("AddTag", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		test := func(t *testing.T, status int, tag, version string) {
 			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/%s", tagsRoot, tag), strings.NewReader(`"`+version+`"`))
@@ -172,7 +173,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("ListTags", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", tagsRoot)
 		req = addTokenAuthHeader(req, token)
@@ -189,7 +190,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("PackageMetadataDistTags", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", root)
 		req = addTokenAuthHeader(req, token)
@@ -206,7 +207,7 @@ func TestPackageNpm(t *testing.T) {
 	})
 
 	t.Run("DeleteTag", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		test := func(t *testing.T, status int, tag string) {
 			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s", tagsRoot, tag))

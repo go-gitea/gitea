@@ -14,12 +14,13 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIDownloadArchive(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)

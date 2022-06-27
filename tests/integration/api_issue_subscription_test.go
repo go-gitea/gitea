@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIIssueSubscriptions(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue1 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)

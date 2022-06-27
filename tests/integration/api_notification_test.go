@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPINotification(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
@@ -138,7 +139,7 @@ func TestAPINotification(t *testing.T) {
 }
 
 func TestAPINotificationPUT(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)

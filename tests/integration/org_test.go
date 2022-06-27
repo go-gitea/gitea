@@ -13,12 +13,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOrgRepos(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	var (
 		users = []string{"user1", "user2"}
@@ -48,7 +49,7 @@ func TestOrgRepos(t *testing.T) {
 }
 
 func TestLimitedOrg(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/limited_org")
@@ -78,7 +79,7 @@ func TestLimitedOrg(t *testing.T) {
 }
 
 func TestPrivateOrg(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// not logged in user
 	req := NewRequest(t, "GET", "/privated_org")
@@ -117,7 +118,7 @@ func TestPrivateOrg(t *testing.T) {
 }
 
 func TestOrgRestrictedUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// privated_org is a private org who has id 23
 	orgName := "privated_org"
@@ -177,7 +178,7 @@ func TestOrgRestrictedUser(t *testing.T) {
 }
 
 func TestTeamSearch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)

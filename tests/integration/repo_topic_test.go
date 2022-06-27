@@ -10,12 +10,13 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestTopicSearch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	searchURL, _ := url.Parse("/explore/topics/search")
 	var topics struct {
 		TopicNames []*api.TopicResponse `json:"topics"`

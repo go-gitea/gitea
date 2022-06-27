@@ -11,10 +11,11 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 )
 
 func TestAPIReposGitTrees(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)               // owner of the repo1 & repo16
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)               // owner of the repo3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)               // owner of neither repos

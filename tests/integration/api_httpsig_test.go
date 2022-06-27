@@ -12,6 +12,7 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/go-fed/httpsig"
 	"golang.org/x/crypto/ssh"
@@ -50,7 +51,7 @@ fhTNAzWwZoQ91aHdAAAAFHUwMDIyMTQ2QGljdHMtcC1ueC03AQIDBAUG
 
 func TestHTTPSigPubKey(t *testing.T) {
 	// Add our public key to user1
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 	token := url.QueryEscape(getTokenForLoggedInUser(t, session))
 	keysURL := fmt.Sprintf("/api/v1/user/keys?token=%s", token)
@@ -87,7 +88,7 @@ func TestHTTPSigPubKey(t *testing.T) {
 
 func TestHTTPSigCert(t *testing.T) {
 	// Add our public key to user1
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 
 	csrf := GetCSRF(t, session, "/user/settings/keys")

@@ -17,18 +17,19 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/release"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCreateNewTagProtected(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
 	t.Run("API", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		err := release.CreateNewTag(git.DefaultContext, owner, repo, "master", "v-1", "first tag")
 		assert.NoError(t, err)

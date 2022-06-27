@@ -17,12 +17,13 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/forms"
 	issue_service "code.gitea.io/gitea/services/issue"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIViewPulls(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
@@ -39,7 +40,7 @@ func TestAPIViewPulls(t *testing.T) {
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false)).(*issues_model.PullRequest)
@@ -62,7 +63,7 @@ func TestAPIMergePullWIP(t *testing.T) {
 }
 
 func TestAPICreatePullSuccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 	// repo10 have code, pulls units.
 	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11}).(*repo_model.Repository)
@@ -82,7 +83,7 @@ func TestAPICreatePullSuccess(t *testing.T) {
 }
 
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// repo10 have code, pulls units.
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
@@ -119,7 +120,7 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 }
 
 func TestAPICreatePullWithFieldsFailure(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// repo10 have code, pulls units.
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
@@ -153,7 +154,7 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 }
 
 func TestAPIEditPull(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
 	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
 

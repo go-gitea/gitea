@@ -17,6 +17,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -57,13 +58,13 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 }
 
 func TestCreateAnonymousAttachment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := emptyTestSession(t)
 	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	const repoURL = "user2/repo1"
 	session := loginUser(t, "user2")
 	uuid := createAttachment(t, session, repoURL, "image.png", generateImg(), http.StatusOK)
@@ -92,7 +93,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 }
 
 func TestGetAttachment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminSession := loginUser(t, "user1")
 	user2Session := loginUser(t, "user2")
 	user8Session := loginUser(t, "user8")

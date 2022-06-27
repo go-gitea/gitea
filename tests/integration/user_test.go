@@ -15,19 +15,20 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestRenameUsername(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
@@ -43,7 +44,7 @@ func TestRenameUsername(t *testing.T) {
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	invalidUsernames := []string{
 		"%2f*",
@@ -75,7 +76,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 }
 
 func TestRenameReservedUsername(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	reservedUsernames := []string{
 		".",
@@ -139,7 +140,7 @@ func TestRenameReservedUsername(t *testing.T) {
 }
 
 func TestExportUserGPGKeys(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Note: This user hasn't uploaded any GPG keys.
@@ -227,7 +228,7 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 }
 
 func TestListStopWatches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)

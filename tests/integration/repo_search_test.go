@@ -11,6 +11,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -26,7 +27,7 @@ func resultFilenames(t testing.TB, doc *HTMLDoc) []string {
 }
 
 func TestSearchRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)

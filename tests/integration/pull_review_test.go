@@ -6,10 +6,12 @@ package integration
 import (
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/tests"
 )
 
 func TestPullView_ReviewerMissed(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 
 	req := NewRequest(t, "GET", "/pulls")

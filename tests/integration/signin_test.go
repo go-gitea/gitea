@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -32,7 +33,7 @@ func testLoginFailed(t *testing.T, username, password, message string) {
 }
 
 func TestSignin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 

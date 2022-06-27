@@ -9,12 +9,13 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIListEmails(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
@@ -41,7 +42,7 @@ func TestAPIListEmails(t *testing.T) {
 }
 
 func TestAPIAddEmail(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)
@@ -78,7 +79,7 @@ func TestAPIAddEmail(t *testing.T) {
 }
 
 func TestAPIDeleteEmail(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	normalUsername := "user2"
 	session := loginUser(t, normalUsername)

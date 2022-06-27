@@ -10,12 +10,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGoGet(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/blah/glah/plah?go-get=1")
 	resp := MakeRequest(t, req, http.StatusOK)

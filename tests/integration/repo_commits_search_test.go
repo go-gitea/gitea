@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/tests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,7 +27,7 @@ func testRepoCommitsSearch(t *testing.T, query, commit string) {
 }
 
 func TestRepoCommitsSearch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	testRepoCommitsSearch(t, "e8eabd", "")
 	testRepoCommitsSearch(t, "38a9cb", "")
 	testRepoCommitsSearch(t, "6e8e", "6e8eabd9a7")

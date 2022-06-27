@@ -16,12 +16,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIIssuesReactions(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
@@ -78,7 +79,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 }
 
 func TestAPICommentReactions(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2}).(*issues_model.Comment)
 	_ = comment.LoadIssue()

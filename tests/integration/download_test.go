@@ -9,12 +9,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDownloadByID(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -26,7 +27,7 @@ func TestDownloadByID(t *testing.T) {
 }
 
 func TestDownloadByIDForSVGUsesSecureHeaders(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -40,7 +41,7 @@ func TestDownloadByIDForSVGUsesSecureHeaders(t *testing.T) {
 }
 
 func TestDownloadByIDMedia(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -52,7 +53,7 @@ func TestDownloadByIDMedia(t *testing.T) {
 }
 
 func TestDownloadByIDMediaForSVGUsesSecureHeaders(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -66,7 +67,7 @@ func TestDownloadByIDMediaForSVGUsesSecureHeaders(t *testing.T) {
 }
 
 func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -77,7 +78,7 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 }
 
 func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	setting.MimeTypeMap.Map[".xml"] = "text/xml"
 	setting.MimeTypeMap.Enabled = true
 

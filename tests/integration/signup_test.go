@@ -14,12 +14,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSignup(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 
@@ -37,7 +38,7 @@ func TestSignup(t *testing.T) {
 }
 
 func TestSignupAsRestricted(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 	setting.Service.DefaultUserIsRestricted = true
@@ -59,7 +60,7 @@ func TestSignupAsRestricted(t *testing.T) {
 }
 
 func TestSignupEmail(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.Service.EnableCaptcha = false
 

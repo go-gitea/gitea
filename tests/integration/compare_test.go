@@ -9,11 +9,12 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/tests"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCompareTag(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1...master")
@@ -30,7 +31,7 @@ func TestCompareTag(t *testing.T) {
 
 // Compare with inferred default branch (master)
 func TestCompareDefault(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/compare/v1.1")

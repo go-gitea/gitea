@@ -15,6 +15,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 )
 
 func assertUserDeleted(t *testing.T, userID int64) {
@@ -30,7 +31,7 @@ func assertUserDeleted(t *testing.T, userID int64) {
 }
 
 func TestUserDeleteAccount(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user8")
 	csrf := GetCSRF(t, session, "/user/settings/account")
@@ -45,7 +46,7 @@ func TestUserDeleteAccount(t *testing.T) {
 }
 
 func TestUserDeleteAccountStillOwnRepos(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	csrf := GetCSRF(t, session, "/user/settings/account")

@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/maven"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageMaven(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	groupID := "com.gitea"
@@ -39,7 +40,7 @@ func TestPackageMaven(t *testing.T) {
 	}
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
@@ -67,13 +68,13 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -88,15 +89,15 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("UploadVerifySHA1", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		t.Run("Missmatch", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			putFile(t, fmt.Sprintf("/%s/%s.sha1", packageVersion, filename), "test", http.StatusBadRequest)
 		})
 		t.Run("Valid", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			putFile(t, fmt.Sprintf("/%s/%s.sha1", packageVersion, filename), "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3", http.StatusOK)
 		})
@@ -111,7 +112,7 @@ func TestPackageMaven(t *testing.T) {
 </project>`
 
 	t.Run("UploadPOM", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
 		assert.NoError(t, err)
@@ -144,7 +145,7 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("DownloadPOM", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/%s/%s.pom", root, packageVersion, filename))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -159,7 +160,7 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("DownloadChecksums", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/1.2.3/%s", root, filename))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -180,7 +181,7 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("DownloadMetadata", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", root+"/maven-metadata.xml")
 		req = AddBasicAuthHeader(req, user.Name)

@@ -13,12 +13,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestOAuth2Application(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	testAPICreateOAuth2Application(t)
 	testAPIListOAuth2Applications(t)
 	testAPIGetOAuth2Application(t)

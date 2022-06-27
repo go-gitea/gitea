@@ -20,12 +20,13 @@ import (
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageNuGet(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "test.package"
@@ -56,7 +57,7 @@ func TestPackageNuGet(t *testing.T) {
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -93,7 +94,7 @@ func TestPackageNuGet(t *testing.T) {
 
 	t.Run("Upload", func(t *testing.T) {
 		t.Run("DependencyPackage", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -126,7 +127,7 @@ func TestPackageNuGet(t *testing.T) {
 		})
 
 		t.Run("SymbolPackage", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			createPackage := func(id, packageType string) io.Reader {
 				var buf bytes.Buffer
@@ -213,7 +214,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
@@ -239,7 +240,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		checkDownloadCount(1)
 
 		t.Run("Symbol", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/gitea.pdb", url, symbolFilename, symbolID))
 			MakeRequest(t, req, http.StatusBadRequest)
@@ -257,7 +258,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		cases := []struct {
 			Query           string
@@ -292,7 +293,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		contentURL := fmt.Sprintf("%s%s/package/%s/%s/%s.%s.nupkg", setting.AppURL, url[1:], packageName, packageVersion, packageName, packageVersion)
 
 		t.Run("RegistrationIndex", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/index.json", url, packageName))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -318,7 +319,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 		})
 
 		t.Run("RegistrationLeaf", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/registration/%s/%s.json", url, packageName, packageVersion))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -334,7 +335,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("PackageService", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/index.json", url, packageName))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -348,7 +349,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -360,7 +361,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("DownloadNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", url, packageName, packageVersion, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -372,7 +373,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 	})
 
 	t.Run("DeleteNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/package/%s/%s", url, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)

@@ -20,6 +20,7 @@ import (
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 	"code.gitea.io/gitea/modules/setting"
 	conan_router "code.gitea.io/gitea/routers/api/packages/conan"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -204,7 +205,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 }
 
 func TestPackageConan(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	name := "ConanPackage"
@@ -221,7 +222,7 @@ func TestPackageConan(t *testing.T) {
 
 	t.Run("v1", func(t *testing.T) {
 		t.Run("Ping", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/ping", url))
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -232,7 +233,7 @@ func TestPackageConan(t *testing.T) {
 		token := ""
 
 		t.Run("Authenticate", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/authenticate", url))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -245,7 +246,7 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/users/check_credentials", url))
 			req = addTokenAuthHeader(req, token)
@@ -253,12 +254,12 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("Upload", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			uploadConanPackageV1(t, url, token, name, version1, user1, channel1)
 
 			t.Run("Validate", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
@@ -302,7 +303,7 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("Download", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			recipeURL := fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)
 
@@ -368,7 +369,7 @@ func TestPackageConan(t *testing.T) {
 			uploadConanPackageV1(t, url, token, name, version1, user2, channel2)
 
 			t.Run("Recipe", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				cases := []struct {
 					Query    string
@@ -405,7 +406,7 @@ func TestPackageConan(t *testing.T) {
 			})
 
 			t.Run("Package", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v1/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel2))
 				resp := MakeRequest(t, req, http.StatusOK)
@@ -421,7 +422,7 @@ func TestPackageConan(t *testing.T) {
 
 		t.Run("Delete", func(t *testing.T) {
 			t.Run("Package", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				cases := []struct {
 					Channel    string
@@ -450,7 +451,7 @@ func TestPackageConan(t *testing.T) {
 			})
 
 			t.Run("Recipe", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				cases := []struct {
 					Channel string
@@ -479,7 +480,7 @@ func TestPackageConan(t *testing.T) {
 
 	t.Run("v2", func(t *testing.T) {
 		t.Run("Ping", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/ping", url))
 			resp := MakeRequest(t, req, http.StatusOK)
@@ -490,7 +491,7 @@ func TestPackageConan(t *testing.T) {
 		token := ""
 
 		t.Run("Authenticate", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/authenticate", url))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -503,7 +504,7 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("CheckCredentials", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/users/check_credentials", url))
 			req = addTokenAuthHeader(req, token)
@@ -511,12 +512,12 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("Upload", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			uploadConanPackageV2(t, url, token, name, version1, user1, channel1, revision1, revision1)
 
 			t.Run("Validate", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeConan)
 				assert.NoError(t, err)
@@ -525,7 +526,7 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("Latest", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			recipeURL := fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s", url, name, version1, user1, channel1)
 
@@ -547,7 +548,7 @@ func TestPackageConan(t *testing.T) {
 		})
 
 		t.Run("ListRevisions", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			uploadConanPackageV2(t, url, token, name, version1, user1, channel1, revision1, revision2)
 			uploadConanPackageV2(t, url, token, name, version1, user1, channel1, revision2, revision1)
@@ -590,7 +591,7 @@ func TestPackageConan(t *testing.T) {
 
 		t.Run("Search", func(t *testing.T) {
 			t.Run("Recipe", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				cases := []struct {
 					Query    string
@@ -627,7 +628,7 @@ func TestPackageConan(t *testing.T) {
 			})
 
 			t.Run("Package", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/v2/conans/%s/%s/%s/%s/search", url, name, version1, user1, channel1))
 				resp := MakeRequest(t, req, http.StatusOK)
@@ -653,7 +654,7 @@ func TestPackageConan(t *testing.T) {
 
 		t.Run("Delete", func(t *testing.T) {
 			t.Run("Package", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				rref, _ := conan_module.NewRecipeReference(name, version1, user1, channel1, revision1)
 				pref, _ := conan_module.NewPackageReference(rref, conanPackageReference, conan_module.DefaultRevision)
@@ -695,7 +696,7 @@ func TestPackageConan(t *testing.T) {
 			})
 
 			t.Run("Recipe", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				rref, _ := conan_module.NewRecipeReference(name, version1, user1, channel1, conan_module.DefaultRevision)
 

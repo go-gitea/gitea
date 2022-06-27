@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -70,7 +71,7 @@ func TestAPIAdminOrgCreateBadVisibility(t *testing.T) {
 }
 
 func TestAPIAdminOrgCreateNotAdmin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
 	token := getTokenForLoggedInUser(t, session)

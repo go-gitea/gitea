@@ -19,12 +19,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/pypi"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackagePyPI(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "test-package"
@@ -60,7 +61,7 @@ func TestPackagePyPI(t *testing.T) {
 	}
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		filename := "test.whl"
 		uploadFile(t, filename, content, http.StatusCreated)
@@ -88,7 +89,7 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("UploadAddFile", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		filename := "test.tar.gz"
 		uploadFile(t, filename, content, http.StatusCreated)
@@ -119,21 +120,21 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("UploadHashMismatch", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		filename := "test2.whl"
 		uploadFile(t, filename, "dummy", http.StatusBadRequest)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		uploadFile(t, "test.whl", content, http.StatusBadRequest)
 		uploadFile(t, "test.tar.gz", content, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		downloadFile := func(filename string) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/files/%s/%s/%s", root, packageName, packageVersion, filename))
@@ -153,7 +154,7 @@ func TestPackagePyPI(t *testing.T) {
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/simple/%s", root, packageName))
 		req = AddBasicAuthHeader(req, user.Name)

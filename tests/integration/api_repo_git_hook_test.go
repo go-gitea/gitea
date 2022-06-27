@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +24,7 @@ echo Hello, World!
 `
 
 func TestAPIListGitHooks(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -49,7 +50,7 @@ func TestAPIListGitHooks(t *testing.T) {
 }
 
 func TestAPIListGitHooksNoHooks(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -70,7 +71,7 @@ func TestAPIListGitHooksNoHooks(t *testing.T) {
 }
 
 func TestAPIListGitHooksNoAccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -83,7 +84,7 @@ func TestAPIListGitHooksNoAccess(t *testing.T) {
 }
 
 func TestAPIGetGitHook(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -101,7 +102,7 @@ func TestAPIGetGitHook(t *testing.T) {
 }
 
 func TestAPIGetGitHookNoAccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -114,7 +115,7 @@ func TestAPIGetGitHookNoAccess(t *testing.T) {
 }
 
 func TestAPIEditGitHook(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -144,7 +145,7 @@ func TestAPIEditGitHook(t *testing.T) {
 }
 
 func TestAPIEditGitHookNoAccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -160,7 +161,7 @@ func TestAPIEditGitHookNoAccess(t *testing.T) {
 }
 
 func TestAPIDeleteGitHook(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 37}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -183,7 +184,7 @@ func TestAPIDeleteGitHook(t *testing.T) {
 }
 
 func TestAPIDeleteGitHookNoAccess(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)

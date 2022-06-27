@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIGetTrackedTimes(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
@@ -62,7 +63,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 }
 
 func TestAPIDeleteTrackedTime(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	time6 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 6}).(*issues_model.TrackedTime)
 	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
@@ -97,7 +98,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 }
 
 func TestAPIAddTrackedTimes(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
 	assert.NoError(t, issue2.LoadRepo(db.DefaultContext))

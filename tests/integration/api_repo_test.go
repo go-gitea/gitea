@@ -20,12 +20,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIUserReposNotLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/repos", user.Name)
@@ -43,7 +44,7 @@ func TestAPIUserReposNotLogin(t *testing.T) {
 }
 
 func TestAPISearchRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	const keyword = "test"
 
 	req := NewRequestf(t, "GET", "/api/v1/repos/search?q=%s", keyword)
@@ -247,7 +248,7 @@ func getRepo(t *testing.T, repoID int64) *repo_model.Repository {
 }
 
 func TestAPIViewRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	var repo api.Repository
 
@@ -277,7 +278,7 @@ func TestAPIViewRepo(t *testing.T) {
 }
 
 func TestAPIOrgRepos(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
@@ -323,7 +324,7 @@ func TestAPIOrgRepos(t *testing.T) {
 }
 
 func TestAPIGetRepoByIDUnauthorized(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -346,7 +347,7 @@ func TestAPIRepoMigrate(t *testing.T) {
 		{ctxUserID: 2, userID: 3, cloneURL: "https://10.0.0.1/user/test_repo.git", repoName: "private-ip", expectedStatus: http.StatusUnprocessableEntity},
 	}
 
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID}).(*user_model.User)
 		session := loginUser(t, user.Name)
@@ -415,7 +416,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 // mirror-sync must fail with "400 (Bad Request)" when an attempt is made to
 // sync a non-mirror repository.
 func TestAPIMirrorSyncNonMirrorRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
@@ -446,7 +447,7 @@ func TestAPIOrgRepoCreate(t *testing.T) {
 		{ctxUserID: 28, orgName: "user6", repoName: "repo-not-creator", expectedStatus: http.StatusForbidden},
 	}
 
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	for _, testCase := range testCases {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: testCase.ctxUserID}).(*user_model.User)
 		session := loginUser(t, user.Name)
@@ -512,7 +513,7 @@ func TestAPIRepoTransfer(t *testing.T) {
 		{ctxUserID: 2, newOwner: "user6", teams: nil, expectedStatus: http.StatusCreated},
 	}
 
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// create repo to move
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
@@ -576,7 +577,7 @@ func transfer(t *testing.T) *repo_model.Repository {
 }
 
 func TestAPIAcceptTransfer(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := transfer(t)
 
@@ -602,7 +603,7 @@ func TestAPIAcceptTransfer(t *testing.T) {
 }
 
 func TestAPIRejectTransfer(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := transfer(t)
 
@@ -628,7 +629,7 @@ func TestAPIRejectTransfer(t *testing.T) {
 }
 
 func TestAPIGenerateRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	session := loginUser(t, user.Name)
@@ -665,7 +666,7 @@ func TestAPIGenerateRepo(t *testing.T) {
 }
 
 func TestAPIRepoGetReviewers(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -679,7 +680,7 @@ func TestAPIRepoGetReviewers(t *testing.T) {
 }
 
 func TestAPIRepoGetAssignees(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)

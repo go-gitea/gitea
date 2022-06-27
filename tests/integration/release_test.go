@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,7 @@ func checkLatestReleaseAndCount(t *testing.T, session *TestSession, repoURL, ver
 }
 
 func TestViewReleases(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
@@ -74,14 +75,14 @@ func TestViewReleases(t *testing.T) {
 }
 
 func TestViewReleasesNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/releases")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestCreateRelease(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
@@ -90,7 +91,7 @@ func TestCreateRelease(t *testing.T) {
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
@@ -99,7 +100,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
@@ -108,7 +109,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 }
 
 func TestCreateReleasePaging(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	oldAPIDefaultNum := setting.API.DefaultPagingNum
 	defer func() {
@@ -132,7 +133,7 @@ func TestCreateReleasePaging(t *testing.T) {
 }
 
 func TestViewReleaseListNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
@@ -158,7 +159,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 }
 
 func TestViewReleaseListLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
@@ -189,7 +190,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 }
 
 func TestViewTagsList(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 

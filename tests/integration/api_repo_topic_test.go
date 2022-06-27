@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPITopicSearch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	searchURL, _ := url.Parse("/api/v1/topics/search")
 	var topics struct {
 		TopicNames []*api.TopicResponse `json:"topics"`
@@ -51,7 +52,7 @@ func TestAPITopicSearch(t *testing.T) {
 }
 
 func TestAPIRepoTopic(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of repo2
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User) // owner of repo3
 	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // write access to repo 3

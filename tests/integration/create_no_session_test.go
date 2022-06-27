@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
+	"code.gitea.io/gitea/tests"
 
 	"gitea.com/go-chi/session"
 	"github.com/stretchr/testify/assert"
@@ -52,7 +53,7 @@ func sessionFileExist(t *testing.T, tmpDir, sessionID string) bool {
 }
 
 func TestSessionFileCreation(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	oldSessionConfig := setting.SessionConfig.ProviderConfig
 	defer func() {
@@ -85,7 +86,7 @@ func TestSessionFileCreation(t *testing.T) {
 	c = routers.NormalRoutes()
 
 	t.Run("NoSessionOnViewIssue", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -95,7 +96,7 @@ func TestSessionFileCreation(t *testing.T) {
 		assert.False(t, sessionFileExist(t, tmpDir, sessionID))
 	})
 	t.Run("CreateSessionOnLogin", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", "/user/login")
 		resp := MakeRequest(t, req, http.StatusOK)

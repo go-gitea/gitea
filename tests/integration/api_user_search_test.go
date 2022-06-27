@@ -13,6 +13,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -23,7 +24,7 @@ type SearchResults struct {
 }
 
 func TestAPIUserSearchLoggedIn(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -41,7 +42,7 @@ func TestAPIUserSearchLoggedIn(t *testing.T) {
 }
 
 func TestAPIUserSearchNotLoggedIn(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	query := "user2"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -62,7 +63,7 @@ func TestAPIUserSearchNotLoggedIn(t *testing.T) {
 }
 
 func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -82,7 +83,7 @@ func TestAPIUserSearchAdminLoggedInUserHidden(t *testing.T) {
 }
 
 func TestAPIUserSearchNotLoggedInUserHidden(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	query := "user31"
 	req := NewRequestf(t, "GET", "/api/v1/users/search?q=%s", query)
 	resp := MakeRequest(t, req, http.StatusOK)

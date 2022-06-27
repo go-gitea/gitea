@@ -26,7 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/tests/integration"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm"
@@ -35,21 +35,21 @@ import (
 var currentEngine *xorm.Engine
 
 func initMigrationTest(t *testing.T) func() {
-	deferFn := integration.PrintCurrentTest(t, 2)
+	deferFn := tests.PrintCurrentTest(t, 2)
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
-		integration.Printf("Environment variable $GITEA_ROOT not set\n")
+		tests.Printf("Environment variable $GITEA_ROOT not set\n")
 		os.Exit(1)
 	}
 	setting.AppPath = path.Join(giteaRoot, "gitea")
 	if _, err := os.Stat(setting.AppPath); err != nil {
-		integration.Printf("Could not find gitea binary at %s\n", setting.AppPath)
+		tests.Printf("Could not find gitea binary at %s\n", setting.AppPath)
 		os.Exit(1)
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		integration.Printf("Environment variable $GITEA_CONF not set\n")
+		tests.Printf("Environment variable $GITEA_CONF not set\n")
 		os.Exit(1)
 	} else if !path.IsAbs(giteaConf) {
 		setting.CustomConf = path.Join(giteaRoot, giteaConf)
@@ -145,7 +145,7 @@ func restoreOldDB(t *testing.T, version string) bool {
 	data, err := readSQLFromFile(version)
 	assert.NoError(t, err)
 	if len(data) == 0 {
-		integration.Printf("No db found to restore for %s version: %s\n", setting.Database.Type, version)
+		tests.Printf("No db found to restore for %s version: %s\n", setting.Database.Type, version)
 		return false
 	}
 
@@ -287,8 +287,8 @@ func wrappedMigrate(x *xorm.Engine) error {
 }
 
 func doMigrationTest(t *testing.T, version string) {
-	defer integration.PrintCurrentTest(t)()
-	integration.Printf("Performing migration test for %s version: %s\n", setting.Database.Type, version)
+	defer tests.PrintCurrentTest(t)()
+	tests.Printf("Performing migration test for %s version: %s\n", setting.Database.Type, version)
 	if !restoreOldDB(t, version) {
 		return
 	}
@@ -326,11 +326,11 @@ func TestMigrations(t *testing.T) {
 	assert.NoError(t, err)
 
 	if len(versions) == 0 {
-		integration.Printf("No old database versions available to migration test for %s\n", dialect)
+		tests.Printf("No old database versions available to migration test for %s\n", dialect)
 		return
 	}
 
-	integration.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
+	tests.Printf("Preparing to test %d migrations for %s\n", len(versions), dialect)
 	for _, version := range versions {
 		t.Run(fmt.Sprintf("Migrate-%s-%s", dialect, version), func(t *testing.T) {
 			doMigrationTest(t, version)

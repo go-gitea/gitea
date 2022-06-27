@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageGeneric(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "te-st_pac.kage"
@@ -30,7 +31,7 @@ func TestPackageGeneric(t *testing.T) {
 	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		AddBasicAuthHeader(req, user.Name)
@@ -59,7 +60,7 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 		AddBasicAuthHeader(req, user.Name)
@@ -67,7 +68,7 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", url)
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -81,7 +82,7 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", url)
 		AddBasicAuthHeader(req, user.Name)
@@ -93,14 +94,14 @@ func TestPackageGeneric(t *testing.T) {
 	})
 
 	t.Run("DownloadNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", url)
 		MakeRequest(t, req, http.StatusNotFound)
 	})
 
 	t.Run("DeleteNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", url)
 		AddBasicAuthHeader(req, user.Name)

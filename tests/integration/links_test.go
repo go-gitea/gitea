@@ -13,12 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLinksNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	links := []string{
 		"/explore/repos",
@@ -47,7 +48,7 @@ func TestLinksNoLogin(t *testing.T) {
 }
 
 func TestRedirectsNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	redirects := map[string]string{
 		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
@@ -65,7 +66,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 }
 
 func TestNoLoginNotExist(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	links := []string{
 		"/user5/repo4/projects",
@@ -169,7 +170,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 }
 
 func TestLinksLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	testLinksAsUser("user2", t)
 }

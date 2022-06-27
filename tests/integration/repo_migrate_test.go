@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -39,7 +40,7 @@ func testRepoMigrate(t testing.TB, session *TestSession, cloneAddr, repoName str
 }
 
 func TestRepoMigrate(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testRepoMigrate(t, session, "https://github.com/go-gitea/test_repo.git", "git")
 }

@@ -7,10 +7,12 @@ package integration
 import (
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/tests"
 )
 
 func TestExploreRepos(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/explore/repos")
 	MakeRequest(t, req, http.StatusOK)

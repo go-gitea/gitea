@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/services/migrations"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIRepoLFSMigrateLocal(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	oldImportLocalPaths := setting.ImportLocalPaths
 	oldAllowLocalNetworks := setting.Migrations.AllowLocalNetworks

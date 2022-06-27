@@ -245,9 +245,9 @@ clean:
 		e2e*.test \
 		tests/integration/gitea-integration-pgsql/ tests/integration/gitea-integration-mysql/ tests/integration/gitea-integration-mysql8/ tests/integration/gitea-integration-sqlite/ \
 		tests/integration/gitea-integration-mssql/ tests/integration/indexers-mysql/ tests/integration/indexers-mysql8/ tests/integration/indexers-pgsql tests/integration/indexers-sqlite \
-		tests/integration/indexers-mssql tests/mysql.ini tests/mysql8.ini tests/pgsql.ini tests/mssql.ini man/
-		tests/e2e/gitea-integration-pgsql/ tests/e2e/gitea-integration-mysql/ tests/e2e/gitea-integration-mysql8/ tests/e2e/gitea-integration-sqlite/ \
-		tests/e2e/gitea-integration-mssql/ tests/e2e/indexers-mysql/ tests/e2e/indexers-mysql8/ tests/e2e/indexers-pgsql tests/e2e/indexers-sqlite \
+		tests/integration/indexers-mssql tests/mysql.ini tests/mysql8.ini tests/pgsql.ini tests/mssql.ini man/ \
+		tests/e2e/gitea-e2e-pgsql/ tests/e2e/gitea-e2e-mysql/ tests/e2e/gitea-e2e-mysql8/ tests/e2e/gitea-e2e-sqlite/ \
+		tests/e2e/gitea-e2e-mssql/ tests/e2e/indexers-mysql/ tests/e2e/indexers-mysql8/ tests/e2e/indexers-pgsql tests/e2e/indexers-sqlite \
 		tests/e2e/indexers-mssql
 
 .PHONY: fmt

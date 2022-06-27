@@ -11,12 +11,13 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIGetWikiPage(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
 	session := loginUser(t, username)
@@ -62,7 +63,7 @@ func TestAPIGetWikiPage(t *testing.T) {
 }
 
 func TestAPIListWikiPages(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	username := "user2"
 	session := loginUser(t, username)
@@ -178,7 +179,7 @@ func TestAPINewWikiPage(t *testing.T) {
 		"New page",
 		"&&&&",
 	} {
-		defer prepareTestEnv(t)()
+		defer tests.PrepareTestEnv(t)()
 		username := "user2"
 		session := loginUser(t, username)
 		token := getTokenForLoggedInUser(t, session)
@@ -195,7 +196,7 @@ func TestAPINewWikiPage(t *testing.T) {
 }
 
 func TestAPIEditWikiPage(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
 	token := getTokenForLoggedInUser(t, session)
@@ -211,7 +212,7 @@ func TestAPIEditWikiPage(t *testing.T) {
 }
 
 func TestAPIListPageRevisions(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 	session := loginUser(t, username)
 

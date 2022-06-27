@@ -10,10 +10,11 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 )
 
 func TestAPIReposRaw(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	// Login as User2.
 	session := loginUser(t, user.Name)

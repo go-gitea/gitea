@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package integration
+package tests
 
 import (
 	"context"
@@ -21,8 +21,8 @@ import (
 
 var (
 	prefix    string
-	slowTest  = 10 * time.Second
-	slowFlush = 5 * time.Second
+	SlowTest  = 10 * time.Second
+	SlowFlush = 5 * time.Second
 )
 
 // TestLogger is a logger which will write to the testing log
@@ -30,7 +30,7 @@ type TestLogger struct {
 	log.WriterLogger
 }
 
-var writerCloser = &testLoggerWriterCloser{}
+var WriterCloser = &testLoggerWriterCloser{}
 
 type testLoggerWriterCloser struct {
 	sync.RWMutex
@@ -119,21 +119,21 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 	} else {
 		fmt.Fprintf(os.Stdout, "=== %s (%s:%d)\n", t.Name(), strings.TrimPrefix(filename, prefix), line)
 	}
-	writerCloser.setT(&t)
+	WriterCloser.setT(&t)
 	return func() {
 		took := time.Since(start)
-		if took > slowTest {
+		if took > SlowTest {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
 			} else {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
 			}
 		}
-		timer := time.AfterFunc(slowFlush, func() {
+		timer := time.AfterFunc(SlowFlush, func() {
 			if log.CanColorStdout {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), slowFlush)
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), SlowFlush)
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), slowFlush)
+				fmt.Fprintf(os.Stdout, "+++ %s ... still flushing after %v ...\n", t.Name(), SlowFlush)
 			}
 		})
 		if err := queue.GetManager().FlushAll(context.Background(), 2*time.Minute); err != nil {
@@ -141,14 +141,14 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 		}
 		timer.Stop()
 		flushTook := time.Since(start) - took
-		if flushTook > slowFlush {
+		if flushTook > SlowFlush {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgRed)), fmt.Formatter(log.NewColoredValue(flushTook, log.Bold, log.FgRed)))
 			} else {
 				fmt.Fprintf(os.Stdout, "+++ %s had a slow clean-up flush (took %v)\n", t.Name(), flushTook)
 			}
 		}
-		_ = writerCloser.Close()
+		_ = WriterCloser.Close()
 	}
 }
 
@@ -177,7 +177,7 @@ func (log *TestLogger) Init(config string) error {
 	if err != nil {
 		return err
 	}
-	log.NewWriterLogger(writerCloser)
+	log.NewWriterLogger(WriterCloser)
 	return nil
 }
 

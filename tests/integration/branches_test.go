@@ -10,12 +10,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewBranches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/branches")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -26,7 +27,7 @@ func TestViewBranches(t *testing.T) {
 }
 
 func TestDeleteBranch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	deleteBranch(t)
 }

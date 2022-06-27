@@ -14,12 +14,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIListStopWatches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -43,7 +44,7 @@ func TestAPIListStopWatches(t *testing.T) {
 }
 
 func TestAPIStopStopWatches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
@@ -59,7 +60,7 @@ func TestAPIStopStopWatches(t *testing.T) {
 }
 
 func TestAPICancelStopWatches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
@@ -75,7 +76,7 @@ func TestAPICancelStopWatches(t *testing.T) {
 }
 
 func TestAPIStartStopWatches(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)

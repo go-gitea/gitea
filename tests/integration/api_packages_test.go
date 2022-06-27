@@ -18,12 +18,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	packages_service "code.gitea.io/gitea/services/packages"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageAPI(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -38,7 +39,7 @@ func TestPackageAPI(t *testing.T) {
 	MakeRequest(t, req, http.StatusCreated)
 
 	t.Run("ListPackages", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?token=%s", user.Name, token))
 		resp := MakeRequest(t, req, http.StatusOK)
@@ -55,7 +56,7 @@ func TestPackageAPI(t *testing.T) {
 	})
 
 	t.Run("GetPackage", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
@@ -73,7 +74,7 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, user.Name, p.Creator.UserName)
 
 		t.Run("RepositoryLink", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			p, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
 			assert.NoError(t, err)
@@ -112,7 +113,7 @@ func TestPackageAPI(t *testing.T) {
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s/files?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
@@ -133,7 +134,7 @@ func TestPackageAPI(t *testing.T) {
 	})
 
 	t.Run("DeletePackage", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("/api/v1/packages/%s/dummy/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
 		MakeRequest(t, req, http.StatusNotFound)
@@ -144,7 +145,7 @@ func TestPackageAPI(t *testing.T) {
 }
 
 func TestPackageCleanup(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	time.Sleep(time.Second)
 

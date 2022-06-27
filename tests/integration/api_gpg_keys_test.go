@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -18,7 +19,7 @@ import (
 type makeRequestFunc func(testing.TB, *http.Request, int) *httptest.ResponseRecorder
 
 func TestGPGKeys(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
 

@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -55,13 +56,13 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 }
 
 func TestRepoFork(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user1")
 	testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
 }
 
 func TestRepoForkToOrg(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testRepoFork(t, session, "user2", "repo1", "user3", "repo1")
 

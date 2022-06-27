@@ -7,10 +7,12 @@ package integration
 import (
 	"net/http"
 	"testing"
+
+	"code.gitea.io/gitea/tests"
 )
 
 func TestSignOut(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 

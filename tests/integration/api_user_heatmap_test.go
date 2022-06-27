@@ -12,12 +12,13 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserHeatmap(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	token := getUserToken(t, adminUsername)

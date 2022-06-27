@@ -9,12 +9,13 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSettingShowUserEmailExplore(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	showUserEmail := setting.UI.ShowUserEmail
 	setting.UI.ShowUserEmail = true
@@ -42,7 +43,7 @@ func TestSettingShowUserEmailExplore(t *testing.T) {
 }
 
 func TestSettingShowUserEmailProfile(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	showUserEmail := setting.UI.ShowUserEmail
 	setting.UI.ShowUserEmail = true
@@ -80,7 +81,7 @@ func TestSettingShowUserEmailProfile(t *testing.T) {
 }
 
 func TestSettingLandingPage(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	landingPage := setting.LandingPageURL
 

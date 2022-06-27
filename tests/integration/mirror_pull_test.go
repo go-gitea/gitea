@@ -17,12 +17,13 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	release_service "code.gitea.io/gitea/services/release"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMirrorPull(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)

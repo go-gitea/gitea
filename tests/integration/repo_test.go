@@ -13,13 +13,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
 	MakeRequest(t, req, http.StatusOK)
@@ -32,7 +33,7 @@ func TestViewRepo(t *testing.T) {
 }
 
 func testViewRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user2")
@@ -100,7 +101,7 @@ func TestViewRepo2(t *testing.T) {
 }
 
 func TestViewRepo3(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user3/repo3")
 	session := loginUser(t, "user4")
@@ -108,7 +109,7 @@ func TestViewRepo3(t *testing.T) {
 }
 
 func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := MakeRequest(t, req, http.StatusOK)
@@ -122,7 +123,7 @@ func TestViewRepo1CloneLinkAnonymous(t *testing.T) {
 }
 
 func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -140,7 +141,7 @@ func TestViewRepo1CloneLinkAuthorized(t *testing.T) {
 }
 
 func TestViewRepoWithSymlinks(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -168,7 +169,7 @@ func TestViewAsRepoAdmin(t *testing.T) {
 		"user2": true,
 		"user4": false,
 	} {
-		defer prepareTestEnv(t)()
+		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, user)
 

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"code.gitea.io/gitea/tests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -135,7 +136,7 @@ func testDeleteRepository(t *testing.T, session *TestSession, ownerName, repoNam
 
 func TestPullBranchDelete(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		defer prepareTestEnv(t)()
+		defer tests.PrepareTestEnv(t)()
 
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")

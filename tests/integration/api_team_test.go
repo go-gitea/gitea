@@ -17,12 +17,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPITeam(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{}).(*organization.TeamUser)
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID}).(*organization.Team)
@@ -220,7 +221,7 @@ type TeamSearchResults struct {
 }
 
 func TestAPITeamSearch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
@@ -244,7 +245,7 @@ func TestAPITeamSearch(t *testing.T) {
 }
 
 func TestAPIGetTeamRepo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
 	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24}).(*repo.Repository)

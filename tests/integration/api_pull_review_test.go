@@ -15,12 +15,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIPullReview(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)
@@ -223,7 +224,7 @@ func TestAPIPullReview(t *testing.T) {
 }
 
 func TestAPIPullReviewRequest(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
 	assert.NoError(t, pullIssue.LoadAttributes(db.DefaultContext))
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.RepoID}).(*repo_model.Repository)

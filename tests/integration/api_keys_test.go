@@ -16,18 +16,19 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewDeployKeysNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/keys")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestCreateDeployKeyNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/api/v1/repos/user2/repo1/keys", api.CreateKeyOption{
 		Title: "title",
 		Key:   "key",
@@ -36,19 +37,19 @@ func TestCreateDeployKeyNoLogin(t *testing.T) {
 }
 
 func TestGetDeployKeyNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/keys/1")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestDeleteDeployKeyNoLogin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "DELETE", "/api/v1/repos/user2/repo1/keys/1")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestCreateReadOnlyDeployKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
@@ -74,7 +75,7 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 }
 
 func TestCreateReadWriteDeployKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
 	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
@@ -99,7 +100,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 }
 
 func TestCreateUserKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
 
 	session := loginUser(t, "user1")

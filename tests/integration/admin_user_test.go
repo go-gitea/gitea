@@ -11,12 +11,13 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAdminViewUsers(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users")
@@ -28,7 +29,7 @@ func TestAdminViewUsers(t *testing.T) {
 }
 
 func TestAdminViewUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 	req := NewRequest(t, "GET", "/admin/users/1")
@@ -40,7 +41,7 @@ func TestAdminViewUser(t *testing.T) {
 }
 
 func TestAdminEditUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	testSuccessfullEdit(t, user_model.User{ID: 2, Name: "newusername", LoginName: "otherlogin", Email: "new@e-mail.gitea"})
 }
@@ -68,7 +69,7 @@ func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 }
 
 func TestAdminDeleteUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user1")
 

@@ -11,26 +11,27 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestViewTimetrackingControls(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", true)
 	// user2/repo1
 }
 
 func TestNotViewTimetrackingControls(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user5")
 	testViewTimetrackingControls(t, session, "user2", "repo1", "1", false)
 	// user2/repo1
 }
 
 func TestViewTimetrackingControlsDisabled(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testViewTimetrackingControls(t, session, "user3", "repo3", "1", false)
 }

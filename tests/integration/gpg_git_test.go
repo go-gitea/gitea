@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/openpgp"
@@ -24,7 +25,7 @@ import (
 )
 
 func TestGPGGit(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	username := "user2"
 
 	// OK Set a new GPG home
@@ -71,7 +72,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchUnsigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
@@ -95,7 +96,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "master", "parentsigned", "signed-parent.txt", func(t *testing.T, response api.FileResponse) {
@@ -112,7 +113,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial-CRUD-Never", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
 				t, testCtx, user, "parentsigned", "parentsigned-never", "unsigned-never2.txt", func(t *testing.T, response api.FileResponse) {
@@ -125,7 +126,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial-CRUD-Always", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
 				t, testCtx, user, "master", "always", "signed-always.txt", func(t *testing.T, response api.FileResponse) {
@@ -162,7 +163,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("Unsigned-Initial-CRUD-ParentSigned", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			t.Run("CreateCRUDFile-Always-ParentSigned", crudActionCreateFile(
 				t, testCtx, user, "always", "always-parentsigned", "signed-always-parentsigned.txt", func(t *testing.T, response api.FileResponse) {
@@ -185,7 +186,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("AlwaysSign-Initial", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always")
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CheckMasterBranchSigned", doAPIGetBranch(testCtx, "master", func(t *testing.T, branch api.Branch) {
@@ -213,7 +214,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("AlwaysSign-Initial-CRUD-Never", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always-never")
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Never", crudActionCreateFile(
@@ -226,7 +227,7 @@ func TestGPGGit(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		u.Path = baseAPITestContext.GitPath()
 		t.Run("AlwaysSign-Initial-CRUD-ParentSigned-On-Always", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always-parent")
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-ParentSigned", crudActionCreateFile(
@@ -245,7 +246,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("AlwaysSign-Initial-CRUD-Always", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-always-always")
 			t.Run("CreateRepository", doAPICreateRepository(testCtx, false))
 			t.Run("CreateCRUDFile-Always", crudActionCreateFile(
@@ -265,7 +266,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("UnsignedMerging", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {
@@ -286,7 +287,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("BaseSignedMerging", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {
@@ -307,7 +308,7 @@ func TestGPGGit(t *testing.T) {
 		u.Path = baseAPITestContext.GitPath()
 
 		t.Run("CommitsSignedMerging", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 			testCtx := NewAPITestContext(t, username, "initial-unsigned")
 			var err error
 			t.Run("CreatePullRequest", func(t *testing.T) {

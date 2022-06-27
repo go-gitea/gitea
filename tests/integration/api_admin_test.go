@@ -14,12 +14,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 	keyOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
@@ -48,7 +49,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 }
 
 func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
 
@@ -58,7 +59,7 @@ func TestAPIAdminDeleteMissingSSHKey(t *testing.T) {
 }
 
 func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -81,7 +82,7 @@ func TestAPIAdminDeleteUnauthorizedKey(t *testing.T) {
 }
 
 func TestAPISudoUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	session := loginUser(t, adminUsername)
@@ -97,7 +98,7 @@ func TestAPISudoUser(t *testing.T) {
 }
 
 func TestAPISudoUserForbidden(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 
@@ -110,7 +111,7 @@ func TestAPISudoUserForbidden(t *testing.T) {
 }
 
 func TestAPIListUsers(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -133,13 +134,13 @@ func TestAPIListUsers(t *testing.T) {
 }
 
 func TestAPIListUsersNotLoggedIn(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/api/v1/admin/users")
 	MakeRequest(t, req, http.StatusUnauthorized)
 }
 
 func TestAPIListUsersNonAdmin(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	nonAdminUsername := "user2"
 	session := loginUser(t, nonAdminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -148,7 +149,7 @@ func TestAPIListUsersNonAdmin(t *testing.T) {
 }
 
 func TestAPICreateUserInvalidEmail(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)
@@ -167,7 +168,7 @@ func TestAPICreateUserInvalidEmail(t *testing.T) {
 }
 
 func TestAPIEditUser(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	session := loginUser(t, adminUsername)
 	token := getTokenForLoggedInUser(t, session)

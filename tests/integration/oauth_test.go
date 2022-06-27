@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -19,20 +20,20 @@ import (
 const defaultAuthorize = "/login/oauth/authorize?client_id=da7da3ba-9a13-4167-856f-3899de0b0138&redirect_uri=a&response_type=code&state=thestate"
 
 func TestNoClientID(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	ctx := loginUser(t, "user2")
 	ctx.MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestLoginRedirect(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", "/login/oauth/authorize")
 	assert.Contains(t, MakeRequest(t, req, http.StatusSeeOther).Body.String(), "/user/login")
 }
 
 func TestShowAuthorize(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", defaultAuthorize)
 	ctx := loginUser(t, "user4")
 	resp := ctx.MakeRequest(t, req, http.StatusOK)
@@ -43,7 +44,7 @@ func TestShowAuthorize(t *testing.T) {
 }
 
 func TestRedirectWithExistingGrant(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequest(t, "GET", defaultAuthorize)
 	ctx := loginUser(t, "user1")
 	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
@@ -54,7 +55,7 @@ func TestRedirectWithExistingGrant(t *testing.T) {
 }
 
 func TestAccessTokenExchange(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
@@ -78,7 +79,7 @@ func TestAccessTokenExchange(t *testing.T) {
 }
 
 func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
@@ -102,7 +103,7 @@ func TestAccessTokenExchangeWithoutPKCE(t *testing.T) {
 }
 
 func TestAccessTokenExchangeJSON(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithJSON(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",
@@ -114,7 +115,7 @@ func TestAccessTokenExchangeJSON(t *testing.T) {
 }
 
 func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	// invalid client id
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
@@ -168,7 +169,7 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 }
 
 func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"redirect_uri":  "a",
@@ -210,7 +211,7 @@ func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
 }
 
 func TestRefreshTokenInvalidation(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
 		"grant_type":    "authorization_code",
 		"client_id":     "da7da3ba-9a13-4167-856f-3899de0b0138",

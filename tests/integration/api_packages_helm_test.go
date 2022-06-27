@@ -19,13 +19,14 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	helm_module "code.gitea.io/gitea/modules/packages/helm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/yaml.v2"
 )
 
 func TestPackageHelm(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "test-chart"
@@ -63,7 +64,7 @@ dependencies:
 	url := fmt.Sprintf("/api/packages/%s/helm", user.Name)
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		uploadURL := url + "/api/charts"
 
@@ -98,7 +99,7 @@ dependencies:
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		checkDownloadCount := func(count int64) {
 			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeHelm)
@@ -119,7 +120,7 @@ dependencies:
 	})
 
 	t.Run("Index", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.yaml", url))
 		req = AddBasicAuthHeader(req, user.Name)

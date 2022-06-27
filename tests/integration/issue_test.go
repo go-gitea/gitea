@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -57,14 +58,14 @@ func assertMatch(t testing.TB, issue *issues_model.Issue, keyword string) {
 }
 
 func TestNoLoginViewIssues(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues")
 	MakeRequest(t, req, http.StatusOK)
 }
 
 func TestViewIssuesSortByType(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
@@ -92,7 +93,7 @@ func TestViewIssuesSortByType(t *testing.T) {
 }
 
 func TestViewIssuesKeyword(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
@@ -117,7 +118,7 @@ func TestViewIssuesKeyword(t *testing.T) {
 }
 
 func TestNoLoginViewIssue(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1/issues/1")
 	MakeRequest(t, req, http.StatusOK)
@@ -184,13 +185,13 @@ func testIssueAddComment(t *testing.T, session *TestSession, issueURL, content, 
 }
 
 func TestNewIssue(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 }
 
 func TestIssueCommentClose(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 	testIssueAddComment(t, session, issueURL, "Test comment 1", "")
@@ -206,7 +207,7 @@ func TestIssueCommentClose(t *testing.T) {
 }
 
 func TestIssueReaction(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 	issueURL := testNewIssue(t, session, "user2", "repo1", "Title", "Description")
 
@@ -232,7 +233,7 @@ func TestIssueReaction(t *testing.T) {
 }
 
 func TestIssueCrossReference(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// Issue that will be referenced
 	_, issueBase := testIssueWithBean(t, "user2", 1, "Title", "Description")
@@ -332,7 +333,7 @@ func testIssueChangeInfo(t *testing.T, user, issueURL, info, value string) {
 }
 
 func TestIssueRedirect(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	session := loginUser(t, "user2")
 
 	// Test external tracker where style not set (shall default numeric)
@@ -352,7 +353,7 @@ func TestIssueRedirect(t *testing.T) {
 }
 
 func TestSearchIssues(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -447,7 +448,7 @@ func TestSearchIssues(t *testing.T) {
 }
 
 func TestSearchIssuesWithLabels(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	token := getUserToken(t, "user1")
 
@@ -510,7 +511,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 }
 
 func TestGetIssueInfo(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
@@ -531,7 +532,7 @@ func TestGetIssueInfo(t *testing.T) {
 }
 
 func TestUpdateIssueDeadline(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)

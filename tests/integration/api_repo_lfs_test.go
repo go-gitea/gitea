@@ -19,12 +19,13 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPILFSNotStarted(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.LFS.StartServer = false
 
@@ -44,7 +45,7 @@ func TestAPILFSNotStarted(t *testing.T) {
 }
 
 func TestAPILFSMediaType(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.LFS.StartServer = true
 
@@ -68,7 +69,7 @@ func createLFSTestRepository(t *testing.T, name string) *repo_model.Repository {
 }
 
 func TestAPILFSBatch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.LFS.StartServer = true
 
@@ -94,7 +95,7 @@ func TestAPILFSBatch(t *testing.T) {
 	}
 
 	t.Run("InvalidJsonRequest", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, nil)
 
@@ -102,7 +103,7 @@ func TestAPILFSBatch(t *testing.T) {
 	})
 
 	t.Run("InvalidOperation", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.BatchRequest{
 			Operation: "dummy",
@@ -112,7 +113,7 @@ func TestAPILFSBatch(t *testing.T) {
 	})
 
 	t.Run("InvalidPointer", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.BatchRequest{
 			Operation: "download",
@@ -138,7 +139,7 @@ func TestAPILFSBatch(t *testing.T) {
 	})
 
 	t.Run("PointerSizeMismatch", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.BatchRequest{
 			Operation: "download",
@@ -156,10 +157,10 @@ func TestAPILFSBatch(t *testing.T) {
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		t.Run("PointerNotInStore", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "download",
@@ -176,7 +177,7 @@ func TestAPILFSBatch(t *testing.T) {
 		})
 
 		t.Run("MetaNotFound", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
 
@@ -200,7 +201,7 @@ func TestAPILFSBatch(t *testing.T) {
 		})
 
 		t.Run("Success", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "download",
@@ -221,10 +222,10 @@ func TestAPILFSBatch(t *testing.T) {
 	})
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		t.Run("FileTooBig", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			oldMaxFileSize := setting.LFS.MaxFileSize
 			setting.LFS.MaxFileSize = 2
@@ -247,7 +248,7 @@ func TestAPILFSBatch(t *testing.T) {
 		})
 
 		t.Run("AddMeta", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			p := lfs.Pointer{Oid: "05eeb4eb5be71f2dd291ca39157d6d9effd7d1ea19cbdc8a99411fe2a8f26a00", Size: 6}
 
@@ -285,7 +286,7 @@ func TestAPILFSBatch(t *testing.T) {
 		})
 
 		t.Run("AlreadyExists", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "upload",
@@ -302,7 +303,7 @@ func TestAPILFSBatch(t *testing.T) {
 		})
 
 		t.Run("NewFile", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := newRequest(t, &lfs.BatchRequest{
 				Operation: "upload",
@@ -328,7 +329,7 @@ func TestAPILFSBatch(t *testing.T) {
 }
 
 func TestAPILFSUpload(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.LFS.StartServer = true
 
@@ -346,7 +347,7 @@ func TestAPILFSUpload(t *testing.T) {
 	}
 
 	t.Run("InvalidPointer", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "dummy"}, "")
 
@@ -354,7 +355,7 @@ func TestAPILFSUpload(t *testing.T) {
 	})
 
 	t.Run("AlreadyExistsInStore", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		p := lfs.Pointer{Oid: "83de2e488b89a0aa1c97496b888120a28b0c1e15463a4adb8405578c540f36d4", Size: 6}
 
@@ -389,7 +390,7 @@ func TestAPILFSUpload(t *testing.T) {
 	})
 
 	t.Run("MetaAlreadyExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: oid, Size: 6}, "")
 
@@ -397,7 +398,7 @@ func TestAPILFSUpload(t *testing.T) {
 	})
 
 	t.Run("HashMismatch", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "2581dd7bbc1fe44726de4b7dd806a087a978b9c5aec0a60481259e34be09b06a", Size: 1}, "a")
 
@@ -405,7 +406,7 @@ func TestAPILFSUpload(t *testing.T) {
 	})
 
 	t.Run("SizeMismatch", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, lfs.Pointer{Oid: "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb", Size: 2}, "a")
 
@@ -413,7 +414,7 @@ func TestAPILFSUpload(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		p := lfs.Pointer{Oid: "6ccce4863b70f258d691f59609d31b4502e1ba5199942d3bc5d35d17a4ce771d", Size: 5}
 
@@ -433,7 +434,7 @@ func TestAPILFSUpload(t *testing.T) {
 }
 
 func TestAPILFSVerify(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.LFS.StartServer = true
 
@@ -453,7 +454,7 @@ func TestAPILFSVerify(t *testing.T) {
 	}
 
 	t.Run("InvalidJsonRequest", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, nil)
 
@@ -461,7 +462,7 @@ func TestAPILFSVerify(t *testing.T) {
 	})
 
 	t.Run("InvalidPointer", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.Pointer{})
 
@@ -469,7 +470,7 @@ func TestAPILFSVerify(t *testing.T) {
 	})
 
 	t.Run("PointerNotExisting", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.Pointer{Oid: "fb8f7d8435968c4f82a726a92395be4d16f2f63116caf36c8ad35c60831ab042", Size: 6})
 
@@ -477,7 +478,7 @@ func TestAPILFSVerify(t *testing.T) {
 	})
 
 	t.Run("Success", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := newRequest(t, &lfs.Pointer{Oid: oid, Size: 6})
 

@@ -17,12 +17,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/packages/rubygems"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageRubyGems(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "gitea"
@@ -120,7 +121,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	}
 
 	t.Run("Upload", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		uploadFile(t, http.StatusCreated)
 
@@ -147,13 +148,13 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	})
 
 	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		uploadFile(t, http.StatusBadRequest)
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/gems/%s", root, packageFilename))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -168,7 +169,7 @@ AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA`)
 	})
 
 	t.Run("DownloadGemspec", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/quick/Marshal.4.8/%sspec.rz", root, packageFilename))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -187,7 +188,7 @@ gAAAAP//MS06Gw==`)
 	})
 
 	t.Run("EnumeratePackages", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		enumeratePackages := func(t *testing.T, endpoint string, expectedContent []byte) {
 			req := NewRequest(t, "GET", fmt.Sprintf("%s/%s", root, endpoint))
@@ -206,7 +207,7 @@ gAAAAP//MS06Gw==`)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		body := bytes.Buffer{}
 		writer := multipart.NewWriter(&body)

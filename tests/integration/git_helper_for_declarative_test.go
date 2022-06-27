@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -61,7 +62,7 @@ func createSSHUrl(gitPath string, u *url.URL) *url.URL {
 
 func onGiteaRunTB(t testing.TB, callback func(testing.TB, *url.URL), prepare ...bool) {
 	if len(prepare) == 0 || prepare[0] {
-		defer prepareTestEnv(t, 1)()
+		defer tests.PrepareTestEnv(t, 1)()
 	}
 	s := http.Server{
 		Handler: c,

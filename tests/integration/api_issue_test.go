@@ -17,12 +17,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIListIssues(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
@@ -72,7 +73,7 @@ func TestAPIListIssues(t *testing.T) {
 }
 
 func TestAPICreateIssue(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
 
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
@@ -105,7 +106,7 @@ func TestAPICreateIssue(t *testing.T) {
 }
 
 func TestAPIEditIssue(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
 	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
@@ -167,7 +168,7 @@ func TestAPIEditIssue(t *testing.T) {
 }
 
 func TestAPISearchIssues(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	token := getUserToken(t, "user2")
 
@@ -264,7 +265,7 @@ func TestAPISearchIssues(t *testing.T) {
 }
 
 func TestAPISearchIssuesWithLabels(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	token := getUserToken(t, "user1")
 

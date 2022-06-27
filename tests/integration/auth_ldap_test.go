@@ -18,6 +18,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/auth"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -145,7 +146,7 @@ func TestLDAPUserSignin(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	u := gitLDAPUsers[0]
@@ -162,7 +163,7 @@ func TestLDAPUserSignin(t *testing.T) {
 }
 
 func TestLDAPAuthChange(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	session := loginUser(t, "user1")
@@ -220,7 +221,7 @@ func TestLDAPUserSync(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 	auth.SyncExternalUsers(context.Background(), true)
 
@@ -271,7 +272,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "")
 
 	u := otherLDAPUsers[0]
@@ -283,7 +284,7 @@ func TestLDAPUserSSHKeySync(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "sshPublicKey")
 
 	auth.SyncExternalUsers(context.Background(), true)
@@ -316,7 +317,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
@@ -361,7 +362,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
@@ -397,7 +398,7 @@ func TestBrokenLDAPMapUserSignin(t *testing.T) {
 		t.Skip()
 		return
 	}
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
 
 	u := gitLDAPUsers[0]

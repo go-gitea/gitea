@@ -19,12 +19,13 @@ import (
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/packages/composer"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageComposer(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	vendorName := "gitea"
@@ -56,7 +57,7 @@ func TestPackageComposer(t *testing.T) {
 	url := fmt.Sprintf("%sapi/packages/%s/composer", setting.AppURL, user.Name)
 
 	t.Run("ServiceIndex", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/packages.json", url))
 		req = AddBasicAuthHeader(req, user.Name)
@@ -72,7 +73,7 @@ func TestPackageComposer(t *testing.T) {
 
 	t.Run("Upload", func(t *testing.T) {
 		t.Run("MissingVersion", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 			req = AddBasicAuthHeader(req, user.Name)
@@ -80,7 +81,7 @@ func TestPackageComposer(t *testing.T) {
 		})
 
 		t.Run("Valid", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			uploadURL := url + "?version=" + packageVersion
 
@@ -116,7 +117,7 @@ func TestPackageComposer(t *testing.T) {
 	})
 
 	t.Run("Download", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeComposer)
 		assert.NoError(t, err)
@@ -140,7 +141,7 @@ func TestPackageComposer(t *testing.T) {
 	})
 
 	t.Run("SearchService", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		cases := []struct {
 			Query           string
@@ -174,7 +175,7 @@ func TestPackageComposer(t *testing.T) {
 	})
 
 	t.Run("EnumeratePackages", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", url+"/list.json")
 		req = AddBasicAuthHeader(req, user.Name)
@@ -190,7 +191,7 @@ func TestPackageComposer(t *testing.T) {
 	})
 
 	t.Run("PackageMetadata", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/p2/%s/%s.json", url, vendorName, projectName))
 		req = AddBasicAuthHeader(req, user.Name)

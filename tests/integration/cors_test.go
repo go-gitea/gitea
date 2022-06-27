@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"testing"
 
+	"code.gitea.io/gitea/tests"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestCORSNotSet(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	req := NewRequestf(t, "GET", "/api/v1/version")
 	session := loginUser(t, "user2")
 	resp := session.MakeRequest(t, req, http.StatusOK)

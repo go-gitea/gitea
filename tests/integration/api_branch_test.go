@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -87,7 +88,7 @@ func testAPIDeleteBranch(t *testing.T, branchName string, expectedHTTPStatus int
 }
 
 func TestAPIGetBranch(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	for _, test := range []struct {
 		BranchName string
 		Exists     bool
@@ -111,7 +112,7 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 	giteaURL.Path = ctx.GitPath()
 
 	t.Run("CreateRepo", doAPICreateRepository(ctx, false))
-	tests := []struct {
+	testCases := []struct {
 		OldBranch          string
 		NewBranch          string
 		ExpectedHTTPStatus int
@@ -147,8 +148,8 @@ func testAPICreateBranches(t *testing.T, giteaURL *url.URL) {
 			ExpectedHTTPStatus: http.StatusNotFound,
 		},
 	}
-	for _, test := range tests {
-		defer resetFixtures(t)
+	for _, test := range testCases {
+		defer tests.ResetFixtures(t)
 		session := ctx.Session
 		testAPICreateBranch(t, session, "user2", "my-noo-repo", test.OldBranch, test.NewBranch, test.ExpectedHTTPStatus)
 	}
@@ -173,7 +174,7 @@ func testAPICreateBranch(t testing.TB, session *TestSession, user, repo, oldBran
 }
 
 func TestAPIBranchProtection(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// Branch protection only on branch that exist
 	testAPICreateBranchProtection(t, "master/doesnotexist", http.StatusNotFound)

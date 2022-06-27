@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -30,7 +31,7 @@ func TestMirrorPush(t *testing.T) {
 }
 
 func testMirrorPush(t *testing.T, u *url.URL) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	setting.Migrations.AllowLocalNetworks = true
 	assert.NoError(t, migrations.Init())

@@ -12,12 +12,13 @@ import (
 
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIGetRawFileOrLFS(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// Test with raw file
 	req := NewRequest(t, "GET", "/api/v1/repos/user2/repo1/media/README.md")

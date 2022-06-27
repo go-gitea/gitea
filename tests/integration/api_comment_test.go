@@ -16,12 +16,13 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIListRepoComments(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment)).(*issues_model.Comment)
@@ -67,7 +68,7 @@ func TestAPIListRepoComments(t *testing.T) {
 }
 
 func TestAPIListIssueComments(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment)).(*issues_model.Comment)
@@ -88,7 +89,7 @@ func TestAPIListIssueComments(t *testing.T) {
 }
 
 func TestAPICreateComment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	const commentBody = "Comment body"
 
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{}).(*issues_model.Issue)
@@ -111,7 +112,7 @@ func TestAPICreateComment(t *testing.T) {
 }
 
 func TestAPIGetComment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2}).(*issues_model.Comment)
 	assert.NoError(t, comment.LoadIssue())
@@ -138,7 +139,7 @@ func TestAPIGetComment(t *testing.T) {
 }
 
 func TestAPIEditComment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	const newCommentBody = "This is the new comment body"
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
@@ -164,7 +165,7 @@ func TestAPIEditComment(t *testing.T) {
 }
 
 func TestAPIDeleteComment(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
 		unittest.Cond("type = ?", issues_model.CommentTypeComment)).(*issues_model.Comment)
@@ -182,7 +183,7 @@ func TestAPIDeleteComment(t *testing.T) {
 }
 
 func TestAPIListIssueTimeline(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	// load comment
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)

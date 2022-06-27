@@ -20,12 +20,13 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPackageContainer(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
@@ -69,7 +70,7 @@ func TestPackageContainer(t *testing.T) {
 		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
@@ -92,7 +93,7 @@ func TestPackageContainer(t *testing.T) {
 		})
 
 		t.Run("User", func(t *testing.T) {
-			defer PrintCurrentTest(t)()
+			defer tests.PrintCurrentTest(t)()
 
 			req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			resp := MakeRequest(t, req, http.StatusUnauthorized)
@@ -117,7 +118,7 @@ func TestPackageContainer(t *testing.T) {
 	})
 
 	t.Run("DetermineSupport", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		defer tests.PrintCurrentTest(t)()
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 		addTokenAuthHeader(req, userToken)
@@ -130,7 +131,7 @@ func TestPackageContainer(t *testing.T) {
 			url := fmt.Sprintf("%sv2/%s/%s", setting.AppURL, user.Name, image)
 
 			t.Run("UploadBlob/Monolithic", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url))
 				addTokenAuthHeader(req, anonymousToken)
@@ -160,7 +161,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("UploadBlob/Chunked", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url))
 				addTokenAuthHeader(req, userToken)
@@ -210,7 +211,7 @@ func TestPackageContainer(t *testing.T) {
 			for _, tag := range tags {
 				t.Run(fmt.Sprintf("[Tag:%s]", tag), func(t *testing.T) {
 					t.Run("UploadManifest", func(t *testing.T) {
-						defer PrintCurrentTest(t)()
+						defer tests.PrintCurrentTest(t)()
 
 						req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, configDigest), strings.NewReader(configContent))
 						addTokenAuthHeader(req, userToken)
@@ -272,7 +273,7 @@ func TestPackageContainer(t *testing.T) {
 					})
 
 					t.Run("HeadManifest", func(t *testing.T) {
-						defer PrintCurrentTest(t)()
+						defer tests.PrintCurrentTest(t)()
 
 						req := NewRequest(t, "HEAD", fmt.Sprintf("%s/manifests/unknown-tag", url))
 						addTokenAuthHeader(req, userToken)
@@ -287,7 +288,7 @@ func TestPackageContainer(t *testing.T) {
 					})
 
 					t.Run("GetManifest", func(t *testing.T) {
-						defer PrintCurrentTest(t)()
+						defer tests.PrintCurrentTest(t)()
 
 						req := NewRequest(t, "GET", fmt.Sprintf("%s/manifests/unknown-tag", url))
 						addTokenAuthHeader(req, userToken)
@@ -306,7 +307,7 @@ func TestPackageContainer(t *testing.T) {
 			}
 
 			t.Run("UploadUntaggedManifest", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, untaggedManifestDigest), strings.NewReader(untaggedManifestContent))
 				addTokenAuthHeader(req, userToken)
@@ -345,7 +346,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("UploadIndexManifest", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, multiTag), strings.NewReader(indexManifestContent))
 				addTokenAuthHeader(req, userToken)
@@ -390,7 +391,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("UploadBlob/Mount", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads?mount=%s", url, unknownDigest))
 				addTokenAuthHeader(req, userToken)
@@ -405,7 +406,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("HeadBlob", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "HEAD", fmt.Sprintf("%s/blobs/%s", url, unknownDigest))
 				addTokenAuthHeader(req, userToken)
@@ -420,7 +421,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("GetBlob", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				req := NewRequest(t, "GET", fmt.Sprintf("%s/blobs/%s", url, unknownDigest))
 				addTokenAuthHeader(req, userToken)
@@ -436,7 +437,7 @@ func TestPackageContainer(t *testing.T) {
 			})
 
 			t.Run("GetTagList", func(t *testing.T) {
-				defer PrintCurrentTest(t)()
+				defer tests.PrintCurrentTest(t)()
 
 				cases := []struct {
 					URL          string
@@ -491,7 +492,7 @@ func TestPackageContainer(t *testing.T) {
 
 			t.Run("Delete", func(t *testing.T) {
 				t.Run("Blob", func(t *testing.T) {
-					defer PrintCurrentTest(t)()
+					defer tests.PrintCurrentTest(t)()
 
 					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/blobs/%s", url, blobDigest))
 					addTokenAuthHeader(req, userToken)
@@ -503,7 +504,7 @@ func TestPackageContainer(t *testing.T) {
 				})
 
 				t.Run("ManifestByDigest", func(t *testing.T) {
-					defer PrintCurrentTest(t)()
+					defer tests.PrintCurrentTest(t)()
 
 					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/manifests/%s", url, untaggedManifestDigest))
 					addTokenAuthHeader(req, userToken)
@@ -515,7 +516,7 @@ func TestPackageContainer(t *testing.T) {
 				})
 
 				t.Run("ManifestByTag", func(t *testing.T) {
-					defer PrintCurrentTest(t)()
+					defer tests.PrintCurrentTest(t)()
 
 					req := NewRequest(t, "DELETE", fmt.Sprintf("%s/manifests/%s", url, multiTag))
 					addTokenAuthHeader(req, userToken)

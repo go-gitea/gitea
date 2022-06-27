@@ -10,6 +10,7 @@ import (
 	"path"
 	"testing"
 
+	"code.gitea.io/gitea/tests"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -197,7 +198,7 @@ func TestNonasciiBranches(t *testing.T) {
 		},
 	}
 
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	user := "user2"
 	repo := "utf8"

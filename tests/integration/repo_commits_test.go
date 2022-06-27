@@ -13,12 +13,13 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRepoCommits(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 
@@ -33,7 +34,7 @@ func TestRepoCommits(t *testing.T) {
 }
 
 func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := loginUser(t, "user2")
 

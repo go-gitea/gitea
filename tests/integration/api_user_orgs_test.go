@@ -12,12 +12,13 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestUserOrgs(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
 	privateMemberUsername := "user4"
@@ -68,7 +69,7 @@ func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organiza
 }
 
 func TestMyOrgs(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	session := emptyTestSession(t)
 	req := NewRequest(t, "GET", "/api/v1/user/orgs")

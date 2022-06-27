@@ -14,6 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -138,7 +139,7 @@ func TestAPIOrgDeny(t *testing.T) {
 }
 
 func TestAPIGetAll(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequestf(t, "GET", "/api/v1/orgs")
 	resp := MakeRequest(t, req, http.StatusOK)
