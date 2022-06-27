@@ -63,7 +63,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 	u, err := user_model.GetUserByEmail(email)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
-			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+			ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 			ctx.Data["IsResetSent"] = true
 			ctx.HTML(http.StatusOK, tplForgotPassword)
 			return
@@ -93,7 +93,7 @@ func ForgotPasswdPost(ctx *context.Context) {
 		}
 	}
 
-	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale.Language())
+	ctx.Data["ResetPwdCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, ctx.Locale)
 	ctx.Data["IsResetSent"] = true
 	ctx.HTML(http.StatusOK, tplForgotPassword)
 }

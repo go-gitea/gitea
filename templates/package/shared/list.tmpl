@@ -29,7 +29,7 @@
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
 					<div class="desc issue-item-bottom-row df ac fw my-1">
-						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n.Lang}}
+						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n}}
 						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}
 							{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
