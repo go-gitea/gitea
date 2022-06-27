@@ -107,7 +107,7 @@ func InitDBConfig() {
 
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
-	connStr := ""
+	var connStr string
 	Param := "?"
 	if strings.Contains(Database.Name, Param) {
 		Param = "&"
@@ -168,7 +168,7 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
 			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
-	return
+	return connStr
 }
 
 // ParseMSSQLHostPort splits the host into host and port

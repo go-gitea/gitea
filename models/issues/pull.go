@@ -323,7 +323,7 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 		}
 		pr.ProtectedBranch, err = git_model.GetProtectedBranchBy(ctx, pr.BaseRepo.ID, pr.BaseBranch)
 	}
-	return
+	return err
 }
 
 // ReviewCount represents a count of Reviews

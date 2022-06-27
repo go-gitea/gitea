@@ -174,6 +174,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
+- `SITEMAP_PAGING_NUM`: **20**: Number of items that are displayed in a single subsitemap.
 - `GRAPH_MAX_COMMIT_NUM`: **100**: Number of maximum commits shown in the commit graph.
 - `CODE_COMMENT_LINES`: **4**: Number of line of codes shown for a code comment.
 - `DEFAULT_THEME`: **auto**: \[auto, gitea, arc-green\]: Set the default theme for the Gitea install.
@@ -1002,9 +1003,6 @@ Default templates for project boards:
      List of locales shown in language selector. The first locale will be used as the default if user browser's language doesn't match any locale in the list.
 - `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,Français,Nederlands,Latviešu,Русский,Українська,日本語,Español,Português do Brasil,Português de Portugal,Polski,Български,Italiano,Suomi,Türkçe,Čeština,Српски,Svenska,한국어,Ελληνικά,فارسی,Magyar nyelv,Bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
-## U2F (`U2F`) **DEPRECATED**
-- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application which is used for authentication of previously registered U2F keys. Requires HTTPS.
-
 ## Markup (`markup`)
 
 - `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)
@@ -1081,15 +1079,23 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 
 - `MAX_ATTEMPTS`: **3**: Max attempts per http/https request on migrations.
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
-- `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas.
-- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option has a higher priority to deny domains.
+- `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas. Wildcard is supported: `github.com, *.github.com`.
+- `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option has a higher priority to deny domains. Wildcard is supported.
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 
 ## Federation (`federation`)
 
-- `ENABLED`: **true**: Enable/Disable federation capabilities
+- `ENABLED`: **false**: Enable/Disable federation capabilities
 - `SHARE_USER_STATISTICS`: **true**: Enable/Disable user statistics for nodeinfo if federation is enabled
+- `MAX_SIZE`: **4**: Maximum federation request and response size (MB)
+
+ WARNING: Changing the settings below can break federation.
+
+- `ALGORITHMS`: **rsa-sha256, rsa-sha512, ed25519**: HTTP signature algorithms
+- `DIGEST_ALGORITHM`: **SHA-256**: HTTP signature digest algorithm
+- `GET_HEADERS`: **(request-target), Date**: GET headers for federation requests
+- `POST_HEADERS`: **(request-target), Date, Digest**: POST headers for federation requests
 
 ## Packages (`packages`)
 

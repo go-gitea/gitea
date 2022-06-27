@@ -132,7 +132,7 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 		}
 	}
 
-	return
+	return err
 }
 
 // GetRelease returns release by given ID.
@@ -305,7 +305,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
 	}
 
-	return
+	return err
 }
 
 type releaseSorter struct {
