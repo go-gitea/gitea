@@ -168,7 +168,7 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowers
+		total = len(items)
 	case "following":
 		items, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
 			Actor:         ctx.Doer,
@@ -181,7 +181,7 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowing
+		total = len(items)
 	case "activity":
 		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,

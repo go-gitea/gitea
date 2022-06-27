@@ -34,7 +34,7 @@ func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(u.NumFollowers))
+	ctx.SetTotalCountHeader(int64(len(users)))
 	responseAPIUsers(ctx, users)
 }
 
@@ -100,7 +100,7 @@ func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(u.NumFollowing))
+	ctx.SetTotalCountHeader(int64(len(users)))
 	responseAPIUsers(ctx, users)
 }
 
