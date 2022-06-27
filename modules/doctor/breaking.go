@@ -59,8 +59,8 @@ func checkUserEmail(ctx context.Context, logger log.Logger, _ bool) error {
 }
 
 // From time to time Gitea makes changes to the reserved usernames and which symbols
-// are allowed for various reasons. This check helps with detecting users that are according
-// to Gitea don't have a valid username.
+// are allowed for various reasons. This check helps with detecting users that, according
+// to our reserved names, don't have a valid username.
 func checkUserName(ctx context.Context, logger log.Logger, _ bool) error {
 	var invalidUserCount int64
 	if err := iterateUserAccounts(ctx, func(u *user.User) error {
@@ -91,7 +91,7 @@ func init() {
 	})
 	Register(&Check{
 		Title:     "Check if users have a valid username",
-		Name:      "check-user-name",
+		Name:      "check-user-names",
 		IsDefault: false,
 		Run:       checkUserName,
 		Priority:  9,
