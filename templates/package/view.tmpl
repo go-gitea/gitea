@@ -9,7 +9,7 @@
 						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 					</div>
 					<div>
-						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n.Lang}}
+						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n}}
 						{{if .HasRepositoryAccess}}
 							{{.i18n.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 						{{else}}
