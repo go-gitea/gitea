@@ -203,8 +203,7 @@ export function initGlobalDropzone() {
               file: file.uuid,
               _csrf: csrfToken,
             }).then(() => {
-              const filename = file.name.substring(0, file.name.lastIndexOf('.')), oldval = `![${filename}](/attachments/${file.uuid})`;
-              const editor = this.element.parentElement.parentElement.querySelector('textarea')._data_easyMDE;
+              const filename = file.name.substring(0, file.name.lastIndexOf('.')), oldval = `![${filename}](/attachments/${file.uuid})`, editor = this.element.parentElement.parentElement.querySelector('textarea')._data_easyMDE;
               editor.value(editor.value().replace(oldval, ''));
             });
           }
