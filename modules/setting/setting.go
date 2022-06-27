@@ -207,6 +207,7 @@ var (
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
+		SitemapPagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
@@ -260,6 +261,7 @@ var (
 		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:    20,
+		SitemapPagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
