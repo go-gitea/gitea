@@ -388,9 +388,11 @@ var migrations = []Migration{
 	// v215 -> v216
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
 	// v216 -> v217
-	NewMigration("Improve Action table indices", improveActionTableIndices),
+	NewMigration("(NOOP) Improve Action table indices", noop216),
 	// v217 -> v218
 	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v216 -> v217
+	NewMigration("Improve Action table indices", improveActionTableIndices),
 }
 
 // GetCurrentDBVersion returns the current db version
