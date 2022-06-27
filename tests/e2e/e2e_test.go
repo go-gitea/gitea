@@ -12,41 +12,36 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 
-	"code.gitea.io/gitea/cmd"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/urfave/cli"
-
-	_ "net/http/pprof" // Used for debugging if enabled and a web server is running
 )
+
+var c *web.Route
 
 func TestMain(m *testing.M) {
 	defer log.Close()
 
 	initE2eTest()
-
-	app := cli.NewApp()
-	app.Action = cmd.CmdWeb.Action
-	args := []string{"-c", setting.CustomConf}
-	go app.Run(args)
-
-	time.Sleep(10 * time.Second)
+	c = routers.NormalRoutes()
 
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")
@@ -204,7 +199,7 @@ func initE2eTest() {
 		defer db.Close()
 	}
 
-	// routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
+	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 }
 
 func prepareTestEnv(t testing.TB, skip ...int) func() {
@@ -243,16 +238,20 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 
 func TestE2e(t *testing.T) {
 	defer prepareTestEnv(t)()
-	cmd := exec.Command("npx", "playwright", "test")
-	cmd.Env = os.Environ()
-	cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		log.Error("%v", out.String())
-		log.Fatal("Playwright Failed: %s", err)
-	} else {
-		log.Info("%v", out.String())
-	}
+
+	// Default 2 minute timeout
+	onGiteaRun(t, func(*testing.T, *url.URL) {
+		cmd := exec.Command("npx", "playwright", "test")
+		cmd.Env = os.Environ()
+		cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
+		var out bytes.Buffer
+		cmd.Stdout = &out
+		err := cmd.Run()
+		if err != nil {
+			log.Error("%v", out.String())
+			log.Fatal("Playwright Failed: %s", err)
+		} else {
+			log.Info("%v", out.String())
+		}
+	})
 }
