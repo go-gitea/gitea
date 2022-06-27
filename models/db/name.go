@@ -11,10 +11,8 @@ import (
 	"unicode/utf8"
 )
 
-var (
-	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errors.New("name is empty")
-)
+// ErrNameEmpty name is empty error
+var ErrNameEmpty = errors.New("name is empty")
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {
