@@ -1003,9 +1003,6 @@ Default templates for project boards:
      List of locales shown in language selector. The first locale will be used as the default if user browser's language doesn't match any locale in the list.
 - `NAMES`: **English,简体中文,繁體中文（香港）,繁體中文（台灣）,Deutsch,Français,Nederlands,Latviešu,Русский,Українська,日本語,Español,Português do Brasil,Português de Portugal,Polski,Български,Italiano,Suomi,Türkçe,Čeština,Српски,Svenska,한국어,Ελληνικά,فارسی,Magyar nyelv,Bahasa Indonesia,മലയാളം**: Visible names corresponding to the locales
 
-## U2F (`U2F`) **DEPRECATED**
-- `APP_ID`: **`ROOT_URL`**: Declares the facet of the application which is used for authentication of previously registered U2F keys. Requires HTTPS.
-
 ## Markup (`markup`)
 
 - `MERMAID_MAX_SOURCE_CHARACTERS`: **5000**: Set the maximum size of a Mermaid source. (Set to -1 to disable)

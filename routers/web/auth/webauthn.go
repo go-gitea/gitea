@@ -67,10 +67,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	// FIXME: DEPRECATED appid is deprecated and is planned to be removed in v1.18.0
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user), webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
-		"appid": setting.U2F.AppID,
-	}))
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -158,13 +155,6 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 		redirect = setting.AppSubURL + "/"
 	}
 	_ = ctx.Session.Delete("twofaUid")
-
-	// Finally check if the appid extension was used:
-	if value, ok := parsedResponse.ClientExtensionResults["appid"]; ok {
-		if appid, ok := value.(bool); ok && appid {
-			ctx.Flash.Error(ctx.Tr("webauthn_u2f_deprecated", dbCred.Name))
-		}
-	}
 
 	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
 }
