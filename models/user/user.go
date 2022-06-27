@@ -86,7 +86,7 @@ type User struct {
 	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
-	// is to change his/her password after registration.
+	// is to change their password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
 	LoginType   auth.Type
@@ -537,7 +537,7 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted his/her account.
+// NewGhostUser creates and returns a fake user for someone has deleted their account.
 func NewGhostUser() *User {
 	return &User{
 		ID:        -1,

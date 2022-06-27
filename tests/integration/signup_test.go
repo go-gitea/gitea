@@ -13,7 +13,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -68,9 +68,9 @@ func TestSignupEmail(t *testing.T) {
 		wantStatus int
 		wantMsg    string
 	}{
-		{"exampleUser@example.com\r\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
-		{"exampleUser@example.com\r", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
-		{"exampleUser@example.com\n", http.StatusOK, i18n.Tr("en", "form.email_invalid")},
+		{"exampleUser@example.com\r\n", http.StatusOK, translation.NewLocale("en-US").Tr("form.email_invalid")},
+		{"exampleUser@example.com\r", http.StatusOK, translation.NewLocale("en-US").Tr("form.email_invalid")},
+		{"exampleUser@example.com\n", http.StatusOK, translation.NewLocale("en-US").Tr("form.email_invalid")},
 		{"exampleUser@example.com", http.StatusSeeOther, ""},
 	}
 

@@ -14,9 +14,9 @@ REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/repos.bleve
 
 [queue.issue_indexer]
-ISSUE_INDEXER_TYPE = elasticsearch
-ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
-ISSUE_INDEXER_QUEUE_DIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/issues.queue
+TYPE = elasticsearch
+CONN_STR = http://elastic:changeme@elasticsearch:9200
+DATADIR = tests/{{TEST_TYPE}}/gitea-{{TEST_TYPE}}-mysql/indexers/issues.queue
 
 [queue]
 TYPE = immediate

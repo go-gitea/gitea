@@ -207,6 +207,7 @@ var (
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
+		SitemapPagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
@@ -260,6 +261,7 @@ var (
 		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:    20,
+		SitemapPagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
@@ -399,11 +401,6 @@ var (
 		JWTSigningPrivateKeyFile:   "jwt/private.pem",
 		MaxTokenLength:             math.MaxInt16,
 	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F = struct {
-		AppID string
-	}{}
 
 	// Metrics settings
 	Metrics = struct {
@@ -1100,16 +1097,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F.AppID = strings.TrimSuffix(AppURL, "/")
-	if Cfg.Section("U2F").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("U2F").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-	} else if Cfg.Section("u2f").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("u2f").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 	}
 }
 

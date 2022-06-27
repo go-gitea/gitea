@@ -14,7 +14,7 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +86,7 @@ func TestCreateRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.stable"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.stable"), 4)
 }
 
 func TestCreateReleasePreRelease(t *testing.T) {
@@ -95,7 +95,7 @@ func TestCreateReleasePreRelease(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", true, false)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.prerelease"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.prerelease"), 4)
 }
 
 func TestCreateReleaseDraft(t *testing.T) {
@@ -104,7 +104,7 @@ func TestCreateReleaseDraft(t *testing.T) {
 	session := loginUser(t, "user2")
 	createNewRelease(t, session, "/user2/repo1", "v0.0.1", "v0.0.1", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", i18n.Tr("en", "repo.release.draft"), 4)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.1", translation.NewLocale("en-US").Tr("repo.release.draft"), 4)
 }
 
 func TestCreateReleasePaging(t *testing.T) {
@@ -124,11 +124,11 @@ func TestCreateReleasePaging(t *testing.T) {
 	}
 	createNewRelease(t, session, "/user2/repo1", "v0.0.12", "v0.0.12", false, true)
 
-	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", i18n.Tr("en", "repo.release.draft"), 10)
+	checkLatestReleaseAndCount(t, session, "/user2/repo1", "v0.0.12", translation.NewLocale("en-US").Tr("repo.release.draft"), 10)
 
 	// Check that user4 does not see draft and still see 10 latest releases
 	session2 := loginUser(t, "user4")
-	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", i18n.Tr("en", "repo.release.stable"), 10)
+	checkLatestReleaseAndCount(t, session2, "/user2/repo1", "v0.0.11", translation.NewLocale("en-US").Tr("repo.release.stable"), 10)
 }
 
 func TestViewReleaseListNoLogin(t *testing.T) {

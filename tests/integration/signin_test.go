@@ -11,7 +11,7 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -47,10 +47,10 @@ func TestSignin(t *testing.T) {
 		password string
 		message  string
 	}{
-		{username: "wrongUsername", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
-		{username: "wrongUsername", password: "password", message: i18n.Tr("en", "form.username_password_incorrect")},
-		{username: "user15", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
-		{username: "user1@example.com", password: "wrongPassword", message: i18n.Tr("en", "form.username_password_incorrect")},
+		{username: "wrongUsername", password: "wrongPassword", message: translation.NewLocale("en-US").Tr("form.username_password_incorrect")},
+		{username: "wrongUsername", password: "password", message: translation.NewLocale("en-US").Tr("form.username_password_incorrect")},
+		{username: "user15", password: "wrongPassword", message: translation.NewLocale("en-US").Tr("form.username_password_incorrect")},
+		{username: "user1@example.com", password: "wrongPassword", message: translation.NewLocale("en-US").Tr("form.username_password_incorrect")},
 	}
 
 	for _, s := range samples {

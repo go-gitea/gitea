@@ -27,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -204,7 +204,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
-		assert.Contains(t, text, i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
+		assert.Contains(t, text, translation.NewLocale("en-US").Tr("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
 		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
 	})
 }
