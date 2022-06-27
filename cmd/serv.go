@@ -12,7 +12,6 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/perm"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -83,15 +83,12 @@ func setup(logPath string, debug bool) {
 	}
 }
 
-var (
-	allowedCommands = map[string]perm.AccessMode{
-		"git-upload-pack":    perm.AccessModeRead,
-		"git-upload-archive": perm.AccessModeRead,
-		"git-receive-pack":   perm.AccessModeWrite,
-		lfsAuthenticateVerb:  perm.AccessModeNone,
-	}
-	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
-)
+var allowedCommands = map[string]perm.AccessMode{
+	"git-upload-pack":    perm.AccessModeRead,
+	"git-upload-archive": perm.AccessModeRead,
+	"git-receive-pack":   perm.AccessModeWrite,
+	lfsAuthenticateVerb:  perm.AccessModeNone,
+}
 
 func fail(userMessage, logMessage string, args ...interface{}) error {
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
@@ -205,7 +202,7 @@ func runServ(c *cli.Context) error {
 	username := strings.ToLower(rr[0])
 	reponame := strings.ToLower(strings.TrimSuffix(rr[1], ".git"))
 
-	if alphaDashDotPattern.MatchString(reponame) {
+	if !user_model.IsValidUsername(reponame) {
 		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
