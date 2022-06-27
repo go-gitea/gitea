@@ -307,9 +307,13 @@ async function onEditContent(event) {
           this.on('removedfile', (file) => {
             $(`#${file.uuid}`).remove();
             if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
+              const editor = this.element.parentElement.parentElement.querySelector('textarea')._data_easyMDE;
               $.post($dropzone.data('remove-url'), {
                 file: file.uuid,
                 _csrf: csrfToken,
+              }).then(() => {
+                const filename = file.name.substring(0, file.name.lastIndexOf('.')), oldval = `![${filename}](/attachments/${file.uuid})`;
+                editor.value(editor.value().replace(oldval, ''));
               });
             }
           });

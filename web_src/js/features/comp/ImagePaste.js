@@ -71,6 +71,11 @@ export function initCompImagePaste($target) {
           replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           dropzoneFiles.appendChild(input[0]);
+          const upfile = {name: img.name, size: img.size, uuid: data.uuid};
+          dropzone.dropzone.emit('addedfile', upfile);
+          dropzone.dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
+          dropzone.dropzone.emit('complete', upfile);
+          dropzone.dropzone.files.push(upfile);
         }
       }, false);
     }
@@ -87,6 +92,11 @@ export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
       easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
+      const upfile = {name: img.name, size: img.size, uuid: data.uuid};
+      dropzone.dropzone.emit('addedfile', upfile);
+      dropzone.dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
+      dropzone.dropzone.emit('complete', upfile);
+      dropzone.dropzone.files.push(upfile);
     }
   });
 }
