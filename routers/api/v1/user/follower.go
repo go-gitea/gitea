@@ -24,7 +24,11 @@ func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
-	users, err := user_model.GetUserFollowers(u, utils.GetListOptions(ctx))
+	users, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
+		RequestedUser: u,
+		Actor:         ctx.Doer,
+		ListOptions:   utils.GetListOptions(ctx),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowers", err)
 		return
@@ -86,7 +90,11 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
-	users, err := user_model.GetUserFollowing(u, utils.GetListOptions(ctx))
+	users, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
+		Actor:         ctx.Doer,
+		RequestedUser: u,
+		ListOptions:   utils.GetListOptions(ctx),
+	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetUserFollowing", err)
 		return

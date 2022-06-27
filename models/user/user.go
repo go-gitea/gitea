@@ -316,15 +316,16 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 }
 
 // GetUserFollowers returns range of user's followers.
-func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Where("follow.follow_id=?", u.ID).
+func GetUserFollowers(ctx context.Context, opts GetUserFollowOptions) ([]*User, error) {
+	opts.checkFollowers = true
+
+	sess := db.GetEngine(ctx).Where(opts.toCond()).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
 
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+	if opts.Page != 0 {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 
-		users := make([]*User, 0, listOptions.PageSize)
+		users := make([]*User, 0, opts.PageSize)
 		return users, sess.Find(&users)
 	}
 
@@ -332,16 +333,71 @@ func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
 	return users, sess.Find(&users)
 }
 
+// GetFeedsOptions options for getting the user's followers or followings.
+type GetUserFollowOptions struct {
+	db.ListOptions
+	checkFollowers bool  // Specify if we check for followers or followings.
+	Actor          *User // the user viewing the followings
+	RequestedUser  *User // the user we want followings for
+}
+
+func (opts GetUserFollowOptions) toCond() builder.Cond {
+	cond := builder.NewCond()
+
+	if opts.checkFollowers {
+		cond = cond.And(builder.Eq{"`follow`.follow_id": opts.RequestedUser.ID})
+	} else {
+		cond = cond.And(builder.Eq{"`follow`.user_id": opts.RequestedUser.ID})
+	}
+
+	// If the actor is not signed in. Only show users that have their visibility
+	// set to public.
+	if opts.Actor == nil {
+		return cond.And(builder.Eq{"`user`.visibility": 0})
+	}
+
+	// Fast path for admins.
+	if opts.Actor.IsAdmin {
+		return cond
+	}
+
+	// If the actor is signed in, then we allow all limited & public accounts to be seen.
+	// However the actor can also see private accounts if they have are in the same organisation
+	// as that user.
+	cond = cond.And(
+		builder.Or(
+			// Include all limited & public accounts.
+			builder.Lte{"`user`.visibility": structs.VisibleTypeLimited},
+			// Check which private users can be included.
+			// Get the actor's orginisations and check if the private
+			// users are in those orgs.
+			builder.And(
+				// Specify all private users.
+				builder.Eq{"`user`.visibility": structs.VisibleTypePrivate},
+				// Is the user's id in the organisation that the actor is in?
+				builder.In("`user`.id",
+					builder.Select("uid").From("org_user").Where(
+						builder.In("org_id",
+							// Get the actor's orginaisations.
+							builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": opts.Actor.ID})),
+					)),
+			),
+		),
+	)
+
+	return cond
+}
+
 // GetUserFollowing returns range of user's following.
-func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
-	sess := db.GetEngine(db.DefaultContext).
-		Where("follow.user_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.follow_id")
+func GetUserFollowing(ctx context.Context, opts GetUserFollowOptions) ([]*User, error) {
+	sess := db.GetEngine(ctx).
+		Join("LEFT", "follow", "`user`.id=follow.follow_id").
+		Where(opts.toCond())
 
-	if listOptions.Page != 0 {
-		sess = db.SetSessionPagination(sess, &listOptions)
+	if opts.Page != 0 {
+		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 
-		users := make([]*User, 0, listOptions.PageSize)
+		users := make([]*User, 0, opts.PageSize)
 		return users, sess.Find(&users)
 	}
 

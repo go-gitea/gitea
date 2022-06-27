@@ -157,9 +157,10 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctx.ContextUser, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
+		items, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
+			RequestedUser: ctx.ContextUser,
+			Actor:         ctx.Doer,
+			ListOptions:   db.ListOptions{PageSize: setting.UI.User.RepoPagingNum, Page: page},
 		})
 		if err != nil {
 			ctx.ServerError("GetUserFollowers", err)
@@ -169,9 +170,10 @@ func Profile(ctx *context.Context) {
 
 		total = ctx.ContextUser.NumFollowers
 	case "following":
-		items, err := user_model.GetUserFollowing(ctx.ContextUser, db.ListOptions{
-			PageSize: setting.UI.User.RepoPagingNum,
-			Page:     page,
+		items, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
+			Actor:         ctx.Doer,
+			RequestedUser: ctx.ContextUser,
+			ListOptions:   db.ListOptions{PageSize: setting.UI.User.RepoPagingNum, Page: page},
 		})
 		if err != nil {
 			ctx.ServerError("GetUserFollowing", err)
