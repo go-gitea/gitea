@@ -124,7 +124,7 @@ func NewMilestone(m *Milestone) (err error) {
 	return committer.Commit()
 }
 
-// HasMilestoneByRepoID returns if the  milestone exists in the repository.
+// HasMilestoneByRepoID returns if the milestone exists in the repository.
 func HasMilestoneByRepoID(ctx context.Context, repoID, id int64) (bool, error) {
 	return db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
 }
