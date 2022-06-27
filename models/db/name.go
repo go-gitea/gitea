@@ -7,7 +7,6 @@ package db
 import (
 	"errors"
 	"fmt"
-	"regexp"
 	"strings"
 	"unicode/utf8"
 )
@@ -15,8 +14,6 @@ import (
 var (
 	// ErrNameEmpty name is empty error
 	ErrNameEmpty = errors.New("name is empty")
-
-	validUsernamePattern = regexp.MustCompile(`^[\da-zA-Z][-.\w]+$`)
 )
 
 // ErrNameReserved represents a "reserved name" error.
@@ -87,9 +84,4 @@ func IsUsableName(names, patterns []string, name string) error {
 	}
 
 	return nil
-}
-
-// IsValidUsername checks if name is valid
-func IsValidUsername(name string) bool {
-	return validUsernamePattern.MatchString(name)
 }
