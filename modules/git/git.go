@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"regexp"
 	"runtime"
 	"strings"
@@ -179,6 +180,24 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 		if err != nil {
 			return
 		}
+
+		// Gitea 1.17-rc uses "setting.RepoRootPath" for Git HOME, which is incorrect.
+		// Do this check to make sure there is no legacy file in the RepoRootPath. This check might be able to be removed with 1.19 release.
+		var hasCheckErr bool
+		_ = os.Remove(filepath.Join(setting.RepoRootPath, ".gitconfig")) // remove the auto generated git config file
+		_ = os.Remove(filepath.Join(setting.RepoRootPath, ".ssh"))       // remove the empty dummy ".ssh" directory
+		for _, wellKnownName := range []string{".ssh", ".gnupg"} {
+			checkLegacyFile := filepath.Join(setting.RepoRootPath, wellKnownName)
+			_, checkErr := os.Stat(checkLegacyFile)
+			if checkErr == nil || !errors.Is(checkErr, os.ErrNotExist) {
+				log.Error(`Git HOME has been moved to [git].HOME_PATH, but there are legacy file in old place. Please backup and remove the legacy files %q`, checkLegacyFile)
+				hasCheckErr = true
+			}
+		}
+		if hasCheckErr {
+			log.Fatal("Please fix errors above, remove legacy files")
+		}
+		// end of legacy Gitea 1.17-rc check
 
 		// Since git wire protocol has been released from git v2.18
 		if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
