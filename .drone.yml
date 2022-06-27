@@ -543,6 +543,22 @@ steps:
       - name: deps
         path: /go
 
+# Is this needed?
+  - name: build
+    image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
+    user: gitea
+    commands:
+      - ./build/test-env-check.sh
+      - make backend
+    environment:
+      GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
+      GOSUMDB: sum.golang.org
+      TAGS: bindata gogit sqlite sqlite_unlock_notify
+    depends_on: [deps-backend, prepare-test-env]
+    volumes:
+      - name: deps
+        path: /go
+
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
     image: mcr.microsoft.com/playwright:v1.22.2-focal
@@ -563,7 +579,7 @@ steps:
       NO_DEPS_PLAYWRIGHT: 1
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       NPX_FLAGS: '--yes'
-    depends_on: [deps-backend, deps-frontend]
+    depends_on: [build]
     volumes:
       - name: deps
         path: /go
