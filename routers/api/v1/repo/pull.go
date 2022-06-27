@@ -92,7 +92,7 @@ func ListPullRequests(ctx *context.APIContext) {
 
 	listOptions := utils.GetListOptions(ctx)
 
-	prs, maxResults, err := models.PullRequests(ctx.Repo.Repository.ID, &models.PullRequestsOptions{
+	prs, maxResults, err := issues_model.PullRequests(ctx.Repo.Repository.ID, &issues_model.PullRequestsOptions{
 		ListOptions: listOptions,
 		State:       ctx.FormTrim("state"),
 		SortType:    ctx.FormTrim("sort"),
@@ -160,9 +160,9 @@ func GetPullRequest(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -220,9 +220,9 @@ func DownloadPullDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.InternalServerError(err)
@@ -297,14 +297,14 @@ func CreatePullRequest(ctx *context.APIContext) {
 	defer headGitRepo.Close()
 
 	// Check if another PR exists with the same targets
-	existingPr, err := models.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, models.PullRequestFlowGithub)
+	existingPr, err := issues_model.GetUnmergedPullRequest(headRepo.ID, ctx.Repo.Repository.ID, headBranch, baseBranch, issues_model.PullRequestFlowGithub)
 	if err != nil {
-		if !models.IsErrPullRequestNotExist(err) {
+		if !issues_model.IsErrPullRequestNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetUnmergedPullRequest", err)
 			return
 		}
 	} else {
-		err = models.ErrPullRequestAlreadyExists{
+		err = issues_model.ErrPullRequestAlreadyExists{
 			ID:         existingPr.ID,
 			IssueID:    existingPr.Index,
 			HeadRepoID: existingPr.HeadRepoID,
@@ -317,7 +317,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 	}
 
 	if len(form.Labels) > 0 {
-		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+		labels, err := issues_model.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDs", err)
 			return
@@ -331,7 +331,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
-			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			orgLabels, err := issues_model.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
 				return
@@ -364,7 +364,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		deadlineUnix = timeutil.TimeStamp(form.Deadline.Unix())
 	}
 
-	prIssue := &models.Issue{
+	prIssue := &issues_model.Issue{
 		RepoID:       repo.ID,
 		Title:        form.Title,
 		PosterID:     ctx.Doer.ID,
@@ -374,7 +374,7 @@ func CreatePullRequest(ctx *context.APIContext) {
 		Content:      form.Body,
 		DeadlineUnix: deadlineUnix,
 	}
-	pr := &models.PullRequest{
+	pr := &issues_model.PullRequest{
 		HeadRepoID: headRepo.ID,
 		BaseRepoID: repo.ID,
 		HeadBranch: headBranch,
@@ -382,11 +382,11 @@ func CreatePullRequest(ctx *context.APIContext) {
 		HeadRepo:   headRepo,
 		BaseRepo:   repo,
 		MergeBase:  compareInfo.MergeBase,
-		Type:       models.PullRequestGitea,
+		Type:       issues_model.PullRequestGitea,
 	}
 
 	// Get all assignee IDs
-	assigneeIDs, err := models.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
+	assigneeIDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd(form.Assignee, form.Assignees)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", fmt.Sprintf("Assignee does not exist: [name: %s]", err))
@@ -409,13 +409,13 @@ func CreatePullRequest(ctx *context.APIContext) {
 			return
 		}
 		if !valid {
-			ctx.Error(http.StatusUnprocessableEntity, "canBeAssigned", models.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
+			ctx.Error(http.StatusUnprocessableEntity, "canBeAssigned", repo_model.ErrUserDoesNotHaveAccessToRepo{UserID: aID, RepoName: repo.Name})
 			return
 		}
 	}
 
 	if err := pull_service.NewPullRequest(ctx, repo, prIssue, labelIDs, []string{}, pr, assigneeIDs); err != nil {
-		if models.IsErrUserDoesNotHaveAccessToRepo(err) {
+		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) {
 			ctx.Error(http.StatusBadRequest, "UserDoesNotHaveAccessToRepo", err)
 			return
 		}
@@ -470,9 +470,9 @@ func EditPullRequest(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.EditPullRequestOption)
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -510,7 +510,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			deadlineUnix = timeutil.TimeStamp(deadline.Unix())
 		}
 
-		if err := models.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
+		if err := issues_model.UpdateIssueDeadline(issue, deadlineUnix, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateIssueDeadline", err)
 			return
 		}
@@ -548,14 +548,14 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	if ctx.Repo.CanWrite(unit.TypePullRequests) && form.Labels != nil {
-		labels, err := models.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
+		labels, err := issues_model.GetLabelsInRepoByIDs(ctx.Repo.Repository.ID, form.Labels)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "GetLabelsInRepoByIDsError", err)
 			return
 		}
 
 		if ctx.Repo.Owner.IsOrganization() {
-			orgLabels, err := models.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
+			orgLabels, err := issues_model.GetLabelsInOrgByIDs(ctx.Repo.Owner.ID, form.Labels)
 			if err != nil {
 				ctx.Error(http.StatusInternalServerError, "GetLabelsInOrgByIDs", err)
 				return
@@ -564,7 +564,7 @@ func EditPullRequest(ctx *context.APIContext) {
 			labels = append(labels, orgLabels...)
 		}
 
-		if err = models.ReplaceIssueLabels(issue, labels, ctx.Doer); err != nil {
+		if err = issues_model.ReplaceIssueLabels(issue, labels, ctx.Doer); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReplaceLabelsError", err)
 			return
 		}
@@ -577,9 +577,9 @@ func EditPullRequest(ctx *context.APIContext) {
 		}
 		issue.IsClosed = api.StateClosed == api.StateType(*form.State)
 	}
-	statusChangeComment, titleChanged, err := models.UpdateIssueByAPI(issue, ctx.Doer)
+	statusChangeComment, titleChanged, err := issues_model.UpdateIssueByAPI(issue, ctx.Doer)
 	if err != nil {
-		if models.IsErrDependenciesLeft(err) {
+		if issues_model.IsErrDependenciesLeft(err) {
 			ctx.Error(http.StatusPreconditionFailed, "DependenciesLeft", "cannot close this pull request because it still has open dependencies")
 			return
 		}
@@ -602,10 +602,10 @@ func EditPullRequest(ctx *context.APIContext) {
 			return
 		}
 		if err := pull_service.ChangeTargetBranch(ctx, pr, ctx.Doer, form.Base); err != nil {
-			if models.IsErrPullRequestAlreadyExists(err) {
+			if issues_model.IsErrPullRequestAlreadyExists(err) {
 				ctx.Error(http.StatusConflict, "IsErrPullRequestAlreadyExists", err)
 				return
-			} else if models.IsErrIssueIsClosed(err) {
+			} else if issues_model.IsErrIssueIsClosed(err) {
 				ctx.Error(http.StatusUnprocessableEntity, "IsErrIssueIsClosed", err)
 				return
 			} else if models.IsErrPullRequestHasMerged(err) {
@@ -632,9 +632,9 @@ func EditPullRequest(ctx *context.APIContext) {
 	}
 
 	// Refetch from database
-	pr, err = models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pr.Index)
+	pr, err = issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pr.Index)
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -676,9 +676,9 @@ func IsPullRequestMerged(ctx *context.APIContext) {
 	//   "404":
 	//     description: pull request has not been merged
 
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -730,9 +730,9 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*forms.MergePullRequestForm)
 
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound("GetPullRequestByIndex", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -753,7 +753,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = pr.Issue.ReadBy(ctx, ctx.Doer.ID); err != nil {
+		if err = models.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReadBy", err)
 			return
 		}
@@ -868,7 +868,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if form.DeleteBranchAfterMerge {
 		// Don't cleanup when there are other PR's that use this branch as head branch.
-		exist, err := models.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
+		exist, err := issues_model.HasUnmergedPullRequestsByHeadInfo(ctx, pr.HeadRepoID, pr.HeadBranch)
 		if err != nil {
 			ctx.ServerError("HasUnmergedPullRequestsByHeadInfo", err)
 			return
@@ -902,7 +902,7 @@ func MergePullRequest(ctx *context.APIContext) {
 			}
 			return
 		}
-		if err := models.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
+		if err := issues_model.AddDeletePRBranchComment(ctx, ctx.Doer, pr.BaseRepo, pr.Issue.ID, pr.HeadBranch); err != nil {
 			// Do not fail here as branch has already been deleted
 			log.Error("DeleteBranch: %v", err)
 		}
@@ -1079,9 +1079,9 @@ func UpdatePullRequest(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -1177,9 +1177,9 @@ func CancelScheduledAutoMerge(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	pullIndex := ctx.ParamsInt64(":index")
-	pull, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
+	pull, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, pullIndex)
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -1254,9 +1254,9 @@ func GetPullRequestCommits(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := models.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)

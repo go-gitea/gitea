@@ -6,7 +6,7 @@
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
 					<a class="item" href="{{.Link}}?type=your_repositories&sort={{$.SortType}}&state={{.State}}&q={{$.Keyword}}">
-						{{.i18n.Tr "home.issues.in_your_repos"}}
+						{{.locale.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{.Total}}</strong>
 					</a>
 					<div class="ui divider"></div>
@@ -38,12 +38,12 @@
 					<div class="column">
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
-								{{svg "octicon-issue-opened" 16 "mr-3"}}
-								{{.i18n.Tr "repo.milestones.open_tab" .MilestoneStats.OpenCount}}
+								{{svg "octicon-milestone" 16 "mr-3"}}
+								{{JsPrettyNumber .MilestoneStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
-								{{svg "octicon-issue-closed" 16 "mr-3"}}
-								{{.i18n.Tr "repo.milestones.close_tab" .MilestoneStats.ClosedCount}}
+								{{svg "octicon-check" 16 "mr-3"}}
+								{{JsPrettyNumber .MilestoneStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>
@@ -54,8 +54,8 @@
 								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}},{{end}}]"/>
 								<input type="hidden" name="sort" value="{{$.SortType}}"/>
 								<input type="hidden" name="state" value="{{$.State}}"/>
-								<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-								<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 							</div>
 						</form>
 					</div>
@@ -63,16 +63,16 @@
 						<!-- Sort -->
 						<div class="ui dropdown type jump item">
 							<span class="text">
-								{{.i18n.Tr "repo.issues.filter_sort"}}
+								{{.locale.Tr "repo.issues.filter_sort"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</span>
 							<div class="menu">
-								<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-								<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
-								<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-								<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-								<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-								<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+								<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
+								<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+								<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+								<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+								<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+								<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
 							</div>
 						</div>
 					</div>
@@ -91,32 +91,36 @@
 								</div>
 							</div>
 							<div class="meta">
-								{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.i18n.Lang }}
+								{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.locale }}
 								{{if .IsClosed}}
-									{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+									{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
 								{{else}}
 									{{svg "octicon-calendar"}}
 									{{if .DeadlineString}}
 										<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
 									{{else}}
-										{{$.i18n.Tr "repo.milestones.no_due_date"}}
+										{{$.locale.Tr "repo.milestones.no_due_date"}}
 									{{end}}
 								{{end}}
 								<span class="issue-stats">
-									{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.milestones.open_tab" .NumOpenIssues}}
-									{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.milestones.close_tab" .NumClosedIssues}}
-									{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
+									{{svg "octicon-issue-opened" 16 "mr-3"}}
+									{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+									{{svg "octicon-check" 16 "mr-3"}}
+									{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
+									{{if .TotalTrackedTime}}
+										{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}
+									{{end}}
 								</span>
 							</div>
 							{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 								<div class="ui right operate">
-									<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+									<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
 									{{if .IsClosed}}
-										<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-check"}} {{$.i18n.Tr "repo.milestones.open"}}</a>
+										<a href="{{$.Link}}/{{.ID}}/open" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-check"}} {{$.locale.Tr "repo.milestones.open"}}</a>
 									{{else}}
-										<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-x"}} {{$.i18n.Tr "repo.milestones.close"}}</a>
+										<a href="{{$.Link}}/{{.ID}}/close" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-x"}} {{$.locale.Tr "repo.milestones.close"}}</a>
 									{{end}}
-									<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+									<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
 								</div>
 							{{end}}
 							{{if .Content}}

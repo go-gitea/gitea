@@ -387,6 +387,10 @@ var migrations = []Migration{
 	NewMigration("Add auto merge table", addAutoMergeTable),
 	// v215 -> v216
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
+	NewMigration("Improve Action table indices", improveActionTableIndices),
+	// v217 -> v218
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -419,7 +423,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialised")
+		return fmt.Errorf("Database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -953,7 +957,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+// modifyColumn will modify column's type or other property. SQLITE is not supported
 func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error

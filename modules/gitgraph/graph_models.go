@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -117,14 +117,14 @@ func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, git
 		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
 		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsOwnerMemberCollaborator(repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)
 		}, &keyMap)
 
-		statuses, _, err := models.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
+		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
-			c.Status = models.CalcCommitStatus(statuses)
+			c.Status = git_model.CalcCommitStatus(statuses)
 		}
 	}
 	return nil
@@ -240,7 +240,7 @@ type Commit struct {
 	Commit       *git.Commit
 	User         *user_model.User
 	Verification *asymkey_model.CommitVerification
-	Status       *models.CommitStatus
+	Status       *git_model.CommitStatus
 	Flow         int64
 	Row          int
 	Column       int

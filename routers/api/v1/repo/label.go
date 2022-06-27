@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -49,13 +49,13 @@ func ListLabels(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/LabelList"
 
-	labels, err := models.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
+	labels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByRepoID", err)
 		return
 	}
 
-	count, err := models.CountLabelsByRepoID(ctx.Repo.Repository.ID)
+	count, err := issues_model.CountLabelsByRepoID(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -94,17 +94,17 @@ func GetLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Label"
 
 	var (
-		label *models.Label
+		label *issues_model.Label
 		err   error
 	)
 	strID := ctx.Params(":id")
 	if intID, err2 := strconv.ParseInt(strID, 10, 64); err2 != nil {
-		label, err = models.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, strID)
+		label, err = issues_model.GetLabelInRepoByName(ctx, ctx.Repo.Repository.ID, strID)
 	} else {
-		label, err = models.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, intID)
+		label, err = issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, intID)
 	}
 	if err != nil {
-		if models.IsErrRepoLabelNotExist(err) {
+		if issues_model.IsErrRepoLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
@@ -150,18 +150,18 @@ func CreateLabel(ctx *context.APIContext) {
 	if len(form.Color) == 6 {
 		form.Color = "#" + form.Color
 	}
-	if !models.LabelColorPattern.MatchString(form.Color) {
+	if !issues_model.LabelColorPattern.MatchString(form.Color) {
 		ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", form.Color))
 		return
 	}
 
-	label := &models.Label{
+	label := &issues_model.Label{
 		Name:        form.Name,
 		Color:       form.Color,
 		RepoID:      ctx.Repo.Repository.ID,
 		Description: form.Description,
 	}
-	if err := models.NewLabel(ctx, label); err != nil {
+	if err := issues_model.NewLabel(ctx, label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "NewLabel", err)
 		return
 	}
@@ -206,9 +206,9 @@ func EditLabel(ctx *context.APIContext) {
 	//     "$ref": "#/responses/validationError"
 
 	form := web.GetForm(ctx).(*api.EditLabelOption)
-	label, err := models.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
+	label, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrRepoLabelNotExist(err) {
+		if issues_model.IsErrRepoLabelNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetLabelByRepoID", err)
@@ -224,7 +224,7 @@ func EditLabel(ctx *context.APIContext) {
 		if len(label.Color) == 6 {
 			label.Color = "#" + label.Color
 		}
-		if !models.LabelColorPattern.MatchString(label.Color) {
+		if !issues_model.LabelColorPattern.MatchString(label.Color) {
 			ctx.Error(http.StatusUnprocessableEntity, "ColorPattern", fmt.Errorf("bad color code: %s", label.Color))
 			return
 		}
@@ -232,7 +232,7 @@ func EditLabel(ctx *context.APIContext) {
 	if form.Description != nil {
 		label.Description = *form.Description
 	}
-	if err := models.UpdateLabel(label); err != nil {
+	if err := issues_model.UpdateLabel(label); err != nil {
 		ctx.Error(http.StatusInternalServerError, "UpdateLabel", err)
 		return
 	}
@@ -266,7 +266,7 @@ func DeleteLabel(ctx *context.APIContext) {
 	//   "204":
 	//     "$ref": "#/responses/empty"
 
-	if err := models.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+	if err := issues_model.DeleteLabel(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
 		ctx.Error(http.StatusInternalServerError, "DeleteLabel", err)
 		return
 	}

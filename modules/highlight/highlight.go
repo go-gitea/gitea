@@ -114,7 +114,7 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	htmlbuf := bytes.Buffer{}
 	htmlw := bufio.NewWriter(&htmlbuf)
 
-	iterator, err := lexer.Tokenise(nil, string(code))
+	iterator, err := lexer.Tokenise(nil, code)
 	if err != nil {
 		log.Error("Can't tokenize code: %v", err)
 		return code
@@ -197,12 +197,14 @@ func File(numLines int, fileName, language string, code []byte) []string {
 
 	m := make([]string, 0, numLines)
 	for _, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
-		content := string(v)
+		content := v
 		// need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
 		} else if content == `</span><span class="w">` {
 			content += "\n</span>"
+		} else if content == `</span></span><span class="line"><span class="cl">` {
+			content += "\n"
 		}
 		content = strings.TrimSuffix(content, `<span class="w">`)
 		content = strings.TrimPrefix(content, `</span>`)
@@ -218,8 +220,8 @@ func File(numLines int, fileName, language string, code []byte) []string {
 // return unhiglighted map
 func plainText(code string, numLines int) []string {
 	m := make([]string, 0, numLines)
-	for _, v := range strings.SplitN(string(code), "\n", numLines) {
-		content := string(v)
+	for _, v := range strings.SplitN(code, "\n", numLines) {
+		content := v
 		// need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"

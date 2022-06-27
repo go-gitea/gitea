@@ -109,7 +109,7 @@ steps:
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.17 # this step is kept as the lowest version of golang that we support
+    image: golang:1.18 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on

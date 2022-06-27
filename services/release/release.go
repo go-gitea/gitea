@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -32,11 +33,11 @@ func createTag(gitRepo *git.Repository, rel *models.Release, msg string) (bool, 
 				return false, err
 			}
 
-			protectedTags, err := models.GetProtectedTags(rel.Repo.ID)
+			protectedTags, err := git_model.GetProtectedTags(rel.Repo.ID)
 			if err != nil {
 				return false, fmt.Errorf("GetProtectedTags: %v", err)
 			}
-			isAllowed, err := models.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+			isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
 			if err != nil {
 				return false, err
 			}
@@ -293,6 +294,20 @@ func DeleteReleaseByID(ctx context.Context, id int64, doer *user_model.User, del
 	}
 
 	if delTag {
+		protectedTags, err := git_model.GetProtectedTags(rel.RepoID)
+		if err != nil {
+			return fmt.Errorf("GetProtectedTags: %v", err)
+		}
+		isAllowed, err := git_model.IsUserAllowedToControlTag(protectedTags, rel.TagName, rel.PublisherID)
+		if err != nil {
+			return err
+		}
+		if !isAllowed {
+			return models.ErrProtectedTagName{
+				TagName: rel.TagName,
+			}
+		}
+
 		if stdout, _, err := git.NewCommand(ctx, "tag", "-d", rel.TagName).
 			SetDescription(fmt.Sprintf("DeleteReleaseByID (git tag -d): %d", rel.ID)).
 			RunStdString(&git.RunOpts{Dir: repo.RepoPath()}); err != nil && !strings.Contains(err.Error(), "not found") {

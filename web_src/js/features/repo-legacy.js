@@ -300,6 +300,7 @@ async function onEditContent(event) {
         thumbnailHeight: 480,
         init() {
           this.on('success', (file, data) => {
+            file.uuid = data.uuid;
             fileUuidDict[file.uuid] = {submitted: false};
             const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
             $dropzone.find('.files').append(input);
@@ -461,6 +462,11 @@ export function initRepository() {
         $($(this).data('target')).removeClass('disabled');
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
+    });
+    const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
+    $trackerIssueStyleRadios.on('change input', () => {
+      const checkedVal = $trackerIssueStyleRadios.filter(':checked').val();
+      $('#tracker-issue-style-regex-box').toggleClass('disabled', checkedVal !== 'regexp');
     });
   }
 

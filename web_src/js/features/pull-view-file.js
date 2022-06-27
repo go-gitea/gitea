@@ -9,8 +9,8 @@ const viewedCheckboxSelector = '.viewed-file-form'; // Selector under which all 
 // Refreshes the summary of viewed files if present
 // The data used will be window.config.pageData.prReview.numberOf{Viewed}Files
 function refreshViewedFilesSummary() {
-  const viewedFilesMeter = document.getElementById('viewed-files-summary');
-  viewedFilesMeter?.setAttribute('value', prReview.numberOfViewedFiles);
+  const viewedFilesProgress = document.getElementById('viewed-files-summary');
+  viewedFilesProgress?.setAttribute('value', prReview.numberOfViewedFiles);
   const summaryLabel = document.getElementById('viewed-files-summary-label');
   if (summaryLabel) summaryLabel.innerHTML = summaryLabel.getAttribute('data-text-changed-template')
     .replace('%[1]d', prReview.numberOfViewedFiles)

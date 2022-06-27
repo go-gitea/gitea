@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -117,6 +118,11 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
+	if err = git.InitOnceWithSync(context.Background()); err != nil {
+		fatalTestError("git.Init: %v\n", err)
+	}
+	git.CheckLFSVersion()
+
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
@@ -198,6 +204,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
 	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)

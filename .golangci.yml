@@ -19,6 +19,11 @@ linters:
     - revive
     - gofumpt
     - depguard
+    - nakedret
+    - unconvert
+    - wastedassign
+    - nolintlint
+    - stylecheck
   enable-all: false
   disable-all: true
   fast: false
@@ -32,6 +37,10 @@ run:
     - web_src
 
 linters-settings:
+  stylecheck:
+    checks: ["all", "-ST1005", "-ST1003"]
+  nakedret:
+    max-func-lines: 0 
   gocritic:
     disabled-checks:
       - ifElseChain

@@ -66,6 +66,10 @@ func TestMain(m *testing.M) {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
+	if err = git.InitOnceWithSync(context.Background()); err != nil {
+		fmt.Printf("Unable to InitOnceWithSync: %v\n", err)
+		os.Exit(1)
+	}
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
@@ -202,9 +206,8 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip += skip
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"),
-		setting.RepoRootPath))
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

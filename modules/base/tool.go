@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/dustin/go-humanize"
 )
@@ -143,9 +144,9 @@ func FileSize(s int64) string {
 }
 
 // PrettyNumber produces a string form of the given number in base 10 with
-// commas after every three orders of magnitud
-func PrettyNumber(v int64) string {
-	return humanize.Comma(v)
+// commas after every three orders of magnitude
+func PrettyNumber(i interface{}) string {
+	return humanize.Comma(util.NumberIntoInt64(i))
 }
 
 // Subtract deals with subtraction of all types of number.

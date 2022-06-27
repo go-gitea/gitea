@@ -222,15 +222,15 @@ readingloop:
 		return
 	}
 	escaped.HasError = true
-	return
+	return escaped, err
 }
 
 func writeBroken(output io.Writer, bs []byte) (err error) {
 	_, err = fmt.Fprintf(output, `<span class="broken-code-point">&lt;%X&gt;</span>`, bs)
-	return
+	return err
 }
 
 func writeEscaped(output io.Writer, r rune) (err error) {
 	_, err = fmt.Fprintf(output, `<span class="escaped-code-point" data-escaped="[U+%04X]"><span class="char">%c</span></span>`, r, r)
-	return
+	return err
 }

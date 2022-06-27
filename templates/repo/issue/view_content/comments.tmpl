@@ -1,7 +1,7 @@
 {{ template "base/alert" }}
 {{range .Issue.Comments}}
 	{{if call $.ShouldShowCommentType .Type}}
-		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
+		{{ $createdStr:= TimeSinceUnix .CreatedUnix $.locale }}
 
 		<!-- 0 = COMMENT, 1 = REOPEN, 2 = CLOSE, 3 = ISSUE_REF, 4 = COMMIT_REF,
 		5 = COMMENT_REF, 6 = PULL_REF, 7 = COMMENT_LABEL, 12 = START_TRACKING,
@@ -30,10 +30,10 @@
 									{{ .OriginalAuthor }}
 								</span>
 								<span class="text grey">
-									{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
+									{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}} {{if $.Repository.OriginalURL}}
 								</span>
 								<span class="text migrate">
-									({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
+									({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
 								{{if gt .Poster.ID 0}}
@@ -45,24 +45,24 @@
 									<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>
 										{{.Poster.GetDisplayName}}
 									</a>
-									{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+									{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}
 						</div>
 						<div class="comment-header-right actions df ac">
 							{{if (.ShowRole.HasRole "Poster")}}
 								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.poster"}}
+									{{$.locale.Tr "repo.issues.poster"}}
 								</div>
 							{{end}}
 							{{if (.ShowRole.HasRole "Writer")}}
 								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.collaborator"}}
+									{{$.locale.Tr "repo.issues.collaborator"}}
 								</div>
 							{{end}}
 							{{if (.ShowRole.HasRole "Owner")}}
 								<div class="ui basic label">
-									{{$.i18n.Tr "repo.issues.owner"}}
+									{{$.locale.Tr "repo.issues.owner"}}
 								</div>
 							{{end}}
 							{{if not $.Repository.IsArchived}}
@@ -76,7 +76,7 @@
 							{{if .RenderedContent}}
 								{{.RenderedContent|Str2html}}
 							{{else}}
-								<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+								<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
 						<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
@@ -102,9 +102,9 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{if .Issue.IsPull }}
-						{{$.i18n.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
+						{{$.locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.reopened_at" .EventTag $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -117,9 +117,9 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{if .Issue.IsPull }}
-						{{$.i18n.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
+						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.closed_at" .EventTag $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -133,16 +133,16 @@
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
-						{{$.i18n.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
+						{{$.locale.Tr "repo.issues.pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
 					{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 3 5 6}}
 			{{ $refFrom:= "" }}
 			{{if ne .RefRepoID .Issue.RepoID}}
-				{{ $refFrom = $.i18n.Tr "repo.issues.ref_from" (.RefRepo.FullName|Escape) }}
+				{{ $refFrom = $.locale.Tr "repo.issues.ref_from" (.RefRepo.FullName|Escape) }}
 			{{end}}
 			{{ $refTr := "repo.issues.ref_issue_from" }}
 			{{if .Issue.IsPull}}
@@ -152,7 +152,7 @@
 			{{else if eq .RefAction 2 }}
 				{{ $refTr = "repo.issues.ref_reopening_from" }}
 			{{end}}
-			{{ $createdStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
+			{{ $createdStr:= TimeSinceUnix .CreatedUnix $.locale }}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
 				<a href="{{.Poster.HomeLink}}">
@@ -161,7 +161,7 @@
 				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr $refTr (.EventTag|Escape) $createdStr (.RefCommentHTMLURL|Escape) $refFrom | Safe}}
+					{{$.locale.Tr $refTr (.EventTag|Escape) $createdStr (.RefCommentHTMLURL|Escape) $refFrom | Safe}}
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
 
@@ -177,7 +177,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-git-commit"}}
@@ -194,11 +194,11 @@
 					<span class="text grey">
 						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 						{{if and .AddedLabels (not .RemovedLabels)}}
-							{{$.i18n.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
+							{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
-							{{$.i18n.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{$.locale.TrN (len .RemovedLabels) "repo.issues.remove_label" "repo.issues.remove_labels" (RenderLabels .RemovedLabels) $createdStr | Safe}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.add_remove_labels" (RenderLabels .AddedLabels) (RenderLabels .RemovedLabels) $createdStr | Safe}}
 						{{end}}
 					</span>
 				</div>
@@ -211,7 +211,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.i18n.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.i18n.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
+					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{else if eq .Type 9}}
@@ -225,9 +225,9 @@
 						<span class="text grey">
 							<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
 							{{ if eq .Poster.ID .Assignee.ID }}
-								{{$.i18n.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.remove_self_assignment" $createdStr | Safe}}
 							{{ else }}
-								{{$.i18n.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.remove_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
 							{{ end }}
 						</span>
 					{{else}}
@@ -237,9 +237,9 @@
 						<span class="text grey">
 							<a class="author" href="{{.Assignee.HomeLink}}">{{.Assignee.GetDisplayName}}</a>
 							{{if eq .Poster.ID .AssigneeID}}
-								{{$.i18n.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
 							{{else}}
-								{{$.i18n.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.add_assignee_at" (.Poster.GetDisplayName|Escape) $createdStr | Safe}}
 							{{end}}
 						</span>
 					{{end}}
@@ -253,7 +253,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 11}}
@@ -264,7 +264,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 12}}
@@ -275,7 +275,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 13}}
@@ -286,7 +286,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
 				</span>
 				{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
 				<div class="detail">
@@ -302,7 +302,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
 				</span>
 				{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
 				<div class="detail">
@@ -318,7 +318,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 16}}
@@ -329,7 +329,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 17}}
@@ -340,7 +340,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.due_date_modified" (.Content | ParseDeadline) $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_modified" (.Content | ParseDeadline) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
@@ -351,7 +351,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 19}}
@@ -362,7 +362,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
 				</span>
 				{{if .DependentIssue}}
 					<div class="detail">
@@ -387,7 +387,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
 				</span>
 				{{if .DependentIssue}}
 					<div class="detail">
@@ -421,22 +421,22 @@
 								{{ .OriginalAuthor }}
 							</span>
 							<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-							<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
+							<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 						{{else}}
 							<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 						{{end}}
 
 						{{if eq .Review.Type 1}}
-							{{$.i18n.Tr "repo.issues.review.approve" $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.approve" $createdStr | Safe}}
 						{{else if eq .Review.Type 2}}
-							{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
 						{{else if eq .Review.Type 3}}
-							{{$.i18n.Tr "repo.issues.review.reject" $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.reject" $createdStr | Safe}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.review.comment" $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.comment" $createdStr | Safe}}
 						{{end}}
 						{{if .Review.Dismissed}}
-							<div class="ui small label">{{$.i18n.Tr "repo.issues.review.dismissed_label"}}</div>
+							<div class="ui small label">{{$.locale.Tr "repo.issues.review.dismissed_label"}}</div>
 						{{end}}
 					</span>
 				</div>
@@ -452,28 +452,28 @@
 											{{ .OriginalAuthor }}
 										</span>
 										<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-										<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
+										<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 									{{else}}
 										<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 									{{end}}
 
-									{{$.i18n.Tr "repo.issues.review.left_comment" | Safe}}
+									{{$.locale.Tr "repo.issues.review.left_comment" | Safe}}
 								</span>
 							</div>
 							<div class="comment-header-right actions df ac">
 									{{if (.ShowRole.HasRole "Poster")}}
 										<div class="ui basic label">
-												{{$.i18n.Tr "repo.issues.poster"}}
+												{{$.locale.Tr "repo.issues.poster"}}
 										</div>
 									{{end}}
 									{{if (.ShowRole.HasRole "Writer")}}
 										<div class="ui basic label">
-												{{$.i18n.Tr "repo.issues.collaborator"}}
+												{{$.locale.Tr "repo.issues.collaborator"}}
 										</div>
 									{{end}}
 									{{if (.ShowRole.HasRole "Owner")}}
 										<div class="ui basic label">
-												{{$.i18n.Tr "repo.issues.owner"}}
+												{{$.locale.Tr "repo.issues.owner"}}
 										</div>
 									{{end}}
 									{{if not $.Repository.IsArchived}}
@@ -487,7 +487,7 @@
 								{{if .RenderedContent}}
 									{{.RenderedContent|Str2html}}
 								{{else}}
-									<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+									<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 								{{end}}
 							</div>
 							<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
@@ -520,7 +520,7 @@
 											<a href="{{(index $comms 0).CodeCommentURL}}" class="file-comment ml-3 word-break">{{$filename}}</a>
 											{{if $invalid }}
 												<span class="ui label basic small ml-3">
-													{{$.i18n.Tr "repo.issues.review.outdated"}}
+													{{$.locale.Tr "repo.issues.review.outdated"}}
 												</span>
 											{{end}}
 										</div>
@@ -529,17 +529,17 @@
 												<button id="show-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if not $resolved}}hide {{end}}ui compact right labeled button show-outdated df ac">
 													{{svg "octicon-unfold" 16 "mr-3"}}
 													{{if $resolved}}
-														{{$.i18n.Tr "repo.issues.review.show_resolved"}}
+														{{$.locale.Tr "repo.issues.review.show_resolved"}}
 													{{else}}
-														{{$.i18n.Tr "repo.issues.review.show_outdated"}}
+														{{$.locale.Tr "repo.issues.review.show_outdated"}}
 													{{end}}
 												</button>
 												<button id="hide-outdated-{{(index $comms 0).ID}}" data-comment="{{(index $comms 0).ID}}" class="{{if $resolved}}hide {{end}}ui compact right labeled button hide-outdated df ac">
 													{{svg "octicon-fold" 16 "mr-3"}}
 													{{if $resolved}}
-														{{$.i18n.Tr "repo.issues.review.hide_resolved"}}
+														{{$.locale.Tr "repo.issues.review.hide_resolved"}}
 													{{else}}
-														{{$.i18n.Tr "repo.issues.review.hide_outdated"}}
+														{{$.locale.Tr "repo.issues.review.hide_outdated"}}
 													{{end}}
 												</button>
 											{{end}}
@@ -563,7 +563,7 @@
 									<div id="code-comments-{{(index $comms 0).ID}}" class="comment-code-cloud ui segment{{if $resolved}} hide{{end}}">
 										<div class="ui comments mb-0">
 											{{range $comms}}
-												{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.i18n.Lang }}
+												{{ $createdSubStr:= TimeSinceUnix .CreatedUnix $.locale }}
 												<div class="comment code-comment pb-4" id="{{.HashTag}}">
 													<div class="content">
 														<div class="header comment-header">
@@ -580,27 +580,27 @@
 																			{{ .OriginalAuthor }}
 																		</span>
 																		<span class="text grey"> {{if $.Repository.OriginalURL}}</span>
-																		<span class="text migrate">({{$.i18n.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
+																		<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 																	{{else}}
 																		<a class="author"{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.GetDisplayName}}</a>
 																	{{end}}
-																	{{$.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
+																	{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
 																</span>
 															</div>
 															<div class="comment-header-right actions df ac">
 																{{if (.ShowRole.HasRole "Poster")}}
 																	<div class="ui basic label">
-																		{{$.i18n.Tr "repo.issues.poster"}}
+																		{{$.locale.Tr "repo.issues.poster"}}
 																	</div>
 																{{end}}
 																{{if (.ShowRole.HasRole "Writer")}}
 																	<div class="ui basic label">
-																		{{$.i18n.Tr "repo.issues.collaborator"}}
+																		{{$.locale.Tr "repo.issues.collaborator"}}
 																	</div>
 																{{end}}
 																{{if (.ShowRole.HasRole "Owner")}}
 																	<div class="ui basic label">
-																		{{$.i18n.Tr "repo.issues.owner"}}
+																		{{$.locale.Tr "repo.issues.owner"}}
 																	</div>
 																{{end}}
 																{{if not $.Repository.IsArchived}}
@@ -614,7 +614,7 @@
 															{{if .RenderedContent}}
 																{{.RenderedContent|Str2html}}
 															{{else}}
-																<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+																<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 															{{end}}
 															</div>
 															<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>
@@ -635,7 +635,7 @@
 												{{if $resolved}}
 													<div class="ui grey text">
 														{{svg "octicon-check" 16 "mr-2"}}
-														<b>{{$resolveDoer.Name}}</b> {{$.i18n.Tr "repo.issues.review.resolved_by"}}
+														<b>{{$resolveDoer.Name}}</b> {{$.locale.Tr "repo.issues.review.resolved_by"}}
 													</div>
 												{{end}}
 											</div>
@@ -643,15 +643,15 @@
 												{{if and $.CanMarkConversation $isNotPending}}
 													<button class="ui tiny basic button resolve-conversation" data-origin="timeline" data-action="{{if not $resolved}}Resolve{{else}}UnResolve{{end}}" data-comment-id="{{(index $comms 0).ID}}" data-update-url="{{$.RepoLink}}/issues/resolve_conversation">
 														{{if $resolved}}
-															{{$.i18n.Tr "repo.issues.review.un_resolve_conversation"}}
+															{{$.locale.Tr "repo.issues.review.un_resolve_conversation"}}
 														{{else}}
-															{{$.i18n.Tr "repo.issues.review.resolve_conversation"}}
+															{{$.locale.Tr "repo.issues.review.resolve_conversation"}}
 														{{end}}
 													</button>
 												{{end}}
 												{{if and $.SignedUserID (not $.Repository.IsArchived)}}
 													<button class="comment-form-reply ui green tiny labeled icon button ml-2 mr-0">
-														{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.i18n.Tr "repo.diff.comment.reply"}}
+														{{svg "octicon-reply" 16 "reply icon mr-2"}}{{$.locale.Tr "repo.diff.comment.reply"}}
 													</button>
 												{{end}}
 											</div>
@@ -673,12 +673,12 @@
 				{{ if .Content }}
 					<span class="text grey">
 						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-						{{$.i18n.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
 					</span>
 				{{ else }}
 					<span class="text grey">
 						<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-						{{$.i18n.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
 					</span>
 				{{ end }}
 			</div>
@@ -690,7 +690,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 25}}
@@ -701,7 +701,7 @@
 				</a>
 				<span class="text grey">
 					<a href="{{.Poster.HomeLink}}">{{.Poster.Name}}</a>
-					{{$.i18n.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+					{{$.locale.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 26}}
@@ -712,7 +712,7 @@
 				</a>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{$.i18n.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
 				</span>
 				<div class="detail">
 					{{svg "octicon-clock"}}
@@ -730,18 +730,18 @@
 					{{if (gt .AssigneeID 0)}}
 						{{if .RemovedAssignee}}
 							{{if eq .PosterID .AssigneeID}}
-								{{$.i18n.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.review.remove_review_request_self" $createdStr | Safe}}
 							{{else}}
-								{{$.i18n.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+								{{$.locale.Tr "repo.issues.review.remove_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 							{{end}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.add_review_request" (.Assignee.GetDisplayName|Escape) $createdStr | Safe}}
 						{{end}}
 					{{else}}
 						{{if .RemovedAssignee}}
-							{{$.i18n.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.remove_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.review.add_review_request" (.AssigneeTeam.Name|Escape) $createdStr | Safe}}
 						{{end}}
 					{{end}}
 				</span>
@@ -752,9 +752,9 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{ if .IsForcePush }}
-						{{$.i18n.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 					{{else}}
-						{{$.i18n.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
+						{{$.locale.TrN (len .Commits) "repo.issues.push_commit_1" "repo.issues.push_commits_n" (len .Commits) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -772,12 +772,12 @@
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{if gt .OldProjectID 0}}
 						{{if gt .ProjectID 0}}
-							{{$.i18n.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
 						{{else}}
-							{{$.i18n.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
+							{{$.locale.Tr "repo.issues.remove_project_at" (.OldProject.Title|Escape) $createdStr | Safe}}
 						{{end}}
 					{{else if gt .ProjectID 0}}
-						{{$.i18n.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.add_project_at" (.Project.Title|Escape) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -797,7 +797,7 @@
 						{{else}}
 							{{$reviewerName = .Review.OriginalAuthor}}
 						{{end}}
-						{{$.i18n.Tr "repo.issues.review.dismissed" $reviewerName $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.review.dismissed" $reviewerName $createdStr | Safe}}
 					</span>
 				</div>
 				{{if .Content}}
@@ -805,7 +805,7 @@
 						<div class="content">
 							<div class="ui top attached header arrow-top">
 								<span class="text grey">
-									{{$.i18n.Tr "action.review_dismissed_reason"}}
+									{{$.locale.Tr "action.review_dismissed_reason"}}
 								</span>
 							</div>
 							<div class="ui attached segment">
@@ -813,7 +813,7 @@
 									{{if .RenderedContent}}
 										{{.RenderedContent|Str2html}}
 									{{else}}
-										<span class="no-content">{{$.i18n.Tr "repo.issues.no_content"}}</span>
+										<span class="no-content">{{$.locale.Tr "repo.issues.no_content"}}</span>
 									{{end}}
 								</div>
 							</div>
@@ -830,11 +830,11 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{if and .OldRef .NewRef}}
-						{{$.i18n.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 					{{else if .OldRef}}
-						{{$.i18n.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.remove_ref_at" (.OldRef|Escape) $createdStr | Safe}}
 					{{else}}
-						{{$.i18n.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
+						{{$.locale.Tr "repo.issues.add_ref_at" (.NewRef|Escape) $createdStr | Safe}}
 					{{end}}
 				</span>
 			</div>
@@ -843,8 +843,8 @@
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
-					{{if eq .Type 34}}{{$.i18n.Tr "repo.pulls.pull_request_scheduled_auto_merge" $createdStr | Safe}}
-					{{else}}{{$.i18n.Tr "repo.pulls.pull_request_canceled_scheduled_auto_merge" $createdStr | Safe}}{{end}}
+					{{if eq .Type 34}}{{$.locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
+					{{else}}{{$.locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
 				</span>
 			</div>
 		{{end}}

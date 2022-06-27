@@ -5,16 +5,16 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToComment converts a models.Comment to the api.Comment format
-func ToComment(c *models.Comment) *api.Comment {
+// ToComment converts a issues_model.Comment to the api.Comment format
+func ToComment(c *issues_model.Comment) *api.Comment {
 	return &api.Comment{
 		ID:       c.ID,
 		Poster:   ToUser(c.Poster, nil),
@@ -27,8 +27,8 @@ func ToComment(c *models.Comment) *api.Comment {
 	}
 }
 
-// ToTimelineComment converts a models.Comment to the api.TimelineComment format
-func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineComment {
+// ToTimelineComment converts a issues_model.Comment to the api.TimelineComment format
+func ToTimelineComment(c *issues_model.Comment, doer *user_model.User) *api.TimelineComment {
 	err := c.LoadMilestone()
 	if err != nil {
 		log.Error("LoadMilestone: %v", err)
@@ -105,7 +105,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 	}
 
 	if c.RefIssueID != 0 {
-		issue, err := models.GetIssueByID(c.RefIssueID)
+		issue, err := issues_model.GetIssueByID(db.DefaultContext, c.RefIssueID)
 		if err != nil {
 			log.Error("GetIssueByID(%d): %v", c.RefIssueID, err)
 			return nil
@@ -114,7 +114,7 @@ func ToTimelineComment(c *models.Comment, doer *user_model.User) *api.TimelineCo
 	}
 
 	if c.RefCommentID != 0 {
-		com, err := models.GetCommentByID(db.DefaultContext, c.RefCommentID)
+		com, err := issues_model.GetCommentByID(db.DefaultContext, c.RefCommentID)
 		if err != nil {
 			log.Error("GetCommentByID(%d): %v", c.RefCommentID, err)
 			return nil
