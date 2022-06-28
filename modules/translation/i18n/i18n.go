@@ -44,9 +44,9 @@ type LocaleStore struct {
 
 	langNames []string
 	langDescs []string
+	localeMap map[string]*locale
 
-	// these need to be locked when live-reloading
-	localeMap     map[string]*locale
+	// this needs to be locked when live-reloading
 	trKeyToIdxMap map[string]int
 
 	defaultLang string
@@ -63,11 +63,8 @@ func NewLocaleStore(isProd bool) *LocaleStore {
 // AddLocaleByIni adds locale by ini into the store
 // if source is a string, then the file is loaded. In dev mode, this file will be checked for live-reloading
 // if source is a []byte, then the content is used
+// Note: this is not concurrent safe
 func (store *LocaleStore) AddLocaleByIni(langName, langDesc string, source interface{}) error {
-	if store.reloadMu != nil {
-		store.reloadMu.Lock()
-		defer store.reloadMu.Unlock()
-	}
 	if _, ok := store.localeMap[langName]; ok {
 		return ErrLocaleAlreadyExist
 	}
@@ -75,7 +72,7 @@ func (store *LocaleStore) AddLocaleByIni(langName, langDesc string, source inter
 	l := &locale{store: store, langName: langName}
 	if store.reloadMu != nil {
 		l.reloadMu = &sync.RWMutex{}
-		l.reloadMu.Lock()
+		l.reloadMu.Lock() // Arguably this is not necessary as AddLocaleByIni isn't concurrent safe - but for consistency we do this
 		defer l.reloadMu.Unlock()
 	}
 
@@ -84,27 +81,37 @@ func (store *LocaleStore) AddLocaleByIni(langName, langDesc string, source inter
 		l.sourceFileInfo, _ = os.Stat(fileName) // live-reload only works for regular files. the error can be ignored
 	}
 
+	var err error
+	l.idxToMsgMap, err = store.readIniToIdxToMsgMap(source)
+	if err != nil {
+		return err
+	}
+
 	store.langNames = append(store.langNames, langName)
 	store.langDescs = append(store.langDescs, langDesc)
+
 	store.localeMap[l.langName] = l
 
-	return store.reloadLocaleByIni(langName, source)
+	return nil
 }
 
-// store.reloadMu and l.reloadMu must be locked if it exists before calling this function
-// this function arguably belongs to locale rather than store but both need to be locked
-func (store *LocaleStore) reloadLocaleByIni(langName string, source interface{}) error {
+// readIniToIdxToMsgMap will read a provided ini and creates an idxToMsgMap
+func (store *LocaleStore) readIniToIdxToMsgMap(source interface{}) (map[int]string, error) {
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
 	}, source)
 	if err != nil {
-		return fmt.Errorf("unable to load ini: %w", err)
+		return nil, fmt.Errorf("unable to load ini: %w", err)
 	}
 	iniFile.BlockMode = false
 
-	l := store.localeMap[langName]
-	l.idxToMsgMap = make(map[int]string)
+	idxToMsgMap := make(map[int]string)
+
+	if store.reloadMu != nil {
+		store.reloadMu.Lock()
+		defer store.reloadMu.Unlock()
+	}
 
 	for _, section := range iniFile.Sections() {
 		for _, key := range section.Keys() {
@@ -123,23 +130,29 @@ func (store *LocaleStore) reloadLocaleByIni(langName string, source interface{})
 				idx = len(store.trKeyToIdxMap)
 				store.trKeyToIdxMap[trKey] = idx
 			}
-			l.idxToMsgMap[idx] = key.Value()
+			idxToMsgMap[idx] = key.Value()
 		}
 	}
 	iniFile = nil
-	return nil
+	return idxToMsgMap, nil
 }
 
-func (store *LocaleStore) HasLang(langName string) bool {
+func (store *LocaleStore) idxForTrKey(trKey string) (int, bool) {
 	if store.reloadMu != nil {
 		store.reloadMu.RLock()
 		defer store.reloadMu.RUnlock()
 	}
+	idx, ok := store.trKeyToIdxMap[trKey]
+	return idx, ok
+}
 
+// HasLang reports if a language is available in the store
+func (store *LocaleStore) HasLang(langName string) bool {
 	_, ok := store.localeMap[langName]
 	return ok
 }
 
+// ListLangNameDesc reports if a language available in the store
 func (store *LocaleStore) ListLangNameDesc() (names, desc []string) {
 	return store.langNames, store.langDescs
 }
@@ -151,26 +164,21 @@ func (store *LocaleStore) SetDefaultLang(lang string) {
 
 // Tr translates content to target language. fall back to default language.
 func (store *LocaleStore) Tr(lang, trKey string, trArgs ...interface{}) string {
-	if store.reloadMu != nil {
-		store.reloadMu.RLock()
-	}
-
 	l, ok := store.localeMap[lang]
 	if !ok {
 		l, ok = store.localeMap[store.defaultLang]
 	}
-	if store.reloadMu != nil {
-		store.reloadMu.RUnlock()
-	}
+
 	if ok {
 		return l.Tr(trKey, trArgs...)
 	}
 	return trKey
 }
 
+// reloadIfNeeded will check if the locale needs to be reloaded
 // this function will assume that the l.reloadMu has been RLocked if it already exists
 func (l *locale) reloadIfNeeded() {
-	if l.store.reloadMu == nil {
+	if l.reloadMu == nil {
 		return
 	}
 
@@ -196,15 +204,15 @@ func (l *locale) reloadIfNeeded() {
 		return
 	}
 
-	l.store.reloadMu.Lock()
-	err = l.store.reloadLocaleByIni(l.langName, l.sourceFileName)
-	l.store.reloadMu.Unlock()
-
+	idxToMsgMap, err := l.store.readIniToIdxToMsgMap(l.sourceFileName)
 	if err == nil {
-		l.sourceFileInfo = sourceFileInfo
+		l.idxToMsgMap = idxToMsgMap
 	} else {
-		log.Error("unable to live-reload the locale file %q, err: %v", l.sourceFileName, err)
+		log.Error("Unable to live-reload the locale file %q, err: %v", l.sourceFileName, err)
 	}
+
+	// We will set the sourceFileInfo to this file to prevent repeated attempts to re-load this broken file
+	l.sourceFileInfo = sourceFileInfo
 
 	l.reloadMu.Unlock()
 	l.reloadMu.RLock()
@@ -225,34 +233,24 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found bool) {
 	trMsg := trKey
 
-	if l.store.reloadMu != nil {
-		l.store.reloadMu.RLock()
-	}
-	idx, ok := l.store.trKeyToIdxMap[trKey]
-	if l.store.reloadMu != nil {
-		l.store.reloadMu.RUnlock()
-	}
+	// convert the provided trKey to a common idx from the store
+	idx, ok := l.store.idxForTrKey(trKey)
 
 	if ok {
 		if msg, found = l.idxToMsgMap[idx]; found {
-			trMsg = msg // use current translation
+			trMsg = msg // use the translation that we have found
 		} else if l.langName != l.store.defaultLang {
+			// No translation available in our current language... fallback to the default language
 
-			// attempt to get the default language from the locale store
-			if l.store.reloadMu != nil {
-				l.store.reloadMu.RLock()
-			}
-			def, ok := l.store.localeMap[l.store.defaultLang]
-			if l.store.reloadMu != nil {
-				l.store.reloadMu.RUnlock()
-			}
+			// Attempt to get the default language from the locale store
+			if def, ok := l.store.localeMap[l.store.defaultLang]; ok {
 
-			if ok {
 				if def.reloadMu != nil {
 					def.reloadMu.RLock()
+					def.reloadIfNeeded()
 				}
 				if msg, found = def.idxToMsgMap[idx]; found {
-					trMsg = msg // use current translation
+					trMsg = msg // use the translation that we have found
 				}
 				if def.reloadMu != nil {
 					def.reloadMu.RUnlock()
@@ -273,8 +271,11 @@ func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found b
 	for _, arg := range trArgs {
 		val := reflect.ValueOf(arg)
 		if val.Kind() == reflect.Slice {
-			// before, it can accept Tr(lang, key, a, [b, c], d, [e, f]) as Sprintf(msg, a, b, c, d, e, f), it's an unstable behavior
-			// now, we restrict the strange behavior and only support:
+			// Previously, we would accept Tr(lang, key, a, [b, c], d, [e, f]) as Sprintf(msg, a, b, c, d, e, f)
+			// but this is an unstable behavior.
+			//
+			// So we restrict the accepted arguments to either:
+			//
 			// 1. Tr(lang, key, [slice-items]) as Sprintf(msg, items...)
 			// 2. Tr(lang, key, args...) as Sprintf(msg, args...)
 			if len(trArgs) == 1 {
