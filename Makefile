@@ -530,7 +530,7 @@ test-e2e-sqlite: e2e.sqlite.test generate-ini-sqlite
 .PHONY: test-e2e-sqlite\#%
 test-e2e-sqlite\#%: e2e.sqlite.test generate-ini-sqlite
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mysql
 test-e2e-mysql: e2e.mysql.test generate-ini-mysql
@@ -540,7 +540,7 @@ test-e2e-mysql: e2e.mysql.test generate-ini-mysql
 .PHONY: test-e2e-mysql\#%
 test-e2e-mysql\#%: e2e.mysql.test generate-ini-mysql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mysql8
 test-e2e-mysql8: e2e.mysql8.test generate-ini-mysql8
@@ -550,7 +550,7 @@ test-e2e-mysql8: e2e.mysql8.test generate-ini-mysql8
 .PHONY: test-e2e-mysql8\#%
 test-e2e-mysql8\#%: e2e.mysql8.test generate-ini-mysql8
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test -test.run
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-pgsql
 test-e2e-pgsql: e2e.pgsql.test generate-ini-pgsql
@@ -560,7 +560,7 @@ test-e2e-pgsql: e2e.pgsql.test generate-ini-pgsql
 .PHONY: test-e2e-pgsql\#%
 test-e2e-pgsql\#%: e2e.pgsql.test generate-ini-pgsql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mssql
 test-e2e-mssql: e2e.mssql.test generate-ini-mssql
@@ -570,7 +570,7 @@ test-e2e-mssql: e2e.mssql.test generate-ini-mssql
 .PHONY: test-e2e-mssql\#%
 test-e2e-mssql\#%: e2e.mssql.test generate-ini-mssql
 	npx playwright install $(PLAYWRIGHT_FLAGS)
-	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test -test.run
+	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test -test.run TestE2e/$*
 
 .PHONY: bench-sqlite
 bench-sqlite: integrations.sqlite.test generate-ini-sqlite
