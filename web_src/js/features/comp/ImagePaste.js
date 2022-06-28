@@ -2,7 +2,7 @@ import $ from 'jquery';
 
 const {csrfToken} = window.config;
 
-async function uploadFile(file, uploadUrl) {
+async function uploadFile(file, uploadUrl, dropzone) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
@@ -11,7 +11,27 @@ async function uploadFile(file, uploadUrl) {
     headers: {'X-Csrf-Token': csrfToken},
     body: formData,
   });
-  return await res.json();
+  const data = await res.json();
+  const upfile = {name: file.name, size: file.size, uuid: data.uuid};
+  dropzone.emit('addedfile', upfile);
+  dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
+  dropzone.emit('complete', upfile);
+  dropzone.files.push(upfile);
+  return data;
+}
+
+/**
+ * @param editor{EasyMDE}
+ * @param fileUuid
+ */
+export function removeUploadedFileFromEditor(editor, fileUuid) {
+  // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/
+  const re = new RegExp(`!\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
+  editor.value(editor.value().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
+  if (editor.element) {
+    // when using "simple textarea" mode, the value of the textarea should be replaced too.
+    editor.element.value = editor.element.value.replace(re, '');
+  }
 }
 
 function clipboardPastedImages(e) {
@@ -89,6 +109,8 @@ class CodeMirrorEditor {
 
 
 export function initEasyMDEImagePaste(easyMDE, $dropzone) {
+  if ($dropzone.length !== 1) throw new Error('invalid dropzone attach');
+
   const uploadUrl = $dropzone.attr('data-upload-url');
   const $files = $dropzone.find('.files');
 
@@ -107,7 +129,7 @@ export function initEasyMDEImagePaste(easyMDE, $dropzone) {
 
       const placeholder = `![${name}](uploading ...)`;
       editor.insertPlaceholder(placeholder);
-      const data = await uploadFile(img, uploadUrl);
+      const data = await uploadFile(img, uploadUrl, $dropzone[0].dropzone);
       editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
 
       const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);

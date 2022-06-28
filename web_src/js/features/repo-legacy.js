@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initCompImagePaste, initEasyMDEImagePaste, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
+import {initEasyMDEImagePaste, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -33,7 +33,7 @@ import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 const {csrfToken} = window.config;
 
 export function initRepoCommentForm() {
-  const $commentForm = $('.comment.form');
+  const $commentForm = $('#comment-form');
   if ($commentForm.length === 0) {
     return;
   }
@@ -284,7 +284,7 @@ async function onEditContent(event) {
     if ($dropzone.length === 1) {
       $dropzone.data('saved', false);
 
-      const fileUuidDict = {};  // suspicious logic, need to be confirmed in the future, fix or comment.
+      const fileUuidDict = {}; // if a comment has been saved, then the uploaded files won't be deleted when clicking the Remove in the dropzone
       dz = await createDropzone($dropzone[0], {
         url: $dropzone.data('upload-url'),
         headers: {'X-Csrf-Token': csrfToken},
@@ -316,6 +316,9 @@ async function onEditContent(event) {
               }).then(() => {
                 removeUploadedFileFromEditor(easyMDE, file.uuid);
               });
+            } else {
+              // for saved comment's attachment's removal, only remove the link in the editor
+              removeUploadedFileFromEditor(easyMDE, file.uuid);
             }
           });
           this.on('submit', () => {
