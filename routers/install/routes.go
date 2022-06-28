@@ -5,6 +5,7 @@
 package install
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"path"
@@ -28,8 +29,8 @@ func (d *dataStore) GetData() map[string]interface{} {
 	return *d
 }
 
-func installRecovery() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func installRecovery(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
@@ -80,7 +81,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 }
 
 // Routes registers the install routes
-func Routes() *web.Route {
+func Routes(ctx goctx.Context) *web.Route {
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
@@ -103,7 +104,7 @@ func Routes() *web.Route {
 		Domain:         setting.SessionConfig.Domain,
 	}))
 
-	r.Use(installRecovery())
+	r.Use(installRecovery(ctx))
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)

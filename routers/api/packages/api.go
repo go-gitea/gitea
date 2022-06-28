@@ -5,6 +5,7 @@
 package packages
 
 import (
+	gocontext "context"
 	"net/http"
 	"regexp"
 	"strings"
@@ -37,10 +38,10 @@ func reqPackageAccess(accessMode perm.AccessMode) func(ctx *context.Context) {
 	}
 }
 
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter())
+	r.Use(context.PackageContexter(ctx))
 
 	authMethods := []auth.Method{
 		&auth.OAuth2{},
@@ -237,10 +238,10 @@ func Routes() *web.Route {
 	return r
 }
 
-func ContainerRoutes() *web.Route {
+func ContainerRoutes(ctx gocontext.Context) *web.Route {
 	r := web.NewRoute()
 
-	r.Use(context.PackageContexter())
+	r.Use(context.PackageContexter(ctx))
 
 	authMethods := []auth.Method{
 		&auth.Basic{},
