@@ -35,7 +35,7 @@ type locale struct {
 }
 
 type LocaleStore struct {
-	reloadMu *sync.Mutex // for non-prod(dev), use a mutex for live-reload. for prod, no mutex, no live-reload.
+	reloadMu *sync.RWMutex // for non-prod(dev), use a mutex for live-reload. for prod, no mutex, no live-reload.
 
 	langNames []string
 	langDescs []string
@@ -49,7 +49,7 @@ type LocaleStore struct {
 func NewLocaleStore(isProd bool) *LocaleStore {
 	ls := &LocaleStore{localeMap: make(map[string]*locale), textIdxMap: make(map[string]int)}
 	if !isProd {
-		ls.reloadMu = &sync.Mutex{}
+		ls.reloadMu = &sync.RWMutex{}
 	}
 	return ls
 }
@@ -136,8 +136,8 @@ func (ls *LocaleStore) Tr(lang, trKey string, trArgs ...interface{}) string {
 // Tr translates content to locale language. fall back to default language.
 func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 	if l.store.reloadMu != nil {
-		l.store.reloadMu.Lock()
-		defer l.store.reloadMu.Unlock()
+		l.store.reloadMu.RLock()
+		defer l.store.reloadMu.RUnlock()
 	}
 	msg, _ := l.tryTr(trKey, trArgs...)
 	return msg
@@ -147,6 +147,8 @@ func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found b
 	if l.store.reloadMu != nil {
 		now := time.Now()
 		if now.Sub(l.lastReloadCheckTime) >= time.Second && l.sourceFileInfo != nil && l.sourceFileName != "" {
+			l.store.reloadMu.RUnlock() // if the locale file should be reloaded, then we release the read-lock
+			l.store.reloadMu.Lock()    // and acquire the write-lock
 			l.lastReloadCheckTime = now
 			if sourceFileInfo, err := os.Stat(l.sourceFileName); err == nil && !sourceFileInfo.ModTime().Equal(l.sourceFileInfo.ModTime()) {
 				if err = l.store.reloadLocaleByIni(l.langName, l.sourceFileName); err == nil {
@@ -155,6 +157,8 @@ func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found b
 					log.Error("unable to live-reload the locale file %q, err: %v", l.sourceFileName, err)
 				}
 			}
+			l.store.reloadMu.Unlock() // release the write-lock
+			l.store.reloadMu.RLock()  // and re-acquire the read-lock, which was managed by outer Tr function
 		}
 	}
 	trMsg := trKey
