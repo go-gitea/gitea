@@ -157,6 +157,8 @@ func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found b
 				} else {
 					log.Error("unable to live-reload the locale file %q, err: %v", l.sourceFileName, err)
 				}
+			} else if err != nil {
+				log.Error("unable to stat the locale file %q, err: %v", l.sourceFileName, err)
 			}
 			l.store.reloadMu.Unlock() // release the write-lock
 			l.store.reloadMu.RLock()  // and re-acquire the read-lock, which was managed by outer Tr function
