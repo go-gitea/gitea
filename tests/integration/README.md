@@ -3,9 +3,11 @@
 Integration tests can be run with make commands for the
 appropriate backends, namely:
 ```shell
-make test-mysql
-make test-pgsql
 make test-sqlite
+make test-pgsql
+make test-mysql
+make test-mysql8
+make test-mssql
 ```
 
 Make sure to perform a clean build before running tests:

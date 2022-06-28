@@ -88,6 +88,8 @@ Here's how to run the test suite:
 |``make test[\#TestSpecificName]``       |  run unit test  |
 |``make test-sqlite[\#TestSpecificName]``|  run [integration](tests/integration) test for SQLite |  
 |[More details about integrations](tests/integration/README.md)  |
+|``make test-e2e-sqlite[\#TestSpecificFileName]``|  run [end-to-end](tests/e2e) test for SQLite |  
+|[More details about e2e tests](tests/e2e/README.md)  |
 
 ## Vendoring
 
