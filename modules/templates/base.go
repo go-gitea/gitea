@@ -35,6 +35,7 @@ func BaseVars() Vars {
 		"IsLandingPageExplore":       setting.LandingPageURL == setting.LandingPageExplore,
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
+		"ShowLocalSigninUI":           setting.Service.ShowLocalSigninUI,
 		"ShowRegistrationButton":      setting.Service.ShowRegistrationButton,
 		"ShowMilestonesDashboardPage": setting.Service.ShowMilestonesDashboardPage,
 		"ShowFooterBranding":          setting.ShowFooterBranding,

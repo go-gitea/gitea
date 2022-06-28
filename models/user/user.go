@@ -638,7 +638,7 @@ func CreateUser(u *User, overwriteDefault ...*CreateUserOverwriteOptions) (err e
 	u.Visibility = setting.Service.DefaultUserVisibilityMode
 	u.AllowCreateOrganization = setting.Service.DefaultAllowCreateOrganization && !setting.Admin.DisableRegularOrgCreation
 	u.EmailNotificationsPreference = setting.Admin.DefaultEmailNotification
-	u.MaxRepoCreation = -1
+	u.MaxRepoCreation = 0
 	u.Theme = setting.UI.DefaultTheme
 	u.IsRestricted = setting.Service.DefaultUserIsRestricted
 	u.IsActive = !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm)

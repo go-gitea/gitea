@@ -11,6 +11,7 @@
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.SignInLink}}" method="post">
 			{{.CsrfTokenHtml}}
+			{{if .ShowLocalSigninUI}}
 			<div class="required inline field {{if and (.Err_UserName) (or (not .LinkAccountMode) (and .LinkAccountMode .LinkAccountModeSignIn))}}error{{end}}">
 				<label for="user_name">{{.i18n.Tr "home.uname_holder"}}</label>
 				<input id="user_name" type="text" name="user_name" value="{{.user_name}}" autofocus required>
@@ -48,6 +49,7 @@
 					<label></label>
 					<a href="{{AppSubUrl}}/user/sign_up">{{.i18n.Tr "auth.sign_up_now" | Str2html}}</a>
 				</div>
+			{{end}}
 			{{end}}
 
 			{{if and .OrderedOAuth2Names .OAuth2Providers}}

@@ -777,6 +777,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["IsLandingPageExplore"] = setting.LandingPageURL == setting.LandingPageExplore
 			ctx.Data["IsLandingPageOrganizations"] = setting.LandingPageURL == setting.LandingPageOrganizations
 
+			ctx.Data["ShowLocalSigninUI"] = setting.Service.ShowLocalSigninUI
 			ctx.Data["ShowRegistrationButton"] = setting.Service.ShowRegistrationButton
 			ctx.Data["ShowMilestonesDashboardPage"] = setting.Service.ShowMilestonesDashboardPage
 			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
