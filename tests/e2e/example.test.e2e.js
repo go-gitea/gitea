@@ -22,9 +22,9 @@ test('Test Register Form', async ({page}, workerInfo) => {
   await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created.');
   // Optionally include visual testing
   if (process.env.VISUAL_TEST) {
-    await expect(page).toHaveScreenshot({ timeout: 20000, 
+    await expect(page).toHaveScreenshot({timeout: 20000,
       mask: [
-        page.locator('footer div.ui.left'), 
+        page.locator('footer div.ui.left'),
         page.locator('.dashboard-navbar span>img.ui.avatar.image'),
       ]
     });
