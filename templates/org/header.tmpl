@@ -6,8 +6,8 @@
 					{{avatar . 100}}
 					<span class="text thin grey"><a href="{{.HomeLink}}">{{.DisplayName}}</a></span>
 					<span class="org-visibility">
-						{{if .Visibility.IsLimited}}<div class="ui medium orange horizontal label">{{$.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-						{{if .Visibility.IsPrivate}}<div class="ui medium red horizontal label">{{$.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+						{{if .Visibility.IsLimited}}<div class="ui medium orange horizontal label">{{$.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+						{{if .Visibility.IsPrivate}}<div class="ui medium red horizontal label">{{$.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 					</span>
 				</div>
 			</div>
