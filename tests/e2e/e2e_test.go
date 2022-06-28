@@ -67,20 +67,37 @@ func TestMain(m *testing.M) {
 }
 
 func TestE2e(t *testing.T) {
-	// Default 5 minute timeout
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		cmd := exec.Command("npx", "playwright", "test")
-		cmd.Env = os.Environ()
-		cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
-		var out bytes.Buffer
-		cmd.Stdout = &out
-		err := cmd.Run()
-		if err != nil {
-			// Currently colored output is conflicting. Using Printf until that is resolved.
-			fmt.Printf("%v", out.String())
-			log.Fatal("Playwright Failed: %s", err)
-		} else {
-			fmt.Printf("%v", out.String())
-		}
-	})
+	// Find the paths of all e2e test files in test test directory.
+	search_glob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")
+	paths, err := filepath.Glob(search_glob)
+	if err != nil {
+		t.Fatal(err)
+	} else if len(paths) == 0 {
+		t.Fatal(fmt.Errorf("No e2e tests found in %s", search_glob))
+	}
+
+	// Create new test for each input file
+	for _, path := range paths {
+		_, filename := filepath.Split(path)
+		testname := filename[:len(filename)-len(filepath.Ext(path))]
+
+		t.Run(testname, func(t *testing.T) {
+			// Default 2 minute timeout
+			onGiteaRun(t, func(*testing.T, *url.URL) {
+				cmd := exec.Command("npx", "playwright", "test")
+				cmd.Env = os.Environ()
+				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
+				var out bytes.Buffer
+				cmd.Stdout = &out
+				err := cmd.Run()
+				if err != nil {
+					// Currently colored output is conflicting. Using Printf until that is resolved.
+					fmt.Printf("%v", out.String())
+					log.Fatal("Playwright Failed: %s", err)
+				} else {
+					fmt.Printf("%v", out.String())
+				}
+			})
+		})
+	}
 }
