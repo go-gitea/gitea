@@ -111,7 +111,3 @@ prime/
 
 # Manpage
 /man
-test-results/
-
-# E2E
-tools/e2e/reports/
