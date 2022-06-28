@@ -284,7 +284,8 @@ async function onEditContent(event) {
     if ($dropzone.length === 1) {
       $dropzone.data('saved', false);
 
-      const fileUuidDict = {}; // if a comment has been saved, then the uploaded files won't be deleted when clicking the Remove in the dropzone
+      let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the removedfile event
+      let fileUuidDict = {}; // if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
       dz = await createDropzone($dropzone[0], {
         url: $dropzone.data('upload-url'),
         headers: {'X-Csrf-Token': csrfToken},
@@ -308,6 +309,7 @@ async function onEditContent(event) {
             $dropzone.find('.files').append(input);
           });
           this.on('removedfile', (file) => {
+            if (disableRemovedfileEvent) return;
             $(`#${file.uuid}`).remove();
             if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid]?.submitted) {
               $.post($dropzone.data('remove-url'), {
@@ -328,8 +330,11 @@ async function onEditContent(event) {
           });
           this.on('reload', () => {
             $.getJSON($editContentZone.data('attachment-url'), (data) => {
+              disableRemovedfileEvent = true;
               dz.removeAllFiles(true);
+              disableRemovedfileEvent = false;
               $dropzone.find('.files').empty();
+              fileUuidDict = {};
               $.each(data, function () {
                 const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                 dz.emit('addedfile', this);
