@@ -10,6 +10,7 @@ import (
 	"os"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -31,7 +32,7 @@ type locale struct {
 
 	sourceFileName      string
 	sourceFileInfo      os.FileInfo
-	lastReloadCheckTime time.Time
+	lastReloadCheckTime atomic.Value
 }
 
 type LocaleStore struct {
@@ -66,6 +67,7 @@ func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, source interfac
 	if fileName, ok := source.(string); ok {
 		lc.sourceFileName = fileName
 		lc.sourceFileInfo, _ = os.Stat(fileName) // live-reload only works for regular files. the error can be ignored
+		lc.lastReloadCheckTime.Store(&time.Time{})
 	}
 
 	ls.langNames = append(ls.langNames, langName)
@@ -146,22 +148,27 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found bool) {
 	if l.store.reloadMu != nil {
 		now := time.Now()
-		if now.Sub(l.lastReloadCheckTime) >= time.Second && l.sourceFileInfo != nil && l.sourceFileName != "" {
+		lastCheckTime, ok := l.lastReloadCheckTime.Load().(*time.Time)
+		if ok && now.Sub(*lastCheckTime) >= time.Second && l.sourceFileInfo != nil {
+			lastModTime := l.sourceFileInfo.ModTime()
+			l.store.reloadMu.RUnlock() // the file may need to be reloaded with a write-lock, release the read-lock first
+
 			sourceFileInfo, err := os.Stat(l.sourceFileName)
-			l.store.reloadMu.RUnlock() // if the locale file should be reloaded, then we release the read-lock
-			l.store.reloadMu.Lock()    // and acquire the write-lock
-			l.lastReloadCheckTime = now
-			if err == nil && !sourceFileInfo.ModTime().Equal(l.sourceFileInfo.ModTime()) {
+			casOk := l.lastReloadCheckTime.CompareAndSwap(lastCheckTime, &now)
+			if err == nil && casOk && !sourceFileInfo.ModTime().Equal(lastModTime) {
+				l.store.reloadMu.Lock() // acquire the write-lock only if the file need to be reloaded
 				if err = l.store.reloadLocaleByIni(l.langName, l.sourceFileName); err == nil {
 					l.sourceFileInfo = sourceFileInfo
+					log.Info("reloaded locale file %q", l.sourceFileName)
 				} else {
 					log.Error("unable to live-reload the locale file %q, err: %v", l.sourceFileName, err)
 				}
+				l.store.reloadMu.Unlock() // release the write-lock
 			} else if err != nil {
 				log.Error("unable to stat the locale file %q, err: %v", l.sourceFileName, err)
 			}
-			l.store.reloadMu.Unlock() // release the write-lock
-			l.store.reloadMu.RLock()  // and re-acquire the read-lock, which was managed by outer Tr function
+
+			l.store.reloadMu.RLock() // re-acquire the read-lock, which was managed by outer Tr function
 		}
 	}
 	trMsg := trKey
