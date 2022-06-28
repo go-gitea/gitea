@@ -4,9 +4,9 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.auths.auth_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.auths.auth_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/auths/new">{{.i18n.Tr "admin.auths.new"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/auths/new">{{.locale.Tr "admin.auths.new"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached table segment">
@@ -14,12 +14,12 @@
 				<thead>
 					<tr>
 						<th>ID</th>
-						<th>{{.i18n.Tr "admin.auths.name"}}</th>
-						<th>{{.i18n.Tr "admin.auths.type"}}</th>
-						<th>{{.i18n.Tr "admin.auths.enabled"}}</th>
-						<th>{{.i18n.Tr "admin.auths.updated"}}</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th>{{.i18n.Tr "admin.users.edit"}}</th>
+						<th>{{.locale.Tr "admin.auths.name"}}</th>
+						<th>{{.locale.Tr "admin.auths.type"}}</th>
+						<th>{{.locale.Tr "admin.auths.enabled"}}</th>
+						<th>{{.locale.Tr "admin.auths.updated"}}</th>
+						<th>{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
 				<tbody>

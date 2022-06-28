@@ -16,23 +16,23 @@
 						{{range $i, $v := .TreeNames}}
 							<div class="divider"> / </div>
 							{{if eq $i $l}}
-								<input id="file-name" value="{{$v}}" placeholder="{{$.i18n.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
-								<span class="tooltip" data-content="{{$.i18n.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
+								<input id="file-name" value="{{$v}}" placeholder="{{$.locale.Tr "repo.editor.name_your_file"}}" data-editorconfig="{{$.Editorconfig}}" required autofocus>
+								<span class="tooltip" data-content="{{$.locale.Tr "repo.editor.filename_help"}}" data-position="bottom center">{{svg "octicon-info"}}</span>
 							{{else}}
 								<span class="section"><a href="{{$.BranchLink}}/{{index $.TreePaths $i | PathEscapeSegments}}">{{$v}}</a></span>
 							{{end}}
 						{{end}}
-						<span>{{.i18n.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.i18n.Tr "repo.editor.cancel_lower"}}</a></span>
+						<span>{{.locale.Tr "repo.editor.or"}} <a href="{{$.BranchLink}}{{if not .IsNewFile}}/{{PathEscapeSegments .TreePath}}{{end}}">{{.locale.Tr "repo.editor.cancel_lower"}}</a></span>
 						<input type="hidden" id="tree_path" name="tree_path" value="{{.TreePath}}" required>
 					</div>
 				</div>
 			</div>
 			<div class="field">
 				<div class="ui top attached tabular menu" data-write="write" data-preview="preview" data-diff="diff">
-					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.i18n.Tr "repo.editor.new_file"}}{{else}}{{.i18n.Tr "repo.editor.edit_file"}}{{end}}</a>
+					<a class="active item" data-tab="write">{{svg "octicon-code"}} {{if .IsNewFile}}{{.locale.Tr "repo.editor.new_file"}}{{else}}{{.locale.Tr "repo.editor.edit_file"}}{{end}}</a>
 					{{if not .IsNewFile}}
-					<a class="item" data-tab="preview" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.i18n.Tr "preview"}}</a>
-					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.i18n.Tr "repo.editor.preview_changes"}}</a>
+					<a class="item" data-tab="preview" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}/src/{{.BranchNameSubURL}}" data-preview-file-modes="{{.PreviewableFileModes}}" data-markdown-mode="gfm">{{svg "octicon-eye"}} {{.locale.Tr "preview"}}</a>
+					<a class="item" data-tab="diff" data-url="{{.RepoLink}}/_preview/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}" data-context="{{.BranchLink}}">{{svg "octicon-diff"}} {{.locale.Tr "repo.editor.preview_changes"}}</a>
 					{{end}}
 				</div>
 				<div class="ui bottom attached active tab segment" data-tab="write">
@@ -45,10 +45,10 @@
 					<div class="editor-loading is-loading"></div>
 				</div>
 				<div class="ui bottom attached tab segment markup" data-tab="preview">
-					{{.i18n.Tr "loading"}}
+					{{.locale.Tr "loading"}}
 				</div>
 				<div class="ui bottom attached tab segment diff edit-diff" data-tab="diff">
-					{{.i18n.Tr "loading"}}
+					{{.locale.Tr "loading"}}
 				</div>
 			</div>
 			{{template "repo/editor/commit_form" .}}
@@ -59,19 +59,19 @@
 	<div class="ui small basic modal" id="edit-empty-content-modal">
 		<div class="ui icon header">
 			<i class="file icon"></i>
-			{{.i18n.Tr "repo.editor.commit_empty_file_header"}}
+			{{.locale.Tr "repo.editor.commit_empty_file_header"}}
 		</div>
 		<div class="center content">
-			<p>{{.i18n.Tr "repo.editor.commit_empty_file_text"}}</p>
+			<p>{{.locale.Tr "repo.editor.commit_empty_file_text"}}</p>
 		</div>
 		<div class="actions">
 			<div class="ui red basic cancel inverted button">
 				<i class="remove icon"></i>
-				{{.i18n.Tr "repo.editor.cancel"}}
+				{{.locale.Tr "repo.editor.cancel"}}
 			</div>
 			<div class="ui green basic ok inverted button">
 				<i class="save icon"></i>
-				{{.i18n.Tr "repo.editor.commit_changes"}}
+				{{.locale.Tr "repo.editor.commit_changes"}}
 			</div>
 		</div>
 	</div>
