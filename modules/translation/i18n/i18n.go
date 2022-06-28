@@ -138,6 +138,13 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 	if l.store.reloadMu != nil {
 		l.store.reloadMu.Lock()
 		defer l.store.reloadMu.Unlock()
+	}
+	msg, _ := l.tryTr(trKey, trArgs...)
+	return msg
+}
+
+func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found bool) {
+	if l.store.reloadMu != nil {
 		now := time.Now()
 		if now.Sub(l.lastReloadCheckTime) >= time.Second && l.sourceFileInfo != nil && l.sourceFileName != "" {
 			l.lastReloadCheckTime = now
@@ -150,11 +157,6 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 			}
 		}
 	}
-	msg, _ := l.tryTr(trKey, trArgs...)
-	return msg
-}
-
-func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found bool) {
 	trMsg := trKey
 	textIdx, ok := l.store.textIdxMap[trKey]
 	if ok {
