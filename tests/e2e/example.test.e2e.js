@@ -22,11 +22,13 @@ test('Test Register Form', async ({page}, workerInfo) => {
   await expect(page.locator('.ui.positive.message.flash-success')).toHaveText('Account was successfully created.');
   // Optionally include visual testing
   if (process.env.VISUAL_TEST) {
+    await page.waitForLoadState('networkidle');
     // Mock page/version string
     await page.locator('footer div.ui.left').evaluate((node) => node.innerHTML = 'MOCK');
     await expect(page).toHaveScreenshot({timeout: 20000,
       mask: [
         page.locator('.dashboard-navbar span>img.ui.avatar.image'),
+        page.locator('.ui.dropdown.jump.item.tooltip span>img.ui.avatar.image'),
       ]
     });
   }

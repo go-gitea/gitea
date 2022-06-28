@@ -30,7 +30,7 @@ var c *web.Route
 func TestMain(m *testing.M) {
 	defer log.Close()
 
-	tests.InitTest()
+	tests.InitTest(false)
 	c = routers.NormalRoutes()
 
 	os.Unsetenv("GIT_AUTHOR_NAME")

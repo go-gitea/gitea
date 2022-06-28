@@ -81,7 +81,7 @@ func TestMain(m *testing.M) {
 	graceful.InitManager(managerCtx)
 	defer cancel()
 
-	tests.InitTest()
+	tests.InitTest(true)
 	c = routers.NormalRoutes()
 
 	// integration test settings...

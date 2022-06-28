@@ -29,20 +29,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitTest() {
+func InitTest(require_gitea bool) {
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	giteaBinary := "gitea"
-	if runtime.GOOS == "windows" {
-		giteaBinary += ".exe"
-	}
-	setting.AppPath = path.Join(giteaRoot, giteaBinary)
-	if _, err := os.Stat(setting.AppPath); err != nil {
-		fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
-		os.Exit(1)
+	if require_gitea {
+		giteaBinary := "gitea"
+		if runtime.GOOS == "windows" {
+			giteaBinary += ".exe"
+		}
+		setting.AppPath = path.Join(giteaRoot, giteaBinary)
+		if _, err := os.Stat(setting.AppPath); err != nil {
+			fmt.Printf("Could not find gitea binary at %s\n", setting.AppPath)
+			os.Exit(1)
+		}
 	}
 
 	giteaConf := os.Getenv("GITEA_CONF")
