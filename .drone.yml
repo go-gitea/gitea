@@ -557,8 +557,6 @@ steps:
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get update
       - apt-get install build-essential --yes
-      - curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash
-      - apt-get install -y git-lfs
       - export TEST_PGSQL_SCHEMA=''
       - ./build/test-env-prepare.sh
       - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"

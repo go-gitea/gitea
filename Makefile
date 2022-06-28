@@ -657,19 +657,19 @@ migrations.individual.mssql.test: $(GO_SOURCES)
 migrations.individual.sqlite.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/models/migrations -o migrations.individual.sqlite.test -tags '$(TEST_TAGS)'
 
-e2e.mysql.test: git-check $(GO_SOURCES)
+e2e.mysql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql.test
 
-e2e.mysql8.test: git-check $(GO_SOURCES)
+e2e.mysql8.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mysql8.test
 
-e2e.pgsql.test: git-check $(GO_SOURCES)
+e2e.pgsql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.pgsql.test
 
-e2e.mssql.test: git-check $(GO_SOURCES)
+e2e.mssql.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.mssql.test
 
-e2e.sqlite.test: git-check $(GO_SOURCES)
+e2e.sqlite.test: $(GO_SOURCES)
 	$(GO) test $(GOTESTFLAGS) -c code.gitea.io/gitea/tests/e2e -o e2e.sqlite.test -tags '$(TEST_TAGS)'
 
 .PHONY: check
