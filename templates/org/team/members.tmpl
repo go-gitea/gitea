@@ -15,11 +15,11 @@
 							<div class="inline field ui left">
 								<div id="search-user-box" class="ui search">
 									<div class="ui input">
-										<input class="prompt" name="uname" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
+										<input class="prompt" name="uname" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" required>
 									</div>
 								</div>
 							</div>
-							<button class="ui green button">{{.i18n.Tr "org.teams.add_team_member"}}</button>
+							<button class="ui green button">{{.locale.Tr "org.teams.add_team_member"}}</button>
 						</form>
 					</div>
 				{{end}}
@@ -31,7 +31,7 @@
 									<button class="ui red button delete-button right" data-modal-id="remove-team-member"
 										data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/remove" data-datauid="{{.ID}}"
 										data-name="{{.DisplayName}}"
-										data-data-team-name="{{$.Team.Name}}">{{$.i18n.Tr "org.members.remove"}}</button>
+										data-data-team-name="{{$.Team.Name}}">{{$.locale.Tr "org.members.remove"}}</button>
 								</form>
 							{{end}}
 							<a href="{{.HomeLink}}">
@@ -41,7 +41,7 @@
 						</div>
 					{{else}}
 						<div class="item">
-							<span class="text grey italic">{{$.i18n.Tr "org.teams.members.none"}}</span>
+							<span class="text grey italic">{{$.locale.Tr "org.teams.members.none"}}</span>
 						</div>
 					{{end}}
 				</div>
@@ -52,10 +52,10 @@
 <div class="ui small basic delete modal" id="remove-team-member">
 	<div class="ui icon header">
 		{{svg "octicon-x" 16 "close inside"}}
-		{{$.i18n.Tr "org.members.remove"}}
+		{{$.locale.Tr "org.members.remove"}}
 	</div>
 	<div class="content">
-		<p>{{$.i18n.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
+		<p>{{$.locale.Tr "org.members.remove.detail" `<span class="name"></span>` `<span class="dataTeamName"></span>` | Safe}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
