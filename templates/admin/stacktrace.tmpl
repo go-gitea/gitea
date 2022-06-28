@@ -4,9 +4,9 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.monitor.stacktrace"}}: {{.i18n.Tr "admin.monitor.goroutines" .GoroutineCount}}
+			{{.locale.Tr "admin.monitor.stacktrace"}}: {{.locale.Tr "admin.monitor.goroutines" .GoroutineCount}}
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/monitor">{{.i18n.Tr "admin.monitor"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/monitor">{{.locale.Tr "admin.monitor"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -21,11 +21,11 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-x" 16 "close inside"}}
-		{{.i18n.Tr "admin.monitor.process.cancel"}}
+		{{.locale.Tr "admin.monitor.process.cancel"}}
 	</div>
 	<div class="content">
-		<p>{{$.i18n.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
-		<p>{{$.i18n.Tr "admin.monitor.process.cancel_desc"}}</p>
+		<p>{{$.locale.Tr "admin.monitor.process.cancel_notices" `<span class="name"></span>` | Safe}}</p>
+		<p>{{$.locale.Tr "admin.monitor.process.cancel_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

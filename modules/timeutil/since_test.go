@@ -12,7 +12,6 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation"
-	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -42,16 +41,16 @@ func TestMain(m *testing.M) {
 }
 
 func TestTimeSince(t *testing.T) {
-	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, "en"))
+	assert.Equal(t, "now", timeSince(BaseDate, BaseDate, translation.NewLocale("en-US")))
 
 	// test that each diff in `diffs` yields the expected string
 	test := func(expected string, diffs ...time.Duration) {
 		t.Run(expected, func(t *testing.T) {
 			for _, diff := range diffs {
-				actual := timeSince(BaseDate, BaseDate.Add(diff), "en")
-				assert.Equal(t, i18n.Tr("en", "tool.ago", expected), actual)
-				actual = timeSince(BaseDate.Add(diff), BaseDate, "en")
-				assert.Equal(t, i18n.Tr("en", "tool.from_now", expected), actual)
+				actual := timeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
+				assert.Equal(t, translation.NewLocale("en-US").Tr("tool.ago", expected), actual)
+				actual = timeSince(BaseDate.Add(diff), BaseDate, translation.NewLocale("en-US"))
+				assert.Equal(t, translation.NewLocale("en-US").Tr("tool.from_now", expected), actual)
 			}
 		})
 	}
@@ -82,13 +81,13 @@ func TestTimeSince(t *testing.T) {
 }
 
 func TestTimeSincePro(t *testing.T) {
-	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, "en"))
+	assert.Equal(t, "now", timeSincePro(BaseDate, BaseDate, translation.NewLocale("en-US")))
 
 	// test that a difference of `diff` yields the expected string
 	test := func(expected string, diff time.Duration) {
-		actual := timeSincePro(BaseDate, BaseDate.Add(diff), "en")
+		actual := timeSincePro(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
 		assert.Equal(t, expected, actual)
-		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, "en"))
+		assert.Equal(t, "future", timeSincePro(BaseDate.Add(diff), BaseDate, translation.NewLocale("en-US")))
 	}
 	test("1 second", time.Second)
 	test("2 seconds", 2*time.Second)
@@ -119,7 +118,7 @@ func TestHtmlTimeSince(t *testing.T) {
 	setting.DefaultUILocation = time.UTC
 	// test that `diff` yields a result containing `expected`
 	test := func(expected string, diff time.Duration) {
-		actual := htmlTimeSince(BaseDate, BaseDate.Add(diff), "en")
+		actual := htmlTimeSince(BaseDate, BaseDate.Add(diff), translation.NewLocale("en-US"))
 		assert.Contains(t, actual, `title="Sat Jan  1 00:00:00 UTC 2000"`)
 		assert.Contains(t, actual, expected)
 	}
@@ -138,7 +137,7 @@ func TestComputeTimeDiff(t *testing.T) {
 	test := func(base int64, str string, offsets ...int64) {
 		for _, offset := range offsets {
 			t.Run(fmt.Sprintf("%s:%d", str, offset), func(t *testing.T) {
-				diff, diffStr := computeTimeDiff(base+offset, "en")
+				diff, diffStr := computeTimeDiff(base+offset, translation.NewLocale("en-US"))
 				assert.Equal(t, offset, diff)
 				assert.Equal(t, str, diffStr)
 			})
@@ -171,7 +170,7 @@ func TestComputeTimeDiff(t *testing.T) {
 func TestMinutesToFriendly(t *testing.T) {
 	// test that a number of minutes yields the expected string
 	test := func(expected string, minutes int) {
-		actual := MinutesToFriendly(minutes, "en")
+		actual := MinutesToFriendly(minutes, translation.NewLocale("en-US"))
 		assert.Equal(t, expected, actual)
 	}
 	test("1 minute", 1)
