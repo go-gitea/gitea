@@ -68,12 +68,12 @@ func TestMain(m *testing.M) {
 
 func TestE2e(t *testing.T) {
 	// Find the paths of all e2e test files in test test directory.
-	search_glob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")
-	paths, err := filepath.Glob(search_glob)
+	searchGlob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")
+	paths, err := filepath.Glob(searchGlob)
 	if err != nil {
 		t.Fatal(err)
 	} else if len(paths) == 0 {
-		t.Fatal(fmt.Errorf("No e2e tests found in %s", search_glob))
+		t.Fatal(fmt.Errorf("No e2e tests found in %s", searchGlob))
 	}
 
 	// Create new test for each input file

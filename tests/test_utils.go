@@ -29,13 +29,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitTest(require_gitea bool) {
+func InitTest(requireGitea bool) {
 	giteaRoot := base.SetupGiteaRoot()
 	if giteaRoot == "" {
 		fmt.Println("Environment variable $GITEA_ROOT not set")
 		os.Exit(1)
 	}
-	if require_gitea {
+	if requireGitea {
 		giteaBinary := "gitea"
 		if runtime.GOOS == "windows" {
 			giteaBinary += ".exe"
