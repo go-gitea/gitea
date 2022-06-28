@@ -1,7 +1,7 @@
 import $ from 'jquery';
 const {csrfToken} = window.config;
 
-async function uploadFile(file, uploadUrl) {
+async function uploadFile(file, uploadUrl, dropzone) {
   const formData = new FormData();
   formData.append('file', file, file.name);
 
@@ -10,7 +10,23 @@ async function uploadFile(file, uploadUrl) {
     headers: {'X-Csrf-Token': csrfToken},
     body: formData,
   });
-  return await res.json();
+  const data = await res.json();
+  const upfile = {name: file.name, size: file.size, uuid: data.uuid};
+  dropzone.dropzone.emit('addedfile', upfile);
+  dropzone.dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
+  dropzone.dropzone.emit('complete', upfile);
+  dropzone.dropzone.files.push(upfile);
+  return data;
+}
+
+export function removeUploadedFileFromEditor(editor, fileUuid) {
+  // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/
+  const re = new RegExp(`!\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
+  editor.value(editor.value().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
+  if (editor.element) {
+    // when using "simple textarea" mode, the value of the textarea should be replaced too.
+    editor.element.value = editor.element.value.replace(re, '');
+  }
 }
 
 function clipboardPastedImages(e) {
@@ -67,15 +83,10 @@ export function initCompImagePaste($target) {
         for (const img of clipboardPastedImages(e)) {
           const name = img.name.slice(0, img.name.lastIndexOf('.'));
           insertAtCursor(textarea, `![${name}]()`);
-          const data = await uploadFile(img, uploadUrl);
+          const data = await uploadFile(img, uploadUrl, dropzone);
           replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           dropzoneFiles.appendChild(input[0]);
-          const upfile = {name: img.name, size: img.size, uuid: data.uuid};
-          dropzone.dropzone.emit('addedfile', upfile);
-          dropzone.dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
-          dropzone.dropzone.emit('complete', upfile);
-          dropzone.dropzone.files.push(upfile);
         }
       }, false);
     }
@@ -87,16 +98,11 @@ export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
   easyMDE.codemirror.on('paste', async (_, e) => {
     for (const img of clipboardPastedImages(e)) {
       const name = img.name.slice(0, img.name.lastIndexOf('.'));
-      const data = await uploadFile(img, uploadUrl);
+      const data = await uploadFile(img, uploadUrl, dropzone);
       const pos = easyMDE.codemirror.getCursor();
       easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
       const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
       files.append(input);
-      const upfile = {name: img.name, size: img.size, uuid: data.uuid};
-      dropzone.dropzone.emit('addedfile', upfile);
-      dropzone.dropzone.emit('thumbnail', upfile, `/attachments/${data.uuid}`);
-      dropzone.dropzone.emit('complete', upfile);
-      dropzone.dropzone.files.push(upfile);
     }
   });
 }

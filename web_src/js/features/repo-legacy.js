@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
+import {initCompImagePaste, initEasyMDEImagePaste, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -282,7 +282,7 @@ async function onEditContent(event) {
     if ($dropzone.length === 1) {
       $dropzone.data('saved', false);
 
-      const fileUuidDict = {};
+      const fileUuidDict = {};  // suspicious logic, need to be confirmed in the future, fix or comment.
       dz = await createDropzone($dropzone[0], {
         url: $dropzone.data('upload-url'),
         headers: {'X-Csrf-Token': csrfToken},
@@ -306,13 +306,12 @@ async function onEditContent(event) {
           });
           this.on('removedfile', (file) => {
             $(`#${file.uuid}`).remove();
-            if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
+            if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid]?.submitted) {
               $.post($dropzone.data('remove-url'), {
                 file: file.uuid,
                 _csrf: csrfToken,
               }).then(() => {
-                const filename = file.name.substring(0, file.name.lastIndexOf('.')), oldval = `![${filename}](/attachments/${file.uuid})`, editor = this.element.parentElement.parentElement.querySelector('textarea')._data_easyMDE;
-                editor.value(editor.value().replace(oldval, ''));
+                removeUploadedFileFromEditor(easyMDE, file.uuid);
               });
             }
           });

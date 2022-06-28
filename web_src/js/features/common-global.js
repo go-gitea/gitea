@@ -5,6 +5,8 @@ import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
+import {removeUploadedFileFromEditor} from './comp/ImagePaste.js';
+import {getAttachedEasyMDE} from './comp/EasyMDE.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -203,8 +205,11 @@ export function initGlobalDropzone() {
               file: file.uuid,
               _csrf: csrfToken,
             }).then(() => {
-              const filename = file.name.substring(0, file.name.lastIndexOf('.')), oldval = `![${filename}](/attachments/${file.uuid})`, editor = this.element.parentElement.parentElement.querySelector('textarea')._data_easyMDE;
-              editor.value(editor.value().replace(oldval, ''));
+              // FIXME: the code is still very fragile, in the future, there should be stable relation between dropzone and its editor.
+              const easyMDE = getAttachedEasyMDE($dropzone.parent().parent().find('textarea'));
+              if (easyMDE) {
+                removeUploadedFileFromEditor(easyMDE, file.uuid);
+              }
             });
           }
         });
