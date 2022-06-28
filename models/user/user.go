@@ -611,17 +611,9 @@ var (
 // IsUsableUsername returns an error when a username is reserved
 func IsUsableUsername(name string) error {
 	// Validate username make sure it satisfies requirement.
-	if setting.OAuth2Client.Username == "userid" {
-		if db.AlphaDashDotPipePattern.MatchString(name) {
-			// Note: usually this error is normally caught up earlier in the UI
-			return db.ErrNameCharsNotAllowed{Name: name}
-		}
-	} else {
-		// Validate username make sure it satisfies requirement.
-		if db.AlphaDashDotPattern.MatchString(name) {
-			// Note: usually this error is normally caught up earlier in the UI
-			return db.ErrNameCharsNotAllowed{Name: name}
-		}
+	if db.AlphaDashDotPattern.MatchString(name) {
+		// Note: usually this error is normally caught up earlier in the UI
+		return db.ErrNameCharsNotAllowed{Name: name}
 	}
 	return db.IsUsableName(reservedUsernames, reservedUserPatterns, name)
 }
