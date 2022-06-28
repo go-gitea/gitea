@@ -78,6 +78,13 @@ func TestE2e(t *testing.T) {
 		t.Fatal(fmt.Errorf("No e2e tests found in %s", searchGlob))
 	}
 
+	runArgs := []string{"npx", "playwright", "test"}
+
+	// To update snapshot outputs
+	if _, set := os.LookupEnv("ACCEPT_VISUAL"); set {
+		runArgs = append(runArgs, "--update-snapshots")
+	}
+
 	// Create new test for each input file
 	for _, path := range paths {
 		_, filename := filepath.Split(path)
@@ -86,7 +93,7 @@ func TestE2e(t *testing.T) {
 		t.Run(testname, func(t *testing.T) {
 			// Default 2 minute timeout
 			onGiteaRun(t, func(*testing.T, *url.URL) {
-				cmd := exec.Command("npx", "playwright", "test")
+				cmd := exec.Command(runArgs[0], runArgs...)
 				cmd.Env = os.Environ()
 				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
 				var out bytes.Buffer
