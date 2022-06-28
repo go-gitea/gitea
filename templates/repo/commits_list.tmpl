@@ -2,10 +2,10 @@
 		<table class="ui very basic striped table unstackable fixed" id="commits-table">
 			<thead>
 				<tr>
-					<th class="four wide">{{.i18n.Tr "repo.commits.author"}}</th>
+					<th class="four wide">{{.locale.Tr "repo.commits.author"}}</th>
 					<th class="two wide sha">SHA1</th>
-					<th class="seven wide message">{{.i18n.Tr "repo.commits.message"}}</th>
-					<th class="three wide right aligned">{{.i18n.Tr "repo.commits.date"}}</th>
+					<th class="seven wide message">{{.locale.Tr "repo.commits.message"}}</th>
+					<th class="three wide right aligned">{{.locale.Tr "repo.commits.date"}}</th>
 				</tr>
 			</thead>
 			<tbody class="commit-list">
@@ -76,9 +76,9 @@
 							{{end}}
 						</td>
 						{{if .Committer}}
-							<td class="text right aligned">{{TimeSince .Committer.When $.i18n.Lang}}</td>
+							<td class="text right aligned">{{TimeSince .Committer.When $.locale}}</td>
 						{{else}}
-							<td class="text right aligned">{{TimeSince .Author.When $.i18n.Lang}}</td>
+							<td class="text right aligned">{{TimeSince .Author.When $.locale}}</td>
 						{{end}}
 					</tr>
 				{{end}}

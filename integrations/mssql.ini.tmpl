@@ -10,10 +10,12 @@ PASSWD   = {{TEST_MSSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/gitea-integration-mssql/indexers/issues.bleve
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mssql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mssql/indexers/repos.bleve
+
+[queue.issue_indexer]
+PATH = integrations/gitea-integration-mssql/indexers/issues.bleve
+DATADIR = integrations/gitea-integration-mssql/indexers/issues.queue
 
 [queue]
 TYPE = immediate
