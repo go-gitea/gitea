@@ -52,6 +52,8 @@ const config = {
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+
+    screenshot: 'only-on-failure',
   },
 
   /* Configure projects for major browsers */
@@ -109,7 +111,9 @@ const config = {
   ],
 
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
-  // outputDir: 'test-results/',
+  outputDir: 'tests/e2e/test-artifacts/',
+  /* Folder for test artifacts such as screenshots, videos, traces, etc. */
+  snapshotDir: 'tests/e2e/test-snapshots/',
 
   /* Run your local dev server before starting the tests */
   // webServer: {

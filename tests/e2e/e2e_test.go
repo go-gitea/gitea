@@ -76,10 +76,11 @@ func TestE2e(t *testing.T) {
 		cmd.Stdout = &out
 		err := cmd.Run()
 		if err != nil {
-			log.Error("%v", out.String())
+			// Currently colored output is conflicting. Using Printf until that is resolved.
+			fmt.Printf("%v", out.String())
 			log.Fatal("Playwright Failed: %s", err)
 		} else {
-			log.Info("%v", out.String())
+			fmt.Printf("%v", out.String())
 		}
 	})
 }

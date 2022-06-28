@@ -248,7 +248,7 @@ clean:
 		tests/integration/indexers-mssql tests/mysql.ini tests/mysql8.ini tests/pgsql.ini tests/mssql.ini man/ \
 		tests/e2e/gitea-e2e-pgsql/ tests/e2e/gitea-e2e-mysql/ tests/e2e/gitea-e2e-mysql8/ tests/e2e/gitea-e2e-sqlite/ \
 		tests/e2e/gitea-e2e-mssql/ tests/e2e/indexers-mysql/ tests/e2e/indexers-mysql8/ tests/e2e/indexers-pgsql tests/e2e/indexers-sqlite \
-		tests/e2e/indexers-mssql
+		tests/e2e/indexers-mssql tests/e2e/reports tests/e2e/test-artifacts tests/e2e/test-snapshots
 
 .PHONY: fmt
 fmt:
@@ -516,6 +516,8 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
+	# Clear display env variable. Otherwise, chromium tests can fail.
+	DISPLAY=
 
 .PHONY: test-e2e
 test-e2e: test-e2e-sqlite
