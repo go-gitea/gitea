@@ -147,10 +147,11 @@ func (l *locale) tryTr(trKey string, trArgs ...interface{}) (msg string, found b
 	if l.store.reloadMu != nil {
 		now := time.Now()
 		if now.Sub(l.lastReloadCheckTime) >= time.Second && l.sourceFileInfo != nil && l.sourceFileName != "" {
+			sourceFileInfo, err := os.Stat(l.sourceFileName)
 			l.store.reloadMu.RUnlock() // if the locale file should be reloaded, then we release the read-lock
 			l.store.reloadMu.Lock()    // and acquire the write-lock
 			l.lastReloadCheckTime = now
-			if sourceFileInfo, err := os.Stat(l.sourceFileName); err == nil && !sourceFileInfo.ModTime().Equal(l.sourceFileInfo.ModTime()) {
+			if err == nil && !sourceFileInfo.ModTime().Equal(l.sourceFileInfo.ModTime()) {
 				if err = l.store.reloadLocaleByIni(l.langName, l.sourceFileName); err == nil {
 					l.sourceFileInfo = sourceFileInfo
 				} else {
