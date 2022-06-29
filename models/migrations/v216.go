@@ -4,10 +4,5 @@
 
 package migrations
 
-import (
-	"xorm.io/xorm"
-)
-
-func noop216(x *xorm.Engine) error {
-	return nil
-}
+// This migration added non-ideal indices to the action table which on larger datasets slowed things down
+// it has been superceded by v218.go
