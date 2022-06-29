@@ -733,12 +733,8 @@ func checkCitationFile(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
 		return
 	}
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
-		return
-	}
-	if entry.Name() == "" {
+	entry, _ := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if entry.Name() != "" {
 		return
 	}
 	tree, err := ctx.Repo.Commit.SubTree(ctx.Repo.TreePath)
@@ -751,26 +747,25 @@ func checkCitationFile(ctx *context.Context) {
 		ctx.ServerError("ListEntries", err)
 		return
 	}
-	allEntries.CustomSort(base.NaturalSortLess)
 	for _, entry := range allEntries {
 		if entry.Name() == "CITATION.cff" {
-			ctx.Data["haveCitationFile"] = true
+			ctx.Data["CitiationExist"] = true
 			// Read Citation file contents
 			blob := entry.Blob()
 			dataRc, err := blob.DataAsync()
 			if err != nil {
-				ctx.ServerError("Data", err)
+				ctx.ServerError("DataAsync", err)
 				return
 			}
+			defer dataRc.Close()
 			buf := make([]byte, 1024)
 			n, _ := util.ReadAtMost(dataRc, buf)
 			if err != nil {
-				ctx.ServerError("Data", err)
+				ctx.ServerError("ReadAtMost", err)
 				return
 			}
 			buf = buf[:n]
-			dataRc.Close()
-			ctx.PageData["fileContent"] = string(buf)
+			ctx.PageData["citiationFileContent"] = string(buf)
 			break
 		}
 	}
@@ -783,9 +778,11 @@ func Home(ctx *context.Context) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
 		return
 	}
-
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
 	checkCitationFile(ctx)
+	if ctx.Written() {
+		return
+	}
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return

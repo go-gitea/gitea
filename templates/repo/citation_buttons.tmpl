@@ -6,14 +6,6 @@ BibTeX
 </button>
 <!-- the value will be updated by initCitationFileCopyContent, the code below is used to avoid UI flicking  -->
 <input id="citation-copy-content" value="" size="1" readonly>
-<script>
-	(() => {
-		const format = localStorage.getItem('citation-copy-format') || 'apa';
-		const btn = document.getElementById(`citation-copy-${format}`);
-		// it's ok if we don't find the btn here, initCitationFileCopyContent will take care of it
-		document.getElementById('citation-copy-content').value = btn ? btn.getAttribute('data-text') : '';
-	})();
-</script>
 <button class="ui basic icon button tooltip" id="citation-clipboard-btn" data-content="{{.i18n.Tr "copy"}}" data-clipboard-text="" data-clipboard-target="#citation-copy-content">
 	{{svg "octicon-paste"}}
 </button>

@@ -138,15 +138,15 @@
 			</div>
 		</div>
 		<!-- Only show clone panel in repository home page -->
-		{{if and (eq $n 0) .haveCitationFile}}
+		{{if and (eq $n 0) .CitiationExist}}
 			<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
 				<div class="fitted item">
-					Cite this repository :&nbsp;
+					{{.i18n.Tr "repo.cite_this_repo"}} :&nbsp
 					<div class="ui action tiny input" id="citation-panel">
 						{{template "repo/citation_buttons" .}}
-						<button id="goto-citation-btn" class="ui basic jump icon button tooltip" onclick="window.location='{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff';" data-position="top right">
+						<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right">
 							{{svg "octicon-file-moved"}}
-						</button>
+						</a>
 					</div>
 				</div>
 			</div>
