@@ -33,7 +33,7 @@ import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 const {csrfToken} = window.config;
 
 export function initRepoCommentForm() {
-  const $commentForm = $('#comment-form');
+  const $commentForm = $('#comment-form, #new-issue'); // for issues and PRs
   if ($commentForm.length === 0) {
     return;
   }

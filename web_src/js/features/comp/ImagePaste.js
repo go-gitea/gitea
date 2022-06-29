@@ -109,7 +109,7 @@ class CodeMirrorEditor {
 
 
 export function initEasyMDEImagePaste(easyMDE, $dropzone) {
-  if ($dropzone.length !== 1) throw new Error('invalid dropzone attach');
+  if ($dropzone.length !== 1) throw new Error('invalid dropzone binding for editor');
 
   const uploadUrl = $dropzone.attr('data-upload-url');
   const $files = $dropzone.find('.files');
