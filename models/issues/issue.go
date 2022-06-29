@@ -1680,7 +1680,7 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 			sess.In("issue.id", issueIDs)
 		}
 
-		if strings.Contains(opts.Labels, ",") {
+		if len(opts.Labels) > 0 {
 			labelIDs, err := base.StringsToInt64s(strings.Split(opts.Labels, ","))
 			if err != nil {
 				log.Warn("Malformed Labels argument: %s", opts.Labels)
@@ -1699,19 +1699,6 @@ func getIssueStatsChunk(opts *IssueStatsOptions, issueIDs []int64) (*IssueStats,
 				}
 				if hasNoLabel {
 					sess.NotIn("issue.id", builder.Select("issue_id").From("issue_label").Where(builder.In("label_id", noLabelsIDs)))
-				}
-			}
-		} else if len(opts.Labels) > 0 {
-			labelID, err := strconv.ParseInt(opts.Labels, 10, 64)
-			if err != nil {
-				log.Warn("Malformed Labels argument: %s", opts.Labels)
-			} else {
-				if labelID > 0 {
-					sess.Join("INNER", "issue_label il",
-						fmt.Sprintf("issue.id = il.issue_id AND il.label_id = %d", labelID))
-				} else if labelID < 0 {
-					sess.Join("INNER", "issue_label il",
-						fmt.Sprintf("issue.id = il.issue_id AND il.label_id <> %d", -labelID))
 				}
 			}
 		}
