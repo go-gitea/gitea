@@ -26,12 +26,12 @@ type improveActionTableIndicesAction struct {
 }
 
 // TableName sets the name of this table
-func (a *improveActionTableIndicesAction) TableName() string {
+func (_ *improveActionTableIndicesAction) TableName() string {
 	return "action"
 }
 
 // TableIndices implements xorm's TableIndices interface
-func (a *improveActionTableIndicesAction) TableIndices() []*schemas.Index {
+func (_ *improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 	repoIndex := schemas.NewIndex("r_u_d", schemas.IndexType)
 	repoIndex.AddColumn("repo_id", "user_id", "is_deleted")
 
