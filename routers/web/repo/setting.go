@@ -360,6 +360,7 @@ func SettingsPost(ctx *context.Context) {
 			RepoID:     repo.ID,
 			Repo:       repo,
 			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnPush: form.PushMirrorSyncOnCommit,
 			Interval:   interval,
 		}
 		if err := repo_model.InsertPushMirror(m); err != nil {
