@@ -20,7 +20,7 @@ func addSyncOnPushColForPushMirror(x *xorm.Engine) error {
 		Repo       *repo.Repository `xorm:"-"`
 		RemoteName string
 
-		SyncOnPush     bool
+		SyncOnCommit   bool
 		Interval       time.Duration
 		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`

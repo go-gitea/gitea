@@ -23,7 +23,7 @@ type PushMirror struct {
 	Repo       *Repository `xorm:"-"`
 	RemoteName string
 
-	SyncOnPush     bool
+	SyncOnCommit   bool
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
@@ -94,12 +94,12 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
 }
 
-// GetPushMirrorsByRepoIDWithSyncOnPush returns push-mirror information of a repository,
-// filtered by sync_on_push.
-func GetPushMirrorsByRepoIDWithSyncOnPush(repoID int64, syncOnPush bool) ([]*PushMirror, error) {
+// GetPushMirrorsByRepoIDWithSyncOnCommit returns push-mirror information of a repository,
+// filtered by sync_on_commit.
+func GetPushMirrorsByRepoIDWithSyncOnCommit(repoID int64, syncOnCommit bool) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND sync_on_push=?", repoID, syncOnPush).
+		Where("repo_id=? AND sync_on_commit=?", repoID, syncOnCommit).
 		Find(&mirrors)
 }
 
