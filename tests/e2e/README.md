@@ -44,7 +44,7 @@ Start tests based on the database container
 TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' NO_DEPS_PLAYWRIGHT=1 make test-e2e-mysql
 ```
 
-## Run pgsql integration tests
+## Run pgsql e2e tests
 Setup a pgsql database inside docker
 ```
 docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:latest #(just ctrl-c to stop db and clean the container)
@@ -54,7 +54,7 @@ Start tests based on the database container
 TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres NO_DEPS_PLAYWRIGHT=1 make test-e2e-pgsql
 ```
 
-## Run mssql integration tests
+## Run mssql e2e tests
 Setup a mssql database inside docker
 ```
 docker run -e "ACCEPT_EULA=Y" -e "MSSQL_PID=Standard" -e "SA_PASSWORD=MwantsaSecurePassword1" -p 1433:1433 --rm --name mssql microsoft/mssql-server-linux:latest #(just ctrl-c to stop db and clean the container)
