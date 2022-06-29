@@ -189,18 +189,16 @@ func (l *locale) reloadIfNeeded() {
 
 	l.reloadMu.RUnlock()
 	l.reloadMu.Lock() // (NOTE: a pre-emption can occur between these two locks so we need to recheck)
+	defer l.reloadMu.RLock()
+	defer l.reloadMu.Unlock()
 
 	if now.Sub(l.lastReloadCheckTime) < time.Second || l.sourceFileInfo == nil || l.sourceFileName == "" {
-		l.reloadMu.Unlock()
-		l.reloadMu.RLock()
 		return
 	}
 
 	l.lastReloadCheckTime = now
 	sourceFileInfo, err := os.Stat(l.sourceFileName)
 	if err != nil || sourceFileInfo.ModTime().Equal(l.sourceFileInfo.ModTime()) {
-		l.reloadMu.Unlock()
-		l.reloadMu.RLock()
 		return
 	}
 
@@ -213,9 +211,6 @@ func (l *locale) reloadIfNeeded() {
 
 	// We will set the sourceFileInfo to this file to prevent repeated attempts to re-load this broken file
 	l.sourceFileInfo = sourceFileInfo
-
-	l.reloadMu.Unlock()
-	l.reloadMu.RLock()
 }
 
 // Tr translates content to locale language. fall back to default language.
