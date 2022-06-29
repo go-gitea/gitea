@@ -157,7 +157,7 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
+		items, amountFollowers, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
 			RequestedUser: ctx.ContextUser,
 			Actor:         ctx.Doer,
 			ListOptions:   db.ListOptions{PageSize: setting.UI.User.RepoPagingNum, Page: page},
@@ -168,9 +168,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = len(items)
+		total = int(amountFollowers)
 	case "following":
-		items, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
+		items, amountFollowings, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
 			Actor:         ctx.Doer,
 			RequestedUser: ctx.ContextUser,
 			ListOptions:   db.ListOptions{PageSize: setting.UI.User.RepoPagingNum, Page: page},
@@ -181,7 +181,7 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = len(items)
+		total = int(amountFollowings)
 	case "activity":
 		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,

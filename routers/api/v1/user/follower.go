@@ -24,7 +24,7 @@ func responseAPIUsers(ctx *context.APIContext, users []*user_model.User) {
 }
 
 func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
-	users, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
+	users, total, err := user_model.GetUserFollowers(ctx, user_model.GetUserFollowOptions{
 		RequestedUser: u,
 		Actor:         ctx.Doer,
 		ListOptions:   utils.GetListOptions(ctx),
@@ -34,7 +34,7 @@ func listUserFollowers(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(len(users)))
+	ctx.SetTotalCountHeader(total)
 	responseAPIUsers(ctx, users)
 }
 
@@ -90,7 +90,7 @@ func ListFollowers(ctx *context.APIContext) {
 }
 
 func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
-	users, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
+	users, total, err := user_model.GetUserFollowing(ctx, user_model.GetUserFollowOptions{
 		Actor:         ctx.Doer,
 		RequestedUser: u,
 		ListOptions:   utils.GetListOptions(ctx),
@@ -100,7 +100,7 @@ func listUserFollowing(ctx *context.APIContext, u *user_model.User) {
 		return
 	}
 
-	ctx.SetTotalCountHeader(int64(len(users)))
+	ctx.SetTotalCountHeader(total)
 	responseAPIUsers(ctx, users)
 }
 

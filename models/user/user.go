@@ -316,35 +316,34 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 }
 
 // GetUserFollowers returns range of user's followers.
-func GetUserFollowers(ctx context.Context, opts GetUserFollowOptions) ([]*User, error) {
-	opts.checkFollowers = true
-
-	sess := db.GetEngine(ctx).Where(opts.toCond()).
+func GetUserFollowers(ctx context.Context, opts GetUserFollowOptions) ([]*User, int64, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond(true)).
 		Join("LEFT", "follow", "`user`.id=follow.user_id")
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 
 		users := make([]*User, 0, opts.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // GetFeedsOptions options for getting the user's followers or followings.
 type GetUserFollowOptions struct {
 	db.ListOptions
-	checkFollowers bool  // Specify if we check for followers or followings.
-	Actor          *User // the user viewing the followings
-	RequestedUser  *User // the user we want followings for
+	Actor         *User // the user viewing the followings
+	RequestedUser *User // the user we want followings for
 }
 
-func (opts GetUserFollowOptions) toCond() builder.Cond {
+func (opts GetUserFollowOptions) toCond(checkFollowers bool) builder.Cond {
 	cond := builder.NewCond()
 
-	if opts.checkFollowers {
+	if checkFollowers {
 		cond = cond.And(builder.Eq{"`follow`.follow_id": opts.RequestedUser.ID})
 	} else {
 		cond = cond.And(builder.Eq{"`follow`.user_id": opts.RequestedUser.ID})
@@ -353,7 +352,7 @@ func (opts GetUserFollowOptions) toCond() builder.Cond {
 	// If the actor is not signed in. Only show users that have their visibility
 	// set to public.
 	if opts.Actor == nil {
-		return cond.And(builder.Eq{"`user`.visibility": 0})
+		return cond.And(builder.Eq{"`user`.visibility": structs.VisibleTypePublic})
 	}
 
 	// Fast path for admins.
@@ -389,20 +388,22 @@ func (opts GetUserFollowOptions) toCond() builder.Cond {
 }
 
 // GetUserFollowing returns range of user's following.
-func GetUserFollowing(ctx context.Context, opts GetUserFollowOptions) ([]*User, error) {
+func GetUserFollowing(ctx context.Context, opts GetUserFollowOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(ctx).
 		Join("LEFT", "follow", "`user`.id=follow.follow_id").
-		Where(opts.toCond())
+		Where(opts.toCond(false))
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, &opts.ListOptions)
 
 		users := make([]*User, 0, opts.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // NewGitSig generates and returns the signature of given user.
