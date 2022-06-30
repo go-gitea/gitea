@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
@@ -80,6 +81,11 @@ func runDumpRepository(ctx *cli.Context) error {
 	defer cancel()
 
 	if err := initDB(stdCtx); err != nil {
+		return err
+	}
+
+	// migrations.GiteaLocalUploader depends on git module
+	if err := git.InitSimple(context.Background()); err != nil {
 		return err
 	}
 
