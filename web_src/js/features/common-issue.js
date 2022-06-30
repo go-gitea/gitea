@@ -5,7 +5,7 @@ export function initCommonIssue() {
   $('.issue-checkbox,.issue-checkbox-all').on('click', (e) => {
     const issuecheckbox = $('.issue-checkbox input');
     let allcheckbox;
-    if (e.currentTarget.className.indexOf('issue-checkbox-all') !== -1) {
+    if (e.currentTarget.className.includes('issue-checkbox-all')) {
       allcheckbox = $('.issue-checkbox-all input');
       if (allcheckbox.prop('checked')) {
         const selected = $('.issue-checkbox input:checked');
@@ -15,22 +15,22 @@ export function initCommonIssue() {
         $('.issue-checkbox input:checked').prop('checked', 0);
       }
     }
-    if (e.shiftKey && config.checkboxfirst !== undefined) {
-      for (let i = config.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
+    if (e.shiftKey && window.config.checkboxfirst !== undefined) {
+      for (let i = window.config.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
         issuecheckbox[i].checked = 1;
       }
-      delete config.checkboxfirst;
+      delete window.config.checkboxfirst;
     } else {
-      config.checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
+      window.config.checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
     }
     if (issuecheckbox.is(':checked')) {
       $('#issue-filters').addClass('hide');
       $('#issue-actions').removeClass('hide');
-      $('#issue-actions .six').prepend($('.issue-checkbox-all'))
+      $('#issue-actions .six').prepend($('.issue-checkbox-all'));
     } else {
       $('#issue-filters').removeClass('hide');
       $('#issue-actions').addClass('hide');
-      $('#issue-filters .six').prepend($('.issue-checkbox-all'))
+      $('#issue-filters .six').prepend($('.issue-checkbox-all'));
     }
   });
 
