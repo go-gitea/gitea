@@ -4,10 +4,8 @@ import {updateIssuesMeta} from './repo-issue.js';
 export function initCommonIssue() {
   $('.issue-checkbox,.issue-checkbox-all').on('click', (e) => {
     const issuecheckbox = $('.issue-checkbox input');
-    let allcheckbox;
     if (e.currentTarget.className.includes('issue-checkbox-all')) {
-      allcheckbox = $('.issue-checkbox-all input');
-      if (allcheckbox.prop('checked')) {
+      if ($('.issue-checkbox-all input').prop('checked')) {
         const selected = $('.issue-checkbox input:checked');
         $('.issue-checkbox input:not(:checked)').prop('checked', 1);
         selected.prop('checked', 0);
