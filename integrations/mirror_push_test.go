@@ -48,7 +48,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	doCreatePushMirror(ctx, fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(ctx.Username), url.PathEscape(mirrorRepo.Name)), user.LowerName, userPassword)(t)
 
-	mirrors, err := repo_model.GetPushMirrorsByRepoID(srcRepo.ID, db.ListOptions{})
+	mirrors, err := repo_model.GetPushMirrorsByRepoID(db.DefaultContext, srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 1)
 
@@ -73,7 +73,7 @@ func testMirrorPush(t *testing.T, u *url.URL) {
 
 	// Cleanup
 	doRemovePushMirror(ctx, fmt.Sprintf("%s%s/%s", u.String(), url.PathEscape(ctx.Username), url.PathEscape(mirrorRepo.Name)), user.LowerName, userPassword, int(mirrors[0].ID))(t)
-	mirrors, err = repo_model.GetPushMirrorsByRepoID(srcRepo.ID, db.ListOptions{})
+	mirrors, err = repo_model.GetPushMirrorsByRepoID(db.DefaultContext, srcRepo.ID, db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, mirrors, 0)
 }

@@ -5,6 +5,7 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"time"
 
@@ -72,36 +73,30 @@ func (m *PushMirror) GetRemoteName() string {
 }
 
 // InsertPushMirror inserts a push-mirror to database
-func InsertPushMirror(m *PushMirror) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(m)
+func InsertPushMirror(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).Insert(m)
 	return err
 }
 
 // UpdatePushMirror updates the push-mirror
-func UpdatePushMirror(m *PushMirror) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(m.ID).AllCols().Update(m)
+func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
 	return err
 }
 
-// DeletePushMirrorsByRepoID deletes all push-mirrors by repoID
-func DeletePushMirrorsByRepoID(repoID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(&PushMirror{RepoID: repoID})
-	return err
-}
-
-func DeletePushMirrors(opts PushMirrorOptions) error {
+func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 	if opts.RepoID > 0 {
-		_, err := db.GetEngine(db.DefaultContext).Where(opts.toConds()).Delete(&PushMirror{})
+		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
 		return err
 	}
 	return errors.New("repoID required and must be set")
 }
 
-func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
+func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, error) {
 	mirror := &PushMirror{}
 	var exist bool
 	var err error
-	exist, err = db.GetEngine(db.DefaultContext).Where(opts.toConds()).Get(mirror)
+	exist, err = db.GetEngine(ctx).Where(opts.toConds()).Get(mirror)
 	if err != nil {
 		return nil, err
 	} else if !exist {
@@ -111,9 +106,9 @@ func GetPushMirrors(opts PushMirrorOptions) (*PushMirror, error) {
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
-func GetPushMirrorsByRepoID(repoID int64, listOptions db.ListOptions) ([]*PushMirror, error) {
+func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
-	sess := db.GetEngine(db.DefaultContext).Where("repo_id = ?", repoID)
+	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 	}
@@ -121,8 +116,8 @@ func GetPushMirrorsByRepoID(repoID int64, listOptions db.ListOptions) ([]*PushMi
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
-func PushMirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(db.DefaultContext).
+func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean interface{}) error) error {
+	return db.GetEngine(ctx).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
 		OrderBy("last_update ASC").
