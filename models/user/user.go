@@ -70,6 +70,8 @@ const (
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications and your own
+	EmailNotificationsAndYourOwn = "andyourown"
 )
 
 // User represents the object of individual and member of organization.
@@ -1034,7 +1036,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
-			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsOnMention, EmailNotificationsAndYourOwn).
 			Find(&ous)
 	}
 
@@ -1042,7 +1044,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
-		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
 }
 
