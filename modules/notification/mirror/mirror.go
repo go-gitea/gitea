@@ -5,8 +5,10 @@
 package mirror
 
 import (
+	"context"
 	"fmt"
 
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -32,8 +34,19 @@ func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mirrorNotifier.NotifyPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
 	defer finished()
 
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+}
+
+func (m *mirrorNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifyMergePullRequest Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
+	defer finished()
+
+	syncPushMirrorWithSyncOnCommit(ctx, pr.BaseRepoID)
+}
+
+func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	syncOnCommit := true
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit(repo.ID, syncOnCommit)
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit(repoID, syncOnCommit)
 	if err != nil {
 		log.Error("repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit failed: %v", err)
 		return
