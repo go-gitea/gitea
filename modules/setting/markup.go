@@ -21,9 +21,10 @@ var (
 )
 
 const (
-	RenderContentModeSanitized   = "sanitized"
-	RenderContentModeNoSanitizer = "no-sanitizer"
-	RenderContentModeIframe      = "iframe"
+	RenderContentModeSanitized             = "sanitized"
+	RenderContentModeNoSanitizer           = "no-sanitizer"
+	RenderContentModeIframe                = "iframe"
+	RenderContentModeIframeAllowSameOrigin = "iframe-allow-same-origin"
 )
 
 // MarkupRenderer defines the external parser configured in ini
@@ -160,7 +161,8 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	}
 	if renderContentMode != RenderContentModeSanitized &&
 		renderContentMode != RenderContentModeNoSanitizer &&
-		renderContentMode != RenderContentModeIframe {
+		renderContentMode != RenderContentModeIframe &&
+		renderContentMode != RenderContentModeIframeAllowSameOrigin {
 		log.Error("invalid RENDER_CONTENT_MODE: %q, default to %q", renderContentMode, RenderContentModeSanitized)
 		renderContentMode = RenderContentModeSanitized
 	}

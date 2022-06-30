@@ -44,18 +44,17 @@ type Header struct {
 
 // RenderContext represents a render context
 type RenderContext struct {
-	Ctx              context.Context
-	RelativePath     string // relative path from tree root of the branch
-	Type             string
-	IsWiki           bool
-	URLPrefix        string
-	Metas            map[string]string
-	DefaultLink      string
-	GitRepo          *git.Repository
-	ShaExistCache    map[string]bool
-	cancelFn         func()
-	TableOfContents  []Header
-	InStandalonePage bool // used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	Ctx             context.Context
+	RelativePath    string // relative path from tree root of the branch
+	Type            string
+	IsWiki          bool
+	URLPrefix       string
+	Metas           map[string]string
+	DefaultLink     string
+	GitRepo         *git.Repository
+	ShaExistCache   map[string]bool
+	cancelFn        func()
+	TableOfContents []Header
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -106,6 +105,9 @@ type ExternalRenderer interface {
 
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
+
+	// AllowSameOrigin represents whether render allow same origin
+	AllowSameOrigin() bool
 }
 
 // RendererContentDetector detects if the content can be rendered
@@ -152,14 +154,39 @@ func DetectRendererType(filename string, input io.Reader) string {
 	return ""
 }
 
+// GetRenderer returned the renderer according type or relativepath
+func GetRenderer(tp, relativePath string) (Renderer, error) {
+	if tp != "" {
+		if renderer, ok := renderers[tp]; ok {
+			return renderer, nil
+		}
+		return nil, ErrUnsupportedRenderType{tp}
+	}
+
+	if relativePath != "" {
+		extension := strings.ToLower(filepath.Ext(relativePath))
+		if renderer, ok := extRenderers[extension]; ok {
+			return renderer, nil
+		}
+		return nil, ErrUnsupportedRenderExtension{extension}
+	}
+	return nil, errors.New("Render options both filename and type missing")
+}
+
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if ctx.Type != "" {
-		return renderByType(ctx, input, output)
-	} else if ctx.RelativePath != "" {
-		return renderFile(ctx, input, output)
+	renderer, err := GetRenderer(ctx.Type, ctx.RelativePath)
+	if err != nil {
+		return err
 	}
-	return errors.New("Render options both filename and type missing")
+
+	if r, ok := renderer.(ExternalRenderer); ok && (r.DisplayInIFrame() || r.AllowSameOrigin()) {
+		// for an external render, it could only output its content in a standalone page
+		// otherwise, a <iframe> should be outputted to embed the external rendered page
+		return renderIFrame(ctx, output, r.AllowSameOrigin())
+	}
+
+	return RenderDirect(ctx, renderer, input, output)
 }
 
 // RenderString renders Markup string to HTML with all specific handling stuff and return string
@@ -177,7 +204,11 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func renderIFrame(ctx *RenderContext, output io.Writer) error {
+func renderIFrame(ctx *RenderContext, output io.Writer, allowSameOrigin bool) error {
+	var allowSameOriginStr string
+	if allowSameOrigin {
+		allowSameOriginStr = " allow-same-origin"
+	}
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
@@ -187,18 +218,20 @@ func renderIFrame(ctx *RenderContext, output io.Writer) error {
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-scripts"
+sandbox="allow-scripts%s"
 ></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
+		allowSameOriginStr,
 	))
 	return err
 }
 
-func render(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+// RenderDirect renders markup file to HTML with all specific handling stuff.
+func RenderDirect(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
@@ -262,13 +295,6 @@ func (err ErrUnsupportedRenderType) Error() string {
 	return fmt.Sprintf("Unsupported render type: %s", err.Type)
 }
 
-func renderByType(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	if renderer, ok := renderers[ctx.Type]; ok {
-		return render(ctx, renderer, input, output)
-	}
-	return ErrUnsupportedRenderType{ctx.Type}
-}
-
 // ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
 type ErrUnsupportedRenderExtension struct {
 	Extension string
@@ -276,21 +302,6 @@ type ErrUnsupportedRenderExtension struct {
 
 func (err ErrUnsupportedRenderExtension) Error() string {
 	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
-}
-
-func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
-	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
-				return renderIFrame(ctx, output)
-			}
-		}
-		return render(ctx, renderer, input, output)
-	}
-	return ErrUnsupportedRenderExtension{extension}
 }
 
 // Type returns if markup format via the filename

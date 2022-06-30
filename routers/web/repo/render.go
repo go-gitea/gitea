@@ -6,6 +6,7 @@ package repo
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"path"
@@ -63,17 +64,28 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'; sandbox allow-scripts")
-	err = markup.Render(&markup.RenderContext{
-		Ctx:              ctx,
-		RelativePath:     ctx.Repo.TreePath,
-		URLPrefix:        path.Dir(treeLink),
-		Metas:            ctx.Repo.Repository.ComposeDocumentMetas(),
-		GitRepo:          ctx.Repo.GitRepo,
-		InStandalonePage: true,
-	}, rd, ctx.Resp)
+	var allowSameOriginStr string
+
+	renderer, err := markup.GetRenderer("", ctx.Repo.TreePath)
 	if err != nil {
-		ctx.ServerError("Render", err)
+		ctx.ServerError("GetRenderer", err)
+		return
+	}
+
+	if r, ok := renderer.(markup.ExternalRenderer); ok && r.AllowSameOrigin() {
+		allowSameOriginStr = " allow-same-origin"
+	}
+
+	ctx.Resp.Header().Add("Content-Security-Policy", fmt.Sprintf("frame-src 'self'; sandbox%s allow-scripts", allowSameOriginStr))
+
+	if err = markup.RenderDirect(&markup.RenderContext{
+		Ctx:          ctx,
+		RelativePath: ctx.Repo.TreePath,
+		URLPrefix:    path.Dir(treeLink),
+		Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+		GitRepo:      ctx.Repo.GitRepo,
+	}, renderer, rd, ctx.Resp); err != nil {
+		ctx.ServerError("RenderDirect", err)
 		return
 	}
 }

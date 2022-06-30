@@ -61,12 +61,19 @@ func (p *Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 
 // SanitizerDisabled disabled sanitize if return true
 func (p *Renderer) SanitizerDisabled() bool {
-	return p.RenderContentMode == setting.RenderContentModeNoSanitizer || p.RenderContentMode == setting.RenderContentModeIframe
+	return p.RenderContentMode == setting.RenderContentModeNoSanitizer ||
+		p.RenderContentMode == setting.RenderContentModeIframe ||
+		p.RenderContentMode == setting.RenderContentModeIframeAllowSameOrigin
 }
 
 // DisplayInIFrame represents whether render the content with an iframe
 func (p *Renderer) DisplayInIFrame() bool {
 	return p.RenderContentMode == setting.RenderContentModeIframe
+}
+
+// AllowSameOrigin represents whether render allow same origin
+func (p *Renderer) AllowSameOrigin() bool {
+	return p.RenderContentMode == setting.RenderContentModeIframeAllowSameOrigin
 }
 
 func envMark(envName string) string {
