@@ -883,7 +883,7 @@ func dismissReview(ctx *context.APIContext, msg string, isDismiss bool) {
 		return
 	}
 
-	_, err := pull_service.DismissReview(review.ID, msg, ctx.User, isDismiss)
+	_, err := pull_service.DismissReview(review.ID, ctx.Repo.Repository.ID, msg, ctx.User, isDismiss)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "pull_service.DismissReview", err)
 		return
