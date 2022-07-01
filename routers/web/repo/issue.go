@@ -57,17 +57,15 @@ const (
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
-var (
-	// IssueTemplateCandidates issue templates
-	IssueTemplateCandidates = []string{
-		"ISSUE_TEMPLATE.md",
-		"issue_template.md",
-		".gitea/ISSUE_TEMPLATE.md",
-		".gitea/issue_template.md",
-		".github/ISSUE_TEMPLATE.md",
-		".github/issue_template.md",
-	}
-)
+// IssueTemplateCandidates issue templates
+var IssueTemplateCandidates = []string{
+	"ISSUE_TEMPLATE.md",
+	"issue_template.md",
+	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/issue_template.md",
+	".github/ISSUE_TEMPLATE.md",
+	".github/issue_template.md",
+}
 
 // MustAllowUserComment checks to make sure if an issue is locked.
 // If locked and user has permissions to write to the repository,
@@ -245,7 +243,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		}
 	}
 
-	var issueList = models.IssueList(issues)
+	issueList := models.IssueList(issues)
 	approvalCounts, err := issueList.GetApprovalCounts()
 	if err != nil {
 		ctx.ServerError("ApprovalCounts", err)
@@ -311,8 +309,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		assigneeID = 0 // Reset ID to prevent unexpected selection of assignee.
 	}
 
-	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] =
-		issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
+	ctx.Data["IssueRefEndNames"], ctx.Data["IssueRefURLs"] = issue_service.GetRefEndNamesAndURLs(issues, ctx.Repo.RepoLink)
 
 	ctx.Data["ApprovalCounts"] = func(issueID int64, typ string) int64 {
 		counts, ok := approvalCounts[issueID]
@@ -442,7 +439,6 @@ func RetrieveRepoMilestonesAndAssignees(ctx *context.Context, repo *repo_model.R
 }
 
 func retrieveProjects(ctx *context.Context, repo *repo_model.Repository) {
-
 	var err error
 
 	ctx.Data["OpenProjects"], _, err = models.GetProjects(models.ProjectSearchOptions{
@@ -796,7 +792,8 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
+	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeProjects)
+	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -812,7 +809,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("project")
-	if projectID > 0 {
+	if projectID > 0 && isProjectsEnabled {
 		project, err := models.GetProjectByID(projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
@@ -1017,6 +1014,12 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if projectID > 0 {
+		if !ctx.Repo.CanRead(unit.TypeProjects) {
+			// User must also be able to see the project.
+			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+			return
+		}
+
 		if err := models.ChangeProjectAssign(issue, ctx.User, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
@@ -1713,6 +1716,11 @@ func getActionIssues(ctx *context.Context) []*models.Issue {
 	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
+		if issue.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("some issue's RepoID is incorrect", errors.New("some issue's RepoID is incorrect"))
+			return nil
+		}
+
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 			return nil
@@ -2515,7 +2523,7 @@ func filterXRefComments(ctx *context.Context, issue *models.Issue) error {
 // GetIssueAttachments returns attachments for the issue
 func GetIssueAttachments(ctx *context.Context) {
 	issue := GetActionIssue(ctx)
-	var attachments = make([]*api.Attachment, len(issue.Attachments))
+	attachments := make([]*api.Attachment, len(issue.Attachments))
 	for i := 0; i < len(issue.Attachments); i++ {
 		attachments[i] = convert.ToReleaseAttachment(issue.Attachments[i])
 	}
@@ -2529,7 +2537,7 @@ func GetCommentAttachments(ctx *context.Context) {
 		ctx.NotFoundOrServerError("GetCommentByID", models.IsErrCommentNotExist, err)
 		return
 	}
-	var attachments = make([]*api.Attachment, 0)
+	attachments := make([]*api.Attachment, 0)
 	if comment.Type == models.CommentTypeComment {
 		if err := comment.LoadAttachments(); err != nil {
 			ctx.ServerError("LoadAttachments", err)
@@ -2674,7 +2682,7 @@ func handleTeamMentions(ctx *context.Context) {
 	var isAdmin bool
 	var err error
 	var teams []*models.Team
-	var org = models.OrgFromUser(ctx.Repo.Owner)
+	org := models.OrgFromUser(ctx.Repo.Owner)
 	// Admin has super access.
 	if ctx.User.IsAdmin {
 		isAdmin = true

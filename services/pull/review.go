@@ -271,7 +271,7 @@ func SubmitReview(doer *user_model.User, gitRepo *git.Repository, issue *models.
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(reviewID int64, message string, doer *user_model.User, isDismiss bool) (comment *models.Comment, err error) {
+func DismissReview(reviewID, repoID int64, message string, doer *user_model.User, isDismiss bool) (comment *models.Comment, err error) {
 	review, err := models.GetReviewByID(reviewID)
 	if err != nil {
 		return
@@ -279,6 +279,16 @@ func DismissReview(reviewID int64, message string, doer *user_model.User, isDism
 
 	if review.Type != models.ReviewTypeApprove && review.Type != models.ReviewTypeReject {
 		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(); err != nil {
+		return nil, err
+	}
+
+	// Check if the review's repoID is the one we're currently expecting.
+	if review.Issue.RepoID != repoID {
+		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
 	}
 
 	if err = models.DismissReview(review, isDismiss); err != nil {
@@ -289,10 +299,6 @@ func DismissReview(reviewID int64, message string, doer *user_model.User, isDism
 		return nil, nil
 	}
 
-	// load data for notify
-	if err = review.LoadAttributes(); err != nil {
-		return
-	}
 	if err = review.Issue.LoadPullRequest(); err != nil {
 		return
 	}

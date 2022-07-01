@@ -150,6 +150,17 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 	e := db.GetEngine(ctx)
 	oldProjectID := issue.projectID(e)
 
+	// Only check if we add a new project and not remove it.
+	if newProjectID > 0 {
+		newProject, err := GetProjectByID(newProjectID)
+		if err != nil {
+			return err
+		}
+		if newProject.RepoID != issue.RepoID {
+			return fmt.Errorf("issue's repository is not the same as project's repository")
+		}
+	}
+
 	if _, err := e.Where("project_issue.issue_id=?", issue.ID).Delete(&ProjectIssue{}); err != nil {
 		return err
 	}

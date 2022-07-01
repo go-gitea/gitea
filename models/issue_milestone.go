@@ -116,6 +116,11 @@ func getMilestoneByRepoID(e db.Engine, repoID, id int64) (*Milestone, error) {
 	return m, nil
 }
 
+// HasMilestoneByRepoID returns if the milestone exists in the repository.
+func HasMilestoneByRepoID(repoID, id int64) (bool, error) {
+	return db.GetEngine(db.DefaultContext).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
+}
+
 // GetMilestoneByRepoID returns the milestone in a repository.
 func GetMilestoneByRepoID(repoID, id int64) (*Milestone, error) {
 	return getMilestoneByRepoID(db.GetEngine(db.DefaultContext), repoID, id)
@@ -251,6 +256,17 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 }
 
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
+	// Only check if milestone exists if we don't remove it.
+	if issue.MilestoneID > 0 {
+		has, err := HasMilestoneByRepoID(issue.RepoID, issue.MilestoneID)
+		if err != nil {
+			return fmt.Errorf("HasMilestoneByRepoID: %v", err)
+		}
+		if !has {
+			return fmt.Errorf("HasMilestoneByRepoID: issue doesn't exist")
+		}
+	}
+
 	if err := updateIssueCols(ctx, issue, "milestone_id"); err != nil {
 		return err
 	}
