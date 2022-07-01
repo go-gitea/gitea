@@ -94,9 +94,7 @@ func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
 
 func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, error) {
 	mirror := &PushMirror{}
-	var exist bool
-	var err error
-	exist, err = db.GetEngine(ctx).Where(opts.toConds()).Get(mirror)
+	exist, err := db.GetEngine(ctx).Where(opts.toConds()).Get(mirror)
 	if err != nil {
 		return nil, err
 	} else if !exist {

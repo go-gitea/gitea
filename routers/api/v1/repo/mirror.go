@@ -108,7 +108,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 	// Get All push mirrors of a specific repo
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "PushMirrorSync", err)
+		ctx.Error(http.StatusNotFound, "PushMirrorSync", err)
 		return
 	}
 	for _, mirror := range pushMirrors {
@@ -162,11 +162,10 @@ func ListPushMirrors(ctx *context.APIContext) {
 	}
 
 	repo := ctx.Repo.Repository
-	listOptions := utils.GetListOptions(ctx)
-	// Get All push mirrors of a specific repo
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, listOptions)
+	// Get all push mirrors for the specified repository.
+	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, utils.GetListOptions(ctx))
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "GetPushMirrorsByRepoID", err)
+		ctx.Error(http.StatusNotFound, "GetPushMirrorsByRepoID", err)
 		return
 	}
 
@@ -178,8 +177,8 @@ func ListPushMirrors(ctx *context.APIContext) {
 		}
 
 	}
-	ctx.SetLinkHeader(len(pushMirrors), listOptions.PageSize)
-	ctx.SetTotalCountHeader(int64(len(pushMirrors)))
+	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
+	ctx.SetTotalCountHeader(int64(len(responsePushMirrors)))
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
 
@@ -223,12 +222,12 @@ func GetPushMirrorByName(ctx *context.APIContext) {
 	// Get push mirror of a specific repo by remoteName
 	pushMirror, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: mirrorName})
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "GetPushMirrorByRemoteName", err)
+		ctx.Error(http.StatusNotFound, "GetPushMirrors", err)
 		return
 	}
 	m, err := convert.ToPushMirror(pushMirror)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "GetPushMirrorByRemoteName", err.Error())
+		ctx.ServerError("GetPushMirrorByRemoteName", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, m)
@@ -315,7 +314,7 @@ func DeletePushMirrorByRemoteName(ctx *context.APIContext) {
 	// Delete push mirror on repo by name.
 	err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{RepoID: ctx.Repo.Repository.ID, RemoteName: remoteName})
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "DeletePushMirrorByName", err)
+		ctx.Error(http.StatusNotFound, "DeletePushMirrors", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
@@ -360,14 +359,14 @@ func CreatePushMirror(ctx *context.APIContext, mirrorOption *api.CreatePushMirro
 	// if the registration of the push mirrorOption fails remove it from the database
 	if err = mirror_service.AddPushMirrorRemote(ctx, pushMirror, address); err != nil {
 		if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: pushMirror.ID, RepoID: pushMirror.RepoID}); err != nil {
-			ctx.ServerError("DeletePushMirrorByID", err)
+			ctx.ServerError("DeletePushMirrors", err)
 		}
 		ctx.ServerError("AddPushMirrorRemote", err)
 		return
 	}
 	m, err := convert.ToPushMirror(pushMirror)
 	if err != nil {
-		ctx.Error(http.StatusBadRequest, "GetPushMirror", err.Error())
+		ctx.ServerError("ToPushMirror", err)
 		return
 	}
 	ctx.JSON(http.StatusOK, m)
