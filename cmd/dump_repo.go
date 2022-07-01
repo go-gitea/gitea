@@ -134,7 +134,9 @@ func runDumpRepository(ctx *cli.Context) error {
 	} else {
 		units := strings.Split(ctx.String("units"), ",")
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
+			case "":
+				continue
 			case "wiki":
 				opts.Wiki = true
 			case "issues":
@@ -151,6 +153,8 @@ func runDumpRepository(ctx *cli.Context) error {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			default:
+				return errors.New("invalid unit: " + unit)
 			}
 		}
 	}
