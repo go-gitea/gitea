@@ -258,7 +258,7 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 func changeMilestoneAssign(ctx context.Context, doer *user_model.User, issue *Issue, oldMilestoneID int64) error {
 	// Only check if milestone exists if we don't remove it.
 	if issue.MilestoneID > 0 {
-		has, err := issues_model.HasMilestoneByRepoID(ctx, issue.RepoID, issue.MilestoneID)
+		has, err := HasMilestoneByRepoID(issue.RepoID, issue.MilestoneID)
 		if err != nil {
 			return fmt.Errorf("HasMilestoneByRepoID: %v", err)
 		}
