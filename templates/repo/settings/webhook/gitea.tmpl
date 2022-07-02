@@ -35,6 +35,50 @@
 			<label for="secret">{{.locale.Tr "repo.settings.secret"}}</label>
 			<input id="secret" name="secret" type="password" value="{{.Webhook.Secret}}" autocomplete="off">
 		</div>
+
+		<div class="ui divider"></div>
+
+		<div class="auth-headers">
+			<h4>{{.locale.Tr "repo.settings.webhook.auth_header.section"}}</h4>
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="auth_header_active" type="checkbox" tabindex="0"> <!-- TODO checked attribute -->
+					<label>{{.locale.Tr "repo.settings.active"}}</label>
+					<span class="help">{{.locale.Tr "repo.settings.webhook.auth_header.description"}}</span>
+				</div>
+			</div>
+			<div class="auth-header field" style="display:none">
+				<label for="auth_header_name">{{.locale.Tr "repo.settings.webhook.auth_header.name"}}</label>
+				<input id="auth_header_name" name="auth_header_name" value="Authorization"> <!-- TODO conditional value -->
+			</div>
+			<div class="auth-header field" style="display:none">
+				<label>{{.locale.Tr "repo.settings.webhook.auth_header.type"}}</label>
+				<div class="ui selection dropdown">
+					<input type="hidden" id="auth_header_type" name="auth_header_type" value="basic"> <!-- TODO conditional value -->
+					<div class="default text"></div>
+					{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					<div class="menu">
+						<div class="item" data-value="basic">{{.locale.Tr "repo.settings.webhook.auth_header.type_basic"}}</div>
+						<div class="item" data-value="token">{{.locale.Tr "repo.settings.webhook.auth_header.type_token"}}</div>
+					</div>
+				</div>
+			</div>
+			<div class="auth-header basic-auth field" style="display:none">
+				<label for="auth_header_username">{{.locale.Tr "repo.settings.webhook.auth_header.username"}}</label>
+				<input id="auth_header_username" name="auth_header_username" value="" autocomplete="off"> <!-- TODO conditional value -->
+			</div>
+			<div class="auth-header basic-auth field" style="display:none">
+				<label for="auth_header_password">{{.locale.Tr "repo.settings.webhook.auth_header.password"}}</label>
+				<input id="auth_header_password" name="auth_header_password" type="password" value="" autocomplete="off"> <!-- TODO conditional value -->
+			</div>
+			<div class="auth-header token-auth field" style="display:none">
+				<label for="auth_header_token">{{.locale.Tr "repo.settings.webhook.auth_header.token"}}</label>
+				<input id="auth_header_token" name="auth_header_token" value="" autocomplete="off"> <!-- TODO conditional value -->
+			</div>
+		</div>
+
+		<div class="ui divider"></div>
+
 		{{template "repo/settings/webhook/settings" .}}
 	</form>
 {{end}}
