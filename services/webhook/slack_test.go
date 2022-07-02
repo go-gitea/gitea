@@ -145,6 +145,35 @@ func TestSlackPayload(t *testing.T) {
 		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Repository created by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
 	})
 
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(SlackPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] New wiki page '<http://localhost:3000/test/repo/wiki/index|index>' (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' edited (Wiki change comment) by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &SlackPayload{}, pl)
+
+		assert.Equal(t, "[<http://localhost:3000/test/repo|test/repo>] Wiki page '<http://localhost:3000/test/repo/wiki/index|index>' deleted by <https://try.gitea.io/user1|user1>", pl.(*SlackPayload).Text)
+	})
+
 	t.Run("Release", func(t *testing.T) {
 		p := pullReleaseTestPayload()
 
