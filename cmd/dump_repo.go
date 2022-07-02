@@ -7,7 +7,7 @@ package cmd
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"os"
 	"strings"
 
 	"code.gitea.io/gitea/modules/convert"
@@ -161,7 +161,7 @@ func runDumpRepository(ctx *cli.Context) error {
 	}
 
 	repoDir := ctx.String("repo_dir")
-	if dir, _ := ioutil.ReadDir(repoDir); len(dir) > 0 {
+	if dir, _ := os.ReadDir(repoDir); len(dir) > 0 {
 		return errors.New("`repo_dir` path '" + repoDir + "' already exists and is not an empty directory.")
 	}
 
