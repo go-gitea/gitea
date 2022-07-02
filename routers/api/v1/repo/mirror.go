@@ -169,7 +169,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 		return
 	}
 
-	responsePushMirrors := make([]*api.PushMirror, 0)
+	responsePushMirrors := make([]*api.PushMirror, 0, len(pushMirrors))
 	for _, mirror := range pushMirrors {
 		m, err := convert.ToPushMirror(mirror)
 		if err == nil {
