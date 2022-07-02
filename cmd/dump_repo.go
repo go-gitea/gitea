@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
@@ -83,6 +84,11 @@ func runDumpRepository(ctx *cli.Context) error {
 		return err
 	}
 
+	// migrations.GiteaLocalUploader depends on git module
+	if err := git.InitSimple(context.Background()); err != nil {
+		return err
+	}
+
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
@@ -128,7 +134,9 @@ func runDumpRepository(ctx *cli.Context) error {
 	} else {
 		units := strings.Split(ctx.String("units"), ",")
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
+			case "":
+				continue
 			case "wiki":
 				opts.Wiki = true
 			case "issues":
@@ -145,6 +153,8 @@ func runDumpRepository(ctx *cli.Context) error {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			default:
+				return errors.New("invalid unit: " + unit)
 			}
 		}
 	}

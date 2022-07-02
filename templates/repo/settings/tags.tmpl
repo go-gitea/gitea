@@ -6,11 +6,11 @@
 		{{template "base/alert" .}}
 		{{if .Repository.IsArchived}}
 			<div class="ui warning message">
-				{{.i18n.Tr "repo.settings.archive.tagsettings_unavailable"}}
+				{{.locale.Tr "repo.settings.archive.tagsettings_unavailable"}}
 			</div>
 		{{else}}
 			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.settings.tags.protection"}}
+				{{.locale.Tr "repo.settings.tags.protection"}}
 			</h4>
 
 			<div class="ui attached segment">
@@ -20,19 +20,19 @@
 							<form class="ui form" action="{{.Link}}" method="post">
 								{{.CsrfTokenHtml}}
 								<div class="field">
-									<label>{{.i18n.Tr "repo.settings.tags.protection.pattern"}}</label>
+									<label>{{.locale.Tr "repo.settings.tags.protection.pattern"}}</label>
 									<div id="search-tag-box" class="ui search">
 										<div class="ui input">
 											<input class="prompt" name="name_pattern" autocomplete="off" value="{{.name_pattern}}" placeholder="v*" autofocus required>
 										</div>
-										<div class="help">{{.i18n.Tr "repo.settings.tags.protection.pattern.description" | Safe}}</div>
+										<div class="help">{{.locale.Tr "repo.settings.tags.protection.pattern.description" | Safe}}</div>
 									</div>
 								</div>
 								<div class="whitelist field">
-									<label>{{.i18n.Tr "repo.settings.tags.protection.allowed.users"}}</label>
+									<label>{{.locale.Tr "repo.settings.tags.protection.allowed.users"}}</label>
 									<div class="ui multiple search selection dropdown">
 										<input type="hidden" name="allowlist_users" value="{{.allowlist_users}}">
-										<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_users"}}</div>
+										<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_users"}}</div>
 										<div class="menu">
 											{{range .Users}}
 												<div class="item" data-value="{{.ID}}">
@@ -45,10 +45,10 @@
 								</div>
 								{{if .Owner.IsOrganization}}
 									<div class="whitelist field">
-										<label>{{.i18n.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
+										<label>{{.locale.Tr "repo.settings.tags.protection.allowed.teams"}}</label>
 										<div class="ui multiple search selection dropdown">
 											<input type="hidden" name="allowlist_teams" value="{{.allowlist_teams}}">
-											<div class="default text">{{.i18n.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
+											<div class="default text">{{.locale.Tr "repo.settings.protect_whitelist_search_teams"}}</div>
 											<div class="menu">
 												{{range .Teams}}
 													<div class="item" data-value="{{.ID}}">
@@ -63,14 +63,14 @@
 								<div class="field">
 									{{if .PageIsEditProtectedTag}}
 									<button class="ui green button">
-										{{$.i18n.Tr "save"}}
+										{{$.locale.Tr "save"}}
 									</button>
 									<a class="ui primary button" href="{{$.RepoLink}}/settings/tags">
-										{{$.i18n.Tr "cancel"}}
+										{{$.locale.Tr "cancel"}}
 									</a>
 									{{else}}
 									<button class="ui green button">
-										{{$.i18n.Tr "repo.settings.tags.protection.create"}}
+										{{$.locale.Tr "repo.settings.tags.protection.create"}}
 									</button>
 									{{end}}
 								</div>
@@ -81,8 +81,8 @@
 					<div class="sixteen wide column">
 						<table class="ui single line table">
 							<thead>
-								<th>{{.i18n.Tr "repo.settings.tags.protection.pattern"}}</th>
-								<th>{{.i18n.Tr "repo.settings.tags.protection.allowed"}}</th>
+								<th>{{.locale.Tr "repo.settings.tags.protection.pattern"}}</th>
+								<th>{{.locale.Tr "repo.settings.tags.protection.allowed"}}</th>
 								<th></th>
 							</thead>
 							<tbody>
@@ -106,20 +106,20 @@
 													{{end}}
 												{{end}}
 											{{else}}
-												{{$.i18n.Tr "repo.settings.tags.protection.allowed.noone"}}
+												{{$.locale.Tr "repo.settings.tags.protection.allowed.noone"}}
 											{{end}}
 										</td>
 										<td class="right aligned">
-											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{$.i18n.Tr "edit"}}</a>
+											<a class="ui tiny primary button" href="{{$.RepoLink}}/settings/tags/{{.ID}}">{{$.locale.Tr "edit"}}</a>
 											<form class="dib" action="{{$.RepoLink}}/settings/tags/delete" method="post">
 												{{$.CsrfTokenHtml}}
 												<input type="hidden" name="id" value="{{.ID}}" />
-												<button class="ui tiny red button">{{$.i18n.Tr "remove"}}</button>
+												<button class="ui tiny red button">{{$.locale.Tr "remove"}}</button>
 											</form>
 										</td>
 									</tr>
 								{{else}}
-									<tr class="center aligned"><td colspan="3">{{.i18n.Tr "repo.settings.tags.protection.none"}}</td></tr>
+									<tr class="center aligned"><td colspan="3">{{.locale.Tr "repo.settings.tags.protection.none"}}</td></tr>
 								{{end}}
 							</tbody>
 						</table>
