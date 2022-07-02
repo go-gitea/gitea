@@ -1261,17 +1261,17 @@ func TestUpdateLdapSimpleAuth(t *testing.T) {
 			},
 			id: 20,
 			existingAuthSource: &auth.Source{
-				Type:          auth.DLDAP,
-				IsActive:      false,
+				Type:     auth.DLDAP,
+				IsActive: false,
 				Cfg: &ldap.Source{
 					Name:    "ldap (simple auth) flip 'active' attribute",
 					Enabled: true,
 				},
 			},
 			authSource: &auth.Source{
-				Type:          auth.DLDAP,
-				Name:          "ldap (simple auth) flip 'active' attribute",
-				IsActive:      true,
+				Type:     auth.DLDAP,
+				Name:     "ldap (simple auth) flip 'active' attribute",
+				IsActive: true,
 				Cfg: &ldap.Source{
 					Name:    "ldap (simple auth) flip 'active' attribute",
 					Enabled: true,
