@@ -39,6 +39,24 @@ func NewContext() {
 	RegisterNotifier(action.NewNotifier())
 }
 
+func NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyNewWikiPage(doer, repo, page, comment)
+	}
+}
+
+func NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyEditWikiPage(doer, repo, page, comment)
+	}
+}
+
+func NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteWikiPage(doer, repo, page)
+	}
+}
+
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
 func NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
