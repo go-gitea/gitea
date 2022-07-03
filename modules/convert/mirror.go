@@ -13,7 +13,7 @@ import (
 // ToPushMirror convert from repo_model.PushMirror and remoteAddress to api.TopicResponse
 func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
 	repo := pm.GetRepository()
-	remoteAddress, err := getMirrorRemoteAddress(repo, pm.RemoteName)
+	remoteAddress, err := getRemoteAddress(repo, pm.RemoteName)
 	if err != nil {
 		return nil, err
 	}
@@ -28,7 +28,7 @@ func ToPushMirror(pm *repo_model.PushMirror) (*api.PushMirror, error) {
 	}, nil
 }
 
-func getMirrorRemoteAddress(repo *repo_model.Repository, remoteName string) (string, error) {
+func getRemoteAddress(repo *repo_model.Repository, remoteName string) (string, error) {
 	url, err := git.GetRemoteURL(git.DefaultContext, repo.RepoPath(), remoteName)
 	if err != nil {
 		return "", err
