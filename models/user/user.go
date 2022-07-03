@@ -1228,9 +1228,8 @@ func GetAdminUser() (*User, error) {
 }
 
 func isUserVisibleToViewerCond(viewer *User) builder.Cond {
-	cond := builder.NewCond()
 	if viewer != nil && viewer.IsAdmin {
-		return cond
+		return builder.NewCond()
 	}
 
 	if viewer == nil || viewer.IsRestricted {
@@ -1239,7 +1238,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 		}
 	}
 
-	cond = builder.Neq{
+	return builder.Neq{
 		"`user`.Visibility": structs.VisibleTypePrivate,
 	}.Or(
 		builder.In("`user`.id",
@@ -1259,8 +1258,6 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 				From("team_user").
 				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
 				Where(builder.Eq{"`t2`.uid": viewer.ID})))
-
-	return cond
 }
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
