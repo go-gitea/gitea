@@ -7725,7 +7725,7 @@
             "name": "body",
             "in": "body",
             "schema": {
-              "$ref": "#/definitions/CreateProjectPayload"
+              "$ref": "#/definitions/UpsertProjectPayload"
             }
           }
         ],
@@ -7981,9 +7981,6 @@
     },
     "/repos/{owner}/{repo}/projects/{projectId}/boards/{id}": {
       "get": {
-        "consumes": [
-          "application/json"
-        ],
         "produces": [
           "application/json"
         ],
@@ -8015,9 +8012,6 @@
             "required": true
           },
           {
-            "name": "body"
-          },
-          {
             "type": "string",
             "description": "project id",
             "name": "id",
@@ -8035,9 +8029,6 @@
         }
       },
       "delete": {
-        "consumes": [
-          "application/json"
-        ],
         "produces": [
           "application/json"
         ],

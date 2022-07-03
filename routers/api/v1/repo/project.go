@@ -32,7 +32,7 @@ func CreateProject(ctx *context.APIContext) {
 	// - name: body
 	//   in: body
 	//   schema:
-	//     "$ref": "#/definitions/CreateProjectPayload"
+	//     "$ref": "#/definitions/UpsertProjectPayload"
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/Project"
@@ -251,8 +251,6 @@ func GetProjectBoard(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/projects/{projectId}/boards/{id} repository repoGetProjectBoard
 	// ---
 	// summary: Create a board
-	// consumes:
-	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
@@ -271,7 +269,6 @@ func GetProjectBoard(ctx *context.APIContext) {
 	//   description: project id
 	//   type: string
 	//   required: true
-	// - name: body
 	// - name: id
 	//   in: path
 	//   description: project id
@@ -319,8 +316,6 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 	// swagger:operation DELETE /repos/{owner}/{repo}/projects/{projectId}/boards/{id} repository repoDeleteProjectBoard
 	// ---
 	// summary: Delete project board
-	// consumes:
-	// - application/json
 	// produces:
 	// - application/json
 	// parameters:
