@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -211,6 +212,27 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
+	meta, err := json.Marshal(&webhook_service.GiteaMeta{
+		AuthHeader: webhook_service.GiteaAuthHeaderMeta{
+			Active:   form.AuthHeaderActive,
+			Name:     form.AuthHeaderName,
+			Type:     form.AuthHeaderType,
+			Username: form.AuthHeaderUsername,
+			Password: form.AuthHeaderPassword,
+			Token:    form.AuthHeaderToken,
+		},
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	encryptedMeta, err := secret.EncryptSecret(setting.SecretKey, string(meta))
+	if err != nil {
+		ctx.ServerError("Encrypt", err)
+		return
+	}
+
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
 		URL:             form.PayloadURL,
@@ -220,6 +242,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
 		Type:            webhook.GITEA,
+		Meta:            encryptedMeta,
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
@@ -761,6 +784,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 
 	ctx.Data["HookType"] = w.Type
 	switch w.Type {
+	case webhook.GITEA:
+		ctx.Data["GiteaHook"] = webhook_service.GetGiteaHook(w)
 	case webhook.SLACK:
 		ctx.Data["SlackHook"] = webhook_service.GetSlackHook(w)
 	case webhook.DISCORD:
@@ -818,10 +843,32 @@ func WebHooksEditPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
+	meta, err := json.Marshal(&webhook_service.GiteaMeta{
+		AuthHeader: webhook_service.GiteaAuthHeaderMeta{
+			Active:   form.AuthHeaderActive,
+			Name:     form.AuthHeaderName,
+			Type:     form.AuthHeaderType,
+			Username: form.AuthHeaderUsername,
+			Password: form.AuthHeaderPassword,
+			Token:    form.AuthHeaderToken,
+		},
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	encryptedMeta, err := secret.EncryptSecret(setting.SecretKey, string(meta))
+	if err != nil {
+		ctx.ServerError("Encrypt", err)
+		return
+	}
+
 	w.URL = form.PayloadURL
 	w.ContentType = contentType
 	w.Secret = form.Secret
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.Meta = encryptedMeta
 	w.IsActive = form.Active
 	w.HTTPMethod = form.HTTPMethod
 	if err := w.UpdateEvent(); err != nil {
