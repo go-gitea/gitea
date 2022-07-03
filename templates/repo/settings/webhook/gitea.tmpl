@@ -73,7 +73,8 @@
 			</div>
 			<div class="auth-header token-auth field" style="display:none">
 				<label for="auth_header_token">{{.locale.Tr "repo.settings.webhook.auth_header.token"}}</label>
-				<input id="auth_header_token" name="auth_header_token" value="{{.GiteaHook.AuthHeader.Token}}" autocomplete="off">
+				<input id="auth_header_token" name="auth_header_token" type="password" value="{{.GiteaHook.AuthHeader.Token}}" autocomplete="off">
+				<span class="help">{{.locale.Tr "repo.settings.webhook.auth_header.token_description" | Str2html}}</span>
 			</div>
 		</div>
 
