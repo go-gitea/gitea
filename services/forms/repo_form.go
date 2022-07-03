@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
+	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -270,7 +271,7 @@ type NewWebhookForm struct {
 	Secret             string
 	AuthHeaderActive   bool
 	AuthHeaderName     string
-	AuthHeaderType     string `binding:"In(basic,token)"`
+	AuthHeaderType     webhook_model.AuthHeaderType `binding:"In(basic,token)"`
 	AuthHeaderUsername string
 	AuthHeaderPassword string
 	AuthHeaderToken    string

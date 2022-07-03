@@ -15,12 +15,12 @@ import (
 type (
 	// GiteaAuthHeaderMeta contains the authentication header metadata
 	GiteaAuthHeaderMeta struct {
-		Active   bool   `json:"active"`
-		Name     string `json:"name"`
-		Type     string `json:"type"`
-		Username string `json:"username,omitempty"`
-		Password string `json:"password,omitempty"`
-		Token    string `json:"token,omitempty"`
+		Active   bool                         `json:"active"`
+		Name     string                       `json:"name"`
+		Type     webhook_model.AuthHeaderType `json:"type"`
+		Username string                       `json:"username,omitempty"`
+		Password string                       `json:"password,omitempty"`
+		Token    string                       `json:"token,omitempty"`
 	}
 
 	// GiteaMeta contains the gitea webhook metadata

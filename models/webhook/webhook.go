@@ -165,6 +165,15 @@ const (
 	PACKAGIST  HookType = "packagist"
 )
 
+// AuthHeaderType is the type authentication header of a webhook
+type AuthHeaderType string
+
+// Types of authentication headers
+const (
+	BASICAUTH AuthHeaderType = "basic"
+	TOKENAUTH AuthHeaderType = "token"
+)
+
 // HookStatus is the status of a web hook
 type HookStatus int
 

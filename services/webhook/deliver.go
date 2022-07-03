@@ -20,6 +20,7 @@ import (
 	"time"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
@@ -143,6 +144,20 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	t.ResponseInfo = &webhook_model.HookResponse{
 		Headers: map[string]string{},
+	}
+
+	if w.Type == webhook_model.GITEA {
+		meta := GetGiteaHook(w)
+		if meta.AuthHeader.Active {
+			var content string
+			switch meta.AuthHeader.Type {
+			case webhook_model.BASICAUTH:
+				content = fmt.Sprintf("Basic %s", base.BasicAuthEncode(meta.AuthHeader.Username, meta.AuthHeader.Password))
+			case webhook_model.TOKENAUTH:
+				content = fmt.Sprintf("token %s", meta.AuthHeader.Token)
+			}
+			req.Header.Add(meta.AuthHeader.Name, content)
+		}
 	}
 
 	defer func() {
