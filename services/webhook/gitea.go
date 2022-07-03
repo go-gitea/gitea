@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/forms"
 )
 
 type (
@@ -29,7 +30,7 @@ type (
 	}
 )
 
-// GetGiteaHook returns gitea metadata
+// GetGiteaHook returns decrypted gitea metadata
 func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
 	meta, err := secret.DecryptSecret(setting.SecretKey, w.Meta)
 	if err != nil {
@@ -41,4 +42,30 @@ func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
 	}
 	return s
+}
+
+// CreateGiteaHook creates an encrypted gitea metadata string. In case of errors,
+// it returns an error message and the corresponding error. CreateGiteaHook ensures
+// that only necessary data are stored in DB. Obsolete values are cleared.
+func CreateGiteaHook(form *forms.NewWebhookForm) (meta string, errorMessage string, err error) {
+	metaObject, err := json.Marshal(&GiteaMeta{
+		AuthHeader: GiteaAuthHeaderMeta{
+			Active:   form.AuthHeaderActive,
+			Name:     form.AuthHeaderName,
+			Type:     form.AuthHeaderType,
+			Username: form.AuthHeaderUsername,
+			Password: form.AuthHeaderPassword,
+			Token:    form.AuthHeaderToken,
+		},
+	})
+	if err != nil {
+		return "", "Marshal", err
+	}
+
+	meta, err = secret.EncryptSecret(setting.SecretKey, string(metaObject))
+	if err != nil {
+		return "", "Encrypt", err
+	}
+
+	return meta, "", nil
 }

@@ -21,7 +21,6 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -212,24 +211,9 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, err := json.Marshal(&webhook_service.GiteaMeta{
-		AuthHeader: webhook_service.GiteaAuthHeaderMeta{
-			Active:   form.AuthHeaderActive,
-			Name:     form.AuthHeaderName,
-			Type:     form.AuthHeaderType,
-			Username: form.AuthHeaderUsername,
-			Password: form.AuthHeaderPassword,
-			Token:    form.AuthHeaderToken,
-		},
-	})
+	meta, errMsg, err := webhook_service.CreateGiteaHook(form)
 	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	encryptedMeta, err := secret.EncryptSecret(setting.SecretKey, string(meta))
-	if err != nil {
-		ctx.ServerError("Encrypt", err)
+		ctx.ServerError(errMsg, err)
 		return
 	}
 
@@ -242,7 +226,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		HookEvent:       ParseHookEvent(form.WebhookForm),
 		IsActive:        form.Active,
 		Type:            webhook.GITEA,
-		Meta:            encryptedMeta,
+		Meta:            meta,
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
@@ -843,24 +827,9 @@ func WebHooksEditPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, err := json.Marshal(&webhook_service.GiteaMeta{
-		AuthHeader: webhook_service.GiteaAuthHeaderMeta{
-			Active:   form.AuthHeaderActive,
-			Name:     form.AuthHeaderName,
-			Type:     form.AuthHeaderType,
-			Username: form.AuthHeaderUsername,
-			Password: form.AuthHeaderPassword,
-			Token:    form.AuthHeaderToken,
-		},
-	})
+	meta, errMsg, err := webhook_service.CreateGiteaHook(form)
 	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	encryptedMeta, err := secret.EncryptSecret(setting.SecretKey, string(meta))
-	if err != nil {
-		ctx.ServerError("Encrypt", err)
+		ctx.ServerError(errMsg, err)
 		return
 	}
 
@@ -868,7 +837,7 @@ func WebHooksEditPost(ctx *context.Context) {
 	w.ContentType = contentType
 	w.Secret = form.Secret
 	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.Meta = encryptedMeta
+	w.Meta = meta
 	w.IsActive = form.Active
 	w.HTTPMethod = form.HTTPMethod
 	if err := w.UpdateEvent(); err != nil {
