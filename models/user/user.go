@@ -1234,12 +1234,12 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 	if viewer == nil || viewer.IsRestricted {
 		return builder.Eq{
-			"`user`.Visibility": structs.VisibleTypePublic,
+			"`user`.visibility": structs.VisibleTypePublic,
 		}
 	}
 
 	return builder.Neq{
-		"`user`.Visibility": structs.VisibleTypePrivate,
+		"`user`.visibility": structs.VisibleTypePrivate,
 	}.Or(
 		builder.In("`user`.id",
 			builder.
