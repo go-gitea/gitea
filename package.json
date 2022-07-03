@@ -6,6 +6,7 @@
   "engines": {
     "node": ">= 14"
   },
+  "packageManager": "pnpm@7.5.0",
   "dependencies": {
     "@claviska/jquery-minicolors": "2.3.6",
     "@primer/octicons": "17.2.0",
