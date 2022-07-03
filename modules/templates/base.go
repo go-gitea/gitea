@@ -94,7 +94,7 @@ func getDirAssetNames(dir string, mailer bool) []string {
 	return tmpls
 }
 
-func walkAssetDir(root string, skipMail bool, callback func(path string, name string, d fs.DirEntry, err error) error) error {
+func walkAssetDir(root string, skipMail bool, callback func(path, name string, d fs.DirEntry, err error) error) error {
 	mailRoot := filepath.Join(root, "mail")
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		name := path[len(root):]

@@ -8,6 +8,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"gopkg.in/ini.v1"
 )
 

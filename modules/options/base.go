@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 )
 
-func walkAssetDir(root string, callback func(path string, name string, d fs.DirEntry, err error) error) error {
+func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
 		name := path[len(root):]
 		if len(name) > 0 && name[0] == '/' {

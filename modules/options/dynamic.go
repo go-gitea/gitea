@@ -67,7 +67,7 @@ func Locale(name string) ([]byte, error) {
 }
 
 // WalkLocales reads the content of a specific locale from static or custom path.
-func WalkLocales(callback func(path string, name string, d fs.DirEntry, err error) error) error {
+func WalkLocales(callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "options", "locale"), callback); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to walk locales. Error: %w", err)
 	}
