@@ -64,7 +64,7 @@ func (s *SSPI) Init() error {
 		Directory:     "templates",
 		Funcs:         templates.NewFuncMap(),
 		Asset:         templates.GetAsset,
-		AssetNames:    templates.GetAssetNames,
+		AssetNames:    templates.GetTemplateAssetNames,
 		IsDevelopment: !setting.IsProd,
 	})
 	return nil
