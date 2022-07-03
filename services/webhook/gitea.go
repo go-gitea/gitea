@@ -25,8 +25,8 @@ type (
 
 	// GiteaMeta contains the gitea webhook metadata
 	GiteaMeta struct {
-		AuthHeaderEnabled bool                 `json:"auth_header_enabled"`
-		AuthHeaderData    string               `json:"auth_header,omitempty"`
+		AuthHeaderEnabled bool                `json:"auth_header_enabled"`
+		AuthHeaderData    string              `json:"auth_header,omitempty"`
 		AuthHeader        GiteaAuthHeaderMeta `json:"-"`
 	}
 )
