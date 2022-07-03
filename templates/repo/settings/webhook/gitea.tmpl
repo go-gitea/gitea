@@ -42,7 +42,7 @@
 			<h4>{{.locale.Tr "repo.settings.webhook.auth_header.section"}}</h4>
 			<div class="field">
 				<div class="ui checkbox">
-					<input class="hidden" name="auth_header_active" type="checkbox" tabindex="0" {{if .GiteaHook.AuthHeader.Active}}checked{{end}}>
+					<input class="hidden" name="auth_header_active" type="checkbox" tabindex="0" {{if .GiteaHook.AuthHeaderEnabled}}checked{{end}}>
 					<label>{{.locale.Tr "repo.settings.active"}}</label>
 					<span class="help">{{.locale.Tr "repo.settings.webhook.auth_header.description"}}</span>
 				</div>

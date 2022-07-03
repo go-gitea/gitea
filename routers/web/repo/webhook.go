@@ -211,9 +211,9 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, errMsg, err := webhook_service.CreateGiteaHook(form)
+	meta, err := webhook_service.CreateGiteaHook(form)
 	if err != nil {
-		ctx.ServerError(errMsg, err)
+		ctx.ServerError("Meta", err)
 		return
 	}
 
@@ -827,9 +827,9 @@ func WebHooksEditPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, errMsg, err := webhook_service.CreateGiteaHook(form)
+	meta, err := webhook_service.CreateGiteaHook(form)
 	if err != nil {
-		ctx.ServerError(errMsg, err)
+		ctx.ServerError("Meta", err)
 		return
 	}
 

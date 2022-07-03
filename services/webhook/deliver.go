@@ -148,7 +148,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 
 	if w.Type == webhook_model.GITEA {
 		meta := GetGiteaHook(w)
-		if meta.AuthHeader.Active {
+		if meta.AuthHeaderEnabled {
 			var content string
 			switch meta.AuthHeader.Type {
 			case webhook_model.BASICAUTH:

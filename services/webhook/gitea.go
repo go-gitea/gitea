@@ -16,7 +16,6 @@ import (
 type (
 	// GiteaAuthHeaderMeta contains the authentication header metadata
 	GiteaAuthHeaderMeta struct {
-		Active   bool                         `json:"active"`
 		Name     string                       `json:"name"`
 		Type     webhook_model.AuthHeaderType `json:"type"`
 		Username string                       `json:"username,omitempty"`
@@ -26,46 +25,84 @@ type (
 
 	// GiteaMeta contains the gitea webhook metadata
 	GiteaMeta struct {
-		AuthHeader GiteaAuthHeaderMeta `json:"authHeader"`
+		AuthHeaderEnabled bool                 `json:"auth_header_enabled"`
+		AuthHeaderData    string               `json:"auth_header,omitempty"`
+		AuthHeader        GiteaAuthHeaderMeta `json:"-"`
 	}
 )
 
 // GetGiteaHook returns decrypted gitea metadata
 func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
-	meta, err := secret.DecryptSecret(setting.SecretKey, w.Meta)
+	s := &GiteaMeta{}
+
+	// Legacy webhook configuration has no stored metadata
+	if w.Meta == "" {
+		return s
+	}
+
+	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
+		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
+	}
+
+	if !s.AuthHeaderEnabled {
+		return s
+	}
+
+	headerData, err := secret.DecryptSecret(setting.SecretKey, s.AuthHeaderData)
 	if err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
 	}
 
-	s := &GiteaMeta{}
-	if err := json.Unmarshal([]byte(meta), s); err != nil {
+	h := GiteaAuthHeaderMeta{}
+	if err := json.Unmarshal([]byte(headerData), &h); err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
 	}
+
+	// Replace encrypted content with decrypted settings
+	s.AuthHeaderData = ""
+	s.AuthHeader = h
+
 	return s
 }
 
-// CreateGiteaHook creates an encrypted gitea metadata string. In case of errors,
-// it returns an error message and the corresponding error. CreateGiteaHook ensures
-// that only necessary data are stored in DB. Obsolete values are cleared.
-func CreateGiteaHook(form *forms.NewWebhookForm) (meta string, errorMessage string, err error) {
-	metaObject, err := json.Marshal(&GiteaMeta{
-		AuthHeader: GiteaAuthHeaderMeta{
-			Active:   form.AuthHeaderActive,
-			Name:     form.AuthHeaderName,
-			Type:     form.AuthHeaderType,
-			Username: form.AuthHeaderUsername,
-			Password: form.AuthHeaderPassword,
-			Token:    form.AuthHeaderToken,
-		},
-	})
-	if err != nil {
-		return "", "Marshal", err
+// CreateGiteaHook creates an gitea metadata string with encrypted auth header data,
+// while it ensures to store the least necessary data in the database.
+func CreateGiteaHook(form *forms.NewWebhookForm) (string, error) {
+	metaObject := &GiteaMeta{
+		AuthHeaderEnabled: form.AuthHeaderActive,
 	}
 
-	meta, err = secret.EncryptSecret(setting.SecretKey, string(metaObject))
-	if err != nil {
-		return "", "Encrypt", err
+	if form.AuthHeaderActive {
+		headerMeta := GiteaAuthHeaderMeta{
+			Name: form.AuthHeaderName,
+			Type: form.AuthHeaderType,
+		}
+
+		switch form.AuthHeaderType {
+		case webhook_model.BASICAUTH:
+			headerMeta.Username = form.AuthHeaderUsername
+			headerMeta.Password = form.AuthHeaderPassword
+		case webhook_model.TOKENAUTH:
+			headerMeta.Token = form.AuthHeaderToken
+		}
+
+		headerData, err := json.Marshal(headerMeta)
+		if err != nil {
+			return "", err
+		}
+
+		encryptedHeaderData, err := secret.EncryptSecret(setting.SecretKey, string(headerData))
+		if err != nil {
+			return "", err
+		}
+
+		metaObject.AuthHeaderData = encryptedHeaderData
 	}
 
-	return meta, "", nil
+	meta, err := json.Marshal(metaObject)
+	if err != nil {
+		return "", err
+	}
+
+	return string(meta), nil
 }
