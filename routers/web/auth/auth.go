@@ -266,7 +266,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	if hasTOTPtwofa {
-		// User will need to use U2F, save data
+		// User will need to use WebAuthn, save data
 		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
 			ctx.ServerError("UserSignIn: Unable to set WebAuthn Enrolled in session", err)
 			return
@@ -278,7 +278,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// If we have U2F redirect there first
+	// If we have WebAuthn redirect there first
 	if hasWebAuthnTwofa {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -317,7 +317,6 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	_ = ctx.Session.Delete("openid_determined_username")
 	_ = ctx.Session.Delete("twofaUid")
 	_ = ctx.Session.Delete("twofaRemember")
-	_ = ctx.Session.Delete("u2fChallenge")
 	_ = ctx.Session.Delete("linkAccount")
 	if err := ctx.Session.Set("uid", u.ID); err != nil {
 		log.Error("Error setting uid %d in session: %v", u.ID, err)
@@ -629,7 +628,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
 
 		if setting.CacheService.Enabled {
@@ -658,7 +657,7 @@ func Activate(ctx *context.Context) {
 			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
-				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
 				if setting.CacheService.Enabled {

@@ -3,21 +3,21 @@
 		<div class="file-header-left df ac">
 			<div class="file-info text grey normal mono">
 				<div class="file-info-entry">
-					{{.NumLines}} {{.i18n.TrN .NumLines "repo.line" "repo.lines"}}
+					{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
 				</div>
 				<div class="file-info-entry">{{FileSize .FileSize}}</div>
 			</div>
 		</div>
 		<div class="file-header-right file-actions df ac">
 			<div class="ui buttons">
-				<a class="ui tiny button" href="{{$.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
+				<a class="ui tiny button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
 				{{if not .IsViewCommit}}
-					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+					<a class="ui tiny button" href="{{.RepoLink}}/src/commit/{{.CommitID | PathEscape}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.file_permalink"}}</a>
 				{{end}}
-				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.normal_view"}}</a>
-				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.i18n.Tr "repo.file_history"}}</a>
-				<a class="ui tiny button unescape-button">{{.i18n.Tr "repo.unescape_control_characters"}}</a>
-				<a class="ui tiny button escape-button" style="display: none;">{{.i18n.Tr "repo.escape_control_characters"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.normal_view"}}</a>
+				<a class="ui tiny button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{.TreePath | PathEscapeSegments}}">{{.locale.Tr "repo.file_history"}}</a>
+				<a class="ui tiny button unescape-button">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+				<a class="ui tiny button escape-button" style="display: none;">{{.locale.Tr "repo.escape_control_characters"}}</a>
 			</div>
 		</div>
 	</h4>
@@ -46,7 +46,7 @@
 							</td>
 							<td class="lines-blame-btn">
 								{{if $row.PreviousSha}}
-									<a href="{{$row.PreviousShaURL}}" class="tooltip" data-content='{{$.i18n.Tr "repo.blame_prior"}}'>
+									<a href="{{$row.PreviousShaURL}}" class="tooltip" data-content='{{$.locale.Tr "repo.blame_prior"}}'>
 										{{svg "octicon-versions"}}
 									</a>
 								{{end}}
@@ -55,7 +55,7 @@
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
 							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">{{if $row.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.i18n.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+								<td class="lines-escape">{{if $row.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.locale.Tr "repo.line_unicode"}}"></a>{{end}}</td>
 							{{end}}
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner pl-3">{{$row.Code}}</code>
