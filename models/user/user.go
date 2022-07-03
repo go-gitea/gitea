@@ -1232,17 +1232,16 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 	if viewer != nil && viewer.IsAdmin {
 		return cond
 	}
-	cond = builder.Eq{
-		"`user`.Visibility": structs.VisibleTypePublic,
-	}
 
 	if viewer == nil || viewer.IsRestricted {
-		return cond
+		return builder.Eq{
+			"`user`.Visibility": structs.VisibleTypePublic,
+		}
 	}
 
-	cond = builder.Not{builder.Eq{
+	cond = builder.Neq{
 		"`user`.Visibility": structs.VisibleTypePrivate,
-	}}.Or(
+	}.Or(
 		builder.In("`user`.id",
 			builder.
 				Select("`follow`.user_id").
