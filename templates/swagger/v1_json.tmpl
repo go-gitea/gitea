@@ -7662,6 +7662,491 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/projects": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a repository's projects",
+        "operationId": "repoListProjects",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectList"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a project for a repository",
+        "operationId": "repoCreateProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/CreateProjectPayload"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{id}": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "List a single project",
+        "operationId": "repoGetProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "delete": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete a project",
+        "operationId": "repoDeleteProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit a project",
+        "operationId": "repoEditProject",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "id of the project",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/Project"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{projectId}/boards": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get list of project boards",
+        "operationId": "repoListProjectBoards",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectBoardList"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a board",
+        "operationId": "repoCreateProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpsertProjectBoardPayload"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "$ref": "#/responses/ProjectBoard"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
+    "/repos/{owner}/{repo}/projects/{projectId}/boards/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Create a board",
+        "operationId": "repoGetProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body"
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectBoard"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Delete project board",
+        "operationId": "repoDeleteProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "board id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "403": {
+            "$ref": "#/responses/forbidden"
+          }
+        }
+      },
+      "patch": {
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Edit Project Board",
+        "operationId": "repoEditProjectBoard",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "project id",
+            "name": "projectId",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "board id",
+            "name": "id",
+            "in": "path",
+            "required": true
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "schema": {
+              "$ref": "#/definitions/UpsertProjectBoardPayload"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ProjectBoard"
+          },
+          "403": {
+            "$ref": "#/responses/forbidden"
+          },
+          "412": {
+            "$ref": "#/responses/error"
+          },
+          "422": {
+            "$ref": "#/responses/validationError"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls": {
       "get": {
         "produces": [
@@ -17263,6 +17748,48 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "Project": {
+      "type": "object",
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "ProjectBoard": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int8",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "PublicKey": {
       "description": "PublicKey publickey is a user key to push code to repository",
       "type": "object",
@@ -18499,6 +19026,48 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "UpsertProjectBoardPayload": {
+      "type": "object",
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int8",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "UpsertProjectPayload": {
+      "type": "object",
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "body": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "User": {
       "description": "User represents a user",
       "type": "object",
@@ -19307,6 +19876,36 @@
         }
       }
     },
+    "Project": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/Project"
+      }
+    },
+    "ProjectBoard": {
+      "description": "",
+      "schema": {
+        "$ref": "#/definitions/ProjectBoard"
+      }
+    },
+    "ProjectBoardList": {
+      "description": "",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ProjectBoard"
+        }
+      }
+    },
+    "ProjectList": {
+      "description": "",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/Project"
+        }
+      }
+    },
     "PublicKey": {
       "description": "PublicKey",
       "schema": {
@@ -19646,7 +20245,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/CreateWikiPageOptions"
+        "$ref": "#/definitions/UpsertProjectBoardPayload"
       }
     },
     "redirect": {

@@ -172,4 +172,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreateWikiPageOptions api.CreateWikiPageOptions
+
+	// in:body
+	UpsertProjectPayload api.UpsertProjectPayload
+
+	// in:body
+	UpsertProjectBoardPayload api.UpsertProjectBoardPayload
 }

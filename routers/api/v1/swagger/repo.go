@@ -351,3 +351,27 @@ type swaggerRepoCollaboratorPermission struct {
 	// in:body
 	Body api.RepoCollaboratorPermission `json:"body"`
 }
+
+// swagger:response Project
+type swaggerProject struct {
+	// in:body
+	Body api.Project `json:"body"`
+}
+
+// swagger:response ProjectList
+type swaggerProjectList struct {
+	// in:body
+	Body []api.Project `json:"body"`
+}
+
+// swagger:response ProjectBoard
+type swaggerProjectBoard struct {
+	// in:body
+	Body api.ProjectBoard `json:"body"`
+}
+
+// swagger:response ProjectBoardList
+type swaggerProjectBoardList struct {
+	// in:body
+	Body []api.ProjectBoard `json:"body"`
+}
