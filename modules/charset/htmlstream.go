@@ -79,7 +79,7 @@ func (h *HTMLStreamerWriter) Write(data []byte) (int, error) {
 	if h.err != nil {
 		return 0, h.err
 	}
-	return h.Writer.Write([]byte(data))
+	return h.Writer.Write(data)
 }
 
 // Write implements io.StringWriter

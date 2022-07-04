@@ -235,7 +235,7 @@ func (counts runeCountType) needsEscape() bool {
 type runeType int
 
 const (
-	basicASCIIRuneType runeType = iota //nolint <- This is technically deadcode but its self-documenting so it should stay
+	basicASCIIRuneType runeType = iota //nolint // <- This is technically deadcode but its self-documenting so it should stay
 	brokenRuneType
 	nonBasicASCIIRuneType
 	ambiguousRuneType
@@ -269,5 +269,5 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 			runeCounts.numBasicRunes++
 		}
 	}
-	return
+	return types, confusables, runeCounts
 }
