@@ -53,7 +53,6 @@ func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	}
 
 	for _, mirror := range pushMirrors {
-		// TODO: push mirror likely will benefit from using a queue
-		mirror_module.SyncPushMirror(ctx, mirror.ID)
+		mirror_module.AddPushMirrorToQueue(mirror.ID)
 	}
 }
