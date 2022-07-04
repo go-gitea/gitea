@@ -4,7 +4,7 @@
 		{{svg "octicon-smiley"}}
 	</a>
 	<div class="menu">
-		<div class="header">{{ .ctx.i18n.Tr "repo.pick_reaction"}}</div>
+		<div class="header">{{ .ctx.locale.Tr "repo.pick_reaction"}}</div>
 		<div class="divider"></div>
 		{{range $value := AllowedReactions}}
 			<div class="item reaction" data-content="{{$value}}">{{ReactionToEmoji $value}}</div>

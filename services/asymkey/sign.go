@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -270,7 +271,7 @@ Loop:
 }
 
 // SignMerge determines if we should sign a PR merge commit to the base repository
-func SignMerge(ctx context.Context, pr *models.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
+func SignMerge(ctx context.Context, pr *issues_model.PullRequest, u *user_model.User, tmpBasePath, baseCommit, headCommit string) (bool, string, *git.Signature, error) {
 	if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 		log.Error("Unable to get Base Repo for pull request")
 		return false, "", nil, err
@@ -310,14 +311,14 @@ Loop:
 				return false, "", nil, &ErrWontSign{twofa}
 			}
 		case approved:
-			protectedBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
+			protectedBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, pr.BaseBranch)
 			if err != nil {
 				return false, "", nil, err
 			}
 			if protectedBranch == nil {
 				return false, "", nil, &ErrWontSign{approved}
 			}
-			if protectedBranch.GetGrantedApprovalsCount(ctx, pr) < 1 {
+			if issues_model.GetGrantedApprovalsCount(ctx, protectedBranch, pr) < 1 {
 				return false, "", nil, &ErrWontSign{approved}
 			}
 		case baseSigned:

@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -116,7 +117,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err = models.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err = CheckDaemonExportOK(ctx, repo); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
@@ -168,9 +169,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return nil, err
 	}
+	defer committer.Close()
 
 	if opts.Mirror {
 		mirrorModel := repo_model.Mirror{
@@ -203,17 +206,24 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err = repo_model.InsertMirror(&mirrorModel); err != nil {
+		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 
 		repo.IsMirror = true
-		err = models.UpdateRepository(repo, false)
+		if err = UpdateRepository(ctx, repo, false); err != nil {
+			return nil, err
+		}
 	} else {
-		repo, err = CleanUpMigrateInfo(ctx, repo)
+		if err = UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+			return nil, err
+		}
 	}
 
-	return repo, err
+	return repo, committer.Commit()
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
@@ -253,7 +263,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	return repo, models.UpdateRepository(repo, false)
+	return repo, UpdateRepository(ctx, repo, false)
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
@@ -381,7 +391,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -389,7 +399,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			if err := contentStore.Put(p, content); err != nil {
 				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := models.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
 				return err
@@ -408,8 +418,8 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := models.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
-		if err != nil && err != models.ErrLFSObjectNotExist {
+		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
+		if err != nil && err != git_model.ErrLFSObjectNotExist {
 			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
 		}
@@ -428,7 +438,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err

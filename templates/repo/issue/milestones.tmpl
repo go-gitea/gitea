@@ -6,7 +6,7 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
-					<a class="ui green button" href="{{$.Link}}/new">{{.i18n.Tr "repo.milestones.new"}}</a>
+					<a class="ui green button" href="{{$.Link}}/new">{{.locale.Tr "repo.milestones.new"}}</a>
 				</div>
 			{{end}}
 		</div>
@@ -18,11 +18,11 @@
 				<div class="ui compact tiny menu">
 					<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=open&q={{$.Keyword}}">
 						{{svg "octicon-milestone" 16 "mr-3"}}
-						{{.i18n.Tr "repo.milestones.open_tab" .OpenCount}}
+						{{JsPrettyNumber .OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 					</a>
 					<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.RepoLink}}/milestones?state=closed&q={{$.Keyword}}">
-						{{svg "octicon-milestone" 16 "mr-3"}}
-						{{.i18n.Tr "repo.milestones.close_tab" .ClosedCount}}
+						{{svg "octicon-check" 16 "mr-3"}}
+						{{JsPrettyNumber .ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 					</a>
 				</div>
 			</div>
@@ -32,8 +32,8 @@
 				<form class="ui form ignore-dirty">
 					<div class="ui search fluid action input">
 						<input type="hidden" name="state" value="{{$.State}}"/>
-						<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-						<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+						<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+						<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 					</div>
 				</form>
 			</div>
@@ -42,16 +42,16 @@
 				<!-- Sort -->
 				<div class="ui dropdown type jump item">
 					<span class="text">
-						{{.i18n.Tr "repo.issues.filter_sort"}}
+						{{.locale.Tr "repo.issues.filter_sort"}}
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					</span>
 					<div class="menu">
-						<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
-						<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
-						<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_complete"}}</a>
-						<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_complete"}}</a>
-						<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.most_issues"}}</a>
-						<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.milestones.filter_sort.least_issues"}}</a>
+						<a class="{{if or (eq .SortType "closestduedate") (not .SortType)}}active{{end}} item" href="{{$.Link}}?sort=closestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.closest_due_date"}}</a>
+						<a class="{{if eq .SortType "furthestduedate"}}active{{end}} item" href="{{$.Link}}?sort=furthestduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.furthest_due_date"}}</a>
+						<a class="{{if eq .SortType "leastcomplete"}}active{{end}} item" href="{{$.Link}}?sort=leastcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_complete"}}</a>
+						<a class="{{if eq .SortType "mostcomplete"}}active{{end}} item" href="{{$.Link}}?sort=mostcomplete&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_complete"}}</a>
+						<a class="{{if eq .SortType "mostissues"}}active{{end}} item" href="{{$.Link}}?sort=mostissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.most_issues"}}</a>
+						<a class="{{if eq .SortType "leastissues"}}active{{end}} item" href="{{$.Link}}?sort=leastissues&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.milestones.filter_sort.least_issues"}}</a>
 					</div>
 				</div>
 			</div>
@@ -71,33 +71,35 @@
 						</div>
 					</div>
 					<div class="meta">
-						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.i18n.Lang }}
+						{{ $closedDate:= TimeSinceUnix .ClosedDateUnix $.locale }}
 						{{if .IsClosed}}
-							{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.closed" $closedDate|Str2html}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.closed" $closedDate|Str2html}}
 						{{else}}
 							{{svg "octicon-calendar"}}
 							{{if .DeadlineString}}
 								<span {{if .IsOverdue}}class="overdue"{{end}}>{{.DeadlineString}}</span>
 							{{else}}
-								{{$.i18n.Tr "repo.milestones.no_due_date"}}
+								{{$.locale.Tr "repo.milestones.no_due_date"}}
 							{{end}}
 						{{end}}
 						<span class="issue-stats">
-							{{svg "octicon-issue-opened"}} {{$.i18n.Tr "repo.issues.open_tab" .NumOpenIssues}}
-							{{svg "octicon-issue-closed"}} {{$.i18n.Tr "repo.issues.close_tab" .NumClosedIssues}}
+							{{svg "octicon-issue-opened" 16 "mr-3"}}
+							{{JsPrettyNumber .NumOpenIssues}}&nbsp;{{$.locale.Tr "repo.issues.open_title"}}
+							{{svg "octicon-check" 16 "mr-3"}}
+							{{JsPrettyNumber .NumClosedIssues}}&nbsp;{{$.locale.Tr "repo.issues.closed_title"}}
 							{{if .TotalTrackedTime}}{{svg "octicon-clock"}} {{.TotalTrackedTime|Sec2Time}}{{end}}
-							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.i18n.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
+							{{if .UpdatedUnix}}{{svg "octicon-clock"}} {{$.locale.Tr "repo.milestones.update_ago" (.TimeSinceUpdate|Sec2Time)}}{{end}}
 						</span>
 					</div>
 					{{if and (or $.CanWriteIssues $.CanWritePulls) (not $.Repository.IsArchived)}}
 						<div class="ui right operate">
-							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil"}} {{$.i18n.Tr "repo.issues.label_edit"}}</a>
+							<a href="{{$.Link}}/{{.ID}}/edit" data-id={{.ID}} data-title={{.Name}}>{{svg "octicon-pencil"}} {{$.locale.Tr "repo.issues.label_edit"}}</a>
 							{{if .IsClosed}}
-								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.i18n.Tr "repo.milestones.open"}}</a>
+								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/open">{{svg "octicon-check"}} {{$.locale.Tr "repo.milestones.open"}}</a>
 							{{else}}
-								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x"}} {{$.i18n.Tr "repo.milestones.close"}}</a>
+								<a class="link-action" href data-url="{{$.Link}}/{{.ID}}/close">{{svg "octicon-x"}} {{$.locale.Tr "repo.milestones.close"}}</a>
 							{{end}}
-							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.i18n.Tr "repo.issues.label_delete"}}</a>
+							<a class="delete-button" href="#" data-url="{{$.RepoLink}}/milestones/delete" data-id="{{.ID}}">{{svg "octicon-trash"}} {{$.locale.Tr "repo.issues.label_delete"}}</a>
 						</div>
 					{{end}}
 					{{if .Content}}
@@ -117,19 +119,19 @@
 	<div class="ui small basic delete modal">
 		<div class="ui icon header">
 			{{svg "octicon-trash"}}
-			{{.i18n.Tr "repo.milestones.deletion"}}
+			{{.locale.Tr "repo.milestones.deletion"}}
 		</div>
 		<div class="content">
-			<p>{{.i18n.Tr "repo.milestones.deletion_desc"}}</p>
+			<p>{{.locale.Tr "repo.milestones.deletion_desc"}}</p>
 		</div>
 		<div class="actions">
 			<div class="ui red basic inverted cancel button">
 				<i class="remove icon"></i>
-				{{.i18n.Tr "modal.no"}}
+				{{.locale.Tr "modal.no"}}
 			</div>
 			<div class="ui green basic inverted ok button">
 				<i class="checkmark icon"></i>
-				{{.i18n.Tr "modal.yes"}}
+				{{.locale.Tr "modal.yes"}}
 			</div>
 		</div>
 	</div>

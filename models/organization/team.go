@@ -185,7 +185,7 @@ func (t *Team) GetUnitNames() (res []string) {
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
-	return
+	return res
 }
 
 // GetUnitsMap returns the team units permissions
@@ -226,7 +226,7 @@ func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
 	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
 		TeamID: t.ID,
 	})
-	return
+	return err
 }
 
 // GetMembersCtx returns paginated members in team of organization.

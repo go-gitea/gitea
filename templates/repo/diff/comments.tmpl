@@ -1,6 +1,6 @@
 {{range .comments}}
 
-{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.i18n.Lang }}
+{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.locale }}
 <div class="comment" id="{{.HashTag}}">
 	{{if .OriginalAuthor }}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
@@ -18,11 +18,11 @@
 						{{ .OriginalAuthor }}
 					</span>
 					<span class="text grey">
-						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{$.root.i18n.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe }})
+							({{$.root.locale.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe }})
 						{{end}}
 					</span>
 				{{else}}
@@ -30,19 +30,19 @@
 						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
 							{{.Poster.GetDisplayName}}
 						</a>
-						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
+						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
 			</div>
 			<div class="comment-header-right actions df ac">
 				{{if and .Review}}
 					{{if eq .Review.Type 0}}
-						<div class="ui label basic small yellow pending-label tooltip" data-content="{{$.root.i18n.Tr "repo.issues.review.pending.tooltip" ($.root.i18n.Tr "repo.diff.review") ($.root.i18n.Tr "repo.diff.review.approve") ($.root.i18n.Tr "repo.diff.review.comment") ($.root.i18n.Tr "repo.diff.review.reject")}}">
-						{{$.root.i18n.Tr "repo.issues.review.pending"}}
+						<div class="ui label basic small yellow pending-label tooltip" data-content="{{$.root.locale.Tr "repo.issues.review.pending.tooltip" ($.root.locale.Tr "repo.diff.review") ($.root.locale.Tr "repo.diff.review.approve") ($.root.locale.Tr "repo.diff.review.comment") ($.root.locale.Tr "repo.diff.review.reject")}}">
+						{{$.root.locale.Tr "repo.issues.review.pending"}}
 						</div>
 					{{else}}
 						<div class="ui label basic small">
-						{{$.root.i18n.Tr "repo.issues.review.review"}}
+						{{$.root.locale.Tr "repo.issues.review.review"}}
 						</div>
 					{{end}}
 				{{end}}
@@ -55,7 +55,7 @@
 			{{if .RenderedContent}}
 				{{.RenderedContent|Str2html}}
 			{{else}}
-				<span class="no-content">{{$.root.i18n.Tr "repo.issues.no_content"}}</span>
+				<span class="no-content">{{$.root.locale.Tr "repo.issues.no_content"}}</span>
 			{{end}}
 			</div>
 			<div id="comment-{{.ID}}" class="raw-content hide">{{.Content}}</div>

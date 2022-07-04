@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -96,12 +97,12 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return err
 		}
 
-		if err = models.IncrementRepoForkNum(txCtx, opts.BaseRepo.ID); err != nil {
+		if err = repo_model.IncrementRepoForkNum(txCtx, opts.BaseRepo.ID); err != nil {
 			return err
 		}
 
 		// copy lfs files failure should not be ignored
-		if err = models.CopyLFS(txCtx, repo, opts.BaseRepo); err != nil {
+		if err = git_model.CopyLFS(txCtx, repo, opts.BaseRepo); err != nil {
 			return err
 		}
 
@@ -116,7 +117,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if err := models.CheckDaemonExportOK(txCtx, repo); err != nil {
+		if err := repo_module.CheckDaemonExportOK(txCtx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
@@ -139,7 +140,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	if err := models.UpdateRepoSize(ctx, repo); err != nil {
+	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
@@ -173,7 +174,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 			return nil
 		}
 
-		if err := models.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
+		if err := repo_model.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
 			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
 			return err
 		}
@@ -181,7 +182,7 @@ func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}

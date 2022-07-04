@@ -65,7 +65,7 @@ func (m *Manager) GetRedisClient(connection string) (client redis.UniversalClien
 	if recovered != nil {
 		panic(recovered)
 	}
-	return
+	return client
 }
 
 func (m *Manager) getRedisClient(connection string) redis.UniversalClient {

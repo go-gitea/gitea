@@ -58,6 +58,9 @@
   --color-secondary-alpha-70: #dededeb3;
   --color-secondary-alpha-80: #dededecc;
   --color-secondary-alpha-90: #dededee1;
+  /* console colors */
+  --color-console-fg: #ffffff;
+  --color-console-bg: #171717;
   /* colors */
   --color-red: #db2828;
   --color-orange: #f2711c;
@@ -208,19 +211,19 @@ details summary > * {
 }
 
 progress {
-  background: var(--color-secondary);
+  background: var(--color-secondary-dark-1);
   border-radius: 6px;
   border: none;
   overflow: hidden;
 }
 progress::-webkit-progress-bar {
-  background: var(--color-secondary);
+  background: var(--color-secondary-dark-1);
 }
 progress::-webkit-progress-value {
-  background-color: var(--color-secondary-dark-3);
+  background-color: var(--color-secondary-dark-4);
 }
 progress::-moz-progress-bar {
-  background: var(--color-secondary-dark-3);
+  background: var(--color-secondary-dark-4);
 }
 
 * {
@@ -2000,23 +2003,6 @@ table th[data-sortt-desc] {
   margin-right: 0 !important;
 }
 
-/* limit width of all direct dropdown menu children */
-/* https://github.com/go-gitea/gitea/pull/10835 */
-.dropdown:not(.selection) > .menu:not(.review-box) > *:not(.header) {
-  max-width: 300px;
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-}
-
-.dropdown:not(.selection) > .menu.review-box > * {
-  @media (max-height: 700px) {
-    .CodeMirror,
-    .CodeMirror-scroll {
-      min-height: 100px;
-    }
-  }
-}
-
 .ui.dropdown .menu .item {
   border-radius: 0;
 }
@@ -2213,6 +2199,10 @@ table th[data-sortt-desc] {
 
     .item {
       width: initial !important;
+    }
+
+    > .dropdown.item {
+      position: initial;
     }
   }
 }

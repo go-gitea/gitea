@@ -5,7 +5,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.collaboration"}}
+			{{.locale.Tr "repo.settings.collaboration"}}
 		</h4>
 		{{if .Collaborators}}
 		<div class="ui attached segment collaborator list">
@@ -19,19 +19,19 @@
 					</div>
 					<div class="ui eight wide column">
 						{{svg "octicon-shield-lock"}}
-						<div class="ui inline dropdown">
-							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
+						<div class="ui inline dropdown access-mode" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}" data-last-value="{{printf "%d" .Collaboration.Mode}}">
+							<div class="text">{{if eq .Collaboration.Mode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .Collaboration.Mode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .Collaboration.Mode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="access-mode menu" data-url="{{$.Link}}/access_mode" data-uid="{{.ID}}">
-							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.i18n.Tr "repo.settings.collaboration.admin"}}</div>
-							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.write"}}" data-value="2">{{$.i18n.Tr "repo.settings.collaboration.write"}}</div>
-							<div class="item" data-text="{{$.i18n.Tr "repo.settings.collaboration.read"}}" data-value="1">{{$.i18n.Tr "repo.settings.collaboration.read"}}</div>
+							<div class="menu">
+								<div class="item" data-text="{{$.locale.Tr "repo.settings.collaboration.admin"}}" data-value="3">{{$.locale.Tr "repo.settings.collaboration.admin"}}</div>
+								<div class="item" data-text="{{$.locale.Tr "repo.settings.collaboration.write"}}" data-value="2">{{$.locale.Tr "repo.settings.collaboration.write"}}</div>
+								<div class="item" data-text="{{$.locale.Tr "repo.settings.collaboration.read"}}" data-value="1">{{$.locale.Tr "repo.settings.collaboration.read"}}</div>
 							</div>
 						</div>
 					</div>
 					<div class="ui two wide column">
 						<button class="ui red tiny button inline text-thin delete-button" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
-							{{$.i18n.Tr "repo.settings.delete_collaborator"}}
+							{{$.locale.Tr "repo.settings.delete_collaborator"}}
 						</button>
 					</div>
 				</div>
@@ -44,17 +44,17 @@
 				<div class="inline field ui left">
 					<div id="search-user-box" class="ui search">
 						<div class="ui input">
-							<input class="prompt" name="collaborator" placeholder="{{.i18n.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
+							<input class="prompt" name="collaborator" placeholder="{{.locale.Tr "repo.settings.search_user_placeholder"}}" autocomplete="off" autofocus required>
 						</div>
 					</div>
 				</div>
-				<button class="ui green button">{{.i18n.Tr "repo.settings.add_collaborator"}}</button>
+				<button class="ui green button">{{.locale.Tr "repo.settings.add_collaborator"}}</button>
 			</form>
 		</div>
 
 		{{if .RepoOwnerIsOrganization}}
 		<h4 class="ui top attached header">
-			{{$.i18n.Tr "repo.settings.teams"}}
+			{{$.locale.Tr "repo.settings.teams"}}
 		</h4>
 		{{ $allowedToChangeTeams := ( or (.Org.RepoAdminChangeTeamAccess) (.Permission.IsOwner)) }}
 		{{if .Teams}}
@@ -66,22 +66,22 @@
 							{{.Name}}
 						</a>
 					</div>
-					<div class="ui eight wide column tooltip" data-content="{{$.i18n.Tr "repo.settings.change_team_permission_tip"}}">
+					<div class="ui eight wide column tooltip" data-content="{{$.locale.Tr "repo.settings.change_team_permission_tip"}}">
 						{{svg "octicon-shield-lock"}}
 						<div class="ui inline dropdown">
-							<div class="text">{{if eq .AccessMode 1}}{{$.i18n.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.i18n.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.i18n.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.i18n.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.i18n.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
+							<div class="text">{{if eq .AccessMode 1}}{{$.locale.Tr "repo.settings.collaboration.read"}}{{else if eq .AccessMode 2}}{{$.locale.Tr "repo.settings.collaboration.write"}}{{else if eq .AccessMode 3}}{{$.locale.Tr "repo.settings.collaboration.admin"}}{{else if eq .AccessMode 4}}{{$.locale.Tr "repo.settings.collaboration.owner"}}{{else}}{{$.locale.Tr "repo.settings.collaboration.undefined"}}{{end}}</div>
 						</div>
 						{{ if or (eq .AccessMode 1) (eq .AccessMode 2) }}
 							{{ $first := true }}
 							<div class="description">
-							Sections: {{range $u, $unit := $.Units}}{{if and ($.Repo.UnitEnabled $unit.Type) ($team.UnitEnabled $unit.Type)}}{{if $first}}{{ $first = false }}{{else}}, {{end}}{{$.i18n.Tr $unit.NameKey}}{{end}}{{end}} {{if $first}}None{{end}}
+							Sections: {{range $u, $unit := $.Units}}{{if and ($.Repo.UnitEnabled $unit.Type) ($team.UnitEnabled $unit.Type)}}{{if $first}}{{ $first = false }}{{else}}, {{end}}{{$.locale.Tr $unit.NameKey}}{{end}}{{end}} {{if $first}}None{{end}}
 							</div>
 						{{end}}
 					</div>
 					{{if $allowedToChangeTeams}}
-						<div class="ui two wide column {{if .IncludesAllRepositories}}tooltip{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.i18n.Tr "repo.settings.delete_team_tip"}}"{{end}}>
+						<div class="ui two wide column {{if .IncludesAllRepositories}}tooltip{{end}}" {{if .IncludesAllRepositories}} data-content="{{$.locale.Tr "repo.settings.delete_team_tip"}}"{{end}}>
 							<button class="ui red tiny button inline text-thin delete-button {{if .IncludesAllRepositories}}disabled{{end}}" data-url="{{$.Link}}/team/delete" data-id="{{.ID}}">
-									{{$.i18n.Tr "repo.settings.delete_collaborator"}}
+									{{$.locale.Tr "repo.settings.delete_collaborator"}}
 							</button>
 						</div>
 					{{end}}
@@ -96,15 +96,15 @@
 					<div class="inline field ui left">
 						<div id="search-team-box" class="ui search" data-org="{{.OrgName}}">
 							<div class="ui input">
-								<input class="prompt" name="team" placeholder="{{$.i18n.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
+								<input class="prompt" name="team" placeholder="{{$.locale.Tr "repo.settings.search_team"}}" autocomplete="off" autofocus required>
 							</div>
 						</div>
 					</div>
-					<button class="ui green button">{{$.i18n.Tr "repo.settings.add_team"}}</button>
+					<button class="ui green button">{{$.locale.Tr "repo.settings.add_team"}}</button>
 				</form>
 			{{else}}
 				<div class="item">
-					{{$.i18n.Tr "repo.settings.change_team_access_not_allowed"}}
+					{{$.locale.Tr "repo.settings.change_team_access_not_allowed"}}
 				</div>
 			{{end}}
 		</div>
@@ -115,10 +115,10 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.settings.collaborator_deletion"}}
+		{{.locale.Tr "repo.settings.collaborator_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.settings.collaborator_deletion_desc"}}</p>
+		<p>{{.locale.Tr "repo.settings.collaborator_deletion_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

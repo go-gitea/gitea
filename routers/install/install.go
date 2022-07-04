@@ -69,7 +69,7 @@ func Init(next http.Handler) http.Handler {
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
-				"i18n":          locale,
+				"locale":        locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbTypeNames":   dbTypeNames,
@@ -455,6 +455,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
+
+	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 
 	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
 

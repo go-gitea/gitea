@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/queue"
 
@@ -43,12 +43,12 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 
 	prPatchCheckerQueue = q.(queue.UniqueQueue)
 
-	pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
 	AddToTaskQueue(pr)
 
 	assert.Eventually(t, func() bool {
-		pr = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
-		return pr.Status == models.PullRequestStatusChecking
+		pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+		return pr.Status == issues_model.PullRequestStatusChecking
 	}, 1*time.Second, 100*time.Millisecond)
 
 	has, err := prPatchCheckerQueue.Has(strconv.FormatInt(pr.ID, 10))
@@ -72,8 +72,8 @@ func TestPullRequest_AddToTaskQueue(t *testing.T) {
 	assert.False(t, has)
 	assert.NoError(t, err)
 
-	pr = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{ID: 2}).(*models.PullRequest)
-	assert.Equal(t, models.PullRequestStatusChecking, pr.Status)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	assert.Equal(t, issues_model.PullRequestStatusChecking, pr.Status)
 
 	for _, callback := range queueShutdown {
 		callback()

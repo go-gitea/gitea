@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -29,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // ActionType represents the type of an action.
@@ -69,23 +71,34 @@ const (
 // used in template render.
 type Action struct {
 	ID          int64 `xorm:"pk autoincr"`
-	UserID      int64 `xorm:"INDEX"` // Receiver user id.
+	UserID      int64 // Receiver user id.
 	OpType      ActionType
-	ActUserID   int64                  `xorm:"INDEX"` // Action user id.
-	ActUser     *user_model.User       `xorm:"-"`
-	RepoID      int64                  `xorm:"INDEX"`
+	ActUserID   int64            // Action user id.
+	ActUser     *user_model.User `xorm:"-"`
+	RepoID      int64
 	Repo        *repo_model.Repository `xorm:"-"`
 	CommentID   int64                  `xorm:"INDEX"`
-	Comment     *Comment               `xorm:"-"`
-	IsDeleted   bool                   `xorm:"INDEX NOT NULL DEFAULT false"`
+	Comment     *issues_model.Comment  `xorm:"-"`
+	IsDeleted   bool                   `xorm:"NOT NULL DEFAULT false"`
 	RefName     string
-	IsPrivate   bool               `xorm:"INDEX NOT NULL DEFAULT false"`
+	IsPrivate   bool               `xorm:"NOT NULL DEFAULT false"`
 	Content     string             `xorm:"TEXT"`
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 func init() {
 	db.RegisterModel(new(Action))
+}
+
+// TableIndices implements xorm's TableIndices interface
+func (a *Action) TableIndices() []*schemas.Index {
+	repoIndex := schemas.NewIndex("r_u_d", schemas.IndexType)
+	repoIndex.AddColumn("repo_id", "user_id", "is_deleted")
+
+	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
+	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
+
+	return []*schemas.Index{actUserIndex, repoIndex}
 }
 
 // GetOpType gets the ActionType of this action.
@@ -223,7 +236,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 	if a.Comment == nil && a.CommentID != 0 {
-		a.Comment, _ = GetCommentByID(ctx, a.CommentID)
+		a.Comment, _ = issues_model.GetCommentByID(ctx, a.CommentID)
 	}
 	if a.Comment != nil {
 		return a.Comment.HTMLURL()
@@ -238,7 +251,7 @@ func (a *Action) getCommentLink(ctx context.Context) string {
 		return "#"
 	}
 
-	issue, err := getIssueByID(ctx, issueID)
+	issue, err := issues_model.GetIssueByID(ctx, issueID)
 	if err != nil {
 		return "#"
 	}
@@ -295,7 +308,7 @@ func (a *Action) GetIssueInfos() []string {
 // with the action.
 func (a *Action) GetIssueTitle() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -307,7 +320,7 @@ func (a *Action) GetIssueTitle() string {
 // this action.
 func (a *Action) GetIssueContent() string {
 	index, _ := strconv.ParseInt(a.GetIssueInfos()[0], 10, 64)
-	issue, err := GetIssueByIndex(a.RepoID, index)
+	issue, err := issues_model.GetIssueByIndex(a.RepoID, index)
 	if err != nil {
 		log.Error("GetIssueByIndex: %v", err)
 		return "500 when get issue"
@@ -393,7 +406,7 @@ func activityQueryCondition(opts GetFeedsOptions) (builder.Cond, error) {
 
 	// check readable repositories by doer/actor
 	if opts.Actor == nil || !opts.Actor.IsAdmin {
-		cond = cond.And(builder.In("repo_id", AccessibleRepoIDsQuery(opts.Actor)))
+		cond = cond.And(builder.In("repo_id", repo_model.AccessibleRepoIDsQuery(opts.Actor)))
 	}
 
 	if opts.RequestedRepo != nil {
@@ -446,7 +459,7 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	}
 
 	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
-	return
+	return err
 }
 
 func notifyWatchers(ctx context.Context, actions ...*Action) error {
@@ -492,7 +505,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 		if act.Repo.Owner.IsOrganization() && act.ActUserID != act.Repo.Owner.ID {
 			act.ID = 0
 			act.UserID = act.Repo.Owner.ID
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new actioner: %v", err)
 			}
 		}
@@ -545,7 +558,7 @@ func notifyWatchers(ctx context.Context, actions ...*Action) error {
 				}
 			}
 
-			if _, err = e.InsertOne(act); err != nil {
+			if err = db.Insert(ctx, act); err != nil {
 				return fmt.Errorf("insert new action: %v", err)
 			}
 		}
@@ -571,4 +584,21 @@ func NotifyWatchersActions(acts []*Action) error {
 		}
 	}
 	return committer.Commit()
+}
+
+// DeleteIssueActions delete all actions related with issueID
+func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
+	// delete actions assigned to this issue
+	subQuery := builder.Select("`id`").
+		From("`comment`").
+		Where(builder.Eq{"`issue_id`": issueID})
+	if _, err := db.GetEngine(ctx).In("comment_id", subQuery).Delete(&Action{}); err != nil {
+		return err
+	}
+
+	_, err := db.GetEngine(ctx).Table("action").Where("repo_id = ?", repoID).
+		In("op_type", ActionCreateIssue, ActionCreatePullRequest).
+		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
+		Delete(&Action{})
+	return err
 }

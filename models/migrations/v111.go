@@ -131,7 +131,7 @@ func addBranchProtectionCanPushAndEnableWhitelist(x *xorm.Engine) error {
 		Authorize int
 	}
 
-	// getUserRepoPermission static function based on models.IsOfficialReviewer at 5d78792385
+	// getUserRepoPermission static function based on issues_model.IsOfficialReviewer at 5d78792385
 	getUserRepoPermission := func(sess *xorm.Session, repo *Repository, user *User) (Permission, error) {
 		var perm Permission
 
