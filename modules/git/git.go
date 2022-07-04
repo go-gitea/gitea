@@ -192,16 +192,16 @@ func initFixGitHome117rc() error {
 
 	// remove the empty directories, if some directories are non-empty, warn users and exit
 	var hasCheckErr bool
-	for _, wellDirName := range []string{".ssh", ".gnupg"} {
-		checkLegacyDir := filepath.Join(setting.RepoRootPath, wellDirName)
-		st, err := os.Lstat(checkLegacyDir) // only process dir or symlink
+	for _, wellKnownDirName := range []string{".ssh", ".gnupg"} {
+		legacyDir := filepath.Join(setting.RepoRootPath, wellKnownDirName)
+		st, err := os.Lstat(legacyDir) // only process dir or symlink
 		if err != nil || (!st.IsDir() && st.Mode()&os.ModeSymlink != os.ModeSymlink) {
 			continue
 		}
-		_ = os.Remove(checkLegacyDir)    // try to remove the empty dummy directory first
-		_, err = os.Stat(checkLegacyDir) // if the directory is not empty, then it won't be removed, it should be handled manually
+		_ = os.Remove(legacyDir)    // try to remove the empty dummy directory first
+		_, err = os.Stat(legacyDir) // if the directory is not empty, then it won't be removed, it should be handled manually
 		if err == nil || !errors.Is(err, os.ErrNotExist) {
-			log.Error(`Git HOME has been moved to [git].HOME_PATH, but there are legacy file in old place. Please backup and remove the legacy files %q`, checkLegacyDir)
+			log.Error(`Git HOME has been moved to [git].HOME_PATH, but there are legacy file in old place. Please backup and remove the legacy files %q`, legacyDir)
 			hasCheckErr = true
 		}
 	}
