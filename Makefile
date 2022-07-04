@@ -17,7 +17,6 @@ else
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
-export GO111MODULE=on
 
 GO ?= go
 SHASUM ?= shasum -a 256
@@ -363,7 +362,7 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	GO111MODULE=on $(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
+	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
@@ -754,11 +753,11 @@ update-translations:
 
 .PHONY: generate-license
 generate-license:
-	GO111MODULE=on $(GO) run build/generate-licenses.go
+	$(GO) run build/generate-licenses.go
 
 .PHONY: generate-gitignore
 generate-gitignore:
-	GO111MODULE=on $(GO) run build/generate-gitignores.go
+	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
 generate-images: | node_modules
