@@ -26,9 +26,7 @@ func EscapeControlHTML(text string, locale translation.Locale) (escaped EscapeSt
 		streamer.escaped.HasError = true
 		log.Error("Error whilst escaping: %v", err)
 	}
-	output = sb.String()
-	escaped = streamer.escaped
-	return
+	return streamer.escaped, sb.String()
 }
 
 // EscapeControlReaders escapes the unicode control sequences in a provider reader and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
@@ -40,8 +38,7 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 		streamer.escaped.HasError = true
 		log.Error("Error whilst escaping: %v", err)
 	}
-	escaped = streamer.escaped
-	return
+	return streamer.escaped, err
 }
 
 // EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
