@@ -1,8 +1,22 @@
 <div class="ui container" id="navbar">
+	{{$notificationUnreadCount := 0}}
+	{{if .IsSigned}}
+		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
+	{{end}}
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
 			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
+		{{if .IsSigned}}
+		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.i18n.Tr "notifications"}}'>
+			<span class="text black">
+				<span class="fitted">{{svg "octicon-bell"}}</span>
+				<span class="ui red label mini{{if not $notificationUnreadCount}} hidden{{end}} notification_count">
+					{{$notificationUnreadCount}}
+				</span>
+			</span>
+		</a>
+		{{end}}
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
 		</div>
@@ -100,12 +114,9 @@
 				</div>
 			</div>
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip" data-content='{{.locale.Tr "notifications"}}'>
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content='{{.locale.Tr "notifications"}}'>
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
-					<span class="sr-mobile-only">{{.locale.Tr "notifications"}}</span>
-					{{$notificationUnreadCount := 0}}
-					{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
 					<span class="ui red label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">
 						{{$notificationUnreadCount}}
 					</span>
