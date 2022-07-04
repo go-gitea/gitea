@@ -231,7 +231,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 	return batch.Index(id, &RepoIndexerData{
 		RepoID:    repo.ID,
 		CommitID:  commitSha,
-		Content:   string("Pathname: ") + strings.ReplaceAll(string(update.Filename), "/", " / ") + string(" \n") + string(charset.ToUTF8DropErrors(fileContents)),
+		Content:   string("Pathname: ") + strings.ReplaceAll(update.Filename, "/", " / ") + string(" \n") + string(charset.ToUTF8DropErrors(fileContents)),
 		Language:  analyze.GetCodeLanguage(update.Filename, fileContents),
 		UpdatedAt: time.Now().UTC(),
 	})
