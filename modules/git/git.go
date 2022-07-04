@@ -225,6 +225,11 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 			return
 		}
 
+		// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
+		if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
+			_ = os.Setenv("GNUPGHOME", HomeDir())
+		}
+
 		// Since git wire protocol has been released from git v2.18
 		if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 			globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
