@@ -200,7 +200,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 	common = append(common, context.Contexter(ctx))
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 

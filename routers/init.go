@@ -180,7 +180,7 @@ func NormalRoutes(ctx context.Context) *web.Route {
 	}
 
 	r.Mount("/", web_routers.Routes(ctx))
-	r.Mount("/api/v1", apiv1.Routes())
+	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 	if setting.Packages.Enabled {
 		r.Mount("/api/packages", packages_router.Routes(ctx))

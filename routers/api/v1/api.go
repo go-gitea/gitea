@@ -65,6 +65,7 @@
 package v1
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -605,7 +606,7 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	m := web.NewRoute()
 
 	m.Use(securityHeaders())
@@ -623,7 +624,7 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 
