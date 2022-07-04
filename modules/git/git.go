@@ -170,7 +170,7 @@ var initOnce sync.Once
 
 func initFixGitHome117rc() error {
 	// Gitea 1.17-rc uses "setting.RepoRootPath" for Git HOME, which is incorrect.
-	// Do this check to make sure there is no legacy file in the RepoRootPath. This check might be able to be removed with 1.19 release.
+	// Do this check to make sure there is no legacy file in the RepoRootPath. This check might be able to be removed with 1.18 release.
 
 	// remove the auto generated git config file (it will be moved to new home)
 	gitConfigNewPath := filepath.Join(HomeDir(), ".gitconfig")
