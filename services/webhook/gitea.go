@@ -68,7 +68,7 @@ func GetGiteaHook(w *webhook_model.Webhook, decryptFn secret.DecryptSecretCallab
 	return s
 }
 
-// CreateGiteaHook creates an gitea metadata string with encrypted auth header data,
+// CreateGiteaHook creates a gitea metadata string with encrypted auth header data,
 // while it ensures to store the least necessary data in the database.
 func CreateGiteaHook(form *forms.NewWebhookForm, encryptFn secret.EncryptSecretCallable) (string, error) {
 	metaObject := &GiteaMeta{
