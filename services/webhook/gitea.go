@@ -42,6 +42,7 @@ func GetGiteaHook(w *webhook_model.Webhook, decryptFn secret.DecryptSecretCallab
 
 	if err := json.Unmarshal([]byte(w.Meta), s); err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
+		return nil
 	}
 
 	if !s.AuthHeaderEnabled {
@@ -51,11 +52,13 @@ func GetGiteaHook(w *webhook_model.Webhook, decryptFn secret.DecryptSecretCallab
 	headerData, err := decryptFn(setting.SecretKey, s.AuthHeaderData)
 	if err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
+		return nil
 	}
 
 	h := GiteaAuthHeaderMeta{}
 	if err := json.Unmarshal([]byte(headerData), &h); err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
+		return nil
 	}
 
 	// Replace encrypted content with decrypted settings
