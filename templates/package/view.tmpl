@@ -9,11 +9,11 @@
 						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
 					</div>
 					<div>
-						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.i18n.Lang}}
+						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
 						{{if .HasRepositoryAccess}}
-							{{.i18n.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
+							{{.locale.Tr "packages.published_by_in" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) .PackageDescriptor.Repository.HTMLURL (.PackageDescriptor.Repository.FullName | Escape) | Safe}}
 						{{else}}
-							{{.i18n.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
+							{{.locale.Tr "packages.published_by" $timeStr .PackageDescriptor.Creator.HomeLink (.PackageDescriptor.Creator.GetDisplayName | Escape) | Safe}}
 						{{end}}
 					</div>
 					<div class="ui divider"></div>
@@ -32,7 +32,7 @@
 				</div>
 				<div class="four wide column">
 					<div class="ui segment metas">
-						<strong>{{.i18n.Tr "packages.details"}}</strong>
+						<strong>{{.locale.Tr "packages.details"}}</strong>
 						<div class="ui relaxed list">
 							<div class="item">{{svg .PackageDescriptor.Package.Type.SVGName 16 "mr-3"}} {{.PackageDescriptor.Package.Type.Name}}</div>
 							{{if .HasRepositoryAccess}}
@@ -53,7 +53,7 @@
 						</div>
 						{{if not (eq .PackageDescriptor.Package.Type "container")}}
 							<div class="ui divider"></div>
-							<strong>{{.i18n.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
+							<strong>{{.locale.Tr "packages.assets"}} ({{len .PackageDescriptor.Files}})</strong>
 							<div class="ui relaxed list">
 							{{range .PackageDescriptor.Files}}
 								<div class="item">
@@ -65,13 +65,13 @@
 						{{end}}
 						{{if .LatestVersions}}
 							<div class="ui divider"></div>
-							<strong>{{.i18n.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
-							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.i18n.Tr "packages.versions.view_all"}}</a>
+							<strong>{{.locale.Tr "packages.versions"}} ({{.TotalVersionCount}})</strong>
+							<a class="ui right" href="{{$.PackageDescriptor.PackageWebLink}}/versions">{{.locale.Tr "packages.versions.view_all"}}</a>
 							<div class="ui relaxed list">
 							{{range .LatestVersions}}
 								<div class="item">
 									<a href="{{$.PackageDescriptor.PackageWebLink}}/{{PathEscape .LowerVersion}}">{{.Version}}</a>
-									<span class="text small">{{$.i18n.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
+									<span class="text small">{{$.locale.Tr "packages.versions.on"}} {{.CreatedUnix.FormatDate}}</span>
 								</div>
 							{{end}}
 							</div>
@@ -80,10 +80,10 @@
 							<div class="ui divider"></div>
 							<div class="ui relaxed list">
 								{{if .HasRepositoryAccess}}
-								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}/issues">{{.i18n.Tr "repo.issues"}}</a></div>
+								<div class="item">{{svg "octicon-issue-opened" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}/issues">{{.locale.Tr "repo.issues"}}</a></div>
 								{{end}}
 								{{if .CanWritePackages}}
-								<div class="item">{{svg "octicon-tools" 16 "mr-3"}} <a href="{{.Link}}/settings">{{.i18n.Tr "repo.settings"}}</a></div>
+								<div class="item">{{svg "octicon-tools" 16 "mr-3"}} <a href="{{.Link}}/settings">{{.locale.Tr "repo.settings"}}</a></div>
 								{{end}}
 							</div>
 						{{end}}

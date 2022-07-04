@@ -6,7 +6,7 @@
 		{{$hasThumbnails := false}}
 		{{- range .Attachments -}}
 			<div class="twelve wide column" style="padding: 6px;">
-				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+				<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}" title='{{$.ctx.locale.Tr "repo.issues.attachment.open_tab" .Name}}'>
 					{{if FilenameIsImage .Name}}
 						{{if not (containGeneric $.Content .UUID)}}
 							{{$hasThumbnails = true}}
@@ -31,7 +31,7 @@
 				{{if FilenameIsImage .Name}}
 					{{if not (containGeneric $.Content .UUID)}}
 					<a target="_blank" rel="noopener noreferrer" href="{{.DownloadURL}}">
-						<img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.i18n.Tr "repo.issues.attachment.open_tab" .Name}}'>
+						<img class="ui image" src="{{.DownloadURL}}" title='{{$.ctx.locale.Tr "repo.issues.attachment.open_tab" .Name}}'>
 					</a>
 					{{end}}
 				{{end}}
