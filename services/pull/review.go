@@ -297,7 +297,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 	}
 
 	if dismissAntecessors {
-		reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
+		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
 			IssueID:    review.IssueID,
 			ReviewerID: review.ReviewerID,
 			Dismissed:  util.OptionalBoolFalse,
