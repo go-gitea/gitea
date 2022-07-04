@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
@@ -37,8 +38,14 @@ func addSyncOnPushColForPushMirror(x *xorm.Engine) error {
 		return fmt.Errorf("sync2: %v", err)
 	}
 
-	if _, err := session.Exec("UPDATE push_mirror SET sync_on_commit = FALSE"); err != nil {
-		return err
+	if setting.Database.UsePostgreSQL { // PostgreSQL uses Boolean type
+		if _, err := session.Exec("UPDATE push_mirror SET sync_on_commit = FALSE"); err != nil {
+			return err
+		}
+	} else {
+		if _, err := session.Exec("UPDATE push_mirror SET sync_on_commit = 0"); err != nil {
+			return err
+		}
 	}
 
 	return session.Commit()
