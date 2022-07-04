@@ -96,7 +96,8 @@ type SubmitPullReviewOptions struct {
 
 // DismissPullReviewOptions are options to dismiss a pull review
 type DismissPullReviewOptions struct {
-	Message string `json:"message"`
+	Message     string `json:"message"`
+	Antecessors bool   `json:"antecessors"`
 }
 
 // PullReviewRequestOptions are options to add or remove pull review requests
