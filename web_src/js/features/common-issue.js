@@ -13,13 +13,13 @@ export function initCommonIssue() {
         $('.issue-checkbox input:checked').prop('checked', 0);
       }
     }
-    if (e.shiftKey && window.config.checkboxfirst !== undefined) {
-      for (let i = window.config.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
+    if (e.shiftKey && window.checkboxfirst !== undefined) {
+      for (let i = window.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
         issuecheckbox[i].checked = 1;
       }
-      delete window.config.checkboxfirst;
+      delete window.checkboxfirst;
     } else {
-      window.config.checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
+      window.checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
     }
     if (issuecheckbox.is(':checked')) {
       $('#issue-filters').addClass('hide');
