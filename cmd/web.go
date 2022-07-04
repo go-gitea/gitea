@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/routers/install"
 
 	"github.com/felixge/fgprof"
+	"github.com/landlock-lsm/go-landlock/landlock"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -157,6 +158,7 @@ func runWeb(ctx *cli.Context) error {
 	log.Info("Global init")
 	// Perform global initialization
 	setting.LoadFromExisting()
+
 	routers.GlobalInitInstalled(graceful.GetManager().HammerContext())
 
 	// We check that AppDataPath exists here (it should have been created during installation)
@@ -173,9 +175,28 @@ func runWeb(ctx *cli.Context) error {
 		}
 	}
 
+	log.Info("Initializing sandbox")
+	rofiles := []string{"/dev/random", "/dev/urandom", "/etc/hosts", "/etc/mime.types", setting.CustomConf, setting.AppPath}
+	rwfiles := []string{"/dev/null", setting.Database.Path}
+	rodirs := []string{"/usr", setting.CustomPath, setting.StaticRootPath}
+	rwdirs := []string{setting.LogRootPath, setting.RepoRootPath, setting.AppDataPath, setting.LFS.Path}
+	log.Debug("ROFiles:", rofiles, "RWFiles:", rwfiles, "RODirs:", rodirs, "RWDirs:", rwdirs)
+	// TODO: report in the admin panel and warn only on Linux with kernel 5.13+
+	// TODO: fine-grained permissions for execution etc
+	// FIXME: find and fix broken functions with sandbox active, run integration tests with sandbox
+	err := landlock.V1.RestrictPaths(
+		landlock.ROFiles(rofiles...),
+		landlock.RWFiles(rwfiles...),
+		landlock.RODirs(rodirs...),
+		landlock.RWDirs(rwdirs...),
+	)
+	if err != nil {
+		log.Warn("Failed to setup Landlock LSM sandbox: ", err)
+	}
+
 	// Set up Chi routes
 	c := routers.NormalRoutes()
-	err := listen(c, true)
+	err = listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
 	log.Close()
