@@ -105,7 +105,7 @@ func Routes(ctx goctx.Context) *web.Route {
 	}))
 
 	r.Use(installRecovery(ctx))
-	r.Use(Init)
+	r.Use(Init(ctx))
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
 	r.Get("/api/healthz", healthcheck.Check)
