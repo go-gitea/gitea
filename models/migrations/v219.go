@@ -37,7 +37,7 @@ func addSyncOnPushColForPushMirror(x *xorm.Engine) error {
 		return fmt.Errorf("sync2: %v", err)
 	}
 
-	if _, err := session.Exec("UPDATE push_mirror SET sync_on_commit = 0"); err != nil {
+	if _, err := session.Exec("UPDATE push_mirror SET sync_on_commit = FALSE"); err != nil {
 		return err
 	}
 
