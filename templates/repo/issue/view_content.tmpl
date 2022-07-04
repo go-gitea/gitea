@@ -15,7 +15,7 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang }}
+	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale }}
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
@@ -35,10 +35,10 @@
 									{{ .Issue.OriginalAuthor }}
 								</span>
 								<span class="text grey">
-									{{ .i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe }}
+									{{ .locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe }}
 								</span>
 								<span class="text migrate">
-									{{if .Repository.OriginalURL}} ({{$.i18n.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
+									{{if .Repository.OriginalURL}} ({{$.locale.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
@@ -46,7 +46,7 @@
 								</a>
 								<span class="text grey">
 									<a class="author"{{if gt .Issue.Poster.ID 0}} href="{{.Issue.Poster.HomeLink}}"{{end}}>{{.Issue.Poster.GetDisplayName}}</a>
-									{{.i18n.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
+									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 							{{end}}
 						</div>
@@ -54,12 +54,12 @@
 							{{if gt .Issue.ShowRole 0}}
 								{{if (.Issue.ShowRole.HasRole "Writer")}}
 									<div class="ui basic label role-label">
-										{{$.i18n.Tr "repo.issues.collaborator"}}
+										{{$.locale.Tr "repo.issues.collaborator"}}
 									</div>
 								{{end}}
 								{{if (.Issue.ShowRole.HasRole "Owner")}}
 									<div class="ui basic label role-label">
-										{{$.i18n.Tr "repo.issues.owner"}}
+										{{$.locale.Tr "repo.issues.owner"}}
 									</div>
 								{{end}}
 							{{end}}
@@ -74,7 +74,7 @@
 							{{if .Issue.RenderedContent}}
 								{{.Issue.RenderedContent|Str2html}}
 							{{else}}
-								<span class="no-content">{{.i18n.Tr "repo.issues.no_content"}}</span>
+								<span class="no-content">{{.locale.Tr "repo.issues.no_content"}}</span>
 							{{end}}
 						</div>
 						<div id="comment-{{.Issue.ID}}" class="raw-content hide">{{.Issue.Content}}</div>
@@ -112,17 +112,17 @@
 								<div class="text right">
 									{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 										{{if .Issue.IsClosed}}
-											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-												{{.i18n.Tr "repo.issues.reopen_issue"}}
+											<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+												{{.locale.Tr "repo.issues.reopen_issue"}}
 											</div>
 										{{else}}
-											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-												{{.i18n.Tr "repo.issues.close_issue"}}
+											<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+												{{.locale.Tr "repo.issues.close_issue"}}
 											</div>
 										{{end}}
 									{{end}}
 									<button class="ui green button loading-button" tabindex="5">
-										{{.i18n.Tr "repo.issues.create_comment"}}
+										{{.locale.Tr "repo.issues.create_comment"}}
 									</button>
 								</div>
 							</div>
@@ -132,9 +132,9 @@
 				{{ else if .Repository.IsArchived }}
 					<div class="ui warning message">
 						{{if .Issue.IsPull}}
-							{{.i18n.Tr "repo.archive.pull.nocomment"}}
+							{{.locale.Tr "repo.archive.pull.nocomment"}}
 						{{else}}
-							{{.i18n.Tr "repo.archive.issue.nocomment"}}
+							{{.locale.Tr "repo.archive.issue.nocomment"}}
 						{{end}}
 					</div>
 				{{ end }}
@@ -142,9 +142,9 @@
 			{{if .Repository.IsArchived}}
 				<div class="ui warning message">
 					{{if .Issue.IsPull}}
-						{{.i18n.Tr "repo.archive.pull.nocomment"}}
+						{{.locale.Tr "repo.archive.pull.nocomment"}}
 					{{else}}
-						{{.i18n.Tr "repo.archive.issue.nocomment"}}
+						{{.locale.Tr "repo.archive.issue.nocomment"}}
 					{{end}}
 				</div>
 			{{else}}
@@ -163,17 +163,17 @@
 									<div class="text right">
 										{{if and (or .HasIssuesOrPullsWritePermission .IsIssuePoster) (not .DisableStatusChange)}}
 											{{if .Issue.IsClosed}}
-												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
-													{{.i18n.Tr "repo.issues.reopen_issue"}}
+												<div id="status-button" class="ui green basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.reopen_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.reopen_comment_issue"}}" data-status-val="reopen">
+													{{.locale.Tr "repo.issues.reopen_issue"}}
 												</div>
 											{{else}}
-												<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.i18n.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.i18n.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
-													{{.i18n.Tr "repo.issues.close_issue"}}
+												<div id="status-button" class="ui red basic button" tabindex="6" data-status="{{.locale.Tr "repo.issues.close_issue"}}" data-status-and-comment="{{.locale.Tr "repo.issues.close_comment_issue"}}" data-status-val="close">
+													{{.locale.Tr "repo.issues.close_issue"}}
 												</div>
 											{{end}}
 										{{end}}
 										<button class="ui green button loading-button" tabindex="5">
-											{{.i18n.Tr "repo.issues.create_comment"}}
+											{{.locale.Tr "repo.issues.create_comment"}}
 										</button>
 									</div>
 								</div>
@@ -183,7 +183,7 @@
 					{{end}}
 				{{else}}
 					<div class="ui warning message">
-						{{.i18n.Tr "repo.issues.sign_in_require_desc" (.SignInLink|Escape) | Safe}}
+						{{.locale.Tr "repo.issues.sign_in_require_desc" (.SignInLink|Escape) | Safe}}
 					</div>
 				{{end}}
 			{{end}}
@@ -197,15 +197,15 @@
 <div class="hide" id="edit-content-form">
 	<div class="ui comment form">
 		<div class="ui top tabular menu">
-			<a class="active write item">{{$.i18n.Tr "write"}}</a>
-			<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+			<a class="active write item">{{$.locale.Tr "write"}}</a>
+			<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 		</div>
 		<div class="field">
 			<div class="ui bottom active tab write">
 				<textarea tabindex="1" name="content" class="js-quick-submit"></textarea>
 			</div>
 			<div class="ui bottom tab preview markup">
-				{{$.i18n.Tr "loading"}}
+				{{$.locale.Tr "loading"}}
 			</div>
 		</div>
 		{{if .IsAttachmentEnabled}}
@@ -215,8 +215,8 @@
 		{{end}}
 		<div class="field footer">
 			<div class="text right edit">
-				<div class="ui basic secondary cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-				<div class="ui primary save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+				<div class="ui basic secondary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</div>
+				<div class="ui primary save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</div>
 			</div>
 		</div>
 	</div>
@@ -225,16 +225,16 @@
 {{template "repo/issue/view_content/reference_issue_dialog" .}}
 
 <div class="hide" id="no-content">
-	<span class="no-content">{{.i18n.Tr "repo.issues.no_content"}}</span>
+	<span class="no-content">{{.locale.Tr "repo.issues.no_content"}}</span>
 </div>
 
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.branch.delete" .HeadTarget }}
+		{{.locale.Tr "repo.branch.delete" .HeadTarget }}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.branch.delete_desc" | Str2html}}</p>
+		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

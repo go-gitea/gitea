@@ -54,7 +54,5 @@ func EscapeControlString(text string, locale translation.Locale) (escaped Escape
 		streamer.escaped.HasError = true
 		log.Error("Error whilst escaping: %v", err)
 	}
-	output = sb.String()
-	escaped = streamer.escaped
-	return
+	return streamer.escaped, sb.String()
 }

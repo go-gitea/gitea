@@ -71,7 +71,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (it
 	for _, act := range actions {
 		act.LoadActUser()
 
-		content, desc, title := "", "", ""
+		var content, desc, title string
 
 		link := &feeds.Link{Href: act.GetCommentLink()}
 
@@ -246,7 +246,7 @@ func feedActionsToFeedItems(ctx *context.Context, actions models.ActionList) (it
 			Content: content,
 		})
 	}
-	return
+	return items, err
 }
 
 // GetFeedType return if it is a feed request and altered name and feed type.

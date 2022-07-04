@@ -92,11 +92,11 @@ func init() {
 
 // TableIndices implements xorm's TableIndices interface
 func (a *Action) TableIndices() []*schemas.Index {
+	repoIndex := schemas.NewIndex("r_u_d", schemas.IndexType)
+	repoIndex.AddColumn("repo_id", "user_id", "is_deleted")
+
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
-
-	repoIndex := schemas.NewIndex("r_c_u_d", schemas.IndexType)
-	repoIndex.AddColumn("repo_id", "created_unix", "user_id", "is_deleted")
 
 	return []*schemas.Index{actUserIndex, repoIndex}
 }
@@ -459,7 +459,7 @@ func DeleteOldActions(olderThan time.Duration) (err error) {
 	}
 
 	_, err = db.GetEngine(db.DefaultContext).Where("created_unix < ?", time.Now().Add(-olderThan).Unix()).Delete(&Action{})
-	return
+	return err
 }
 
 func notifyWatchers(ctx context.Context, actions ...*Action) error {

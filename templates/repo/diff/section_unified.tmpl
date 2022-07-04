@@ -25,12 +25,12 @@
 					<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}"><span rel="{{if $line.LeftIdx}}diff-{{$file.NameHash}}L{{$line.LeftIdx}}{{end}}"></span></td>
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
-				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.i18n -}}
-				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.i18n.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.i18n.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
+				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale -}}
+				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk">{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.i18n.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.i18n.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
 					*/}}</td>
 				{{else}}
 					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
@@ -39,7 +39,7 @@
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.i18n.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.i18n.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
 					*/}}</td>
 				{{end}}
 			</tr>

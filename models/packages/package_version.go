@@ -235,7 +235,7 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	}
 
 	if !opts.HasFiles.IsNone() {
-		var filesCond builder.Cond = builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
+		filesCond := builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
 
 		if opts.HasFiles.IsFalse() {
 			filesCond = builder.Not{filesCond}

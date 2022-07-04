@@ -1,23 +1,23 @@
 <div class="ui dropdown tiny basic button">
-	{{.i18n.Tr "repo.diff.whitespace_button"}}
+	{{.locale.Tr "repo.diff.whitespace_button"}}
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all">
 			<i class="circle {{ if eq .WhitespaceBehavior "show-all" }}dot{{else}}outline{{end}} icon"></i>
-			{{.i18n.Tr "repo.diff.whitespace_show_everything"}}
+			{{.locale.Tr "repo.diff.whitespace_show_everything"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
 			<i class="circle {{ if eq .WhitespaceBehavior "ignore-all" }}dot{{else}}outline{{end}} icon"></i>
-			{{.i18n.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
+			{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
 			<i class="circle {{ if eq .WhitespaceBehavior "ignore-change" }}dot{{else}}outline{{end}} icon"></i>
-			{{.i18n.Tr "repo.diff.whitespace_ignore_amount_changes"}}
+			{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
 			<i class="circle {{ if eq .WhitespaceBehavior "ignore-eol" }}dot{{else}}outline{{end}} icon"></i>
-			{{.i18n.Tr "repo.diff.whitespace_ignore_at_eol"}}
+			{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}">{{ if .IsSplitStyle }}{{.i18n.Tr "repo.diff.show_unified_view"}}{{else}}{{.i18n.Tr "repo.diff.show_split_view"}}{{end}}</a>
+<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}">{{ if .IsSplitStyle }}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}</a>
