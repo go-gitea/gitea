@@ -273,7 +273,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	return
+	return perm, err
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin

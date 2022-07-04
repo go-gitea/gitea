@@ -80,7 +80,7 @@ func Branches(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 

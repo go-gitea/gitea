@@ -321,5 +321,5 @@ func prepareForReplaceOrAdd(ctx *context.APIContext, form api.IssueLabelsOption)
 		return
 	}
 
-	return
+	return issue, labels, err
 }

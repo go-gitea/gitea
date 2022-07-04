@@ -6,7 +6,7 @@
 		{{template "repo/sub_menu" .}}
 		{{if .DefaultBranchBranch}}
 			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.default_branch"}}
+				{{.locale.Tr "repo.default_branch"}}
 			</h4>
 
 			<div class="ui attached table segment">
@@ -18,15 +18,15 @@
 									{{svg "octicon-shield-lock"}}
 								{{end}}
 								<a href="{{.RepoLink}}/src/branch/{{PathEscapeSegments .DefaultBranch}}">{{.DefaultBranch}}</a>
-								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.i18n.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .i18n.Lang}}</p>
+								<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{.RepoLink}}/commit/{{PathEscape .DefaultBranchBranch.Commit.ID.String}}">{{ShortSha .DefaultBranchBranch.Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .DefaultBranchBranch.Commit.CommitMessage .RepoLink .Repository.ComposeMetas}}</span> · {{.locale.Tr "org.repo_updated"}} {{TimeSince .DefaultBranchBranch.Commit.Committer.When .locale}}</p>
 							</td>
 							<td class="right aligned overflow-visible">
 								{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-									<div class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
+									<div class="ui basic jump button icon tooltip show-create-branch-modal" data-content="{{$.locale.Tr "repo.branch.new_branch_from" ($.DefaultBranch)}}" data-branch-from="{{$.DefaultBranch}}" data-branch-from-urlcomponent="{{PathEscapeSegments $.DefaultBranch}}" data-modal="#create-branch-modal" data-position="top right">
 										{{svg "octicon-git-branch"}}
 									</div>
 								{{end}}
-								<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
+								<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
 									{{svg "octicon-download"}}
 									<div class="menu">
 										<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -42,7 +42,7 @@
 
 		{{if gt (len .Branches) 1}}
 			<h4 class="ui top attached header">
-				{{.i18n.Tr "repo.branches"}}
+				{{.locale.Tr "repo.branches"}}
 			</h4>
 			<div class="ui attached table segment">
 				<table class="ui very basic striped fixed table single line">
@@ -53,13 +53,13 @@
 									<td class="six wide">
 									{{if .IsDeleted}}
 										<s><a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .Name}}">{{.Name}}</a></s>
-										<p class="info">{{$.i18n.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.i18n.Lang}}</p>
+										<p class="info">{{$.locale.Tr "repo.branch.deleted_by" .DeletedBranch.DeletedBy.Name}} {{TimeSinceUnix .DeletedBranch.DeletedUnix $.locale}}</p>
 									{{else}}
 										{{if .IsProtected}}
 											{{svg "octicon-shield-lock"}}
 										{{end}}
 										<a href="{{$.RepoLink}}/src/branch/{{PathEscapeSegments .Name}}">{{.Name}}</a>
-										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.i18n.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.i18n.Lang}}</p>
+										<p class="info df ac my-2">{{svg "octicon-git-commit" 16 "mr-2"}}<a href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}">{{ShortSha .Commit.ID.String}}</a> · <span class="commit-message">{{RenderCommitMessage $.Context .Commit.CommitMessage $.RepoLink $.Repository.ComposeMetas}}</span> · {{$.locale.Tr "org.repo_updated"}} {{TimeSince .Commit.Committer.When $.locale}}</p>
 									{{end}}
 									</td>
 									<td class="three wide ui">
@@ -79,39 +79,39 @@
 									<td class="three wide right aligned">
 										{{if not .LatestPullRequest}}
 											{{if .IsIncluded}}
-												<a class="ui tooltip orange large label" data-content="{{$.i18n.Tr "repo.branch.included_desc"}}" data-position="top right">
-													{{svg "octicon-git-pull-request"}} {{$.i18n.Tr "repo.branch.included"}}
+												<a class="ui tooltip orange large label" data-content="{{$.locale.Tr "repo.branch.included_desc"}}" data-position="top right">
+													{{svg "octicon-git-pull-request"}} {{$.locale.Tr "repo.branch.included"}}
 												</a>
 											{{else if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{PathEscape $.Owner.Name}}:{{end}}{{PathEscapeSegments .Name}}">
-												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else if and .LatestPullRequest.HasMerged .MergeMovedOn}}
 											{{if and (not .IsDeleted) $.AllowsPulls (gt .CommitsAhead 0)}}
 											<a href="{{$.RepoLink}}/compare/{{PathEscapeSegments $.DefaultBranch}}...{{if ne $.Repository.Owner.Name $.Owner.Name}}{{$.Owner.Name}}:{{end}}{{.Name | PathEscapeSegments}}">
-												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.i18n.Tr "repo.pulls.compare_changes"}}{{else}}{{$.i18n.Tr "action.compare_branch"}}{{end}}</button>
+												<button id="new-pull-request" class="ui compact basic button mr-0">{{if $.CanPull}}{{$.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{$.locale.Tr "action.compare_branch"}}{{end}}</button>
 											</a>
 											{{end}}
 										{{else}}
 											<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="vm ref-issue">{{if not .LatestPullRequest.IsSameRepo}}{{.LatestPullRequest.BaseRepo.FullName}}{{end}}#{{.LatestPullRequest.Issue.Index}}</a>
 											{{if .LatestPullRequest.HasMerged}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.i18n.Tr "repo.pulls.merged"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label purple large label vm">{{svg "octicon-git-merge" 16 "mr-2"}}{{$.locale.Tr "repo.pulls.merged"}}</a>
 											{{else if .LatestPullRequest.Issue.IsClosed}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.closed_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label red large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.closed_title"}}</a>
 											{{else}}
-												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.i18n.Tr "repo.issues.open_title"}}</a>
+												<a href="{{.LatestPullRequest.Issue.HTMLURL}}" class="ui text-label green large label vm">{{svg "octicon-git-pull-request" 16 "mr-2"}}{{$.locale.Tr "repo.issues.open_title"}}</a>
 											{{end}}
 										{{end}}
 									</td>
 									<td class="two wide right aligned overflow-visible">
 										{{if and $.IsWriter (not $.Repository.IsArchived) (not .IsDeleted)}}
-											<div class="ui basic jump button icon tooltip show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-content="{{$.i18n.Tr "repo.branch.new_branch_from" .Name}}" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
+											<div class="ui basic jump button icon tooltip show-create-branch-modal" data-branch-from="{{.Name}}" data-branch-from-urlcomponent="{{PathEscapeSegments .Name}}" data-content="{{$.locale.Tr "repo.branch.new_branch_from" .Name}}" data-position="top right" data-modal="#create-branch-modal" data-name="{{.Name}}">
 												{{svg "octicon-git-branch"}}
 											</div>
 										{{end}}
 										{{if (not .IsDeleted)}}
-											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-position="top right">
+											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" (.Name)}}" data-position="top right">
 												{{svg "octicon-download"}}
 												<div class="menu">
 													<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments .Name}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
@@ -121,9 +121,9 @@
 										{{end}}
 										{{if and $.IsWriter (not $.IsMirror) (not $.Repository.IsArchived) (not .IsProtected)}}
 											{{if .IsDeleted}}
-												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.i18n.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
+												<a class="ui basic jump button icon tooltip undo-button" href data-url="{{$.Link}}/restore?branch_id={{.DeletedBranch.ID}}&name={{.DeletedBranch.Name}}" data-content="{{$.locale.Tr "repo.branch.restore" (.Name)}}" data-position="top right"><span class="text blue">{{svg "octicon-reply"}}</span></a>
 											{{else}}
-												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.i18n.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
+												<a class="ui basic jump button icon tooltip delete-button delete-branch-button" href data-url="{{$.Link}}/delete?name={{.Name}}" data-content="{{$.locale.Tr "repo.branch.delete" (.Name)}}" data-position="top right" data-name="{{.Name}}">
 													{{svg "octicon-trash"}}
 												</a>
 											{{end}}
@@ -143,35 +143,35 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.branch.delete_html"}} <span class="name"></span>
+		{{.locale.Tr "repo.branch.delete_html"}} <span class="name"></span>
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.branch.delete_desc" | Str2html}}</p>
+		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
 
 <div class="ui small modal" id="create-branch-modal">
 	<div class="header">
-		{{.i18n.Tr "repo.branch.new_branch"}}
+		{{.locale.Tr "repo.branch.new_branch"}}
 	</div>
 	<div class="content">
 		<form class="ui form" id="create-branch-form" action="" data-base-action="{{.Link}}/_new/branch/" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field">
 				<label>
-					{{.i18n.Tr "repo.branch.create_new_branch"}}
+					{{.locale.Tr "repo.branch.create_new_branch"}}
 					<span class="text" id="modal-create-branch-from-span"></span>
 				</label>
 			</div>
 			<div class="required field">
-				<label for="new_branch_name">{{.i18n.Tr "repo.branch.name"}}</label>
+				<label for="new_branch_name">{{.locale.Tr "repo.branch.name"}}</label>
 				<input id="new_branch_name" name="new_branch_name" required>
 			</div>
 
 			<div class="text right actions">
-				<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-				<button class="ui green button">{{.i18n.Tr "repo.branch.confirm_create_branch"}}</button>
+				<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+				<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
 			</div>
 		</form>
 	</div>

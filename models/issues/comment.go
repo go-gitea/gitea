@@ -325,7 +325,7 @@ func (c *Comment) LoadIssueCtx(ctx context.Context) (err error) {
 		return nil
 	}
 	c.Issue, err = GetIssueByID(ctx, c.IssueID)
-	return
+	return err
 }
 
 // BeforeInsert will be invoked by XORM before inserting a record
@@ -637,7 +637,7 @@ func (c *Comment) LoadResolveDoer() (err error) {
 			err = nil
 		}
 	}
-	return
+	return err
 }
 
 // IsResolved check if an code comment is resolved
@@ -965,7 +965,7 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 		DependentIssueID: issue.ID,
 	}
 	_, err = CreateCommentCtx(ctx, opts)
-	return
+	return err
 }
 
 // CreateCommentOptions defines options for creating comment
@@ -1360,7 +1360,7 @@ func CreatePushPullComment(ctx context.Context, pusher *user_model.User, pr *Pul
 
 	comment, err = CreateComment(ops)
 
-	return
+	return comment, err
 }
 
 // CreateAutoMergeComment is a internal function, only use it for CommentTypePRScheduledToAutoMerge and CommentTypePRUnScheduledToAutoMerge CommentTypes
@@ -1382,7 +1382,7 @@ func CreateAutoMergeComment(ctx context.Context, typ CommentType, pr *PullReques
 		Repo:  pr.BaseRepo,
 		Issue: pr.Issue,
 	})
-	return
+	return comment, err
 }
 
 // getCommitsFromRepo get commit IDs from repo in between oldCommitID and newCommitID
@@ -1444,7 +1444,7 @@ func getCommitIDsFromRepo(ctx context.Context, repo *repo_model.Repository, oldC
 		}
 	}
 
-	return
+	return commitIDs, isForcePush, err
 }
 
 type commitBranchCheckItem struct {

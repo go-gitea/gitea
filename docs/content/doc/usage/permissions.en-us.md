@@ -67,7 +67,7 @@ Different from individual repositories, the owner of organization repositories a
 A team in an organization has unit permissions settings. It can have members and repositories scope. A team could access all the repositories in this organization or special repositories changed by the owner team. A team could also be allowed to create new
 repositories.
 
-The owner team will be created when the organization created and the creator will become the first member of the owner team.
-Notice Gitea will not allow a people is a member of organization but not in any team. The owner team could not be deleted and only
-members of owner team could create a new team. Admin team could be created to manage some of repositories, members of admin team
-could do anything with these repositories. Generate team could be created by the owner team to do the permissions allowed operations.
+The owner team will be created when the organization is created, and the creator will become the first member of the owner team.
+Every member of an organization must be in at least one team. The owner team cannot be deleted and only
+members of the owner team can create a new team. An admin team can be created to manage some of the repositories, whose members can do anything with these repositories.
+The Generate team can be created by the owner team to do the operations allowed by their permissions.

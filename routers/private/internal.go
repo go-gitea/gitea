@@ -68,6 +68,7 @@ func Routes() *web.Route {
 	r.Post("/manager/pause-logging", PauseLogging)
 	r.Post("/manager/resume-logging", ResumeLogging)
 	r.Post("/manager/release-and-reopen-logging", ReleaseReopenLogging)
+	r.Post("/manager/set-log-sql", SetLogSQL)
 	r.Post("/manager/add-logger", bind(private.LoggerOptions{}), AddLogger)
 	r.Post("/manager/remove-logger/{group}/{name}", RemoveLogger)
 	r.Get("/manager/processes", Processes)
