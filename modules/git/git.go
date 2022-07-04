@@ -128,7 +128,7 @@ func VersionInfo() string {
 
 func checkInit() error {
 	if setting.Git.HomePath == "" {
-		return errors.New("can not init Git's HomeDir, the setting and git modules are not initialized correctly")
+		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 	if DefaultContext != nil {
 		log.Warn("git module has been initialized already, duplicate init should be fixed")
@@ -142,7 +142,7 @@ func HomeDir() string {
 		// strict check, make sure the git module is initialized correctly.
 		// attention: when the git module is called in gitea sub-command (serv/hook), the log module is not able to show messages to users.
 		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
-		log.Fatal("can not get Git's HomeDir, the setting and git modules are not initialized correctly")
+		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
 	}
 	return setting.Git.HomePath
