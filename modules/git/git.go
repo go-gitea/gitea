@@ -194,9 +194,13 @@ func initFixGitHome117rc() error {
 	var hasCheckErr bool
 	for _, wellDirName := range []string{".ssh", ".gnupg"} {
 		checkLegacyDir := filepath.Join(setting.RepoRootPath, wellDirName)
-		_ = os.Remove(checkLegacyDir)          // try to remove the empty dummy directory first
-		_, checkErr := os.Stat(checkLegacyDir) // if the directory is not empty, then it won't be removed, it should be handled manually
-		if checkErr == nil || !errors.Is(checkErr, os.ErrNotExist) {
+		st, err := os.Lstat(checkLegacyDir) // only process dir or symlink
+		if err != nil || (!st.IsDir() && st.Mode()&os.ModeSymlink != os.ModeSymlink) {
+			continue
+		}
+		_ = os.Remove(checkLegacyDir)    // try to remove the empty dummy directory first
+		_, err = os.Stat(checkLegacyDir) // if the directory is not empty, then it won't be removed, it should be handled manually
+		if err == nil || !errors.Is(err, os.ErrNotExist) {
 			log.Error(`Git HOME has been moved to [git].HOME_PATH, but there are legacy file in old place. Please backup and remove the legacy files %q`, checkLegacyDir)
 			hasCheckErr = true
 		}
