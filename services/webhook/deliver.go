@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
 	"code.gitea.io/gitea/modules/queue"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gobwas/glob"
@@ -147,7 +148,7 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	}
 
 	if w.Type == webhook_model.GITEA {
-		meta := GetGiteaHook(w)
+		meta := GetGiteaHook(w, secret.DecryptSecret)
 		if meta.AuthHeaderEnabled {
 			var content string
 			switch meta.AuthHeader.Type {

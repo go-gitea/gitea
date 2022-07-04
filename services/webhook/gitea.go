@@ -32,7 +32,7 @@ type (
 )
 
 // GetGiteaHook returns decrypted gitea metadata
-func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
+func GetGiteaHook(w *webhook_model.Webhook, decryptFn secret.DecryptSecretCallable) *GiteaMeta {
 	s := &GiteaMeta{}
 
 	// Legacy webhook configuration has no stored metadata
@@ -48,7 +48,7 @@ func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
 		return s
 	}
 
-	headerData, err := secret.DecryptSecret(setting.SecretKey, s.AuthHeaderData)
+	headerData, err := decryptFn(setting.SecretKey, s.AuthHeaderData)
 	if err != nil {
 		log.Error("webhook.GetGiteaHook(%d): %v", w.ID, err)
 	}
@@ -67,7 +67,7 @@ func GetGiteaHook(w *webhook_model.Webhook) *GiteaMeta {
 
 // CreateGiteaHook creates an gitea metadata string with encrypted auth header data,
 // while it ensures to store the least necessary data in the database.
-func CreateGiteaHook(form *forms.NewWebhookForm) (string, error) {
+func CreateGiteaHook(form *forms.NewWebhookForm, encryptFn secret.EncryptSecretCallable) (string, error) {
 	metaObject := &GiteaMeta{
 		AuthHeaderEnabled: form.AuthHeaderActive,
 	}
@@ -91,7 +91,7 @@ func CreateGiteaHook(form *forms.NewWebhookForm) (string, error) {
 			return "", err
 		}
 
-		encryptedHeaderData, err := secret.EncryptSecret(setting.SecretKey, string(headerData))
+		encryptedHeaderData, err := encryptFn(setting.SecretKey, string(headerData))
 		if err != nil {
 			return "", err
 		}

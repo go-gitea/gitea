@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/secret"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -211,7 +212,7 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, err := webhook_service.CreateGiteaHook(form)
+	meta, err := webhook_service.CreateGiteaHook(form, secret.EncryptSecret)
 	if err != nil {
 		ctx.ServerError("Meta", err)
 		return
@@ -769,7 +770,7 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 	ctx.Data["HookType"] = w.Type
 	switch w.Type {
 	case webhook.GITEA:
-		ctx.Data["GiteaHook"] = webhook_service.GetGiteaHook(w)
+		ctx.Data["GiteaHook"] = webhook_service.GetGiteaHook(w, secret.DecryptSecret)
 	case webhook.SLACK:
 		ctx.Data["SlackHook"] = webhook_service.GetSlackHook(w)
 	case webhook.DISCORD:
@@ -827,7 +828,7 @@ func WebHooksEditPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	meta, err := webhook_service.CreateGiteaHook(form)
+	meta, err := webhook_service.CreateGiteaHook(form, secret.EncryptSecret)
 	if err != nil {
 		ctx.ServerError("Meta", err)
 		return

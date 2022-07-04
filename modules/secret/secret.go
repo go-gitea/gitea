@@ -15,6 +15,11 @@ import (
 	"io"
 )
 
+type (
+	EncryptSecretCallable func(key, str string) (string, error)
+	DecryptSecretCallable func(key, cipherhex string) (string, error)
+)
+
 // AesEncrypt encrypts text and given key with AES.
 func AesEncrypt(key, text []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
