@@ -733,7 +733,11 @@ func checkCitationFile(ctx *context.Context) {
 	if ctx.Repo.Repository.IsEmpty {
 		return
 	}
-	entry, _ := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
+	if err != nil {
+		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
 	if entry.Name() != "" {
 		return
 	}
