@@ -38,7 +38,7 @@ func (f *OneDevDownloaderFactory) New(ctx context.Context, opts base.MigrateOpti
 		return nil, err
 	}
 
-	repoName := ""
+	var repoName string
 
 	fields := strings.Split(strings.Trim(u.Path, "/"), "/")
 	if len(fields) == 2 && fields[0] == "projects" {

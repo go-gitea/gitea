@@ -116,7 +116,7 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 	}
 	blob = entry.Blob()
 
-	return
+	return blob, lastModified
 }
 
 // SingleDownload download a file by repos path

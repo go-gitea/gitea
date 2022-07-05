@@ -75,12 +75,12 @@ func sendUserMail(language string, u *user_model.User, tpl base.TplName, code, s
 	locale := translation.NewLocale(language)
 	data := map[string]interface{}{
 		"DisplayName":       u.DisplayName(),
-		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, language),
-		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, language),
+		"ActiveCodeLives":   timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
+		"ResetPwdCodeLives": timeutil.MinutesToFriendly(setting.Service.ResetPwdCodeLives, locale),
 		"Code":              code,
 		"Language":          locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -126,12 +126,12 @@ func SendActivateEmailMail(u *user_model.User, email *user_model.EmailAddress) {
 	locale := translation.NewLocale(u.Language)
 	data := map[string]interface{}{
 		"DisplayName":     u.DisplayName(),
-		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale.Language()),
+		"ActiveCodeLives": timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, locale),
 		"Code":            u.GenerateEmailActivateCode(email.Email),
 		"Email":           email.Email,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -162,7 +162,7 @@ func SendRegisterNotifyMail(u *user_model.User) {
 		"Username":    u.Name,
 		"Language":    locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -196,7 +196,7 @@ func SendCollaboratorMail(u, doer *user_model.User, repo *repo_model.Repository)
 		"Link":     repo.HTMLURL(),
 		"Language": locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
@@ -281,13 +281,13 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 		"ReviewComments":  reviewComments,
 		"Language":        locale.Language(),
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}
 
 	var mailSubject bytes.Buffer
-	if err := subjectTemplates.ExecuteTemplate(&mailSubject, string(tplName), mailMeta); err == nil {
+	if err := subjectTemplates.ExecuteTemplate(&mailSubject, tplName, mailMeta); err == nil {
 		subject = sanitizeSubject(mailSubject.String())
 		if subject == "" {
 			subject = fallback
@@ -302,8 +302,8 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	var mailBody bytes.Buffer
 
-	if err := bodyTemplates.ExecuteTemplate(&mailBody, string(tplName), mailMeta); err != nil {
-		log.Error("ExecuteTemplate [%s]: %v", string(tplName)+"/body", err)
+	if err := bodyTemplates.ExecuteTemplate(&mailBody, tplName, mailMeta); err != nil {
+		log.Error("ExecuteTemplate [%s]: %v", tplName+"/body", err)
 	}
 
 	// Make sure to compose independent messages to avoid leaking user emails
@@ -498,5 +498,5 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 	if !ok {
 		template = "issue/default"
 	}
-	return
+	return typeName, name, template
 }

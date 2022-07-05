@@ -88,8 +88,8 @@ server {
     listen 80;
     server_name git.example.com;
 
-    location /_/static/assets {
-        alias /path/to/gitea/public;
+    location /_/static/assets/ {
+        alias /path/to/gitea/public/;
     }
 
     location / {
@@ -120,8 +120,8 @@ server {
     listen 80;
     server_name cdn.example.com;
 
-    location /gitea {
-        alias /path/to/gitea/public;
+    location /gitea/ {
+        alias /path/to/gitea/public/;
     }
 
     location / {
