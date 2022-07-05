@@ -20,8 +20,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/hashicorp/go-version"
 )
 
@@ -168,51 +166,6 @@ func InitSimple(ctx context.Context) error {
 
 var initOnce sync.Once
 
-func initFixGitHome117rc() error {
-	// Gitea 1.17-rc uses "setting.RepoRootPath" for Git HOME, which is incorrect.
-	// Do this check to make sure there is no legacy file in the RepoRootPath. This check might be able to be removed with 1.18 release.
-
-	// remove the auto generated git config file (it will be moved to new home)
-	gitConfigNewPath := filepath.Join(HomeDir(), ".gitconfig")
-	gitConfigLegacyPath := filepath.Join(setting.RepoRootPath, ".gitconfig")
-	if ok, err := util.IsExist(gitConfigLegacyPath); ok && err == nil {
-		if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
-			return err
-		}
-		if ok, err = util.IsExist(gitConfigNewPath); !ok && err == nil {
-			err = util.CopyFile(gitConfigLegacyPath, gitConfigNewPath)
-		} else {
-			err = util.CopyFile(gitConfigLegacyPath, gitConfigNewPath+".bak")
-		}
-		if err != nil {
-			return err
-		}
-		_ = os.Remove(gitConfigLegacyPath)
-	}
-
-	// remove the empty directories, if some directories are non-empty, warn users and exit
-	var hasCheckErr bool
-	for _, wellKnownDirName := range []string{".ssh", ".gnupg"} {
-		legacyDir := filepath.Join(setting.RepoRootPath, wellKnownDirName)
-		st, err := os.Lstat(legacyDir) // only process dir or symlink
-		if err != nil || (!st.IsDir() && st.Mode()&os.ModeSymlink != os.ModeSymlink) {
-			continue
-		}
-		_ = os.Remove(legacyDir)    // try to remove the empty dummy directory first
-		_, err = os.Stat(legacyDir) // if the directory is not empty, then it won't be removed, it should be handled manually
-		if err == nil || !errors.Is(err, os.ErrNotExist) {
-			log.Error(`Git HOME has been moved to [git].HOME_PATH, but there are legacy file in old place. Please backup and remove the legacy files %q`, legacyDir)
-			hasCheckErr = true
-		}
-	}
-
-	if hasCheckErr {
-		log.Fatal("Please fix errors above, remove legacy files.")
-	}
-
-	return nil
-}
-
 // InitOnceWithSync initializes git module with version check and change global variables, sync gitconfig.
 // This method will update the global variables ONLY ONCE (just like git.CheckLFSVersion -- which is not ideal too),
 // otherwise there will be data-race problem at the moment.
@@ -223,9 +176,6 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 
 	initOnce.Do(func() {
 		if err = InitSimple(ctx); err != nil {
-			return
-		}
-		if err = initFixGitHome117rc(); err != nil {
 			return
 		}
 
