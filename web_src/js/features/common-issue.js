@@ -23,9 +23,7 @@ export function initCommonIssue() {
     }
   }
 
-  $('.issue-checkbox').on('click', (e) => {
-    checkboxOperate(e);
-  });
+  $('.issue-checkbox').on('click', checkboxOperate);
 
   $('.issue-checkbox-all').on('click', (e) => {
     const selected = $('.issue-checkbox input:checked');
