@@ -9,6 +9,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
+	"path/filepath"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -118,7 +119,8 @@ func IsEmailDomainListed(list []string, email string) bool {
 	domain := strings.ToLower(email[n+1:])
 
 	for _, v := range list {
-		if strings.ToLower(v) == domain {
+		matched, _ := filepath.Match(strings.ToLower(v), domain)
+		if matched {
 			return true
 		}
 	}
