@@ -207,6 +207,7 @@ var (
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
+		SitemapPagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
@@ -260,6 +261,7 @@ var (
 		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:    20,
+		SitemapPagingNum:    20,
 		IssuePagingNum:      10,
 		RepoSearchPagingNum: 10,
 		MembersPagingNum:    20,
@@ -399,11 +401,6 @@ var (
 		JWTSigningPrivateKeyFile:   "jwt/private.pem",
 		MaxTokenLength:             math.MaxInt16,
 	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F = struct {
-		AppID string
-	}{}
 
 	// Metrics settings
 	Metrics = struct {
@@ -1103,19 +1100,6 @@ func newOverall() {
 	}
 }
 
-func newU2F() {
-	sec := Cfg.Section("U2F")
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F.AppID = strings.TrimSuffix(AppURL, "/")
-	if sec.HasKey("APP_ID") {
-		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-	} else if sec.HasKey("APP_ID") {
-		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = sec.Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-	}
-}
-
 func newMarkDown() {
 	sec := Cfg.Section("markdown")
 	if err := sec.MapTo(&Markdown); err != nil {
@@ -1214,7 +1198,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	newOther()
 	newUI()
 	newMarkup()
-	newU2F()
 
 	var err error
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))

@@ -4,15 +4,15 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.packages.package_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}}, {{.i18n.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}})
+			{{.locale.Tr "admin.packages.package_manage_panel"}} ({{.locale.Tr "admin.total" .Total}}, {{.locale.Tr "admin.packages.total_size" (FileSize .TotalBlobSize)}})
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form ignore-dirty">
 				<div class="ui fluid action input">
-					<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+					<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
 					<select class="ui dropdown" name="type">
-						<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
-						<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
+						<option value="">{{.locale.Tr "packages.filter.type"}}</option>
+						<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
 						<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 						<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
 						<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
@@ -24,7 +24,7 @@
 						<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 						<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
 					</select>
-					<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
+					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -33,24 +33,24 @@
 				<thead>
 					<tr>
 						<th>ID</th>
-						<th>{{.i18n.Tr "admin.packages.owner"}}</th>
-						<th>{{.i18n.Tr "admin.packages.type"}}</th>
+						<th>{{.locale.Tr "admin.packages.owner"}}</th>
+						<th>{{.locale.Tr "admin.packages.type"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-							{{.i18n.Tr "admin.packages.name"}}
+							{{.locale.Tr "admin.packages.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" .SortType false}}
 						</th>
 						<th data-sortt-asc="highestversion" data-sortt-desc="lowestversion">
-							{{.i18n.Tr "admin.packages.version"}}
+							{{.locale.Tr "admin.packages.version"}}
 							{{SortArrow "highestversion" "lowestversion" .SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.packages.creator"}}</th>
-						<th>{{.i18n.Tr "admin.packages.repository"}}</th>
-						<th>{{.i18n.Tr "admin.packages.size"}}</th>
+						<th>{{.locale.Tr "admin.packages.creator"}}</th>
+						<th>{{.locale.Tr "admin.packages.repository"}}</th>
+						<th>{{.locale.Tr "admin.packages.size"}}</th>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">
-							{{.i18n.Tr "admin.packages.published"}}
+							{{.locale.Tr "admin.packages.published"}}
 							{{SortArrow "oldest" "newest" .SortType true}}
 						</th>
-						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -88,10 +88,10 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "packages.settings.delete"}}
+		{{.locale.Tr "packages.settings.delete"}}
 	</div>
 	<div class="content">
-		{{.i18n.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
+		{{.locale.Tr "packages.settings.delete.notice" `<span class="name"></span>` `<span class="dataVersion"></span>` | Safe}}
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

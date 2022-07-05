@@ -2,10 +2,10 @@
 	{{template "base/alert" .}}
 	<form class="ui form ignore-dirty">
 		<div class="ui fluid action input">
-			<input name="q" value="{{.Query}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+			<input name="q" value="{{.Query}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
 			<select class="ui dropdown" name="type">
-				<option value="">{{.i18n.Tr "packages.filter.type"}}</option>
-				<option value="all">{{.i18n.Tr "packages.filter.type.all"}}</option>
+				<option value="">{{.locale.Tr "packages.filter.type"}}</option>
+				<option value="all">{{.locale.Tr "packages.filter.type.all"}}</option>
 				<option value="composer" {{if eq .PackageType "composer"}}selected="selected"{{end}}>Composer</option>
 				<option value="conan" {{if eq .PackageType "conan"}}selected="selected"{{end}}>Conan</option>
 				<option value="container" {{if eq .PackageType "container"}}selected="selected"{{end}}>Container</option>
@@ -17,7 +17,7 @@
 				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
 			</select>
-			<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
+			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
 	</form>
 	<div class="ui {{if .PackageDescriptors}}issue list{{end}}">
@@ -29,15 +29,15 @@
 						<span class="ui label">{{svg .Package.Type.SVGName 16}} {{.Package.Type.Name}}</span>
 					</div>
 					<div class="desc issue-item-bottom-row df ac fw my-1">
-						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.i18n.Lang}}
+						{{$timeStr := TimeSinceUnix .Version.CreatedUnix $.locale}}
 						{{$hasRepositoryAccess := false}}
 						{{if .Repository}}
 							{{$hasRepositoryAccess = index $.RepositoryAccessMap .Repository.ID}}
 						{{end}}
 						{{if $hasRepositoryAccess}}
-							{{$.i18n.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.HTMLURL (.Repository.FullName | Escape) | Safe}}
+							{{$.locale.Tr "packages.published_by_in" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) .Repository.HTMLURL (.Repository.FullName | Escape) | Safe}}
 						{{else}}
-							{{$.i18n.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
+							{{$.locale.Tr "packages.published_by" $timeStr .Creator.HomeLink (.Creator.GetDisplayName | Escape) | Safe}}
 						{{end}}
 					</div>
 				</div>
@@ -46,11 +46,11 @@
 			{{if not .HasPackages}}
 				<div class="empty center">
 					{{svg "octicon-package" 32}}
-					<h2>{{.i18n.Tr "packages.empty"}}</h2>
-					<p>{{.i18n.Tr "packages.empty.documentation" | Safe}}</p>
+					<h2>{{.locale.Tr "packages.empty"}}</h2>
+					<p>{{.locale.Tr "packages.empty.documentation" | Safe}}</p>
 				</div>
 			{{else}}
-				<p>{{.i18n.Tr "packages.filter.no_result"}}</p>
+				<p>{{.locale.Tr "packages.filter.no_result"}}</p>
 			{{end}}
 		{{end}}
 		{{template "base/paginate" .}}

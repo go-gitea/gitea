@@ -5,7 +5,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.lfs_pointers.found" .NumPointers .NumAssociated .NumNotAssociated .NumNoExist }}
+			{{.locale.Tr "repo.settings.lfs_pointers.found" .NumPointers .NumAssociated .NumNotAssociated .NumNoExist }}
 			{{if gt .NumAssociatable 0}}
 				<div class="ui right">
 					<form class="ui form" method="post" action="{{$.Link}}/associate">
@@ -15,7 +15,7 @@
 								<input type="hidden" name="oid" value="{{.Oid}} {{.Size}}"/>
 							{{end}}
 						{{end}}
-						<button class="ui green button">{{$.i18n.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>
+						<button class="ui green button">{{$.locale.Tr "repo.settings.lfs_pointers.associateAccessible" $.NumAssociatable}}</button>
 					</form>
 				</div>
 			{{end}}
@@ -24,12 +24,12 @@
 			<table id="lfs-files-table" class="ui fixed single line table">
 				<thead>
 					<tr>
-						<th class="three wide">{{.i18n.Tr "repo.settings.lfs_pointers.sha"}}</th>
-						<th class="four wide">{{.i18n.Tr "repo.settings.lfs_pointers.oid"}}</th>
+						<th class="three wide">{{.locale.Tr "repo.settings.lfs_pointers.sha"}}</th>
+						<th class="four wide">{{.locale.Tr "repo.settings.lfs_pointers.oid"}}</th>
 						<th class="three wide"></th>
-						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.inRepo"}}</th>
-						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.exists"}}</th>
-						<th class="two wide">{{.i18n.Tr "repo.settings.lfs_pointers.accessible"}}</th>
+						<th class="two wide">{{.locale.Tr "repo.settings.lfs_pointers.inRepo"}}</th>
+						<th class="two wide">{{.locale.Tr "repo.settings.lfs_pointers.exists"}}</th>
+						<th class="two wide">{{.locale.Tr "repo.settings.lfs_pointers.accessible"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -56,7 +56,7 @@
 								</span>
 							</td>
 							<td>
-								<a class="ui primary show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.i18n.Tr "repo.settings.lfs_findcommits"}}</a>
+								<a class="ui primary show-panel button" href="{{$.LFSFilesLink}}/find?oid={{.Oid}}&size={{.Size}}&sha={{.SHA}}">{{$.locale.Tr "repo.settings.lfs_findcommits"}}</a>
 							</td>
 							<td>{{if .InRepo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
 							<td>{{if .Exists}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</td>
