@@ -36,6 +36,13 @@ func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
 }
 
+func (m *mirrorNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifySyncPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
+	defer finished()
+
+	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+}
+
 func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
 	syncOnCommit := true
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit(repoID, syncOnCommit)
