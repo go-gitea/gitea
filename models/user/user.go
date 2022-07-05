@@ -485,6 +485,9 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
+	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
+		return base.EllipsisString(u.FullName, length)
+	}
 	return base.EllipsisString(u.Name, length)
 }
 
