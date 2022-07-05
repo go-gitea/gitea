@@ -21,7 +21,7 @@ export function initCommonIssue() {
       $('#issue-actions').addClass('hide');
       $('#issue-filters .six').prepend($('.issue-checkbox-all'));
     }
-  }
+  };
 
   $('.issue-checkbox').on('click', checkboxOperate);
 
