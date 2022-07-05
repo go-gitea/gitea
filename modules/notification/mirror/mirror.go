@@ -5,16 +5,11 @@
 package mirror
 
 import (
-	"context"
-	"fmt"
-
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/notification/base"
-	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/repository"
 )
 
@@ -30,20 +25,14 @@ func NewNotifier() base.Notifier {
 }
 
 func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("mirrorNotifier.NotifyPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
-	defer finished()
-
-	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+	syncPushMirrorWithSyncOnCommit(repo.ID)
 }
 
 func (m *mirrorNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
-	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("webhook.NotifySyncPushCommits User: %s[%d] in %s[%d]", pusher.Name, pusher.ID, repo.FullName(), repo.ID))
-	defer finished()
-
-	syncPushMirrorWithSyncOnCommit(ctx, repo.ID)
+	syncPushMirrorWithSyncOnCommit(repo.ID)
 }
 
-func syncPushMirrorWithSyncOnCommit(ctx context.Context, repoID int64) {
+func syncPushMirrorWithSyncOnCommit(repoID int64) {
 	syncOnCommit := true
 	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit(repoID, syncOnCommit)
 	if err != nil {
