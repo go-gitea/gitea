@@ -2,15 +2,15 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 
 export function initCommonIssue() {
+  let checkboxfirst;
   const checkboxOperate = (e) => {
     const issuecheckbox = $('.issue-checkbox input');
-    if (e.shiftKey && window.checkboxfirst !== undefined) {
-      for (let i = window.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
+    if (e.shiftKey && checkboxfirst !== undefined) {
+      for (let i = checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
         issuecheckbox[i].checked = 1;
       }
-      delete window.checkboxfirst;
     } else {
-      window.checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
+      checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
     }
     if (issuecheckbox.is(':checked')) {
       $('#issue-filters').addClass('hide');
