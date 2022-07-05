@@ -26,7 +26,7 @@ const (
 // SyncRequest for the mirror queue
 type SyncRequest struct {
 	Type        SyncType
-	ReferenceID int64 // RepoID for pull mirror, MirrorID fro push mirror
+	ReferenceID int64 // RepoID for pull mirror, MirrorID for push mirror
 }
 
 // StartSyncMirrors starts a go routine to sync the mirrors
@@ -41,31 +41,25 @@ func StartSyncMirrors(queueHandle func(data ...queue.Data) []queue.Data) {
 
 // AddPullMirrorToQueue adds repoID to mirror queue
 func AddPullMirrorToQueue(repoID int64) {
-	if !setting.Mirror.Enabled {
-		return
-	}
-	go func() {
-		err := PushToQueue(PullMirrorType, repoID)
-		if err != nil {
-			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]: Error: %v", repoID, err)
-			return
-		}
-	}()
+	addMirrorToQueue(PullMirrorType, repoID)
 }
 
 // AddPushMirrorToQueue adds the push mirror to the queue
 func AddPushMirrorToQueue(mirrorID int64) {
+	addMirrorToQueue(PushMirrorType, mirrorID)
+}
+
+func addMirrorToQueue(mirrorType SyncType, referenceID int64) {
 	if !setting.Mirror.Enabled {
 		return
 	}
 	go func() {
-		err := PushToQueue(PushMirrorType, mirrorID)
+		err := PushToQueue(syncType, referenceID)
 		if err != nil {
-			log.Error("Unable to push sync request to the queue for pull mirror repo[%d]: Error: %v", mirrorID, err)
+			log.Error("Unable to push sync request for to the queue for pull mirror repo[%d]. Error: %v", referenceID, err)
 		}
 	}()
 }
-
 // PushToQueue adds the sync request to the queue
 func PushToQueue(mirrorType SyncType, referenceID int64) error {
 	return mirrorQueue.Push(&SyncRequest{

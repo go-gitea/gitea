@@ -27,8 +27,5 @@ func addSyncOnCommitColForPushMirror(x *xorm.Engine) error {
 		LastError      string             `xorm:"text"`
 	}
 
-	if err := x.Sync2(new(PushMirror)); err != nil {
-		return fmt.Errorf("sync2: %v", err)
-	}
-	return nil
+	return x.Sync2(new(PushMirror))
 }

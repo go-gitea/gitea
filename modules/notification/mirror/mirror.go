@@ -24,19 +24,18 @@ func NewNotifier() base.Notifier {
 	return &mirrorNotifier{}
 }
 
-func (m *mirrorNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *mirrorNotifier) NotifyPushCommits(_ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
 	syncPushMirrorWithSyncOnCommit(repo.ID)
 }
 
-func (m *mirrorNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits) {
+func (m *mirrorNotifier) NotifySyncPushCommits(_ *user_model.User, repo *repo_model.Repository, _ *repository.PushUpdateOptions, _ *repository.PushCommits) {
 	syncPushMirrorWithSyncOnCommit(repo.ID)
 }
 
 func syncPushMirrorWithSyncOnCommit(repoID int64) {
-	syncOnCommit := true
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit(repoID, syncOnCommit)
+	pushMirrors, err := repo_model.GetPushMirrorsSyncedOnCommit(repoID)
 	if err != nil {
-		log.Error("repo_model.GetPushMirrorsByRepoIDWithSyncOnCommit failed: %v", err)
+		log.Error("repo_model.GetPushMirrorsSyncedOnCommit failed: %v", err)
 		return
 	}
 

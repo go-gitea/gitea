@@ -94,12 +94,11 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
 }
 
-// GetPushMirrorsByRepoIDWithSyncOnCommit returns push-mirror information of a repository,
-// filtered by sync_on_commit.
-func GetPushMirrorsByRepoIDWithSyncOnCommit(repoID int64, syncOnCommit bool) ([]*PushMirror, error) {
+// GetPushMirrorsByRepoIDWithSyncOnCommit returns push-mirrors for this repo that should be updated by new commits
+func GetPushMirrorsSyncedOnCommit(repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(db.DefaultContext).
-		Where("repo_id=? AND sync_on_commit=?", repoID, syncOnCommit).
+		Where("repo_id=? AND sync_on_commit=?", repoID, true).
 		Find(&mirrors)
 }
 
