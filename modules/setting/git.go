@@ -71,7 +71,7 @@ var Git = struct {
 func newGit() {
 	sec := Cfg.Section("git")
 
-	if err := Cfg.Section("git").MapTo(&Git); err != nil {
+	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
 	}
 
