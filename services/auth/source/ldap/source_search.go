@@ -199,7 +199,7 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 // List all group memberships of a user
 func (ls *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
 	var ldapGroups []string
-	groupFilter := fmt.Sprintf("(%s=%s)", ls.GroupMemberUID, uid)
+	groupFilter := fmt.Sprintf("(%s=%s)", ls.GroupMemberUID, ldap.EscapeFilter(uid))
 	result, err := l.Search(ldap.NewSearchRequest(
 		ls.GroupDN,
 		ldap.ScopeWholeSubtree,
