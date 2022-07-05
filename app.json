@@ -1,0 +1,8 @@
+{
+    "name": "Gitea",
+    "description": "Gitea",
+    "keywords": ["Gitea"],
+    "website": "https://github.com/go-gitea/gitea",
+    "repository": "https://github.com/go-gitea/gitea",
+    "stack": "container"
+}
