@@ -49,7 +49,7 @@ func AddPushMirrorToQueue(mirrorID int64) {
 	addMirrorToQueue(PushMirrorType, mirrorID)
 }
 
-func addMirrorToQueue(mirrorType SyncType, referenceID int64) {
+func addMirrorToQueue(syncType SyncType, referenceID int64) {
 	if !setting.Mirror.Enabled {
 		return
 	}
@@ -60,6 +60,7 @@ func addMirrorToQueue(mirrorType SyncType, referenceID int64) {
 		}
 	}()
 }
+
 // PushToQueue adds the sync request to the queue
 func PushToQueue(mirrorType SyncType, referenceID int64) error {
 	return mirrorQueue.Push(&SyncRequest{

@@ -5,7 +5,6 @@
 package migrations
 
 import (
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/repo"
