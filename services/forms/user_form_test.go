@@ -44,7 +44,7 @@ func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 func TestRegisterForm_IsDomainAllowed_WhitelistedEmail(t *testing.T) {
 	_ = setting.Service
 
-	setting.Service.EmailDomainWhitelist = []string{"gitea.io"}
+	setting.Service.EmailDomainWhitelist = []string{"gitea.io", "*.gov"}
 
 	tt := []struct {
 		email string
@@ -54,6 +54,7 @@ func TestRegisterForm_IsDomainAllowed_WhitelistedEmail(t *testing.T) {
 		{"security@gITea.io", true},
 		{"hdudhdd", false},
 		{"seee@example.com", false},
+		{"security@fishsauce.gov", true},
 	}
 
 	for _, v := range tt {
