@@ -12,11 +12,11 @@
 	<div class="ui tabs container">
 		<div class="ui tabular stackable menu navbar">
 			<a class="item" href="{{.ContextUser.HomeLink}}">
-				{{svg "octicon-repo"}} {{.i18n.Tr "user.repositories"}}
+				{{svg "octicon-repo"}} {{.locale.Tr "user.repositories"}}
 			</a>
 			{{if (not .UnitPackagesGlobalDisabled)}}
 				<a href="{{.ContextUser.HTMLURL}}/-/packages" class="{{if .IsPackagesPage}}active{{end}} item">
-					{{svg "octicon-package"}} {{.i18n.Tr "packages.title"}}
+					{{svg "octicon-package"}} {{.locale.Tr "packages.title"}}
 				</a>
 			{{end}}
 		</div>

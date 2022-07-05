@@ -3,8 +3,76 @@
 The Gitea maintainers take security seriously.  
 If you discover a security issue, please bring it to their attention right away!
 
-### Reporting a Vulnerability
+## Reporting a Vulnerability
 
 Please **DO NOT** file a public issue, instead send your report privately to `security@gitea.io`.
+
+## Protecting Security Information
+
+Due to the sensitive nature of security information, you can use below GPG public key encrypt your mail body.
+
+The PGP key is valid until June 24, 2024.  
+Key ID: 6FCD2D5B  
+Key Type: RSA  
+Expires: 6/24/2024  
+Key Size: 4096/4096  
+Fingerprint: 3DE0 3D1E 144A 7F06 9359 99DC AAFD 2381 6FCD 2D5B  
+UserID: Gitea Security <security@gitea.io>
+
+```
+-----BEGIN PGP PUBLIC KEY BLOCK-----
+
+mQINBGK1Z/4BEADFMqXA9DeeChmSxUjF0Be5sq99ZUhgrZjcN/wOzz0wuCJZC0l8
+4uC+d6mfv7JpJYlzYzOK97/x5UguKHkYNZ6mm1G9KHaXmoIBDLKDzfPdJopVNv2r
+OajijaE0uMCnMjadlg5pbhMLRQG8a9J32yyaz7ZEAw72Ab31fvvcA53NkuqO4j2w
+k7dtFQzhbNOYV0VffQT90WDZdalYHB1JHyEQ+70U9OjVD5ggNYSzX98Eu3Hjn7V7
+kqFrcAxr5TE1elf0IXJcuBJtFzQSTUGlQldKOHtGTGgGjj9r/FFAE5ioBgVD05bV
+rEEgIMM/GqYaG/nbNpWE6P3mEc2Mnn3pZaRJL0LuF26TLjnqEcMMDp5iIhLdFzXR
+3tMdtKgQFu+Mtzs3ipwWARYgHyU09RJsI2HeBx7RmZO/Xqrec763Z7zdJ7SpCn0Z
+q+pHZl24JYR0Kf3T/ZiOC0cGd2QJqpJtg5J6S/OqfX9NH6MsCczO8pUC1N/aHH2X
+CTme2nF56izORqDWKoiICteL3GpYsCV9nyCidcCmoQsS+DKvE86YhIhVIVWGRY2F
+lzpAjnN9/KLtQroutrm+Ft0mdjDiJUeFVl1cOHDhoyfCsQh62HumoyZoZvqzQd6e
+AbN11nq6aViMe2Q3je1AbiBnRnQSHxt1Tc8X4IshO3MQK1Sk7oPI6LA5oQARAQAB
+tCJHaXRlYSBTZWN1cml0eSA8c2VjdXJpdHlAZ2l0ZWEuaW8+iQJXBBMBCABBFiEE
+PeA9HhRKfwaTWZncqv0jgW/NLVsFAmK1Z/4CGwMFCQPCZwAFCwkIBwICIgIGFQoJ
+CAsCBBYCAwECHgcCF4AACgkQqv0jgW/NLVvnyxAAhxyNnWzw/rQO2qhzqicmZM94
+njSbOg+U2qMBvCdaqCQQeC+uaMmMzkDPanUUmLcyCkWqfCjPNjeSXAkE9npepVJI
+4HtmgxZQ94OU/h3CLbft+9GVRzUkVI29TSYGdvNtV2/BkNGoFFnKWQr119um0o6A
+bgha2Uy5uY8o3ZIoiKkiHRaEoWIjjeBxJxYAojsZY4YElUmsQ3ik2joG6rhFesTa
+ofVt/bL8G2xzpOG26WGIxBbqf2qjV6OtZ0hu/vtTPHeIWMLq0Mz0V3PEDQWfkGPE
+i2RYxxYDs2xzJhSQWqTNVLSq0m5xTJnbHhQPfdCX4C2jvFKgLdfmytQq49S7jiJb
+Z03HVOZ/PsyBlQfH9xJi06R5yQCMEA8h8Z5r3/NXW09kQ6OFRe6xshoTcxZGRPTo
+srhwr3uPbmCRh+YEl7qBLU6+BC5k8IRTZXqhrj/aPJu3MxgbgwV8u3vLoFSXM2lb
+a61FgeCQ0O7lkgVswwF0RppCaH9Ul3ZDapet/vCRg4NVwm9zOI/8q/Vj0FKA1GDR
+JhRu8+Ce8zlFL65D34t+PprAzSeTlbv9um3x/ZIjCco7EEKSBylt+AZj/VyA6+e5
+kjOQwRRc6dFJWBcorsSI2dG+H+QMF7ZabzmeCcz1v9HjLOPzYHoZAHhCmSppWTvX
+AJy6+lhfW2OUTqQeYSi5Ag0EYrVn/gEQALrFLQjCR3GjuHSindz0rd3Fnx/t7Sen
+T+p07yCSSoSlmnJHCQmwh4vfg1blyz0zZ4vkIhtpHsEgc+ZAG+WQXSsJ2iRz+eSN
+GwoOQl4XC3n+QWkc1ws+btr48+6UqXIQU+F8TPQyx/PIgi2nZXJB7f5+mjCqsk46
+XvH4nTr4kJjuqMSR/++wvre2qNQRa/q/dTsK0OaN/mJsdX6Oi+aGNaQJUhIG7F+E
+ZDMkn/O6xnwWNzy/+bpg43qH/Gk0eakOmz5NmQLRkV58SZLiJvuCUtkttf6CyhnX
+03OcWaajv5W8qA39dBYQgDrrPbBWUnwfO3yMveqhwV4JjDoe8sPAyn1NwzakNYqP
+RzsWyLrLS7R7J9s3FkZXhQw/QQcsaSMcGNQO047dm1P83N8JY5aEpiRo9zSWjoiw
+qoExANj5lUTZPe8M50lI182FrcjAN7dClO3QI6pg7wy0erMxfFly3j8UQ91ysS9T
+s+GsP9I3cmWWQcKYxWHtE8xTXnNCVPFZQj2nwhJzae8ypfOtulBRA3dUKWGKuDH/
+axFENhUsT397aOU3qkP/od4a64JyNIEo4CTTSPVeWd7njsGqli2U3A4xL2CcyYvt
+D/MWcMBGEoLSNTswwKdom4FaJpn5KThnK/T0bQcmJblJhoCtppXisbexZnCpuS0x
+Zdlm2T14KJ3LABEBAAGJAjwEGAEIACYWIQQ94D0eFEp/BpNZmdyq/SOBb80tWwUC
+YrVn/gIbDAUJA8JnAAAKCRCq/SOBb80tWyTBD/9AGpW6QoDF7zYjHAozH9S5RGCA
+Y7E82dG/0xmFUwPprAG0BKmmgU6TiipyVGmKIXGYYYU92pMnbvXkYQMoa+WJNncN
+D3fY52UeXeffTf4cFpStlzi9xgYtOLhFamzYu/4xhkjOX+xhOSXscCiFRyT8cF3B
+O6c5BHU+Zj0/rGPgOyPUbx7l7B9MubB/41nNX35k08e+8T3wtWDb4XF+15HnRfva
+6fblO8wgU25Orv2Rm1jnKGa9DxJ8nE40IMrqDapENtDuL+zKJsvR0+ptWvEyL56U
+GtJJG5un6mXiLKuRQT0DEv4MdZRHDgDstDnqcbEiazVEbUuvhZZob6lRY2A19m1+
+7zfnDxkhqCA1RCnv4fdvcPdCMMFHwLpdhjgW0aI/uwgwrvsEz5+JRlnLvdQHlPAg
+q7l2fGcBSpz9U0ayyfRPjPntsNCtZl1UDxGLeciPkZhyG84zEWQbk/j52ZpRN+Ik
+ALpRLa8RBFmFSmXDUmwQrmm1EmARyQXwweKU31hf8ZGbCp2lPuRYm1LuGiirXSVP
+GysjRAJgW+VRpBKOzFQoUAUbReVWSaCwT8s17THzf71DdDb6CTj31jMLLYWwBpA/
+i73DgobDZMIGEZZC1EKqza8eh11xfyHFzGec03tbh+lIen+5IiRtWiEWkDS9ll0G
+zgS/ZdziCvdAutqnGA==
+=gZWO
+-----END PGP PUBLIC KEY BLOCK-----
+
+```
 
 Security reports are greatly appreciated and we will publicly thank you for it, although we keep your name confidential if you request it.
