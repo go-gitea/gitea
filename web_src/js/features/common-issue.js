@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 
 export function initCommonIssue() {
-  function checkboxOperate(e) {
+  const checkboxOperate = (e) => {
     const issuecheckbox = $('.issue-checkbox input');
     if (e.shiftKey && window.checkboxfirst !== undefined) {
       for (let i = window.checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
