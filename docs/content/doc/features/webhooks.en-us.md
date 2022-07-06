@@ -188,3 +188,7 @@ if (json_last_error() !== JSON_ERROR_NONE) {
 ```
 
 There is a Test Delivery button in the webhook settings that allows to test the configuration as well as a list of the most Recent Deliveries.
+
+### Authorization header (Gitea hook only)
+
+**With 1.18**, Gitea hooks can be configured to send an [authorization header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization) to the webhook target. Supported header types are _Basic Authentication_ and _Token Authentication_. The header key can be changed in case the webhook target requires a different one. The key defaults to `Authorization`.
