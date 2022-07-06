@@ -20,7 +20,7 @@ type GiteaSecretModuleMock struct {
 	SimulateError bool
 }
 
-func (m *GiteaSecretModuleMock) DecryptSecret(key string, cipherhex string) (string, error) {
+func (m *GiteaSecretModuleMock) DecryptSecret(key, cipherhex string) (string, error) {
 	m.DecryptCalled = true
 
 	if m.SimulateError {
