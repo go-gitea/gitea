@@ -23,7 +23,7 @@ type PushMirror struct {
 	Repo       *Repository `xorm:"-"`
 	RemoteName string
 
-	SyncOnCommit   bool
+	SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 	Interval       time.Duration
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
