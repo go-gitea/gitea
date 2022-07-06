@@ -105,7 +105,7 @@ func CreateMigrateTask(doer, u *user_model.User, opts base.MigrateOptions) (*mod
 		return nil, err
 	}
 
-	repo, err := repo_module.CreateRepository(doer, u, models.CreateRepoOptions{
+	repo, err := repo_module.CreateRepository(doer, u, repo_module.CreateRepoOptions{
 		Name:           opts.RepoName,
 		Description:    opts.Description,
 		OriginalURL:    opts.OriginalURL,

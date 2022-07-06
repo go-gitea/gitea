@@ -10,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -110,7 +109,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(func(txCtx context.Context) error {
-		if err = models.CreateRepository(txCtx, doer, owner, repo, false); err != nil {
+		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
 

@@ -28,6 +28,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/translation"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -355,7 +356,7 @@ func TestConflictChecking(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 		// Create new clean repo to test conflict checking.
-		baseRepo, err := repo_service.CreateRepository(user, user, models.CreateRepoOptions{
+		baseRepo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
 			Name:          "conflict-checking",
 			Description:   "Tempo repo",
 			AutoInit:      true,
