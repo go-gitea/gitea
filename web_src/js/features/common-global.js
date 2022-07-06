@@ -188,7 +188,7 @@ export function initGlobalDropzone() {
       init() {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
-          const input = $(`<input id="${file.uuid}" name="files" type="hidden">`).val(data.uuid);
+          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
           addUploadedFileToEditor(file.editor, file);
         });
