@@ -8,7 +8,7 @@
 			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 		{{if .IsSigned}}
-		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.i18n.Tr "notifications"}}'>
+		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
 			<span class="text black">
 				<span class="fitted">{{svg "octicon-bell"}}</span>
 				<span class="ui red label mini{{if not $notificationUnreadCount}} hidden{{end}} notification_count">
