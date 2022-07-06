@@ -514,9 +514,9 @@ trigger:
   event:
     - pull_request
 
-volumes:
-  - name: deps
-    temp: {}
+#volumes:
+#  - name: deps
+#    temp: {}
 
 services:
   - name: pgsql
@@ -545,9 +545,9 @@ steps:
     pull: always
     commands:
       - make deps-backend
-    volumes:
-      - name: deps
-        path: /go
+#    volumes:
+#      - name: deps
+#        path: /go
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
@@ -568,9 +568,9 @@ steps:
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       NPX_FLAGS: '--yes'
     depends_on: [build-frontend, deps-backend]
-    volumes:
-      - name: deps
-        path: /go
+#    volumes:
+#      - name: deps
+#        path: /go
 
 ---
 kind: pipeline
