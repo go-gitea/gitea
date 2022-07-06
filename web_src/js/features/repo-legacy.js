@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
+import {initEasyMDEImagePaste, addUploadedFileToEditor, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -33,7 +33,7 @@ import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 const {csrfToken} = window.config;
 
 export function initRepoCommentForm() {
-  const $commentForm = $('.comment.form');
+  const $commentForm = $('#comment-form, #new-issue'); // for issues and PRs
   if ($commentForm.length === 0) {
     return;
   }
@@ -68,8 +68,7 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
-    const $textarea = $commentForm.find('textarea:not(.review-textarea)');
-    const easyMDE = await createCommentEasyMDE($textarea);
+    const easyMDE = await createCommentEasyMDE($commentForm.find('textarea:not(.review-textarea)'));
     initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
   })();
 
@@ -284,7 +283,8 @@ async function onEditContent(event) {
     if ($dropzone.length === 1) {
       $dropzone.data('saved', false);
 
-      const fileUuidDict = {};
+      let disableRemovedfileEvent = false; // when resetting the dropzone (removeAllFiles), disable the removedfile event
+      let fileUuidDict = {}; // if a comment has been saved, then the uploaded files won't be deleted from server when clicking the Remove in the dropzone
       dz = await createDropzone($dropzone[0], {
         url: $dropzone.data('upload-url'),
         headers: {'X-Csrf-Token': csrfToken},
@@ -303,17 +303,27 @@ async function onEditContent(event) {
         init() {
           this.on('success', (file, data) => {
             file.uuid = data.uuid;
-            fileUuidDict[file.uuid] = {submitted: false};
-            const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+            const input = $(`<input id="${file.uuid}" name="files" type="hidden">`).val(data.uuid);
             $dropzone.find('.files').append(input);
+            fileUuidDict[file.uuid] = {submitted: false};
+            addUploadedFileToEditor(file.editor, file);
           });
           this.on('removedfile', (file) => {
+            if (disableRemovedfileEvent) return;
             $(`#${file.uuid}`).remove();
-            if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid].submitted) {
+            if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.parentElement.parentElement.querySelector('textarea')))) {
+              file.editor = file.editor.codemirror;
+            }
+            if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid]?.submitted) {
               $.post($dropzone.data('remove-url'), {
                 file: file.uuid,
                 _csrf: csrfToken,
+              }).always(() => {
+                removeUploadedFileFromEditor(file.editor, file.uuid);
               });
+            } else {
+              // for saved comment's attachment's removal, only remove the link in the editor
+              removeUploadedFileFromEditor(file.editor, file.uuid);
             }
           });
           this.on('submit', () => {
@@ -323,8 +333,11 @@ async function onEditContent(event) {
           });
           this.on('reload', () => {
             $.getJSON($editContentZone.data('attachment-url'), (data) => {
+              disableRemovedfileEvent = true;
               dz.removeAllFiles(true);
+              disableRemovedfileEvent = false;
               $dropzone.find('.files').empty();
+              fileUuidDict = {};
               $.each(data, function () {
                 const imgSrc = `${$dropzone.data('link-url')}/${this.uuid}`;
                 dz.emit('addedfile', this);

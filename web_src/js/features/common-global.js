@@ -5,6 +5,9 @@ import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
+import {addUploadedFileToEditor, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
+import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
+import {getAttachedEasyMDE} from './comp/EasyMDE.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -51,20 +54,6 @@ export function initGlobalEnterQuickSubmit() {
       return false;
     }
   });
-}
-
-export function handleGlobalEnterQuickSubmit(target) {
-  const $target = $(target);
-  const $form = $(target).closest('form');
-  if ($form.length) {
-    // here use the event to trigger the submit event (instead of calling `submit()` method directly)
-    // otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
-    $form.trigger('submit');
-  } else {
-    // if no form, then the editor is for an AJAX request, dispatch an event to the target, let the target's event handler to do the AJAX request.
-    // the 'ce-' prefix means this is a CustomEvent
-    $target.trigger('ce-quick-submit');
-  }
 }
 
 export function initGlobalButtonClickOnEnter() {
@@ -199,15 +188,21 @@ export function initGlobalDropzone() {
       init() {
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
+          const input = $(`<input id="${file.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
+          addUploadedFileToEditor(file.editor, file);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
+          if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.parentElement.parentElement.querySelector('textarea')))) {
+            file.editor = file.editor.codemirror;
+          }
           if ($dropzone.data('remove-url')) {
             $.post($dropzone.data('remove-url'), {
               file: file.uuid,
               _csrf: csrfToken,
+            }).always(() => {
+              removeUploadedFileFromEditor(file.editor, file.uuid);
             });
           }
         });

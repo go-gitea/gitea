@@ -1,94 +1,60 @@
 import $ from 'jquery';
+import {getAttachedEasyMDE} from './EasyMDE.js';
 
-const {csrfToken} = window.config;
+/**
+ *
+ * @param {*} editor
+ * @param {*} file
+ */
+export function addUploadedFileToEditor(editor, file) {
+  if (!editor && file.previewElement && (editor = getAttachedEasyMDE(file.previewElement.parentElement.parentElement.parentElement.querySelector('textarea')))) {
+    editor = editor.codemirror;
+  }
+  const startPos = editor.selectionStart || editor.getCursor && editor.getCursor('start'), endPos = editor.selectionEnd || editor.getCursor && editor.getCursor('end'), isimage = file.type.startsWith('image/') ? '!' : '', fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
+  if (startPos) {
+    if (editor.setSelection) {
+      editor.setSelection(startPos, endPos);
+      editor.replaceSelection(`${isimage}[${fileName}](/attachments/${file.uuid})\n`);
+    } else {
+      editor.value = `${editor.value.substring(0, startPos)}\n${isimage}[${fileName}](/attachments/${file.uuid})\n${editor.value.substring(endPos)}`;
+    }
+  } else if (editor.setSelection) {
+    editor.value(`${editor.value()}\n${isimage}[${fileName}](/attachments/${file.uuid})\n`);
+  } else {
+    editor.value += `${editor.value}\n${isimage}[${fileName}](/attachments/${file.uuid})\n`;
+  }
+}
 
-async function uploadFile(file, uploadUrl) {
-  const formData = new FormData();
-  formData.append('file', file, file.name);
-
-  const res = await fetch(uploadUrl, {
-    method: 'POST',
-    headers: {'X-Csrf-Token': csrfToken},
-    body: formData,
-  });
-  return await res.json();
+/**
+ * @param editor{EasyMDE}
+ * @param fileUuid
+ */
+export function removeUploadedFileFromEditor(editor, fileUuid) {
+  // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/
+  const re = new RegExp(`(!|)\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
+  if (editor.setValue) {
+    editor.setValue(editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
+  } else {
+    editor.value = editor.value.replace(re, '');
+  }
 }
 
 function clipboardPastedImages(e) {
-  if (!e.clipboardData) return [];
+  const data = e.clipboardData || e.dataTransfer;
+  if (!data) return [];
 
-  const files = [];
-  for (const item of e.clipboardData.items || []) {
-    if (!item.type || !item.type.startsWith('image/')) continue;
-    files.push(item.getAsFile());
+  const files = [], datafiles = e.clipboardData && e.clipboardData.items || e.dataTransfer && e.dataTransfer.files;
+  for (const item of datafiles || []) {
+    const file = (e.clipboardData ? item.getAsFile() : item);
+    if (file === null || !item.type) continue;
+    files.push(file);
   }
   return files;
 }
 
-class TextareaEditor {
-  constructor(editor) {
-    this.editor = editor;
-  }
-
-  insertPlaceholder(value) {
-    const editor = this.editor;
-    const startPos = editor.selectionStart;
-    const endPos = editor.selectionEnd;
-    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
-    editor.selectionStart = startPos;
-    editor.selectionEnd = startPos + value.length;
-    editor.focus();
-  }
-
-  replacePlaceholder(oldVal, newVal) {
-    const editor = this.editor;
-    const startPos = editor.selectionStart;
-    const endPos = editor.selectionEnd;
-    if (editor.value.substring(startPos, endPos) === oldVal) {
-      editor.value = editor.value.substring(0, startPos) + newVal + editor.value.substring(endPos);
-      editor.selectionEnd = startPos + newVal.length;
-    } else {
-      editor.value = editor.value.replace(oldVal, newVal);
-      editor.selectionEnd -= oldVal.length;
-      editor.selectionEnd += newVal.length;
-    }
-    editor.selectionStart = editor.selectionEnd;
-    editor.focus();
-  }
-}
-
-class CodeMirrorEditor {
-  constructor(editor) {
-    this.editor = editor;
-  }
-
-  insertPlaceholder(value) {
-    const editor = this.editor;
-    const startPoint = editor.getCursor('start');
-    const endPoint = editor.getCursor('end');
-    editor.replaceSelection(value);
-    endPoint.ch = startPoint.ch + value.length;
-    editor.setSelection(startPoint, endPoint);
-    editor.focus();
-  }
-
-  replacePlaceholder(oldVal, newVal) {
-    const editor = this.editor;
-    const endPoint = editor.getCursor('end');
-    if (editor.getSelection() === oldVal) {
-      editor.replaceSelection(newVal);
-    } else {
-      editor.setValue(editor.getValue().replace(oldVal, newVal));
-    }
-    endPoint.ch -= oldVal.length;
-    endPoint.ch += newVal.length;
-    editor.setSelection(endPoint, endPoint);
-    editor.focus();
-  }
-}
-
-
 export function initEasyMDEImagePaste(easyMDE, $dropzone) {
+  if ($dropzone.length !== 1) throw new Error('invalid dropzone binding for editor');
+
   const uploadUrl = $dropzone.attr('data-upload-url');
   const $files = $dropzone.find('.files');
 
@@ -103,23 +69,20 @@ export function initEasyMDEImagePaste(easyMDE, $dropzone) {
     e.stopPropagation();
 
     for (const img of pastedImages) {
-      const name = img.name.slice(0, img.name.lastIndexOf('.'));
-
-      const placeholder = `![${name}](uploading ...)`;
-      editor.insertPlaceholder(placeholder);
-      const data = await uploadFile(img, uploadUrl);
-      editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
-
-      const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
-      $files.append($input);
+      img.editor = editor;
+      $dropzone[0].dropzone.addFile(img);
     }
   };
 
   easyMDE.codemirror.on('paste', async (_, e) => {
-    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), e);
+    return uploadClipboardImage(easyMDE.codemirror, e);
   });
 
-  $(easyMDE.element).on('paste', async (e) => {
-    return uploadClipboardImage(new TextareaEditor(easyMDE.element), e.originalEvent);
+  easyMDE.codemirror.on('drop', async (_, e) => {
+    return uploadClipboardImage(easyMDE.codemirror, e);
+  });
+
+  $(easyMDE.element).on('paste drop', async (e) => {
+    return uploadClipboardImage(easyMDE.element, e.originalEvent);
   });
 }
