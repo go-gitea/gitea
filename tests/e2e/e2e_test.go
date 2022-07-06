@@ -96,15 +96,17 @@ func TestE2e(t *testing.T) {
 				cmd := exec.Command(runArgs[0], runArgs...)
 				cmd.Env = os.Environ()
 				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
-				var out bytes.Buffer
-				cmd.Stdout = &out
+				var stdout, stderr bytes.Buffer
+				cmd.Stdout = &stdout
+				cmd.Stderr = &stderr
 				err := cmd.Run()
 				if err != nil {
 					// Currently colored output is conflicting. Using Printf until that is resolved.
-					fmt.Printf("%v", out.String())
+					fmt.Printf("%v", stdout.String())
+					fmt.Printf("%v", stderr.String())
 					log.Fatal("Playwright Failed: %s", err)
 				} else {
-					fmt.Printf("%v", out.String())
+					fmt.Printf("%v", stdout.String())
 				}
 			})
 		})
