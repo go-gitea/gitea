@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package activities
 
 import (
 	"context"
@@ -209,21 +209,6 @@ func (a *Action) ShortRepoPath() string {
 func (a *Action) GetRepoLink() string {
 	// path.Join will skip empty strings
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
-}
-
-// GetRepositoryFromMatch returns a *repo_model.Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName, repoName string) (*repo_model.Repository, error) {
-	var err error
-	refRepo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			log.Warn("Repository referenced in commit but does not exist: %v", err)
-			return nil, err
-		}
-		log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
-		return nil, err
-	}
-	return refRepo, nil
 }
 
 // GetCommentLink returns link to action comment.

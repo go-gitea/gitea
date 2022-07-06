@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -134,7 +134,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return models.DeleteOldActions(olderThanConfig.OlderThan)
+		return activities_model.DeleteOldActions(olderThanConfig.OlderThan)
 	})
 }
 

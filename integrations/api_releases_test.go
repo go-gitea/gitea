@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -84,7 +83,7 @@ func createNewReleaseUsingAPI(t *testing.T, session *TestSession, token string, 
 
 	var newRelease api.Release
 	DecodeJSON(t, resp, &newRelease)
-	rel := &models.Release{
+	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,
@@ -138,7 +137,7 @@ func TestAPICreateAndUpdateRelease(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
 	DecodeJSON(t, resp, &newRelease)
-	rel := &models.Release{
+	rel := &repo_model.Release{
 		ID:      newRelease.ID,
 		TagName: newRelease.TagName,
 		Title:   newRelease.Title,

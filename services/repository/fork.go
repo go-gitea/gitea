@@ -23,6 +23,23 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
+type ErrForkAlreadyExist struct {
+	Uname    string
+	RepoName string
+	ForkName string
+}
+
+// IsErrForkAlreadyExist checks if an error is an ErrForkAlreadyExist.
+func IsErrForkAlreadyExist(err error) bool {
+	_, ok := err.(ErrForkAlreadyExist)
+	return ok
+}
+
+func (err ErrForkAlreadyExist) Error() string {
+	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+}
+
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
 	BaseRepo    *repo_model.Repository
@@ -37,7 +54,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, err
 	}
 	if forkedRepo != nil {
-		return nil, models.ErrForkAlreadyExist{
+		return nil, ErrForkAlreadyExist{
 			Uname:    owner.Name,
 			RepoName: opts.BaseRepo.FullName(),
 			ForkName: forkedRepo.FullName(),

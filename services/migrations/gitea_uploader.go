@@ -84,7 +84,7 @@ func (g *GiteaLocalUploader) MaxBatchInsertSize(tp string) int {
 	case "label":
 		return db.MaxBatchInsertSize(new(issues_model.Label))
 	case "release":
-		return db.MaxBatchInsertSize(new(models.Release))
+		return db.MaxBatchInsertSize(new(repo_model.Release))
 	case "pullrequest":
 		return db.MaxBatchInsertSize(new(issues_model.PullRequest))
 	}
@@ -238,7 +238,7 @@ func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
 
 // CreateReleases creates releases
 func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
-	rels := make([]*models.Release, 0, len(releases))
+	rels := make([]*repo_model.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
 			if !release.Published.IsZero() {
@@ -248,7 +248,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			}
 		}
 
-		rel := models.Release{
+		rel := repo_model.Release{
 			RepoID:       g.repo.ID,
 			TagName:      release.TagName,
 			LowerTagName: strings.ToLower(release.TagName),

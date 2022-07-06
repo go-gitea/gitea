@@ -7,7 +7,6 @@ package repository
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -30,5 +29,5 @@ func TestForkRepository(t *testing.T) {
 	})
 	assert.Nil(t, fork)
 	assert.Error(t, err)
-	assert.True(t, models.IsErrForkAlreadyExist(err))
+	assert.True(t, IsErrForkAlreadyExist(err))
 }

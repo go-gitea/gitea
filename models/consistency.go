@@ -5,6 +5,7 @@
 package models
 
 import (
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -38,7 +39,7 @@ func FixWrongUserType() (int64, error) {
 // CountActionCreatedUnixString count actions where created_unix is an empty string
 func CountActionCreatedUnixString() (int64, error) {
 	if setting.Database.UseSQLite3 {
-		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(activities_model.Action))
 	}
 	return 0, nil
 }

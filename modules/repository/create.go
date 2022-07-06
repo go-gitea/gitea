@@ -13,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -220,7 +221,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 
 		// If repo has become private, we need to set its actions to private.
 		if repo.IsPrivate {
-			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&models.Action{
+			_, err = e.Where("repo_id = ?", repo.ID).Cols("is_private").Update(&activities_model.Action{
 				IsPrivate: true,
 			})
 			if err != nil {

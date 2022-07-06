@@ -12,6 +12,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -38,20 +39,6 @@ import (
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
-}
-
-// CheckRepoUnitUser check whether user could visit the unit of this repository
-func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	if user != nil && user.IsAdmin {
-		return true
-	}
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
-	if err != nil {
-		log.Error("GetUserRepoPermission(): %v", err)
-		return false
-	}
-
-	return perm.CanRead(unitType)
 }
 
 // CreateRepoOptions contains the create repository options
@@ -279,7 +266,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
-		&Action{RepoID: repo.ID},
+		&activities_model.Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
 		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
@@ -289,11 +276,11 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},
-		&Notification{RepoID: repoID},
+		&activities_model.Notification{RepoID: repoID},
 		&git_model.ProtectedBranch{RepoID: repoID},
 		&git_model.ProtectedTag{RepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
-		&Release{RepoID: repoID},
+		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
 		&repo_model.Redirect{RedirectRepoID: repoID},
 		&repo_model.RepoUnit{RepoID: repoID},

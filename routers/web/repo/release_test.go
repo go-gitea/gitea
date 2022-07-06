@@ -7,7 +7,6 @@ package repo
 import (
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/modules/web"
@@ -52,7 +51,7 @@ func TestNewReleasePost(t *testing.T) {
 		test.LoadGitRepo(t, ctx)
 		web.SetForm(ctx, &testCase.Form)
 		NewReleasePost(ctx)
-		unittest.AssertExistsAndLoadBean(t, &models.Release{
+		unittest.AssertExistsAndLoadBean(t, &repo_model.Release{
 			RepoID:      1,
 			PublisherID: 2,
 			TagName:     testCase.Form.TagName,

@@ -20,6 +20,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -701,7 +702,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
+			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}

@@ -162,7 +162,7 @@ func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Check visibility of action has become private
-	act := models.Action{}
+	act := activities_model.Action{}
 	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
 
 	assert.NoError(t, err)

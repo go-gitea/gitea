@@ -90,11 +90,11 @@ func TestWikiFilenameToName(t *testing.T) {
 	} {
 		_, err := FilenameToName(badFilename)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiInvalidFileName(err))
+		assert.True(t, repo_model.IsErrWikiInvalidFileName(err))
 	}
 	_, err := FilenameToName("badescaping%%.md")
 	assert.Error(t, err)
-	assert.False(t, models.IsErrWikiInvalidFileName(err))
+	assert.False(t, repo_model.IsErrWikiInvalidFileName(err))
 }
 
 func TestWikiNameToFilenameToName(t *testing.T) {
@@ -165,7 +165,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for reserved wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "_edit", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiReservedName(err))
+		assert.True(t, repo_model.IsErrWikiReservedName(err))
 	})
 }
 
