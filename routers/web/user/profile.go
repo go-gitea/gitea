@@ -234,7 +234,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctxUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowers(ctx, ctxUser, ctx.User, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -244,9 +244,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctxUser.NumFollowers
+		total = int(count)
 	case "following":
-		items, err := user_model.GetUserFollowing(ctxUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowing(ctx, ctxUser, ctx.User, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -256,9 +256,10 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctxUser.NumFollowing
+		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{RequestedUser: ctxUser,
+		ctx.Data["Feeds"] = feed.RetrieveFeeds(ctx, models.GetFeedsOptions{
+			RequestedUser:   ctxUser,
 			Actor:           ctx.User,
 			IncludePrivate:  showPrivate,
 			OnlyPerformedBy: true,
