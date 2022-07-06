@@ -45,21 +45,21 @@
 </p>
 
 <p align="center">
-  <a href="README_ZH.md">View the chinese version of this document</a>
+  <a href="README_ZH.md">View this document in Chinese</a>
 </p>
 
 ## Purpose
 
 The goal of this project is to make the easiest, fastest, and most
 painless way of setting up a self-hosted Git service.
-Using Go, this can be done with an independent binary distribution across
+
+With Go, this can be done platform-independently across
 **all platforms** which Go supports, including Linux, macOS, and Windows
 on x86, amd64, ARM and PowerPC architectures.
-Want to try it before doing anything else?
-Do it [with the online demo](https://try.gitea.io/)!
+You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
 [forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
-[Gogs](https://gogs.io) since 2016.11 but changed a lot.
+[Gogs](https://gogs.io) since November of 2016, but a lot has changed.
 
 ## Building
 
@@ -78,7 +78,7 @@ The `build` target is split into two sub-targets:
 
 When building from the official source tarballs which include pre-built frontend files, the `frontend` target will not be triggered, making it possible to build without Node.js and Internet connectivity.
 
-Parallelism (`make -j <num>`) is not supported.
+Parallelism (`make -j<num>`) is not supported.
 
 More info: https://docs.gitea.io/en-us/install-from-source/
 
@@ -114,7 +114,7 @@ For more information and instructions about how to install Gitea, please look at
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
 We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).  
-The hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
+The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
 ## Authors
