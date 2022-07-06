@@ -16,20 +16,20 @@ const initAuthenticationHeaderSection = function() {
     const $tokenAuthFields = $authHeaderSection.find('.token-auth');
 
     if (isBasicAuth) {
-      $basicAuthFields.addClass("required");
-      $basicAuthFields.find('input').attr("required", "");
+      $basicAuthFields.addClass('required');
+      $basicAuthFields.find('input').attr('required', '');
       $basicAuthFields.show();
 
-      $tokenAuthFields.removeClass("required");
-      $tokenAuthFields.find('input').removeAttr("required");
+      $tokenAuthFields.removeClass('required');
+      $tokenAuthFields.find('input').removeAttr('required');
       $tokenAuthFields.hide();
     } else {
-      $basicAuthFields.removeClass("required");
-      $basicAuthFields.find('input').removeAttr("required");
+      $basicAuthFields.removeClass('required');
+      $basicAuthFields.find('input').removeAttr('required');
       $basicAuthFields.hide();
 
-      $tokenAuthFields.addClass("required");
-      $tokenAuthFields.find('input').attr("required", "");
+      $tokenAuthFields.addClass('required');
+      $tokenAuthFields.find('input').attr('required', '');
       $tokenAuthFields.show();
     }
   };
@@ -37,15 +37,15 @@ const initAuthenticationHeaderSection = function() {
   const updateHeaderCheckbox = function() {
     if ($checkbox.is(':checked')) {
       const $headerName = $authHeaderSection.find('#auth_header_name');
-      $headerName.attr("required", "");
-      $headerName.parent().addClass("required");
+      $headerName.attr('required', '');
+      $headerName.parent().addClass('required');
       $headerName.parent().show();
       $authHeaderSection.find('#auth_header_type').parent().parent().show();
       updateHeaderContentType();
     } else {
       $authHeaderSection.find('.auth-header').hide();
-      $authHeaderSection.find('.auth-header').removeClass("required");
-      $authHeaderSection.find('.auth-header input').removeAttr("required");
+      $authHeaderSection.find('.auth-header').removeClass('required');
+      $authHeaderSection.find('.auth-header input').removeAttr('required');
     }
   };
 
