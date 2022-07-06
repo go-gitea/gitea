@@ -64,6 +64,20 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
+export function initPopup(target) {
+  const $el = $(target);
+  const attr = $el.attr('data-variation');
+  const attrs = attr ? attr.split(' ') : [];
+  const variations = new Set([...attrs, 'inverted', 'tiny']);
+  $el.attr('data-variation', [...variations].join(' ')).popup();
+}
+
+export function initGlobalPopups() {
+  $('.tooltip').each((_, el) => {
+    initPopup(el);
+  });
+}
+
 export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
@@ -109,15 +123,6 @@ export function initGlobalCommon() {
   attachDropdownAria($uiDropdowns);
 
   $('.ui.checkbox').checkbox();
-
-  // init popups
-  $('.tooltip').each((_, el) => {
-    const $el = $(el);
-    const attr = $el.attr('data-variation');
-    const attrs = attr ? attr.split(' ') : [];
-    const variations = new Set([...attrs, 'inverted', 'tiny']);
-    $el.attr('data-variation', [...variations].join(' ')).popup();
-  });
 
   $('.top.menu .tooltip').popup({
     onShow() {
