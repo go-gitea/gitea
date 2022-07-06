@@ -3,29 +3,28 @@
 	{{template "explore/navbar" .}}
 	<div class="ui container">
 		<form class="ui form ignore-dirty" style="max-width: 100%">
-			<input type="hidden" name="tab" value="{{$.TabName}}">
 			<div class="ui fluid action input">
-				<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
+				<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
 				<div class="ui dropdown selection{{if .CodeIndexerUnavailable }} disabled{{end}}">
 					<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable }} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-					<div class="text">{{.i18n.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
+					<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
 					<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
-						<div class="item" data-value="">{{.i18n.Tr "explore.search.fuzzy"}}</div>
-						<div class="item" data-value="match">{{.i18n.Tr "explore.search.match"}}</div>
+						<div class="item" data-value="">{{.locale.Tr "explore.search.fuzzy"}}</div>
+						<div class="item" data-value="match">{{.locale.Tr "explore.search.match"}}</div>
 					</div>
 				</div>
-				<button class="ui primary button"{{if .CodeIndexerUnavailable }} disabled{{end}}>{{.i18n.Tr "explore.search"}}</button>
+				<button class="ui primary button"{{if .CodeIndexerUnavailable }} disabled{{end}}>{{.locale.Tr "explore.search"}}</button>
 			</div>
 		</form>
 		<div class="ui divider"></div>
 		<div class="ui user list">
 			{{if .CodeIndexerUnavailable }}
 				<div class="ui error message">
-					<p>{{$.i18n.Tr "explore.code_search_unavailable"}}</p>
+					<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
 				</div>
 			{{else if .SearchResults}}
 				<h3>
-					{{.i18n.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
+					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
 				</h3>
 				<div class="df ac fw">
 					{{range $term := .SearchResultLanguages}}
@@ -44,11 +43,11 @@
 								<span class="file">
 									<a rel="nofollow" href="{{$repo.HTMLURL}}">{{$repo.FullName}}</a>
 										{{if $repo.IsArchived}}
-											<span class="ui basic label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+											<span class="ui basic label">{{$.locale.Tr "repo.desc.archived"}}</span>
 										{{end}}
 									- {{.Filename}}
 								</span>
-								<a class="ui basic tiny button" rel="nofollow" href="{{$repo.HTMLURL}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+								<a class="ui basic tiny button" rel="nofollow" href="{{$repo.HTMLURL}}/src/commit/{{$result.CommitID | PathEscape}}/{{.Filename | PathEscapeSegments}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
 							</h4>
 							<div class="ui attached table segment">
 								<div class="file-body file-code code-view">
@@ -71,7 +70,7 @@
 					{{end}}
 				</div>
 			{{else}}
-				<div>{{$.i18n.Tr "explore.code_no_results"}}</div>
+				<div>{{$.locale.Tr "explore.code_no_results"}}</div>
 			{{end}}
 		</div>
 

@@ -156,14 +156,14 @@ type ErrTaskDoesNotExist struct {
 	Type   structs.TaskType
 }
 
-// IsErrTaskDoesNotExist checks if an error is a ErrTaskIsNotExist.
+// IsErrTaskDoesNotExist checks if an error is a ErrTaskDoesNotExist.
 func IsErrTaskDoesNotExist(err error) bool {
 	_, ok := err.(ErrTaskDoesNotExist)
 	return ok
 }
 
 func (err ErrTaskDoesNotExist) Error() string {
-	return fmt.Sprintf("task is not exist [id: %d, repo_id: %d, type: %d]",
+	return fmt.Sprintf("task does not exist [id: %d, repo_id: %d, type: %d]",
 		err.ID, err.RepoID, err.Type)
 }
 

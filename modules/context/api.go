@@ -340,7 +340,7 @@ func ReferencesGitRepo(allowEmpty ...bool) func(ctx *APIContext) (cancel context
 			}
 		}
 
-		return
+		return cancel
 	}
 }
 

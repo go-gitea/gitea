@@ -107,7 +107,6 @@ func NewFuncMap() []template.FuncMap {
 		"Str2html":       Str2html,
 		"TimeSince":      timeutil.TimeSince,
 		"TimeSinceUnix":  timeutil.TimeSinceUnix,
-		"RawTimeSince":   timeutil.RawTimeSince,
 		"FileSize":       base.FileSize,
 		"PrettyNumber":   base.PrettyNumber,
 		"JsPrettyNumber": JsPrettyNumber,
@@ -486,7 +485,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -735,7 +733,7 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -845,7 +843,7 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		log.Error("RenderNote: %v", err)
 		return ""
 	}
-	return template.HTML(string(fullMessage))
+	return template.HTML(fullMessage)
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
@@ -978,9 +976,6 @@ type remoteAddress struct {
 
 func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
 	a := remoteAddress{}
-	if !m.IsMirror {
-		return a
-	}
 
 	remoteURL := m.OriginalURL
 	if remoteURL == "" {

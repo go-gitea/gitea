@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -64,6 +65,12 @@ func ReleaseReopenLogging(ctx *context.PrivateContext) {
 		})
 		return
 	}
+	ctx.PlainText(http.StatusOK, "success")
+}
+
+// SetLogSQL re-sets database SQL logging
+func SetLogSQL(ctx *context.PrivateContext) {
+	db.SetLogSQL(ctx, ctx.FormBool("on"))
 	ctx.PlainText(http.StatusOK, "success")
 }
 

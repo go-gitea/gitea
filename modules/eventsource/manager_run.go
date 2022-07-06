@@ -94,7 +94,9 @@ loop:
 				for _, userStopwatches := range usersStopwatches {
 					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
 					if err != nil {
-						log.Error("Unable to APIFormat stopwatches: %v", err)
+						if !issues_model.IsErrIssueNotExist(err) {
+							log.Error("Unable to APIFormat stopwatches: %v", err)
+						}
 						continue
 					}
 					dataBs, err := json.Marshal(apiSWs)

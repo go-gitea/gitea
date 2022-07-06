@@ -803,7 +803,8 @@ func NewIssue(ctx *context.Context) {
 	body := ctx.FormString("body")
 	ctx.Data["BodyQuery"] = body
 
-	ctx.Data["IsProjectsEnabled"] = ctx.Repo.CanRead(unit.TypeProjects)
+	isProjectsEnabled := ctx.Repo.CanRead(unit.TypeProjects)
+	ctx.Data["IsProjectsEnabled"] = isProjectsEnabled
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 
@@ -819,7 +820,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	projectID := ctx.FormInt64("project")
-	if projectID > 0 {
+	if projectID > 0 && isProjectsEnabled {
 		project, err := project_model.GetProjectByID(ctx, projectID)
 		if err != nil {
 			log.Error("GetProjectByID: %d: %v", projectID, err)
@@ -875,6 +876,11 @@ func DeleteIssue(ctx *context.Context) {
 
 	if err := issue_service.DeleteIssue(ctx.Doer, ctx.Repo.GitRepo, issue); err != nil {
 		ctx.ServerError("DeleteIssueByID", err)
+		return
+	}
+
+	if issue.IsPull {
+		ctx.Redirect(fmt.Sprintf("%s/pulls", ctx.Repo.Repository.HTMLURL()), http.StatusSeeOther)
 		return
 	}
 
@@ -1038,6 +1044,11 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	if projectID > 0 {
+		if !ctx.Repo.CanRead(unit.TypeProjects) {
+			// User must also be able to see the project.
+			ctx.Error(http.StatusBadRequest, "user hasn't permissions to read projects")
+			return
+		}
 		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
@@ -1778,6 +1789,10 @@ func getActionIssues(ctx *context.Context) []*issues_model.Issue {
 	issueUnitEnabled := ctx.Repo.CanRead(unit.TypeIssues)
 	prUnitEnabled := ctx.Repo.CanRead(unit.TypePullRequests)
 	for _, issue := range issues {
+		if issue.RepoID != ctx.Repo.Repository.ID {
+			ctx.NotFound("some issue's RepoID is incorrect", errors.New("some issue's RepoID is incorrect"))
+			return nil
+		}
 		if issue.IsPull && !prUnitEnabled || !issue.IsPull && !issueUnitEnabled {
 			ctx.NotFound("IssueOrPullRequestUnitNotAllowed", nil)
 			return nil

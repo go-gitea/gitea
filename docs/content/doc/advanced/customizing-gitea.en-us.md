@@ -335,8 +335,8 @@ The list of themes a user can choose from can be configured with the `THEMES` va
 
 To make a custom theme available to all users:
 
-1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
-  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+1. Add a CSS file to `$GITEA_CUSTOM/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
 2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).

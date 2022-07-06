@@ -211,7 +211,7 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 		return
 	}
 	jsonConfig = string(byteConfig)
-	return
+	return mode, jsonConfig, levelName
 }
 
 func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
