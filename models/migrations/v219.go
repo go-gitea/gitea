@@ -19,7 +19,7 @@ func addSyncOnCommitColForPushMirror(x *xorm.Engine) error {
 		Repo       *repo.Repository `xorm:"-"`
 		RemoteName string
 
-		SyncOnCommit   bool `xorm:"NOT NULL DEFAULT false"`
+		SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
 		Interval       time.Duration
 		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
