@@ -293,7 +293,14 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 }
 
 func PackagesSearch(ctx *context.Context) {
-	pvs, err := packages_model.GetVersionsByPackageType(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm)
+	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+		OwnerID: ctx.Package.Owner.ID,
+		Type:    packages_model.TypeNpm,
+		Name: packages_model.SearchValue{
+			ExactMatch: false,
+			Value:      ctx.Req.URL.Query().Get("text"),
+		},
+	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return

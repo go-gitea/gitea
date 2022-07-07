@@ -84,9 +84,6 @@ func createPackagesSearchResponse(registryURL string, pds []*packages_model.Pack
 		}
 	}
 
-	// TODO: Only show latest versions
-	// latest := pds[len(pds)-1]
-
 	return &npm_module.PackagesSearch{
 		Objects: versions,
 		Total:   len(versions),
