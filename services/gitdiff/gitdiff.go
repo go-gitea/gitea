@@ -410,9 +410,9 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 
 		if placeholder != 0 {
 			res.WriteRune(placeholder) // use the placeholder to replace the tag
-		} else {
-			res.WriteString(tag) // unfortunately, all private use runes has been exhausted, no more placeholder could be used, so do not convert the tag
-		}
+		} 
+		// else: unfortunately, all private use runes has been exhausted, no more placeholder could be used, no more converting
+		// usually, the exhausting won't occur in real cases, the used placeholders are not more than the CSS classes outputted by chroma.
 	}
 	// write the remaining string
 	res.WriteString(htmlCode)
