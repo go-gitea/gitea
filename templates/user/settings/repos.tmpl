@@ -109,15 +109,15 @@
 							<div class="item">
 								<div class="content">
 									{{if .IsPrivate}}
-										<span class="text gold iconFloat">{{svg "octicon-lock"}}</span>
+										<i class="ui icon text gold iconFloat">{{svg "octicon-lock"}}</i>
 									{{else if .IsFork}}
-										<span class="iconFloat">{{svg "octicon-repo-forked"}}</span>
+										<i class="ui icon iconFloat">{{svg "octicon-repo-forked"}}</i>
 									{{else if .IsMirror}}
-										<span class="iconFloat">{{svg "octicon-mirror"}}</span>
+										<i class="ui icon iconFloat">{{svg "octicon-mirror"}}</i>
 									{{else if .IsTemplate}}
-										<span class="iconFloat">{{svg "octicon-repo-template"}}</span>
+										<i class="ui icon iconFloat">{{svg "octicon-repo-template"}}</i>
 									{{else}}
-										<span class="iconFloat">{{svg "octicon-repo"}}</span>
+										<i class="ui icon iconFloat">{{svg "octicon-repo"}}</i>
 									{{end}}
 									<a class="name" href="{{.Link}}">{{.OwnerName}}/{{.Name}}</a>
 									<span>{{FileSize .Size}}</span>
