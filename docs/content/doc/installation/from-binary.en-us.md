@@ -107,6 +107,7 @@ cp gitea /usr/local/bin/gitea
 After you complete the above steps, you can run Gitea two ways:
 
 ### 1. Creating a service file to start Gitea automatically (recommended)
+
 See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
 
 ### 2. Running from command-line/terminal
