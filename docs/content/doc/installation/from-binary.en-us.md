@@ -23,6 +23,7 @@ embedded assets. This can be different for older releases.
 {{< toc >}}
 
 ## Download
+
 Choose the file matching your platform from the [downloads page](https://dl.gitea.io/gitea/), copy the URL and replace the URL within the commands below:
 
 ```sh
