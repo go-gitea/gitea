@@ -94,7 +94,7 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
 }
 
-// GetPushMirrorsByRepoIDWithSyncOnCommit returns push-mirrors for this repo that should be updated by new commits
+// GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
 func GetPushMirrorsSyncedOnCommit(repoID int64) ([]*PushMirror, error) {
 	mirrors := make([]*PushMirror, 0, 10)
 	return mirrors, db.GetEngine(db.DefaultContext).
