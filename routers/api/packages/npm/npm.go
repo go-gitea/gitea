@@ -291,3 +291,24 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 
 	return committer.Commit()
 }
+
+func PackagesSearch(ctx *context.Context) {
+	pvs, err := packages_model.GetVersionsByPackageType(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pds, err := packages_model.GetPackageDescriptors(ctx, pvs)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	resp := createPackagesSearchResponse(
+		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
+		pds,
+	)
+
+	ctx.JSON(http.StatusOK, resp)
+}

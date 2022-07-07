@@ -96,6 +96,16 @@ type PackageDistribution struct {
 	NpmSignature string `json:"npm-signature,omitempty"`
 }
 
+type PackagesSearch struct {
+	Objects []*PackagesSearchObject `json:"objects"`
+	Total   int                     `json:"total"`
+	Time    map[string]time.Time    `json:"time,omitempty"`
+}
+
+type PackagesSearchObject struct {
+	Package *PackageMetadataVersion `json:"package"`
+}
+
 // User https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
 type User struct {
 	Username string `json:"username,omitempty"`

@@ -215,6 +215,9 @@ func Routes() *web.Route {
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
+			r.Group("/-/v1/search", func() {
+				r.Get("", npm.PackagesSearch)
+			})
 		})
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
