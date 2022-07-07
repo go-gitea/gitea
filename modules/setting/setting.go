@@ -756,8 +756,7 @@ func newServerSSH() {
 }
 
 func newOauth2() {
-	sec := Cfg.Section("oauth2")
-	if err := sec.MapTo(&OAuth2); err != nil {
+	if err := Cfg.Section("oauth2").MapTo(&OAuth2); err != nil {
 		log.Fatal("Failed to OAuth2 settings: %v", err)
 	}
 
