@@ -14,7 +14,7 @@ import (
 func FederatedUserNew(name string, IRI ap.IRI) error {
 	user := &user_model.User{
 		Name:      name,
-		Email:     name,
+		Email:     name, // TODO: change this to something else to prevent collisions with normal users
 		LoginType: auth.Federated,
 		Website:   IRI.String(),
 	}

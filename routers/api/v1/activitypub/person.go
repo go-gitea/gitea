@@ -152,12 +152,17 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
 	for _, action := range feed {
-		if action.OpType == models.ActionCommentIssue {
-			log.Debug("action", action)
-			activity := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
-			activity.Content.Set("en", ap.Content(action.Content))
-			outbox.OrderedItems.Append(activity)
+		// TODO: There are 26 action types! This is going to take quite a while to implement...
+		log.Debug("action", action)
+		var activity ap.ObjectOrLink
+		switch action.OpType {
+		case models.ActionCreateRepo:
+			activity = ap.Create{Type: ap.CreateType}//, Object: forgefed.RepositoryNew()}
+		case models.ActionRenameRepo:
+			activity = ap.Move{Type: ap.MoveType}//, Object: forgefed.RepositoryNew()}
+		// etc
 		}
+		outbox.OrderedItems.Append(activity)
 	}
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
 
@@ -183,7 +188,7 @@ func PersonFollowing(ctx *context.APIContext) {
 
 	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
-	users, err := user_model.GetUserFollowing(ctx.ContextUser, utils.GetListOptions(ctx))
+	users, _, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.ServerError("GetUserFollowing", err)
 		return
@@ -220,7 +225,7 @@ func PersonFollowers(ctx *context.APIContext) {
 
 	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
 
-	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
+	users, _, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.ServerError("GetUserFollowers", err)
 		return

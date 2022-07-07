@@ -180,7 +180,7 @@ func RepoFollowers(ctx *context.APIContext) {
 
 	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
 
-	users, err := user_model.GetUserFollowers(ctx.ContextUser, utils.GetListOptions(ctx))
+	users, _, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.ServerError("GetUserFollowers", err)
 		return
