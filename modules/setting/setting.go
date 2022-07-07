@@ -1100,15 +1100,13 @@ func newOverall() {
 }
 
 func newMarkDown() {
-	sec := Cfg.Section("markdown")
-	if err := sec.MapTo(&Markdown); err != nil {
+	if err := Cfg.Section("markdown").MapTo(&Markdown); err != nil {
 		log.Fatal("Failed to map Markdown settings: %v", err)
 	}
 }
 
 func newAPI() {
-	sec := Cfg.Section("api")
-	if err := sec.MapTo(&API); err != nil {
+	if err := Cfg.Section("api").MapTo(&API); err != nil {
 		log.Fatal("Failed to map API settings: %v", err)
 	}
 
@@ -1124,15 +1122,13 @@ func newAPI() {
 }
 
 func newMetrics() {
-	sec := Cfg.Section("metrics")
-	if err := sec.MapTo(&Metrics); err != nil {
+	if err := Cfg.Section("metrics").MapTo(&Metrics); err != nil {
 		log.Fatal("Failed to map Metrics settings: %v", err)
 	}
 }
 
 func newCamo() {
-	sec := Cfg.Section("camo")
-	if err := sec.MapTo(&Camo); err != nil {
+	if err := Cfg.Section("camo").MapTo(&Camo); err != nil {
 		log.Fatal("Failed to map Camo settings: %v", err)
 	}
 
