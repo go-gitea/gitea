@@ -14,7 +14,7 @@
 						<br/>{{.About | RenderEmojiPlain}}
 					</div>
 					<div class="column right aligned">
-						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.i18n.Tr "repo.issues.choose.get_started"}}</a>
+						<a href="{{$.RepoLink}}/issues/new?template={{.FileName}}{{if $.milestone}}&milestone={{$.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
 					</div>
 				</div>
 			</div>
@@ -22,11 +22,11 @@
 		<div class="ui attached segment">
 			<div class="ui two column grid">
 				<div class="column left aligned">
-					<strong>{{.i18n.Tr "repo.issues.choose.blank"}}</strong>
-					<br/>{{.i18n.Tr "repo.issues.choose.blank_about"}}
+					<strong>{{.locale.Tr "repo.issues.choose.blank"}}</strong>
+					<br/>{{.locale.Tr "repo.issues.choose.blank_about"}}
 				</div>
 				<div class="column right aligned">
-					<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.i18n.Tr "repo.issues.choose.get_started"}}</a>
+					<a href="{{.RepoLink}}/issues/new?{{if .milestone}}&milestone={{.milestone}}{{end}}{{if $.project}}&project={{$.project}}{{end}}" class="ui green button">{{$.locale.Tr "repo.issues.choose.get_started"}}</a>
 				</div>
 			</div>
 		</div>
