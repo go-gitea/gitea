@@ -73,10 +73,6 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 }
 
 func createPackagesSearchResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackagesSearch {
-	sort.Slice(pds, func(i, j int) bool {
-		return pds[i].SemVer.LessThan(pds[j].SemVer)
-	})
-
 	versions := make([]*npm_module.PackagesSearchObject, len(pds))
 	for i := range pds {
 		versions[i] = &npm_module.PackagesSearchObject{
