@@ -67,6 +67,7 @@ adduser \
 ```
 
 ### Create required directory structure
+
 ```sh
 mkdir -p /var/lib/gitea/{custom,data,log}
 chown -R git:git /var/lib/gitea/
