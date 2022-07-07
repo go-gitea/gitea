@@ -44,10 +44,12 @@ Look for the text `Good signature from "Teabot <teabot@gitea.io>"` to assert a g
 despite warnings like `This key is not certified with a trusted signature!`.
 
 ## Recommended server configuration
+
 **NOTE:** Many of the following directories can be configured using [Environment Variables]({{< relref "doc/advanced/environment-variables.en-us.md" >}}) as well!
 Of note, configuring `GITEA_WORK_DIR` will tell Gitea where to base its working directory, as well as ease installation.
 
 ### Prepare environment
+
 Check that Git is installed on the server. If it is not, install it first. Gitea requires Git version >= 2.0.
 
 ```sh
@@ -55,6 +57,7 @@ git --version
 ```
 
 Create user to run Gitea (e.g. `git`)
+
 ```sh
 adduser \
    --system \
@@ -78,6 +81,7 @@ chmod 770 /etc/gitea
 ```
 
 **NOTE:** `/etc/gitea` is temporarily set with write permissions for user `git` so that the web installer can write the configuration file. After the installation is finished, it is recommended to set permissions to read-only using:
+
 ```sh
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
@@ -87,27 +91,32 @@ If you don't want the web installer to be able to write the config file at all, 
 ### Configure Gitea's working directory
 
 **NOTE:** If you plan on running Gitea as a Linux service, you can skip this step, as the service file allows you to set `WorkingDirectory`. Otherwise, consider setting this environment variable (semi-)permanently so that Gitea consistently uses the correct working directory.
+
 ```sh
 export GITEA_WORK_DIR=/var/lib/gitea/
 ```
 
 ### Copy the Gitea binary to a global location
+
 ```sh
 cp gitea /usr/local/bin/gitea
 ```
 
 ## Running Gitea
+
 After you complete the above steps, you can run Gitea two ways:
 
 ### 1. Creating a service file to start Gitea automatically (recommended)
 See how to create [Linux service]({{< relref "run-as-service-in-ubuntu.en-us.md" >}})
 
 ### 2. Running from command-line/terminal
+
 ```sh
 GITEA_WORK_DIR=/var/lib/gitea/ /usr/local/bin/gitea web -c /etc/gitea/app.ini
 ```
 
 ## Updating to a new version
+
 You can update to a new version of Gitea by stopping Gitea, replacing the binary at `/usr/local/bin/gitea` and restarting the instance.
 The binary file name should not be changed during the update to avoid problems in existing repositories.
 
@@ -117,9 +126,11 @@ If you have carried out the installation steps as described above, the binary sh
 have the generic name `gitea`. Do not change this, i.e. to include the version number.
 
 ### 1. Restarting Gitea with systemd (recommended)
+
 As we explained before, we recommend to use systemd as the service manager. In this case, `systemctl restart gitea` should be fine.
 
 ### 2. Restarting Gitea without systemd
+
 To restart your Gitea instance, we recommend to use SIGHUP signal. If you know your Gitea PID, use `kill -1 $GITEA_PID`, otherwise you can use `killall -1 gitea`.
 
 To gracefully stop the Gitea instance, a simple `kill $GITEA_PID` or `killall gitea` is enough.
@@ -132,6 +143,7 @@ an update of your Gitea version.
 ## Troubleshooting
 
 ### Old glibc versions
+
 Older Linux distributions (such as Debian 7 and CentOS 6) may not be able to load the
 Gitea binary, usually producing an error such as `./gitea: /lib/x86_64-linux-gnu/libc.so.6:
 version 'GLIBC\_2.14' not found (required by ./gitea)`. This is due to the integrated
@@ -140,12 +152,14 @@ possible to [install from source]({{< relref "from-source.en-us.md" >}}), withou
 SQLite support.
 
 ### Running Gitea on another port
+
 For errors like `702 runWeb()] [E] Failed to start server: listen tcp 0.0.0.0:3000:
 bind: address already in use`, Gitea needs to be started on another free port. This
 is possible using `./gitea web -p $PORT`. It's possible another instance of Gitea
 is already running.
 
 ### Running Gitea on Raspbian
+
 As of v1.8, there is a problem with the arm7 version of Gitea, and it doesn't run on Raspberry Pis and similar devices.
 
 It is recommended to switch to the arm6 version, which has been tested and shown to work on Raspberry Pis and similar devices.
@@ -154,6 +168,7 @@ It is recommended to switch to the arm6 version, which has been tested and shown
 please remove after fixing the arm7 bug
 --->
 ### Git error after updating to a new version of Gitea
+
 If during the update, the binary file name has been changed to a new version of Gitea,
 Git Hooks in existing repositories will not work any more. In that case, a Git
 error will be displayed when pushing to the repository.
