@@ -50,6 +50,7 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 		ID:          user.ID,
 		UserName:    user.Name,
 		FullName:    user.FullName,
+		LoginName:   user.LoginName,
 		Email:       user.GetEmail(),
 		AvatarURL:   user.AvatarLink(),
 		Created:     user.CreatedUnix.AsTime(),
