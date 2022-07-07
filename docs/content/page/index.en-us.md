@@ -271,8 +271,8 @@ You can try it out using [the online demo](https://try.gitea.io/).
 - Gitea should be run with a dedicated non-root system account on UNIX-type systems.
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 - [Git](https://git-scm.com/) version 2.0.0 or later is required.
-   - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled if Git is on version 2.1.2 or over.
-   - Git commit-graph rendering will be enabled automatically if Git is on version 2.18 or over.
+   - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled if Git is on version 2.1.2 or higher (Git >= 2.1.2).
+   - Git commit-graph rendering will be enabled automatically if Git is on version 2.18 or over (Git >= 2.18).
 
 ## Browser Support
 
