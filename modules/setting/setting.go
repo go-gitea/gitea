@@ -859,9 +859,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
-		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
+		if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 
