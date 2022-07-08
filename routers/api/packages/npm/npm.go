@@ -292,7 +292,7 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 	return committer.Commit()
 }
 
-func PackagesSearch(ctx *context.Context) {
+func PackageSearch(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeNpm,
@@ -312,7 +312,7 @@ func PackagesSearch(ctx *context.Context) {
 		return
 	}
 
-	resp := createPackagesSearchResponse(
+	resp := createPackageSearchResponse(
 		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
 		pds,
 	)

@@ -96,13 +96,13 @@ type PackageDistribution struct {
 	NpmSignature string `json:"npm-signature,omitempty"`
 }
 
-type PackagesSearch struct {
-	Objects []*PackagesSearchObject `json:"objects"`
+type PackageSearch struct {
+	Objects []*PackageSearchObject `json:"objects"`
 	Total   int                     `json:"total"`
 	Time    map[string]time.Time    `json:"time,omitempty"`
 }
 
-type PackagesSearchObject struct {
+type PackageSearchObject struct {
 	Package *PackageMetadataVersion `json:"package"`
 }
 

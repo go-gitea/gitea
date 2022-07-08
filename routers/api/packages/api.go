@@ -216,7 +216,7 @@ func Routes() *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 			r.Group("/-/v1/search", func() {
-				r.Get("", npm.PackagesSearch)
+				r.Get("", npm.PackageSearch)
 			})
 		})
 		r.Group("/pypi", func() {

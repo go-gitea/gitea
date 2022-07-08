@@ -72,15 +72,15 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	}
 }
 
-func createPackagesSearchResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackagesSearch {
-	versions := make([]*npm_module.PackagesSearchObject, len(pds))
+func createPackageSearchResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageSearch {
+	versions := make([]*npm_module.PackageSearchObject, len(pds))
 	for i := range pds {
-		versions[i] = &npm_module.PackagesSearchObject{
+		versions[i] = &npm_module.PackageSearchObject{
 			Package: createPackageMetadataVersion(registryURL, pds[i]),
 		}
 	}
 
-	return &npm_module.PackagesSearch{
+	return &npm_module.PackageSearch{
 		Objects: versions,
 		Total:   len(versions),
 	}
