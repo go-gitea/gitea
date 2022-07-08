@@ -68,7 +68,7 @@ func TestRegisterForm_IsDomainAllowed_BlocklistedEmail(t *testing.T) {
 	_ = setting.Service
 
 	setting.Service.EmailDomainWhitelist = []string{}
-	setting.Service.EmailDomainBlocklist = []string{"gitea.io"}
+	setting.Service.EmailDomainBlocklist = []string{"gitea.io", "*.gov"}
 
 	tt := []struct {
 		email string
@@ -77,6 +77,7 @@ func TestRegisterForm_IsDomainAllowed_BlocklistedEmail(t *testing.T) {
 		{"security@gitea.io", false},
 		{"security@gitea.example", true},
 		{"hdudhdd", true},
+		{"security@fishsauce.gov", false},
 	}
 
 	for _, v := range tt {
