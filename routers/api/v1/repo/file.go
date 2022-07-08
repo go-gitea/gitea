@@ -251,7 +251,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 	}
 	blob = entry.Blob()
 
-	return
+	return blob, lastModified
 }
 
 // GetArchive get archive of a repository

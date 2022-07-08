@@ -23,42 +23,42 @@
 				{{if not $.PageIsWiki}}
 					<div class="ui">
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
-							{{.i18n.Tr "repo.diff.browse_source"}}
+							{{.locale.Tr "repo.diff.browse_source"}}
 						</a>
 						{{if and ($.Permission.CanWrite $.UnitTypeCode) (not $.Repository.IsArchived) (not .IsDeleted)}}{{- /* */ -}}
-							<div class="ui primary tiny floating dropdown icon button">{{.i18n.Tr "repo.commit.actions"}}
-								{{svg "octicon-triangle-down" 14 "dropdown icon"}}<span class="sr-mobile-only">{{.i18n.Tr "repo.commit.actions"}}</span>
+							<div class="ui primary tiny floating dropdown icon button">{{.locale.Tr "repo.commit.actions"}}
+								{{svg "octicon-triangle-down" 14 "dropdown icon"}}<span class="sr-mobile-only">{{.locale.Tr "repo.commit.actions"}}</span>
 								<div class="menu">
-									<div class="ui header">{{.i18n.Tr "repo.commit.actions"}}</div>
+									<div class="ui header">{{.locale.Tr "repo.commit.actions"}}</div>
 									<div class="divider"></div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.i18n.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-branch-modal">
-										{{.i18n.Tr "repo.branch.create_branch_operation"}}
+										{{.locale.Tr "repo.branch.create_branch_operation"}}
 									</div>
 									<div class="item show-create-branch-modal"
-										data-content="{{$.i18n.Tr "repo.branch.new_branch_from" (.CommitID)}}"
+										data-content="{{$.locale.Tr "repo.branch.new_branch_from" (.CommitID)}}"
 										data-branch-from="{{ShortSha .CommitID}}"
 										data-branch-from-urlcomponent="{{.CommitID}}"
 										data-modal="#create-tag-modal"
 										data-modal-from-span="#modal-create-tag-from-span"
 										data-modal-form="#create-tag-form">
-										{{.i18n.Tr "repo.tag.create_tag_operation"}}
+										{{.locale.Tr "repo.tag.create_tag_operation"}}
 									</div>
 									<div class="item show-modal revert-button"
 										data-modal="#cherry-pick-modal"
 										data-modal-cherry-pick-type="revert"
-										data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
-										data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.revert-content"}}"
-										data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.revert"}}">{{.i18n.Tr "repo.commit.revert"}}</a></div>
+										data-modal-cherry-pick-header="{{$.locale.Tr "repo.commit.revert-header" (ShortSha .CommitID)}}"
+										data-modal-cherry-pick-content="{{$.locale.Tr "repo.commit.revert-content"}}"
+										data-modal-cherry-pick-submit="{{.locale.Tr "repo.commit.revert"}}">{{.locale.Tr "repo.commit.revert"}}</a></div>
 									<div class="item cherry-pick-button show-modal"
 										data-modal="#cherry-pick-modal"
 										data-modal-cherry-pick-type="cherry-pick"
-										data-modal-cherry-pick-header="{{$.i18n.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
-										data-modal-cherry-pick-content="{{$.i18n.Tr "repo.commit.cherry-pick-content"}}"
-										data-modal-cherry-pick-submit="{{.i18n.Tr "repo.commit.cherry-pick"}}">{{.i18n.Tr "repo.commit.cherry-pick"}}</a></div>
+										data-modal-cherry-pick-header="{{$.locale.Tr "repo.commit.cherry-pick-header" (ShortSha .CommitID)}}"
+										data-modal-cherry-pick-content="{{$.locale.Tr "repo.commit.cherry-pick-content"}}"
+										data-modal-cherry-pick-submit="{{.locale.Tr "repo.commit.cherry-pick"}}">{{.locale.Tr "repo.commit.cherry-pick"}}</a></div>
 									<div class="ui basic modal" id="cherry-pick-modal">
 										<div class="ui icon header">
 											<span id="cherry-pick-header"></span>
@@ -80,31 +80,31 @@
 									</div>
 									<div class="ui small modal" id="create-branch-modal">
 										<div class="header">
-											{{.i18n.Tr "repo.branch.new_branch"}}
+											{{.locale.Tr "repo.branch.new_branch"}}
 										</div>
 										<div class="content">
 											<form class="ui form" id="create-branch-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
 												{{.CsrfTokenHtml}}
 												<div class="field">
 													<label>
-														{{.i18n.Tr "repo.branch.new_branch_from" "<span class=\"text\" id=\"modal-create-branch-from-span\"></span>" | Safe }}
+														{{.locale.Tr "repo.branch.new_branch_from" "<span class=\"text\" id=\"modal-create-branch-from-span\"></span>" | Safe }}
 													</label>
 												</div>
 												<div class="required field">
-													<label for="new_branch_name">{{.i18n.Tr "repo.branch.name"}}</label>
+													<label for="new_branch_name">{{.locale.Tr "repo.branch.name"}}</label>
 													<input id="new_branch_name" name="new_branch_name" required>
 												</div>
 
 												<div class="text right actions">
-													<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-													<button class="ui green button">{{.i18n.Tr "repo.branch.confirm_create_branch"}}</button>
+													<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+													<button class="ui green button">{{.locale.Tr "repo.branch.confirm_create_branch"}}</button>
 												</div>
 											</form>
 										</div>
 									</div>
 									<div class="ui small modal" id="create-tag-modal">
 										<div class="header">
-											{{.i18n.Tr "repo.tag.create_tag_operation"}}
+											{{.locale.Tr "repo.tag.create_tag_operation"}}
 										</div>
 										<div class="content">
 											<form class="ui form" id="create-tag-form" action="" data-base-action="{{.RepoLink}}/branches/_new/commit/" method="post">
@@ -112,17 +112,17 @@
 												<input type="hidden" name="create_tag" value="true">
 												<div class="field">
 													<label>
-														{{.i18n.Tr "repo.tag.create_tag_from" "<span class=\"text\" id=\"modal-create-tag-from-span\"></span>" | Safe }}
+														{{.locale.Tr "repo.tag.create_tag_from" "<span class=\"text\" id=\"modal-create-tag-from-span\"></span>" | Safe }}
 													</label>
 												</div>
 												<div class="required field">
-													<label for="new_branch_name">{{.i18n.Tr "repo.release.tag_name"}}</label>
+													<label for="new_branch_name">{{.locale.Tr "repo.release.tag_name"}}</label>
 													<input id="new_branch_name" name="new_branch_name" required>
 												</div>
 
 												<div class="text right actions">
-													<div class="ui cancel button">{{.i18n.Tr "settings.cancel"}}</div>
-													<button class="ui green button">{{.i18n.Tr "repo.tag.confirm_create_tag"}}</button>
+													<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+													<button class="ui green button">{{.locale.Tr "repo.tag.confirm_create_tag"}}</button>
 												</div>
 											</form>
 										</div>
@@ -156,9 +156,9 @@
 						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "mr-3"}}
 						<strong>{{.Commit.Author.Name}}</strong>
 					{{end}}
-					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.i18n.Lang}}</span>
+					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.locale}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
-						<span class="text grey mx-3">{{.i18n.Tr "repo.diff.committed_by"}}</span>
+						<span class="text grey mx-3">{{.locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
 							{{avatar .Verification.CommittingUser 28 "mx-3"}}
 							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
@@ -171,7 +171,7 @@
 				<div class="ui horizontal list df ac">
 					{{if .Parents}}
 						<div class="item">
-							<span>{{.i18n.Tr "repo.diff.parent"}}</span>
+							<span>{{.locale.Tr "repo.diff.parent"}}</span>
 							{{range .Parents}}
 								{{if $.PageIsWiki}}
 									<a class="ui primary sha label" href="{{$.RepoLink}}/wiki/commit/{{PathEscape .}}">{{ShortSha .}}</a>
@@ -182,7 +182,7 @@
 						</div>
 					{{end}}
 					<div class="item">
-						<span>{{.i18n.Tr "repo.diff.commit"}}</span>
+						<span>{{.locale.Tr "repo.diff.commit"}}</span>
 						<span class="ui primary sha label">{{ShortSha .CommitID}}</span>
 					</div>
 				</div>
@@ -194,23 +194,23 @@
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "gitea-lock" 16 "mr-3"}}
 							{{if eq .Verification.TrustStatus "trusted"}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by"}}:</span>
 							{{else if eq .Verification.TrustStatus "untrusted"}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user"}}:</span>
 							{{else}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by_untrusted_user_unmatched"}}:</span>
 							{{end}}
 							{{avatar .Verification.SigningUser 28}}
 							<a href="{{.Verification.SigningUser.HomeLink}}"><strong>{{.Verification.SigningUser.GetDisplayName}}</strong></a>
 						{{else}}
-							<span title="{{.i18n.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>
-							<span class="ui text mr-3">{{.i18n.Tr "repo.commits.signed_by"}}:</span>
+							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>
+							<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by"}}:</span>
 							{{avatarByEmail .Verification.SigningEmail "" 28}}
 							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}
 						{{svg "gitea-unlock" 16 "mr-3"}}
-						<span class="ui text">{{.i18n.Tr .Verification.Reason}}</span>
+						<span class="ui text">{{.locale.Tr .Verification.Reason}}</span>
 					{{end}}
 				</div>
 				<div class="df ac">
@@ -218,43 +218,43 @@
 						{{if ne .Verification.SigningUser.ID 0}}
 							{{svg "octicon-shield-check" 16 "mr-3"}}
 							{{if .Verification.SigningSSHKey}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.KeyID}}
 							{{end}}
 						{{else}}
 							{{svg "octicon-shield-lock" 16 "mr-3"}}
 							{{if .Verification.SigningSSHKey}}
-								<span class="ui text mr-3 tooltip" data-content="{{.i18n.Tr "gpg.default_key"}}">{{.i18n.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
-								<span class="ui text mr-3 tooltip" data-content="{{.i18n.Tr "gpg.default_key"}}">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.KeyID}}
 							{{end}}
 						{{end}}
 					{{else if .Verification.Warning}}
 						{{svg "octicon-shield" 16 "mr-3"}}
 						{{if .Verification.SigningSSHKey}}
-							<span class="ui text mr-3">{{.i18n.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+							<span class="ui text mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 							{{.Verification.SigningSSHKey.Fingerprint}}
 						{{else}}
-							<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
+							<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 							{{.Verification.SigningKey.KeyID}}
 						{{end}}
 					{{else}}
 						{{if .Verification.SigningKey}}
 							{{if ne .Verification.SigningKey.KeyID ""}}
 								{{svg "octicon-shield" 16 "mr-3"}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
 								{{.Verification.SigningKey.KeyID}}
 							{{end}}
 						{{end}}
 						{{if .Verification.SigningSSHKey}}
 							{{if ne .Verification.SigningSSHKey.Fingerprint ""}}
 								{{svg "octicon-shield" 16 "mr-3"}}
-								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
+								<span class="ui text mr-3">{{.locale.Tr "repo.commits.ssh_key_fingerprint"}}:</span>
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{end}}
 						{{end}}
@@ -265,7 +265,7 @@
 		{{if .Note}}
 			<div class="ui top attached header segment git-notes">
 				{{svg "octicon-note" 16 "mr-3"}}
-				{{.i18n.Tr "repo.diff.git-notes"}}:
+				{{.locale.Tr "repo.diff.git-notes"}}:
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">
 						{{if .NoteAuthor.FullName}}
@@ -277,7 +277,7 @@
 				{{else}}
 					<strong>{{.NoteCommit.Author.Name}}</strong>
 				{{end}}
-				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.i18n.Lang}}</span>
+				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
 				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>

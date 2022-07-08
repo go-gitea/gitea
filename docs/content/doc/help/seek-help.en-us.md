@@ -20,10 +20,26 @@ menu:
 
 **NOTE:** When asking for support, it may be a good idea to have the following available so that the person helping has all the info they need:
 
-1. Your `app.ini` (with any sensitive data scrubbed as necessary)
-2. The `gitea.log` (and any other appropriate log files for the situation)
-    * e.g. If the error is related to the database, the `xorm.log` might be helpful
-3. Any error messages you are seeing
+1. Your `app.ini` (with any sensitive data scrubbed as necessary).
+2. The Gitea logs, and any other appropriate log files for the situation.
+    * The logs are likely to be outputted to console. If you need to collect logs from files, 
+      you could copy the following config into your `app.ini` (remove all other `[log]` sections),
+      then you can find the `*.log` files in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
+    ```ini
+    ; To show all SQL logs, you can also set LOG_SQL=true in the [database] section 
+    [log]
+    LEVEL=debug
+    MODE=console,file
+    ROUTER=console,file
+    XORM=console,file
+    ENABLE_XORM_LOG=true
+    FILE_NAME=gitea.log
+    [log.file.router]
+    FILE_NAME=router.log
+    [log.file.xorm]
+    FILE_NAME=xorm.log
+    ``` 
+3. Any error messages you are seeing.
 4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
     * This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
 5. If you meet slow/hanging/deadlock problems, please report the stack trace when the problem occurs:

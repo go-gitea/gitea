@@ -111,5 +111,5 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
 	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
-	return
+	return stats
 }

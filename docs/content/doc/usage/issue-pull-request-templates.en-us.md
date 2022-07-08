@@ -85,7 +85,7 @@ Possible directory names for issue templates:
 - `.gitlab/ISSUE_TEMPLATE`
 - `.gitlab/issue_template`
 
-Inside the directory can be multiple issue templates with the form
+Inside the directory can be multiple markdown (`.md`) issue templates of the form
 
 ```md
 ---

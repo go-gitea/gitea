@@ -211,19 +211,19 @@ details summary > * {
 }
 
 progress {
-  background: var(--color-secondary);
+  background: var(--color-secondary-dark-1);
   border-radius: 6px;
   border: none;
   overflow: hidden;
 }
 progress::-webkit-progress-bar {
-  background: var(--color-secondary);
+  background: var(--color-secondary-dark-1);
 }
 progress::-webkit-progress-value {
-  background-color: var(--color-secondary-dark-3);
+  background-color: var(--color-secondary-dark-4);
 }
 progress::-moz-progress-bar {
-  background: var(--color-secondary-dark-3);
+  background: var(--color-secondary-dark-4);
 }
 
 * {
@@ -1329,7 +1329,7 @@ footer {
 @media @mediaMdAndUp {
   .mobile-only,
   .ui.button.mobile-only {
-    display: none;
+    display: none !important;
   }
 
   // has the same behaviour of sr-only, hiding the content for
@@ -1341,7 +1341,7 @@ footer {
 
 @media @mediaSm {
   .not-mobile {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -2199,6 +2199,10 @@ table th[data-sortt-desc] {
 
     .item {
       width: initial !important;
+    }
+
+    > .dropdown.item {
+      position: initial;
     }
   }
 }

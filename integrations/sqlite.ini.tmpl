@@ -6,10 +6,12 @@ DB_TYPE = sqlite3
 PATH    = integrations/gitea-integration-sqlite/gitea.db
 
 [indexer]
-ISSUE_INDEXER_PATH   = integrations/gitea-integration-sqlite/indexers/issues.bleve
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-sqlite/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH    = integrations/gitea-integration-sqlite/indexers/repos.bleve
+
+[queue.issue_indexer]
+PATH   = integrations/gitea-integration-sqlite/indexers/issues.bleve
+DATADIR = integrations/gitea-integration-sqlite/indexers/issues.queue
 
 [queue]
 TYPE = immediate

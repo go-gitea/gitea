@@ -108,7 +108,7 @@ type HookTask struct {
 	HookID          int64
 	UUID            string
 	api.Payloader   `xorm:"-"`
-	PayloadContent  string `xorm:"TEXT"`
+	PayloadContent  string `xorm:"LONGTEXT"`
 	EventType       HookEventType
 	IsDelivered     bool
 	Delivered       int64
@@ -116,9 +116,9 @@ type HookTask struct {
 
 	// History info.
 	IsSucceed       bool
-	RequestContent  string        `xorm:"TEXT"`
+	RequestContent  string        `xorm:"LONGTEXT"`
 	RequestInfo     *HookRequest  `xorm:"-"`
-	ResponseContent string        `xorm:"TEXT"`
+	ResponseContent string        `xorm:"LONGTEXT"`
 	ResponseInfo    *HookResponse `xorm:"-"`
 }
 
@@ -289,7 +289,7 @@ func deleteDeliveredHookTasksByWebhook(hookID int64, numberDeliveriesToKeep int)
 		Cols("hook_task.delivered").
 		Join("INNER", "webhook", "hook_task.hook_id = webhook.id").
 		OrderBy("hook_task.delivered desc").
-		Limit(1, int(numberDeliveriesToKeep)).
+		Limit(1, numberDeliveriesToKeep).
 		Find(&deliveryDates)
 	if err != nil {
 		return err

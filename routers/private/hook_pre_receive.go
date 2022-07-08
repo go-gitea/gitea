@@ -248,7 +248,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 
 	// 5. Check if the doer is allowed to push
-	canPush := false
+	var canPush bool
 	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
@@ -477,7 +477,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 
 	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
-		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
+		log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
 		})

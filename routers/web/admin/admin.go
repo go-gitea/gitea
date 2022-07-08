@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -85,7 +86,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, translation.NewLocale("en-US"))
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
