@@ -98,12 +98,26 @@ type PackageDistribution struct {
 
 type PackageSearch struct {
 	Objects []*PackageSearchObject `json:"objects"`
-	Total   int                     `json:"total"`
-	Time    map[string]time.Time    `json:"time,omitempty"`
+	Total   int                    `json:"total"`
+	Time    map[string]time.Time   `json:"time,omitempty"`
 }
 
 type PackageSearchObject struct {
-	Package *PackageMetadataVersion `json:"package"`
+	Package *PackageSearchPackage `json:"package"`
+}
+
+type PackageSearchPackage struct {
+	Name        string                     `json:"name"`
+	Version     string                     `json:"version"`
+	Description string                     `json:"description"`
+	Links       *PackageSearchPackageLinks `json:"links"`
+	Maintainers []User                     `json:"maintainers,omitempty"`
+}
+
+type PackageSearchPackageLinks struct {
+	Registry   string `json:"npm"`
+	Homepage   string `json:"homepage,omitempty"`
+	Repository string `json:"repository,omitempty"`
 }
 
 // User https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
