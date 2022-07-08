@@ -423,6 +423,11 @@ func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
 }
 
+// IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
+func (pr *PullRequest) IsAncestor() bool {
+	return pr.HeadCommitID == pr.MergeBase
+}
+
 // SetMerged sets a pull request to merged and closes the corresponding issue
 func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 	if pr.HasMerged {

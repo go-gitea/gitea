@@ -195,12 +195,12 @@
 					<i class="icon icon-octicon">{{svg "octicon-sync"}}</i>
 					{{$.locale.Tr "repo.pulls.is_checking"}}
 				</div>
-			{{else if .Issue.PullRequest.IsEmpty}}
+			{{else if .Issue.PullRequest.IsAncestor}}
 				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-					{{$.locale.Tr "repo.pulls.is_empty"}}
+					{{$.locale.Tr "repo.pulls.is_ancestor"}}
 				</div>
-			{{else if .Issue.PullRequest.CanAutoMerge}}
+			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
 				{{if .IsBlockedByApprovals}}
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
@@ -282,7 +282,6 @@
 						</div>
 					{{end}}
 				{{end}}
-
 				{{if and (gt .Issue.PullRequest.CommitsBehind 0) (not  .Issue.IsClosed) (not .Issue.PullRequest.IsChecking) (not .IsPullFilesConflicted) (not .IsPullRequestBroken) (not $canAutoMerge)}}
 					<div class="ui divider"></div>
 					<div class="item item-section">
@@ -321,6 +320,14 @@
 						</div>
 					</div>
 				{{end}}
+				{{if .Issue.PullRequest.IsEmpty}}
+					<div class="ui divider"></div>
+
+					<div class="item">
+						<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
+						{{$.locale.Tr "repo.pulls.is_empty"}}
+					</div>
+				{{end}}
 
 				{{if .AllowMerge}} {{/* user is allowed to merge */}}
 					{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
@@ -348,6 +355,7 @@
 
 									'canMergeNow': {{$canMergeNow}},
 									'allOverridableChecksOk': {{not $notAllOverridableChecksOk}},
+									'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
 									'pullHeadCommitID': {{.PullHeadCommitID}},
 									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
 									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
