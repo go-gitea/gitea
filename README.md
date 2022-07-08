@@ -53,9 +53,9 @@
 The goal of this project is to make the easiest, fastest, and most
 painless way of setting up a self-hosted Git service.
 
-With Go, this can be done across
-**all platforms** which Go supports, including Linux, macOS, and Windows
-on x86, amd64, ARM and PowerPC architectures.
+As Gitea is written in Go, it works across **all** the platforms and
+architectures that are supported by Go, including Linux, macOS, and
+Windows on x86, amd64, ARM and PowerPC architectures.
 You can try it out using [the online demo](https://try.gitea.io/).
 This project has been
 [forked](https://blog.gitea.io/2016/12/welcome-to-gitea/) from
