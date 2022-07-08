@@ -56,7 +56,7 @@ Check that Git is installed on the server. If it is not, install it first. Gitea
 git --version
 ```
 
-Create user to run Gitea (e.g. `git`)
+Create a user to run Gitea (e.g. `git`)
 
 ```sh
 adduser \
