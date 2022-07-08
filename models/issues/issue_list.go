@@ -234,7 +234,6 @@ func (issues IssueList) loadAssignees(ctx context.Context) error {
 
 	assignees := make(map[int64][]*user_model.User, len(issues))
 	issueIDs := issues.getIssueIDs()
-
 	left := len(issueIDs)
 	for left > 0 {
 		limit := db.DefaultMaxInSize
