@@ -21,12 +21,12 @@ import (
 func testRun(m *testing.M) error {
 	_ = log.NewLogger(1000, "console", "console", `{"level":"trace","stacktracelevel":"NONE","stderr":true}`)
 
-	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
+	gitHomePath, err := os.MkdirTemp(os.TempDir(), "git-home")
 	if err != nil {
 		return fmt.Errorf("unable to create temp dir: %w", err)
 	}
-	defer util.RemoveAll(repoRootPath)
-	setting.RepoRootPath = repoRootPath
+	defer util.RemoveAll(gitHomePath)
+	setting.Git.HomePath = gitHomePath
 
 	if err = InitOnceWithSync(context.Background()); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
