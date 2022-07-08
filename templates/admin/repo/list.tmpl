@@ -4,9 +4,9 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.repos.repo_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.repos.repo_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.i18n.Tr "admin.repos.unadopted"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/repos/unadopted">{{.locale.Tr "admin.repos.unadopted"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -17,27 +17,27 @@
 				<thead>
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" $.SortType false}}</th>
-						<th>{{.i18n.Tr "admin.repos.owner"}}</th>
+						<th>{{.locale.Tr "admin.repos.owner"}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically">
-							{{.i18n.Tr "admin.repos.name"}}
+							{{.locale.Tr "admin.repos.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.repos.watches"}}</th>
+						<th>{{.locale.Tr "admin.repos.watches"}}</th>
 						<th  data-sortt-asc="moststars" data-sortt-desc="feweststars">
-							{{.i18n.Tr "admin.repos.stars"}}
+							{{.locale.Tr "admin.repos.stars"}}
 							{{SortArrow "moststars" "feweststars" $.SortType false}}
 						</th>
 						<th  data-sortt-asc="mostforks" data-sortt-desc="fewestforks">
-							{{.i18n.Tr "admin.repos.forks"}}
+							{{.locale.Tr "admin.repos.forks"}}
 							{{SortArrow "mostforks" "fewestforks" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.repos.issues"}}</th>
+						<th>{{.locale.Tr "admin.repos.issues"}}</th>
 						<th  data-sortt-asc="size" data-sortt-desc="reversesize">
-							{{.i18n.Tr "admin.repos.size"}}
+							{{.locale.Tr "admin.repos.size"}}
 							{{SortArrow "size" "reversesize" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
-						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+						<th>{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -53,22 +53,22 @@
 							<td>
 								<a href="{{.Link}}">{{.Name}}</a>
 								{{if .IsArchived}}
-									<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.archived"}}</span>
+									<span class="ui basic mini label">{{$.locale.Tr "repo.desc.archived"}}</span>
 								{{end}}
 								{{if .IsTemplate}}
 									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private_template"}}</span>
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private_template"}}</span>
 									{{else}}
 										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal_template"}}</span>
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal_template"}}</span>
 										{{end}}
 									{{end}}
 								{{else}}
 									{{if .IsPrivate}}
-										<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.private"}}</span>
+										<span class="ui basic mini label">{{$.locale.Tr "repo.desc.private"}}</span>
 									{{else}}
 										{{if .Owner.Visibility.IsPrivate}}
-											<span class="ui basic mini label">{{$.i18n.Tr "repo.desc.internal"}}</span>
+											<span class="ui basic mini label">{{$.locale.Tr "repo.desc.internal"}}</span>
 										{{end}}
 									{{end}}
 								{{end}}
@@ -98,12 +98,12 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.settings.delete"}}
+		{{.locale.Tr "repo.settings.delete"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.settings.delete_desc"}}</p>
-		{{.i18n.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
-		{{.i18n.Tr "repo.settings.delete_notices_fork_1"}}<br>
+		<p>{{.locale.Tr "repo.settings.delete_desc"}}</p>
+		{{.locale.Tr "repo.settings.delete_notices_2" `<span class="name"></span>` | Safe}}<br>
+		{{.locale.Tr "repo.settings.delete_notices_fork_1"}}<br>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
