@@ -9,7 +9,6 @@ import (
 
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
