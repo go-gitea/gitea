@@ -86,7 +86,15 @@ chmod 770 /etc/gitea
 chmod 750 /etc/gitea
 chmod 640 /etc/gitea/app.ini
 ```
-If you don't want the web installer to be able to write the config file at all, it is also possible to make the config file read-only for the Gitea user (owner/group `root:git`, mode `0640`). Also, make sure `INSTALL_LOCK` is set to `true`. In that case, all database configuration details must be set beforehand in the config file, as well as the `SECRET_KEY` and `INTERNAL_TOKEN` values. See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret INTERNAL_TOKEN`.
+
+If you don't want the web installer to be able to write to the config file, it is possible to make the config file read-only for the Gitea user (owner/group `root:git`, mode `0640`) however you will need to edit your config file manually to:
+
+ * Set `INSTALL_LOCK= true`,
+ * Ensure all database configuration details are set correctly 
+ * Ensure that the `SECRET_KEY` and `INTERNAL_TOKEN` values are set. (You may want to use the `gitea generate secret` to generate these secret keys.)
+ * Ensure that any other secret keys you need are set.
+ 
+See the [command line documentation]({{< relref "doc/usage/command-line.en-us.md" >}}) for information on using `gitea generate secret`.
 
 ### Configure Gitea's working directory
 
