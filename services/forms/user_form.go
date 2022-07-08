@@ -10,14 +10,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/gobwas/glob"
-
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
+
+	"github.com/gobwas/glob"
 )
 
 // InstallForm form for installation page
