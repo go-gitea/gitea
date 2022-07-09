@@ -136,20 +136,20 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 		}
 
 		var tokenInMap string
-		if strings.HasSuffix(token, "</") { // for closed tag
+		if strings.HasSuffix(token, "</") { // for closing tag
 			if len(tagStack) == 0 {
-				break // invalid diff result, no open tag but see close tag
+				break // invalid diff result, no opening tag but see closing tag
 			}
-			// make sure the closed tag in map is related to the open tag, to make the diff algorithm can match the open/closed tags
-			// the closed tag will be recorded in the map by key "</span><!-- <span the-open> -->" for "<span the-open>"
+			// make sure the closing tag in map is related to the open tag, to make the diff algorithm can match the opening/closing tags
+			// the closing tag will be recorded in the map by key "</span><!-- <span the-opening> -->" for "<span the-opening>"
 			tokenInMap = token + "<!-- " + tagStack[len(tagStack)-1] + "-->"
 			tagStack = tagStack[:len(tagStack)-1]
-		} else if strings.HasPrefix(token, "<") { // for open tag
+		} else if token[0] == '<' { // for opening tag
 			tokenInMap = token
 			tagStack = append(tagStack, token)
-		} else if strings.HasPrefix(token, "&") { // for html entity
+		} else if token[0] == '&' { // for html entity
 			tokenInMap = token
-		}
+		} // else: impossible
 
 		// remember the placeholder and token in the map
 		placeholder, ok := hcd.tokenPlaceholderMap[tokenInMap]
@@ -191,31 +191,31 @@ func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 			continue
 		}
 		var tokenToRecover string
-		if token[1] == '/' { // Closing tag
+		if strings.HasPrefix(token, "</") { // for closing tag
 			// only get the tag itself, ignore the trailing comment (for how the comment is generated, see the code in `convert` function)
 			tokenToRecover = token[:strings.IndexByte(token, '>')+1]
 			if len(tagStack) == 0 {
-				continue // if no open tag in stack yet, skip the closed tag
+				continue // if no opening tag in stack yet, skip the closing tag
 			}
 			tagStack = tagStack[:len(tagStack)-1]
-		} else if token[0] == '<' {
+		} else if token[0] == '<' { // for opening tag
 			tokenToRecover = token
 			tagStack = append(tagStack, token)
-		} else { // html entity
+		} else if token[0] == '&' { // for html entity
 			tokenToRecover = token
-		}
+		} // else: impossible
 		sb.WriteString(tokenToRecover)
 	}
 
 	if len(tagStack) > 0 {
-		// close all open tags
+		// close all opening tags
 		for i := len(tagStack) - 1; i >= 0; i-- {
 			tagToClose := tagStack[i]
-			// get the closed tag "</span>" from "<span class=...>" or "<span>"
+			// get the closing tag "</span>" from "<span class=...>" or "<span>"
 			pos := strings.IndexAny(tagToClose, " >")
 			if pos != -1 {
 				sb.WriteString("</" + tagToClose[1:pos] + ">")
-			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML open tag
+			} // else: impossible. every tag was pushed into the stack by the code above and is valid HTML opening tag
 		}
 	}
 
