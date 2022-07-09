@@ -78,7 +78,6 @@ func EditProject(ctx *context.APIContext) {
 	//     "$ref": "#/responses/error"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-
 }
 
 // GetProject a single project for repository
@@ -164,7 +163,7 @@ func DeleteProject(ctx *context.APIContext) {
 
 // Project Boards
 
-func CreateBoard(ctx *context.APIContext) {
+func CreateProjectBoard(ctx *context.APIContext) {
 	// swagger:operation POST /repos/{owner}/{repo}/projects/{projectId}/boards repository repoCreateProjectBoard
 	// ---
 	// summary: Create a board
