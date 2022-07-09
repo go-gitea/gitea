@@ -5,19 +5,19 @@
 		{{template "base/alert" .}}
 		{{if .NeedUpdate}}
 			<div class="ui negative message flash-error">
-				<p>{{(.i18n.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer) | Str2html}}</p>
+				<p>{{(.locale.Tr "admin.dashboard.new_version_hint" .RemoteVersion AppVer) | Str2html}}</p>
 			</div>
 		{{end}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.dashboard.statistic"}}
+			{{.locale.Tr "admin.dashboard.statistic"}}
 		</h4>
 		<div class="ui attached segment">
 			<p>
-				{{.i18n.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
+				{{.locale.Tr "admin.dashboard.statistic_info" .Stats.Counter.User .Stats.Counter.Org .Stats.Counter.PublicKey .Stats.Counter.Repo .Stats.Counter.Watch .Stats.Counter.Star .Stats.Counter.Action .Stats.Counter.Access .Stats.Counter.Issue .Stats.Counter.Comment .Stats.Counter.Oauth .Stats.Counter.Follow .Stats.Counter.Mirror .Stats.Counter.Release .Stats.Counter.AuthSource .Stats.Counter.Webhook .Stats.Counter.Milestone .Stats.Counter.Label .Stats.Counter.HookTask .Stats.Counter.Team .Stats.Counter.UpdateTask .Stats.Counter.Attachment | Str2html}}
 			</p>
 		</div>
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.dashboard.operations"}}
+			{{.locale.Tr "admin.dashboard.operations"}}
 		</h4>
 		<form method="post" action="{{AppSubUrl}}/admin">
 			{{.CsrfTokenHtml}}
@@ -25,52 +25,52 @@
 				<table class="ui very basic table">
 					<tbody>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.delete_inactive_accounts"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_inactive_accounts">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.delete_repo_archives"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.delete_repo_archives"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_repo_archives">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.delete_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.delete_missing_repos"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.git_gc_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.git_gc_repos"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="git_gc_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						{{if and (not .SSH.Disabled) (not .SSH.StartBuiltinServer)}}
 							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
-								{{.i18n.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
-								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshkeys"}}<br/>
+								{{.locale.Tr "admin.dashboard.resync_all_sshkeys.desc"}}</td>
+								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshkeys">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 							<tr>
-								<td>{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
-								{{.i18n.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
-								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+								<td>{{.locale.Tr "admin.dashboard.resync_all_sshprincipals"}}<br/>
+								{{.locale.Tr "admin.dashboard.resync_all_sshprincipals.desc"}}</td>
+								<td><button type="submit" class="ui green button" name="op" value="resync_all_sshprincipals">{{svg "octicon-play" 16}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 							</tr>
 						{{end}}
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.resync_all_hooks"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.resync_all_hooks"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="resync_all_hooks">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.reinit_missing_repos"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.reinit_missing_repos"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="reinit_missing_repos">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.sync_external_users"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="sync_external_users">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.sync_external_users"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="sync_external_users">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.repo_health_check"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="repo_health_check">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.repo_health_check"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="repo_health_check">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 						<tr>
-							<td>{{.i18n.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
-							<td><button type="submit" class="ui green button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{.i18n.Tr "admin.dashboard.operation_run"}}</button></td>
+							<td>{{.locale.Tr "admin.dashboard.delete_generated_repository_avatars"}}</td>
+							<td><button type="submit" class="ui green button" name="op" value="delete_generated_repository_avatars">{{svg "octicon-play"}} {{.locale.Tr "admin.dashboard.operation_run"}}</button></td>
 						</tr>
 					</tbody>
 				</table>
@@ -78,69 +78,69 @@
 		</form>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.dashboard.system_status"}}
+			{{.locale.Tr "admin.dashboard.system_status"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.dashboard.server_uptime"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.server_uptime"}}</dt>
 				<dd>{{.SysStatus.Uptime}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.current_goroutine"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.current_goroutine"}}</dt>
 				<dd>{{.SysStatus.NumGoroutine}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.dashboard.current_memory_usage"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.current_memory_usage"}}</dt>
 				<dd>{{.SysStatus.MemAllocated}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.total_memory_allocated"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.total_memory_allocated"}}</dt>
 				<dd>{{.SysStatus.MemTotal}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.memory_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.memory_obtained"}}</dt>
 				<dd>{{.SysStatus.MemSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.pointer_lookup_times"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.pointer_lookup_times"}}</dt>
 				<dd>{{.SysStatus.Lookups}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.memory_allocate_times"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.memory_allocate_times"}}</dt>
 				<dd>{{.SysStatus.MemMallocs}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.memory_free_times"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.memory_free_times"}}</dt>
 				<dd>{{.SysStatus.MemFrees}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.dashboard.current_heap_usage"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.current_heap_usage"}}</dt>
 				<dd>{{.SysStatus.HeapAlloc}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.heap_memory_obtained"}}</dt>
 				<dd>{{.SysStatus.HeapSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_idle"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.heap_memory_idle"}}</dt>
 				<dd>{{.SysStatus.HeapIdle}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_in_use"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.heap_memory_in_use"}}</dt>
 				<dd>{{.SysStatus.HeapInuse}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.heap_memory_released"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.heap_memory_released"}}</dt>
 				<dd>{{.SysStatus.HeapReleased}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.heap_objects"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.heap_objects"}}</dt>
 				<dd>{{.SysStatus.HeapObjects}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.bootstrap_stack_usage"}}</dt>
 				<dd>{{.SysStatus.StackInuse}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.stack_memory_obtained"}}</dt>
 				<dd>{{.SysStatus.StackSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.mspan_structures_usage"}}</dt>
 				<dd>{{.SysStatus.MSpanInuse}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.mspan_structures_obtained"}}</dt>
 				<dd>{{.SysStatus.MSpanSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.mcache_structures_usage"}}</dt>
 				<dd>{{.SysStatus.MCacheInuse}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.mcache_structures_obtained"}}</dt>
 				<dd>{{.SysStatus.MCacheSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.profiling_bucket_hash_table_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.profiling_bucket_hash_table_obtained"}}</dt>
 				<dd>{{.SysStatus.BuckHashSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.gc_metadata_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.gc_metadata_obtained"}}</dt>
 				<dd>{{.SysStatus.GCSys}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.other_system_allocation_obtained"}}</dt>
 				<dd>{{.SysStatus.OtherSys}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.dashboard.next_gc_recycle"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.next_gc_recycle"}}</dt>
 				<dd>{{.SysStatus.NextGC}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.last_gc_time"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.last_gc_time"}}</dt>
 				<dd>{{.SysStatus.LastGC}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.total_gc_pause"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.total_gc_pause"}}</dt>
 				<dd>{{.SysStatus.PauseTotalNs}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.last_gc_pause"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.last_gc_pause"}}</dt>
 				<dd>{{.SysStatus.PauseNs}}</dd>
-				<dt>{{.i18n.Tr "admin.dashboard.gc_times"}}</dt>
+				<dt>{{.locale.Tr "admin.dashboard.gc_times"}}</dt>
 				<dd>{{.SysStatus.NumGC}}</dd>
 			</dl>
 		</div>

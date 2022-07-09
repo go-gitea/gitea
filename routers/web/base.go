@@ -139,7 +139,7 @@ func Recovery() func(next http.Handler) http.Handler {
 					store := dataStore{
 						"Language":   lc.Language(),
 						"CurrentURL": setting.AppSubURL + req.URL.RequestURI(),
-						"i18n":       lc,
+						"locale":     lc,
 					}
 
 					user := context.GetContextUser(req)

@@ -6,7 +6,7 @@
 			{{template "repo/issue/navbar" .}}
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
-					<div class="ui green new-label button">{{.i18n.Tr "repo.issues.new_label"}}</div>
+					<div class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</div>
 				</div>
 			{{end}}
 		</div>
