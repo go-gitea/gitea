@@ -25,7 +25,7 @@
 		<div class="ui red large label">{{if .Issue.IsPull}}{{svg "octicon-git-pull-request"}}{{else}}{{svg "octicon-issue-closed"}}{{end}} {{.locale.Tr "repo.issues.closed_title"}}</div>
 	{{else if .Issue.IsPull}}
 		{{if .IsPullWorkInProgress}}
-			<div class="ui grey large label">{{svg "octicon-git-pull-request-draft"}} {{.locale.Tr "repo.issues.open_title"}}</div>
+			<div class="ui grey large label">{{svg "octicon-git-pull-request-draft"}} {{.locale.Tr "repo.issues.draft_title"}}</div>
 		{{else}}
 			<div class="ui green large label">{{svg "octicon-git-pull-request"}} {{.locale.Tr "repo.issues.open_title"}}</div>
 		{{end}}
