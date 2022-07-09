@@ -2,17 +2,8 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 
 export function initCommonIssue() {
-  let checkboxfirst;
-  const checkboxOperate = (e) => {
-    const issuecheckbox = $('.issue-checkbox input');
-    if (e.shiftKey && checkboxfirst !== undefined) {
-      for (let i = checkboxfirst + 1, j = issuecheckbox.index($(e.currentTarget).find('input')); i < j; i++) {
-        issuecheckbox[i].checked = 1;
-      }
-    } else {
-      checkboxfirst = issuecheckbox.index($(e.currentTarget).find('input'));
-    }
-    if (issuecheckbox.is(':checked')) {
+  const checkboxOperate = () => {
+    if ($('.issue-checkbox input').is(':checked')) {
       $('#issue-filters').addClass('hide');
       $('#issue-actions').removeClass('hide');
       $('#issue-actions .six').prepend($('.issue-checkbox-all'));
