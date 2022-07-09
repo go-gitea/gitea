@@ -648,11 +648,16 @@ func TestDiffWithHighlight(t *testing.T) {
 	hcd := NewHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
 		"main.v", "",
-		"		run()\n",
+		"		run('<>')\n",
 		"		run(db)\n",
 	)
-	expected := `		<span class="n">run</span><span class="added-code"><span class="o">(</span><span class="n">db</span><span class="o">)</span></span>` + "\n"
-	output := diffToHTML(nil, diffs, DiffLineAdd)
+
+	expected := `		<span class="n">run</span><span class="o">(</span><span class="removed-code"><span class="k">&#39;</span><span class="o">&lt;</span><span class="o">&gt;</span><span class="k">&#39;</span></span><span class="o">)</span>` + "\n"
+	output := diffToHTML(nil, diffs, DiffLineDel)
+	assert.Equal(t, expected, output)
+
+	expected = `		<span class="n">run</span><span class="o">(</span><span class="added-code"><span class="n">db</span></span><span class="o">)</span>` + "\n"
+	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
 }
 
