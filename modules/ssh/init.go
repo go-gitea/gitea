@@ -41,7 +41,7 @@ func Init() error {
 		caKeysFileName := setting.SSH.TrustedUserCAKeysFile
 		caKeysFileDir := filepath.Dir(caKeysFileName)
 
-		err := os.MkdirAll(caKeysFileDir, 0o700) // it should be the SSH.RootPath by default (`~/.ssh` in most cases)
+		err := os.MkdirAll(caKeysFileDir, 0o700) // SSH.RootPath by default (That is `~/.ssh` in most cases)
 		if err != nil {
 			return fmt.Errorf("failed to create directory %q for ssh trusted ca keys: %w", caKeysFileDir, err)
 		}
