@@ -9,115 +9,109 @@ import (
 	"code.gitea.io/gitea/modules/context"
 )
 
-func GetProject(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{id} project projectGetProject
+func GetProjectBoard(ctx *context.APIContext) {
+	// swagger:operation GET /projects/boards/{id} board boardGetProjectBoard
 	// ---
-	// summary: Get project
+	// summary: Get project board
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
-	//   description: id of the project
+	//   description: id of the board
 	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Project"
+	//     "$ref": "#/responses/ProjectBoard"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 }
 
-func UpdateProject(ctx *context.APIContext) {
-	// swagger:operation PATCH /projects/{id} project projectUpdateProject
+func UpdateProjectBoard(ctx *context.APIContext) {
+	// swagger:operation PATCH /projects/boards/{id} board boardUpdateProjectBoard
 	// ---
-	// summary: Update project
+	// summary: Update project board
 	// produces:
+	// - application/json
+	// consumes:
 	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
-	//   description: id of the project
+	//   description: id of the project board
 	//   type: string
 	//   required: true
 	// responses:
 	//   "200":
-	//     "$ref": "#/responses/Project"
+	//     "$ref": "#/responses/ProjectBoard"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 }
 
-func DeleteProject(ctx *context.APIContext) {
-	// swagger:operation DELETE /projects/{id} project projectDeleteProject
+func DeleteProjectBoard(ctx *context.APIContext) {
+	// swagger:operation DELETE /projects/boards/{id} board boardDeleteProjectBoard
 	// ---
-	// summary: Delete project
+	// summary: Delete project board
 	// produces:
 	// - application/json
 	// parameters:
 	// - name: id
 	//   in: path
-	//   description: id of the project
+	//   description: id of the project board
 	//   type: string
 	//   required: true
 	// responses:
-	//   "200":
-	//     "description": "Deleted the project"
+	//   "204":
+	//     "description": "Project board deleted"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 }
 
-func CreateRepositoryProject(ctx *context.APIContext) {
-	// swagger:operation POST /repos/{owner}/{repo}/projects project projectCreateRepositoryProject
+func ListProjectBoards(ctx *context.APIContext) {
+	// swagger:operation GET /projects/{projectId}/boards board boardGetProjectBoards
 	// ---
-	// summary: Create a repository project
+	// summary: Get project boards
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: owner
+	// - name: projectId
 	//   in: path
-	//   description: owner of repo
+	//   description: projectId of the project
 	//   type: string
 	//   required: true
-	// - name: repo
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/ProjectBoardList"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+}
+
+func CreateProjectBoard(ctx *context.APIContext) {
+	// swagger:operation POST /projects/{projectId}/boards board boardCreateProjectBoard
+	// ---
+	// summary: Create project board
+	// produces:
+	// - application/json
+	// consumes:
+	// - application/json
+	// parameters:
+	// - name: id
 	//   in: path
-	//   description: repo
+	//   description: id of the project
 	//   type: string
 	//   required: true
 	// responses:
 	//   "201":
-	//     "$ref": "#/responses/Project"
-	//   "403":
-	//     "$ref": "#/responses/forbidden"
-	//   "404":
-	//     "$ref": "#/responses/notFound"
-}
-
-func ListRepositoryProjects(ctx *context.APIContext) {
-	// swagger:operation GET /repos/{owner}/{repo}/projects project projectListRepositoryProjects
-	// ---
-	// summary: List repository projects
-	// produces:
-	// - application/json
-	// parameters:
-	// - name: owner
-	//   in: path
-	//   description: owner of the repository
-	//   type: string
-	//   required: true
-	// - name: repo
-	//   in: path
-	//   description: repo
-	//   type: string
-	//   required: true
-	// responses:
-	//   "200":
-	//     "$ref": "#/responses/ProjectList"
+	//     "$ref": "#/responses/ProjectBoard"
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
