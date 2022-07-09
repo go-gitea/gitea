@@ -29,10 +29,10 @@
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">
 				{{if $.CanWriteIssuesOrPulls}}
-				<div class="ui checkbox issue-checkbox-all">
-					<input type="checkbox"></input>
-					<label></label>
-				</div>
+					<div class="ui checkbox issue-checkbox-all">
+						<input type="checkbox"></input>
+						<label></label>
+					</div>
 				{{end}}
 				{{template "repo/issue/openclose" .}}
 			</div>
