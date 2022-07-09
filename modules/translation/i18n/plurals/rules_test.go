@@ -21,7 +21,7 @@ func TestRules(t *testing.T) {
 	}{
 		{
 			name: "exact match",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"en": expectedRule,
 				"es": {},
 			}},
@@ -30,7 +30,7 @@ func TestRules(t *testing.T) {
 		},
 		{
 			name: "inexact match",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"en": expectedRule,
 			}},
 			locale: "en-US",
@@ -38,7 +38,7 @@ func TestRules(t *testing.T) {
 		},
 		{
 			name: "portuguese doesn't match european portuguese",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"pt-PT": {},
 			}},
 			locale: "pt",
@@ -46,7 +46,7 @@ func TestRules(t *testing.T) {
 		},
 		{
 			name: "european portuguese preferred",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"pt":    {},
 				"pt-PT": expectedRule,
 			}},
@@ -55,7 +55,7 @@ func TestRules(t *testing.T) {
 		},
 		{
 			name: "zh-Hans",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"zh": expectedRule,
 			}},
 			locale: "zh-Hans",
@@ -63,7 +63,7 @@ func TestRules(t *testing.T) {
 		},
 		{
 			name: "zh-Hant",
-			rules: Rules{"cardinal": map[string]*Rule{
+			rules: Rules{CardinalMap: map[string]*Rule{
 				"zh": expectedRule,
 			}},
 			locale: "zh-Hant",

@@ -25,15 +25,31 @@ type Rule struct {
 	PluralFormFunc func(*Operands) Form
 }
 
-func addPluralRules(rules Rules, typ RuleType, ids []string, ps *Rule) {
+func addPluralRules(rules *Rules, typ RuleType, ids []string, ps *Rule) {
 	for _, id := range ids {
 		if id == "root" {
 			continue
 		}
-		if rules[typ] == nil {
-			rules[typ] = map[string]*Rule{}
+		switch typ {
+		case Cardinal:
+			if rules.CardinalMap == nil {
+				rules.CardinalMap = map[string]*Rule{}
+			}
+			rules.CardinalMap[id] = ps
+		case Ordinal:
+			if rules.OrdinalMap == nil {
+				rules.OrdinalMap = map[string]*Rule{}
+			}
+			rules.OrdinalMap[id] = ps
+		default:
+			if rules.Others == nil {
+				rules.Others = map[RuleType]map[string]*Rule{}
+			}
+			if rules.Others[typ] == nil {
+				rules.Others[typ] = map[string]*Rule{}
+			}
+			rules.Others[typ][id] = ps
 		}
-		rules[typ][id] = ps
 	}
 }
 
@@ -45,18 +61,37 @@ func newPluralFormSet(pluralForms ...Form) map[Form]struct{} {
 	return set
 }
 
-type Rules map[RuleType]map[string]*Rule
+type Rules struct {
+	CardinalMap map[string]*Rule
+	OrdinalMap  map[string]*Rule
+	Others      map[RuleType]map[string]*Rule
+}
 
 // Rule returns the closest matching plural rule for the language tag
 // or nil if no rule could be found.
 func (r Rules) Rule(locale string) *Rule {
 	for {
-		if rule, ok := r["cardinal"][locale]; ok {
+		if rule, ok := r.CardinalMap[locale]; ok {
 			return rule
 		}
 		idx := strings.LastIndex(locale, "-")
 		if idx < 0 {
-			return r["cardinal"]["en"]
+			return r.CardinalMap["en"]
+		}
+		locale = locale[:idx]
+	}
+}
+
+// Rule returns the closest matching plural rule for the language tag
+// or nil if no rule could be found.
+func (r Rules) Ordinal(locale string) *Rule {
+	for {
+		if rule, ok := r.OrdinalMap[locale]; ok {
+			return rule
+		}
+		idx := strings.LastIndex(locale, "-")
+		if idx < 0 {
+			return r.OrdinalMap["en"]
 		}
 		locale = locale[:idx]
 	}
@@ -65,13 +100,19 @@ func (r Rules) Rule(locale string) *Rule {
 // Rule returns the closest matching plural rule for the language tag
 // or nil if no rule could be found.
 func (r Rules) RuleByType(typ RuleType, locale string) *Rule {
+	switch typ {
+	case Cardinal:
+		return r.Rule(locale)
+	case Ordinal:
+		return r.Ordinal(locale)
+	}
 	for {
-		if rule, ok := r[typ][locale]; ok {
+		if rule, ok := r.Others[typ][locale]; ok {
 			return rule
 		}
 		idx := strings.LastIndex(locale, "-")
 		if idx < 0 {
-			return r[typ]["en"]
+			return r.Others[typ]["en"]
 		}
 		locale = locale[:idx]
 	}

@@ -120,11 +120,13 @@ var codeTemplate = template.Must(template.New("codeTemplate").Parse(`// This fil
 package plurals
 
 // DefaultRules returns a map of Rules generated from CLDR language data.
-func DefaultRules() Rules {
-	rules := Rules{}
+var DefaultRules *Rules
+
+func init() {
+	DefaultRules := &Rules{}
 {{range $p, $plurals := .Plurals}}
 {{range .LocaleGroups}}
-	addPluralRules(rules, {{printf "%q" $plurals.Type}}, {{printf "%#v" .SplitLocales}}, &Rule{
+	addPluralRules(DefaultRules, {{printf "%q" $plurals.Type}}, {{printf "%#v" .SplitLocales}}, &Rule{
 		PluralForms: newPluralFormSet({{range $i, $e := .Rules}}{{if $i}}, {{end}}{{$e.CountTitle}}{{end}}),
 		PluralFormFunc: func(ops *Operands) Form { {{range .Rules}}{{if .GoCondition}}
 			// {{.Condition}}
@@ -135,7 +137,6 @@ func DefaultRules() Rules {
 		},
 	}){{end}}
 	{{end}}
-	return rules
 }
 `))
 

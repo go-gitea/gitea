@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-// As noted above relation is a lot simpler than the original full rules imply:
+// As noted below relation is a lot simpler than the original full rules imply:
 //
 // relation        = expr ('=' | '!=') range_list
 // expr            = operand ('%' value)?

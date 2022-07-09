@@ -22,7 +22,7 @@ func runTests(t *testing.T, pluralRuleID, typ string, tests []pluralFormTest) {
 	if pluralRuleID == "root" {
 		return
 	}
-	pluralRules := DefaultRules()
+	pluralRules := DefaultRules
 	if rule := pluralRules.RuleByType(RuleType(typ), pluralRuleID); rule != nil {
 		for _, test := range tests {
 			ops, err := NewOperands(test.num)
