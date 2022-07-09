@@ -12,6 +12,7 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+// token is a html tag or entity, eg: "<span ...>", "</span>", "&lt;"
 func extractHTMLToken(s string) (before, token, after string, valid bool) {
 	for pos1 := 0; pos1 < len(s); pos1++ {
 		if s[pos1] == '<' {
@@ -33,9 +34,9 @@ func extractHTMLToken(s string) (before, token, after string, valid bool) {
 
 // highlightCodeDiff is used to do diff with highlighted HTML code.
 // It totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
-// The HTML tags will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
+// The HTML tags and entities will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
 // These Unicode placeholders are friendly to the diff.
-// Then after diff, the placeholders in diff result will be recovered to the HTML tags.
+// Then after diff, the placeholders in diff result will be recovered to the HTML tags and entities.
 // It's guaranteed that the tags in final diff result are paired correctly.
 type highlightCodeDiff struct {
 	placeholderBegin    rune
@@ -105,6 +106,7 @@ func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	return diffs
 }
 
+// convertToPlaceholders totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
 func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	var tagStack []string
 	res := strings.Builder{}
@@ -120,7 +122,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 		if !valid || token == "" {
 			break
 		}
-		// write the content before the tag into result string, and consume the tag in the string
+		// write the content before the token into result string, and consume the token in the string
 		res.WriteString(beforeToken)
 
 		// the line wrapper tags should be removed before diff
@@ -149,7 +151,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 			tokenInMap = token
 		}
 
-		// remember the placeholder and tag in the map
+		// remember the placeholder and token in the map
 		placeholder, ok := hcd.tokenPlaceholderMap[tokenInMap]
 		if !ok {
 			placeholder = hcd.nextPlaceholder()
@@ -160,7 +162,7 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 		}
 
 		if placeholder != 0 {
-			res.WriteRune(placeholder) // use the placeholder to replace the tag
+			res.WriteRune(placeholder) // use the placeholder to replace the token
 		} else {
 			// unfortunately, all private use runes has been exhausted, no more placeholder could be used, no more converting
 			// usually, the exhausting won't occur in real cases, the magnitude of used placeholders is not larger than that of the CSS classes outputted by chroma.
@@ -198,7 +200,7 @@ func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 		} else if token[0] == '<' {
 			tokenToRecover = token
 			tagStack = append(tagStack, token)
-		} else {
+		} else { // html entity
 			tokenToRecover = token
 		}
 		sb.WriteString(tokenToRecover)
