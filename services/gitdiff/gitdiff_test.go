@@ -684,6 +684,29 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	expected = fmt.Sprintf(`<span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="added-code">%s</span>&#39;`, "\uF8FF")
 	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
+
+	totalOverflow := 0
+	for i := 0; i < 100; i++ {
+		hcd = newHighlightCodeDiff()
+		hcd.placeholderMaxCount = i
+		diffs = hcd.diffWithHighlight(
+			"main.js", "",
+			"a='1'",
+			"b='2'",
+		)
+		totalOverflow += hcd.placeholderOverflowCount
+
+		output = diffToHTML(nil, diffs, DiffLineDel)
+		c1 := strings.Count(output, "<span")
+		c2 := strings.Count(output, "</span")
+		assert.Equal(t, c1, c2)
+
+		output = diffToHTML(nil, diffs, DiffLineAdd)
+		c1 = strings.Count(output, "<span")
+		c2 = strings.Count(output, "</span")
+		assert.Equal(t, c1, c2)
+	}
+	assert.NotZero(t, totalOverflow)
 }
 
 func TestNoCrashes(t *testing.T) {
