@@ -284,6 +284,7 @@ func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 }
 
 // highlightCodeDiff is used to do diff with highlighted HTML code.
+// It totally depends on Chroma's valid HTML output and its structure, do not use these functions for other purposes.
 // The HTML tags will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
 // These Unicode placeholders are friendly to the diff.
 // Then after diff, the placeholders in diff result will be recovered to the HTML tags.
