@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,6 +28,23 @@ func TestDiffWithHighlight(t *testing.T) {
 	expected = `		<span class="n">run</span><span class="o">(</span><span class="added-code"><span class="n">db</span></span><span class="o">)</span>` + "\n"
 	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
+
+	hcd = newHighlightCodeDiff()
+	hcd.placeholderTokenMap['O'] = "<span>"
+	hcd.placeholderTokenMap['C'] = "</span>"
+	diff := diffmatchpatch.Diff{}
+
+	diff.Text = "OC"
+	hcd.recoverOneDiff(&diff)
+	assert.Equal(t, "<span></span>", diff.Text)
+
+	diff.Text = "O"
+	hcd.recoverOneDiff(&diff)
+	assert.Equal(t, "<span></span>", diff.Text)
+
+	diff.Text = "C"
+	hcd.recoverOneDiff(&diff)
+	assert.Equal(t, "", diff.Text)
 }
 
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
