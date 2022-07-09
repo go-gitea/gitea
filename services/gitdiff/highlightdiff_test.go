@@ -63,7 +63,22 @@ func TestDiffWithHighlightPlaceholderExhausted(t *testing.T) {
 		``,
 	)
 	output := diffToHTML(nil, diffs, DiffLineDel)
-	expected := fmt.Sprintf(`<span class="removed-code">%s</span>`, "\uFFFD")
+	expected := fmt.Sprintf(`<span class="removed-code">%s#39;</span>`, "\uFFFD")
+	assert.Equal(t, expected, output)
+
+	hcd = newHighlightCodeDiff()
+	hcd.placeholderMaxCount = 0
+	diffs = hcd.diffWithHighlight(
+		"main.js", "",
+		"a < b",
+		"a > b",
+	)
+	output = diffToHTML(nil, diffs, DiffLineDel)
+	expected = fmt.Sprintf(`a %s<span class="removed-code">l</span>t; b`, "\uFFFD")
+	assert.Equal(t, expected, output)
+
+	output = diffToHTML(nil, diffs, DiffLineAdd)
+	expected = fmt.Sprintf(`a %s<span class="added-code">g</span>t; b`, "\uFFFD")
 	assert.Equal(t, expected, output)
 }
 

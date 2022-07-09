@@ -169,7 +169,8 @@ func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 			hcd.placeholderOverflowCount++
 			if strings.HasPrefix(token, "&") {
 				// when the token is a html entity, something must be outputted even if there is no placeholder.
-				res.WriteRune(0xFFFD) // replacement character TODO: how to handle this case more gracefully?
+				res.WriteRune(0xFFFD)      // replacement character TODO: how to handle this case more gracefully?
+				res.WriteString(token[1:]) // still output the entity code part, otherwise there will be no diff result.
 			}
 		}
 	}
