@@ -621,7 +621,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `ED25519`: **256**
 - `ECDSA`: **256**
-- `RSA`: **2048**
+- `RSA`: **2047**: We set 2047 here because an otherwise valid 2048 RSA key can be reported as 2047 length.
 - `DSA`: **-1**: DSA is now disabled by default. Set to **1024** to re-enable but ensure you may need to reconfigure your SSHD provider
 
 ## Webhook (`webhook`)
@@ -742,7 +742,7 @@ Default templates for project boards:
 ## Issue and pull request attachments (`attachment`)
 
 - `ENABLED`: **true**: Whether issue and pull request attachments are enabled.
-- `ALLOWED_TYPES`: **.docx,.gif,.gz,.jpeg,.jpg,mp4,.log,.pdf,.png,.pptx,.txt,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
+- `ALLOWED_TYPES`: **.csv,.docx,.fodg,.fodp,.fods,.fodt,.gif,.gz,.jpeg,.jpg,.log,.md,.mov,.mp4,.odf,.odg,.odp,.ods,.odt,.pdf,.png,.pptx,.svg,.tgz,.txt,.webm,.xls,.xlsx,.zip**: Comma-separated list of allowed file extensions (`.zip`), mime types (`text/plain`) or wildcard type (`image/*`, `audio/*`, `video/*`). Empty value or `*/*` allows all types.
 - `MAX_SIZE`: **4**: Maximum size (MB).
 - `MAX_FILES`: **5**: Maximum number of attachments that can be uploaded at once.
 - `STORAGE_TYPE`: **local**: Storage type for attachments, `local` for local disk or `minio` for s3 compatible object storage service, default is `local` or other name defined with `[storage.xxx]`
@@ -948,6 +948,8 @@ Default templates for project boards:
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
+- `HOME_PATH`: **%(APP_DATA_PATH)/home**: The HOME directory for Git.
+	  This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.

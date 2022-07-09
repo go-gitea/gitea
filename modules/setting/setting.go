@@ -170,7 +170,7 @@ var (
 		ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
 		KeygenPath:                    "ssh-keygen",
 		MinimumKeySizeCheck:           true,
-		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2047},
 		ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
 		AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 		PerWriteTimeout:               PerWriteTimeout,
@@ -859,9 +859,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
 
 	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
-		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
+		if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
 			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
 		}
 
