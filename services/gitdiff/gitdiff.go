@@ -283,12 +283,12 @@ func DiffInlineWithHighlightCode(fileName, language, code string) DiffInline {
 	return DiffInline{EscapeStatus: status, Content: template.HTML(content)}
 }
 
-// HighlightCodeDiff is used to do diff with highlighted HTML code.
+// highlightCodeDiff is used to do diff with highlighted HTML code.
 // The HTML tags will be replaced by Unicode placeholders: "<span>{TEXT}</span>" => "\uE000{TEXT}\uE001"
 // These Unicode placeholders are friendly to the diff.
 // Then after diff, the placeholders in diff result will be recovered to the HTML tags.
 // It's guaranteed that the tags in final diff result are paired correctly.
-type HighlightCodeDiff struct {
+type highlightCodeDiff struct {
 	placeholderBegin    rune
 	placeholderMaxCount int
 	placeholderIndex    int
@@ -298,8 +298,8 @@ type HighlightCodeDiff struct {
 	lineWrapperTags []string
 }
 
-func NewHighlightCodeDiff() *HighlightCodeDiff {
-	return &HighlightCodeDiff{
+func newHighlightCodeDiff() *highlightCodeDiff {
+	return &highlightCodeDiff{
 		placeholderBegin:    rune(0xE000), // Private Use Unicode: U+E000..U+F8FF, BMP(0), 6400
 		placeholderMaxCount: 6400,
 		placeholderTagMap:   map[rune]string{},
@@ -310,7 +310,7 @@ func NewHighlightCodeDiff() *HighlightCodeDiff {
 // nextPlaceholder returns 0 if no more placeholder can be used
 // the diff is done line by line, usually there are only a few (no more than 10) placeholders in one line
 // so the placeholderMaxCount is impossible to be exhausted in real cases.
-func (hcd *HighlightCodeDiff) nextPlaceholder() rune {
+func (hcd *highlightCodeDiff) nextPlaceholder() rune {
 	for hcd.placeholderIndex < hcd.placeholderMaxCount {
 		r := hcd.placeholderBegin + rune(hcd.placeholderIndex)
 		hcd.placeholderIndex++
@@ -322,11 +322,11 @@ func (hcd *HighlightCodeDiff) nextPlaceholder() rune {
 	return 0 // no more available placeholder
 }
 
-func (hcd *HighlightCodeDiff) isInPlaceholderRange(r rune) bool {
+func (hcd *highlightCodeDiff) isInPlaceholderRange(r rune) bool {
 	return hcd.placeholderBegin <= r && r < hcd.placeholderBegin+rune(hcd.placeholderMaxCount)
 }
 
-func (hcd *HighlightCodeDiff) collectUsedRunes(code string) {
+func (hcd *highlightCodeDiff) collectUsedRunes(code string) {
 	for _, r := range code {
 		if hcd.isInPlaceholderRange(r) {
 			// put the existing rune (used by code) in map, then this rune won't be used a placeholder anymore.
@@ -335,7 +335,7 @@ func (hcd *HighlightCodeDiff) collectUsedRunes(code string) {
 	}
 }
 
-func (hcd *HighlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
+func (hcd *highlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB string) []diffmatchpatch.Diff {
 	hcd.collectUsedRunes(codeA)
 	hcd.collectUsedRunes(codeB)
 
@@ -354,7 +354,7 @@ func (hcd *HighlightCodeDiff) diffWithHighlight(filename, language, codeA, codeB
 	return diffs
 }
 
-func (hcd *HighlightCodeDiff) convertToPlaceholders(htmlCode string) string {
+func (hcd *highlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	var tagStack []string
 	res := strings.Builder{}
 
@@ -419,7 +419,7 @@ func (hcd *HighlightCodeDiff) convertToPlaceholders(htmlCode string) string {
 	return res.String()
 }
 
-func (hcd *HighlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
+func (hcd *highlightCodeDiff) recoverOneDiff(diff *diffmatchpatch.Diff) {
 	sb := strings.Builder{}
 	var tagStack []string
 
@@ -501,7 +501,7 @@ func (diffSection *DiffSection) GetComputedInlineDiffFor(diffLine *DiffLine) Dif
 		return DiffInlineWithHighlightCode(diffSection.FileName, language, diffLine.Content)
 	}
 
-	hcd := NewHighlightCodeDiff()
+	hcd := newHighlightCodeDiff()
 	diffRecord := hcd.diffWithHighlight(diffSection.FileName, language, diff1[1:], diff2[1:])
 	// it seems that Gitea doesn't need the line wrapper of Chroma, so do not add them back
 	// if the line wrappers are still needed in the future, it can be added back by "diffToHTML(hcd.lineWrapperTags. ...)"

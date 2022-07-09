@@ -645,7 +645,7 @@ func TestGetDiffRangeWithWhitespaceBehavior(t *testing.T) {
 }
 
 func TestDiffWithHighlight(t *testing.T) {
-	hcd := NewHighlightCodeDiff()
+	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
 		"main.v", "",
 		"		run('<>')\n",
@@ -662,7 +662,7 @@ func TestDiffWithHighlight(t *testing.T) {
 }
 
 func TestDiffWithHighlightPlaceholder(t *testing.T) {
-	hcd := NewHighlightCodeDiff()
+	hcd := newHighlightCodeDiff()
 	diffs := hcd.diffWithHighlight(
 		"main.js", "",
 		"a='\uE000'",
@@ -675,7 +675,7 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	output := diffToHTML(hcd.lineWrapperTags, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 
-	hcd = NewHighlightCodeDiff()
+	hcd = newHighlightCodeDiff()
 	diffs = hcd.diffWithHighlight(
 		"main.js", "",
 		"a='\uE000'",
