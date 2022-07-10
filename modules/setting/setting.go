@@ -840,8 +840,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		SSH.StartBuiltinServer = false
 	}
 
-	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
-	for _, caKey := range trustedUserCaKeys {
+	SSH.TrustedUserCAKeysFile = sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
+
+	for _, caKey := range SSH.TrustedUserCAKeys {
 		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
 		if err != nil {
 			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
@@ -849,7 +850,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
 	}
-	if len(trustedUserCaKeys) > 0 {
+	if len(SSH.TrustedUserCAKeys) > 0 {
 		// Set the default as email,username otherwise we can leave it empty
 		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
 	} else {
@@ -857,20 +858,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
-
-	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
-		}
-
-		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
-			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := os.WriteFile(fname,
-				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0o600); err != nil {
-				log.Fatal("Failed to create '%s': %v", fname, err)
-			}
-		}
-	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
