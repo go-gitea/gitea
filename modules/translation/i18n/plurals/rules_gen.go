@@ -9,7 +9,7 @@ package plurals
 var DefaultRules *Rules
 
 func init() {
-	DefaultRules := &Rules{}
+	DefaultRules = &Rules{}
 
 	addPluralRules(DefaultRules, "cardinal", []string{"bm", "bo", "dz", "hnj", "id", "ig", "ii", "in", "ja", "jbo", "jv", "jw", "kde", "kea", "km", "ko", "lkt", "lo", "ms", "my", "nqo", "osa", "root", "sah", "ses", "sg", "su", "th", "to", "tpi", "vi", "wo", "yo", "yue", "zh"}, &Rule{
 		PluralForms: newPluralFormSet(Other),

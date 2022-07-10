@@ -123,7 +123,7 @@ package plurals
 var DefaultRules *Rules
 
 func init() {
-	DefaultRules := &Rules{}
+	DefaultRules = &Rules{}
 {{range $p, $plurals := .Plurals}}
 {{range .LocaleGroups}}
 	addPluralRules(DefaultRules, {{printf "%q" $plurals.Type}}, {{printf "%#v" .SplitLocales}}, &Rule{
