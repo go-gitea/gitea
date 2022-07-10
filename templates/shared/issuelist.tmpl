@@ -17,7 +17,11 @@
 							{{if .IsClosed}}
 								{{svg "octicon-git-pull-request" 16 "text red"}}
 							{{else}}
-								{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{if .PullRequest.IsWorkInProgress}}
+									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+								{{else}}
+									{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{end}}
 							{{end}}
 						{{end}}
 					{{else}}
