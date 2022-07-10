@@ -5,21 +5,26 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	"time"
 
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
 
-func addTeamInviteTable(x *xorm.Engine) error {
-	type TeamInvite struct {
-		ID          int64              `xorm:"pk autoincr"`
-		Token       string             `xorm:"UNIQUE(token) INDEX"`
-		InviterID   int64              `xorm:"NOT NULL"`
-		TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
-		Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+func addSyncOnCommitColForPushMirror(x *xorm.Engine) error {
+	type PushMirror struct {
+		ID         int64            `xorm:"pk autoincr"`
+		RepoID     int64            `xorm:"INDEX"`
+		Repo       *repo.Repository `xorm:"-"`
+		RemoteName string
+
+		SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
+		Interval       time.Duration
+		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
+		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
+		LastError      string             `xorm:"text"`
 	}
 
-	return x.Sync2(new(TeamInvite))
+	return x.Sync2(new(PushMirror))
 }

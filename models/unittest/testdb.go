@@ -107,6 +107,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
 
+	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
