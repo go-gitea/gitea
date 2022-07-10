@@ -7,6 +7,7 @@ package migration
 import (
 	"context"
 	"net/url"
+	"time"
 )
 
 // NullDownloader implements a blank downloader
@@ -86,4 +87,14 @@ func (n NullDownloader) FormatCloneURL(opts MigrateOptions, remoteAddr string) (
 // SupportGetRepoComments return true if it supports get repo comments
 func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
+}
+
+// GetNewIssues returns new issues updated after the given time according start and limit
+func (n NullDownloader) GetNewIssues(page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "Issues"}
+}
+
+// GetNewPullRequests returns pull requests after the given time according page and perPage
+func (n NullDownloader) GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error) {
+	return nil, false, ErrNotSupported{Entity: "PullRequests"}
 }
