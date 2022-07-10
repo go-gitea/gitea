@@ -382,7 +382,7 @@ func Tr(lang, trKey string, trArgs ...interface{}) string {
 func GetLocale(lang string) Locale {
 	l, ok := DefaultLocales.localeMap[lang]
 	if !ok {
-		l, _ = DefaultLocales.localeMap[DefaultLocales.defaultLang]
+		l = DefaultLocales.localeMap[DefaultLocales.defaultLang]
 	}
 	return l
 }
