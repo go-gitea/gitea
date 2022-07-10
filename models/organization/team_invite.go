@@ -1,0 +1,111 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package organization
+
+import (
+	"context"
+	"fmt"
+
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+)
+
+type ErrTeamInviteAlreadyExist struct {
+	TeamID int64
+	Email  string
+}
+
+func IsErrTeamInviteAlreadyExist(err error) bool {
+	_, ok := err.(ErrTeamInviteAlreadyExist)
+	return ok
+}
+
+func (err ErrTeamInviteAlreadyExist) Error() string {
+	return fmt.Sprintf("team invite already exists [team_id: %d, email: %s]", err.TeamID, err.Email)
+}
+
+type ErrTeamInviteNotFound struct {
+	Token string
+}
+
+func IsErrTeamInviteNotFound(err error) bool {
+	_, ok := err.(ErrTeamInviteNotFound)
+	return ok
+}
+
+func (err ErrTeamInviteNotFound) Error() string {
+	return fmt.Sprintf("team invite was not found [token: %s]", err.Token)
+}
+
+// TeamInvite represents an invite to a team
+type TeamInvite struct {
+	ID          int64              `xorm:"pk autoincr"`
+	Token       string             `xorm:"UNIQUE(token) INDEX"`
+	InviterID   int64              `xorm:"NOT NULL"`
+	TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
+	Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
+	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+}
+
+func CreateTeamInvite(ctx context.Context, doer *user_model.User, team *Team, email string) (*TeamInvite, error) {
+	has, err := db.GetEngine(ctx).Exist(&TeamInvite{
+		TeamID: team.ID,
+		Email:  email,
+	})
+	if err != nil {
+		return nil, err
+	}
+	if has {
+		return nil, ErrTeamInviteAlreadyExist{
+			TeamID: team.ID,
+			Email:  email,
+		}
+	}
+
+	token, err := util.CryptoRandomString(25)
+	if err != nil {
+		return nil, err
+	}
+
+	invite := &TeamInvite{
+		Token:     token,
+		InviterID: doer.ID,
+		TeamID:    team.ID,
+		Email:     email,
+	}
+
+	return invite, db.Insert(ctx, invite)
+}
+
+func RemoveInviteByID(ctx context.Context, inviteID, teamID int64) error {
+	_, err := db.DeleteByBean(ctx, &TeamInvite{
+		ID:     inviteID,
+		TeamID: teamID,
+	})
+	return err
+}
+
+func GetInvitesByTeamID(ctx context.Context, teamID int64) ([]*TeamInvite, error) {
+	invites := make([]*TeamInvite, 0, 10)
+	return invites, db.GetEngine(ctx).
+		Where("team_id=?", teamID).
+		Find(&invites)
+}
+
+func GetInviteByToken(ctx context.Context, token string) (*TeamInvite, error) {
+	invite := &TeamInvite{}
+
+	has, err := db.GetEngine(ctx).Where("token=?", token).Get(invite)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, ErrTeamInviteNotFound{Token: token}
+	}
+	return invite, nil
+}
