@@ -272,7 +272,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
    - Note: Gitea manages the `~/.ssh/authorized_keys` file. Running Gitea as a regular user could break that user's ability to log in.
 - [Git](https://git-scm.com/) version 2.0.0 or later is required.
    - [Git Large File Storage](https://git-lfs.github.com/) will be available if enabled and if your Git version is >= 2.1.2
-   - Git commit-graph rendering will be enabled automatically if Git is on version 2.18 or over (Git >= 2.18).
+   - Git commit-graph rendering will be enabled automatically if your Git version is >= 2.18
 
 ## Browser Support
 
