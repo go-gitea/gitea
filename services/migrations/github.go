@@ -565,29 +565,9 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		}
 
 		// get reactions
-		var reactions []*base.Reaction
-		if !g.SkipReactions {
-			for i := 1; ; i++ {
-				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, pr.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
-				})
-				if err != nil {
-					return nil, false, err
-				}
-				g.setRate(&resp.Rate)
-				if len(res) == 0 {
-					break
-				}
-				for _, reaction := range res {
-					reactions = append(reactions, &base.Reaction{
-						UserID:   reaction.User.GetID(),
-						UserName: reaction.User.GetLogin(),
-						Content:  reaction.GetContent(),
-					})
-				}
-			}
+		reactions, err := g.getReactions(pr.GetNumber(), perPage)
+		if err != nil {
+			return nil, false, err
 		}
 
 		// download patch and saved as tmp file
@@ -802,29 +782,9 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 		}
 
 		// get reactions
-		var reactions []*base.Reaction
-		if !g.SkipReactions {
-			for i := 1; ; i++ {
-				g.waitAndPickClient()
-				res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, issue.GetNumber(), &github.ListOptions{
-					Page:    i,
-					PerPage: perPage,
-				})
-				if err != nil {
-					return nil, false, err
-				}
-				g.setRate(&resp.Rate)
-				if len(res) == 0 {
-					break
-				}
-				for _, reaction := range res {
-					reactions = append(reactions, &base.Reaction{
-						UserID:   reaction.User.GetID(),
-						UserName: reaction.User.GetLogin(),
-						Content:  reaction.GetContent(),
-					})
-				}
-			}
+		reactions, err := g.getReactions(issue.GetNumber(), perPage)
+		if err != nil {
+			return nil, false, err
 		}
 
 		var assignees []string
@@ -853,4 +813,35 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 	}
 
 	return allIssues, len(issues) < perPage, nil
+}
+
+func (g *GithubDownloaderV3) getReactions(number, perPage int) ([]*base.Reaction, error) {
+	if g.SkipReactions {
+		return nil, nil
+	}
+
+	var reactions []*base.Reaction
+
+	for i := 1; ; i++ {
+		g.waitAndPickClient()
+		res, resp, err := g.getClient().Reactions.ListIssueReactions(g.ctx, g.repoOwner, g.repoName, number, &github.ListOptions{
+			Page:    i,
+			PerPage: perPage,
+		})
+		if err != nil {
+			return nil, err
+		}
+		g.setRate(&resp.Rate)
+		if len(res) == 0 {
+			break
+		}
+		for _, reaction := range res {
+			reactions = append(reactions, &base.Reaction{
+				UserID:   reaction.User.GetID(),
+				UserName: reaction.User.GetLogin(),
+				Content:  reaction.GetContent(),
+			})
+		}
+	}
+	return reactions, nil
 }
