@@ -565,7 +565,7 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 		}
 
 		// get reactions
-		reactions, err := g.getReactions(pr.GetNumber(), perPage)
+		reactions, err := g.getIssueReactions(pr.GetNumber(), perPage)
 		if err != nil {
 			return nil, false, err
 		}
@@ -782,7 +782,7 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 		}
 
 		// get reactions
-		reactions, err := g.getReactions(issue.GetNumber(), perPage)
+		reactions, err := g.getIssueReactions(issue.GetNumber(), perPage)
 		if err != nil {
 			return nil, false, err
 		}
@@ -815,7 +815,7 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 	return allIssues, len(issues) < perPage, nil
 }
 
-func (g *GithubDownloaderV3) getReactions(number, perPage int) ([]*base.Reaction, error) {
+func (g *GithubDownloaderV3) getIssueReactions(number, perPage int) ([]*base.Reaction, error) {
 	if g.SkipReactions {
 		return nil, nil
 	}
