@@ -361,7 +361,7 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	}
 
 	if len(opts.Name) != 0 {
-		cond = cond.And(builder.Like{"name", opts.Name})
+		cond = cond.And(builder.Like{"UPPER(name)", strings.ToUpper(opts.Name)})
 	}
 
 	return cond
