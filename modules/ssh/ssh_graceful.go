@@ -29,7 +29,7 @@ func listen(server *ssh.Server) {
 	log.Info("SSH Listener: %s Closed", server.Addr)
 }
 
-// Unused informs our cleanup routine that we will not be using a ssh port
-func Unused() {
+// builtinUnused informs our cleanup routine that we will not be using a ssh port
+func builtinUnused() {
 	graceful.GetManager().InformCleanup()
 }
