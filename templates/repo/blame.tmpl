@@ -3,7 +3,7 @@
 		<div class="file-header-left df ac">
 			<div class="file-info text grey normal mono">
 				<div class="file-info-entry">
-					{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
+					{{.NumLines}} {{.locale.TrPlural .NumLines "repo.line_plural"}}
 				</div>
 				<div class="file-info-entry">{{FileSize .FileSize}}</div>
 			</div>

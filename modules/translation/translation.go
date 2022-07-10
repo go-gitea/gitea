@@ -23,6 +23,8 @@ type Locale interface {
 	Language() string
 	Tr(string, ...interface{}) string
 	TrN(cnt interface{}, key1, keyN string, args ...interface{}) string
+	TrPlural(cnt interface{}, key string, args ...interface{}) string
+	TrOrdinal(cnt interface{}, key string, args ...interface{}) string
 }
 
 // LangType represents a lang type
@@ -118,6 +120,7 @@ func Match(tags ...language.Tag) language.Tag {
 
 // locale represents the information of localization.
 type locale struct {
+	i18n.Locale
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
 }
 
@@ -128,6 +131,7 @@ func NewLocale(lang string) Locale {
 		langName = l.Name
 	}
 	return &locale{
+		Locale:   i18n.GetLocale(langName),
 		Lang:     lang,
 		LangName: langName,
 	}

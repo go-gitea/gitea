@@ -10,6 +10,7 @@ import "fmt"
 type Locale interface {
 	Tr(key string, args ...interface{}) string
 	TrPlural(cnt interface{}, key string, args ...interface{}) string
+	TrOrdinal(cnt interface{}, key string, args ...interface{}) string
 }
 
 // TranslatableFormatted structs provide their own translated string when formatted in translation

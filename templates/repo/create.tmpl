@@ -16,7 +16,7 @@
 
 					{{if not .CanCreateRepo}}
 						<div class="ui negative message">
-							<p>{{.locale.TrN .MaxCreationLimit "repo.form.reach_limit_of_creation_1" "repo.form.reach_limit_of_creation_n" .MaxCreationLimit}}</p>
+							<p>{{.locale.TrPlural .MaxCreationLimit "repo.form.reach_limit_of_creation_plural" .MaxCreationLimit}}</p>
 						</div>
 					{{end}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">

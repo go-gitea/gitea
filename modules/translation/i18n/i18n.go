@@ -377,3 +377,12 @@ func ResetDefaultLocales(isProd bool) {
 func Tr(lang, trKey string, trArgs ...interface{}) string {
 	return DefaultLocales.Tr(lang, trKey, trArgs...)
 }
+
+// Tr use default locales to translate content to target language.
+func GetLocale(lang string) Locale {
+	l, ok := DefaultLocales.localeMap[lang]
+	if !ok {
+		l, ok = DefaultLocales.localeMap[DefaultLocales.defaultLang]
+	}
+	return l
+}
