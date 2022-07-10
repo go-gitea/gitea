@@ -88,6 +88,11 @@ func TestPatch(pr *issues_model.PullRequest) error {
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
 
+	if pr.HeadCommitID == pr.MergeBase {
+		pr.Status = issues_model.PullRequestStatusEmpty
+		return nil
+	}
+
 	// 2. Check for conflicts
 	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
 		return err
