@@ -559,54 +559,11 @@ func (g *GithubDownloaderV3) GetPullRequests(page, perPage int) ([]*base.PullReq
 	log.Trace("Request get pull requests %d/%d, but in fact get %d", perPage, page, len(prs))
 	g.setRate(&resp.Rate)
 	for _, pr := range prs {
-		labels := make([]*base.Label, 0, len(pr.Labels))
-		for _, l := range pr.Labels {
-			labels = append(labels, convertGithubLabel(l))
-		}
-
-		// get reactions
-		reactions, err := g.getIssueReactions(pr.GetNumber(), perPage)
+		basePR, err := g.convertGithubPullRequest(pr, perPage)
 		if err != nil {
 			return nil, false, err
 		}
-
-		// download patch and saved as tmp file
-		g.waitAndPickClient()
-
-		allPRs = append(allPRs, &base.PullRequest{
-			Title:          pr.GetTitle(),
-			Number:         int64(pr.GetNumber()),
-			PosterID:       pr.GetUser().GetID(),
-			PosterName:     pr.GetUser().GetLogin(),
-			PosterEmail:    pr.GetUser().GetEmail(),
-			Content:        pr.GetBody(),
-			Milestone:      pr.GetMilestone().GetTitle(),
-			State:          pr.GetState(),
-			Created:        pr.GetCreatedAt(),
-			Updated:        pr.GetUpdatedAt(),
-			Closed:         pr.ClosedAt,
-			Labels:         labels,
-			Merged:         pr.MergedAt != nil,
-			MergeCommitSHA: pr.GetMergeCommitSHA(),
-			MergedTime:     pr.MergedAt,
-			IsLocked:       pr.ActiveLockReason != nil,
-			Head: base.PullRequestBranch{
-				Ref:       pr.GetHead().GetRef(),
-				SHA:       pr.GetHead().GetSHA(),
-				OwnerName: pr.GetHead().GetUser().GetLogin(),
-				RepoName:  pr.GetHead().GetRepo().GetName(),
-				CloneURL:  pr.GetHead().GetRepo().GetCloneURL(),
-			},
-			Base: base.PullRequestBranch{
-				Ref:       pr.GetBase().GetRef(),
-				SHA:       pr.GetBase().GetSHA(),
-				RepoName:  pr.GetBase().GetRepo().GetName(),
-				OwnerName: pr.GetBase().GetUser().GetLogin(),
-			},
-			PatchURL:     pr.GetPatchURL(),
-			Reactions:    reactions,
-			ForeignIndex: int64(*pr.Number),
-		})
+		allPRs = append(allPRs, basePR)
 	}
 
 	return allPRs, len(prs) < perPage, nil
@@ -813,6 +770,103 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 	}
 
 	return allIssues, len(issues) < perPage, nil
+}
+
+// GetNewPullRequests returns pull requests after the given time according page and perPage
+func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
+	// Every pull request is an issue, and only Issues API provides parameter `since`,
+	// So we should get issues IDs first and then get pull requests
+	if perPage > g.maxPerPage {
+		perPage = g.maxPerPage
+	}
+	opt := &github.IssueListByRepoOptions{
+		Sort:      "created",
+		Direction: "asc",
+		State:     "all",
+		Since:     updatedAfter,
+		ListOptions: github.ListOptions{
+			PerPage: perPage,
+			Page:    page,
+		},
+	}
+
+	allPRs := make([]*base.PullRequest, 0, perPage)
+	g.waitAndPickClient()
+	issues, resp, err := g.getClient().Issues.ListByRepo(g.ctx, g.repoOwner, g.repoName, opt)
+	if err != nil {
+		return nil, false, fmt.Errorf("error while listing repos: %v", err)
+	}
+	log.Trace("Request get issues %d/%d, but in fact get %d", perPage, page, len(issues))
+	g.setRate(&resp.Rate)
+	for _, issue := range issues {
+		if !issue.IsPullRequest() {
+			continue
+		}
+
+		pr, resp, err := g.getClient().PullRequests.Get(g.ctx, g.repoOwner, g.repoName, issue.GetNumber())
+		if err != nil {
+			return nil, false, fmt.Errorf("error while getting repo pull request: %v", err)
+		}
+		g.setRate(&resp.Rate)
+		basePR, err := g.convertGithubPullRequest(pr, perPage)
+		if err != nil {
+			return nil, false, err
+		}
+		allPRs = append(allPRs, basePR)
+	}
+
+	return nil, false, nil
+}
+
+func (g *GithubDownloaderV3) convertGithubPullRequest(pr *github.PullRequest, perPage int) (*base.PullRequest, error) {
+	labels := make([]*base.Label, 0, len(pr.Labels))
+	for _, l := range pr.Labels {
+		labels = append(labels, convertGithubLabel(l))
+	}
+
+	// get reactions
+	reactions, err := g.getIssueReactions(pr.GetNumber(), perPage)
+	if err != nil {
+		return nil, err
+	}
+
+	// download patch and saved as tmp file
+	g.waitAndPickClient()
+
+	return &base.PullRequest{
+		Title:          pr.GetTitle(),
+		Number:         int64(pr.GetNumber()),
+		PosterID:       pr.GetUser().GetID(),
+		PosterName:     pr.GetUser().GetLogin(),
+		PosterEmail:    pr.GetUser().GetEmail(),
+		Content:        pr.GetBody(),
+		Milestone:      pr.GetMilestone().GetTitle(),
+		State:          pr.GetState(),
+		Created:        pr.GetCreatedAt(),
+		Updated:        pr.GetUpdatedAt(),
+		Closed:         pr.ClosedAt,
+		Labels:         labels,
+		Merged:         pr.MergedAt != nil,
+		MergeCommitSHA: pr.GetMergeCommitSHA(),
+		MergedTime:     pr.MergedAt,
+		IsLocked:       pr.ActiveLockReason != nil,
+		Head: base.PullRequestBranch{
+			Ref:       pr.GetHead().GetRef(),
+			SHA:       pr.GetHead().GetSHA(),
+			OwnerName: pr.GetHead().GetUser().GetLogin(),
+			RepoName:  pr.GetHead().GetRepo().GetName(),
+			CloneURL:  pr.GetHead().GetRepo().GetCloneURL(),
+		},
+		Base: base.PullRequestBranch{
+			Ref:       pr.GetBase().GetRef(),
+			SHA:       pr.GetBase().GetSHA(),
+			RepoName:  pr.GetBase().GetRepo().GetName(),
+			OwnerName: pr.GetBase().GetUser().GetLogin(),
+		},
+		PatchURL:     pr.GetPatchURL(),
+		Reactions:    reactions,
+		ForeignIndex: int64(*pr.Number),
+	}, nil
 }
 
 func (g *GithubDownloaderV3) getIssueReactions(number, perPage int) ([]*base.Reaction, error) {
