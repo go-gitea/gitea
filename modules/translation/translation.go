@@ -141,11 +141,6 @@ func (l *locale) Language() string {
 	return l.Lang
 }
 
-// Tr translates content to target language.
-func (l *locale) Tr(format string, args ...interface{}) string {
-	return i18n.Tr(l.Lang, format, args...)
-}
-
 // Language specific rules for translating plural texts
 var trNLangRules = map[string]func(int64) int{
 	// the default rule is "en-US" if a language isn't listed here
