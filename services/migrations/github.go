@@ -815,7 +815,7 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 		allPRs = append(allPRs, basePR)
 	}
 
-	return nil, false, nil
+	return allPRs, len(issues) < perPage, nil
 }
 
 func (g *GithubDownloaderV3) convertGithubPullRequest(pr *github.PullRequest, perPage int) (*base.PullRequest, error) {
