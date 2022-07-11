@@ -150,9 +150,8 @@ func (g *GiteaLocalUploader) Close() {
 	}
 }
 
-// CreateTopics creates topics
-func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
-	// ignore topics to long for the db
+func filterTopicsForDB(topics []string) []string {
+	// filter out topics to long for the db
 	c := 0
 	for i := range topics {
 		if len(topics[i]) <= 50 {
@@ -161,7 +160,13 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 		}
 	}
 	topics = topics[:c]
-	return repo_model.SaveTopics(g.repo.ID, topics...)
+	return topics
+}
+
+// CreateTopics creates topics
+func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
+	topics = filterTopicsForDB(topics)
+	return repo_model.AddTopics(g.repo.ID, topics...)
 }
 
 // CreateMilestones creates milestones
@@ -804,7 +809,8 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 
 // UpdateTopics updates topics
 func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
-	return g.CreateTopics(topics...)
+	topics = filterTopicsForDB(topics)
+	return repo_model.SaveTopics(g.repo.ID, topics...)
 }
 
 func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
