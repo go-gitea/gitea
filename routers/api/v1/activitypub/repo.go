@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
-	ap "github.com/go-ap/activitypub"
+	ap "gitea.com/Ta180m/activitypub"
 )
 
 // Repo function

@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	ap "github.com/go-ap/activitypub"
+	ap "gitea.com/Ta180m/activitypub"
 )
 
 func Fetch(iri *url.URL) (b []byte, err error) {

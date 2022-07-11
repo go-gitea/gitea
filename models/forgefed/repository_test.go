@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	ap "github.com/go-ap/activitypub"
+	ap "gitea.com/Ta180m/activitypub"
 )
 
 func Test_GetItemByType(t *testing.T) {

@@ -69,8 +69,10 @@ contrib.go.opencensus.io/exporter/stackdriver v0.13.5/go.mod h1:aXENhDJ1Y4lIg4EU
 contrib.go.opencensus.io/integrations/ocsql v0.1.4/go.mod h1:8DsSdjz3F+APR+0z0WkU1aRorQCFfRxvqjUUPMbF3fE=
 contrib.go.opencensus.io/resource v0.1.1/go.mod h1:F361eGI91LCmW1I/Saf+rX0+OFcigGlFvXwEGEnkRLA=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20200411073322-f0bcc40f0bf2 h1:2OrsyJYZp7J6nyAsKi2q1SELYRaIc0aQmcQ/EQqPfk8=
-git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20200411073322-f0bcc40f0bf2/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
+git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
+git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
+gitea.com/Ta180m/activitypub v0.0.0-20220711172827-b05423b54985 h1:mFjFQxAsUdcvtM3klWtTbkhGnsRVF+DPhZPofsKmPlk=
+gitea.com/Ta180m/activitypub v0.0.0-20220711172827-b05423b54985/go.mod h1:KDY/LAOthmTlRA4ft9TKrvPKVe+AZaSaU+3HS/UITvU=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=
@@ -462,10 +464,8 @@ github.com/globalsign/mgo v0.0.0-20180905125535-1ca0a4f7cbcb/go.mod h1:xkRDCp4j0
 github.com/globalsign/mgo v0.0.0-20181015135952-eeefdecb41b8/go.mod h1:xkRDCp4j0OGD1HRkm4kmhM+pmpv3AKq5SU7GMg4oO/Q=
 github.com/glycerine/go-unsnap-stream v0.0.0-20181221182339-f9677308dec2/go.mod h1:/20jfyN9Y5QPEAprSgKAUr+glWDY39ZiUEAYOEv5dsE=
 github.com/glycerine/goconvey v0.0.0-20190410193231-58a59202ab31/go.mod h1:Ogl1Tioa0aV7gstGFO7KhffUsb9M4ydbEbbxpcEDc24=
-github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b h1:+RjYfEfoZdM3wHFs752dlOpGaoRhwRRyQxjajg08LcQ=
-github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b/go.mod h1:DE3vvc6Didgfd3k7M1Mos6qMDFNmMrxJmYVMHG9h9Io=
-github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f h1:kJhGo4NApJP0Lt9lkJnfmuTnRWVFbCynY0kiTxpPUR4=
-github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f/go.mod h1:KHkKFKZvc05lr79+RGoq/zG8YjWi3+FK60Bxd+mpCew=
+github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1 h1:PkPVIQGt76HHFWSeUINXCfYpEnzlSS+AQyuXi7oJ/gM=
+github.com/go-ap/errors v0.0.0-20220618122732-319f41ac54e1/go.mod h1:KHkKFKZvc05lr79+RGoq/zG8YjWi3+FK60Bxd+mpCew=
 github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d h1:Z/oRXMlZHjvjIqDma1FrIGL3iE5YL7MUI0bwYEZ6qbA=
 github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d/go.mod h1:jyveZeGw5LaADntW+UEsMjl3IlIwk+DxlYNsbofQkGA=
 github.com/go-asn1-ber/asn1-ber v1.5.4 h1:vXT6d/FNDiELJnLb6hGNa309LMsrCoYFvpwHDF0+Y1A=

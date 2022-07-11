@@ -19,7 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 
-	ap "github.com/go-ap/activitypub"
+	ap "gitea.com/Ta180m/activitypub"
 )
 
 // Person function returns the Person actor for a user
@@ -157,10 +157,10 @@ func PersonOutbox(ctx *context.APIContext) {
 		var activity ap.ObjectOrLink
 		switch action.OpType {
 		case models.ActionCreateRepo:
-			activity = ap.Create{Type: ap.CreateType}//, Object: forgefed.RepositoryNew()}
+			activity = ap.Create{Type: ap.CreateType} //, Object: forgefed.RepositoryNew()}
 		case models.ActionRenameRepo:
-			activity = ap.Move{Type: ap.MoveType}//, Object: forgefed.RepositoryNew()}
-		// etc
+			activity = ap.Move{Type: ap.MoveType} //, Object: forgefed.RepositoryNew()}
+			// etc
 		}
 		outbox.OrderedItems.Append(activity)
 	}

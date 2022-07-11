@@ -5,7 +5,7 @@
 package forgefed
 
 import (
-	ap "github.com/go-ap/activitypub"
+	ap "gitea.com/Ta180m/activitypub"
 	"github.com/valyala/fastjson"
 )
 
@@ -48,7 +48,7 @@ func (br *Branch) UnmarshalJSON(data []byte) error {
 	}
 
 	br.Ref = ap.JSONGetItem(val, "ref")
-	
+
 	return ap.OnObject(&br.Object, func(a *ap.Object) error {
 		return ap.LoadObject(val, a)
 	})
