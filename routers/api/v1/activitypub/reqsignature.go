@@ -16,7 +16,7 @@ import (
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 	"github.com/go-fed/httpsig"
 )
 

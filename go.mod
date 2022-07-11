@@ -5,7 +5,6 @@ go 1.18
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
-	gitea.com/Ta180m/activitypub v0.0.0-20220711172827-b05423b54985
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -29,6 +28,7 @@ require (
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.2
 	github.com/gliderlabs/ssh v0.3.4
+	github.com/go-ap/activitypub v0.0.0-00010101000000-000000000000
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
@@ -297,6 +297,8 @@ replace github.com/markbates/goth v1.68.0 => github.com/zeripath/goth v1.68.1-0.
 replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142115-2c99e1ffdfa0
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
+
+replace github.com/go-ap/activitypub => gitea.com/Ta180m/activitypub v0.0.0-20220711172827-b05423b54985
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

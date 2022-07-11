@@ -7,7 +7,7 @@ package forgefed
 import (
 	"time"
 
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 	"github.com/valyala/fastjson"
 )
 

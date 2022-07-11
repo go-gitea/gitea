@@ -8,7 +8,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 )
 
 func FederatedUserNew(name string, IRI ap.IRI) error {

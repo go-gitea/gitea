@@ -11,7 +11,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 )
 
 func Follow(ctx context.Context, activity ap.Follow) {

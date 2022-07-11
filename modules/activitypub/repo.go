@@ -10,7 +10,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 )
 
 func FederatedRepoNew(user *user_model.User, name string, IRI ap.IRI) (*repo_model.Repository, error) {

@@ -5,7 +5,7 @@
 package forgefed
 
 import (
-	ap "gitea.com/Ta180m/activitypub"
+	ap "github.com/go-ap/activitypub"
 )
 
 // GetItemByType instantiates a new ForgeFed object if the type matches
