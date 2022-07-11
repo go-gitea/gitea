@@ -14,7 +14,6 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -57,7 +56,7 @@ func getDashboardContextUser(ctx *context.Context) *user_model.User {
 	}
 	ctx.Data["ContextUser"] = ctxUser
 
-	orgs, err := models.GetUserOrgsList(ctx.Doer)
+	orgs, err := organization.GetUserOrgsList(ctx.Doer)
 	if err != nil {
 		ctx.ServerError("GetUserOrgsList", err)
 		return nil

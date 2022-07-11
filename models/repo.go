@@ -139,7 +139,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.Redirect{RedirectRepoID: repoID},
 		&repo_model.RepoUnit{RepoID: repoID},
 		&repo_model.Star{RepoID: repoID},
-		&Task{RepoID: repoID},
+		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 	); err != nil {

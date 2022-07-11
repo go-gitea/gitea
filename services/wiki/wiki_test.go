@@ -9,7 +9,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -157,7 +156,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for already-existing wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "Home", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiAlreadyExist(err))
+		assert.True(t, repo_model.IsErrWikiAlreadyExist(err))
 	})
 
 	t.Run("check wiki reserved name", func(t *testing.T) {

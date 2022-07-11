@@ -19,8 +19,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
+	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -674,9 +674,9 @@ func safeURL(address string) string {
 func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
-			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			task, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
-				if models.IsErrTaskDoesNotExist(err) {
+				if admin_model.IsErrTaskDoesNotExist(err) {
 					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true

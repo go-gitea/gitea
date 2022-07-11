@@ -15,9 +15,9 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/routers/web/explore"
 	repo_service "code.gitea.io/gitea/services/repository"
 )

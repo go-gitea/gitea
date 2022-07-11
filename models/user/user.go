@@ -1314,3 +1314,13 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 	}
 	return false
 }
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
+}

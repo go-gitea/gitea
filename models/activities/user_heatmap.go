@@ -31,7 +31,7 @@ func GetUserHeatmapDataByUserTeam(user *user_model.User, team *organization.Team
 func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if !activityReadable(user, doer) {
+	if !ActivityReadable(user, doer) {
 		return hdata, nil
 	}
 
