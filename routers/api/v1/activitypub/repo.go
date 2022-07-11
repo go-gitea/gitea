@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/forgefed"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -96,10 +97,11 @@ func RepoInbox(ctx *context.APIContext) {
 		ctx.ServerError("Error reading request body", err)
 	}
 
-	var activity ap.Activity
+	var activity ap.Object
 	activity.UnmarshalJSON(body)
-	if activity.Type == ap.FollowType {
-		// activitypub.Follow(ctx, activity)
+	log.Warn("Debug", activity)
+	if activity.Type == ap.NoteType {
+		activitypub.Comment(ctx, activity)
 	} else {
 		log.Warn("ActivityStreams type not supported", activity)
 	}
