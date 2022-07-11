@@ -156,6 +156,12 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "5432"
+	}
 	return host, port
 }
 
@@ -182,6 +188,12 @@ func ParseMSSQLHostPort(info string) (string, string) {
 		port = strings.TrimSpace(strings.Split(info, ",")[1])
 	} else if len(info) > 0 {
 		host = info
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "0"
 	}
 	return host, port
 }
