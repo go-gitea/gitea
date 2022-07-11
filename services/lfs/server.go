@@ -131,6 +131,21 @@ func DownloadHandler(ctx *context.Context) {
 		}
 	}
 
+	stat, err := content.Stat()
+	if err != nil {
+		log.Error("Unable to stat LFS OID[%s]. Error: %v", meta.Oid, err)
+
+		writeStatus(ctx, http.StatusInternalServerError)
+		return
+	}
+
+	if toByte+1 > stat.Size() {
+		log.Error("Whilst trying to read LFS OID[%s]: Unable to read to %d Error: %v", meta.Oid, toByte, err)
+
+		writeStatus(ctx, http.StatusRequestedRangeNotSatisfiable)
+		return
+	}
+
 	contentLength := toByte + 1 - fromByte
 	ctx.Resp.Header().Set("Content-Length", strconv.FormatInt(contentLength, 10))
 	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
