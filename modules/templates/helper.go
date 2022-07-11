@@ -628,7 +628,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
