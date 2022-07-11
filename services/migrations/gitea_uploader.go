@@ -40,6 +40,7 @@ var _ base.Uploader = &GiteaLocalUploader{}
 
 // GiteaLocalUploader implements an Uploader to gitea sites
 type GiteaLocalUploader struct {
+	base.NullUploader
 	ctx            context.Context
 	doer           *user_model.User
 	repoOwner      string
@@ -799,6 +800,39 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 	}
 
 	return issues_model.InsertReviews(cms)
+}
+
+// UpdateTopics updates topics
+func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
+	return g.CreateTopics(topics...)
+}
+
+func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateReleases(releases ...*base.Release) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateIssues(issues ...*base.Issue) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateComments(comments ...*base.Comment) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdatePullRequests(prs ...*base.PullRequest) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) UpdateReviews(reviews ...*base.Review) error {
+	return nil
 }
 
 // Rollback when migrating failed, this will rollback all the changes.
