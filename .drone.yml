@@ -904,6 +904,9 @@ steps:
     settings:
       auto_tag: false
       auto_tag_suffix: linux-amd64
+      tags:
+        - ${DRONE_TAG##v}-linux-amd64
+        - ${DRONE_TAG:1:4}-linux-amd64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -922,6 +925,9 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: false
       auto_tag_suffix: linux-amd64-rootless
+      tags:
+        - ${DRONE_TAG##v}-linux-amd64-rootless
+        - ${DRONE_TAG:1:4}-linux-amd64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1128,6 +1134,9 @@ steps:
     settings:
       auto_tag: false
       auto_tag_suffix: linux-arm64
+      tags:
+        - ${DRONE_TAG##v}-linux-arm64
+        - ${DRONE_TAG:1:4}-linux-arm64
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
@@ -1146,6 +1155,9 @@ steps:
       dockerfile: Dockerfile.rootless
       auto_tag: false
       auto_tag_suffix: linux-arm64-rootless
+      tags:
+        - ${DRONE_TAG##v}-linux-arm64-rootless
+        - ${DRONE_TAG:1:4}-linux-arm64-rootless
       repo: gitea/gitea
       build_args:
         - GOPROXY=https://goproxy.io
