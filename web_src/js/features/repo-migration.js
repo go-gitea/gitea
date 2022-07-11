@@ -44,7 +44,8 @@ function checkItems(tokenAuth) {
     enableItems = $user.val() !== '' || $pass.val() !== '';
   }
   if (enableItems && $service.val() > 1) {
-    if ($mirror.is(':checked')) {
+    const allowedServices = [2]; // services that supports migration items with mirroring
+    if ($mirror.is(':checked') && !allowedServices.includes(Number($service.val()))) {
       $items.not('[name="wiki"]').attr('disabled', true);
       $items.filter('[name="wiki"]').attr('disabled', false);
       return;
