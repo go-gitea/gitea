@@ -22,7 +22,7 @@ func newMigrationsService() {
 	Migrations.MaxAttempts = sec.Key("MAX_ATTEMPTS").MustInt(Migrations.MaxAttempts)
 	Migrations.RetryBackoff = sec.Key("RETRY_BACKOFF").MustInt(Migrations.RetryBackoff)
 
-	Migrations.AllowedDomains = sec.Key("ALLOWED_DOMAINS").MustString("")
+	Migrations.AllowedDomains = sec.Key("ALLOWED_DOMAINS").MustString("*")
 	Migrations.BlockedDomains = sec.Key("BLOCKED_DOMAINS").MustString("")
 	Migrations.AllowLocalNetworks = sec.Key("ALLOW_LOCALNETWORKS").MustBool(false)
 	Migrations.SkipTLSVerify = sec.Key("SKIP_TLS_VERIFY").MustBool(false)
