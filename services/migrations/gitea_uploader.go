@@ -222,24 +222,27 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 
 // CreateLabels creates labels
 func (g *GiteaLocalUploader) CreateLabels(labels ...*base.Label) error {
-	lbs := make([]*issues_model.Label, 0, len(labels))
-	for _, label := range labels {
-		lbs = append(lbs, &issues_model.Label{
-			RepoID:      g.repo.ID,
-			Name:        label.Name,
-			Description: label.Description,
-			Color:       fmt.Sprintf("#%s", label.Color),
-		})
-	}
-
-	err := issues_model.NewLabels(lbs...)
-	if err != nil {
+	lbs := convertLabels(g.repo.ID, labels...)
+	if err := issues_model.NewLabels(lbs...); err != nil {
 		return err
 	}
 	for _, lb := range lbs {
 		g.labels[lb.Name] = lb
 	}
 	return nil
+}
+
+func convertLabels(repoID int64, labels ...*base.Label) []*issues_model.Label {
+	lbs := make([]*issues_model.Label, 0, len(labels))
+	for _, label := range labels {
+		lbs = append(lbs, &issues_model.Label{
+			RepoID:      repoID,
+			Name:        label.Name,
+			Description: label.Description,
+			Color:       fmt.Sprintf("#%s", label.Color),
+		})
+	}
+	return lbs
 }
 
 // CreateReleases creates releases
@@ -822,6 +825,13 @@ func (g *GiteaLocalUploader) UpdateReleases(releases ...*base.Release) error {
 }
 
 func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
+	lbs := convertLabels(g.repo.ID, labels...)
+	if err := issues_model.UpdateLabelsByRepoID(g.repo.ID, lbs...); err != nil {
+		return err
+	}
+	for _, lb := range lbs {
+		g.labels[lb.Name] = lb
+	}
 	return nil
 }
 

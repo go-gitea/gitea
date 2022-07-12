@@ -237,27 +237,39 @@ func NewLabels(labels ...*Label) error {
 
 // UpdateLabel updates label information.
 func UpdateLabel(l *Label) error {
+	return updateLabel(db.DefaultContext, l)
+}
+
+func updateLabel(ctx context.Context, l *Label) error {
 	if !LabelColorPattern.MatchString(l.Color) {
 		return fmt.Errorf("bad color code: %s", l.Color)
 	}
-	return updateLabelCols(db.DefaultContext, l, "name", "description", "color")
+	return updateLabelCols(ctx, l, "name", "description", "color")
 }
 
 // DeleteLabel delete a label
 func DeleteLabel(id, labelID int64) error {
-	label, err := GetLabelByID(db.DefaultContext, labelID)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	if err = deleteLabel(ctx, id, labelID); err != nil {
+		return err
+	}
+
+	return committer.Commit()
+}
+
+func deleteLabel(ctx context.Context, id, labelID int64) error {
+	label, err := GetLabelByID(ctx, labelID)
 	if err != nil {
 		if IsErrLabelNotExist(err) {
 			return nil
 		}
 		return err
 	}
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
 
 	sess := db.GetEngine(ctx)
 
@@ -281,7 +293,7 @@ func DeleteLabel(id, labelID int64) error {
 		return err
 	}
 
-	return committer.Commit()
+	return nil
 }
 
 // GetLabelByID returns a label by given ID.
@@ -414,6 +426,72 @@ func GetLabelsByRepoID(ctx context.Context, repoID int64, sortType string, listO
 	}
 
 	return labels, sess.Find(&labels)
+}
+
+// UpdateLabels adds, updates, and deletes relevant labels for the given repository.
+func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	existingLabels, err := GetLabelsByRepoID(ctx, repoID, "", db.ListOptions{})
+	labelsToAdd := make([]*Label, 0)
+	labelsToUpdate := make([]*Label, 0)
+	labelsToDelete := make([]*Label, 0)
+
+	for _, label := range labels {
+		if !LabelColorPattern.MatchString(label.Color) {
+			return fmt.Errorf("bad color code: %s", label.Color)
+		}
+
+		found := false
+		for _, existingLabel := range existingLabels {
+			if existingLabel.ID == label.ID {
+				found = true
+				if existingLabel.Name != label.Name || existingLabel.Description != label.Description ||
+					existingLabel.Color != label.Color {
+					labelsToUpdate = append(labelsToUpdate, label)
+				}
+			}
+		}
+		if !found {
+			labelsToAdd = append(labelsToAdd, label)
+		}
+	}
+
+	for _, existingLabel := range existingLabels {
+		found := false
+		for _, label := range labels {
+			if label.ID == existingLabel.ID {
+				found = true
+			}
+		}
+		if !found {
+			labelsToDelete = append(labelsToDelete, existingLabel)
+		}
+	}
+
+	for _, label := range labelsToAdd {
+		if err = NewLabel(ctx, label); err != nil {
+			return err
+		}
+	}
+
+	for _, label := range labelsToUpdate {
+		if err = updateLabel(ctx, label); err != nil {
+			return err
+		}
+	}
+
+	for _, label := range labelsToDelete {
+		if err = deleteLabel(ctx, repoID, label.ID); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // CountLabelsByRepoID count number of all labels that belong to given repository by ID.
@@ -718,7 +796,7 @@ func DeleteIssueLabel(ctx context.Context, issue *Issue, label *Label, doer *use
 	return issue.LoadLabels(ctx)
 }
 
-// DeleteLabelsByRepoID  deletes labels of some repository
+// DeleteLabelsByRepoID deletes labels of some repository
 func DeleteLabelsByRepoID(ctx context.Context, repoID int64) error {
 	deleteCond := builder.Select("id").From("label").Where(builder.Eq{"label.repo_id": repoID})
 
