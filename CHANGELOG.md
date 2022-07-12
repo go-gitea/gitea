@@ -18,6 +18,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Prevent "empty" scrollbars on Firefox (#20294) (#20308)
   * Refactor SSH init code, fix directory creation for TrustedUserCAKeys file (#20299) (#20306)
   * Bump goldmark to v1.4.13 (#20300) (#20301)
+  * Do not create empty ".ssh" directory when loading config (#20289) (#20298)
   * Fix NPE when using non-numeric (#20277) (#20278)
   * Store read access in access for team repositories (#20275) (#20276)
   * EscapeFilter the group dn membership (#20200) (#20254)
@@ -27,12 +28,10 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Check if project has the same repository id with issue when assign project to issue (#20133) (#20188)
   * Fix remove file on initial comment (#20127) (#20128)
   * Catch the error before the response is processed by goth (#20000) (#20102)
-  *  Dashboard feed respect setting.UI.FeedPagingNum again (#20094) (#20099)
+  * Dashboard feed respect setting.UI.FeedPagingNum again (#20094) (#20099)
   * Alter hook_task TEXT fields to LONGTEXT (#20038) (#20041)
   * Respond with a 401 on git push when password isn't changed yet (#20026) (#20027)
   * Return 404 when tag is broken (#20017) (#20024)
-* MISC
-  * Do not create empty ".ssh" directory when loading config (#20289) (#20298)
 
 ## [1.17.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc1) - 2022-06-18
 
