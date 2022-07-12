@@ -12,6 +12,8 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 type ErrTeamInviteAlreadyExist struct {
@@ -41,6 +43,21 @@ func (err ErrTeamInviteNotFound) Error() string {
 	return fmt.Sprintf("team invite was not found [token: %s]", err.Token)
 }
 
+// ErrUserEmailAlreadyAdded represents a "user by email already added to team" error.
+type ErrUserEmailAlreadyAdded struct {
+	Email string
+}
+
+// IsErrUserEmailAlreadyAdded checks if an error is a ErrUserEmailAlreadyAdded.
+func IsErrUserEmailAlreadyAdded(err error) bool {
+	_, ok := err.(ErrUserEmailAlreadyAdded)
+	return ok
+}
+
+func (err ErrUserEmailAlreadyAdded) Error() string {
+	return fmt.Sprintf("user with email already added [email: %s]", err.Email)
+}
+
 // TeamInvite represents an invite to a team
 type TeamInvite struct {
 	ID          int64              `xorm:"pk autoincr"`
@@ -64,6 +81,26 @@ func CreateTeamInvite(ctx context.Context, doer *user_model.User, team *Team, em
 		return nil, ErrTeamInviteAlreadyExist{
 			TeamID: team.ID,
 			Email:  email,
+		}
+	}
+
+	// check if the user is already a team member by email
+	exist, err := db.GetEngine(ctx).
+		Where(builder.Eq{
+			"team_user.org_id":  team.OrgID,
+			"team_user.team_id": team.ID,
+			"user.email":        email,
+		}).
+		Join("INNER", "user", "user.id = team_user.uid").
+		Table("team_user").
+		Exist()
+	if err != nil {
+		return nil, err
+	}
+
+	if exist {
+		return nil, ErrUserEmailAlreadyAdded{
+			Email: email,
 		}
 	}
 
