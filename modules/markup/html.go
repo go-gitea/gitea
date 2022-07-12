@@ -5,7 +5,6 @@
 package markup
 
 import (
-	"bytes"
 	"io"
 	"net/url"
 	"path"
@@ -298,19 +297,24 @@ var (
 	nulCleaner = strings.NewReplacer("\000", "")
 )
 
+type cleanReader struct {
+	io.Reader
+}
+
+func (c cleanReader) Read(bs []byte) (int, error) {
+	return c.Reader.Read(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(bs))), []byte("&lt;$1")))
+}
+
+var _ io.Reader = cleanReader{}
+
 func postProcess(ctx *RenderContext, procs []processor, input io.Reader, output io.Writer) error {
 	defer ctx.Cancel()
-	// FIXME: don't read all content to memory
-	rawHTML, err := io.ReadAll(input)
-	if err != nil {
-		return err
-	}
 
 	// prepend "<html><body>"
 	htmlTagPrefix := strings.NewReader("<html><body>")
 
 	// Strip out nuls - they're always invalid
-	body := bytes.NewReader(tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(rawHTML))), []byte("&lt;$1")))
+	body := cleanReader{input}
 
 	// close the tags
 	htmlTagSuffix := strings.NewReader("</body></html>")
