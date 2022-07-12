@@ -43,6 +43,7 @@
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui email list">
+				{{if $.EnableNotifyMail}}
 				<div class="item">
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
 						{{.i18n.Tr "settings.email_desc"}}
@@ -69,6 +70,7 @@
 						</div>
 					</form>
 				</div>
+				{{end}}
 				{{range .Emails}}
 					<div class="item">
 						{{if not .IsPrimary}}
