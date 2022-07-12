@@ -169,8 +169,7 @@ func (g *GiteaLocalUploader) CreateTopics(topics ...string) error {
 	return repo_model.AddTopics(g.repo.ID, topics...)
 }
 
-// CreateMilestones creates milestones
-func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []*issues_model.Milestone {
 	mss := make([]*issues_model.Milestone, 0, len(milestones))
 	for _, milestone := range milestones {
 		var deadline timeutil.TimeStamp
@@ -195,20 +194,26 @@ func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) err
 		}
 
 		ms := issues_model.Milestone{
-			RepoID:       g.repo.ID,
-			Name:         milestone.Title,
-			Content:      milestone.Description,
-			IsClosed:     milestone.State == "closed",
-			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
-			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
-			DeadlineUnix: deadline,
+			RepoID:         g.repo.ID,
+			Name:           milestone.Title,
+			Content:        milestone.Description,
+			IsClosed:       milestone.State == "closed",
+			CreatedUnix:    timeutil.TimeStamp(milestone.Created.Unix()),
+			UpdatedUnix:    timeutil.TimeStamp(milestone.Updated.Unix()),
+			ClosedDateUnix: timeutil.TimeStamp(milestone.Closed.Unix()),
+			DeadlineUnix:   deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
 			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())
 		}
 		mss = append(mss, &ms)
 	}
+	return mss
+}
 
+// CreateMilestones creates milestones
+func (g *GiteaLocalUploader) CreateMilestones(milestones ...*base.Milestone) error {
+	mss := g.prepareMilestones(milestones...)
 	err := models.InsertMilestones(mss...)
 	if err != nil {
 		return err
@@ -833,6 +838,15 @@ func (g *GiteaLocalUploader) UpdateTopics(topics ...string) error {
 }
 
 func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) error {
+	mss := g.prepareMilestones(milestones...)
+	err := models.UpdateMilestones(mss...)
+	if err != nil {
+		return err
+	}
+
+	for _, ms := range mss {
+		g.milestones[ms.Name] = ms.ID
+	}
 	return nil
 }
 

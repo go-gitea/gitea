@@ -39,6 +39,48 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 	return committer.Commit()
 }
 
+// UpdateMilestones updates milestones of repository.
+func UpdateMilestones(ms ...*issues_model.Milestone) (err error) {
+	if len(ms) == 0 {
+		return nil
+	}
+
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	// check if milestone exists, if not create it
+	// milestones are considered as unique by RepoID and CreatedUnix
+	for _, m := range ms {
+		var existingMilestone *issues_model.Milestone
+		has, err := sess.Where("repo_id = ? AND created_unix = ?", m.RepoID, m.CreatedUnix).Get(&existingMilestone)
+		if err != nil {
+			return err
+		}
+
+		if !has {
+			if _, err = sess.NoAutoTime().Insert(m); err != nil {
+				return err
+			}
+		} else if existingMilestone.Name != m.Name || existingMilestone.Content != m.Content ||
+			existingMilestone.IsClosed != m.IsClosed ||
+			existingMilestone.UpdatedUnix != m.UpdatedUnix || existingMilestone.ClosedDateUnix != m.ClosedDateUnix ||
+			existingMilestone.DeadlineUnix != m.DeadlineUnix {
+			if _, err = sess.NoAutoTime().ID(existingMilestone.ID).Update(m); err != nil {
+				return err
+			}
+		}
+	}
+
+	if _, err = sess.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+		return err
+	}
+	return committer.Commit()
+}
+
 // InsertIssues insert issues to database
 func InsertIssues(issues ...*issues_model.Issue) error {
 	ctx, committer, err := db.TxContext()
