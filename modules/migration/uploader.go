@@ -18,14 +18,14 @@ type Uploader interface {
 	CreateComments(comments ...*Comment) error
 	CreatePullRequests(prs ...*PullRequest) error
 	CreateReviews(reviews ...*Review) error
-	UpdateTopics(topic ...string) error
-	UpdateMilestones(milestones ...*Milestone) error
-	UpdateReleases(releases ...*Release) error
-	UpdateLabels(labels ...*Label) error
-	UpdateIssues(issues ...*Issue) error
-	UpdateComments(comments ...*Comment) error
-	UpdatePullRequests(prs ...*PullRequest) error
-	UpdateReviews(reviews ...*Review) error
+	UpdateTopics(topic ...string) error              // update topics of a repository, and delete unused ones
+	UpdateMilestones(milestones ...*Milestone) error // update milestones of a repository, and delete unused ones
+	UpdateLabels(labels ...*Label) error             // rewrite all issue labels and delete unused ones
+	PatchReleases(releases ...*Release) error        // add or update releases (no deletes)
+	PatchComments(comments ...*Comment) error        // add or update comments (no deletes)
+	PatchIssues(issues ...*Issue) error              // add or update issues (no deletes)
+	PatchPullRequests(prs ...*PullRequest) error     // add or update pull requests (no deletes)
+	PatchReviews(reviews ...*Review) error           // add or update reviews (no deletes)
 	Rollback() error
 	Finish() error
 	Close()

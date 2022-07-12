@@ -7,7 +7,7 @@ package migration
 // NullUploader implements a blank uploader
 type NullUploader struct{}
 
-var _ Downloader = &NullDownloader{}
+var _ Uploader = &NullUploader{}
 
 func (g *NullUploader) MaxBatchInsertSize(tp string) int {
 	return 0
@@ -61,27 +61,27 @@ func (g *NullUploader) UpdateMilestones(milestones ...*Milestone) error {
 	return nil
 }
 
-func (g *NullUploader) UpdateReleases(releases ...*Release) error {
-	return nil
-}
-
 func (g *NullUploader) UpdateLabels(labels ...*Label) error {
 	return nil
 }
 
-func (g *NullUploader) UpdateIssues(issues ...*Issue) error {
+func (g *NullUploader) PatchReleases(releases ...*Release) error {
 	return nil
 }
 
-func (g *NullUploader) UpdateComments(comments ...*Comment) error {
+func (g *NullUploader) PatchIssues(issues ...*Issue) error {
 	return nil
 }
 
-func (g *NullUploader) UpdatePullRequests(prs ...*PullRequest) error {
+func (g *NullUploader) PatchComments(comments ...*Comment) error {
 	return nil
 }
 
-func (g *NullUploader) UpdateReviews(reviews ...*Review) error {
+func (g *NullUploader) PatchPullRequests(prs ...*PullRequest) error {
+	return nil
+}
+
+func (g *NullUploader) PatchReviews(reviews ...*Review) error {
 	return nil
 }
 

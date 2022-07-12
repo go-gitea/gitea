@@ -820,10 +820,6 @@ func (g *GiteaLocalUploader) UpdateMilestones(milestones ...*base.Milestone) err
 	return nil
 }
 
-func (g *GiteaLocalUploader) UpdateReleases(releases ...*base.Release) error {
-	return nil
-}
-
 func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
 	lbs := convertLabels(g.repo.ID, labels...)
 	if err := issues_model.UpdateLabelsByRepoID(g.repo.ID, lbs...); err != nil {
@@ -835,19 +831,23 @@ func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
 	return nil
 }
 
-func (g *GiteaLocalUploader) UpdateIssues(issues ...*base.Issue) error {
+func (g *GiteaLocalUploader) PatchReleases(releases ...*base.Release) error {
 	return nil
 }
 
-func (g *GiteaLocalUploader) UpdateComments(comments ...*base.Comment) error {
+func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
 	return nil
 }
 
-func (g *GiteaLocalUploader) UpdatePullRequests(prs ...*base.PullRequest) error {
+func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 	return nil
 }
 
-func (g *GiteaLocalUploader) UpdateReviews(reviews ...*base.Review) error {
+func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
+	return nil
+}
+
+func (g *GiteaLocalUploader) PatchReviews(reviews ...*base.Review) error {
 	return nil
 }
 
