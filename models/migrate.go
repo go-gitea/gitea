@@ -107,7 +107,7 @@ func UpsertIssues(issues ...*issues_model.Issue) error {
 	defer committer.Close()
 
 	for _, issue := range issues {
-		if err := upsertIssue(ctx, issue); err != nil {
+		if _, err := upsertIssue(ctx, issue); err != nil {
 			return err
 		}
 	}
@@ -175,18 +175,18 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 	return nil
 }
 
-func upsertIssue(ctx context.Context, issue *issues_model.Issue) error {
+func upsertIssue(ctx context.Context, issue *issues_model.Issue) (isInsert bool, err error) {
 	sess := db.GetEngine(ctx)
 
 	exists, err := sess.Exist(&issues_model.Issue{ID: issue.ID})
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	if !exists {
-		return insertIssue(ctx, issue)
+		return true, insertIssue(ctx, issue)
 	}
-	return updateIssue(ctx, issue)
+	return false, updateIssue(ctx, issue)
 }
 
 // InsertIssueComments inserts many comments of issues.
@@ -245,6 +245,34 @@ func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 		pr.IssueID = pr.Issue.ID
 		if _, err := sess.NoAutoTime().Insert(pr); err != nil {
 			return err
+		}
+	}
+	return committer.Commit()
+}
+
+// UpsertPullRequests inserts new pull requests and updates existing pull requests in database
+func UpsertPullRequests(prs ...*issues_model.PullRequest) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+	for _, pr := range prs {
+		isInsert, err := upsertIssue(ctx, pr.Issue)
+		if err != nil {
+			return err
+		}
+		pr.IssueID = pr.Issue.ID
+
+		if isInsert {
+			if _, err := sess.NoAutoTime().Insert(pr); err != nil {
+				return err
+			}
+		} else {
+			if _, err := sess.NoAutoTime().ID(pr.ID).Update(pr); err != nil {
+				return err
+			}
 		}
 	}
 	return committer.Commit()

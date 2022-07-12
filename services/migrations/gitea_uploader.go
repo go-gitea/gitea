@@ -488,20 +488,28 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 	return models.InsertIssueComments(cms)
 }
 
-// CreatePullRequests creates pull requests
-func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+func (g *GiteaLocalUploader) preparePullRequests(prs ...*base.PullRequest) ([]*issues_model.PullRequest, error) {
 	gprs := make([]*issues_model.PullRequest, 0, len(prs))
 	for _, pr := range prs {
-		gpr, err := g.newPullRequest(pr)
+		gpr, err := g.getPullRequest(pr)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		if err := g.remapUser(pr, gpr.Issue); err != nil {
-			return err
+			return nil, err
 		}
 
 		gprs = append(gprs, gpr)
+	}
+	return gprs, nil
+}
+
+// CreatePullRequests creates pull requests
+func (g *GiteaLocalUploader) CreatePullRequests(prs ...*base.PullRequest) error {
+	gprs, err := g.preparePullRequests(prs...)
+	if err != nil {
+		return err
 	}
 	if err := models.InsertPullRequests(gprs...); err != nil {
 		return err
@@ -617,7 +625,7 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 	return head, nil
 }
 
-func (g *GiteaLocalUploader) newPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
+func (g *GiteaLocalUploader) getPullRequest(pr *base.PullRequest) (*issues_model.PullRequest, error) {
 	var labels []*issues_model.Label
 	for _, label := range pr.Labels {
 		lb, ok := g.labels[label.Name]
@@ -867,6 +875,17 @@ func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
 }
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
+	gprs, err := g.preparePullRequests(prs...)
+	if err != nil {
+		return err
+	}
+	if err := models.InsertPullRequests(gprs...); err != nil {
+		return err
+	}
+	for _, pr := range gprs {
+		g.issues[pr.Issue.Index] = pr.Issue
+		pull.AddToTaskQueue(pr)
+	}
 	return nil
 }
 
