@@ -152,6 +152,6 @@ func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
-		assert.Contains(t, text, "This branch is equal with the target branch.")
+		assert.Contains(t, text, "This branch is already included in the target branch. There is nothing to merge.")
 	})
 }
