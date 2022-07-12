@@ -312,6 +312,7 @@ lint: lint-frontend lint-backend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
+	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-backend
 lint-backend: golangci-lint vet editorconfig-checker
