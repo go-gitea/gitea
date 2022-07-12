@@ -8,6 +8,7 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/foreignreference"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -54,18 +55,23 @@ func InsertIssues(issues ...*issues_model.Issue) error {
 	return committer.Commit()
 }
 
+func resolveIssueLabels(issueID int64, labels []*issues_model.Label) []issues_model.IssueLabel {
+	issueLabels := make([]issues_model.IssueLabel, 0, len(labels))
+	for _, label := range labels {
+		issueLabels = append(issueLabels, issues_model.IssueLabel{
+			IssueID: issueID,
+			LabelID: label.ID,
+		})
+	}
+	return issueLabels
+}
+
 func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 	sess := db.GetEngine(ctx)
 	if _, err := sess.NoAutoTime().Insert(issue); err != nil {
 		return err
 	}
-	issueLabels := make([]issues_model.IssueLabel, 0, len(issue.Labels))
-	for _, label := range issue.Labels {
-		issueLabels = append(issueLabels, issues_model.IssueLabel{
-			IssueID: issue.ID,
-			LabelID: label.ID,
-		})
-	}
+	issueLabels := resolveIssueLabels(issue.ID, issue.Labels)
 	if len(issueLabels) > 0 {
 		if _, err := sess.Insert(issueLabels); err != nil {
 			return err
@@ -90,6 +96,101 @@ func insertIssue(ctx context.Context, issue *issues_model.Issue) error {
 	}
 
 	return nil
+}
+
+// UpsertIssues creates new issues and updates existing issues in database
+func UpsertIssues(issues ...*issues_model.Issue) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	for _, issue := range issues {
+		if err := upsertIssue(ctx, issue); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
+
+func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
+	sess := db.GetEngine(ctx)
+	if _, err := sess.NoAutoTime().ID(issue.ID).Update(issue); err != nil {
+		return err
+	}
+	issueLabels := resolveIssueLabels(issue.ID, issue.Labels)
+	if len(issueLabels) > 0 {
+		labelIDs := make([]int64, 0, len(issueLabels))
+		for _, label := range issueLabels {
+			labelIDs = append(labelIDs, label.LabelID)
+		}
+		// delete old labels
+		if _, err := sess.Where("issue_id = ?", issue.ID).Delete(); err != nil {
+			return err
+		}
+		// insert new labels
+		if _, err := sess.Insert(issueLabels); err != nil {
+			return err
+		}
+	}
+
+	for _, reaction := range issue.Reactions {
+		reaction.IssueID = issue.ID
+	}
+
+	if len(issue.Reactions) > 0 {
+		// update existing reactions and insert new ones
+		for _, reaction := range issue.Reactions {
+			exists, err := sess.Exist(&issues_model.Reaction{ID: reaction.ID})
+			if err != nil {
+				return err
+			}
+			if exists {
+				if _, err := sess.ID(reaction.ID).Update(&reaction); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.Insert(&reaction); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	if issue.ForeignReference != nil {
+		issue.ForeignReference.LocalIndex = issue.Index
+
+		exists, err := sess.Exist(&foreignreference.ForeignReference{
+			RepoID:     issue.ForeignReference.RepoID,
+			LocalIndex: issue.ForeignReference.LocalIndex,
+		})
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			if _, err := sess.Insert(issue.ForeignReference); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func upsertIssue(ctx context.Context, issue *issues_model.Issue) error {
+	sess := db.GetEngine(ctx)
+
+	exists, err := sess.Exist(&issues_model.Issue{ID: issue.ID})
+	if err != nil {
+		return err
+	}
+
+	if !exists {
+		return insertIssue(ctx, issue)
+	}
+	return updateIssue(ctx, issue)
 }
 
 // InsertIssueComments inserts many comments of issues.

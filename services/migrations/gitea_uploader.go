@@ -346,8 +346,7 @@ func (g *GiteaLocalUploader) SyncTags() error {
 	return repo_module.SyncReleasesWithTags(g.repo, g.gitRepo)
 }
 
-// CreateIssues creates issues
-func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+func (g *GiteaLocalUploader) prepareIssues(issues ...*base.Issue) ([]*issues_model.Issue, error) {
 	iss := make([]*issues_model.Issue, 0, len(issues))
 	for _, issue := range issues {
 		var labels []*issues_model.Label
@@ -397,7 +396,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 		}
 
 		if err := g.remapUser(issue, &is); err != nil {
-			return err
+			return nil, err
 		}
 
 		if issue.Closed != nil {
@@ -410,23 +409,32 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				return nil, err
 			}
 			is.Reactions = append(is.Reactions, &res)
 		}
 		iss = append(iss, &is)
 	}
+	return iss, nil
+}
 
-	if len(iss) > 0 {
-		if err := models.InsertIssues(iss...); err != nil {
-			return err
-		}
-
-		for _, is := range iss {
-			g.issues[is.Index] = is
-		}
+// CreateIssues creates issues
+func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
+	iss, err := g.prepareIssues(issues...)
+	if err != nil {
+		return err
+	}
+	if len(iss) == 0 {
+		return nil
 	}
 
+	if err := models.InsertIssues(iss...); err != nil {
+		return err
+	}
+
+	for _, is := range iss {
+		g.issues[is.Index] = is
+	}
 	return nil
 }
 
@@ -836,6 +844,21 @@ func (g *GiteaLocalUploader) PatchReleases(releases ...*base.Release) error {
 }
 
 func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
+	iss, err := g.prepareIssues(issues...)
+	if err != nil {
+		return err
+	}
+	if len(iss) == 0 {
+		return nil
+	}
+
+	if err := models.UpsertIssues(iss...); err != nil {
+		return err
+	}
+
+	for _, is := range iss {
+		g.issues[is.Index] = is
+	}
 	return nil
 }
 
