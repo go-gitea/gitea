@@ -18,42 +18,42 @@ volumes:
     temp: {}
 
 steps:
-  - name: deps-frontend
+  - name: deps-js
     image: node:16
     pull: always
     commands:
-      - make deps-frontend
+      - make deps-js
 
-  - name: deps-backend
+  - name: deps-go
     image: golang:1.18
     pull: always
     commands:
-      - make deps-backend
+      - make deps-go
     volumes:
       - name: deps
         path: /go
 
-  - name: lint-frontend
+  - name: lint-js
     image: node:16
     commands:
-      - make lint-frontend
-    depends_on: [deps-frontend]
+      - make lint-js
+    depends_on: [deps-js]
 
-  - name: lint-backend
+  - name: lint-go
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     pull: always
     commands:
-      - make lint-backend
+      - make lint-go
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on: [deps-backend]
+    depends_on: [deps-go]
     volumes:
       - name: deps
         path: /go
 
-  - name: lint-backend-windows
+  - name: lint-go-windows
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
       - make golangci-lint-windows vet
@@ -63,20 +63,20 @@ steps:
       TAGS: bindata sqlite sqlite_unlock_notify
       GOOS: windows
       GOARCH: amd64
-    depends_on: [deps-backend]
+    depends_on: [deps-go]
     volumes:
       - name: deps
         path: /go
 
-  - name: lint-backend-gogit
+  - name: lint-go-gogit
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     commands:
-      - make lint-backend
+      - make lint-go
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on: [deps-backend]
+    depends_on: [deps-go]
     volumes:
       - name: deps
         path: /go
@@ -85,13 +85,13 @@ steps:
     image: node:16
     commands:
       - make checks-frontend
-    depends_on: [deps-frontend]
+    depends_on: [deps-js]
 
   - name: checks-backend
     image: golang:1.18
     commands:
       - make checks-backend
-    depends_on: [deps-backend]
+    depends_on: [deps-go]
     volumes:
       - name: deps
         path: /go
@@ -100,7 +100,7 @@ steps:
     image: node:16
     commands:
       - make test-frontend
-    depends_on: [lint-frontend]
+    depends_on: [lint-js]
 
   - name: build-frontend
     image: node:16
@@ -116,7 +116,7 @@ steps:
       GOPROXY: https://goproxy.io
     commands:
       - go build -o gitea_no_gcc # test if build succeeds without the sqlite tag
-    depends_on: [deps-backend, checks-backend]
+    depends_on: [deps-go, checks-backend]
     volumes:
       - name: deps
         path: /go
@@ -132,7 +132,7 @@ steps:
     commands:
       - make backend # test cross compile
       - rm ./gitea # clean
-    depends_on: [deps-backend, checks-backend]
+    depends_on: [deps-go, checks-backend]
     volumes:
       - name: deps
         path: /go
@@ -147,7 +147,7 @@ steps:
       TAGS: bindata gogit
     commands:
       - go build -o gitea_windows
-    depends_on: [deps-backend, checks-backend]
+    depends_on: [deps-go, checks-backend]
     volumes:
       - name: deps
         path: /go
@@ -161,7 +161,7 @@ steps:
       GOARCH: 386
     commands:
       - go build -o gitea_linux_386 # test if compatible with 32 bit
-    depends_on: [deps-backend, checks-backend]
+    depends_on: [deps-go, checks-backend]
     volumes:
       - name: deps
         path: /go
@@ -242,11 +242,11 @@ steps:
         exclude:
           - pull_request
 
-  - name: deps-backend
+  - name: deps-go
     image: golang:1.18
     pull: always
     commands:
-      - make deps-backend
+      - make deps-go
     volumes:
       - name: deps
         path: /go
@@ -273,7 +273,7 @@ steps:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata sqlite sqlite_unlock_notify
-    depends_on: [deps-backend, prepare-test-env]
+    depends_on: [deps-go, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -289,7 +289,7 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
-    depends_on: [deps-backend, prepare-test-env]
+    depends_on: [deps-go, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -305,7 +305,7 @@ steps:
       RACE_ENABLED: true
       GITHUB_READ_TOKEN:
         from_secret: github_read_token
-    depends_on: [deps-backend, prepare-test-env]
+    depends_on: [deps-go, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -435,11 +435,11 @@ steps:
         exclude:
           - pull_request
 
-  - name: deps-backend
+  - name: deps-go
     image: golang:1.18
     pull: always
     commands:
-      - make deps-backend
+      - make deps-go
     volumes:
       - name: deps
         path: /go
@@ -460,7 +460,7 @@ steps:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       GOSUMDB: sum.golang.org
       TAGS: bindata gogit sqlite sqlite_unlock_notify
-    depends_on: [deps-backend, prepare-test-env]
+    depends_on: [deps-go, prepare-test-env]
     volumes:
       - name: deps
         path: /go
@@ -633,17 +633,17 @@ steps:
       - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
-  - name: deps-frontend
+  - name: deps-js
     image: node:16
     pull: always
     commands:
-      - make deps-frontend
+      - make deps-js
 
-  - name: deps-backend
+  - name: deps-go
     image: golang:1.18
     pull: always
     commands:
-      - make deps-backend
+      - make deps-go
     volumes:
       - name: deps
         path: /go
@@ -752,17 +752,17 @@ steps:
       - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
-  - name: deps-frontend
+  - name: deps-js
     image: node:16
     pull: always
     commands:
-      - make deps-frontend
+      - make deps-js
 
-  - name: deps-backend
+  - name: deps-go
     image: golang:1.18
     pull: always
     commands:
-      - make deps-backend
+      - make deps-go
     volumes:
       - name: deps
         path: /go

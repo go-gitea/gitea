@@ -306,16 +306,25 @@ checks-frontend: lockfile-check svg-check
 checks-backend: gomod-check swagger-check swagger-validate
 
 .PHONY: lint
-lint: lint-frontend lint-backend
+lint: lint-js lint-go
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
 	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
+
+.PHONY: lint-swagger
+lint-swagger: node_modules
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 
+.PHONY: lint-js
+lint-js: lint-frontend lint-swagger
+
 .PHONY: lint-backend
-lint-backend: golangci-lint vet editorconfig-checker
+lint-backend: lint-go lint-swagger
+
+.PHONY: lint-go
+lint-go: golangci-lint vet editorconfig-checker
 
 .PHONY: watch
 watch:
@@ -668,13 +677,18 @@ docs:
 	cd docs; make trans-copy clean build-offline;
 
 .PHONY: deps
-deps: deps-frontend deps-backend
+deps: deps-js deps-go
 
 .PHONY: deps-frontend
-deps-frontend: node_modules
+deps-frontend: deps-js
+
+deps-js: node_modules
 
 .PHONY: deps-backend
-deps-backend:
+deps-backend: deps-go
+
+.PHONY: deps-go
+deps-go:
 	$(GO) mod download
 	$(GO) install $(AIR_PACKAGE)
 	$(GO) install $(EDITORCONFIG_CHECKER_PACKAGE)
@@ -781,7 +795,7 @@ pr\#%: clean-all
 golangci-lint:
 	$(GO) run $(GOLANGCI_LINT_PACKAGE) run
 
-# workaround step for the lint-backend-windows CI task because 'go run' can not
+# workaround step for the lint-go-windows CI task because 'go run' can not
 # have distinct GOOS/GOARCH for its build and run steps
 .PHONY: golangci-lint-windows
 golangci-lint-windows:
