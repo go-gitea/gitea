@@ -55,7 +55,7 @@ func GetTeamRepositories(ctx context.Context, opts *SearchTeamRepoOptions) ([]*r
 		Find(&repos)
 }
 
-// AddTeamRepo addes a repo for an organization's team
+// AddTeamRepo adds a repo for an organization's team
 func AddTeamRepo(ctx context.Context, orgID, teamID, repoID int64) error {
 	_, err := db.GetEngine(ctx).Insert(&TeamRepo{
 		OrgID:  orgID,
