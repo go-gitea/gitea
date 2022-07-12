@@ -81,7 +81,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, milestones)
 
-	labels, err := models.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
+	labels, err := issues_model.GetLabelsByRepoID(ctx, repo.ID, "", db.ListOptions{})
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
@@ -105,7 +105,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 1)
 
-	issues, err := models.Issues(&models.IssuesOptions{
+	issues, err := issues_model.Issues(&issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsPull:   util.OptionalBoolFalse,
 		SortType: "oldest",
@@ -115,7 +115,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, issues[0].LoadDiscussComments())
 	assert.Empty(t, issues[0].Comments)
 
-	pulls, _, err := models.PullRequests(repo.ID, &models.PullRequestsOptions{
+	pulls, _, err := issues_model.PullRequests(repo.ID, &issues_model.PullRequestsOptions{
 		SortType: "oldest",
 	})
 	assert.NoError(t, err)

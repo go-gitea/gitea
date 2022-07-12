@@ -6,24 +6,24 @@
 			<div class="four wide column">
 				<div class="ui secondary vertical filter menu">
 					<a class="{{if eq .ViewType "your_repositories"}}ui basic primary button{{end}} item" href="{{.Link}}?type=your_repositories&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-						{{.i18n.Tr "home.issues.in_your_repos"}}
+						{{.locale.Tr "home.issues.in_your_repos"}}
 						<strong class="ui right">{{CountFmt .IssueStats.YourRepositoriesCount}}</strong>
 					</a>
 					<a class="{{if eq .ViewType "assigned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=assigned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-						{{.i18n.Tr "repo.issues.filter_type.assigned_to_you"}}
+						{{.locale.Tr "repo.issues.filter_type.assigned_to_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.AssignCount}}</strong>
 					</a>
 					<a class="{{if eq .ViewType "created_by"}}ui basic primary button{{end}} item" href="{{.Link}}?type=created_by&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-						{{.i18n.Tr "repo.issues.filter_type.created_by_you"}}
+						{{.locale.Tr "repo.issues.filter_type.created_by_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.CreateCount}}</strong>
 					</a>
 					<a class="{{if eq .ViewType "mentioned"}}ui basic primary button{{end}} item" href="{{.Link}}?type=mentioned&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-						{{.i18n.Tr "repo.issues.filter_type.mentioning_you"}}
+						{{.locale.Tr "repo.issues.filter_type.mentioning_you"}}
 						<strong class="ui right">{{CountFmt .IssueStats.MentionCount}}</strong>
 					</a>
 					{{if .PageIsPulls}}
 						<a class="{{if eq .ViewType "review_requested"}}ui basic primary button{{end}} item" href="{{.Link}}?type=review_requested&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state={{.State}}">
-							{{.i18n.Tr "repo.issues.filter_type.review_requested"}}
+							{{.locale.Tr "repo.issues.filter_type.review_requested"}}
 							<strong class="ui right">{{CountFmt .IssueStats.ReviewRequestedCount}}</strong>
 						</a>
 					{{end}}
@@ -61,11 +61,11 @@
 						<div class="ui compact tiny menu">
 							<a class="item{{if not .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=open&q={{$.Keyword}}">
 								{{svg "octicon-issue-opened" 16 "mr-3"}}
-								{{.i18n.Tr "repo.issues.open_tab" .IssueStats.OpenCount}}
+								{{JsPrettyNumber .IssueStats.OpenCount}}&nbsp;{{.locale.Tr "repo.issues.open_title"}}
 							</a>
 							<a class="item{{if .IsShowClosed}} active{{end}}" href="{{.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort={{$.SortType}}&state=closed&q={{$.Keyword}}">
 								{{svg "octicon-issue-closed" 16 "mr-3"}}
-								{{.i18n.Tr "repo.issues.close_tab" .IssueStats.ClosedCount}}
+								{{JsPrettyNumber .IssueStats.ClosedCount}}&nbsp;{{.locale.Tr "repo.issues.closed_title"}}
 							</a>
 						</div>
 					</div>
@@ -76,8 +76,8 @@
 								<input type="hidden" name="repos" value="[{{range $.RepoIDs}}{{.}}%2C{{end}}]"/>
 								<input type="hidden" name="sort" value="{{$.SortType}}"/>
 								<input type="hidden" name="state" value="{{$.State}}"/>
-								<input name="q" value="{{$.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}...">
-								<button class="ui primary button" type="submit">{{.i18n.Tr "explore.search"}}</button>
+								<input name="q" value="{{$.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
+								<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 							</div>
 						</form>
 					</div>
@@ -85,18 +85,18 @@
 						<!-- Sort -->
 						<div class="ui dropdown type jump item">
 							<span class="text">
-								{{.i18n.Tr "repo.issues.filter_sort"}}
+								{{.locale.Tr "repo.issues.filter_sort"}}
 								{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 							</span>
 							<div class="menu">
-								<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</a>
-								<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</a>
-								<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</a>
-								<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</a>
-								<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.mostcomment"}}</a>
-								<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.leastcomment"}}</a>
-								<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.nearduedate"}}</a>
-								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.i18n.Tr "repo.issues.filter_sort.farduedate"}}</a>
+								<a class="{{if or (eq .SortType "latest") (not .SortType)}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=latest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.latest"}}</a>
+								<a class="{{if eq .SortType "oldest"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=oldest&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</a>
+								<a class="{{if eq .SortType "recentupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=recentupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</a>
+								<a class="{{if eq .SortType "leastupdate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastupdate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</a>
+								<a class="{{if eq .SortType "mostcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=mostcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.mostcomment"}}</a>
+								<a class="{{if eq .SortType "leastcomment"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=leastcomment&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.leastcomment"}}</a>
+								<a class="{{if eq .SortType "nearduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=nearduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.nearduedate"}}</a>
+								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 							</div>
 						</div>
 					</div>

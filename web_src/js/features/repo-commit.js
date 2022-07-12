@@ -45,7 +45,12 @@ export function initRepoCommitLastCommitLoader() {
         $('table#repo-files-table .commit-list').replaceWith(row);
         return;
       }
-      entryMap[$(row).attr('data-entryname')].replaceWith(row);
+      // there are other <tr> rows in response (eg: <tr class="has-parent">)
+      // at the moment only the "data-entryname" rows should be processed
+      const entryName = $(row).attr('data-entryname');
+      if (entryName) {
+        entryMap[entryName].replaceWith(row);
+      }
     });
   });
 }

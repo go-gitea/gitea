@@ -132,7 +132,7 @@ type lineCountWriter struct {
 func (l *lineCountWriter) Write(p []byte) (n int, err error) {
 	n = len(p)
 	l.numLines += bytes.Count(p, []byte{'\000'})
-	return
+	return n, err
 }
 
 // GetDiffNumChangedFiles counts the number of changed files
@@ -177,7 +177,7 @@ func (repo *Repository) GetDiffShortStat(base, head string) (numFiles, totalAddi
 	if err != nil && strings.Contains(err.Error(), "no merge base") {
 		return GetDiffShortStat(repo.Ctx, repo.Path, base, head)
 	}
-	return
+	return numFiles, totalAdditions, totalDeletions, err
 }
 
 // GetDiffShortStat counts number of changed files, number of additions and deletions
@@ -231,7 +231,7 @@ func parseDiffStat(stdout string) (numFiles, totalAdditions, totalDeletions int,
 			return 0, 0, 0, fmt.Errorf("unable to parse shortstat: %s. Error parsing NumDeletions %v", stdout, err)
 		}
 	}
-	return
+	return numFiles, totalAdditions, totalDeletions, err
 }
 
 // GetDiffOrPatch generates either diff or formatted patch data between given revisions
@@ -255,13 +255,7 @@ func (repo *Repository) GetDiff(base, head string, w io.Writer) error {
 
 // GetDiffBinary generates and returns patch data between given revisions, including binary diffs.
 func (repo *Repository) GetDiffBinary(base, head string, w io.Writer) error {
-	if CheckGitVersionAtLeast("1.7.7") == nil {
-		return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).Run(&RunOpts{
-			Dir:    repo.Path,
-			Stdout: w,
-		})
-	}
-	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--patience", base, head).Run(&RunOpts{
+	return NewCommand(repo.Ctx, "diff", "-p", "--binary", "--histogram", base, head).Run(&RunOpts{
 		Dir:    repo.Path,
 		Stdout: w,
 	})

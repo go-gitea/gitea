@@ -131,7 +131,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
-		remoteAddr, err := git.GetRemoteAddress(ctx, path, m.RemoteName)
+		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
@@ -147,7 +147,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 			defer gitRepo.Close()
 
-			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
+			endpoint := lfs.DetermineEndpoint(remoteURL.String(), "")
 			lfsClient := lfs.NewClient(endpoint, nil)
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.SanitizeErrorCredentialURLs(err)

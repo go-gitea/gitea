@@ -124,6 +124,11 @@ func NewMilestone(m *Milestone) (err error) {
 	return committer.Commit()
 }
 
+// HasMilestoneByRepoID returns if the milestone exists in the repository.
+func HasMilestoneByRepoID(ctx context.Context, repoID, id int64) (bool, error) {
+	return db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
+}
+
 // GetMilestoneByRepoID returns the milestone in a repository.
 func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, error) {
 	m := new(Milestone)
@@ -292,11 +297,17 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	numMilestones, err := countRepoMilestones(ctx, repo.ID)
+	numMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateAll,
+	})
 	if err != nil {
 		return err
 	}
-	numClosedMilestones, err := countRepoClosedMilestones(ctx, repo.ID)
+	numClosedMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateClosed,
+	})
 	if err != nil {
 		return err
 	}
@@ -350,7 +361,7 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	}
 
 	if len(opts.Name) != 0 {
-		cond = cond.And(builder.Like{"name", opts.Name})
+		cond = cond.And(builder.Like{"UPPER(name)", strings.ToUpper(opts.Name)})
 	}
 
 	return cond
@@ -428,13 +439,6 @@ func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType s
 	)
 }
 
-//  ____  _        _
-// / ___|| |_ __ _| |_ ___
-// \___ \| __/ _` | __/ __|
-//  ___) | || (_| | |_\__ \
-// |____/ \__\__,_|\__|___/
-//
-
 // MilestonesStats represents milestone statistic information.
 type MilestonesStats struct {
 	OpenCount, ClosedCount int64
@@ -503,21 +507,11 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 	return stats, nil
 }
 
-func countRepoMilestones(ctx context.Context, repoID int64) (int64, error) {
+// CountMilestones returns number of milestones in given repository with other options
+func CountMilestones(ctx context.Context, opts GetMilestonesOption) (int64, error) {
 	return db.GetEngine(ctx).
-		Where("repo_id=?", repoID).
+		Where(opts.toCond()).
 		Count(new(Milestone))
-}
-
-func countRepoClosedMilestones(ctx context.Context, repoID int64) (int64, error) {
-	return db.GetEngine(ctx).
-		Where("repo_id=? AND is_closed=?", repoID, true).
-		Count(new(Milestone))
-}
-
-// CountRepoClosedMilestones returns number of closed milestones in given repository.
-func CountRepoClosedMilestones(repoID int64) (int64, error) {
-	return countRepoClosedMilestones(db.DefaultContext, repoID)
 }
 
 // CountMilestonesByRepoCond map from repo conditions to number of milestones matching the options`

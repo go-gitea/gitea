@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -101,7 +102,7 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
@@ -114,23 +115,24 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName           string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description        string `binding:"MaxSize(255)"`
-	Website            string `binding:"ValidUrl;MaxSize(255)"`
-	Interval           string
-	MirrorAddress      string
-	MirrorUsername     string
-	MirrorPassword     string
-	LFS                bool   `form:"mirror_lfs"`
-	LFSEndpoint        string `form:"mirror_lfs_endpoint"`
-	PushMirrorID       string
-	PushMirrorAddress  string
-	PushMirrorUsername string
-	PushMirrorPassword string
-	PushMirrorInterval string
-	Private            bool
-	Template           bool
-	EnablePrune        bool
+	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description            string `binding:"MaxSize(255)"`
+	Website                string `binding:"ValidUrl;MaxSize(255)"`
+	Interval               string
+	MirrorAddress          string
+	MirrorUsername         string
+	MirrorPassword         string
+	LFS                    bool   `form:"mirror_lfs"`
+	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
+	PushMirrorID           string
+	PushMirrorAddress      string
+	PushMirrorUsername     string
+	PushMirrorPassword     string
+	PushMirrorSyncOnCommit bool
+	PushMirrorInterval     string
+	Private                bool
+	Template               bool
+	EnablePrune            bool
 
 	// Advanced settings
 	EnableWiki                            bool
@@ -141,6 +143,7 @@ type RepoSettingForm struct {
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
+	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
 	EnablePackages                        bool
@@ -635,18 +638,18 @@ func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) bind
 }
 
 // ReviewType will return the corresponding ReviewType for type
-func (f SubmitReviewForm) ReviewType() models.ReviewType {
+func (f SubmitReviewForm) ReviewType() issues_model.ReviewType {
 	switch f.Type {
 	case "approve":
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case "comment":
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
 	case "reject":
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
 	case "":
-		return models.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
+		return issues_model.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
-		return models.ReviewTypeUnknown
+		return issues_model.ReviewTypeUnknown
 	}
 }
 
@@ -654,7 +657,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
-	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+	return (reviewType == issues_model.ReviewTypeComment || reviewType == issues_model.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
 }
 

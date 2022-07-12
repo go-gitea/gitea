@@ -5,12 +5,13 @@
 package repo
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/models/unit"
@@ -105,7 +106,7 @@ func Projects(ctx *context.Context) {
 
 	numPages := 0
 	if count > 0 {
-		numPages = int((int(count) - 1) / setting.UI.IssuePagingNum)
+		numPages = (int(count) - 1/setting.UI.IssuePagingNum)
 	}
 
 	pager := context.NewPagination(total, setting.UI.IssuePagingNum, page, numPages)
@@ -296,13 +297,13 @@ func ViewProject(ctx *context.Context) {
 		boards[0].Title = ctx.Tr("repo.projects.type.uncategorized")
 	}
 
-	issuesMap, err := models.LoadIssuesFromBoardList(boards)
+	issuesMap, err := issues_model.LoadIssuesFromBoardList(boards)
 	if err != nil {
 		ctx.ServerError("LoadIssuesOfBoards", err)
 		return
 	}
 
-	linkedPrsMap := make(map[int64][]*models.Issue)
+	linkedPrsMap := make(map[int64][]*issues_model.Issue)
 	for _, issuesList := range issuesMap {
 		for _, issue := range issuesList {
 			var referencedIds []int64
@@ -313,7 +314,7 @@ func ViewProject(ctx *context.Context) {
 			}
 
 			if len(referencedIds) > 0 {
-				if linkedPrs, err := models.Issues(&models.IssuesOptions{
+				if linkedPrs, err := issues_model.Issues(&issues_model.IssuesOptions{
 					IssueIDs: referencedIds,
 					IsPull:   util.OptionalBoolTrue,
 				}); err == nil {
@@ -358,7 +359,7 @@ func UpdateIssueProject(ctx *context.Context) {
 			continue
 		}
 
-		if err := models.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
+		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
 			ctx.ServerError("ChangeProjectAssign", err)
 			return
 		}
@@ -622,9 +623,9 @@ func MoveIssues(ctx *context.Context) {
 		issueIDs = append(issueIDs, issue.IssueID)
 		sortedIssueIDs[issue.Sorting] = issue.IssueID
 	}
-	movedIssues, err := models.GetIssuesByIDs(ctx, issueIDs)
+	movedIssues, err := issues_model.GetIssuesByIDs(ctx, issueIDs)
 	if err != nil {
-		if models.IsErrIssueNotExist(err) {
+		if issues_model.IsErrIssueNotExist(err) {
 			ctx.NotFound("IssueNotExisting", nil)
 		} else {
 			ctx.ServerError("GetIssueByID", err)
@@ -633,8 +634,15 @@ func MoveIssues(ctx *context.Context) {
 	}
 
 	if len(movedIssues) != len(form.Issues) {
-		ctx.ServerError("IssuesNotFound", err)
+		ctx.ServerError("some issues do not exist", errors.New("some issues do not exist"))
 		return
+	}
+
+	for _, issue := range movedIssues {
+		if issue.RepoID != project.RepoID {
+			ctx.ServerError("Some issue's repoID is not equal to project's repoID", errors.New("Some issue's repoID is not equal to project's repoID"))
+			return
+		}
 	}
 
 	if err = project_model.MoveIssuesOnProjectBoard(board, sortedIssueIDs); err != nil {

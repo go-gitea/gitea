@@ -13,16 +13,16 @@
 <body>
 	<p>
 		{{if .IsPull}}
-			{{.i18n.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url | Str2html}}
+			{{.locale.Tr "mail.issue_assigned.pull" .Doer.Name $link $repo_url | Str2html}}
 		{{else}}
-			{{.i18n.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url | Str2html}}
+			{{.locale.Tr "mail.issue_assigned.issue" .Doer.Name $link $repo_url | Str2html}}
 		{{end}}
 	</p>
 	<div class="footer">
 		<p>
 			---
 			<br>
-			<a href="{{.Link}}">{{.i18n.Tr "mail.view_it_on" AppName}}</a>.
+			<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 		</p>
 	</div>
 </body>

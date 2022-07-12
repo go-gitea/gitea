@@ -7,12 +7,13 @@ package explore
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sitemap"
 )
 
 const (
@@ -31,9 +32,19 @@ type RepoSearchOptions struct {
 
 // RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
-	page := ctx.FormInt("page")
+	// Sitemap index for sitemap paths
+	page := int(ctx.ParamsInt64("idx"))
+	isSitemap := ctx.Params("idx") != ""
+	if page <= 1 {
+		page = ctx.FormInt("page")
+	}
+
 	if page <= 0 {
 		page = 1
+	}
+
+	if isSitemap {
+		opts.PageSize = setting.UI.SitemapPagingNum
 	}
 
 	var (
@@ -81,7 +92,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	language := ctx.FormTrim("language")
 	ctx.Data["Language"] = language
 
-	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: opts.PageSize,
@@ -101,6 +112,18 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		ctx.ServerError("SearchRepository", err)
 		return
 	}
+	if isSitemap {
+		m := sitemap.NewSitemap()
+		for _, item := range repos {
+			m.Add(sitemap.URL{URL: item.HTMLURL(), LastMod: item.UpdatedUnix.AsTimePtr()})
+		}
+		ctx.Resp.Header().Set("Content-Type", "text/xml")
+		if _, err := m.WriteTo(ctx.Resp); err != nil {
+			log.Error("Failed writing sitemap: %v", err)
+		}
+		return
+	}
+
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos

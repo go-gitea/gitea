@@ -45,7 +45,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 		"uid":       fmt.Sprintf("%d", forkOwner.ID),
 		"repo_name": forkRepoName,
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the forked repo
 	req = NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)

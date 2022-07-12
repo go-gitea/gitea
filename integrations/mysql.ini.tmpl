@@ -10,11 +10,13 @@ PASSWD   = {{TEST_MYSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_TYPE = elasticsearch
-ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql/indexers/repos.bleve
+
+[queue.issue_indexer]
+TYPE = elasticsearch
+CONN_STR = http://elastic:changeme@elasticsearch:9200
+DATADIR = integrations/gitea-integration-mysql/indexers/issues.queue
 
 [queue]
 TYPE = immediate
@@ -51,6 +53,7 @@ OFFLINE_MODE     = false
 
 LFS_START_SERVER = true
 LFS_JWT_SECRET   = Tv_MjmZuHqpIY6GFl12ebgkRAMt4RlWt0v4EHKSXO0w
+SSH_TRUSTED_USER_CA_KEYS = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCb4DC1dMFnJ6pXWo7GMxTchtzmJHYzfN6sZ9FAPFR4ijMLfGki+olvOMO5Fql1/yGnGfbELQa1S6y4shSvj/5K+zUFScmEXYf3Gcr87RqilLkyk16RS+cHNB1u87xTHbETaa3nyCJeGQRpd4IQ4NKob745mwDZ7jQBH8AZEng50Oh8y8fi8skBBBzaYp1ilgvzG740L7uex6fHV62myq0SXeCa+oJUjq326FU8y+Vsa32H8A3e7tOgXZPdt2TVNltx2S9H2WO8RMi7LfaSwARNfy1zu+bfR50r6ef8Yx5YKCMz4wWb1SHU1GS800mjOjlInLQORYRNMlSwR1+vLlVDciOqFapDSbj+YOVOawR0R1aqlSKpZkt33DuOBPx9qe6CVnIi7Z+Px/KqM+OLCzlLY/RS+LbxQpDWcfTVRiP+S5qRTcE3M3UioN/e0BE/1+MpX90IGpvVkA63ILYbKEa4bM3ASL7ChTCr6xN5XT+GpVJveFKK1cfNx9ExHI4rzYE=
 
 [lfs]
 MINIO_BASE_PATH = lfs/

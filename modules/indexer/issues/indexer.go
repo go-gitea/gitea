@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -291,8 +291,8 @@ func populateIssueIndexer(ctx context.Context) {
 			return
 		default:
 		}
-		repos, _, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
-			ListOptions: db.ListOptions{Page: page, PageSize: models.RepositoryListDefaultPageSize},
+		repos, _, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
+			ListOptions: db.ListOptions{Page: page, PageSize: repo_model.RepositoryListDefaultPageSize},
 			OrderBy:     db.SearchOrderByID,
 			Private:     true,
 			Collaborate: util.OptionalBoolFalse,
@@ -320,7 +320,7 @@ func populateIssueIndexer(ctx context.Context) {
 
 // UpdateRepoIndexer add/update all issues of the repositories
 func UpdateRepoIndexer(repo *repo_model.Repository) {
-	is, err := models.Issues(&models.IssuesOptions{
+	is, err := issues_model.Issues(&issues_model.IssuesOptions{
 		RepoID:   repo.ID,
 		IsClosed: util.OptionalBoolNone,
 		IsPull:   util.OptionalBoolNone,
@@ -329,7 +329,7 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 		log.Error("Issues: %v", err)
 		return
 	}
-	if err = models.IssueList(is).LoadDiscussComments(); err != nil {
+	if err = issues_model.IssueList(is).LoadDiscussComments(); err != nil {
 		log.Error("LoadComments: %v", err)
 		return
 	}
@@ -339,10 +339,10 @@ func UpdateRepoIndexer(repo *repo_model.Repository) {
 }
 
 // UpdateIssueIndexer add/update an issue to the issue indexer
-func UpdateIssueIndexer(issue *models.Issue) {
+func UpdateIssueIndexer(issue *issues_model.Issue) {
 	var comments []string
 	for _, comment := range issue.Comments {
-		if comment.Type == models.CommentTypeComment {
+		if comment.Type == issues_model.CommentTypeComment {
 			comments = append(comments, comment.Content)
 		}
 	}
@@ -362,7 +362,7 @@ func UpdateIssueIndexer(issue *models.Issue) {
 // DeleteRepoIssueIndexer deletes repo's all issues indexes
 func DeleteRepoIssueIndexer(repo *repo_model.Repository) {
 	var ids []int64
-	ids, err := models.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
+	ids, err := issues_model.GetIssueIDsByRepoID(db.DefaultContext, repo.ID)
 	if err != nil {
 		log.Error("getIssueIDsByRepoID failed: %v", err)
 		return

@@ -7,9 +7,7 @@ package explore
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -44,106 +42,78 @@ func Code(ctx *context.Context) {
 	queryType := ctx.FormTrim("t")
 	isMatch := queryType == "match"
 
-	var (
-		repoIDs []int64
-		err     error
-		isAdmin bool
-	)
-	if ctx.Doer != nil {
-		isAdmin = ctx.Doer.IsAdmin
-	}
-
-	// guest user or non-admin user
-	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.Doer)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
-	}
-
-	var (
-		total                 int
-		searchResults         []*code_indexer.Result
-		searchResultLanguages []*code_indexer.SearchResultLanguages
-	)
-
-	// if non-admin login user, we need check UnitTypeCode at first
-	if ctx.Doer != nil && len(repoIDs) > 0 {
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
+	if keyword != "" {
+		var (
+			repoIDs []int64
+			err     error
+			isAdmin bool
+		)
+		if ctx.Doer != nil {
+			isAdmin = ctx.Doer.IsAdmin
 		}
 
-		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
-		repoIDs = make([]int64, 0, len(repoMaps))
-		for id, repo := range repoMaps {
-			if models.CheckRepoUnitUser(repo, ctx.Doer, unit.TypeCode) {
-				rightRepoMap[id] = repo
-				repoIDs = append(repoIDs, id)
-			}
-		}
-
-		ctx.Data["RepoMaps"] = rightRepoMap
-
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
-		if err != nil {
-			if code_indexer.IsAvailable() {
+		// guest user or non-admin user
+		if ctx.Doer == nil || !isAdmin {
+			repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx.Doer)
+			if err != nil {
 				ctx.ServerError("SearchResults", err)
 				return
 			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
-		}
-		// if non-login user or isAdmin, no need to check UnitTypeCode
-	} else if (ctx.Doer == nil && len(repoIDs) > 0) || isAdmin {
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
-		if err != nil {
-			if code_indexer.IsAvailable() {
-				ctx.ServerError("SearchResults", err)
-				return
-			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 		}
 
-		loadRepoIDs := make([]int64, 0, len(searchResults))
-		for _, result := range searchResults {
-			var find bool
-			for _, id := range loadRepoIDs {
-				if id == result.RepoID {
-					find = true
-					break
+		var (
+			total                 int
+			searchResults         []*code_indexer.Result
+			searchResultLanguages []*code_indexer.SearchResultLanguages
+		)
+
+		if (len(repoIDs) > 0) || isAdmin {
+			total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
+			if err != nil {
+				if code_indexer.IsAvailable() {
+					ctx.ServerError("SearchResults", err)
+					return
+				}
+				ctx.Data["CodeIndexerUnavailable"] = true
+			} else {
+				ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
+			}
+
+			loadRepoIDs := make([]int64, 0, len(searchResults))
+			for _, result := range searchResults {
+				var find bool
+				for _, id := range loadRepoIDs {
+					if id == result.RepoID {
+						find = true
+						break
+					}
+				}
+				if !find {
+					loadRepoIDs = append(loadRepoIDs, result.RepoID)
 				}
 			}
-			if !find {
-				loadRepoIDs = append(loadRepoIDs, result.RepoID)
+
+			repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
+			if err != nil {
+				ctx.ServerError("SearchResults", err)
+				return
 			}
+
+			ctx.Data["RepoMaps"] = repoMaps
 		}
 
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
+		ctx.Data["Keyword"] = keyword
+		ctx.Data["Language"] = language
+		ctx.Data["queryType"] = queryType
+		ctx.Data["SearchResults"] = searchResults
+		ctx.Data["SearchResultLanguages"] = searchResultLanguages
+		ctx.Data["PageIsViewCode"] = true
 
-		ctx.Data["RepoMaps"] = repoMaps
+		pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
+		pager.SetDefaultParams(ctx)
+		pager.AddParam(ctx, "l", "Language")
+		ctx.Data["Page"] = pager
 	}
-
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
-	ctx.Data["SearchResults"] = searchResults
-	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["PageIsViewCode"] = true
-
-	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
-	pager.SetDefaultParams(ctx)
-	pager.AddParam(ctx, "l", "Language")
-	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, tplExploreCode)
 }

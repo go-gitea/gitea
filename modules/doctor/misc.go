@@ -189,6 +189,75 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 	return nil
 }
 
+func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) error {
+	if err := git.InitOnceWithSync(ctx); err != nil {
+		return err
+	}
+
+	numRepos := 0
+	numNeedUpdate := 0
+	numWritten := 0
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
+		numRepos++
+
+		commitGraphExists := func() (bool, error) {
+			// Check commit-graph exists
+			commitGraphFile := path.Join(repo.RepoPath(), `objects/info/commit-graph`)
+			isExist, err := util.IsExist(commitGraphFile)
+			if err != nil {
+				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
+				return false, err
+			}
+
+			if !isExist {
+				commitGraphsDir := path.Join(repo.RepoPath(), `objects/info/commit-graphs`)
+				isExist, err = util.IsExist(commitGraphsDir)
+				if err != nil {
+					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
+					return false, err
+				}
+			}
+			return isExist, nil
+		}
+
+		isExist, err := commitGraphExists()
+		if err != nil {
+			return err
+		}
+		if !isExist {
+			numNeedUpdate++
+			if autofix {
+				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
+					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
+					return err
+				}
+				isExist, err := commitGraphExists()
+				if err != nil {
+					return err
+				}
+				if isExist {
+					numWritten++
+					logger.Info("Commit-graph written:    %s", repo.FullName())
+				} else {
+					logger.Warn("No commit-graph written: %s", repo.FullName())
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.Critical("Unable to checkCommitGraph: %v", err)
+		return err
+	}
+
+	if autofix {
+		logger.Info("Wrote commit-graph files for %d of %d repositories.", numWritten, numRepos)
+	} else {
+		logger.Info("Checked %d repositories, %d without commit-graphs.", numRepos, numNeedUpdate)
+	}
+
+	return nil
+}
+
 func init() {
 	Register(&Check{
 		Title:     "Check if SCRIPT_TYPE is available",
@@ -224,5 +293,12 @@ func init() {
 		IsDefault: false,
 		Run:       checkDaemonExport,
 		Priority:  8,
+	})
+	Register(&Check{
+		Title:     "Check commit-graphs",
+		Name:      "check-commit-graphs",
+		IsDefault: false,
+		Run:       checkCommitGraph,
+		Priority:  9,
 	})
 }

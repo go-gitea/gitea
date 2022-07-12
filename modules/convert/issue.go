@@ -9,7 +9,6 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -23,7 +22,7 @@ import (
 // it assumes some fields assigned with values:
 // Required - Poster, Labels,
 // Optional - Milestone, Assignee, PullRequest
-func ToAPIIssue(issue *models.Issue) *api.Issue {
+func ToAPIIssue(issue *issues_model.Issue) *api.Issue {
 	if err := issue.LoadLabels(db.DefaultContext); err != nil {
 		return &api.Issue{}
 	}
@@ -100,7 +99,7 @@ func ToAPIIssue(issue *models.Issue) *api.Issue {
 }
 
 // ToAPIIssueList converts an IssueList to API format
-func ToAPIIssueList(il models.IssueList) []*api.Issue {
+func ToAPIIssueList(il issues_model.IssueList) []*api.Issue {
 	result := make([]*api.Issue, len(il))
 	for i := range il {
 		result[i] = ToAPIIssue(il[i])
@@ -109,7 +108,7 @@ func ToAPIIssueList(il models.IssueList) []*api.Issue {
 }
 
 // ToTrackedTime converts TrackedTime to API format
-func ToTrackedTime(t *models.TrackedTime) (apiT *api.TrackedTime) {
+func ToTrackedTime(t *issues_model.TrackedTime) (apiT *api.TrackedTime) {
 	apiT = &api.TrackedTime{
 		ID:       t.ID,
 		IssueID:  t.IssueID,
@@ -124,17 +123,17 @@ func ToTrackedTime(t *models.TrackedTime) (apiT *api.TrackedTime) {
 	if t.User != nil {
 		apiT.UserName = t.User.Name
 	}
-	return
+	return apiT
 }
 
 // ToStopWatches convert Stopwatch list to api.StopWatches
-func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
+func ToStopWatches(sws []*issues_model.Stopwatch) (api.StopWatches, error) {
 	result := api.StopWatches(make([]api.StopWatch, 0, len(sws)))
 
-	issueCache := make(map[int64]*models.Issue)
+	issueCache := make(map[int64]*issues_model.Issue)
 	repoCache := make(map[int64]*repo_model.Repository)
 	var (
-		issue *models.Issue
+		issue *issues_model.Issue
 		repo  *repo_model.Repository
 		ok    bool
 		err   error
@@ -143,7 +142,7 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 	for _, sw := range sws {
 		issue, ok = issueCache[sw.IssueID]
 		if !ok {
-			issue, err = models.GetIssueByID(sw.IssueID)
+			issue, err = issues_model.GetIssueByID(db.DefaultContext, sw.IssueID)
 			if err != nil {
 				return nil, err
 			}
@@ -170,7 +169,7 @@ func ToStopWatches(sws []*models.Stopwatch) (api.StopWatches, error) {
 }
 
 // ToTrackedTimeList converts TrackedTimeList to API format
-func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
+func ToTrackedTimeList(tl issues_model.TrackedTimeList) api.TrackedTimeList {
 	result := make([]*api.TrackedTime, 0, len(tl))
 	for _, t := range tl {
 		result = append(result, ToTrackedTime(t))
@@ -179,7 +178,7 @@ func ToTrackedTimeList(tl models.TrackedTimeList) api.TrackedTimeList {
 }
 
 // ToLabel converts Label to API format
-func ToLabel(label *models.Label, repo *repo_model.Repository, org *user_model.User) *api.Label {
+func ToLabel(label *issues_model.Label, repo *repo_model.Repository, org *user_model.User) *api.Label {
 	result := &api.Label{
 		ID:          label.ID,
 		Name:        label.Name,
@@ -206,7 +205,7 @@ func ToLabel(label *models.Label, repo *repo_model.Repository, org *user_model.U
 }
 
 // ToLabelList converts list of Label to API format
-func ToLabelList(labels []*models.Label, repo *repo_model.Repository, org *user_model.User) []*api.Label {
+func ToLabelList(labels []*issues_model.Label, repo *repo_model.Repository, org *user_model.User) []*api.Label {
 	result := make([]*api.Label, len(labels))
 	for i := range labels {
 		result[i] = ToLabel(labels[i], repo, org)

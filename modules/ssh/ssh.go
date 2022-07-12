@@ -188,8 +188,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			c := &gossh.CertChecker{
 				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					marshaled := auth.Marshal()
 					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+						if bytes.Equal(marshaled, k.Marshal()) {
 							return true
 						}
 					}

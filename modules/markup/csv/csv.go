@@ -29,9 +29,6 @@ func (Renderer) Name() string {
 	return "csv"
 }
 
-// NeedPostProcess implements markup.Renderer
-func (Renderer) NeedPostProcess() bool { return false }
-
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
 	return []string{".csv", ".tsv"}
@@ -44,11 +41,6 @@ func (Renderer) SanitizerRules() []setting.MarkupSanitizerRule {
 		{Element: "th", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 		{Element: "td", AllowAttr: "class", Regexp: regexp.MustCompile(`line-num`)},
 	}
-}
-
-// SanitizerDisabled disabled sanitize if return true
-func (Renderer) SanitizerDisabled() bool {
-	return false
 }
 
 func writeField(w io.Writer, element, class, field string) error {

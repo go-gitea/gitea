@@ -10,20 +10,20 @@
 				</div>
 			</div>
 			<div class="ui header eight wide column">
-				<a class="file-revisions-btn ui basic button" title="{{.i18n.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
+				<a class="file-revisions-btn ui basic button" title="{{.locale.Tr "repo.wiki.back_to_wiki"}}" href="{{.RepoLink}}/wiki/{{.PageURL}}" ><span>{{.revision}}</span> {{svg "octicon-home"}}</a>
 				{{$title}}
 				<div class="ui sub header word-break">
-					{{$timeSince := TimeSince .Author.When $.i18n.Lang}}
-					{{.i18n.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
+					{{$timeSince := TimeSince .Author.When $.locale}}
+					{{.locale.Tr "repo.wiki.last_commit_info" .Author.Name $timeSince | Safe}}
 				</div>
 			</div>
 		</div>
-		<h2 class="ui top header">{{.i18n.Tr "repo.wiki.wiki_page_revisions"}}</h2>
+		<h2 class="ui top header">{{.locale.Tr "repo.wiki.wiki_page_revisions"}}</h2>
 		<div class="ui" style="margin-top: 1rem;">
 			<h4 class="ui top attached header">
 				<div class="ui stackable grid">
 					<div class="sixteen wide column">
-						{{.CommitCount}} {{.i18n.Tr "repo.commits.commits"}}
+						{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}}
 					</div>
 				</div>
 			</h4>
