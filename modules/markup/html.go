@@ -302,12 +302,12 @@ type cleanReader struct {
 }
 
 func (c cleanReader) Read(bs []byte) (int, error) {
-	ori := make([]byte, len(bs))
-	n, err := c.Reader.Read(ori)
+	original := make([]byte, len(bs))
+	n, err := c.Reader.Read(original)
 	if err != nil {
 		return n, err
 	}
-	n = copy(bs, tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(ori[:n]))), []byte("&lt;$1")))
+	n = copy(bs, tagCleaner.ReplaceAll([]byte(nulCleaner.Replace(string(original[:n]))), []byte("&lt;$1")))
 	return n, nil
 }
 
