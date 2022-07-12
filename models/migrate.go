@@ -121,10 +121,6 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 	}
 	issueLabels := resolveIssueLabels(issue.ID, issue.Labels)
 	if len(issueLabels) > 0 {
-		labelIDs := make([]int64, 0, len(issueLabels))
-		for _, label := range issueLabels {
-			labelIDs = append(labelIDs, label.LabelID)
-		}
 		// delete old labels
 		if _, err := sess.Where("issue_id = ?", issue.ID).Delete(); err != nil {
 			return err
