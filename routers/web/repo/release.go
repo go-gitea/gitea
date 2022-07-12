@@ -98,8 +98,8 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	// TODO(20073) tags are used for compare feature witch needs all tags
-	// filtering is doen at the client side atm
+	// TODO(20073) tags are used for compare feature which needs all tags
+	// filtering is done on the client-side atm
 	tagListStart, tagListEnd := 0, 0
 	if isTagList {
 		tagListStart, tagListEnd = listOptions.GetStartEnd()
@@ -514,12 +514,12 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
 
-// DeleteRelease delete a release
+// DeleteRelease deletes a release
 func DeleteRelease(ctx *context.Context) {
 	deleteReleaseOrTag(ctx, false)
 }
 
-// DeleteTag delete a tag
+// DeleteTag deletes a tag
 func DeleteTag(ctx *context.Context) {
 	deleteReleaseOrTag(ctx, true)
 }
