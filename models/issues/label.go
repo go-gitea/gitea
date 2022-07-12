@@ -437,6 +437,9 @@ func UpdateLabelsByRepoID(repoID int64, labels ...*Label) error {
 	defer committer.Close()
 
 	existingLabels, err := GetLabelsByRepoID(ctx, repoID, "", db.ListOptions{})
+	if err != nil {
+		return err
+	}
 	labelsToAdd := make([]*Label, 0)
 	labelsToUpdate := make([]*Label, 0)
 	labelsToDelete := make([]*Label, 0)
