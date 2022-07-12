@@ -1,5 +1,5 @@
 <h4 class="ui top attached header">
-	{{.i18n.Tr "admin.monitor.cron"}}
+	{{.locale.Tr "admin.monitor.cron"}}
 </h4>
 <div class="ui attached table segment">
 	<form method="post" action="{{AppSubUrl}}/admin">
@@ -7,24 +7,24 @@
 			<thead>
 				<tr>
 					<th></th>
-					<th>{{.i18n.Tr "admin.monitor.name"}}</th>
-					<th>{{.i18n.Tr "admin.monitor.schedule"}}</th>
-					<th>{{.i18n.Tr "admin.monitor.next"}}</th>
-					<th>{{.i18n.Tr "admin.monitor.previous"}}</th>
-					<th>{{.i18n.Tr "admin.monitor.execute_times"}}</th>
-					<th>{{.i18n.Tr "admin.monitor.last_execution_result"}}</th>
+					<th>{{.locale.Tr "admin.monitor.name"}}</th>
+					<th>{{.locale.Tr "admin.monitor.schedule"}}</th>
+					<th>{{.locale.Tr "admin.monitor.next"}}</th>
+					<th>{{.locale.Tr "admin.monitor.previous"}}</th>
+					<th>{{.locale.Tr "admin.monitor.execute_times"}}</th>
+					<th>{{.locale.Tr "admin.monitor.last_execution_result"}}</th>
 				</tr>
 			</thead>
 			<tbody>
 				{{range .Entries}}
 					<tr>
-						<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.i18n.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
-						<td>{{$.i18n.Tr (printf "admin.dashboard.%s" .Name)}}</td>
+						<td><button type="submit" class="ui green button" name="op" value="{{.Name}}" title="{{$.locale.Tr "admin.dashboard.operation_run"}}">{{svg "octicon-triangle-right"}}</button></td>
+						<td>{{$.locale.Tr (printf "admin.dashboard.%s" .Name)}}</td>
 						<td>{{.Spec}}</td>
 						<td>{{DateFmtLong .Next}}</td>
 						<td>{{if gt .Prev.Year 1 }}{{DateFmtLong .Prev}}{{else}}N/A{{end}}</td>
 						<td>{{.ExecTimes}}</td>
-						<td {{if ne .Status ""}}class="tooltip" data-content="{{.FormatLastMessage $.i18n.Language}}"{{end}} >{{if eq .Status "" }}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
+						<td {{if ne .Status ""}}class="tooltip" data-content="{{.FormatLastMessage $.locale}}"{{end}} >{{if eq .Status "" }}—{{else if eq .Status "finished"}}{{svg "octicon-check" 16}}{{else}}{{svg "octicon-x" 16}}{{end}}</td>
 					</tr>
 				{{end}}
 			</tbody>
