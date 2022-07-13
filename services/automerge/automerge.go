@@ -30,7 +30,7 @@ var prAutoMergeQueue queue.UniqueQueue
 
 // Init runs the task queue to that handles auto merges
 func Init() error {
-	prAutoMergeQueue = queue.CreateUniqueQueue("pr_auto_merge", handle, "")
+	prAutoMergeQueue = queue.CreateUniqueQueue(queue.PRAutoMergeQueueName, handle, "")
 	if prAutoMergeQueue == nil {
 		return fmt.Errorf("Unable to create pr_auto_merge Queue")
 	}
