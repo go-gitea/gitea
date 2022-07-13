@@ -162,6 +162,8 @@ func runDumpRepository(ctx *cli.Context) error {
 		}
 	}
 
+	// the repo_dir will be removed if error occurs in DumpRepository
+	// make sure the directy doesn't exist or is empty, prevent from deleting user files
 	repoDir := ctx.String("repo_dir")
 	if exists, err := util.IsExist(repoDir); err != nil {
 		return fmt.Errorf("unable to stat repo_dir %q: %v", repoDir, err)
