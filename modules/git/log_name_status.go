@@ -356,7 +356,7 @@ heaploop:
 		}
 		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
 		if err != nil {
-			if err == context.DeadlineExceeded || errors.Unwrap(err) == context.DeadlineExceeded {
+			if errors.Is(err, context.DeadlineExceeded) {
 				break heaploop
 			}
 			g.Close()
