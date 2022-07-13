@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -35,7 +36,7 @@ const (
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
 func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Release, countCache map[string]int64) error {
 	// Fast return if release target is same as default branch.
-	if repoCtx.BranchName == release.Target {
+	if repoCtx.BranchName == strings.TrimPrefix(release.Target, git.BranchPrefix) {
 		release.NumCommitsBehind = repoCtx.CommitsCount - release.NumCommits
 		return nil
 	}

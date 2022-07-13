@@ -16,12 +16,18 @@ import (
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(BranchPrefix + name)
+	if !strings.HasPrefix(name, BranchPrefix) {
+		name = BranchPrefix + name
+	}
+	return repo.GetRefCommitID(name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	return repo.GetRefCommitID(TagPrefix + name)
+	if !strings.HasPrefix(name, TagPrefix) {
+		name = TagPrefix + name
+	}
+	return repo.GetRefCommitID(name)
 }
 
 // GetCommit returns commit object of by ID string.

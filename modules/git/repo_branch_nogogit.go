@@ -57,7 +57,10 @@ func (repo *Repository) IsBranchExist(name string) bool {
 		return false
 	}
 
-	return repo.IsReferenceExist(BranchPrefix + name)
+	if !strings.HasPrefix(name, BranchPrefix) {
+		name = BranchPrefix + name
+	}
+	return repo.IsReferenceExist(name)
 }
 
 // GetBranchNames returns branches from the repository, skipping skip initial branches and
