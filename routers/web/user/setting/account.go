@@ -34,6 +34,7 @@ func Account(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsAccount"] = true
 	ctx.Data["Email"] = ctx.Doer.Email
+	ctx.Data["EnableNotifyMail"] = setting.Service.EnableNotifyMail
 
 	loadAccountData(ctx)
 
