@@ -87,7 +87,7 @@ func TestPatch(pr *issues_model.PullRequest) error {
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
-	if pr.HeadCommitID, err = gitRepo.GetBranchCommitID("tracking"); err != nil {
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + "tracking"); err != nil {
 		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
 	}
 
