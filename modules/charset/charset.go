@@ -23,7 +23,7 @@ import (
 // UTF8BOM is the utf-8 byte-order marker
 var UTF8BOM = []byte{'\xef', '\xbb', '\xbf'}
 
-// ToUTF8WithFallbackReader detects the encoding of content and coverts to UTF-8 reader if possible
+// ToUTF8WithFallbackReader detects the encoding of content and converts to UTF-8 reader if possible
 func ToUTF8WithFallbackReader(rd io.Reader) io.Reader {
 	buf := make([]byte, 2048)
 	n, err := util.ReadAtMost(rd, buf)
@@ -76,7 +76,7 @@ func ToUTF8WithErr(content []byte) (string, error) {
 	return string(result), err
 }
 
-// ToUTF8WithFallback detects the encoding of content and coverts to UTF-8 if possible
+// ToUTF8WithFallback detects the encoding of content and converts to UTF-8 if possible
 func ToUTF8WithFallback(content []byte) []byte {
 	bs, _ := io.ReadAll(ToUTF8WithFallbackReader(bytes.NewReader(content)))
 	return bs
@@ -191,7 +191,7 @@ func DetectEncoding(content []byte) (string, error) {
 			break
 		}
 
-		// Otherwise check if this results is earlier in the DetectedCharsetOrder than our current top guesss
+		// Otherwise check if this results is earlier in the DetectedCharsetOrder than our current top guess
 		resultPriority, resultHas := setting.Repository.DetectedCharsetScore[strings.ToLower(strings.TrimSpace(result.Charset))]
 		if resultHas && (!has || resultPriority < priority) {
 			topResult = result
