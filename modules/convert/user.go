@@ -65,6 +65,8 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 
 	if authed {
 		result.LoginName = user.LoginName
+	} else {
+		result.LoginName = ""
 	}
 
 	result.Visibility = user.Visibility.String()
