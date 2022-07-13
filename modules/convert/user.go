@@ -50,7 +50,6 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 		ID:          user.ID,
 		UserName:    user.Name,
 		FullName:    user.FullName,
-		LoginName:   user.LoginName,
 		Email:       user.GetEmail(),
 		AvatarURL:   user.AvatarLink(),
 		Created:     user.CreatedUnix.AsTime(),
@@ -62,6 +61,10 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 		Followers:    user.NumFollowers,
 		Following:    user.NumFollowing,
 		StarredRepos: user.NumStars,
+	}
+
+	if authed {
+		result.LoginName = user.LoginName
 	}
 
 	result.Visibility = user.Visibility.String()
