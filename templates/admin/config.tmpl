@@ -4,50 +4,50 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.server_config"}}
+			{{.locale.Tr "admin.config.server_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.app_name"}}</dt>
+				<dt>{{.locale.Tr "admin.config.app_name"}}</dt>
 				<dd>{{AppName}}</dd>
-				<dt>{{.i18n.Tr "admin.config.app_ver"}}</dt>
+				<dt>{{.locale.Tr "admin.config.app_ver"}}</dt>
 				<dd>{{AppVer}}{{AppBuiltWith}}</dd>
-				<dt>{{.i18n.Tr "admin.config.custom_conf"}}</dt>
+				<dt>{{.locale.Tr "admin.config.custom_conf"}}</dt>
 				<dd>{{.CustomConf}}</dd>
-				<dt>{{.i18n.Tr "admin.config.app_url"}}</dt>
+				<dt>{{.locale.Tr "admin.config.app_url"}}</dt>
 				<dd>{{.AppUrl}}</dd>
-				<dt>{{.i18n.Tr "admin.config.domain"}}</dt>
+				<dt>{{.locale.Tr "admin.config.domain"}}</dt>
 				<dd>{{.Domain}}</dd>
-				<dt>{{.i18n.Tr "admin.config.offline_mode"}}</dt>
+				<dt>{{.locale.Tr "admin.config.offline_mode"}}</dt>
 				<dd>{{if .OfflineMode}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.disable_router_log"}}</dt>
+				<dt>{{.locale.Tr "admin.config.disable_router_log"}}</dt>
 				<dd>{{if .DisableRouterLog}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 
 				<div class="ui divider"></div>
 
-				<dt>{{.i18n.Tr "admin.config.run_user"}}</dt>
+				<dt>{{.locale.Tr "admin.config.run_user"}}</dt>
 				<dd>{{.RunUser}}</dd>
-				<dt>{{.i18n.Tr "admin.config.run_mode"}}</dt>
+				<dt>{{.locale.Tr "admin.config.run_mode"}}</dt>
 				<dd>{{.RunMode}}</dd>
 
 				<div class="ui divider"></div>
 
-				<dt>{{.i18n.Tr "admin.config.git_version"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_version"}}</dt>
 				<dd>{{.GitVersion}}</dd>
 
 				<div class="ui divider"></div>
 
-				<dt>{{.i18n.Tr "admin.config.repo_root_path"}}</dt>
+				<dt>{{.locale.Tr "admin.config.repo_root_path"}}</dt>
 				<dd>{{.RepoRootPath}}</dd>
-				<dt>{{.i18n.Tr "admin.config.static_file_root_path"}}</dt>
+				<dt>{{.locale.Tr "admin.config.static_file_root_path"}}</dt>
 				<dd>{{.StaticRootPath}}</dd>
-				<dt>{{.i18n.Tr "admin.config.custom_file_root_path"}}</dt>
+				<dt>{{.locale.Tr "admin.config.custom_file_root_path"}}</dt>
 				<dd>{{.CustomRootPath}}</dd>
-				<dt>{{.i18n.Tr "admin.config.log_file_root_path"}}</dt>
+				<dt>{{.locale.Tr "admin.config.log_file_root_path"}}</dt>
 				<dd>{{.LogRootPath}}</dd>
-				<dt>{{.i18n.Tr "admin.config.script_type"}}</dt>
+				<dt>{{.locale.Tr "admin.config.script_type"}}</dt>
 				<dd>{{.ScriptType}}</dd>
-				<dt>{{.i18n.Tr "admin.config.reverse_auth_user"}}</dt>
+				<dt>{{.locale.Tr "admin.config.reverse_auth_user"}}</dt>
 				<dd>{{.ReverseProxyAuthUser}}</dd>
 
 				{{if .EnvVars }}
@@ -62,33 +62,33 @@
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.ssh_config"}}
+			{{.locale.Tr "admin.config.ssh_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.ssh_enabled"}}</dt>
+				<dt>{{.locale.Tr "admin.config.ssh_enabled"}}</dt>
 				<dd>{{if not .SSH.Disabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if not .SSH.Disabled}}
-					<dt>{{.i18n.Tr "admin.config.ssh_start_builtin_server"}}</dt>
+					<dt>{{.locale.Tr "admin.config.ssh_start_builtin_server"}}</dt>
 					<dd>{{if .SSH.StartBuiltinServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-					<dt>{{.i18n.Tr "admin.config.ssh_domain"}}</dt>
+					<dt>{{.locale.Tr "admin.config.ssh_domain"}}</dt>
 					<dd>{{.SSH.Domain}}</dd>
-					<dt>{{.i18n.Tr "admin.config.ssh_port"}}</dt>
+					<dt>{{.locale.Tr "admin.config.ssh_port"}}</dt>
 					<dd>{{.SSH.Port}}</dd>
-					<dt>{{.i18n.Tr "admin.config.ssh_listen_port"}}</dt>
+					<dt>{{.locale.Tr "admin.config.ssh_listen_port"}}</dt>
 					<dd>{{.SSH.ListenPort}}</dd>
 
 					{{if not .SSH.StartBuiltinServer}}
-						<dt>{{.i18n.Tr "admin.config.ssh_root_path"}}</dt>
+						<dt>{{.locale.Tr "admin.config.ssh_root_path"}}</dt>
 						<dd>{{.SSH.RootPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.ssh_key_test_path"}}</dt>
+						<dt>{{.locale.Tr "admin.config.ssh_key_test_path"}}</dt>
 						<dd>{{.SSH.KeyTestPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.ssh_keygen_path"}}</dt>
+						<dt>{{.locale.Tr "admin.config.ssh_keygen_path"}}</dt>
 						<dd>{{.SSH.KeygenPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
+						<dt>{{.locale.Tr "admin.config.ssh_minimum_key_size_check"}}</dt>
 						<dd>{{if .SSH.MinimumKeySizeCheck}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 						{{if .SSH.MinimumKeySizeCheck}}
-							<dt>{{.i18n.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
+							<dt>{{.locale.Tr "admin.config.ssh_minimum_key_sizes"}}</dt>
 							<dd>{{.SSH.MinimumKeySizes}}</dd>
 						{{end}}
 					{{end}}
@@ -97,304 +97,304 @@
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.lfs_config"}}
+			{{.locale.Tr "admin.config.lfs_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.lfs_enabled"}}</dt>
+				<dt>{{.locale.Tr "admin.config.lfs_enabled"}}</dt>
 				<dd>{{if .LFS.StartServer}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .LFS.StartServer}}
-					<dt>{{.i18n.Tr "admin.config.lfs_content_path"}}</dt>
+					<dt>{{.locale.Tr "admin.config.lfs_content_path"}}</dt>
 					<dd>{{.LFS.Path}}</dd>
-					<dt>{{.i18n.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
+					<dt>{{.locale.Tr "admin.config.lfs_http_auth_expiry"}}</dt>
 					<dd>{{.LFS.HTTPAuthExpiry}}</dd>
 				{{end}}
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.db_config"}}
+			{{.locale.Tr "admin.config.db_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.db_type"}}</dt>
+				<dt>{{.locale.Tr "admin.config.db_type"}}</dt>
 				<dd>{{.DbCfg.Type}}</dd>
 				{{if not (eq .DbCfg.Type "sqlite3")}}
-					<dt>{{.i18n.Tr "admin.config.db_host"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_host"}}</dt>
 					<dd>{{if .DbCfg.Host}}{{.DbCfg.Host}}{{else}}-{{end}}</dd>
-					<dt>{{.i18n.Tr "admin.config.db_name"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_name"}}</dt>
 					<dd>{{if .DbCfg.Name}}{{.DbCfg.Name}}{{else}}-{{end}}</dd>
-					<dt>{{.i18n.Tr "admin.config.db_user"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_user"}}</dt>
 					<dd>{{if .DbCfg.User}}{{.DbCfg.User}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "postgres"}}
-					<dt>{{.i18n.Tr "admin.config.db_schema"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_schema"}}</dt>
 					<dd>{{if .DbCfg.Schema}}{{.DbCfg.Schema}}{{else}}-{{end}}</dd>
-					<dt>{{.i18n.Tr "admin.config.db_ssl_mode"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_ssl_mode"}}</dt>
 					<dd>{{if .DbCfg.SSLMode}}{{.DbCfg.SSLMode}}{{else}}-{{end}}</dd>
 				{{end}}
 				{{if eq .DbCfg.Type "sqlite3"}}
-					<dt>{{.i18n.Tr "admin.config.db_path"}}</dt>
+					<dt>{{.locale.Tr "admin.config.db_path"}}</dt>
 					<dd>{{if .DbCfg.Path}}{{.DbCfg.Path}}{{else}}-{{end}}</dd>
 				{{end}}
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.service_config"}}
+			{{.locale.Tr "admin.config.service_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.register_email_confirm"}}</dt>
+				<dt>{{.locale.Tr "admin.config.register_email_confirm"}}</dt>
 				<dd>{{if .Service.RegisterEmailConfirm}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.disable_register"}}</dt>
+				<dt>{{.locale.Tr "admin.config.disable_register"}}</dt>
 				<dd>{{if .Service.DisableRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.allow_only_internal_registration"}}</dt>
+				<dt>{{.locale.Tr "admin.config.allow_only_internal_registration"}}</dt>
 				<dd>{{if .Service.AllowOnlyInternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.allow_only_external_registration"}}</dt>
+				<dt>{{.locale.Tr "admin.config.allow_only_external_registration"}}</dt>
 				<dd>{{if .Service.AllowOnlyExternalRegistration}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.show_registration_button"}}</dt>
+				<dt>{{.locale.Tr "admin.config.show_registration_button"}}</dt>
 				<dd>{{if .Service.ShowRegistrationButton}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.enable_openid_signup"}}</dt>
+				<dt>{{.locale.Tr "admin.config.enable_openid_signup"}}</dt>
 				<dd>{{if .Service.EnableOpenIDSignUp}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.enable_openid_signin"}}</dt>
+				<dt>{{.locale.Tr "admin.config.enable_openid_signin"}}</dt>
 				<dd>{{if .Service.EnableOpenIDSignIn}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.require_sign_in_view"}}</dt>
+				<dt>{{.locale.Tr "admin.config.require_sign_in_view"}}</dt>
 				<dd>{{if .Service.RequireSignInView}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.mail_notify"}}</dt>
+				<dt>{{.locale.Tr "admin.config.mail_notify"}}</dt>
 				<dd>{{if .Service.EnableNotifyMail}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.disable_key_size_check"}}</dt>
+				<dt>{{.locale.Tr "admin.config.disable_key_size_check"}}</dt>
 				<dd>{{if .SSH.MinimumKeySizeCheck}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.enable_captcha"}}</dt>
+				<dt>{{.locale.Tr "admin.config.enable_captcha"}}</dt>
 				<dd>{{if .Service.EnableCaptcha}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.default_keep_email_private"}}</dt>
+				<dt>{{.locale.Tr "admin.config.default_keep_email_private"}}</dt>
 				<dd>{{if .Service.DefaultKeepEmailPrivate}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.default_allow_create_organization"}}</dt>
+				<dt>{{.locale.Tr "admin.config.default_allow_create_organization"}}</dt>
 				<dd>{{if .Service.DefaultAllowCreateOrganization}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.enable_timetracking"}}</dt>
+				<dt>{{.locale.Tr "admin.config.enable_timetracking"}}</dt>
 				<dd>{{if .Service.EnableTimetracking}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .Service.EnableTimetracking}}
-					<dt>{{.i18n.Tr "admin.config.default_enable_timetracking"}}</dt>
+					<dt>{{.locale.Tr "admin.config.default_enable_timetracking"}}</dt>
 					<dd>{{if .Service.DefaultEnableTimetracking}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-					<dt>{{.i18n.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
+					<dt>{{.locale.Tr "admin.config.default_allow_only_contributors_to_track_time"}}</dt>
 					<dd>{{if .Service.DefaultAllowOnlyContributorsToTrackTime}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{end}}
-				<dt>{{.i18n.Tr "admin.config.default_visibility_organization"}}</dt>
+				<dt>{{.locale.Tr "admin.config.default_visibility_organization"}}</dt>
 				<dd>{{.Service.DefaultOrgVisibility}}</dd>
 
-				<dt>{{.i18n.Tr "admin.config.no_reply_address"}}</dt>
+				<dt>{{.locale.Tr "admin.config.no_reply_address"}}</dt>
 				<dd>{{if .Service.NoReplyAddress}}{{.Service.NoReplyAddress}}{{else}}-{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.default_enable_dependencies"}}</dt>
+				<dt>{{.locale.Tr "admin.config.default_enable_dependencies"}}</dt>
 				<dd>{{if .Service.DefaultEnableDependencies}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.config.active_code_lives"}}</dt>
-				<dd>{{.Service.ActiveCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.reset_password_code_lives"}}</dt>
-				<dd>{{.Service.ResetPwdCodeLives}} {{.i18n.Tr "tool.raw_minutes"}}</dd>
+				<dt>{{.locale.Tr "admin.config.active_code_lives"}}</dt>
+				<dd>{{.Service.ActiveCodeLives}} {{.locale.Tr "tool.raw_minutes"}}</dd>
+				<dt>{{.locale.Tr "admin.config.reset_password_code_lives"}}</dt>
+				<dd>{{.Service.ResetPwdCodeLives}} {{.locale.Tr "tool.raw_minutes"}}</dd>
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.webhook_config"}}
+			{{.locale.Tr "admin.config.webhook_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.queue_length"}}</dt>
+				<dt>{{.locale.Tr "admin.config.queue_length"}}</dt>
 				<dd>{{.Webhook.QueueLength}}</dd>
-				<dt>{{.i18n.Tr "admin.config.deliver_timeout"}}</dt>
-				<dd>{{.Webhook.DeliverTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.skip_tls_verify"}}</dt>
+				<dt>{{.locale.Tr "admin.config.deliver_timeout"}}</dt>
+				<dd>{{.Webhook.DeliverTimeout}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.skip_tls_verify"}}</dt>
 				<dd>{{if .Webhook.SkipTLSVerify}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.mailer_config"}}
+			{{.locale.Tr "admin.config.mailer_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.mailer_enabled"}}</dt>
+				<dt>{{.locale.Tr "admin.config.mailer_enabled"}}</dt>
 				<dd>{{if .MailerEnabled}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{if .MailerEnabled}}
-					<dt>{{.i18n.Tr "admin.config.mailer_name"}}</dt>
+					<dt>{{.locale.Tr "admin.config.mailer_name"}}</dt>
 					<dd>{{.Mailer.Name}}</dd>
 					{{if eq .Mailer.MailerType "smtp"}}
-						<dt>{{.i18n.Tr "admin.config.mailer_disable_helo"}}</dt>
+						<dt>{{.locale.Tr "admin.config.mailer_disable_helo"}}</dt>
 						<dd>{{if .DisableHelo}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-						<dt>{{.i18n.Tr "admin.config.mailer_host"}}</dt>
+						<dt>{{.locale.Tr "admin.config.mailer_host"}}</dt>
 						<dd>{{.Mailer.Host}}</dd>
 					{{else if eq .Mailer.MailerType "sendmail"}}
-						<dt>{{.i18n.Tr "admin.config.mailer_use_sendmail"}}</dt>
+						<dt>{{.locale.Tr "admin.config.mailer_use_sendmail"}}</dt>
 						<dd>{{svg "octicon-check"}}</dd>
-						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_path"}}</dt>
+						<dt>{{.locale.Tr "admin.config.mailer_sendmail_path"}}</dt>
 						<dd>{{.Mailer.SendmailPath}}</dd>
-						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_args"}}</dt>
+						<dt>{{.locale.Tr "admin.config.mailer_sendmail_args"}}</dt>
 						<dd>{{.Mailer.SendmailArgs}}</dd>
-						<dt>{{.i18n.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
-						<dd>{{.Mailer.SendmailTimeout}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+						<dt>{{.locale.Tr "admin.config.mailer_sendmail_timeout"}}</dt>
+						<dd>{{.Mailer.SendmailTimeout}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 					{{end}}
-					<dt>{{.i18n.Tr "admin.config.mailer_user"}}</dt>
+					<dt>{{.locale.Tr "admin.config.mailer_user"}}</dt>
 					<dd>{{if .Mailer.User}}{{.Mailer.User}}{{else}}(empty){{end}}</dd><br>
 					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/config/test_mail" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="inline field ui left">
 							<div class="ui input">
-								<input type="email" name="email" placeholder="{{.i18n.Tr "admin.config.test_email_placeholder"}}" size="29" required>
+								<input type="email" name="email" placeholder="{{.locale.Tr "admin.config.test_email_placeholder"}}" size="29" required>
 							</div>
 						</div>
-						<button class="ui green button" id="test-mail-btn">{{.i18n.Tr "admin.config.send_test_mail"}}</button>
+						<button class="ui green button" id="test-mail-btn">{{.locale.Tr "admin.config.send_test_mail"}}</button>
 					</form>
 				{{end}}
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.cache_config"}}
+			{{.locale.Tr "admin.config.cache_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.cache_adapter"}}</dt>
+				<dt>{{.locale.Tr "admin.config.cache_adapter"}}</dt>
 				<dd>{{.CacheAdapter}}</dd>
 				{{if eq .CacheAdapter "memory"}}
-					<dt>{{.i18n.Tr "admin.config.cache_interval"}}</dt>
-					<dd>{{.CacheInterval}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+					<dt>{{.locale.Tr "admin.config.cache_interval"}}</dt>
+					<dd>{{.CacheInterval}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 				{{end}}
 				{{if .CacheConn}}
-					<dt>{{.i18n.Tr "admin.config.cache_conn"}}</dt>
+					<dt>{{.locale.Tr "admin.config.cache_conn"}}</dt>
 					<dd><code>{{.CacheConn}}</code></dd>
-					<dt>{{.i18n.Tr "admin.config.cache_item_ttl"}}</dt>
+					<dt>{{.locale.Tr "admin.config.cache_item_ttl"}}</dt>
 					<dd><code>{{.CacheItemTTL}}</code></dd>
 				{{end}}
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.session_config"}}
+			{{.locale.Tr "admin.config.session_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.session_provider"}}</dt>
+				<dt>{{.locale.Tr "admin.config.session_provider"}}</dt>
 				<dd>{{.SessionConfig.Provider}}</dd>
-				<dt>{{.i18n.Tr "admin.config.provider_config"}}</dt>
+				<dt>{{.locale.Tr "admin.config.provider_config"}}</dt>
 				<dd><code>{{if .SessionConfig.ProviderConfig}}{{.SessionConfig.ProviderConfig}}{{else}}-{{end}}</code></dd>
-				<dt>{{.i18n.Tr "admin.config.cookie_name"}}</dt>
+				<dt>{{.locale.Tr "admin.config.cookie_name"}}</dt>
 				<dd>{{.SessionConfig.CookieName}}</dd>
-				<dt>{{.i18n.Tr "admin.config.gc_interval_time"}}</dt>
-				<dd>{{.SessionConfig.Gclifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.session_life_time"}}</dt>
-				<dd>{{.SessionConfig.Maxlifetime}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.https_only"}}</dt>
+				<dt>{{.locale.Tr "admin.config.gc_interval_time"}}</dt>
+				<dd>{{.SessionConfig.Gclifetime}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.session_life_time"}}</dt>
+				<dd>{{.SessionConfig.Maxlifetime}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.https_only"}}</dt>
 				<dd>{{if .SessionConfig.Secure}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.picture_config"}}
+			{{.locale.Tr "admin.config.picture_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.disable_gravatar"}}</dt>
+				<dt>{{.locale.Tr "admin.config.disable_gravatar"}}</dt>
 				<dd>{{if .DisableGravatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.config.enable_federated_avatar"}}</dt>
+				<dt>{{.locale.Tr "admin.config.enable_federated_avatar"}}</dt>
 				<dd>{{if .EnableFederatedAvatar}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.git_config"}}
+			{{.locale.Tr "admin.config.git_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
-				<dt>{{.i18n.Tr "admin.config.git_disable_diff_highlight"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_disable_diff_highlight"}}</dt>
 				<dd>{{if .Git.DisableDiffHighlight}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_max_diff_lines"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_max_diff_lines"}}</dt>
 				<dd>{{.Git.MaxGitDiffLines}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_max_diff_line_characters"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_max_diff_line_characters"}}</dt>
 				<dd>{{.Git.MaxGitDiffLineCharacters}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_max_diff_files"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_max_diff_files"}}</dt>
 				<dd>{{.Git.MaxGitDiffFiles}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_gc_args"}}</dt>
+				<dt>{{.locale.Tr "admin.config.git_gc_args"}}</dt>
 				<dd><code>{{.Git.GCArgs}}</code></dd>
 				<div class="ui divider"></div>
-				<dt>{{.i18n.Tr "admin.config.git_migrate_timeout"}}</dt>
-				<dd>{{.Git.Timeout.Migrate}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_mirror_timeout"}}</dt>
-				<dd>{{.Git.Timeout.Mirror}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_clone_timeout"}}</dt>
-				<dd>{{.Git.Timeout.Clone}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_pull_timeout"}}</dt>
-				<dd>{{.Git.Timeout.Pull}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
-				<dt>{{.i18n.Tr "admin.config.git_gc_timeout"}}</dt>
-				<dd>{{.Git.Timeout.GC}} {{.i18n.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.git_migrate_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Migrate}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.git_mirror_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Mirror}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.git_clone_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Clone}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.git_pull_timeout"}}</dt>
+				<dd>{{.Git.Timeout.Pull}} {{.locale.Tr "tool.raw_seconds"}}</dd>
+				<dt>{{.locale.Tr "admin.config.git_gc_timeout"}}</dt>
+				<dd>{{.Git.Timeout.GC}} {{.locale.Tr "tool.raw_seconds"}}</dd>
 			</dl>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.config.log_config"}}
+			{{.locale.Tr "admin.config.log_config"}}
 		</h4>
 		<div class="ui attached table segment">
 			<dl class="dl-horizontal admin-dl-horizontal">
 				{{range .Loggers.default.SubLogDescriptions}}
-					<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+					<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 					<dd>{{.Name}} ({{.Provider}})</dd>
-					<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+					<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
 					<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 				{{end}}
 				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.router_log_mode"}}</dt>
+				<dt>{{$.locale.Tr "admin.config.router_log_mode"}}</dt>
 				{{if .DisableRouterLog}}
-					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
 				{{else}}
 					{{if .Loggers.router.SubLogDescriptions}}
-						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
 						{{range .Loggers.router.SubLogDescriptions}}
-							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
 							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 						{{end}}
 					{{else}}
-						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
 					{{end}}
 				{{end}}
 				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.access_log_mode"}}</dt>
+				<dt>{{$.locale.Tr "admin.config.access_log_mode"}}</dt>
 				{{if .EnableAccessLog}}
 					{{if .Loggers.access.SubLogDescriptions}}
-						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
 						{{range .Loggers.access.SubLogDescriptions}}
-							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
 							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 						{{end}}
 					{{else}}
-						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
 					{{end}}
-					<dt>{{$.i18n.Tr "admin.config.access_log_template"}}</dt>
+					<dt>{{$.locale.Tr "admin.config.access_log_template"}}</dt>
 					<dd><code>{{$.AccessLogTemplate}}</code></dd>
 				{{else}}
-					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
 				{{end}}
 				<div class="ui divider"></div>
-				<dt>{{$.i18n.Tr "admin.config.xorm_log_mode"}}</dt>
+				<dt>{{$.locale.Tr "admin.config.xorm_log_mode"}}</dt>
 				{{if .EnableXORMLog}}
 					{{if .Loggers.xorm.SubLogDescriptions}}
-						<dd>{{$.i18n.Tr "admin.config.own_named_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.own_named_logger"}}</dd>
 						{{range .Loggers.xorm.SubLogDescriptions}}
-							<dt>{{$.i18n.Tr "admin.config.log_mode"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_mode"}}</dt>
 							<dd>{{.Name}} ({{.Provider}})</dd>
-							<dt>{{$.i18n.Tr "admin.config.log_config"}}</dt>
+							<dt>{{$.locale.Tr "admin.config.log_config"}}</dt>
 							<dd><pre>{{.Config | JsonPrettyPrint}}</pre></dd>
 						{{end}}
 					{{else}}
-						<dd>{{$.i18n.Tr "admin.config.routes_to_default_logger"}}</dd>
+						<dd>{{$.locale.Tr "admin.config.routes_to_default_logger"}}</dd>
 					{{end}}
-					<dt>{{$.i18n.Tr "admin.config.xorm_log_sql"}}</dt>
+					<dt>{{$.locale.Tr "admin.config.xorm_log_sql"}}</dt>
 					<dd>{{if $.LogSQL}}{{svg "octicon-check"}}{{else}}{{svg "octicon-x"}}{{end}}</dd>
 				{{else}}
-					<dd>{{$.i18n.Tr "admin.config.disabled_logger"}}</dd>
+					<dd>{{$.locale.Tr "admin.config.disabled_logger"}}</dd>
 				{{end}}
 			</dl>
 		</div>

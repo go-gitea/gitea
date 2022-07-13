@@ -10,18 +10,18 @@
 			</div>
 		</div>
 	</div>
-	<h4>{{.i18n.Tr "repo.diff.data_not_available"}}</h4>
+	<h4>{{.locale.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
 		<div class="diff-detail-box diff-box sticky df sb ac">
 			<div class="diff-detail-stats df ac">
-				{{svg "octicon-diff" 16 "mr-2"}}{{.i18n.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
+				{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					<progress id="viewed-files-summary" class="mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
-					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-2" data-text-changed-template="{{.i18n.Tr "repo.pulls.viewed_files_label"}}">
-						{{.i18n.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
+					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-2" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
+						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
 				{{end}}
 				{{template "repo/diff/whitespace_dropdown" .}}
@@ -37,7 +37,7 @@
 					<div class="bold df ac pull-right">
 						{{if .IsBin}}
 							<span class="ml-1 mr-3">
-								{{$.i18n.Tr "repo.diff.bin"}}
+								{{$.locale.Tr "repo.diff.bin"}}
 							</span>
 						{{else}}
 							{{template "repo/diff/stats" dict "file" . "root" $}}
@@ -50,8 +50,8 @@
 			{{end}}
 			{{if .Diff.IsIncomplete}}
 				<li id="diff-too-many-files-stats" class="pt-2">
-					<span class="file df ac sb">{{$.i18n.Tr "repo.diff.too_many_files"}}
-						<a class="ui basic tiny button" id="diff-show-more-files-stats" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.i18n.Tr "repo.diff.show_more"}}</a>
+					<span class="file df ac sb">{{$.locale.Tr "repo.diff.too_many_files"}}
+						<a class="ui basic tiny button" id="diff-show-more-files-stats" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.locale.Tr "repo.diff.show_more"}}</a>
 					</span>
 				</li>
 			{{end}}
@@ -76,48 +76,48 @@
 							<div class="bold df ac">
 								{{if $file.IsBin}}
 									<span class="ml-1 mr-3">
-										{{$.i18n.Tr "repo.diff.bin"}}
+										{{$.locale.Tr "repo.diff.bin"}}
 									</span>
 								{{else}}
 									{{template "repo/diff/stats" dict "file" . "root" $}}
 								{{end}}
 							</div>
-							<span class="file mono"><a class="muted" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.i18n.Tr "repo.stored_lfs"}}){{end}}</span>
+							<span class="file mono"><a class="muted" href="#diff-{{$file.NameHash}}">{{if $file.IsRenamed}}{{$file.OldName}} &rarr; {{end}}{{$file.Name}}</a>{{if .IsLFSFile}} ({{$.locale.Tr "repo.stored_lfs"}}){{end}}</span>
 							{{if $file.IsGenerated}}
-								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.generated"}}</span>
+								<span class="ui label ml-3">{{$.locale.Tr "repo.diff.generated"}}</span>
 							{{end}}
 							{{if $file.IsVendored}}
-								<span class="ui label ml-3">{{$.i18n.Tr "repo.diff.vendored"}}</span>
+								<span class="ui label ml-3">{{$.locale.Tr "repo.diff.vendored"}}</span>
 							{{end}}
 						</div>
 						<div class="diff-file-header-actions df ac">
 							{{if $showFileViewToggle}}
 								<div class="ui compact icon buttons">
-									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
-									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
 								</div>
 							{{end}}
 							{{if $file.IsProtected}}
-								<span class="ui basic label">{{$.i18n.Tr "repo.diff.protected"}}</span>
+								<span class="ui basic label">{{$.locale.Tr "repo.diff.protected"}}</span>
 							{{end}}
 							{{if not (or $file.IsIncomplete $file.IsBin $file.IsSubmodule)}}
-								<a class="ui basic tiny button unescape-button">{{$.i18n.Tr "repo.unescape_control_characters"}}</a>
-								<a class="ui basic tiny button escape-button" style="display: none;">{{$.i18n.Tr "repo.escape_control_characters"}}</a>
+								<a class="ui basic tiny button unescape-button">{{$.locale.Tr "repo.unescape_control_characters"}}</a>
+								<a class="ui basic tiny button escape-button" style="display: none;">{{$.locale.Tr "repo.escape_control_characters"}}</a>
 							{{end}}
 							{{if and (not $file.IsSubmodule) (not $.PageIsWiki)}}
 								{{if $file.IsDeleted}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.BeforeSourcePath}}/{{PathEscapeSegments .Name}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
 								{{else}}
-									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.i18n.Tr "repo.diff.view_file"}}</a>
+									<a class="ui basic tiny button" rel="nofollow" href="{{$.SourcePath}}/{{PathEscapeSegments .Name}}">{{$.locale.Tr "repo.diff.view_file"}}</a>
 								{{end}}
 							{{end}}
 							{{if and $.IsSigned $.PageIsPullFiles (not $.IsArchived)}}
 								{{if $file.HasChangedSinceLastReview}}
-									<span class="changed-since-last-review unselectable">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
+									<span class="changed-since-last-review unselectable">{{$.locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
 								<div data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
 									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$i}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}></input>
-									<label for="viewed-file-checkbox-{{$i}}">{{$.i18n.Tr "repo.pulls.has_viewed_file"}}</label>
+									<label for="viewed-file-checkbox-{{$i}}">{{$.locale.Tr "repo.pulls.has_viewed_file"}}</label>
 								</div>
 							{{end}}
 						</div>
@@ -128,13 +128,13 @@
 								<div class="diff-file-body binary" style="padding: 5px 10px;">
 									{{if $file.IsIncomplete}}
 										{{if $file.IsIncompleteLineTooLong}}
-											{{$.i18n.Tr "repo.diff.file_suppressed_line_too_long"}}
+											{{$.locale.Tr "repo.diff.file_suppressed_line_too_long"}}
 										{{else}}
-											{{$.i18n.Tr "repo.diff.file_suppressed"}}
-											<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.i18n.Tr "repo.diff.load"}}</a>
+											{{$.locale.Tr "repo.diff.file_suppressed"}}
+											<a class="ui basic tiny button diff-show-more-button" data-href="{{$.Link}}?file-only=true&files={{$file.Name}}&files={{$file.OldName}}">{{$.locale.Tr "repo.diff.load"}}</a>
 										{{end}}
 									{{else}}
-										{{$.i18n.Tr "repo.diff.bin_not_shown"}}
+										{{$.locale.Tr "repo.diff.bin_not_shown"}}
 									{{end}}
 								</div>
 							{{else}}
@@ -165,8 +165,8 @@
 			{{if .Diff.IsIncomplete}}
 				<div class="diff-file-box diff-box file-content mt-3" id="diff-incomplete">
 					<h4 class="ui top attached normal header df ac sb">
-						{{$.i18n.Tr "repo.diff.too_many_files"}}
-						<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.i18n.Tr "repo.diff.show_more"}}</a>
+						{{$.locale.Tr "repo.diff.too_many_files"}}
+						<a class="ui basic tiny button" id="diff-show-more-files" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.locale.Tr "repo.diff.show_more"}}</a>
 					</h4>
 				</div>
 			{{end}}
@@ -176,18 +176,18 @@
 			<div class="hide" id="edit-content-form">
 				<div class="ui comment form">
 					<div class="ui top attached tabular menu">
-						<a class="active write item">{{$.i18n.Tr "write"}}</a>
-						<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.i18n.Tr "preview"}}</a>
+						<a class="active write item">{{$.locale.Tr "write"}}</a>
+						<a class="preview item" data-url="{{$.Repository.HTMLURL}}/markdown" data-context="{{$.RepoLink}}">{{$.locale.Tr "preview"}}</a>
 					</div>
 					<div class="ui bottom attached active write tab segment">
 						<textarea class="review-textarea js-quick-submit" tabindex="1" name="content"></textarea>
 					</div>
 					<div class="ui bottom attached tab preview segment markup">
-					{{$.i18n.Tr "loading"}}
+					{{$.locale.Tr "loading"}}
 					</div>
 					<div class="text right edit buttons">
-						<div class="ui basic primary cancel button" tabindex="3">{{.i18n.Tr "repo.issues.cancel"}}</div>
-						<div class="ui green save button" tabindex="2">{{.i18n.Tr "repo.issues.save"}}</div>
+						<div class="ui basic primary cancel button" tabindex="3">{{.locale.Tr "repo.issues.cancel"}}</div>
+						<div class="ui green save button" tabindex="2">{{.locale.Tr "repo.issues.save"}}</div>
 					</div>
 				</div>
 			</div>

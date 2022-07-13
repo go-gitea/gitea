@@ -5,12 +5,12 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "repo.settings.githooks"}}
+			{{.locale.Tr "repo.settings.githooks"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui list">
 				<div class="item">
-					{{.i18n.Tr "repo.settings.githooks_desc" | Str2html}}
+					{{.locale.Tr "repo.settings.githooks_desc" | Str2html}}
 				</div>
 				{{range .Hooks}}
 					<div class="item">

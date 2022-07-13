@@ -50,7 +50,7 @@ menu:
 | 有寫入權限的儲存庫 Token | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✓            |
 | 內建 Container Registry  | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | 對外部 Git 鏡像          | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
-| FIDO U2F (2FA)           | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
+| FIDO (2FA)               | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 內建 CI/CD               | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 子群組: 群組中的群組     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
 

@@ -1,20 +1,20 @@
 <div class="page-content user notification" id="notification_div" data-params="{{.Page.GetParams}}" data-sequence-number="{{.SequenceNumber}}">
 	<div class="ui container">
-		<h1 class="ui dividing header">{{.i18n.Tr "notification.notifications"}}</h1>
+		<h1 class="ui dividing header">{{.locale.Tr "notification.notifications"}}</h1>
 		<div class="ui top attached tabular menu">
 			{{ $notificationUnreadCount := call .NotificationUnreadCount}}
 			<a href="{{AppSubUrl}}/notifications?q=unread" class="{{if eq .Status 1}}active{{end}} item">
-				{{.i18n.Tr "notification.unread"}}
+				{{.locale.Tr "notification.unread"}}
 				<div class="ui label {{if not $notificationUnreadCount}}hidden{{end}}">{{$notificationUnreadCount}}</div>
 			</a>
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
-				{{.i18n.Tr "notification.read"}}
+				{{.locale.Tr "notification.read"}}
 			</a>
 			{{if and (eq .Status 1)}}
 				<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
 					{{$.CsrfTokenHtml}}
 					<div class="{{if not $notificationUnreadCount}}hide{{end}}">
-						<button class="ui mini button primary" title='{{$.i18n.Tr "notification.mark_all_as_read"}}'>
+						<button class="ui mini button primary" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
 							{{svg "octicon-checklist"}}
 						</button>
 					</div>
@@ -24,9 +24,9 @@
 		<div class="ui bottom attached active tab segment">
 			{{if eq (len .Notifications) 0}}
 				{{if eq .Status 1}}
-					{{.i18n.Tr "notification.no_unread"}}
+					{{.locale.Tr "notification.no_unread"}}
 				{{else}}
-					{{.i18n.Tr "notification.no_read"}}
+					{{.locale.Tr "notification.no_read"}}
 				{{end}}
 			{{else}}
 				<table class="ui unstackable striped very compact small selectable table" id="notification_table">
@@ -79,7 +79,7 @@
 											{{$.CsrfTokenHtml}}
 											<input type="hidden" name="notification_id" value="{{.ID}}" />
 											<input type="hidden" name="status" value="pinned" />
-											<button class="ui mini button" title='{{$.i18n.Tr "notification.pin"}}'
+											<button class="ui mini button" title='{{$.locale.Tr "notification.pin"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="pinned"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -97,7 +97,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}" />
 											<input type="hidden" name="status" value="read" />
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
-											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_read"}}'
+											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_read"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="read"
 												data-page="{{$.Page.Paginater.Current}}"
@@ -112,7 +112,7 @@
 											<input type="hidden" name="notification_id" value="{{.ID}}" />
 											<input type="hidden" name="status" value="unread" />
 											<input type="hidden" name="page" value="{{$.Page.Paginater.Current}}" />
-											<button class="ui mini button" title='{{$.i18n.Tr "notification.mark_as_unread"}}'
+											<button class="ui mini button" title='{{$.locale.Tr "notification.mark_as_unread"}}'
 												data-url="{{AppSubUrl}}/notifications/status"
 												data-status="unread"
 												data-page="{{$.Page.Paginater.Current}}"

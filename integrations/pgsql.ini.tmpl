@@ -11,10 +11,12 @@ SCHEMA   = {{TEST_PGSQL_SCHEMA}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/gitea-integration-pgsql/indexers/issues.bleve
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-pgsql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-pgsql/indexers/repos.bleve
+
+[queue.issue_indexer]
+PATH = integrations/gitea-integration-pgsql/indexers/issues.bleve
+DATADIR = integrations/gitea-integration-pgsql/indexers/issues.queue
 
 [queue]
 TYPE = immediate

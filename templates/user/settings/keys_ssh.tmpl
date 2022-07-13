@@ -1,12 +1,12 @@
 <h4 class="ui top attached header">
-	{{.i18n.Tr "settings.manage_ssh_keys"}}
+	{{.locale.Tr "settings.manage_ssh_keys"}}
 	<div class="ui right">
 		{{if not .DisableSSH }}
 			<div id="add-ssh-button" class="ui primary tiny show-panel button" data-panel="#add-ssh-key-panel">
-				{{.i18n.Tr "settings.add_key"}}
+				{{.locale.Tr "settings.add_key"}}
 			</div>
 		{{else}}
-			<div class="ui primary tiny button disabled">{{.i18n.Tr "settings.ssh_disabled"}}</div>
+			<div class="ui primary tiny button disabled">{{.locale.Tr "settings.ssh_disabled"}}</div>
 		{{end}}
 	</div>
 </h4>
@@ -15,80 +15,80 @@
 		<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_Title}}error{{end}}">
-				<label for="title">{{.i18n.Tr "settings.key_name"}}</label>
+				<label for="title">{{.locale.Tr "settings.key_name"}}</label>
 				<input id="ssh-key-title" name="title" value="{{.title}}" autofocus required>
 			</div>
 			<div class="field {{if .Err_Content}}error{{end}}">
-				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.i18n.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
+				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
+				<textarea id="ssh-key-content" name="content" class="js-quick-submit" placeholder="{{.locale.Tr "settings.key_content_ssh_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			<input name="type" type="hidden" value="ssh">
 			<button class="ui green button">
-				{{.i18n.Tr "settings.add_key"}}
+				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button id="cancel-ssh-button" class="ui hide-panel button" data-panel="#add-ssh-key-panel">
-				{{.i18n.Tr "cancel"}}
+				{{.locale.Tr "cancel"}}
 			</button>
 		</form>
 	</div>
 	<div class="ui key list mt-0">
 		<div class="item">
-			{{.i18n.Tr "settings.ssh_desc"}}
+			{{.locale.Tr "settings.ssh_desc"}}
 		</div>
 		{{range $index, $key := .Keys}}
 			<div class="item">
 				<div class="right floated content">
-					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.i18n.Tr "settings.ssh_externally_managed"}}"{{end}}>
-						{{$.i18n.Tr "settings.delete_key"}}
+					<button class="ui red tiny button delete-button{{if index $.ExternalKeys $index}} disabled{{end}}" data-modal-id="delete-ssh" data-url="{{$.Link}}/delete?type=ssh" data-id="{{.ID}}"{{if index $.ExternalKeys $index}} title="{{$.locale.Tr "settings.ssh_externally_managed"}}"{{end}}>
+						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingFingerprint .Fingerprint)}}
-						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.i18n.Tr "settings.ssh_key_verify"}}</a>
+						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_ssh={{.Fingerprint}}">{{$.locale.Tr "settings.ssh_key_verify"}}</a>
 					{{end}}
 
 				</div>
 				<div class="left floated content">
-					<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
 						{{if .Verified}}
-							<span class="tooltip" data-content="{{$.i18n.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.ssh_key_verified"}}</strong></span>
+							<span class="tooltip" data-content="{{$.locale.Tr "settings.ssh_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.locale.Tr "settings.ssh_key_verified"}}</strong></span>
 						{{end}}
 						<strong>{{.Name}}</strong>
 						<div class="print meta">
 								{{.Fingerprint}}
 						</div>
 						<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —	{{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 						</div>
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingFingerprint .Fingerprint)}}
 				<div class="ui segment">
-					<h4>{{$.i18n.Tr "settings.ssh_token_required"}}</h4>
+					<h4>{{$.locale.Tr "settings.ssh_token_required"}}</h4>
 					<form class="ui form{{if $.HasSSHVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.Content}}">
 						<input type="hidden" name="fingerprint" value="{{.Fingerprint}}">
 						<div class="field">
-							<label for="token">{{$.i18n.Tr "settings.ssh_token"}}</label>
+							<label for="token">{{$.locale.Tr "settings.ssh_token"}}</label>
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
-								<p>{{$.i18n.Tr "settings.ssh_token_help"}}</p>
-								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_your_pubkey" $.TokenToSign}}</code></p>
+								<p>{{$.locale.Tr "settings.ssh_token_help"}}</p>
+								<p><code>{{printf "echo -n '%s' | ssh-keygen -Y sign -n gitea -f /path_to_your_privkey" $.TokenToSign}}</code></p>
 							</div>
 							<br>
 						</div>
 						<div class="field">
-							<label for="signature">{{$.i18n.Tr "settings.ssh_token_signature"}}</label>
-							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.i18n.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
+							<label for="signature">{{$.locale.Tr "settings.ssh_token_signature"}}</label>
+							<textarea id="ssh-key-signature" name="signature" class="js-quick-submit" placeholder="{{$.locale.Tr "settings.key_signature_ssh_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_ssh">
 						<button class="ui green button">
-							{{$.i18n.Tr "settings.ssh_key_verify"}}
+							{{$.locale.Tr "settings.ssh_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
-							{{$.i18n.Tr "settings.cancel"}}
+							{{$.locale.Tr "settings.cancel"}}
 						</a>
 					</form>
 				</div>
@@ -97,15 +97,15 @@
 	</div>
 </div>
 <br>
-<p>{{.i18n.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
+<p>{{.locale.Tr "settings.ssh_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/connecting-to-github-with-ssh" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/troubleshooting-ssh" | Str2html}}</p>
 
 <div class="ui small basic delete modal" id="delete-ssh">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.ssh_key_deletion"}}
+		{{.locale.Tr "settings.ssh_key_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.ssh_key_deletion_desc"}}</p>
+		<p>{{.locale.Tr "settings.ssh_key_deletion_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

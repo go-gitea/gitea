@@ -149,7 +149,7 @@ func removeOrgUser(ctx context.Context, orgID, userID int64) error {
 		}
 	}
 
-	// Delete member in his/her teams.
+	// Delete member in their teams.
 	teams, err := organization.GetUserOrgTeams(ctx, org.ID, userID)
 	if err != nil {
 		return err
