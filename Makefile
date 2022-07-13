@@ -771,7 +771,7 @@ generate-manpage:
 	@mkdir -p man/man1/ man/man5
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
-	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as config man page
+	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
 
 .PHONY: pr\#%
 pr\#%: clean-all
