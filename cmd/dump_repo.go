@@ -7,6 +7,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"os"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/migrations"
 
 	"github.com/urfave/cli"
@@ -161,13 +163,20 @@ func runDumpRepository(ctx *cli.Context) error {
 	}
 
 	repoDir := ctx.String("repo_dir")
-	if dir, _ := os.ReadDir(repoDir); len(dir) > 0 {
-		return errors.New("`repo_dir` path '" + repoDir + "' already exists and is not an empty directory.")
+	if exists, err := util.IsExist(repoDir); err != nil {
+		return fmt.Errorf("unable to stat repo_dir %q: %v", repoDir, err)
+	} else if exists {
+		if isDir, _ := util.IsDir(repoDir); !isDir {
+			return fmt.Errorf("repo_dir %q already exists and is not a directory", repoDir)
+		}
+		if dir, _ := os.ReadDir(repoDir); len(dir) > 0 {
+			return fmt.Errorf("repo_dir %q is not empty", repoDir)
+		}
 	}
 
 	if err := migrations.DumpRepository(
 		context.Background(),
-		repoDir,
+		ctx.String("repo_dir"),
 		ctx.String("owner_name"),
 		opts,
 	); err != nil {
