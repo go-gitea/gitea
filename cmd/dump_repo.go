@@ -176,7 +176,7 @@ func runDumpRepository(ctx *cli.Context) error {
 
 	if err := migrations.DumpRepository(
 		context.Background(),
-		ctx.String("repo_dir"),
+		repoDir,
 		ctx.String("owner_name"),
 		opts,
 	); err != nil {
