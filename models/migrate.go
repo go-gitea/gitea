@@ -33,7 +33,7 @@ func InsertMilestones(ms ...*issues_model.Milestone) (err error) {
 		}
 	}
 
-	if _, err = sess.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
+	if _, err = sess.Exec("UPDATE `repository` SET num_milestones = num_milestones + ? WHERE id = ?", len(ms), ms[0].RepoID); err != nil {
 		return err
 	}
 	return committer.Commit()
