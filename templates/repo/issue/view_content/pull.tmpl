@@ -198,7 +198,7 @@
 			{{else if .Issue.PullRequest.IsAncestor}}
 				<div class="item">
 					<i class="icon icon-octicon">{{svg "octicon-alert" 16}}</i>
-					{{$.i18.Tr "repo.pulls.is_ancestor"}}
+					{{$.i18n.Tr "repo.pulls.is_ancestor"}}
 				</div>
 			{{else if or .Issue.PullRequest.CanAutoMerge .Issue.PullRequest.IsEmpty}}
 				{{if .IsBlockedByApprovals}}
