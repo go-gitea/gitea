@@ -28,7 +28,7 @@ require (
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.2
 	github.com/gliderlabs/ssh v0.3.4
-	github.com/go-ap/activitypub v0.0.0-00010101000000-000000000000
+	github.com/go-ap/activitypub v0.0.0-20220706134811-0c84d76ce535
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1

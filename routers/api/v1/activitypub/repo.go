@@ -96,13 +96,21 @@ func RepoInbox(ctx *context.APIContext) {
 	if err != nil {
 		ctx.ServerError("Error reading request body", err)
 	}
-
-	var activity ap.Object
-	activity.UnmarshalJSON(body)
+	var activity ap.Activity
+	activity.UnmarshalJSON(body) // This function doesn't support ForgeFed types!!!
 	log.Warn("Debug", activity)
-	if activity.Type == ap.NoteType {
-		activitypub.Comment(ctx, activity)
-	} else {
+	switch activity.Type {
+	case ap.NoteType:
+		// activitypub.Comment(ctx, activity)
+	case ap.CreateType:
+		// if activity.Object.GetType() == forgefed.RepositoryType {
+		// Fork created by remote instance
+		activitypub.ForkFromCreate(ctx, activity)
+		//}
+	case ap.MoveType:
+		// This should actually be forgefed.TicketType but that the UnmarshalJSON function above doesn't support ForgeFed!
+		activitypub.PullRequest(ctx, activity)
+	default:
 		log.Warn("ActivityStreams type not supported", activity)
 	}
 

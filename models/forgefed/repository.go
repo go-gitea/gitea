@@ -19,6 +19,8 @@ type Repository struct {
 	Team ap.Item `jsonld:"team,omitempty"`
 	// Forks OrderedCollection of repositories that are forks of this repository
 	Forks ap.Item `jsonld:"forks,omitempty"`
+	// ForkedFrom Identifies the repository which this repository was created as a fork
+	ForkedFrom ap.Item `jsonld:"forkedFrom,omitempty"`
 }
 
 // RepositoryNew initializes a Repository type actor
@@ -42,6 +44,9 @@ func (r Repository) MarshalJSON() ([]byte, error) {
 	if r.Forks != nil {
 		ap.WriteItemJSONProp(&b, "forks", r.Forks)
 	}
+	if r.ForkedFrom != nil {
+		ap.WriteItemJSONProp(&b, "forkedFrom", r.ForkedFrom)
+	}
 	ap.Write(&b, '}')
 	return b, nil
 }
@@ -55,6 +60,7 @@ func (r *Repository) UnmarshalJSON(data []byte) error {
 
 	r.Team = ap.JSONGetItem(val, "team")
 	r.Forks = ap.JSONGetItem(val, "forks")
+	r.ForkedFrom = ap.JSONGetItem(val, "forkedFrom")
 
 	return ap.OnActor(&r.Actor, func(a *ap.Actor) error {
 		return ap.LoadActor(val, a)

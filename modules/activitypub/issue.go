@@ -6,7 +6,6 @@ package activitypub
 
 import (
 	"context"
-	"fmt"
 	"strconv"
 	"strings"
 
@@ -35,15 +34,13 @@ func Comment(ctx context.Context, activity ap.Note) {
 	contextSplit := strings.Split(context.String(), "/")
 	username := contextSplit[3]
 	reponame := contextSplit[4]
-	fmt.Println(username)
-	fmt.Println(reponame)
 	repo, _ := repo_model.GetRepositoryByOwnerAndName(username, reponame)
 	idx, _ := strconv.ParseInt(contextSplit[len(contextSplit)-1], 10, 64)
 	issue, _ := issues.GetIssueByIndex(repo.ID, idx)
 	issues.CreateCommentCtx(ctx, &issues.CreateCommentOptions{
-		Doer: actorUser,
-		Repo: repo,
-		Issue: issue,
+		Doer:    actorUser,
+		Repo:    repo,
+		Issue:   issue,
 		Content: activity.Content.String(),
 	})
 }
