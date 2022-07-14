@@ -2333,6 +2333,18 @@
             "name": "projectId",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -7938,6 +7950,18 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
           }
         ],
         "responses": {
@@ -17599,13 +17623,35 @@
           "format": "uint8",
           "x-go-name": "BoardType"
         },
-        "body": {
+        "closed_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Closed"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "description": {
           "type": "string",
           "x-go-name": "Description"
+        },
+        "is_closed": {
+          "type": "boolean",
+          "x-go-name": "IsClosed"
+        },
+        "repository": {
+          "$ref": "#/definitions/RepositoryMeta"
         },
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18894,13 +18940,17 @@
     },
     "UpsertProjectPayload": {
       "type": "object",
+      "required": [
+        "title",
+        "board_type"
+      ],
       "properties": {
         "board_type": {
           "type": "integer",
           "format": "uint8",
           "x-go-name": "BoardType"
         },
-        "body": {
+        "description": {
           "type": "string",
           "x-go-name": "Description"
         },
@@ -19720,19 +19770,19 @@
       }
     },
     "Project": {
-      "description": "",
+      "description": "Project",
       "schema": {
         "$ref": "#/definitions/Project"
       }
     },
     "ProjectBoard": {
-      "description": "",
+      "description": "ProjectBoard",
       "schema": {
         "$ref": "#/definitions/ProjectBoard"
       }
     },
     "ProjectBoardList": {
-      "description": "",
+      "description": "ProjectBoardList",
       "schema": {
         "type": "array",
         "items": {
@@ -19741,7 +19791,7 @@
       }
     },
     "ProjectList": {
-      "description": "",
+      "description": "ProjectList",
       "schema": {
         "type": "array",
         "items": {
