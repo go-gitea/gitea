@@ -1315,7 +1315,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 	return false
 }
 
-func GetOrderBy() string {
+func GetOrderByName() string {
 	if setting.UI.DefaultShowFullName {
 		return "full_name, name"
 	}
