@@ -64,15 +64,8 @@
 			{{template "repo/branch_dropdown" dict "root" .}}
 			{{ $n := len .TreeNames}}
 			{{ $l := Subtract $n 1}}
-			<!-- If home page, show new PR. If not, show breadcrumb -->
+			<!-- If home page, show actions. If not, show breadcrumb -->
 			{{if eq $n 0}}
-				{{if and .CanCompareOrPull .IsViewBranch (not .Repository.IsArchived)}}
-					<div class="fitted item mx-0">
-						<a href="{{.BaseRepo.Link}}/compare/{{PathEscapeSegments .BaseRepo.DefaultBranch}}...{{if ne .Repository.Owner.Name .BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}{{if .BaseRepo.IsFork}}/{{PathEscape .Repository.Name}}{{end}}:{{end}}{{PathEscapeSegments .BranchName}}">
-							<button id="new-pull-request" class="ui compact basic button">{{if .PullRequestCtx.Allowed}}{{.locale.Tr "repo.pulls.compare_changes"}}{{else}}{{.locale.Tr "action.compare_branch"}}{{end}}</button>
-						</a>
-					</div>
-				{{end}}
 				<div class="fitted item mx-0">
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button">
 						{{.locale.Tr "repo.find_file.go_to_file"}}

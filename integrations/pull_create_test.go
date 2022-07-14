@@ -16,7 +16,7 @@ import (
 )
 
 func testPullCreate(t *testing.T, session *TestSession, user, repo, branch, title string) *httptest.ResponseRecorder {
-	req := NewRequest(t, "GET", path.Join(user, repo))
+	req := NewRequest(t, "GET", path.Join(user, repo, "pulls"))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	// Click the PR button to create a pull

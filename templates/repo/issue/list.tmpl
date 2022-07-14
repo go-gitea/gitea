@@ -14,7 +14,7 @@
 					{{if .PageIsIssueList}}
 						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
+						<a id="new-pull-request" class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{if .PullRequestCtx.Allowed}}{{.Repository.Link}}/compare/{{.Repository.DefaultBranch | PathEscapeSegments}}...{{if ne .Repository.Owner.Name .PullRequestCtx.BaseRepo.Owner.Name}}{{PathEscape .Repository.Owner.Name}}:{{end}}{{.Repository.DefaultBranch | PathEscapeSegments}}{{end}}">{{.locale.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{else}}
