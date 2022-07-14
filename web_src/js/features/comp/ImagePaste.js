@@ -10,7 +10,10 @@ export function addUploadedFileToEditor(editor, file) {
   if (!editor && file.previewElement && (editor = getAttachedEasyMDE(file.previewElement.parentElement.parentElement.parentElement.querySelector('textarea')))) {
     editor = editor.codemirror;
   }
-  const startPos = editor.selectionStart || editor.getCursor && editor.getCursor('start'), endPos = editor.selectionEnd || editor.getCursor && editor.getCursor('end'), isimage = file.type.startsWith('image/') ? '!' : '', fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
+  const startPos = editor.selectionStart || editor.getCursor && editor.getCursor('start');
+  const endPos = editor.selectionEnd || editor.getCursor && editor.getCursor('end');
+  const isimage = file.type.startsWith('image/') ? '!' : '';
+  const fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
   if (startPos) {
     if (editor.setSelection) {
       editor.setSelection(startPos, endPos);
