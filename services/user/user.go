@@ -21,17 +21,114 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/avatar"
+	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/packages"
 )
 
 // DeleteUser completely and permanently deletes everything of a user,
 // but issues/comments/pulls will be kept and shown as someone has been deleted,
 // unless the user is younger than USER_DELETE_WITH_COMMENTS_MAX_DAYS.
-func DeleteUser(u *user_model.User) error {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 	if u.IsOrganization() {
 		return fmt.Errorf("%s is an organization not a user", u.Name)
+	}
+
+	if purge {
+		// Disable the user first
+		// NOTE: This is deliberately not within a transaction as it must disable the user immediately to prevent any further action by the user to be purged.
+		if err := user_model.UpdateUserCols(ctx, &user_model.User{
+			ID:              u.ID,
+			IsActive:        false,
+			IsRestricted:    true,
+			IsAdmin:         false,
+			ProhibitLogin:   true,
+			Passwd:          "",
+			Salt:            "",
+			PasswdHashAlgo:  "",
+			MaxRepoCreation: 0,
+		}, "is_active", "is_restricted", "is_admin", "prohibit_login", "max_repo_creation", "passwd", "salt", "passwd_hash_algo"); err != nil {
+			return fmt.Errorf("unable to disable user: %s[%d] prior to purge. UpdateUserCols: %w", u.Name, u.ID, err)
+		}
+
+		// Force any logged in sessions to log out
+		// FIXME: We also need to tell the session manager to log them out too.
+		eventsource.GetManager().SendMessage(u.ID, &eventsource.Event{
+			Name: "logout",
+		})
+
+		// Delete all repos belonging to this user
+		// Now this is not within a transaction because there are internal transactions within the DeleteRepository
+		// BUT: the db will still be consistent even if a number of repos have already been deleted.
+		// And in fact we want to capture any repositories that are being created in other transactions in the meantime
+		//
+		// An alternative option here would be write a DeleteAllRepositoriesForUserID function which would delete all of the repos
+		// but such a function would likely get out of date
+		for {
+			repos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
+				ListOptions: db.ListOptions{
+					PageSize: repo_model.RepositoryListDefaultPageSize,
+					Page:     1,
+				},
+				Private: true,
+				OwnerID: u.ID,
+			})
+			if err != nil {
+				return fmt.Errorf("SearchRepositoryByName: %v", err)
+			}
+			if len(repos) == 0 {
+				break
+			}
+			for _, repo := range repos {
+				if err := models.DeleteRepository(u, u.ID, repo.ID); err != nil {
+					return fmt.Errorf("unable to delete repository %s for %s[%d]. Error: %v", repo.Name, u.Name, u.ID, err)
+				}
+			}
+		}
+
+		// Remove from Organizations and delete last owner organizations
+		// Now this is not within a transaction because there are internal transactions within the DeleteOrganization
+		// BUT: the db will still be consistent even if a number of organizations memberships and organizations have already been deleted
+		// And in fact we want to capture any organization additions that are being created in other transactions in the meantime
+		//
+		// An alternative option here would be write a function which would delete all organizations but it seems
+		// but such a function would likely get out of date
+		for {
+			orgs, err := organization.FindOrgs(organization.FindOrgOptions{
+				ListOptions: db.ListOptions{
+					PageSize: repo_model.RepositoryListDefaultPageSize,
+					Page:     1,
+				},
+				UserID:         u.ID,
+				IncludePrivate: true,
+			})
+			if err != nil {
+				return fmt.Errorf("unable to find org list for %s[%d]. Error: %v", u.Name, u.ID, err)
+			}
+			if len(orgs) == 0 {
+				break
+			}
+			for _, org := range orgs {
+				if err := models.RemoveOrgUser(org.ID, u.ID); err != nil {
+					if organization.IsErrLastOrgOwner(err) {
+						err = organization.DeleteOrganization(ctx, org)
+					}
+					if err != nil {
+						return fmt.Errorf("unable to remove user %s[%d] from org %s[%d]. Error: %v", u.Name, u.ID, org.Name, org.ID, err)
+					}
+				}
+			}
+		}
+
+		// Delete Packages
+		if setting.Packages.Enabled {
+			if _, err := packages.RemoveAllPackages(ctx, u.ID); err != nil {
+				return err
+			}
+		}
 	}
 
 	ctx, committer, err := db.TxContext()
@@ -41,7 +138,8 @@ func DeleteUser(u *user_model.User) error {
 	defer committer.Close()
 
 	// Note: A user owns any repository or belongs to any organization
-	//	cannot perform delete operation.
+	//	cannot perform delete operation. This causes a race with the purge above
+	//  however consistency requires that we ensure that this is the case
 
 	// Check ownership of repository.
 	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: u.ID})
@@ -66,7 +164,7 @@ func DeleteUser(u *user_model.User) error {
 		return models.ErrUserOwnPackages{UID: u.ID}
 	}
 
-	if err := models.DeleteUser(ctx, u); err != nil {
+	if err := models.DeleteUser(ctx, u, purge); err != nil {
 		return fmt.Errorf("DeleteUser: %v", err)
 	}
 
@@ -117,7 +215,7 @@ func DeleteInactiveUsers(ctx context.Context, olderThan time.Duration) error {
 			return db.ErrCancelledf("Before delete inactive user %s", u.Name)
 		default:
 		}
-		if err := DeleteUser(u); err != nil {
+		if err := DeleteUser(ctx, u, false); err != nil {
 			// Ignore users that were set inactive by admin.
 			if models.IsErrUserOwnRepos(err) || models.IsErrUserHasOrgs(err) || models.IsErrUserOwnPackages(err) {
 				continue
