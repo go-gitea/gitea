@@ -1,19 +1,19 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "repo.settings.webhook_deletion"}}
+		{{.locale.Tr "repo.settings.webhook_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "repo.settings.webhook_deletion_desc"}}</p>
+		<p>{{.locale.Tr "repo.settings.webhook_deletion_desc"}}</p>
 	</div>
 	<div class="actions">
 		<div class="ui red basic inverted cancel button">
 			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+			{{.locale.Tr "modal.no"}}
 		</div>
 		<div class="ui green basic inverted ok button">
 			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+			{{.locale.Tr "modal.yes"}}
 		</div>
 	</div>
 </div>

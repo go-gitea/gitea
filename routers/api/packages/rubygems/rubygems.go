@@ -37,7 +37,7 @@ func EnumeratePackages(ctx *context.Context) {
 	enumeratePackages(ctx, "specs.4.8", packages)
 }
 
-// EnumeratePackagesLatest serves the list of the lastest version of every package
+// EnumeratePackagesLatest serves the list of the latest version of every package
 func EnumeratePackagesLatest(ctx *context.Context) {
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,

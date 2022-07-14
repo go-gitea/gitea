@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.password"}}
+			{{.locale.Tr "settings.password"}}
 		</h4>
 		<div class="ui attached segment">
 			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
@@ -13,42 +13,43 @@
 				{{.CsrfTokenHtml}}
 				{{if .SignedUser.IsPasswordSet}}
 				<div class="required field {{if .Err_OldPassword}}error{{end}}">
-					<label for="old_password">{{.i18n.Tr "settings.old_password"}}</label>
+					<label for="old_password">{{.locale.Tr "settings.old_password"}}</label>
 					<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
 				</div>
 				{{end}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
-					<label for="password">{{.i18n.Tr "settings.new_password"}}</label>
+					<label for="password">{{.locale.Tr "settings.new_password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password" required>
 				</div>
 				<div class="required field {{if .Err_Password}}error{{end}}">
-					<label for="retype">{{.i18n.Tr "settings.retype_new_password"}}</label>
+					<label for="retype">{{.locale.Tr "settings.retype_new_password"}}</label>
 					<input id="retype" name="retype" type="password" autocomplete="new-password" required>
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "settings.change_password"}}</button>
-					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.i18n.Tr "auth.forgot_password"}}</a>
+					<button class="ui green button">{{$.locale.Tr "settings.change_password"}}</button>
+					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>
 			{{else}}
 			<div class="ui info message">
-				<p class="text left">{{$.i18n.Tr "settings.password_change_disabled"}}</p>
+				<p class="text left">{{$.locale.Tr "settings.password_change_disabled"}}</p>
 			</div>
 			{{end}}
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.manage_emails"}}
+			{{.locale.Tr "settings.manage_emails"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui email list">
+				{{if $.EnableNotifyMail}}
 				<div class="item">
 					<form action="{{AppSubUrl}}/user/settings/account/email" class="ui form" method="post">
-						{{.i18n.Tr "settings.email_desc"}}
+						{{.locale.Tr "settings.email_desc"}}
 						<div class="right floated content">
 							<div class="field">
-								<button class="ui green button">{{$.i18n.Tr "settings.email_notifications.submit"}}</button>
+								<button class="ui green button">{{$.locale.Tr "settings.email_notifications.submit"}}</button>
 							</div>
 						</div>
 						<div class="right floated content">
@@ -58,23 +59,24 @@
 								<div class="ui selection dropdown" tabindex="0">
 									<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="text">{{$.i18n.Tr "settings.email_notifications"}}</div>
+									<div class="text">{{$.locale.Tr "settings.email_notifications"}}</div>
 									<div class="menu">
-										<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.i18n.Tr "settings.email_notifications.enable"}}</div>
-										<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{$.i18n.Tr "settings.email_notifications.onmention"}}</div>
-										<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.i18n.Tr "settings.email_notifications.disable"}}</div>
+										<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.enable"}}</div>
+										<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.onmention"}}</div>
+										<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.disable"}}</div>
 									</div>
 								</div>
 							</div>
 						</div>
 					</form>
 				</div>
+				{{end}}
 				{{range .Emails}}
 					<div class="item">
 						{{if not .IsPrimary}}
 							<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-email" data-url="{{AppSubUrl}}/user/settings/account/email/delete" data-id="{{.ID}}">
-									{{$.i18n.Tr "settings.delete_email"}}
+									{{$.locale.Tr "settings.delete_email"}}
 								</button>
 							</div>
 							{{if .CanBePrimary}}
@@ -83,7 +85,7 @@
 										{{$.CsrfTokenHtml}}
 										<input name="_method" type="hidden" value="PRIMARY">
 										<input name="id" type="hidden" value="{{.ID}}">
-										<button class="ui primary tiny button">{{$.i18n.Tr "settings.primary_email"}}</button>
+										<button class="ui primary tiny button">{{$.locale.Tr "settings.primary_email"}}</button>
 									</form>
 								</div>
 							{{end}}
@@ -95,9 +97,9 @@
 									<input name="_method" type="hidden" value="SENDACTIVATION">
 									<input name="id" type="hidden" value="{{.ID}}">
 									{{if $.ActivationsPending}}
-										<button disabled class="ui primary tiny button">{{$.i18n.Tr "settings.activations_pending"}}</button>
+										<button disabled class="ui primary tiny button">{{$.locale.Tr "settings.activations_pending"}}</button>
 									{{else}}
-										<button class="ui primary tiny button">{{$.i18n.Tr "settings.activate_email"}}</button>
+										<button class="ui primary tiny button">{{$.locale.Tr "settings.activate_email"}}</button>
 									{{end}}
 								</form>
 							</div>
@@ -105,12 +107,12 @@
 						<div class="content">
 							<strong>{{.Email}}</strong>
 							{{if .IsPrimary}}
-								<div class="ui primary label">{{$.i18n.Tr "settings.primary"}}</div>
+								<div class="ui primary label">{{$.locale.Tr "settings.primary"}}</div>
 							{{end}}
 							{{if .IsActivated}}
-								<div class="ui green label">{{$.i18n.Tr "settings.activated"}}</div>
+								<div class="ui green label">{{$.locale.Tr "settings.activated"}}</div>
 							{{else}}
-								<div class="ui label">{{$.i18n.Tr "settings.requires_activation"}}</div>
+								<div class="ui label">{{$.locale.Tr "settings.requires_activation"}}</div>
 							{{end}}
 						</div>
 					</div>
@@ -121,37 +123,37 @@
 			<form class="ui form" action="{{AppSubUrl}}/user/settings/account/email" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.i18n.Tr "settings.add_new_email"}}</label>
+					<label for="email">{{.locale.Tr "settings.add_new_email"}}</label>
 					<input id="email" name="email" type="email" required {{if not .CanAddEmails}}disabled{{end}}>
 				</div>
 				<button class="ui green button" {{if not .CanAddEmails}}disabled{{end}}>
-					{{.i18n.Tr "settings.add_email"}}
+					{{.locale.Tr "settings.add_email"}}
 				</button>
 			</form>
 		</div>
 
 		<h4 class="ui top attached error header">
-			{{.i18n.Tr "settings.delete_account"}}
+			{{.locale.Tr "settings.delete_account"}}
 		</h4>
 		<div class="ui attached error segment">
 			<div class="ui red message">
-				<p class="text left">{{svg "octicon-alert"}} {{.i18n.Tr "settings.delete_prompt" | Str2html}}</p>
+				<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "settings.delete_prompt" | Str2html}}</p>
 				{{ if .UserDeleteWithComments }}
-				<p class="text left" style="font-weight: bold;">{{.i18n.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
+				<p class="text left" style="font-weight: bold;">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
 				{{ end }}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="required field {{if .Err_Password}}error{{end}}">
-					<label for="password-confirmation">{{.i18n.Tr "password"}}</label>
+					<label for="password-confirmation">{{.locale.Tr "password"}}</label>
 					<input id="password-confirmation" name="password" type="password" autocomplete="off" required>
 				</div>
 				<div class="field">
 					<div class="ui red button delete-button" data-modal-id="delete-account" data-type="form" data-form="#delete-form">
-						{{.i18n.Tr "settings.confirm_delete_account"}}
+						{{.locale.Tr "settings.confirm_delete_account"}}
 					</div>
-					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.i18n.Tr "auth.forgot_password"}}</a>
+					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
 				</div>
 			</form>
 		</div>
@@ -161,10 +163,10 @@
 <div class="ui small basic delete modal" id="delete-email">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.email_deletion"}}
+		{{.locale.Tr "settings.email_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.email_deletion_desc"}}</p>
+		<p>{{.locale.Tr "settings.email_deletion_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
@@ -172,10 +174,10 @@
 <div class="ui small basic delete modal" id="delete-account">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.delete_account_title"}}
+		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.delete_account_desc"}}</p>
+		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

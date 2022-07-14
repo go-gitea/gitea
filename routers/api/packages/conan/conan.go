@@ -429,14 +429,14 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	ctx.Status(http.StatusCreated)
 }
 
-// DownloadRecipeFile serves the conent of the requested recipe file
+// DownloadRecipeFile serves the content of the requested recipe file
 func DownloadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	downloadFile(ctx, recipeFileList, rref.AsKey())
 }
 
-// DownloadPackageFile serves the conent of the requested package file
+// DownloadPackageFile serves the content of the requested package file
 func DownloadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
