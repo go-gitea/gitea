@@ -5,7 +5,7 @@
 	<div class="ui floating filter dropdown custom"
 		data-branch-form="{{if $.branchForm}}{{$.branchForm}}{{end}}"
 		data-can-create-branch="{{if .canCreateBranch}}{{.canCreateBranch}}{{else}}{{.root.CanCreateBranch}}{{end}}"
-		data-no-results="{{.root.i18n.Tr "repo.pulls.no_results"}}"
+		data-no-results="{{.root.locale.Tr "repo.pulls.no_results"}}"
 		data-set-action="{{.setAction}}" data-submit-form="{{.submitForm}}"
 		data-view-type="{{if and .root.IsViewTag (not .noTag)}}tag{{else if .root.IsViewBranch}}branch{{else}}tree{{end}}"
 		data-ref-name="{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}"
@@ -16,11 +16,11 @@
 		<div class="ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text">
 				{{if $release}}
-					{{.root.i18n.Tr "repo.release.compare"}}
+					{{.root.locale.Tr "repo.release.compare"}}
 				{{else}}
-					<span :class="{visible: isViewTag}" v-if="isViewTag" v-cloak>{{svg "octicon-tag"}} {{.root.i18n.Tr "repo.tag"}}:</span>
-					<span :class="{visible: isViewBranch}" v-if="isViewBranch" v-cloak>{{svg "octicon-git-branch"}} {{.root.i18n.Tr "repo.branch"}}:</span>
-					<span :class="{visible: isViewTree}" v-if="isViewTree" v-cloak>{{svg "octicon-git-branch"}} {{.root.i18n.Tr "repo.tree"}}:</span>
+					<span :class="{visible: isViewTag}" v-if="isViewTag" v-cloak>{{svg "octicon-tag"}} {{.root.locale.Tr "repo.tag"}}:</span>
+					<span :class="{visible: isViewBranch}" v-if="isViewBranch" v-cloak>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.branch"}}:</span>
+					<span :class="{visible: isViewTree}" v-if="isViewTree" v-cloak>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.tree"}}:</span>
 					<strong ref="dropdownRefName">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
 			</span>
@@ -45,7 +45,7 @@
 		<div class="menu transition" :class="{visible: menuVisible}" v-if="menuVisible" v-cloak>
 			<div class="ui icon search input">
 				<i class="icon df ac jc m-0">{{svg "octicon-filter" 16}}</i>
-				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $.noTag}}{{.root.i18n.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.i18n.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.i18n.Tr "repo.find_tag"}}{{end}}...">
+				<input name="search" ref="searchField" autocomplete="off" v-model="searchTerm" @keydown="keydown($event)" placeholder="{{if $.noTag}}{{.root.locale.Tr "repo.pulls.filter_branch"}}{{else if $showBranchesInDropdown}}{{.root.locale.Tr "repo.filter_branch_and_tag"}}{{else}}{{.root.locale.Tr "repo.find_tag"}}{{end}}...">
 			</div>
 			{{if $showBranchesInDropdown}}
 				<div class="header branch-tag-choice">
@@ -53,13 +53,13 @@
 						<div class="two column row">
 							<a class="reference column" href="#" @click="createTag = false; mode = 'branches'; focusSearchField()">
 								<span class="text" :class="{black: mode == 'branches'}">
-									{{svg "octicon-git-branch" 16 "mr-2"}}{{.root.i18n.Tr "repo.branches"}}
+									{{svg "octicon-git-branch" 16 "mr-2"}}{{.root.locale.Tr "repo.branches"}}
 								</span>
 							</a>
 							{{if not .noTag}}
 								<a class="reference column" href="#" @click="createTag = true; mode = 'tags'; focusSearchField()">
 									<span class="text" :class="{black: mode == 'tags'}">
-										{{svg "octicon-tag" 16 "mr-2"}}{{.root.i18n.Tr "repo.tags"}}
+										{{svg "octicon-tag" 16 "mr-2"}}{{.root.locale.Tr "repo.tags"}}
 									</span>
 								</a>
 							{{end}}
@@ -73,19 +73,19 @@
 					<a href="#" @click="createNewBranch()">
 						<div v-show="createTag">
 							<i class="reference tags icon"></i>
-							{{.root.i18n.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
+							{{.root.locale.Tr "repo.tag.create_tag" `${ searchTerm }` | Safe}}
 						</div>
 						<div v-show="!createTag">
 							{{svg "octicon-git-branch"}}
-							{{.root.i18n.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
+							{{.root.locale.Tr "repo.branch.create_branch" `${ searchTerm }` | Safe}}
 						</div>
 						<div class="text small">
 							{{if or .root.IsViewBranch $release}}
-								{{.root.i18n.Tr "repo.branch.create_from" .root.BranchName}}
+								{{.root.locale.Tr "repo.branch.create_from" .root.BranchName}}
 							{{else if .root.IsViewTag}}
-								{{.root.i18n.Tr "repo.branch.create_from" .root.TagName}}
+								{{.root.locale.Tr "repo.branch.create_from" .root.TagName}}
 							{{else}}
-								{{.root.i18n.Tr "repo.branch.create_from" (ShortSha .root.CommitID)}}
+								{{.root.locale.Tr "repo.branch.create_from" (ShortSha .root.CommitID)}}
 							{{end}}
 						</div>
 					</a>

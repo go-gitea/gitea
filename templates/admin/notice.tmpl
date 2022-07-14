@@ -4,7 +4,7 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.notices.system_notice_list"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.notices.system_notice_list"}} ({{.locale.Tr "admin.total" .Total}})
 		</h4>
 		<div class="ui attached table segment">
 			<table id="notice-table" class="ui very basic select selectable table unstackable">
@@ -12,10 +12,10 @@
 					<tr>
 						<th></th>
 						<th>ID</th>
-						<th>{{.i18n.Tr "admin.notices.type"}}</th>
-						<th>{{.i18n.Tr "admin.notices.desc"}}</th>
-						<th width="100px">{{.i18n.Tr "admin.users.created"}}</th>
-						<th>{{.i18n.Tr "admin.notices.op"}}</th>
+						<th>{{.locale.Tr "admin.notices.type"}}</th>
+						<th>{{.locale.Tr "admin.notices.desc"}}</th>
+						<th width="100px">{{.locale.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "admin.notices.op"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -27,7 +27,7 @@
 								</div>
 							</td>
 							<td>{{.ID}}</td>
-							<td>{{$.i18n.Tr .TrStr}}</td>
+							<td>{{$.locale.Tr .TrStr}}</td>
 							<td class="view-detail"><span class="notice-description text truncate">{{.Description}}</span></td>
 							<td><span class="notice-created-time tooltip" data-content="{{.CreatedUnix.AsTime}}">{{.CreatedUnix.FormatShort}}</span></td>
 							<td><a href="#">{{svg "octicon-note" 16 "view-detail"}}</a></td>
@@ -42,25 +42,25 @@
 									<div class="ui right">
 										<form method="post" action="{{AppSubUrl}}/admin/notices/empty">
 											{{.CsrfTokenHtml}}
-											<button type="submit" class="ui red small button">{{.i18n.Tr "admin.notices.delete_all"}}</button>
+											<button type="submit" class="ui red small button">{{.locale.Tr "admin.notices.delete_all"}}</button>
 										</form>
 									</div>
 									<div class="ui floating upward dropdown small button">
-										<span class="text">{{.i18n.Tr "admin.notices.actions"}}</span>
+										<span class="text">{{.locale.Tr "admin.notices.actions"}}</span>
 										<div class="menu">
 											<div class="item select action" data-action="select-all">
-												{{.i18n.Tr "admin.notices.select_all"}}
+												{{.locale.Tr "admin.notices.select_all"}}
 											</div>
 											<div class="item select action" data-action="deselect-all">
-												{{.i18n.Tr "admin.notices.deselect_all"}}
+												{{.locale.Tr "admin.notices.deselect_all"}}
 											</div>
 											<div class="item select action" data-action="inverse">
-												{{.i18n.Tr "admin.notices.inverse_selection"}}
+												{{.locale.Tr "admin.notices.inverse_selection"}}
 											</div>
 										</div>
 									</div>
 									<div class="ui small teal button" id="delete-selection" data-link="{{.Link}}/delete" data-redirect="{{.Link}}?page={{.Page.Paginater.Current}}">
-										{{.i18n.Tr "admin.notices.delete_selected"}}
+										{{.locale.Tr "admin.notices.delete_selected"}}
 									</div>
 								</th>
 							</tr>
@@ -75,7 +75,7 @@
 
 <div class="ui modal admin" id="detail-modal">
 	{{svg "octicon-x" 16 "close inside"}}
-	<div class="header">{{$.i18n.Tr "admin.notices.view_detail_header"}}</div>
+	<div class="header">{{$.locale.Tr "admin.notices.view_detail_header"}}</div>
 	<div class="content">
 		<div class="sub header"></div>
 		<pre></pre>

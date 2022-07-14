@@ -105,7 +105,11 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.Com
 	}
 }
 
-func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
+func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
+	// Merge must continue if commits SHA are different, even if content is same
+	// Reason: gitflow and merging master back into develop, where is high possiblity, there are no changes
+	// but just commit saying "Merge branch". And this meta commit can be also tagged,
+	// so we need to have this meta commit also in develop branch.
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -126,6 +130,28 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
-		assert.Contains(t, text, "This branch is equal with the target branch.")
+		assert.Contains(t, text, "This pull request can be merged automatically.")
+	})
+}
+
+func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
+		url := path.Join("user1", "repo1", "compare", "master...status1")
+		req := NewRequestWithValues(t, "POST", url,
+			map[string]string{
+				"_csrf": GetCSRF(t, session, url),
+				"title": "pull request from status1",
+			},
+		)
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
+		assert.Contains(t, text, "This branch is already included in the target branch. There is nothing to merge.")
 	})
 }

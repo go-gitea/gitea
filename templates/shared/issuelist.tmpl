@@ -17,7 +17,11 @@
 							{{if .IsClosed}}
 								{{svg "octicon-git-pull-request" 16 "text red"}}
 							{{else}}
-								{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{if .PullRequest.IsWorkInProgress}}
+									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+								{{else}}
+									{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{end}}
 							{{end}}
 						{{end}}
 					{{else}}
@@ -51,13 +55,13 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.i18n.Lang }}
+					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale }}
 					{{if .OriginalAuthor }}
-						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
+						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
-						{{$.i18n.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
+						{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
 					{{else}}
-						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
+						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
 					{{if .IsPull}}
 						<div class="branches">
@@ -99,7 +103,7 @@
 						</span>
 					{{end}}
 					{{if ne .DeadlineUnix 0}}
-						<span class="due-date tooltip" data-content="{{$.i18n.Tr "repo.issues.due_date"}}" data-position="right center">
+						<span class="due-date tooltip" data-content="{{$.locale.Tr "repo.issues.due_date"}}" data-position="right center">
 							<span{{if .IsOverdue}} class="overdue"{{end}}>
 								{{svg "octicon-calendar" 14 "mr-2"}}
 								{{.DeadlineUnix.FormatShort}}
@@ -113,25 +117,25 @@
 						{{if gt $approveOfficial 0}}
 							<span class="approvals df ac">
 								{{svg "octicon-check" 14 "mr-1"}}
-								{{$.i18n.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
+								{{$.locale.TrN $approveOfficial "repo.pulls.approve_count_1" "repo.pulls.approve_count_n" $approveOfficial}}
 							</span>
 						{{end}}
 						{{if gt $rejectOfficial 0}}
 							<span class="rejects df ac">
 								{{svg "octicon-diff" 14 "mr-2"}}
-								{{$.i18n.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
+								{{$.locale.TrN $rejectOfficial "repo.pulls.reject_count_1" "repo.pulls.reject_count_n" $rejectOfficial}}
 							</span>
 						{{end}}
 						{{if gt $waitingOfficial 0}}
 							<span class="waiting df ac">
 								{{svg "octicon-eye" 14 "mr-2"}}
-								{{$.i18n.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
+								{{$.locale.TrN $waitingOfficial "repo.pulls.waiting_count_1" "repo.pulls.waiting_count_n" $waitingOfficial}}
 							</span>
 						{{end}}
 						{{if and (not .PullRequest.HasMerged) (gt (len .PullRequest.ConflictedFiles) 0)}}
 							<span class="conflicting df ac">
 								{{svg "octicon-x" 14}}
-								{{$.i18n.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
+								{{$.locale.TrN (len .PullRequest.ConflictedFiles) "repo.pulls.num_conflicting_files_1" "repo.pulls.num_conflicting_files_n" (len .PullRequest.ConflictedFiles)}}
 							</span>
 						{{end}}
 					{{end}}
@@ -163,7 +167,7 @@
 	{{end}}
 	{{if .IssueIndexerUnavailable}}
 		<div class="ui error message">
-			<p>{{$.i18n.Tr "repo.issues.keyword_search_unavailable"}}</p>
+			<p>{{$.locale.Tr "repo.issues.keyword_search_unavailable"}}</p>
 		</div>
 	{{end}}
 </div>

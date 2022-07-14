@@ -16,17 +16,17 @@
 								<div class="inline field ui left">
 									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
 										<div class="ui input">
-											<input class="prompt" name="repo_name" placeholder="{{.i18n.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
+											<input class="prompt" name="repo_name" placeholder="{{.locale.Tr "org.teams.search_repo_placeholder"}}" autocomplete="off" required>
 										</div>
 									</div>
 								</div>
-								<button class="ui green button">{{.i18n.Tr "add"}}</button>
+								<button class="ui green button">{{.locale.Tr "add"}}</button>
 							</form>
 						</div>
 						<div class="inline ui field right">
 							<form class="ui form" id="repo-multiple-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/repositories" method="post">
-								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.i18n.Tr "remove_all"}}</button>
-								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.i18n.Tr "add_all"}}</button>
+								<button class="ui red button delete-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/removeall">{{.locale.Tr "remove_all"}}</button>
+								<button class="ui green button add-all-button right" data-url="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/addall">{{.locale.Tr "add_all"}}</button>
 							</form>
 						</div>
 					</div>
@@ -37,7 +37,7 @@
 							{{if $canAddRemove}}
 								<form method="post" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/remove">
 									{{$.CsrfTokenHtml}}
-									<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.i18n.Tr "remove"}}</button>
+									<button type="submit" class="ui red small button right" name="repoid" value="{{.ID}}">{{$.locale.Tr "remove"}}</button>
 								</form>
 							{{end}}
 							<a class="member" href="{{$.Org.HomeLink}}/{{.Name | PathEscape}}">
@@ -55,7 +55,7 @@
 						</div>
 					{{else}}
 						<div class="item">
-							<span class="text grey italic">{{$.i18n.Tr "org.teams.repos.none"}}</span>
+							<span class="text grey italic">{{$.locale.Tr "org.teams.repos.none"}}</span>
 						</div>
 					{{end}}
 				</div>
@@ -67,10 +67,10 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "org.teams.remove_all_repos_title"}}
+		{{.locale.Tr "org.teams.remove_all_repos_title"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "org.teams.remove_all_repos_desc"}}</p>
+		<p>{{.locale.Tr "org.teams.remove_all_repos_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>
@@ -78,10 +78,10 @@
 <div class="ui small basic addall modal">
 	<div class="ui icon header">
 		<i class="globe icon"></i>
-		{{.i18n.Tr "org.teams.add_all_repos_title"}}
+		{{.locale.Tr "org.teams.add_all_repos_title"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "org.teams.add_all_repos_desc"}}</p>
+		<p>{{.locale.Tr "org.teams.add_all_repos_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

@@ -1,13 +1,13 @@
 {{if eq .PackageDescriptor.Package.Type "generic"}}
-	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.generic.download"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.generic.download"}}</label>
 				<div class="markup"><pre class="code-block"><code>curl {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/generic/{{.PackageDescriptor.Package.Name}}/{{.PackageDescriptor.Version.Version}}/{{(index .PackageDescriptor.Files 0).File.Name}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.i18n.Tr "packages.generic.documentation" | Safe}}</label>
+				<label>{{.locale.Tr "packages.generic.documentation" | Safe}}</label>
 			</div>
 		</div>
 	</div>
