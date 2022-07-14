@@ -274,6 +274,84 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 	return committer.Commit()
 }
 
+// UpsertIssueComments inserts many comments of issues.
+func UpsertIssueComments(comments []*issues_model.Comment) error {
+	if len(comments) == 0 {
+		return nil
+	}
+
+	issueIDs := make(map[int64]bool)
+	for _, comment := range comments {
+		issueIDs[comment.IssueID] = true
+	}
+
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+
+	sess := db.GetEngine(ctx)
+	for _, comment := range comments {
+		exists, err := sess.Exist(&issues_model.Comment{
+			IssueID:     comment.IssueID,
+			CreatedUnix: comment.CreatedUnix,
+		})
+		if err != nil {
+			return err
+		}
+		if !exists {
+			if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+				return err
+			}
+		} else {
+			if _, err := sess.NoAutoTime().Where(
+				"issue_id = ? AND created_unix = ?", comment.IssueID, comment.CreatedUnix,
+			).Update(comment); err != nil {
+				return err
+			}
+		}
+
+		for _, reaction := range comment.Reactions {
+			reaction.IssueID = comment.IssueID
+			reaction.CommentID = comment.ID
+		}
+		if len(comment.Reactions) > 0 {
+			for _, reaction := range comment.Reactions {
+				// issue is uniquely identified by issue_id, comment_id and type
+				exists, err := sess.Exist(&issues_model.Reaction{
+					IssueID:   reaction.IssueID,
+					CommentID: reaction.CommentID,
+					Type:      reaction.Type,
+				})
+				if err != nil {
+					return err
+				}
+				if exists {
+					if _, err := sess.Where(
+						"issue_id = ? AND comment_id = ? AND type = ?",
+						reaction.IssueID, reaction.CommentID, reaction.Type,
+					).Update(&reaction); err != nil {
+						return err
+					}
+				} else {
+					if _, err := sess.Insert(&reaction); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
+	for issueID := range issueIDs {
+		if _, err := db.Exec(ctx, "UPDATE issue set num_comments = (SELECT count(*) FROM comment WHERE issue_id = ? AND `type`=?) WHERE id = ?",
+			issueID, issues_model.CommentTypeComment, issueID); err != nil {
+			return err
+		}
+	}
+	return committer.Commit()
+}
+
 // InsertPullRequests inserted pull requests
 func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 	ctx, committer, err := db.TxContext()

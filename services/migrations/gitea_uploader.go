@@ -449,14 +449,13 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 	return nil
 }
 
-// CreateComments creates comments of issues
-func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+func (g *GiteaLocalUploader) prepareComments(comments ...*base.Comment) ([]*issues_model.Comment, error) {
 	cms := make([]*issues_model.Comment, 0, len(comments))
 	for _, comment := range comments {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[comment.IssueIndex]
 		if !ok {
-			return fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
+			return nil, fmt.Errorf("comment references non existent IssueIndex %d", comment.IssueIndex)
 		}
 
 		if comment.Created.IsZero() {
@@ -475,7 +474,7 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		}
 
 		if err := g.remapUser(comment, &cm); err != nil {
-			return err
+			return nil, err
 		}
 
 		// add reactions
@@ -485,12 +484,21 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				CreatedUnix: timeutil.TimeStampNow(),
 			}
 			if err := g.remapUser(reaction, &res); err != nil {
-				return err
+				return nil, err
 			}
 			cm.Reactions = append(cm.Reactions, &res)
 		}
 
 		cms = append(cms, &cm)
+	}
+	return cms, nil
+}
+
+// CreateComments creates comments of issues
+func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
+	cms, err := g.prepareComments(comments...)
+	if err != nil {
+		return err
 	}
 
 	if len(cms) == 0 {
@@ -897,7 +905,15 @@ func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
 }
 
 func (g *GiteaLocalUploader) PatchComments(comments ...*base.Comment) error {
-	return nil
+	cms, err := g.prepareComments(comments...)
+	if err != nil {
+		return err
+	}
+
+	if len(cms) == 0 {
+		return nil
+	}
+	return models.UpsertIssueComments(cms)
 }
 
 func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
