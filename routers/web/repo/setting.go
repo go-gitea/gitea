@@ -918,7 +918,7 @@ func CollaborationPost(ctx *context.Context) {
 			ctx.ServerError("IsOrganizationOwner", err)
 			return
 		} else if isOwner {
-			ctx.Flash.Error(ctx.Tr("settings.add_collaborator_owner"))
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
 			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 			return
 		}
