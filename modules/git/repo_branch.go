@@ -72,6 +72,7 @@ func (repo *Repository) SetDefaultBranch(name string) error {
 // GetDefaultBranch gets default branch of repository.
 func (repo *Repository) GetDefaultBranch() (string, error) {
 	stdout, _, err := NewCommand(repo.Ctx, "symbolic-ref", "HEAD").RunStdString(&RunOpts{Dir: repo.Path})
+	stdout = strings.TrimPrefix(strings.TrimSpace(stdout), BranchPrefix)
 	return stdout, err
 }
 
