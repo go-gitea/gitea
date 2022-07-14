@@ -11,10 +11,15 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-func FederatedUserNew(name string, IRI ap.IRI) error {
+func FederatedUserNew(IRI ap.IRI) error {
+	name, err := personIRIToName(IRI)
+	if err != nil {
+		return err
+	}
+
 	user := &user_model.User{
 		Name:      name,
-		Email:     name, // TODO: change this to something else to prevent collisions with normal users
+		Email:     name, // TODO: change this to something else to prevent collisions with normal users, maybe fetch email using Gitea API
 		LoginType: auth.Federated,
 		Website:   IRI.String(),
 	}

@@ -8,7 +8,7 @@ import (
 	"context"
 	"strings"
 
-	//"code.gitea.io/gitea/models/forgefed"
+	"code.gitea.io/gitea/models/forgefed"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -20,6 +20,8 @@ import (
 )
 
 func Fork(ctx context.Context, instance, username, reponame, destUsername string) {
+	// TODO: Clean this up
+
 	// Migrate repository code
 	user, _ := user_model.GetUserByName(ctx, destUsername)
 	_, err := migrations.MigrateRepository(ctx, user, destUsername, migrations.MigrateOptions{
@@ -30,25 +32,27 @@ func Fork(ctx context.Context, instance, username, reponame, destUsername string
 		log.Warn("Couldn't create fork", err)
 	}
 
-	// Make the migrated repo a fork
+	// TODO: Make the migrated repo a fork
 
 	// Send a Create activity to the instance we are forking from
 	create := ap.Create{Type: ap.CreateType}
 	create.To = ap.ItemCollection{ap.IRI("https://" + instance + "/api/v1/activitypub/repo/" + username + "/" + reponame + "/inbox")}
-	repo := ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + destUsername + "/" + reponame)
-	// repo := forgefed.RepositoryNew(ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + destUsername + "/" + reponame))
+	repo := ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + destUsername + "/" + reponame)
+	// repo := forgefed.RepositoryNew(ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + destUsername + "/" + reponame))
 	// repo.ForkedFrom = forgefed.RepositoryNew(ap.IRI())
 	create.Object = repo
 
 	Send(user, &create)
 }
 
-func ForkFromCreate(ctx context.Context, activity ap.Create) {
+func ForkFromCreate(ctx context.Context, repository forgefed.Repository) {
+	// TODO: Clean this up
+
 	// Don't create an actual copy of the remote repo!
 	// https://gitea.com/Ta180m/gitea/issues/7
 
 	// Create the fork
-	repoIRI := activity.Object.GetID()
+	repoIRI := repository.GetID()
 	repoIRISplit := strings.Split(repoIRI.String(), "/")
 	instance := repoIRISplit[2]
 	username := repoIRISplit[7]
@@ -63,6 +67,4 @@ func ForkFromCreate(ctx context.Context, activity ap.Create) {
 
 	_, err := repo_service.ForkRepository(ctx, user, user, repo_service.ForkRepoOptions{BaseRepo: repo, Name: reponame, Description: "this is a remote fork"})
 	log.Warn("Couldn't create copy of remote fork", err)
-
-	// TODO: send back accept
 }

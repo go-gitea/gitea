@@ -27,6 +27,10 @@ type Ticket struct {
 	ResolvedBy ap.Item `jsonld:"resolvedBy,omitempty"`
 	// Resolved When the ticket has been marked as resolved
 	Resolved time.Time `jsonld:"resolved,omitempty"`
+	// Origin The head branch if this ticket is a pull request
+	Origin ap.Item `jsonld:"origin,omitempty"`
+	// Target The base branch if this ticket is a pull request
+	Target ap.Item `jsonld:"target,omitempty"`
 }
 
 // TicketNew initializes a Ticket type Object
@@ -56,6 +60,12 @@ func (t Ticket) MarshalJSON() ([]byte, error) {
 	if !t.Resolved.IsZero() {
 		ap.WriteTimeJSONProp(&b, "resolved", t.Resolved)
 	}
+	if t.Origin != nil {
+		ap.WriteItemJSONProp(&b, "origin", t.Origin)
+	}
+	if t.Target != nil {
+		ap.WriteItemJSONProp(&b, "target", t.Target)
+	}
 	ap.Write(&b, '}')
 	return b, nil
 }
@@ -72,6 +82,8 @@ func (t *Ticket) UnmarshalJSON(data []byte) error {
 	t.IsResolved = ap.JSONGetBoolean(val, "isResolved")
 	t.ResolvedBy = ap.JSONGetItem(val, "resolvedBy")
 	t.Resolved = ap.JSONGetTime(val, "resolved")
+	t.Origin = ap.JSONGetItem(val, "origin")
+	t.Target = ap.JSONGetItem(val, "target")
 
 	return ap.OnObject(&t.Object, func(a *ap.Object) error {
 		return ap.LoadObject(val, a)

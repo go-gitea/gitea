@@ -7,7 +7,6 @@ package activitypub
 import (
 	"io"
 	"net/http"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/forgefed"
@@ -39,7 +38,7 @@ func Person(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 	person := ap.PersonNew(ap.IRI(link))
 
 	person.Name = ap.NaturalLanguageValuesNew()
@@ -66,15 +65,12 @@ func Person(ctx *context.APIContext) {
 
 	person.Inbox = ap.IRI(link + "/inbox")
 	person.Outbox = ap.IRI(link + "/outbox")
-
 	person.Following = ap.IRI(link + "/following")
 	person.Followers = ap.IRI(link + "/followers")
-
 	person.Liked = ap.IRI(link + "/liked")
 
 	person.PublicKey.ID = ap.IRI(link + "#main-key")
 	person.PublicKey.Owner = ap.IRI(link)
-
 	publicKeyPem, err := activitypub.GetPublicKey(ctx.ContextUser)
 	if err != nil {
 		ctx.ServerError("GetPublicKey", err)
@@ -109,10 +105,13 @@ func PersonInbox(ctx *context.APIContext) {
 
 	var activity ap.Activity
 	activity.UnmarshalJSON(body)
-	if activity.Type == ap.FollowType {
+	switch activity.Type {
+	case ap.FollowType:
 		activitypub.Follow(ctx, activity)
-	} else {
-		log.Warn("ActivityStreams type not supported", activity)
+	case ap.UndoType:
+		activitypub.Unfollow(ctx, activity)
+	default:
+		log.Debug("ActivityStreams type not supported", activity)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
 	}
@@ -137,7 +136,7 @@ func PersonOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
@@ -186,7 +185,7 @@ func PersonFollowing(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	users, _, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
@@ -223,7 +222,7 @@ func PersonFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	users, _, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
 	if err != nil {
@@ -235,6 +234,7 @@ func PersonFollowers(ctx *context.APIContext) {
 	followers.TotalItems = uint(len(users))
 
 	for _, user := range users {
+		// TODO: handle non-Federated users
 		person := ap.PersonNew(ap.IRI(user.Website))
 		followers.OrderedItems.Append(person)
 	}
@@ -259,7 +259,7 @@ func PersonLiked(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name
+	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
 	repos, count, err := repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		Actor:       ctx.Doer,
@@ -275,7 +275,8 @@ func PersonLiked(ctx *context.APIContext) {
 	liked.TotalItems = uint(count)
 
 	for _, repo := range repos {
-		repo := forgefed.RepositoryNew(ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + repo.OwnerName + "/" + repo.Name))
+		// TODO: Handle remote starred repos
+		repo := forgefed.RepositoryNew(ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + repo.OwnerName + "/" + repo.Name))
 		liked.OrderedItems.Append(repo)
 	}
 

@@ -17,7 +17,7 @@ var (
 	ErrNameEmpty = errors.New("Name is empty")
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
-	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.@]`)
+	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.@]`) // Ugly hack to allow remote usernames to contain @
 )
 
 // ErrNameReserved represents a "reserved name" error.

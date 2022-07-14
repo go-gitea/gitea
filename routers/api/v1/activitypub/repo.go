@@ -7,21 +7,18 @@ package activitypub
 import (
 	"io"
 	"net/http"
-	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/forgefed"
-	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/routers/api/v1/utils"
 
 	ap "github.com/go-ap/activitypub"
 )
 
-// Repo function
+// Repo function returns the Repository actor of a repo
 func Repo(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/repo/{username}/{reponame} activitypub activitypubRepo
 	// ---
@@ -43,7 +40,7 @@ func Repo(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
+	link := setting.AppURL + "api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
 	repo := forgefed.RepositoryNew(ap.IRI(link))
 
 	repo.Name = ap.NaturalLanguageValuesNew()
@@ -53,7 +50,7 @@ func Repo(ctx *context.APIContext) {
 		return
 	}
 
-	repo.AttributedTo = ap.IRI(strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/user/" + ctx.ContextUser.Name)
+	repo.AttributedTo = ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name)
 
 	repo.Summary = ap.NaturalLanguageValuesNew()
 	err = repo.Summary.Set("en", ap.Content(ctx.Repo.Repository.Description))
@@ -70,7 +67,7 @@ func Repo(ctx *context.APIContext) {
 	response(ctx, repo)
 }
 
-// RepoInbox function
+// RepoInbox function handles the incoming data for a repo inbox
 func RepoInbox(ctx *context.APIContext) {
 	// swagger:operation POST /activitypub/repo/{username}/{reponame}/inbox activitypub activitypubRepoInbox
 	// ---
@@ -95,29 +92,63 @@ func RepoInbox(ctx *context.APIContext) {
 	body, err := io.ReadAll(ctx.Req.Body)
 	if err != nil {
 		ctx.ServerError("Error reading request body", err)
+		return
 	}
-	var activity ap.Activity
-	activity.UnmarshalJSON(body) // This function doesn't support ForgeFed types!!!
-	log.Warn("Debug", activity)
-	switch activity.Type {
-	case ap.NoteType:
-		// activitypub.Comment(ctx, activity)
+
+	var activity map[string]interface{}
+	err = json.Unmarshal(body, activity)
+	if err != nil {
+		ctx.ServerError("Unmarshal", err)
+		return
+	}
+
+	switch activity["type"].(ap.ActivityVocabularyType) {
 	case ap.CreateType:
-		// if activity.Object.GetType() == forgefed.RepositoryType {
-		// Fork created by remote instance
-		activitypub.ForkFromCreate(ctx, activity)
-		//}
-	case ap.MoveType:
-		// This should actually be forgefed.TicketType but that the UnmarshalJSON function above doesn't support ForgeFed!
-		activitypub.PullRequest(ctx, activity)
+		// Create activity, extract the object
+		object, ok := activity["object"].(map[string]interface{})
+		if ok {
+			ctx.ServerError("Activity does not contain object", err)
+			return
+		}
+		objectBinary, err := json.Marshal(object)
+		if err != nil {
+			ctx.ServerError("Marshal", err)
+			return
+		}
+
+		switch object["type"].(ap.ActivityVocabularyType) {
+		case forgefed.RepositoryType:
+			// Fork created by remote instance
+			var repository forgefed.Repository
+			repository.UnmarshalJSON(objectBinary)
+			activitypub.ForkFromCreate(ctx, repository)
+		case forgefed.TicketType:
+			// New issue or pull request
+			var ticket forgefed.Ticket
+			ticket.UnmarshalJSON(objectBinary)
+			if ticket.Origin != nil {
+				// New pull request
+				activitypub.PullRequest(ctx, ticket)
+			} else {
+				// New issue
+				activitypub.Issue(ctx, ticket)
+			}
+		case ap.NoteType:
+			// New comment
+			var note ap.Note
+			note.UnmarshalJSON(objectBinary)
+			activitypub.Comment(ctx, note)
+		}
 	default:
 		log.Warn("ActivityStreams type not supported", activity)
+		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
 }
 
-// RepoOutbox function
+// RepoOutbox function returns the repo's Outbox OrderedCollection
 func RepoOutbox(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/repo/{username}/outbox activitypub activitypubPersonOutbox
 	// ---
@@ -139,34 +170,11 @@ func RepoOutbox(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
-
-	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctx.ContextUser,
-		Actor:           ctx.ContextUser,
-		IncludePrivate:  false,
-		OnlyPerformedBy: true,
-		IncludeDeleted:  false,
-		Date:            ctx.FormString("date"),
-	})
-	if err != nil {
-		ctx.ServerError("Couldn't fetch outbox", err)
-	}
-
-	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
-	for _, action := range feed {
-		/*if action.OpType == ExampleType {
-			activity := ap.ExampleNew()
-			outbox.OrderedItems.Append(activity)
-		}*/
-		log.Debug(action.Content)
-	}
-	outbox.TotalItems = uint(len(outbox.OrderedItems))
-
-	response(ctx, outbox)
+	// TODO
+	ctx.Status(http.StatusNotImplemented)
 }
 
-// RepoFollowers function
+// RepoFollowers function returns the repo's Followers OrderedCollection
 func RepoFollowers(ctx *context.APIContext) {
 	// swagger:operation GET /activitypub/repo/{username}/{reponame}/followers activitypub activitypubRepoFollowers
 	// ---
@@ -188,21 +196,6 @@ func RepoFollowers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/ActivityPub"
 
-	link := strings.TrimSuffix(setting.AppURL, "/") + "/api/v1/activitypub/repo/" + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name
-
-	users, _, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, utils.GetListOptions(ctx))
-	if err != nil {
-		ctx.ServerError("GetUserFollowers", err)
-		return
-	}
-
-	followers := ap.OrderedCollectionNew(ap.IRI(link + "/followers"))
-	followers.TotalItems = uint(len(users))
-
-	for _, user := range users {
-		person := ap.PersonNew(ap.IRI(user.Website))
-		followers.OrderedItems.Append(person)
-	}
-
-	response(ctx, followers)
+	// TODO
+	ctx.Status(http.StatusNotImplemented)
 }

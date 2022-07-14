@@ -10,15 +10,17 @@ import (
 	"net/http"
 	"net/url"
 
+	"code.gitea.io/gitea/models/forgefed"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/httplib"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
 	ap "github.com/go-ap/activitypub"
+	"github.com/go-ap/jsonld"
 )
 
+// Fetch a remote ActivityStreams object
 func Fetch(iri *url.URL) (b []byte, err error) {
 	req := httplib.NewRequest(iri.String(), http.MethodGet)
 	req.Header("Accept", ActivityStreamsContentType)
@@ -37,22 +39,21 @@ func Fetch(iri *url.URL) (b []byte, err error) {
 	return b, err
 }
 
+// Send an activity
 func Send(user *user_model.User, activity *ap.Activity) {
-	body, err := activity.MarshalJSON()
+	binary, err := jsonld.WithContext(
+		jsonld.IRI(ap.ActivityBaseURI),
+		jsonld.IRI(ap.SecurityContextURI),
+		jsonld.IRI(forgefed.ForgeFedNamespaceURI),
+	).Marshal(activity)
 	if err != nil {
+		log.Warn("Marshal", err)
 		return
 	}
-	var jsonmap map[string]interface{}
-	err = json.Unmarshal(body, &jsonmap)
-	if err != nil {
-		return
-	}
-	jsonmap["@context"] = "https://www.w3.org/ns/activitystreams"
-	body, _ = json.Marshal(jsonmap)
 
 	for _, to := range activity.To {
 		client, _ := NewClient(user, setting.AppURL+"api/v1/activitypub/user/"+user.Name+"#main-key")
-		resp, _ := client.Post(body, to.GetID().String())
+		resp, _ := client.Post(binary, to.GetID().String())
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 		log.Debug(string(respBody))
 	}
