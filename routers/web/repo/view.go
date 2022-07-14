@@ -353,7 +353,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 	if markupType := markup.Type(readmeFile.name); markupType != "" {
 		ctx.Data["IsMarkup"] = true
-		ctx.Data["MarkupType"] = string(markupType)
+		ctx.Data["MarkupType"] = markupType
 		var result strings.Builder
 		err := markup.Render(&markup.RenderContext{
 			Ctx:          ctx,

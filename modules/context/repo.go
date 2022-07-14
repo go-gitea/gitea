@@ -734,7 +734,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Data["GoDocDirectory"] = prefix + "{/dir}"
 		ctx.Data["GoDocFile"] = prefix + "{/dir}/{file}#L{line}"
 	}
-	return
+	return cancel
 }
 
 // RepoRefType type of repo reference
@@ -1001,7 +1001,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 			return
 		}
 		ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
-		return
+		return cancel
 	}
 }
 

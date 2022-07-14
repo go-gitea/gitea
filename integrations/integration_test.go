@@ -188,8 +188,13 @@ func initIntegrationTest() {
 
 	switch {
 	case setting.Database.UseMySQL:
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
+		connType := "tcp"
+		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
+			connType = "unix"
+		}
+
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s(%s)/",
+			setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -438,7 +443,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)

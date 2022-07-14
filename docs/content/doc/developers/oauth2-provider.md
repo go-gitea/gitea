@@ -41,13 +41,13 @@ To use the Authorization Code Grant as a third party application it is required 
 
 ## Scopes
 
-Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and his/her organizations.
+Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and their organizations.
 
 ## Example
 
 **Note:** This example does not use PKCE.
 
-1. Redirect to user to the authorization endpoint in order to get his/her consent for accessing the resources:
+1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources:
 
    ```curl
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE

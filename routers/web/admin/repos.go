@@ -101,7 +101,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		ctx.ServerError("ListUnadoptedRepositories", err)
 	}
 	ctx.Data["Dirs"] = repoNames
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager

@@ -4,6 +4,31 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-07-12
+
+* SECURITY
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Check for permission when fetching user controlled issues (#20133) (#20196)
+* BUGFIXES
+  * Hide notify mail setting ui if not enabled (#20138) (#20337)
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Only show Followers that current user can access (#20220) (#20253)
+  * Release page show all tags in compare dropdown (#20070) (#20071)
+  * Fix permission check for delete tag (#19985) (#20001)
+  * Only log non ErrNotExist errors in git.GetNote  (#19884) (#19905)
+  * Use exact search instead of fuzzy search for branch filter dropdown (#19885) (#19893)
+  * Set Setpgid on child git processes (#19865) (#19881)
+  * Import git from alpine 3.16 repository as 2.30.4 is needed for `safe.directory = '*'` to work but alpine 3.13 has 2.30.3 (#19876)
+  * Ensure responses are context.ResponseWriters (#19843) (#19859)
+  * Fix incorrect usage of `Count` function (#19850)
+  * Fix raw endpoint PDF file headers (#19825) (#19826)
+  * Make WIP prefixes case insensitive, e.g. allow `Draft` as a WIP prefix (#19780) (#19811)
+  * Don't return 500 on NotificationUnreadCount (#19802)
+  * Prevent NPE when cache service is disabled (#19703) (#19783)
+  * Detect truncated utf-8 characters at the end of content as still representing utf-8 (#19773) (#19774)
+  * Fix doctor pq: syntax error at or near "." quote user table name (#19765) (#19770)
+  * Fix bug with assigneees (#19757)
+
 ## [1.16.8](https://github.com/go-gitea/gitea/releases/tag/v1.16.8) - 2022-05-16
 
 * ENHANCEMENTS

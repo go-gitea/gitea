@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/auth"
 
 	"github.com/stretchr/testify/assert"
@@ -275,8 +275,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	addAuthSourceLDAP(t, "")
 
 	u := otherLDAPUsers[0]
-
-	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
 }
 
 func TestLDAPUserSSHKeySync(t *testing.T) {

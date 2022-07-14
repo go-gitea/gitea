@@ -105,7 +105,6 @@ func NewFuncMap() []template.FuncMap {
 		"Str2html":       Str2html,
 		"TimeSince":      timeutil.TimeSince,
 		"TimeSinceUnix":  timeutil.TimeSinceUnix,
-		"RawTimeSince":   timeutil.RawTimeSince,
 		"FileSize":       base.FileSize,
 		"PrettyNumber":   base.PrettyNumber,
 		"JsPrettyNumber": JsPrettyNumber,
@@ -484,7 +483,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -630,7 +628,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -733,7 +731,7 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -843,7 +841,7 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		log.Error("RenderNote: %v", err)
 		return ""
 	}
-	return template.HTML(string(fullMessage))
+	return template.HTML(fullMessage)
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.

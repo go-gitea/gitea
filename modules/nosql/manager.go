@@ -75,5 +75,5 @@ func valToTimeDuration(vs []string) (result time.Duration) {
 			return
 		}
 	}
-	return
+	return result
 }
