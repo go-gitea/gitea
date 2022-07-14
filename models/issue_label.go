@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -104,6 +105,7 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(&IssuesOptions{
 		RepoID:   repoID,
 		LabelIDs: []int64{labelID},
+		IsClosed: util.OptionalBoolFalse,
 	})
 
 	for _, count := range counts {
