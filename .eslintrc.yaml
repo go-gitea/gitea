@@ -1,11 +1,8 @@
 root: true
 reportUnusedDisableDirectives: true
 
-# put any .tmpl files here that fail to parse because of template syntax
 ignorePatterns:
   - /web_src/js/vendor
-  - /templates/base/head_script.tmpl
-  - /templates/repo/issue/view_content/pull.tmpl
 
 parserOptions:
   sourceType: module
@@ -14,7 +11,6 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
-  - eslint-plugin-html
   - eslint-plugin-jquery
 
 env:
@@ -24,18 +20,11 @@ env:
 globals:
   __webpack_public_path__: true
 
-settings:
-  html/html-extensions: [".tmpl"]
-
 overrides:
-  - files: ["web_src/**/*.js", "templates/**/*.tmpl", "docs/**/*.js"]
+  - files: ["web_src/**/*.js", "docs/**/*.js"]
     env:
       browser: true
       node: false
-  - files: ["templates/**/*.tmpl"]
-    rules:
-      no-tabs: [0]
-      indent: [2, tab, {SwitchCase: 1}]
   - files: ["web_src/**/*worker.js"]
     env:
       worker: true
