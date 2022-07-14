@@ -51,6 +51,23 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return reference.Type() != plumbing.InvalidReference
 }
 
+// ResolveBranch resolves an ambiguous branch name to its explicit name, and if the branch exists.
+// i.e. "main" -> "refs/heads/main"
+func (repo *Repository) ResolveBranch(name string) (string, bool) {
+	if name == "" {
+		return "", false
+	}
+
+	if repo.IsReferenceExist(name) {
+		return name, true
+	}
+	if repo.IsReferenceExist(BranchPrefix + name) {
+		return BranchPrefix + name, true
+	}
+
+	return "", false
+}
+
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
