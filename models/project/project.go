@@ -14,6 +14,9 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
+
 	"xorm.io/builder"
 )
 
@@ -70,14 +73,18 @@ func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
 }
 
+type ProjectList []*Project
+
 // Project represents a project board
 type Project struct {
-	ID          int64  `xorm:"pk autoincr"`
-	Title       string `xorm:"INDEX NOT NULL"`
-	Description string `xorm:"TEXT"`
-	RepoID      int64  `xorm:"INDEX"`
-	CreatorID   int64  `xorm:"NOT NULL"`
-	IsClosed    bool   `xorm:"INDEX"`
+	ID          int64                  `xorm:"pk autoincr"`
+	Title       string                 `xorm:"INDEX NOT NULL"`
+	Description string                 `xorm:"TEXT"`
+	RepoID      int64                  `xorm:"INDEX"`
+	Repo        *repo_model.Repository `xorm:"-"`
+	CreatorID   int64                  `xorm:"NOT NULL"`
+	Creator     *user_model.User       `xorm:"-"`
+	IsClosed    bool                   `xorm:"INDEX"`
 	BoardType   BoardType
 	Type        Type
 
@@ -329,4 +336,24 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 	}
 
 	return updateRepositoryProjectCount(ctx, p.RepoID)
+}
+
+func (project *Project) LoadRepo(ctx context.Context) (err error) {
+	if project.Repo == nil {
+		project.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, project.RepoID)
+		if err != nil {
+			return fmt.Errorf("getRepositoryByID [%d]: %v", project.RepoID, err)
+		}
+	}
+	return nil
+}
+
+func (project *Project) LoadCreator(ctx context.Context) (err error) {
+	if project.Creator == nil {
+		project.Creator, err = user_model.GetUserByIDCtx(ctx, project.CreatorID)
+		if err != nil {
+			return fmt.Errorf("getUserByID [%d]: %v", project.CreatorID, err)
+		}
+	}
+	return nil
 }

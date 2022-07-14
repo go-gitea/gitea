@@ -7977,6 +7977,9 @@
         }
       },
       "post": {
+        "consumes": [
+          "application/json"
+        ],
         "produces": [
           "application/json"
         ],
@@ -7999,6 +8002,14 @@
             "name": "repo",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpsertProjectPayload"
+            }
           }
         ],
         "responses": {
@@ -17632,6 +17643,9 @@
           "type": "string",
           "format": "date-time",
           "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
         },
         "description": {
           "type": "string",
