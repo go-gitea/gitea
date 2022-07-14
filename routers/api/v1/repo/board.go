@@ -86,6 +86,14 @@ func ListProjectBoards(ctx *context.APIContext) {
 	//   description: projectId of the project
 	//   type: string
 	//   required: true
+	// - name: page
+	//   in: query
+	//   description: page number of results to return (1-based)
+	//   type: integer
+	// - name: limit
+	//   in: query
+	//   description: page size of results
+	//   type: integer
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectBoardList"
