@@ -60,7 +60,8 @@ func (repo *Repository) IsBranchExist(name string) bool {
 	return repo.IsReferenceExist(BranchPrefix + name)
 }
 
-// ResolveBranch resolves an ambiguous branch name to its explicit name, and if the branch exists
+// ResolveBranch resolves an ambiguous branch name to its explicit name, and if the branch exists.
+// i.e. "main" -> "refs/heads/main"
 func (repo *Repository) ResolveBranch(name string) (string, bool) {
 	if name == "" {
 		return "", false
