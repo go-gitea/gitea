@@ -76,5 +76,6 @@ func repositoryIRIToRepository(ctx context.Context, repoIRI ap.IRI) (*repo_model
 		return nil, err
 	}
 
+	// TODO: create remote repo if not exists
 	return repo_model.GetRepositoryByOwnerAndName(username, reponame)
 }
