@@ -57,10 +57,23 @@ func (repo *Repository) IsBranchExist(name string) bool {
 		return false
 	}
 
-	if !strings.HasPrefix(name, BranchPrefix) {
-		name = BranchPrefix + name
+	return repo.IsReferenceExist(BranchPrefix + name)
+}
+
+// ResolveBranch resolves an ambiguous branch name to its explicit name, and if the branch exists
+func (repo *Repository) ResolveBranch(name string) (string, bool) {
+	if name == "" {
+		return "", false
 	}
-	return repo.IsReferenceExist(name)
+
+	if repo.IsReferenceExist(name) {
+		return name, true
+	}
+	if repo.IsReferenceExist(BranchPrefix + name) {
+		return BranchPrefix + name, true
+	}
+
+	return "", false
 }
 
 // GetBranchNames returns branches from the repository, skipping skip initial branches and

@@ -16,7 +16,6 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -36,19 +35,25 @@ const (
 // calReleaseNumCommitsBehind calculates given release has how many commits behind release target.
 func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Release, countCache map[string]int64) error {
 	// Fast return if release target is same as default branch.
-	if repoCtx.BranchName == strings.TrimPrefix(release.Target, git.BranchPrefix) {
+	if repoCtx.BranchName == release.Target {
 		release.NumCommitsBehind = repoCtx.CommitsCount - release.NumCommits
 		return nil
 	}
 
 	// Get count if not exists
 	if _, ok := countCache[release.Target]; !ok {
-		if repoCtx.GitRepo.IsBranchExist(release.Target) {
-			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
-			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+		if branchName, exists := repoCtx.GitRepo.ResolveBranch(release.Target); exists {
+			if repoCtx.BranchName == branchName {
+				countCache[branchName] = repoCtx.CommitsCount
+				release.NumCommitsBehind = repoCtx.CommitsCount - release.NumCommits
+				return nil
 			}
-			countCache[release.Target], err = commit.CommitsCount()
+
+			commit, err := repoCtx.GitRepo.GetRefCommit(branchName)
+			if err != nil {
+				return fmt.Errorf("GetRefCommit: %v", err)
+			}
+			countCache[branchName], err = commit.CommitsCount()
 			if err != nil {
 				return fmt.Errorf("CommitsCount: %v", err)
 			}

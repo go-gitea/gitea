@@ -16,18 +16,12 @@ import (
 
 // GetBranchCommitID returns last commit ID string of given branch.
 func (repo *Repository) GetBranchCommitID(name string) (string, error) {
-	if !strings.HasPrefix(name, BranchPrefix) {
-		name = BranchPrefix + name
-	}
-	return repo.GetRefCommitID(name)
+	return repo.GetRefCommitID(BranchPrefix + name)
 }
 
 // GetTagCommitID returns last commit ID string of given tag.
 func (repo *Repository) GetTagCommitID(name string) (string, error) {
-	if !strings.HasPrefix(name, TagPrefix) {
-		name = TagPrefix + name
-	}
-	return repo.GetRefCommitID(name)
+	return repo.GetRefCommitID(TagPrefix + name)
 }
 
 // GetCommit returns commit object of by ID string.
@@ -52,6 +46,16 @@ func (repo *Repository) GetBranchCommit(name string) (*Commit, error) {
 // GetTagCommit get the commit of the specific tag via name
 func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	commitID, err := repo.GetTagCommitID(name)
+	if err != nil {
+		return nil, err
+	}
+	return repo.GetCommit(commitID)
+}
+
+// GetRefCommit get the commit of then given reference.
+// The refname has to be explicit, e.g. "refs/heads/main"
+func (repo *Repository) GetRefCommit(name string) (*Commit, error) {
+	commitID, err := repo.GetRefCommitID(name)
 	if err != nil {
 		return nil, err
 	}
