@@ -141,7 +141,7 @@
 		{{if and (eq $n 0) .CitiationExist}}
 			<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
 				<div class="fitted item">
-					{{.i18n.Tr "repo.cite_this_repo"}} :&nbsp
+					{{.locale.Tr "repo.cite_this_repo"}} :&nbsp
 					<div class="ui action tiny input" id="citation-panel">
 						{{template "repo/citation_buttons" .}}
 						<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right">
