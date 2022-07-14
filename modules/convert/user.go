@@ -63,12 +63,6 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 		StarredRepos: user.NumStars,
 	}
 
-	if authed {
-		result.LoginName = user.LoginName
-	} else {
-		result.LoginName = ""
-	}
-
 	result.Visibility = user.Visibility.String()
 
 	// hide primary email if API caller is anonymous or user keep email private
@@ -79,6 +73,7 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
+		result.LoginName = user.LoginName
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive

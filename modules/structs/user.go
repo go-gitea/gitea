@@ -17,7 +17,7 @@ type User struct {
 	ID int64 `json:"id"`
 	// the user's username
 	UserName string `json:"login"`
-	// the user's login name
+	// the user's authentication sign-in name. default: empty
 	LoginName string `json:"login_name"`
 	// the user's full name
 	FullName string `json:"full_name"`
