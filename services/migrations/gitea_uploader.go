@@ -248,8 +248,7 @@ func convertLabels(repoID int64, labels ...*base.Label) []*issues_model.Label {
 	return lbs
 }
 
-// CreateReleases creates releases
-func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+func (g *GiteaLocalUploader) prepareReleases(releases ...*base.Release) ([]*models.Release, error) {
 	rels := make([]*models.Release, 0, len(releases))
 	for _, release := range releases {
 		if release.Created.IsZero() {
@@ -274,7 +273,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		}
 
 		if err := g.remapUser(release, &rel); err != nil {
-			return err
+			return nil, err
 		}
 
 		// calc NumCommits if possible
@@ -282,12 +281,12 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
 			if !git.IsErrNotExist(err) {
 				if err != nil {
-					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
+					return nil, fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
 				}
 				rel.Sha1 = commit.ID.String()
 				rel.NumCommits, err = commit.CommitsCount()
 				if err != nil {
-					return fmt.Errorf("CommitsCount: %v", err)
+					return nil, fmt.Errorf("CommitsCount: %v", err)
 				}
 			}
 		}
@@ -332,13 +331,22 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 				return err
 			}()
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			rel.Attachments = append(rel.Attachments, &attach)
 		}
 
 		rels = append(rels, &rel)
+	}
+	return rels, nil
+}
+
+// CreateReleases creates releases
+func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
+	rels, err := g.prepareReleases(releases...)
+	if err != nil {
+		return err
 	}
 
 	return models.InsertReleases(rels...)
@@ -860,7 +868,13 @@ func (g *GiteaLocalUploader) UpdateLabels(labels ...*base.Label) error {
 }
 
 func (g *GiteaLocalUploader) PatchReleases(releases ...*base.Release) error {
-	return nil
+	// TODO: needs performance improvement
+	rels, err := g.prepareReleases(releases...)
+	if err != nil {
+		return err
+	}
+
+	return models.UpsertReleases(rels...)
 }
 
 func (g *GiteaLocalUploader) PatchIssues(issues ...*base.Issue) error {
