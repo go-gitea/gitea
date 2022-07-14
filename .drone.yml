@@ -1312,6 +1312,9 @@ steps:
     pull: always
     settings:
       auto_tag: false
+      tags:
+        - ${DRONE_TAG##v}-rootless
+        - ${DRONE_TAG:1:4}-rootless
       ignore_missing: true
       spec: docker/manifest.rootless.tmpl
       password:
@@ -1323,6 +1326,9 @@ steps:
     image: plugins/manifest
     settings:
       auto_tag: false
+      tags:
+        - ${DRONE_TAG##v}
+        - ${DRONE_TAG:1:4}
       ignore_missing: true
       spec: docker/manifest.tmpl
       password:
