@@ -1273,7 +1273,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 
 func GetOrderBy() string {
 	if setting.UI.DefaultShowFullName {
-		return "full_name"
+		return "full_name, name"
 	}
 	return "name"
 }
