@@ -342,16 +342,8 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
-		RepoID: repoID,
-	})
-	if err != nil {
-		return fmt.Errorf("get projects: %v", err)
-	}
-	for i := range projects {
-		if err := project_model.DeleteProjectByIDCtx(ctx, projects[i].ID); err != nil {
-			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
-		}
+	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
+		return fmt.Errorf("unable to delete projects for repo[%d]: %v", repoID, err)
 	}
 
 	// Remove LFS objects
