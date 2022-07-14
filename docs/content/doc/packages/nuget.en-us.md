@@ -23,7 +23,7 @@ Publish [NuGet](https://www.nuget.org/) packages for your user or organization. 
 ## Requirements
 
 To work with the NuGet package registry, you can use command-line interface tools as well as NuGet features in various IDEs like Visual Studio.
-More informations about NuGet clients can be found in [the official documentation](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools).
+More information about NuGet clients can be found in [the official documentation](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools).
 The following examples use the `dotnet nuget` tool.
 
 ## Configuring the package registry
