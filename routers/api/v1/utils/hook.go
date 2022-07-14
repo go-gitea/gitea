@@ -133,7 +133,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			BranchFilter: form.BranchFilter,
 		},
 		IsActive: form.Active,
-		Type:     webhook.HookType(form.Type),
+		Type:     form.Type,
 	}
 	if w.Type == webhook.SLACK {
 		channel, ok := form.Config["channel"]

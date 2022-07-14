@@ -7,8 +7,8 @@ package issues
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 )
 
 // DBIndexer implements Indexer interface to use database's like search
@@ -44,7 +44,7 @@ func (i *DBIndexer) Close() {
 
 // Search dummy function
 func (i *DBIndexer) Search(ctx context.Context, kw string, repoIDs []int64, limit, start int) (*SearchResult, error) {
-	total, ids, err := models.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
+	total, ids, err := issues_model.SearchIssueIDsByKeyword(ctx, kw, repoIDs, limit, start)
 	if err != nil {
 		return nil, err
 	}

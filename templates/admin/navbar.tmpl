@@ -1,39 +1,39 @@
 <div class="ui secondary pointing tabular top attached borderless menu stackable new-menu navbar">
 	<div class="new-menu-inner">
 		<a class="{{if .PageIsAdminDashboard}}active{{end}} item" href="{{AppSubUrl}}/admin">
-			{{.i18n.Tr "admin.dashboard"}}
+			{{.locale.Tr "admin.dashboard"}}
 		</a>
 		<a class="{{if .PageIsAdminUsers}}active{{end}} item" href="{{AppSubUrl}}/admin/users">
-			{{.i18n.Tr "admin.users"}}
+			{{.locale.Tr "admin.users"}}
 		</a>
 		<a class="{{if .PageIsAdminOrganizations}}active{{end}} item" href="{{AppSubUrl}}/admin/orgs">
-			{{.i18n.Tr "admin.organizations"}}
+			{{.locale.Tr "admin.organizations"}}
 		</a>
 		<a class="{{if .PageIsAdminRepositories}}active{{end}} item" href="{{AppSubUrl}}/admin/repos">
-			{{.i18n.Tr "admin.repositories"}}
+			{{.locale.Tr "admin.repositories"}}
 		</a>
 		<a class="{{if .PageIsAdminPackages}}active{{end}} item" href="{{AppSubUrl}}/admin/packages">
-			{{.i18n.Tr "packages.title"}}
+			{{.locale.Tr "packages.title"}}
 		</a>
 		{{if not DisableWebhooks}}
 			<a class="{{if or .PageIsAdminDefaultHooks .PageIsAdminSystemHooks}}active{{end}} item" href="{{AppSubUrl}}/admin/hooks">
-				{{.i18n.Tr "admin.hooks"}}
+				{{.locale.Tr "admin.hooks"}}
 			</a>
 		{{end}}
 		<a class="{{if .PageIsAdminAuthentications}}active{{end}} item" href="{{AppSubUrl}}/admin/auths">
-			{{.i18n.Tr "admin.authentication"}}
+			{{.locale.Tr "admin.authentication"}}
 		</a>
 		<a class="{{if .PageIsAdminEmails}}active{{end}} item" href="{{AppSubUrl}}/admin/emails">
-			{{.i18n.Tr "admin.emails"}}
+			{{.locale.Tr "admin.emails"}}
 		</a>
 		<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
-			{{.i18n.Tr "admin.config"}}
+			{{.locale.Tr "admin.config"}}
 		</a>
 		<a class="{{if .PageIsAdminNotices}}active{{end}} item" href="{{AppSubUrl}}/admin/notices">
-			{{.i18n.Tr "admin.notices"}}
+			{{.locale.Tr "admin.notices"}}
 		</a>
 		<a class="{{if .PageIsAdminMonitor}}active{{end}} item" href="{{AppSubUrl}}/admin/monitor">
-			{{.i18n.Tr "admin.monitor"}}
+			{{.locale.Tr "admin.monitor"}}
 		</a>
 	</div>
 </div>

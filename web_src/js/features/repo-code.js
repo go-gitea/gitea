@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import {svg} from '../svg.js';
+import {invertFileFolding} from './file-fold.js';
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -148,10 +149,7 @@ export function initRepoCodeView() {
     }).trigger('hashchange');
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
-    const box = currentTarget.closest('.file-content');
-    const folded = box.getAttribute('data-folded') !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
-    box.setAttribute('data-folded', String(folded));
+    invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const url = currentTarget.getAttribute('data-url');

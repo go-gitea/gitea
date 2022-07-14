@@ -42,7 +42,7 @@ func Profile(ctx *context.Context) {
 	}
 
 	// check view permissions
-	if !user_model.IsUserVisibleToViewer(ctx.ContextUser, ctx.Doer) {
+	if !user_model.IsUserVisibleToViewer(ctx, ctx.ContextUser, ctx.Doer) {
 		ctx.NotFound("user", fmt.Errorf(ctx.ContextUser.Name))
 		return
 	}
@@ -157,7 +157,7 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -167,9 +167,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowers
+		total = int(count)
 	case "following":
-		items, err := user_model.GetUserFollowing(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -179,7 +179,7 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowing
+		total = int(count)
 	case "activity":
 		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
@@ -188,6 +188,7 @@ func Profile(ctx *context.Context) {
 			OnlyPerformedBy: true,
 			IncludeDeleted:  false,
 			Date:            ctx.FormString("date"),
+			ListOptions:     db.ListOptions{PageSize: setting.UI.FeedPagingNum},
 		})
 		if err != nil {
 			ctx.ServerError("GetFeeds", err)
@@ -195,7 +196,7 @@ func Profile(ctx *context.Context) {
 		}
 	case "stars":
 		ctx.Data["PageIsProfileStarList"] = true
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -217,7 +218,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "projects":
-		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(project_model.SearchOptions{
+		ctx.Data["OpenProjects"], _, err = project_model.GetProjects(ctx, project_model.SearchOptions{
 			Page:     -1,
 			IsClosed: util.OptionalBoolFalse,
 			Type:     project_model.TypeIndividual,
@@ -227,7 +228,7 @@ func Profile(ctx *context.Context) {
 			return
 		}
 	case "watching":
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -249,7 +250,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	default:
-		repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+		repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
 				PageSize: setting.UI.User.RepoPagingNum,
 				Page:     page,
@@ -276,6 +277,7 @@ func Profile(ctx *context.Context) {
 
 	pager := context.NewPagination(total, setting.UI.User.RepoPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)
+	pager.AddParam(ctx, "tab", "TabName")
 	if tab != "followers" && tab != "following" && tab != "activity" && tab != "projects" {
 		pager.AddParam(ctx, "language", "Language")
 	}

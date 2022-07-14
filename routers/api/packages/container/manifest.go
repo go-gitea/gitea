@@ -355,6 +355,10 @@ func createFileFromBlobReference(ctx context.Context, pv, uploadVersion *package
 	}
 	var err error
 	if pf, err = packages_model.TryInsertFile(ctx, pf); err != nil {
+		if err == packages_model.ErrDuplicatePackageFile {
+			// Skip this blob because the manifest contains the same filesystem layer multiple times.
+			return nil
+		}
 		log.Error("Error inserting package file: %v", err)
 		return err
 	}

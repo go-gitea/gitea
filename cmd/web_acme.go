@@ -66,7 +66,7 @@ func runACME(listenAddr string, m http.Handler) error {
 			log.Warn("Failed to parse CA Root certificate, using default CA trust: %v", err)
 		}
 	}
-	myACME := certmagic.NewACMEManager(magic, certmagic.ACMEManager{
+	myACME := certmagic.NewACMEIssuer(magic, certmagic.ACMEIssuer{
 		CA:                      setting.AcmeURL,
 		TrustedRoots:            certPool,
 		Email:                   setting.AcmeEmail,

@@ -44,7 +44,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Repo.RepoLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
-	ws, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("GetWebhooksByRepoID", err)
 		return
@@ -147,7 +147,6 @@ func WebhooksNew(ctx *context.Context) {
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -736,8 +735,6 @@ func PackagistHooksNewPost(ctx *context.Context) {
 }
 
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
-	ctx.Data["RequireHighlightJS"] = true
-
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getOrgRepoCtx", err)

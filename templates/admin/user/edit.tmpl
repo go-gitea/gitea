@@ -4,25 +4,25 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.users.edit_account"}}
+			{{.locale.Tr "admin.users.edit_account"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{template "base/disable_form_autofill"}}
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
-					<label for="user_name">{{.i18n.Tr "username"}}</label>
+					<label for="user_name">{{.locale.Tr "username"}}</label>
 					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
-					<label>{{.i18n.Tr "admin.users.auth_source"}}</label>
+					<label>{{.locale.Tr "admin.users.auth_source"}}</label>
 					<div class="ui selection type dropdown">
 						<input type="hidden" id="login_type" name="login_type" value="{{.LoginSource.Type.Int}}-{{.LoginSource.ID}}" required>
-						<div class="text">{{.i18n.Tr "admin.users.local"}}</div>
+						<div class="text">{{.locale.Tr "admin.users.local"}}</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
-							<div class="item" data-value="0-0">{{.i18n.Tr "admin.users.local"}}</div>
+							<div class="item" data-value="0-0">{{.locale.Tr "admin.users.local"}}</div>
 							{{range .Sources}}
 								<div class="item" data-value="{{.Type.Int}}-{{.ID}}">{{.Name}}</div>
 							{{end}}
@@ -31,25 +31,25 @@
 				</div>
 
 				<div class="inline field {{if .Err_Visibility}}error{{end}}">
-					<span class="inline required field"><label for="visibility">{{.i18n.Tr "settings.visibility"}}</label></span>
+					<span class="inline required field"><label for="visibility">{{.locale.Tr "settings.visibility"}}</label></span>
 					<div class="ui selection type dropdown">
 						{{if .User.Visibility.IsPublic}}<input type="hidden" id="visibility" name="visibility" value="0">{{end}}
 						{{if .User.Visibility.IsLimited}}<input type="hidden" id="visibility" name="visibility" value="1">{{end}}
 						{{if .User.Visibility.IsPrivate}}<input type="hidden" id="visibility" name="visibility" value="2">{{end}}
 						<div class="text">
-							{{if .User.Visibility.IsPublic}}{{.i18n.Tr "settings.visibility.public"}}{{end}}
-							{{if .User.Visibility.IsLimited}}{{.i18n.Tr "settings.visibility.limited"}}{{end}}
-							{{if .User.Visibility.IsPrivate}}{{.i18n.Tr "settings.visibility.private"}}{{end}}
+							{{if .User.Visibility.IsPublic}}{{.locale.Tr "settings.visibility.public"}}{{end}}
+							{{if .User.Visibility.IsLimited}}{{.locale.Tr "settings.visibility.limited"}}{{end}}
+							{{if .User.Visibility.IsPrivate}}{{.locale.Tr "settings.visibility.private"}}{{end}}
 						</div>
 						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						<div class="menu">
 							{{range $mode := .AllowedUserVisibilityModes}}
 								{{if $mode.IsPublic}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.i18n.Tr "settings.visibility.public"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.public_tooltip"}}" data-value="0">{{$.locale.Tr "settings.visibility.public"}}</div>
 								{{else if $mode.IsLimited}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.i18n.Tr "settings.visibility.limited"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.limited_tooltip"}}" data-value="1">{{$.locale.Tr "settings.visibility.limited"}}</div>
 								{{else if $mode.IsPrivate}}
-									<div class="item tooltip" data-content="{{$.i18n.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.i18n.Tr "settings.visibility.private"}}</div>
+									<div class="item tooltip" data-content="{{$.locale.Tr "settings.visibility.private_tooltip"}}" data-value="2">{{$.locale.Tr "settings.visibility.private"}}</div>
 								{{end}}
 							{{end}}
 						</div>
@@ -57,81 +57,81 @@
 				</div>
 
 				<div class="required non-local field {{if .Err_LoginName}}error{{end}} {{if eq .User.LoginSource 0}}hide{{end}}">
-					<label for="login_name">{{.i18n.Tr "admin.users.auth_login_name"}}</label>
+					<label for="login_name">{{.locale.Tr "admin.users.auth_login_name"}}</label>
 					<input id="login_name" name="login_name" value="{{.User.LoginName}}" autofocus>
 				</div>
 				<div class="field {{if .Err_FullName}}error{{end}}">
-					<label for="full_name">{{.i18n.Tr "settings.full_name"}}</label>
+					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.User.FullName}}">
 				</div>
 				<div class="required field {{if .Err_Email}}error{{end}}">
-					<label for="email">{{.i18n.Tr "email"}}</label>
+					<label for="email">{{.locale.Tr "email"}}</label>
 					<input id="email" name="email" type="email" value="{{.User.Email}}" autofocus required>
 				</div>
 				<div class="local field {{if .Err_Password}}error{{end}} {{if not (or (.User.IsLocal) (.User.IsOAuth2))}}hide{{end}}">
-					<label for="password">{{.i18n.Tr "password"}}</label>
+					<label for="password">{{.locale.Tr "password"}}</label>
 					<input id="password" name="password" type="password" autocomplete="new-password">
-					<p class="help">{{.i18n.Tr "admin.users.password_helper"}}</p>
+					<p class="help">{{.locale.Tr "admin.users.password_helper"}}</p>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
-					<label for="website">{{.i18n.Tr "settings.website"}}</label>
+					<label for="website">{{.locale.Tr "settings.website"}}</label>
 					<input id="website" name="website" type="url" value="{{.User.Website}}" placeholder="e.g. http://mydomain.com or https://mydomain.com">
 				</div>
 				<div class="field {{if .Err_Location}}error{{end}}">
-					<label for="location">{{.i18n.Tr "settings.location"}}</label>
+					<label for="location">{{.locale.Tr "settings.location"}}</label>
 					<input id="location" name="location" value="{{.User.Location}}">
 				</div>
 
 				<div class="ui divider"></div>
 
 				<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-					<label for="max_repo_creation">{{.i18n.Tr "admin.users.max_repo_creation"}}</label>
+					<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
 					<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.User.MaxRepoCreation}}">
-					<p class="help">{{.i18n.Tr "admin.users.max_repo_creation_desc"}}</p>
+					<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 				</div>
 
 				<div class="ui divider"></div>
 
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.is_activated"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.is_activated"}}</strong></label>
 						<input name="active" type="checkbox" {{if .User.IsActive}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.prohibit_login"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.prohibit_login"}}</strong></label>
 						<input name="prohibit_login" type="checkbox" {{if .User.ProhibitLogin}}checked{{end}} {{if (eq .User.ID .SignedUserID)}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.is_admin"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.is_admin"}}</strong></label>
 						<input name="admin" type="checkbox" {{if .User.IsAdmin}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.is_restricted"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.is_restricted"}}</strong></label>
 						<input name="restricted" type="checkbox" {{if .User.IsRestricted}}checked{{end}}>
 					</div>
 				</div>
 				<div class="inline field"{{if DisableGitHooks}} hidden{{end}}>
-					<div class="ui checkbox tooltip" data-content="{{.i18n.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
-						<label><strong>{{.i18n.Tr "admin.users.allow_git_hook"}}</strong></label>
+					<div class="ui checkbox tooltip" data-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
+						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
 				</div>
 				<div class="inline field" {{if or (DisableImportLocal) (.DisableMigrations)}}hidden{{end}}>
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.allow_import_local"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.allow_import_local"}}</strong></label>
 						<input name="allow_import_local" type="checkbox" {{if .User.CanImportLocal}}checked{{end}} {{if DisableImportLocal}}disabled{{end}}>
 					</div>
 				</div>
 				{{if not .DisableRegularOrgCreation}}
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.allow_create_organization"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.allow_create_organization"}}</strong></label>
 						<input name="allow_create_organization" type="checkbox" {{if .User.CanCreateOrganization}}checked{{end}}>
 					</div>
 				</div>
@@ -141,7 +141,7 @@
 				<div class="ui divider"></div>
 				<div class="inline field">
 					<div class="ui checkbox">
-						<label><strong>{{.i18n.Tr "admin.users.reset_2fa"}}</strong></label>
+						<label><strong>{{.locale.Tr "admin.users.reset_2fa"}}</strong></label>
 						<input name="reset_2fa" type="checkbox">
 					</div>
 				</div>
@@ -150,14 +150,14 @@
 				<div class="ui divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{.i18n.Tr "admin.users.update_profile"}}</button>
-					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.i18n.Tr "admin.users.delete_account"}}</div>
+					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
+					<div class="ui red button show-modal" data-modal="#delete-user-modal" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.locale.Tr "admin.users.delete_account"}}</div>
 				</div>
 			</form>
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.avatar"}}
+			{{.locale.Tr "settings.avatar"}}
 		</h4>
 		<div class="ui attached segment">
 			<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
@@ -166,11 +166,11 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="lookup" type="radio" {{if not .User.UseCustomAvatar}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.lookup_avatar_by_mail"}}</label>
+						<label>{{.locale.Tr "settings.lookup_avatar_by_mail"}}</label>
 					</div>
 				</div>
 				<div class="field {{if .Err_Gravatar}}error{{end}}">
-					<label for="gravatar">Avatar {{.i18n.Tr "email"}}</label>
+					<label for="gravatar">Avatar {{.locale.Tr "email"}}</label>
 					<input id="gravatar" name="gravatar" value="{{.User.AvatarEmail}}" />
 				</div>
 				{{end}}
@@ -178,32 +178,43 @@
 				<div class="inline field">
 					<div class="ui radio checkbox">
 						<input name="source" value="local" type="radio" {{if .User.UseCustomAvatar}}checked{{end}}>
-						<label>{{.i18n.Tr "settings.enable_custom_avatar"}}</label>
+						<label>{{.locale.Tr "settings.enable_custom_avatar"}}</label>
 					</div>
 				</div>
 
 				<div class="inline field">
-					<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+					<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 					<input name="avatar" type="file" >
 				</div>
 
 				<div class="field">
-					<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
-					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+					<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
+					<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
 				</div>
 			</form>
 		</div>
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
+<div class="ui small basic delete modal" id="delete-user-modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.delete_account_title"}}
+		{{.locale.Tr "settings.delete_account_title"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.delete_account_desc"}}</p>
+		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	<form class="ui form" method="POST" action="{{.Link}}/delete">
+		{{$.CsrfTokenHtml}}
+		<input type="hidden" name="id">
+		<div class="field">
+			<div class="ui checkbox">
+				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
+				<input name="purge" type="checkbox">
+			</div>
+			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
+		</div>
+		{{template "base/delete_modal_actions" .}}
+	</form>
 </div>
 {{template "base/footer" .}}

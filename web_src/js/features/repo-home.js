@@ -30,7 +30,7 @@ export function initRepoTopicBar() {
   saveBtn.on('click', () => {
     const topics = $('input[name=topics]').val();
 
-    $.post(saveBtn.data('link'), {
+    $.post(saveBtn.attr('data-link'), {
       _csrf: csrfToken,
       topics
     }, (_data, _textStatus, xhr) => {
@@ -84,8 +84,6 @@ export function initRepoTopicBar() {
       transition: 'horizontal flip',
       duration: 200,
       variation: false,
-      blue: true,
-      basic: true,
     },
     className: {
       label: 'ui small label'

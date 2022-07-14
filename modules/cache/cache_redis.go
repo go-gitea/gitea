@@ -153,6 +153,11 @@ func (c *RedisCacher) StartAndGC(opts cache.Options) error {
 	return c.c.Ping(graceful.GetManager().HammerContext()).Err()
 }
 
+// Ping tests if the cache is alive.
+func (c *RedisCacher) Ping() error {
+	return c.c.Ping(graceful.GetManager().HammerContext()).Err()
+}
+
 func init() {
 	cache.Register("redis", &RedisCacher{})
 }

@@ -8,6 +8,7 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -104,6 +105,38 @@ type RunOpts struct {
 	PipelineFunc   func(context.Context, context.CancelFunc) error
 }
 
+func commonBaseEnvs() []string {
+	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
+	envs := []string{
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+	}
+
+	// some environment variables should be passed to git command
+	passThroughEnvKeys := []string{
+		"GNUPGHOME", // git may call gnupg to do commit signing
+	}
+	for _, key := range passThroughEnvKeys {
+		if val, ok := os.LookupEnv(key); ok {
+			envs = append(envs, key+"="+val)
+		}
+	}
+	return envs
+}
+
+// CommonGitCmdEnvs returns the common environment variables for a "git" command.
+func CommonGitCmdEnvs() []string {
+	return append(commonBaseEnvs(), []string{
+		"LC_ALL=" + DefaultLocale,
+		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
+	}...)
+}
+
+// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+func CommonCmdServEnvs() []string {
+	return commonBaseEnvs()
+}
+
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
 	if opts == nil {
@@ -148,15 +181,8 @@ func (c *Command) Run(opts *RunOpts) error {
 		cmd.Env = opts.Env
 	}
 
-	cmd.Env = append(
-		cmd.Env,
-		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		// avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_TERMINAL_PROMPT=0",
-		// ignore replace references (https://git-scm.com/docs/git-replace)
-		"GIT_NO_REPLACE_OBJECTS=1",
-	)
-
+	process.SetSysProcAttribute(cmd)
+	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
 	cmd.Dir = opts.Dir
 	cmd.Stdout = opts.Stdout
 	cmd.Stderr = opts.Stderr
@@ -183,7 +209,9 @@ func (c *Command) Run(opts *RunOpts) error {
 
 type RunStdError interface {
 	error
+	Unwrap() error
 	Stderr() string
+	IsExitCode(code int) bool
 }
 
 type runStdError struct {
@@ -206,6 +234,14 @@ func (r *runStdError) Unwrap() error {
 
 func (r *runStdError) Stderr() string {
 	return r.stderr
+}
+
+func (r *runStdError) IsExitCode(code int) bool {
+	var exitError *exec.ExitError
+	if errors.As(r.err, &exitError) {
+		return exitError.ExitCode() == code
+	}
+	return false
 }
 
 func bytesToString(b []byte) string {

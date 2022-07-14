@@ -4,34 +4,34 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.edit_oauth2_application"}}
+			{{.locale.Tr "settings.edit_oauth2_application"}}
 		</h4>
 		<div class="ui attached segment">
-			<p>{{.i18n.Tr "settings.oauth2_application_create_description"}}</p>
+			<p>{{.locale.Tr "settings.oauth2_application_create_description"}}</p>
 		</div>
 		<div class="ui attached segment form ignore-dirty">
 			{{.CsrfTokenHtml}}
 			<div class="field">
-				<label for="client-id">{{.i18n.Tr "settings.oauth2_client_id"}}</label>
+				<label for="client-id">{{.locale.Tr "settings.oauth2_client_id"}}</label>
 				<input id="client-id" readonly value="{{.App.ClientID}}">
 			</div>
 			{{if .ClientSecret}}
 				<div class="field">
-					<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
+					<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
 					<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
 				</div>
 			{{else}}
 				<div class="field">
-					<label for="client-secret">{{.i18n.Tr "settings.oauth2_client_secret"}}</label>
+					<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
 					<input id="client-secret" type="password" readonly value="averysecuresecret">
 				</div>
 			{{end}}
 			<div class="item">
 				<!-- TODO add regenerate secret functionality */ -->
-				{{.i18n.Tr "settings.oauth2_regenerate_secret_hint"}}
+				{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
 				<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}/regenerate_secret" method="post">
 					{{.CsrfTokenHtml}}
-					<a href="#" onclick="event.target.parentNode.submit()">{{.i18n.Tr "settings.oauth2_regenerate_secret"}}</a>
+					<a href="#" onclick="event.target.parentNode.submit()">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</a>
 				</form>
 			</div>
 		</div>
@@ -39,15 +39,15 @@
 			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_AppName}}error{{end}}">
-					<label for="application-name">{{.i18n.Tr "settings.oauth2_application_name"}}</label>
+					<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
 					<input id="application-name" value="{{.App.Name}}" name="application_name" required>
 				</div>
 				<div class="field {{if .Err_RedirectURI}}error{{end}}">
-					<label for="redirect-uri">{{.i18n.Tr "settings.oauth2_redirect_uri"}}</label>
+					<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
 					<input type="url" name="redirect_uri" value="{{.App.PrimaryRedirectURI}}" id="redirect-uri">
 				</div>
 				<button class="ui green button">
-					{{.i18n.Tr "settings.save_application"}}
+					{{.locale.Tr "settings.save_application"}}
 				</button>
 			</form>
 		</div>
@@ -57,10 +57,10 @@
 <div class="ui small basic delete modal" id="delete-oauth2-application">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.remove_oauth2_application"}}
+		{{.locale.Tr "settings.remove_oauth2_application"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.remove_oauth2_application_desc"}}</p>
+		<p>{{.locale.Tr "settings.remove_oauth2_application_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

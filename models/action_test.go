@@ -211,3 +211,63 @@ func TestNotifyWatchers(t *testing.T) {
 		OpType:    action.OpType,
 	})
 }
+
+func TestGetFeedsCorrupted(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ID:     8,
+		RepoID: 1700,
+	})
+
+	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedUser:  user,
+		Actor:          user,
+		IncludePrivate: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 0)
+}
+
+func TestConsistencyUpdateAction(t *testing.T) {
+	if !setting.Database.UseSQLite3 {
+		t.Skip("Test is only for SQLite database.")
+	}
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	id := 8
+	unittest.AssertExistsAndLoadBean(t, &Action{
+		ID: int64(id),
+	})
+	_, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = "" WHERE id = ?`, id)
+	assert.NoError(t, err)
+	actions := make([]*Action, 0, 1)
+	//
+	// XORM returns an error when created_unix is a string
+	//
+	err = db.GetEngine(db.DefaultContext).Where("id = ?", id).Find(&actions)
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "type string to a int64: invalid syntax")
+	}
+	//
+	// Get rid of incorrectly set created_unix
+	//
+	count, err := CountActionCreatedUnixString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
+	count, err = FixActionCreatedUnixString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 1, count)
+
+	count, err = CountActionCreatedUnixString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
+	count, err = FixActionCreatedUnixString()
+	assert.NoError(t, err)
+	assert.EqualValues(t, 0, count)
+
+	//
+	// XORM must be happy now
+	//
+	assert.NoError(t, db.GetEngine(db.DefaultContext).Where("id = ?", id).Find(&actions))
+	unittest.CheckConsistencyFor(t, &Action{})
+}

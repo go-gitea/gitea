@@ -83,21 +83,13 @@
       .checklist {
         padding-left: 5px;
 
-        .progress-bar {
+        progress {
           margin-left: 2px;
           width: 80px;
           height: 6px;
           display: inline-block;
-          background-color: var(--color-secondary);
-          overflow: hidden;
           border-radius: 3px;
           vertical-align: 2px !important;
-
-          .progress {
-            background-color: var(--color-secondary-dark-3);
-            display: block;
-            height: 100%;
-          }
         }
       }
 
@@ -124,6 +116,23 @@
       .overdue {
         color: var(--color-red);
       }
+    }
+  }
+
+  .branches {
+    display: inline-flex;
+    padding: 0 6px;
+
+    .branch {
+      background-color: var(--color-secondary);
+      border-radius: 3px;
+    }
+
+    .truncated-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 10em;
     }
   }
 

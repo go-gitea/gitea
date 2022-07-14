@@ -4,6 +4,71 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-07-12
+
+* SECURITY
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Check for permission when fetching user controlled issues (#20133) (#20196)
+* BUGFIXES
+  * Hide notify mail setting ui if not enabled (#20138) (#20337)
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Only show Followers that current user can access (#20220) (#20253)
+  * Release page show all tags in compare dropdown (#20070) (#20071)
+  * Fix permission check for delete tag (#19985) (#20001)
+  * Only log non ErrNotExist errors in git.GetNote  (#19884) (#19905)
+  * Use exact search instead of fuzzy search for branch filter dropdown (#19885) (#19893)
+  * Set Setpgid on child git processes (#19865) (#19881)
+  * Import git from alpine 3.16 repository as 2.30.4 is needed for `safe.directory = '*'` to work but alpine 3.13 has 2.30.3 (#19876)
+  * Ensure responses are context.ResponseWriters (#19843) (#19859)
+  * Fix incorrect usage of `Count` function (#19850)
+  * Fix raw endpoint PDF file headers (#19825) (#19826)
+  * Make WIP prefixes case insensitive, e.g. allow `Draft` as a WIP prefix (#19780) (#19811)
+  * Don't return 500 on NotificationUnreadCount (#19802)
+  * Prevent NPE when cache service is disabled (#19703) (#19783)
+  * Detect truncated utf-8 characters at the end of content as still representing utf-8 (#19773) (#19774)
+  * Fix doctor pq: syntax error at or near "." quote user table name (#19765) (#19770)
+  * Fix bug with assigneees (#19757)
+
+## [1.16.8](https://github.com/go-gitea/gitea/releases/tag/v1.16.8) - 2022-05-16
+
+* ENHANCEMENTS
+  * Add doctor check/fix for bogus action rows (#19656) (#19669)
+  * Make .cs highlighting legible on dark themes. (#19604) (#19605)
+* BUGFIXES
+  * Fix oauth setting list bug (#19681)
+  * Delete user related oauth stuff on user deletion too (#19677) (#19680)
+  * Fix new release from tags list UI (#19670) (#19673)
+  * Prevent NPE when checking repo units if the user is nil (#19625) (#19630)
+  * GetFeeds must always discard actions with dangling repo_id (#19598) (#19629)
+  * Call MultipartForm.RemoveAll when request finishes (#19606) (#19607)
+  * Avoid MoreThanOne error when creating a branch whose name conflicts with other ref names (#19557) (#19591)
+  * Fix sending empty notifications (#19589) (#19590)
+  * Ignore DNS error when doing migration allow/block check (#19566) (#19567)
+  * Fix issue overview for teams (#19652) (#19653)
+
+## [1.16.7](https://github.com/go-gitea/gitea/releases/tag/v1.16.7) - 2022-05-02
+
+* SECURITY
+  * Escape git fetch remote (#19487) (#19490)
+* BUGFIXES
+  * Don't overwrite err with nil (#19572) (#19574)
+  * On Migrations, only write commit-graph if wiki clone was successful (#19563) (#19568)
+  * Respect DefaultUserIsRestricted system default when creating new user (#19310) (#19560)
+  * Don't error when branch's commit doesn't exist (#19547) (#19548)
+  * Support `hostname:port` to pass host matcher's check (#19543) (#19544)
+  * Prevent intermittent race in attribute reader close (#19537) (#19539)
+  * Fix 64-bit atomic operations on 32-bit machines (#19531) (#19532)
+  * Prevent dangling archiver goroutine (#19516) (#19526)
+  * Fix migrate release from github (#19510) (#19523)
+  * When view _Siderbar or _Footer, just display once (#19501) (#19522)
+  * Fix blame page select range error and some typos (#19503)
+  * Fix name of doctor fix "authorized-keys" in hints (#19464) (#19484)
+  * User specific repoID or xorm builder conditions for issue search (#19475) (#19476)
+  * Prevent dangling cat-file calls (goroutine alternative) (#19454) (#19466)
+  * RepoAssignment ensure to close before overwrite (#19449) (#19460)
+  * Set correct PR status on 3way on conflict checking (#19457) (#19458)
+  * Mark TemplateLoading error as "UnprocessableEntity" (#19445) (#19446)
+
 ## [1.16.6](https://github.com/go-gitea/gitea/releases/tag/v1.16.6) - 2022-04-20
 
 * ENHANCEMENTS

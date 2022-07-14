@@ -1,14 +1,14 @@
 import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initCompImagePaste, initEasyMDEImagePaste} from './comp/ImagePaste.js';
+import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
   initRepoIssueComments, initRepoIssueDependencyDelete,
   initRepoIssueReferenceIssue, initRepoIssueStatusButton,
   initRepoIssueTitleEdit,
-  initRepoIssueWipToggle, initRepoPullRequestMerge, initRepoPullRequestUpdate,
+  initRepoIssueWipToggle, initRepoPullRequestUpdate,
   updateIssuesMeta,
 } from './repo-issue.js';
 import {initUnicodeEscapeButton} from './repo-unicode-escape.js';
@@ -28,11 +28,13 @@ import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoSettingBranches} from './repo-settings.js';
+import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
 
 export function initRepoCommentForm() {
-  if ($('.comment.form').length === 0) {
+  const $commentForm = $('.comment.form');
+  if ($commentForm.length === 0) {
     return;
   }
 
@@ -66,12 +68,13 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
-    await createCommentEasyMDE($('.comment.form textarea:not(.review-textarea)'));
-    initCompImagePaste($('.comment.form'));
+    const $textarea = $commentForm.find('textarea:not(.review-textarea)');
+    const easyMDE = await createCommentEasyMDE($textarea);
+    initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
   })();
 
   initBranchSelector();
-  initCompMarkupContentPreviewTab($('.comment.form'));
+  initCompMarkupContentPreviewTab($commentForm);
 
   // List submits
   function initListSubmits(selector, outerSelector) {
@@ -299,6 +302,7 @@ async function onEditContent(event) {
         thumbnailHeight: 480,
         init() {
           this.on('success', (file, data) => {
+            file.uuid = data.uuid;
             fileUuidDict[file.uuid] = {submitted: false};
             const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
             $dropzone.find('.files').append(input);
@@ -350,9 +354,12 @@ async function onEditContent(event) {
     easyMDE = await createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
-    if ($dropzone.length === 1) {
-      initEasyMDEImagePaste(easyMDE, $dropzone[0], $dropzone.find('.files'));
-    }
+    initEasyMDEImagePaste(easyMDE, $dropzone);
+
+    const $saveButton = $editContentZone.find('.save.button');
+    $textarea.on('ce-quick-submit', () => {
+      $saveButton.trigger('click');
+    });
 
     $editContentZone.find('.cancel.button').on('click', () => {
       $renderContent.show();
@@ -361,7 +368,8 @@ async function onEditContent(event) {
         dz.emit('reload');
       }
     });
-    $editContentZone.find('.save.button').on('click', () => {
+
+    $saveButton.on('click', () => {
       $renderContent.show();
       $editContentZone.hide();
       const $attachments = $dropzone.find('.files').find('[name=files]').map(function () {
@@ -399,7 +407,7 @@ async function onEditContent(event) {
         initCommentContent();
       });
     });
-  } else {
+  } else { // use existing form
     $textarea = $segment.find('textarea');
     easyMDE = getAttachedEasyMDE($textarea);
   }
@@ -455,6 +463,11 @@ export function initRepository() {
         if (typeof $(this).data('context') !== 'undefined') $($(this).data('context')).addClass('disabled');
       }
     });
+    const $trackerIssueStyleRadios = $('.js-tracker-issue-style');
+    $trackerIssueStyleRadios.on('change input', () => {
+      const checkedVal = $trackerIssueStyleRadios.filter(':checked').val();
+      $('#tracker-issue-style-regex-box').toggleClass('disabled', checkedVal !== 'regexp');
+    });
   }
 
   // Labels
@@ -507,9 +520,10 @@ export function initRepository() {
     initRepoIssueDependencyDelete();
     initRepoIssueCodeCommentCancel();
     initRepoIssueStatusButton();
-    initRepoPullRequestMerge();
     initRepoPullRequestUpdate();
     initCompReactionSelector();
+
+    initRepoPullRequestMergeForm();
   }
 
   // Pull request

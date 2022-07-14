@@ -7,11 +7,11 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -58,6 +58,23 @@ func ListPackages(ctx *context.Context) {
 		return
 	}
 
+	repositoryAccessMap := make(map[int64]bool)
+	for _, pd := range pds {
+		if pd.Repository == nil {
+			continue
+		}
+		if _, has := repositoryAccessMap[pd.Repository.ID]; has {
+			continue
+		}
+
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
+	}
+
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
 	if err != nil {
 		ctx.ServerError("HasOwnerPackages", err)
@@ -72,6 +89,7 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
+	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")
@@ -156,6 +174,17 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["TotalVersionCount"] = total
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	hasRepositoryAccess := false
+	if pd.Repository != nil {
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		hasRepositoryAccess = permission.HasAccess()
+	}
+	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
@@ -258,7 +287,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})

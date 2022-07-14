@@ -21,6 +21,7 @@ import {initMarkupAnchors} from './markup/anchors.js';
 import {initNotificationCount, initNotificationsTable} from './features/notification.js';
 import {initRepoIssueContentHistory} from './features/repo-issue-content.js';
 import {initStopwatch} from './features/stopwatch.js';
+import {initFindFileInRepo} from './features/repo-findfile.js';
 import {initCommentContent, initMarkupContent} from './markup/content.js';
 
 import {initUserAuthLinkAccountView, initUserAuthOauth2} from './features/user-auth.js';
@@ -36,6 +37,7 @@ import {
   initRepoIssueTimeTracking,
   initRepoIssueWipTitle,
   initRepoPullRequestMergeInstruction,
+  initRepoPullRequestAllowMaintainerEdit,
   initRepoPullRequestReview,
 } from './features/repo-issue.js';
 import {
@@ -54,6 +56,7 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
+  initGlobalPopups,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin-emails.js';
@@ -69,6 +72,7 @@ import {
   initRepoSettingsCollaboration,
   initRepoSettingSearchTeamBox,
 } from './features/repo-settings.js';
+import {initViewedCheckboxListenerFor} from './features/pull-view-file.js';
 import {initOrgTeamSearchRepoBox, initOrgTeamSettings} from './features/org-team.js';
 import {initUserAuthWebAuthn, initUserAuthWebAuthnRegister} from './features/user-auth-webauthn.js';
 import {initRepoRelease, initRepoReleaseEditor} from './features/repo-release.js';
@@ -81,6 +85,11 @@ import {initRepoBranchButton} from './features/repo-branch.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
+import {initFormattingReplacements} from './features/formatting.js';
+
+// Run time-critical code as soon as possible. This is safe to do because this
+// script appears at the end of <body> and rendered HTML is accessible at that point.
+initFormattingReplacements();
 
 // Silence fomantic's error logging when tabs are used without a target content element
 $.fn.tab.settings.silent = true;
@@ -91,6 +100,7 @@ initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
+  initGlobalPopups();
   initGlobalButtonClickOnEnter();
   initGlobalButtons();
   initGlobalCopyToClipboardListener();
@@ -122,6 +132,7 @@ $(document).ready(() => {
   initSshKeyFormParser();
   initStopwatch();
   initTableSort();
+  initFindFileInRepo();
 
   initAdminCommon();
   initAdminEmails();
@@ -158,6 +169,7 @@ $(document).ready(() => {
   initRepoMigrationStatusChecker();
   initRepoProject();
   initRepoPullRequestMergeInstruction();
+  initRepoPullRequestAllowMaintainerEdit();
   initRepoPullRequestReview();
   initRepoRelease();
   initRepoReleaseEditor();
@@ -176,6 +188,6 @@ $(document).ready(() => {
   initUserAuthWebAuthn();
   initUserAuthWebAuthnRegister();
   initUserSettings();
-
+  initViewedCheckboxListenerFor();
   checkAppUrl();
 });

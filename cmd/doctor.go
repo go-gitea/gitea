@@ -24,8 +24,8 @@ import (
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
+	Usage:       "Diagnose and optionally fix problems",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Action:      runDoctor,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -203,7 +203,7 @@ func runDoctor(ctx *cli.Context) error {
 
 	// Now we can set up our own logger to return information about what the doctor is doing
 	if err := log.NewNamedLogger("doctorouter",
-		1000,
+		0,
 		"console",
 		"console",
 		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {

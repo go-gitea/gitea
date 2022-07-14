@@ -54,7 +54,7 @@ func CreateReaderAndDetermineDelimiter(ctx *markup.RenderContext, rd io.Reader) 
 func determineDelimiter(ctx *markup.RenderContext, data []byte) rune {
 	extension := ".csv"
 	if ctx != nil {
-		extension = strings.ToLower(filepath.Ext(ctx.Filename))
+		extension = strings.ToLower(filepath.Ext(ctx.RelativePath))
 	}
 
 	var delimiter rune

@@ -75,6 +75,16 @@ type Context struct {
 	Package     *Package
 }
 
+// Close frees all resources hold by Context
+func (ctx *Context) Close() error {
+	var err error
+	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
+		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+	}
+	// TODO: close opened repo, and more
+	return err
+}
+
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
 // This is useful if the locale message is intended to only produce HTML content.
 func (ctx *Context) TrHTMLEscapeArgs(msg string, args ...string) string {
@@ -693,6 +703,8 @@ func Contexter() func(next http.Handler) http.Handler {
 					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			defer ctx.Close()
+
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
@@ -782,7 +794,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
-			ctx.Data["i18n"] = locale
+			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
