@@ -13,6 +13,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Adjust max-widths for the repository file table (#20243) (#20247)
   * Display full name (#20171) (#20246)
 * BUGFIXES
+  * Prevent context deadline error propagation in GetCommitsInfo (#20346) (#20361)
   * Correctly handle draft releases without a tag (#20314) (#20335)
   * Add write check for creating Commit status (#20332) (#20333)
   * Prevent "empty" scrollbars on Firefox (#20294) (#20308)
