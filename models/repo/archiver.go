@@ -112,5 +112,5 @@ func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
 func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 	repo.IsArchived = isArchived
 	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
-	return
+	return err
 }

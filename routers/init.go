@@ -6,10 +6,8 @@ package routers
 
 import (
 	"context"
-	"net"
 	"reflect"
 	"runtime"
-	"strconv"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -158,14 +156,8 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, syncAppPathForGit)
 
-	if setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
-			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
-			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-	} else {
-		ssh.Unused()
-	}
+	mustInit(ssh.Init)
+
 	auth.Init()
 	svg.Init()
 }

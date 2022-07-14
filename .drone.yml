@@ -19,7 +19,7 @@ volumes:
 
 steps:
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -34,7 +34,7 @@ steps:
         path: /go
 
   - name: lint-frontend
-    image: node:16
+    image: node:18
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -82,7 +82,7 @@ steps:
         path: /go
 
   - name: checks-frontend
-    image: node:16
+    image: node:18
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -97,13 +97,13 @@ steps:
         path: /go
 
   - name: test-frontend
-    image: node:16
+    image: node:18
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:16
+    image: node:18
     commands:
       - make frontend
     depends_on: [test-frontend]
@@ -634,7 +634,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -652,6 +652,7 @@ steps:
     image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -753,7 +754,7 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -771,6 +772,7 @@ steps:
     image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release

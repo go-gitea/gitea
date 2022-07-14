@@ -19,6 +19,6 @@
 		document.getElementById('repo-clone-url').value = btn ? btn.getAttribute('data-link') : '';
 	})();
 </script>
-<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
+<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
 	{{svg "octicon-paste"}}
 </button>

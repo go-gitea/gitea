@@ -34,7 +34,7 @@ func Processes(ctx *context.PrivateContext) {
 
 	var processes []*process_module.Process
 	goroutineCount := int64(0)
-	processCount := 0
+	var processCount int
 	var err error
 	if stacktraces {
 		processes, processCount, goroutineCount, err = process_module.GetManager().ProcessStacktraces(flat, noSystem)

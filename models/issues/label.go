@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -107,6 +108,7 @@ func (label *Label) CalOpenOrgIssues(repoID, labelID int64) {
 	counts, _ := CountIssuesByRepo(&IssuesOptions{
 		RepoID:   repoID,
 		LabelIDs: []int64{labelID},
+		IsClosed: util.OptionalBoolFalse,
 	})
 
 	for _, count := range counts {
@@ -733,7 +735,7 @@ func DeleteLabelsByRepoID(ctx context.Context, repoID int64) error {
 
 // CountOrphanedLabels return count of labels witch are broken and not accessible via ui anymore
 func CountOrphanedLabels() (int64, error) {
-	noref, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count("label.id")
+	noref, err := db.GetEngine(db.DefaultContext).Table("label").Where("repo_id=? AND org_id=?", 0, 0).Count()
 	if err != nil {
 		return 0, err
 	}

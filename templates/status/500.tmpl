@@ -4,10 +4,10 @@
 	<div class="ui divider"></div>
 	<br>
 	{{if .ErrorMsg}}
-		<p>{{.i18n.Tr "error.occurred"}}:</p>
+		<p>{{.locale.Tr "error.occurred"}}:</p>
 		<pre style="text-align: left">{{.ErrorMsg}}</pre>
 	{{end}}
-	{{if .ShowFooterVersion}}<p>{{.i18n.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
-	{{if .IsAdmin}}<p>{{.i18n.Tr "error.report_message"  | Safe}}</p>{{end}}
+	{{if .ShowFooterVersion}}<p>{{.locale.Tr "admin.config.app_ver"}}: {{AppVer}}</p>{{end}}
+	{{if .IsAdmin}}<p>{{.locale.Tr "error.report_message"  | Safe}}</p>{{end}}
 </div>
 {{template "base/footer" .}}

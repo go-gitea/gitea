@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
+	"github.com/felixge/fgprof"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -145,6 +146,7 @@ func runWeb(ctx *cli.Context) error {
 
 	if setting.EnablePprof {
 		go func() {
+			http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
 			_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
 			log.Info("Starting pprof server on localhost:6060")
 			log.Info("%v", http.ListenAndServe("localhost:6060", nil))

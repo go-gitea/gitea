@@ -1,8 +1,22 @@
 <div class="ui container" id="navbar">
+	{{$notificationUnreadCount := 0}}
+	{{if .IsSigned}}
+		{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
+	{{end}}
 	<div class="item brand" style="justify-content: space-between;">
-		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.i18n.Tr "dashboard"}}{{else}}{{.i18n.Tr "home"}}{{end}}">
-			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.i18n.Tr "logo"}}" aria-hidden="true">
+		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
+			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
+		{{if .IsSigned}}
+		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
+			<span class="text black">
+				<span class="fitted">{{svg "octicon-bell"}}</span>
+				<span class="ui red label mini{{if not $notificationUnreadCount}} hidden{{end}} notification_count">
+					{{$notificationUnreadCount}}
+				</span>
+			</span>
+		</a>
+		{{end}}
 		<div class="ui basic icon button mobile-only" id="navbar-expand-toggle">
 			<i class="sidebar icon"></i>
 		</div>
@@ -12,19 +26,19 @@
 		{{/* No links */}}
 	{{else if .IsSigned}}
 		{{if not .UnitIssuesGlobalDisabled}}
-		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.i18n.Tr "issues"}}</a>
+		<a class="item {{if .PageIsIssues}}active{{end}}" href="{{AppSubUrl}}/issues">{{.locale.Tr "issues"}}</a>
 		{{end}}
 		{{if not .UnitPullsGlobalDisabled}}
-		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.i18n.Tr "pull_requests"}}</a>
+		<a class="item {{if .PageIsPulls}}active{{end}}" href="{{AppSubUrl}}/pulls">{{.locale.Tr "pull_requests"}}</a>
 		{{end}}
 		{{if not (and .UnitIssuesGlobalDisabled .UnitPullsGlobalDisabled)}}
-		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.i18n.Tr "milestones"}}</a>{{end}}
+		{{if .ShowMilestonesDashboardPage}}<a class="item {{if .PageIsMilestonesDashboard}}active{{end}}" href="{{AppSubUrl}}/milestones">{{.locale.Tr "milestones"}}</a>{{end}}
 		{{end}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
 	{{else if .IsLandingPageOrganizations}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.i18n.Tr "explore"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/organizations">{{.locale.Tr "explore"}}</a>
 	{{else}}
-		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.i18n.Tr "explore"}}</a>
+		<a class="item {{if .PageIsExplore}}active{{end}}" href="{{AppSubUrl}}/explore/repos">{{.locale.Tr "explore"}}</a>
 	{{end}}
 
 	{{template "custom/extra_links" .}}
@@ -32,7 +46,7 @@
 	{{/* TODO
 		<div class="item">
 		<div class="ui icon input">
-		<input class="searchbox" type="text" placeholder="{{.i18n.Tr "search_project"}}">
+		<input class="searchbox" type="text" placeholder="{{.locale.Tr "search_project"}}">
 		<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
 		</div>
 		</div>
@@ -41,22 +55,22 @@
 
 	{{if and .IsSigned .MustChangePassword}}
 		<div class="right stackable menu">
-			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
-					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
+					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
-						{{.i18n.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+						{{.locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
 						{{svg "octicon-sign-out"}}
-						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
+						{{.locale.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
@@ -69,7 +83,7 @@
 						{{svg "octicon-stopwatch"}}
 						<span class="red" style="position:absolute; right:-0.6em; top:-0.6em;">{{svg "octicon-dot-fill"}}</span>
 					</span>
-					<span class="sr-mobile-only">{{.i18n.Tr "active_stopwatch"}}</span>
+					<span class="sr-mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
 				</span>
 			</a>
 			<div class="ui popup very wide">
@@ -85,7 +99,7 @@
 						{{.CsrfTokenHtml}}
 						<button
 							class="ui button mini compact basic icon fitted tooltip"
-							data-content="{{.i18n.Tr "repo.issues.stop_tracking"}}"
+							data-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
 							data-position="top right"
 						>{{svg "octicon-square-fill"}}</button>
 					</form>
@@ -93,106 +107,103 @@
 						{{.CsrfTokenHtml}}
 						<button
 							class="ui button mini compact basic icon fitted tooltip"
-							data-content="{{.i18n.Tr "repo.issues.cancel_tracking"}}"
+							data-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right"
 						>{{svg "octicon-trash"}}</button>
 					</form>
 				</div>
 			</div>
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip" data-content='{{.i18n.Tr "notifications"}}'>
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content='{{.locale.Tr "notifications"}}'>
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
-					<span class="sr-mobile-only">{{.i18n.Tr "notifications"}}</span>
-					{{$notificationUnreadCount := 0}}
-					{{if .NotificationUnreadCount}}{{$notificationUnreadCount = call .NotificationUnreadCount}}{{end}}
 					<span class="ui red label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">
 						{{$notificationUnreadCount}}
 					</span>
 				</span>
 			</a>
 
-			<div class="ui dropdown jump item tooltip" data-content="{{.i18n.Tr "create_new"}}">
+			<div class="ui dropdown jump item tooltip" data-content="{{.locale.Tr "create_new"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-plus"}}</span>
-					<span class="sr-mobile-only">{{.i18n.Tr "create_new"}}</span>
+					<span class="sr-mobile-only">{{.locale.Tr "create_new"}}</span>
 					<span class="fitted not-mobile">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu">
 					<a class="item" href="{{AppSubUrl}}/repo/create">
-						<span class="fitted">{{svg "octicon-plus"}}</span> {{.i18n.Tr "new_repo"}}
+						<span class="fitted">{{svg "octicon-plus"}}</span> {{.locale.Tr "new_repo"}}
 					</a>
 					{{if not .DisableMigrations}}
 						<a class="item" href="{{AppSubUrl}}/repo/migrate">
-							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.i18n.Tr "new_migrate"}}
+							<span class="fitted">{{svg "octicon-repo-push"}}</span> {{.locale.Tr "new_migrate"}}
 						</a>
 					{{end}}
 					{{if .SignedUser.CanCreateOrganization}}
 					<a class="item" href="{{AppSubUrl}}/org/create">
-						<span class="fitted">{{svg "octicon-organization"}}</span> {{.i18n.Tr "new_org"}}
+						<span class="fitted">{{svg "octicon-organization"}}</span> {{.locale.Tr "new_org"}}
 					</a>
 					{{end}}
 				</div><!-- end content create new menu -->
 			</div><!-- end dropdown menu create new -->
 
-			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.i18n.Tr "user_profile_and_more"}}">
+			<div class="ui dropdown jump item tooltip" tabindex="-1" data-content="{{.locale.Tr "user_profile_and_more"}}">
 				<span class="text">
 					{{avatar .SignedUser 24 "tiny"}}
-					<span class="sr-only">{{.i18n.Tr "user_profile_and_more"}}</span>
+					<span class="sr-only">{{.locale.Tr "user_profile_and_more"}}</span>
 					<span class="mobile-only">{{.SignedUser.Name}}</span>
 					<span class="fitted not-mobile" tabindex="-1">{{svg "octicon-triangle-down"}}</span>
 				</span>
 				<div class="menu user-menu" tabindex="-1">
 					<div class="ui header">
-						{{.i18n.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
+						{{.locale.Tr "signed_in_as"}} <strong>{{.SignedUser.Name}}</strong>
 					</div>
 
 					<div class="divider"></div>
 					<a class="item" href="{{.SignedUser.HomeLink}}">
 						{{svg "octicon-person"}}
-						{{.i18n.Tr "your_profile"}}<!-- Your profile -->
+						{{.locale.Tr "your_profile"}}<!-- Your profile -->
 					</a>
 					{{if not .DisableStars}}
 						<a class="item" href="{{.SignedUser.HomeLink}}?tab=stars">
 							{{svg "octicon-star"}}
-							{{.i18n.Tr "your_starred"}}
+							{{.locale.Tr "your_starred"}}
 						</a>
 					{{end}}
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
-						{{.i18n.Tr "your_settings"}}<!-- Your settings -->
+						{{.locale.Tr "your_settings"}}<!-- Your settings -->
 					</a>
 					<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">
 						{{svg "octicon-question"}}
-						{{.i18n.Tr "help"}}<!-- Help -->
+						{{.locale.Tr "help"}}<!-- Help -->
 					</a>
 					{{if .IsAdmin}}
 						<div class="divider"></div>
 
 						<a class="{{if .PageIsAdmin}}active{{end}} item" href="{{AppSubUrl}}/admin">
 							{{svg "octicon-server"}}
-							{{.i18n.Tr "admin_panel"}}<!-- Admin Panel -->
+							{{.locale.Tr "admin_panel"}}<!-- Admin Panel -->
 						</a>
 					{{end}}
 
 					<div class="divider"></div>
 					<a class="item link-action" href data-url="{{AppSubUrl}}/user/logout" data-redirect="{{AppSubUrl}}/">
 						{{svg "octicon-sign-out"}}
-						{{.i18n.Tr "sign_out"}}<!-- Sign Out -->
+						{{.locale.Tr "sign_out"}}<!-- Sign Out -->
 					</a>
 				</div><!-- end content avatar menu -->
 			</div><!-- end dropdown avatar menu -->
 		</div><!-- end signed user right menu -->
 	{{else}}
-		<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.i18n.Tr "help"}}</a>
+		<a class="item" target="_blank" rel="noopener noreferrer" href="https://docs.gitea.io">{{.locale.Tr "help"}}</a>
 		<div class="right stackable menu">
 			{{if .ShowRegistrationButton}}
 				<a class="item{{if .PageIsSignUp}} active{{end}}" href="{{AppSubUrl}}/user/sign_up">
-					{{svg "octicon-person"}} {{.i18n.Tr "register"}}
+					{{svg "octicon-person"}} {{.locale.Tr "register"}}
 				</a>
 			{{end}}
 			<a class="item{{if .PageIsSignIn}} active{{end}}" rel="nofollow" href="{{AppSubUrl}}/user/login{{if not .PageIsSignIn}}?redirect_to={{.CurrentURL}}{{end}}">
-				{{svg "octicon-sign-in"}} {{.i18n.Tr "sign_in"}}
+				{{svg "octicon-sign-in"}} {{.locale.Tr "sign_in"}}
 			</a>
 		</div><!-- end anonymous right menu -->
 	{{end}}

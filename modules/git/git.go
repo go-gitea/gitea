@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"regexp"
 	"runtime"
 	"strings"
 	"sync"
@@ -18,7 +20,6 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-
 	"github.com/hashicorp/go-version"
 )
 
@@ -125,8 +126,8 @@ func VersionInfo() string {
 }
 
 func checkInit() error {
-	if setting.RepoRootPath == "" {
-		return errors.New("can not init Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+	if setting.Git.HomePath == "" {
+		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 	if DefaultContext != nil {
 		log.Warn("git module has been initialized already, duplicate init should be fixed")
@@ -136,14 +137,14 @@ func checkInit() error {
 
 // HomeDir is the home dir for git to store the global config file used by Gitea internally
 func HomeDir() string {
-	if setting.RepoRootPath == "" {
+	if setting.Git.HomePath == "" {
 		// strict check, make sure the git module is initialized correctly.
 		// attention: when the git module is called in gitea sub-command (serv/hook), the log module is not able to show messages to users.
 		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
-		log.Fatal("can not get Git's HomeDir (RepoRootPath is empty), the setting and git modules are not initialized correctly")
+		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
 	}
-	return setting.RepoRootPath
+	return setting.Git.HomePath
 }
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
@@ -174,9 +175,13 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 	}
 
 	initOnce.Do(func() {
-		err = InitSimple(ctx)
-		if err != nil {
+		if err = InitSimple(ctx); err != nil {
 			return
+		}
+
+		// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
+		if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
+			_ = os.Setenv("GNUPGHOME", filepath.Join(HomeDir(), ".gnupg"))
 		}
 
 		// Since git wire protocol has been released from git v2.18
@@ -205,7 +210,7 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 // syncGitConfig only modifies gitconfig, won't change global variables (otherwise there will be data-race problem)
 func syncGitConfig() (err error) {
 	if err = os.MkdirAll(HomeDir(), os.ModePerm); err != nil {
-		return fmt.Errorf("unable to create directory %s, err: %w", setting.RepoRootPath, err)
+		return fmt.Errorf("unable to prepare git home directory %s, err: %w", HomeDir(), err)
 	}
 
 	// Git requires setting user.name and user.email in order to commit changes - old comment: "if they're not set just add some defaults"
@@ -236,6 +241,9 @@ func syncGitConfig() (err error) {
 			return err
 		}
 		if err := configSet("gc.writeCommitGraph", "true"); err != nil {
+			return err
+		}
+		if err := configSet("fetch.writeCommitGraph", "true"); err != nil {
 			return err
 		}
 	}
@@ -334,7 +342,7 @@ func configSetNonExist(key, value string) error {
 }
 
 func configAddNonExist(key, value string) error {
-	_, _, err := NewCommand(DefaultContext, "config", "--fixed-value", "--get", key, value).RunStdString(nil)
+	_, _, err := NewCommand(DefaultContext, "config", "--get", key, regexp.QuoteMeta(value)).RunStdString(nil)
 	if err == nil {
 		// already exist
 		return nil
@@ -354,7 +362,7 @@ func configUnsetAll(key, value string) error {
 	_, _, err := NewCommand(DefaultContext, "config", "--get", key).RunStdString(nil)
 	if err == nil {
 		// exist, need to remove
-		_, _, err = NewCommand(DefaultContext, "config", "--global", "--fixed-value", "--unset-all", key, value).RunStdString(nil)
+		_, _, err = NewCommand(DefaultContext, "config", "--global", "--unset-all", key, regexp.QuoteMeta(value)).RunStdString(nil)
 		if err != nil {
 			return fmt.Errorf("failed to unset git global config %s, err: %w", key, err)
 		}

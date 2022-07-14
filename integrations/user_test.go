@@ -14,7 +14,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -67,7 +67,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -131,7 +131,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
@@ -245,6 +245,6 @@ func TestListStopWatches(t *testing.T) {
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
 }
