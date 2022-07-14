@@ -85,7 +85,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
 	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth realted routers
+		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
 		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
 		&auth_service.Session{},
 	)
@@ -901,7 +901,7 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, repo.UpdateIssueProject)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, bindIgnErr(forms.DismissReviewForm{}), repo.DismissReview)

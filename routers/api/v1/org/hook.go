@@ -100,7 +100,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for an organization
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/hooks/ organization orgCreateHook
+	// swagger:operation POST /orgs/{org}/hooks organization orgCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:
