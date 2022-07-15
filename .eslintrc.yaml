@@ -11,12 +11,7 @@ parserOptions:
 plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
-  - eslint-plugin-vue
-  - eslint-plugin-html
   - eslint-plugin-jquery
-
-extends:
-  - plugin:vue/recommended
 
 env:
   es2022: true
@@ -25,18 +20,11 @@ env:
 globals:
   __webpack_public_path__: true
 
-settings:
-  html/html-extensions: [".tmpl"]
-
 overrides:
-  - files: ["web_src/**/*.js", "web_src/**/*.vue", "templates/**/*.tmpl"]
+  - files: ["web_src/**/*.js", "docs/**/*.js"]
     env:
       browser: true
       node: false
-  - files: ["templates/**/*.tmpl"]
-    rules:
-      no-tabs: [0]
-      indent: [2, tab, {SwitchCase: 1}]
   - files: ["web_src/**/*worker.js"]
     env:
       worker: true
@@ -502,11 +490,6 @@ rules:
   use-isnan: [2]
   valid-typeof: [2, {requireStringLiterals: true}]
   vars-on-top: [0]
-  vue/attributes-order: [0]
-  vue/component-definition-name-casing: [0]
-  vue/html-closing-bracket-spacing: [0]
-  vue/max-attributes-per-line: [0]
-  vue/one-component-per-file: [0]
   wrap-iife: [2, inside]
   wrap-regex: [0]
   yield-star-spacing: [2, after]
