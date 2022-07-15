@@ -178,7 +178,6 @@ func initIntegrationTest() {
 	if err := git.InitOnceWithSync(context.Background()); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
-	git.CheckLFSVersion()
 
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {

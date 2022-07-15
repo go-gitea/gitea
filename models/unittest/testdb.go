@@ -123,8 +123,6 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	if err = git.InitOnceWithSync(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
-	git.CheckLFSVersion()
-
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)

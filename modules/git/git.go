@@ -167,7 +167,7 @@ func InitSimple(ctx context.Context) error {
 var initOnce sync.Once
 
 // InitOnceWithSync initializes git module with version check and change global variables, sync gitconfig.
-// This method will update the global variables ONLY ONCE (just like git.CheckLFSVersion -- which is not ideal too),
+// This method will update the global variables ONLY ONCE (just like the old git.CheckLFSVersion -- which was not ideal too),
 // otherwise there will be data-race problem at the moment.
 func InitOnceWithSync(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
@@ -200,6 +200,14 @@ func InitOnceWithSync(ctx context.Context) (err error) {
 		}
 
 		SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
+
+		if setting.LFS.StartServer {
+			if CheckGitVersionAtLeast("2.1.2") != nil {
+				err = errors.New("LFS server support requires Git >= 2.1.2")
+			} else {
+				globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+			}
+		}
 	})
 	if err != nil {
 		return err

@@ -102,8 +102,6 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, git.InitOnceWithSync)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
-
-	git.CheckLFSVersion()
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)

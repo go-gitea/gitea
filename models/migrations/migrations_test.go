@@ -70,7 +70,6 @@ func TestMain(m *testing.M) {
 		fmt.Printf("Unable to InitOnceWithSync: %v\n", err)
 		os.Exit(1)
 	}
-	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
 
