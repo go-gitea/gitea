@@ -841,9 +841,10 @@ func issueIndexPatternProcessor(ctx *RenderContext, node *html.Node) {
 
 		// Repos with external issue trackers might still need to reference local PRs
 		// We need to concern with the first one that shows up in the text, whichever it is
-		if hasExtTrackFormat && !isNumericStyle {
+		if hasExtTrackFormat && !isNumericStyle && refNumeric != nil {
 			// If numeric (PR) was found, and it was BEFORE the non-numeric pattern, use that
-			if foundNumeric && refNumeric.RefLocation.Start < ref.RefLocation.Start {
+			// Allow a free-pass when non-numeric pattern wasn't found.
+			if found && (ref == nil || refNumeric.RefLocation.Start < ref.RefLocation.Start) {
 				found = foundNumeric
 				ref = refNumeric
 			}

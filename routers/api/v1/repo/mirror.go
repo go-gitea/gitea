@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -70,7 +71,7 @@ func MirrorSync(ctx *context.APIContext) {
 		return
 	}
 
-	mirror_service.StartToMirror(repo.ID)
+	mirror_module.AddPullMirrorToQueue(repo.ID)
 
 	ctx.Status(http.StatusOK)
 }
