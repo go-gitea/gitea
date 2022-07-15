@@ -193,13 +193,14 @@ func (g *GiteaLocalUploader) prepareMilestones(milestones ...*base.Milestone) []
 		}
 
 		ms := issues_model.Milestone{
-			RepoID:       g.repo.ID,
-			Name:         milestone.Title,
-			Content:      milestone.Description,
-			IsClosed:     milestone.State == "closed",
-			CreatedUnix:  timeutil.TimeStamp(milestone.Created.Unix()),
-			UpdatedUnix:  timeutil.TimeStamp(milestone.Updated.Unix()),
-			DeadlineUnix: deadline,
+			RepoID:         g.repo.ID,
+			Name:           milestone.Title,
+			Content:        milestone.Description,
+			IsClosed:       milestone.State == "closed",
+			CreatedUnix:    timeutil.TimeStamp(milestone.Created.Unix()),
+			UpdatedUnix:    timeutil.TimeStamp(milestone.Updated.Unix()),
+			ClosedDateUnix: timeutil.TimeStamp(milestone.Closed.Unix()),
+			DeadlineUnix:   deadline,
 		}
 		if ms.IsClosed && milestone.Closed != nil {
 			ms.ClosedDateUnix = timeutil.TimeStamp(milestone.Closed.Unix())
