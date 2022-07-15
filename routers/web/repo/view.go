@@ -854,15 +854,15 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		}
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
-	}
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
 
-	ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
