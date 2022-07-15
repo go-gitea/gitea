@@ -23,8 +23,8 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// GitVersionRequired is the minimum Git version required
-const GitVersionRequired = "2.0.0"
+// RequiredVersion is the minimum Git version required
+const RequiredVersion = "2.0.0"
 
 var (
 	// GitExecutable is the command name of git
@@ -42,7 +42,7 @@ var (
 
 // loadGitVersion returns current Git version from shell. Internal usage only.
 func loadGitVersion() (*version.Version, error) {
-	// doesn't need RWMutex because its exec by Init()
+	// doesn't need RWMutex because it's executed by Init()
 	if gitVersion != nil {
 		return gitVersion, nil
 	}
@@ -89,7 +89,7 @@ func SetExecutablePath(path string) error {
 		return fmt.Errorf("unable to load git version: %w", err)
 	}
 
-	versionRequired, err := version.NewVersion(GitVersionRequired)
+	versionRequired, err := version.NewVersion(RequiredVersion)
 	if err != nil {
 		return err
 	}
@@ -103,7 +103,7 @@ func SetExecutablePath(path string) error {
 				moreHint = "get git: https://git-scm.com/download/linux and https://ius.io"
 			}
 		}
-		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), GitVersionRequired, moreHint)
+		return fmt.Errorf("installed git version %q is not supported, Gitea requires git version >= %q, %s", gitVersion.Original(), RequiredVersion, moreHint)
 	}
 
 	return nil
@@ -130,7 +130,7 @@ func checkInit() error {
 		return errors.New("unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 	}
 	if DefaultContext != nil {
-		log.Warn("git module has been initialized already, duplicate init should be fixed")
+		log.Warn("git module has been initialized already, duplicate init may work but it's better to fix it")
 	}
 	return nil
 }
@@ -139,7 +139,7 @@ func checkInit() error {
 func HomeDir() string {
 	if setting.Git.HomePath == "" {
 		// strict check, make sure the git module is initialized correctly.
-		// attention: when the git module is called in gitea sub-command (serv/hook), the log module is not able to show messages to users.
+		// attention: when the git module is called in gitea sub-command (serv/hook), the log module might not obviously show messages to users/developers.
 		// for example: if there is gitea git hook code calling git.NewCommand before git.InitXxx, the integration test won't show the real failure reasons.
 		log.Fatal("Unable to init Git's HomeDir, incorrect initialization of the setting and git modules")
 		return ""
@@ -148,8 +148,7 @@ func HomeDir() string {
 }
 
 // InitSimple initializes git module with a very simple step, no config changes, no global command arguments.
-// This method doesn't change anything to filesystem. At the moment, it is only used by "git serv" sub-command, no data-race
-// However, in integration test, the sub-command function may be called in the current process, so the InitSimple would be called multiple times, too
+// This method doesn't change anything to filesystem. At the moment, it is only used by some Gitea sub-commands.
 func InitSimple(ctx context.Context) error {
 	if err := checkInit(); err != nil {
 		return err
@@ -166,6 +165,7 @@ func InitSimple(ctx context.Context) error {
 }
 
 // InitWithSync initializes git module with version check and change global variables, sync gitconfig.
+// It should only be called at the beginning of the program initialization (TestMain/GlobalInitInstalled), otherwise there will be data-race problem.
 func InitWithSync(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
 		return err
@@ -203,9 +203,7 @@ func InitWithSync(ctx context.Context) (err error) {
 		}
 		globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
 	}
-	if err != nil {
-		return err
-	}
+
 	return syncGitConfig()
 }
 
