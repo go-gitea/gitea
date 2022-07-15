@@ -15,11 +15,11 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/hashicorp/go-version"
 )
 
@@ -156,6 +156,7 @@ func InitSimple(ctx context.Context) error {
 	}
 
 	DefaultContext = ctx
+	globalCommandArgs = nil
 
 	if setting.Git.Timeout.Default > 0 {
 		defaultCommandExecutionTimeout = time.Duration(setting.Git.Timeout.Default) * time.Second
@@ -164,51 +165,44 @@ func InitSimple(ctx context.Context) error {
 	return SetExecutablePath(setting.Git.Path)
 }
 
-var initOnce sync.Once
-
-// InitOnceWithSync initializes git module with version check and change global variables, sync gitconfig.
-// This method will update the global variables ONLY ONCE (just like the old git.CheckLFSVersion -- which was not ideal too),
-// otherwise there will be data-race problem at the moment.
-func InitOnceWithSync(ctx context.Context) (err error) {
+// InitWithSync initializes git module with version check and change global variables, sync gitconfig.
+func InitWithSync(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
 		return err
 	}
 
-	initOnce.Do(func() {
-		if err = InitSimple(ctx); err != nil {
-			return
-		}
+	if err = InitSimple(ctx); err != nil {
+		return
+	}
 
-		// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
-		if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
-			_ = os.Setenv("GNUPGHOME", filepath.Join(HomeDir(), ".gnupg"))
-		}
+	// when git works with gnupg (commit signing), there should be a stable home for gnupg commands
+	if _, ok := os.LookupEnv("GNUPGHOME"); !ok {
+		_ = os.Setenv("GNUPGHOME", filepath.Join(HomeDir(), ".gnupg"))
+	}
 
-		// Since git wire protocol has been released from git v2.18
-		if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
-		}
+	// Since git wire protocol has been released from git v2.18
+	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "protocol.version=2")
+	}
 
-		// By default partial clones are disabled, enable them from git v2.22
-		if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
-		}
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && CheckGitVersionAtLeast("2.22") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
+	}
 
-		// Explicitly disable credential helper, otherwise Git credentials might leak
-		if CheckGitVersionAtLeast("2.9") == nil {
-			globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
-		}
+	// Explicitly disable credential helper, otherwise Git credentials might leak
+	if CheckGitVersionAtLeast("2.9") == nil {
+		globalCommandArgs = append(globalCommandArgs, "-c", "credential.helper=")
+	}
 
-		SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
+	SupportProcReceive = CheckGitVersionAtLeast("2.29") == nil
 
-		if setting.LFS.StartServer {
-			if CheckGitVersionAtLeast("2.1.2") != nil {
-				err = errors.New("LFS server support requires Git >= 2.1.2")
-			} else {
-				globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
-			}
+	if setting.LFS.StartServer {
+		if CheckGitVersionAtLeast("2.1.2") != nil {
+			return errors.New("LFS server support requires Git >= 2.1.2")
 		}
-	})
+		globalCommandArgs = append(globalCommandArgs, "-c", "filter.lfs.required=", "-c", "filter.lfs.smudge=", "-c", "filter.lfs.clean=")
+	}
 	if err != nil {
 		return err
 	}

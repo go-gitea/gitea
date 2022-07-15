@@ -28,7 +28,7 @@ func testRun(m *testing.M) error {
 	defer util.RemoveAll(gitHomePath)
 	setting.Git.HomePath = gitHomePath
 
-	if err = InitOnceWithSync(context.Background()); err != nil {
+	if err = InitWithSync(context.Background()); err != nil {
 		return fmt.Errorf("failed to call Init: %w", err)
 	}
 

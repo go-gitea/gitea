@@ -100,7 +100,7 @@ func GlobalInitInstalled(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	mustInitCtx(ctx, git.InitOnceWithSync)
+	mustInitCtx(ctx, git.InitWithSync)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
