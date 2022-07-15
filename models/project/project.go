@@ -355,6 +355,7 @@ func (project *Project) LoadCreator(ctx context.Context) (err error) {
 			return fmt.Errorf("getUserByID [%d]: %v", project.CreatorID, err)
 		}
 	}
+	return
 }
 
 func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
