@@ -216,6 +216,7 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				Author:                  meta.Author.Name,
 				License:                 meta.License,
 				ProjectURL:              meta.Homepage,
+				Repository:              meta.Repository,
 				Keywords:                meta.Keywords,
 				Dependencies:            meta.Dependencies,
 				DevelopmentDependencies: meta.DevDependencies,
