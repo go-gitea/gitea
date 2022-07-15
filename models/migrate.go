@@ -222,7 +222,10 @@ func updateIssue(ctx context.Context, issue *issues_model.Issue) error {
 func upsertIssue(ctx context.Context, issue *issues_model.Issue) (isInsert bool, err error) {
 	sess := db.GetEngine(ctx)
 
-	exists, err := sess.Exist(&issues_model.Issue{ID: issue.ID})
+	exists, err := sess.Exist(&issues_model.Issue{
+		RepoID: issue.RepoID,
+		Index:  issue.Index,
+	})
 	if err != nil {
 		return false, err
 	}
