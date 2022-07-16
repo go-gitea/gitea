@@ -21,9 +21,11 @@ const (
 	PropertyTypeVersion PropertyType = iota // 0
 	// PropertyTypeFile means the reference is a package file
 	PropertyTypeFile // 1
+	// PropertyTypePackage means the reference is a package
+	PropertyTypePackage // 2
 )
 
-// PackageProperty represents a property of a package version or file
+// PackageProperty represents a property of a package, version or file
 type PackageProperty struct {
 	ID      int64        `xorm:"pk autoincr"`
 	RefType PropertyType `xorm:"INDEX NOT NULL"`

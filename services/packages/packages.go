@@ -349,8 +349,17 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 		return err
 	}
 
-	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
+	ps, err := packages_model.FindUnreferencedPackages(ctx)
+	if err != nil {
 		return err
+	}
+	for _, p := range ps {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+			return err
+		}
 	}
 
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
