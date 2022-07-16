@@ -12,6 +12,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/markup"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
@@ -69,4 +70,12 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 			})
 		}
 	})
+}
+
+func BenchmarkPostProcess(b *testing.B) {
+	input := strings.Repeat("a", 1024)
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		markup.PostProcess(&markup.RenderContext{}, strings.NewReader(input), io.Discard)
+	}
 }
