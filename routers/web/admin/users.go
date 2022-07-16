@@ -419,29 +419,21 @@ func DeleteUser(ctx *context.Context) {
 	// admin should not delete themself
 	if u.ID == ctx.Doer.ID {
 		ctx.Flash.Error(ctx.Tr("admin.users.cannot_delete_self"))
-		ctx.JSON(http.StatusOK, map[string]interface{}{
-			"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
-		})
+		ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		return
 	}
 
-	if err = user_service.DeleteUser(u); err != nil {
+	if err = user_service.DeleteUser(ctx, u, ctx.FormBool("purge")); err != nil {
 		switch {
 		case models.IsErrUserOwnRepos(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_repo"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
-			})
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserHasOrgs(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_has_org"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")),
-			})
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
 		case models.IsErrUserOwnPackages(err):
 			ctx.Flash.Error(ctx.Tr("admin.users.still_own_packages"))
-			ctx.JSON(http.StatusOK, map[string]interface{}{
-				"redirect": setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"),
-			})
+			ctx.Redirect(setting.AppSubURL + "/admin/users/" + ctx.Params(":userid"))
 		default:
 			ctx.ServerError("DeleteUser", err)
 		}
@@ -450,9 +442,7 @@ func DeleteUser(ctx *context.Context) {
 	log.Trace("Account deleted by admin (%s): %s", ctx.Doer.Name, u.Name)
 
 	ctx.Flash.Success(ctx.Tr("admin.users.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/users",
-	})
+	ctx.Redirect(setting.AppSubURL + "/admin/users")
 }
 
 // AvatarPost response for change user's avatar request
