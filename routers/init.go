@@ -141,7 +141,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
@@ -160,6 +159,9 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	auth.Init()
 	svg.Init()
+
+	// Finally start up the cron
+	cron.NewContext(ctx)
 }
 
 // NormalRoutes represents non install routes
