@@ -393,11 +393,11 @@ func (g *GithubDownloaderV3) SupportGetRepoComments() bool {
 
 // GetComments returns comments according issueNumber
 func (g *GithubDownloaderV3) GetComments(commentable base.Commentable) ([]*base.Comment, bool, error) {
-	comments, err := g.getComments(commentable)
+	comments, err := g.getCommentsSince(commentable, nil)
 	return comments, false, err
 }
 
-func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.Comment, error) {
+func (g *GithubDownloaderV3) getCommentsSince(commentable base.Commentable, since *time.Time) ([]*base.Comment, error) {
 	var (
 		allComments = make([]*base.Comment, 0, g.maxPerPage)
 		created     = "created"
@@ -406,6 +406,7 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 	opt := &github.IssueListCommentsOptions{
 		Sort:      &created,
 		Direction: &asc,
+		Since:     since,
 		ListOptions: github.ListOptions{
 			PerPage: g.maxPerPage,
 		},
@@ -466,6 +467,10 @@ func (g *GithubDownloaderV3) getComments(commentable base.Commentable) ([]*base.
 
 // GetAllComments returns repository comments according page and perPageSize
 func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment, bool, error) {
+	return g.getAllCommentsSince(page, perPage, nil)
+}
+
+func (g *GithubDownloaderV3) getAllCommentsSince(page, perPage int, since *time.Time) ([]*base.Comment, bool, error) {
 	var (
 		allComments = make([]*base.Comment, 0, perPage)
 		created     = "created"
@@ -477,6 +482,7 @@ func (g *GithubDownloaderV3) GetAllComments(page, perPage int) ([]*base.Comment,
 	opt := &github.IssueListCommentsOptions{
 		Sort:      &created,
 		Direction: &asc,
+		Since:     since,
 		ListOptions: github.ListOptions{
 			Page:    page,
 			PerPage: perPage,
@@ -772,6 +778,17 @@ func (g *GithubDownloaderV3) getIssuesSince(page, perPage int, since time.Time) 
 	return allIssues, len(issues) < perPage, nil
 }
 
+// GetNewComments returns comments of an issue or PR after the given time
+func (g GithubDownloaderV3) GetNewComments(commentable base.Commentable, updatedAfter time.Time) ([]*base.Comment, bool, error) {
+	comments, err := g.getCommentsSince(commentable, &updatedAfter)
+	return comments, false, err
+}
+
+// GetAllNewComments returns paginated comments after the given time
+func (g GithubDownloaderV3) GetAllNewComments(page, perPage int, updatedAfter time.Time) ([]*base.Comment, bool, error) {
+	return g.getAllCommentsSince(page, perPage, &updatedAfter)
+}
+
 // GetNewPullRequests returns pull requests after the given time according page and perPage
 func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*base.PullRequest, bool, error) {
 	// Every pull request is an issue, and only Issues API provides parameter `since`,
@@ -816,6 +833,12 @@ func (g *GithubDownloaderV3) GetNewPullRequests(page, perPage int, updatedAfter 
 	}
 
 	return allPRs, len(issues) < perPage, nil
+}
+
+// GetNewReviews returns new pull requests review after the given time
+func (g GithubDownloaderV3) GetNewReviews(reviewable base.Reviewable, updatedAfter time.Time) ([]*base.Review, error) {
+	// Github does not support since parameter for reviews, so we need to get all reviews
+	return g.GetReviews(reviewable)
 }
 
 func (g *GithubDownloaderV3) convertGithubPullRequest(pr *github.PullRequest, perPage int) (*base.PullRequest, error) {

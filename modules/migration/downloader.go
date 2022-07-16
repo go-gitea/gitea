@@ -30,7 +30,10 @@ type Downloader interface {
 
 	// For syncing issues and pull requests
 	GetNewIssues(page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error)
+	GetNewComments(commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error)
+	GetAllNewComments(page, perPage int, updatedAfter time.Time) ([]*Comment, bool, error)
 	GetNewPullRequests(page, perPage int, updatedAfter time.Time) ([]*PullRequest, bool, error)
+	GetNewReviews(reviewable Reviewable, updatedAfter time.Time) ([]*Review, error)
 }
 
 // DownloaderFactory defines an interface to match a downloader implementation and create a downloader

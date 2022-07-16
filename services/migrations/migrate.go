@@ -613,7 +613,7 @@ func syncRepository(downloader base.Downloader, uploader base.Uploader, opts bas
 				allComments := make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("syncing issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(issue)
+					comments, _, err := downloader.GetNewComments(issue, lastSynced)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -670,7 +670,7 @@ func syncRepository(downloader base.Downloader, uploader base.Uploader, opts bas
 					allComments := make([]*base.Comment, 0, commentBatchSize)
 					for _, pr := range prs {
 						log.Trace("syncing pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(pr)
+						comments, _, err := downloader.GetNewComments(pr, lastSynced)
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
 								return err
@@ -694,10 +694,10 @@ func syncRepository(downloader base.Downloader, uploader base.Uploader, opts bas
 					}
 				}
 
-				// migrate reviews
+				// sync reviews
 				allReviews := make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr)
+					reviews, err := downloader.GetNewReviews(pr, lastSynced)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -731,7 +731,7 @@ func syncRepository(downloader base.Downloader, uploader base.Uploader, opts bas
 	if opts.Comments && supportAllComments {
 		log.Trace("syncing comments")
 		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetAllComments(i, commentBatchSize)
+			comments, isEnd, err := downloader.GetAllNewComments(i, commentBatchSize, lastSynced)
 			if err != nil {
 				return err
 			}
