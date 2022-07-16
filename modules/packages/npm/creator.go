@@ -14,8 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/validation"
 
 	"github.com/hashicorp/go-version"
@@ -164,6 +166,48 @@ type Repository struct {
 	URL  string `json:"url"`
 }
 
+func (r *Repository) GetGiteaRepository() (*repo.Repository, error) {
+	if r.Type != "git" {
+		return nil, fmt.Errorf("only git repositories are supported")
+	}
+
+	// possible urls for git:
+	//  https://my.domain/sub-path/<owner>/<repo>.git
+	//  git+ssh://user@my.domain/<owner>/<repo>.git
+	//  user@my.domain:<owner>/<repo>.git
+
+	retrievePathSegments := func(repoURL string) []string {
+		if strings.HasPrefix(r.URL, setting.AppURL) {
+			return strings.Split(strings.Replace(r.URL, setting.AppURL, "", 1), "/")
+		}
+
+		sshURLVariants := [4]string{
+			setting.SSH.Domain + ":",
+			setting.SSH.User + "@" + setting.SSH.Domain + ":",
+			"git+ssh://" + setting.SSH.Domain + "/",
+			"git+ssh://" + setting.SSH.User + "@" + setting.SSH.Domain + "/",
+		}
+
+		for _, sshURL := range sshURLVariants {
+			if strings.HasPrefix(r.URL, sshURL) {
+				return strings.Split(strings.Replace(r.URL, sshURL, "", 1), "/")
+			}
+		}
+
+		return make([]string, 0)
+	}
+
+	pathSegments := retrievePathSegments(r.URL)
+
+	if len(pathSegments) != 2 {
+		return nil, fmt.Errorf("unknown or malformed repository URL")
+	}
+
+	ownerName := pathSegments[0]
+	repoName := strings.Replace(pathSegments[1], ".git", "", 1)
+	return repo.GetRepositoryByOwnerAndName(ownerName, repoName)
+}
+
 // PackageAttachment https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
 type PackageAttachment struct {
 	ContentType string `json:"content_type"`
@@ -216,7 +260,6 @@ func ParsePackage(r io.Reader) (*Package, error) {
 				Author:                  meta.Author.Name,
 				License:                 meta.License,
 				ProjectURL:              meta.Homepage,
-				Repository:              meta.Repository,
 				Keywords:                meta.Keywords,
 				Dependencies:            meta.Dependencies,
 				DevelopmentDependencies: meta.DevDependencies,

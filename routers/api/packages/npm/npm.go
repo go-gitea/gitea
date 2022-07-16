@@ -13,7 +13,6 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
-	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
@@ -218,39 +217,11 @@ func UploadPackage(ctx *context.Context) {
 		}
 	}
 
-	if npmPackage.Metadata.Repository.Type == "git" {
-		repoURL := npmPackage.Metadata.Repository.URL
-
-		// possible urls for git:
-		//  https://my.domain/sub-path/<owner>/<repo>.git
-		//  git+ssh://user@my.domain/<owner>/<repo>.git
-		//  user@my.domain:<owner>/<repo>.git
-
-		var pathSegments []string
-		if strings.HasPrefix(repoURL, setting.AppURL) {
-			pathSegments = strings.Split(strings.Replace(repoURL, setting.AppURL, "", 1), "/")
-		} else {
-			sshURL := setting.SSH.User + "@" + setting.SSH.Domain + ":"
-			if strings.HasPrefix(repoURL, sshURL) {
-				pathSegments = strings.Split(strings.Replace(repoURL, sshURL, "", 1), "/")
-			} else {
-				sshURL := "git+ssh://" + setting.SSH.User + "@" + setting.SSH.Domain + "/"
-				if strings.HasPrefix(repoURL, sshURL) {
-					pathSegments = strings.Split(strings.Replace(repoURL, sshURL, "", 1), "/")
-				}
-			}
-		}
-
-		if len(pathSegments) == 2 {
-			ownerName := pathSegments[0]
-			repoName := strings.Replace(pathSegments[1], ".git", "", 1)
-			repository, err := repo.GetRepositoryByOwnerAndName(ownerName, repoName)
-			if err == nil {
-				if pv.CreatorID == repository.OwnerID {
-					if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repository.ID); err != nil {
-						ctx.ServerError("SetRepositoryLink", err)
-					}
-				}
+	repository, err := npmPackage.Metadata.Repository.GetGiteaRepository()
+	if err == nil {
+		if pv.CreatorID == repository.OwnerID {
+			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repository.ID); err != nil {
+				ctx.ServerError("SetRepositoryLink", err)
 			}
 		}
 	}
