@@ -303,7 +303,13 @@ services:
     - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
 ```
 
-To set required TOKEN and SECRET values, consider using Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+To set required TOKEN and SECRET values, ensure you generate new values per installation. The following docker commands will make use of Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
+
+```bash
+docker run -it --rm gitea/gitea:1 gitea generate secret SECRET_KEY
+docker run -it --rm  gitea/gitea:1 gitea generate secret INTERNAL_TOKEN
+```
+
 
 ## SSH Container Passthrough
 
