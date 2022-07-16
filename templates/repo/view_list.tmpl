@@ -8,9 +8,9 @@
 					{{if .LatestCommitUser}}
 						{{avatar .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
-							<a class="author" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
-							<a class="author" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+							<a class="muted" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}
@@ -63,7 +63,7 @@
 								{{$subJumpablePathName := $entry.GetSubJumpablePathName}}
 								{{$subJumpablePath := SubJumpablePath $subJumpablePathName}}
 								{{svg "octicon-file-directory-fill"}}
-								<a href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
+								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $subJumpablePathName}}" title="{{$subJumpablePathName}}">
 									{{if eq (len $subJumpablePath) 2}}
 										<span class="jumpable-path">{{index  $subJumpablePath 0}}</span>{{index  $subJumpablePath 1}}
 									{{else}}
@@ -72,7 +72,7 @@
 								</a>
 							{{else}}
 								{{svg (printf "octicon-%s" (EntryIcon $entry))}}
-								<a href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
+								<a class="muted" href="{{$.TreeLink}}/{{PathEscapeSegments $entry.Name}}" title="{{$entry.Name}}">{{$entry.Name}}</a>
 							{{end}}
 						{{end}}
 					</span>
