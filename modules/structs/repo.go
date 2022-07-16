@@ -77,24 +77,26 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time        `json:"updated_at"`
-	Permissions               *Permission      `json:"permissions,omitempty"`
-	HasIssues                 bool             `json:"has_issues"`
-	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
-	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	HasWiki                   bool             `json:"has_wiki"`
-	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-	HasPullRequests           bool             `json:"has_pull_requests"`
-	HasProjects               bool             `json:"has_projects"`
-	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool             `json:"allow_merge_commits"`
-	AllowRebase               bool             `json:"allow_rebase"`
-	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
-	AllowSquash               bool             `json:"allow_squash_merge"`
-	DefaultMergeStyle         string           `json:"default_merge_style"`
-	AvatarURL                 string           `json:"avatar_url"`
-	Internal                  bool             `json:"internal"`
-	MirrorInterval            string           `json:"mirror_interval"`
+	Updated                       time.Time        `json:"updated_at"`
+	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasIssues                     bool             `json:"has_issues"`
+	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                       bool             `json:"has_wiki"`
+	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests               bool             `json:"has_pull_requests"`
+	HasProjects                   bool             `json:"has_projects"`
+	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                    bool             `json:"allow_merge_commits"`
+	AllowRebase                   bool             `json:"allow_rebase"`
+	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
+	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
+	DefaultMergeStyle             string           `json:"default_merge_style"`
+	AvatarURL                     string           `json:"avatar_url"`
+	Internal                      bool             `json:"internal"`
+	MirrorInterval                string           `json:"mirror_interval"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
