@@ -89,6 +89,11 @@ func (n NullDownloader) SupportGetRepoComments() bool {
 	return false
 }
 
+// SupportSyncing returns true if it supports syncing issues/PRs/etc from pull mirror
+func (n NullDownloader) SupportSyncing() bool {
+	return false
+}
+
 // GetNewIssues returns new issues updated after the given time according start and limit
 func (n NullDownloader) GetNewIssues(page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error) {
 	return nil, false, ErrNotSupported{Entity: "NewIssues"}

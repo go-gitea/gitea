@@ -470,6 +470,11 @@ func SyncRepository(ctx context.Context, doer *user_model.User, ownerName string
 		return nil, err
 	}
 
+	if !downloader.SupportSyncing() {
+		log.Info("repository syncing is not supported, ignored")
+		return nil, nil
+	}
+
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 

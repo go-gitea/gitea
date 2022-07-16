@@ -29,6 +29,7 @@ type Downloader interface {
 	FormatCloneURL(opts MigrateOptions, remoteAddr string) (string, error)
 
 	// For syncing issues and pull requests
+	SupportSyncing() bool
 	GetNewIssues(page, perPage int, updatedAfter time.Time) ([]*Issue, bool, error)
 	GetNewComments(commentable Commentable, updatedAfter time.Time) ([]*Comment, bool, error)
 	GetAllNewComments(page, perPage int, updatedAfter time.Time) ([]*Comment, bool, error)
