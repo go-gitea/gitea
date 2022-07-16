@@ -8,9 +8,9 @@
 					{{if .LatestCommitUser}}
 						{{avatar .LatestCommitUser 24}}
 						{{if .LatestCommitUser.FullName}}
-							<a href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
+							<a class="author" href="{{.LatestCommitUser.HomeLink}}"><strong>{{.LatestCommitUser.FullName}}</strong></a>
 						{{else}}
-							<a href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
+							<a class="author" href="{{.LatestCommitUser.HomeLink}}"><strong>{{if .LatestCommit.Author}}{{.LatestCommit.Author.Name}}{{else}}{{.LatestCommitUser.Name}}{{end}}</strong></a>
 						{{end}}
 					{{else}}
 						{{if .LatestCommit.Author}}

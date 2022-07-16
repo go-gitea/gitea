@@ -323,6 +323,11 @@
         .ui.avatar {
           margin-bottom: 5px;
         }
+
+        .author,
+        .commit-summary a {
+          color: var(--color-text);
+        }
       }
 
       tbody {
@@ -364,6 +369,10 @@
           width: 33%;
 
           max-width: calc(100vw - 140px);
+
+          a {
+            color: var(--color-text);
+          }
         }
 
         &.message {
@@ -377,10 +386,15 @@
             max-width: 250px;
           }
           width: 66%;
+
+          a:not(.ref-issue) {
+            color: var(--color-text-light-2);
+          }
         }
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-2);
         }
 
         .truncate {
