@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 
-	"github.com/fsnotify/fsnotify"
+	"github.com/syncthing/notify"
 )
 
 type CreateWatcherOpts struct {
@@ -39,21 +39,22 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 	log.Trace("Watcher loop starting for %s", desc)
 	defer log.Trace("Watcher loop ended for %s", desc)
 
-	watcher, err := fsnotify.NewWatcher()
-	if err != nil {
-		log.Error("Unable to create watcher for %s: %v", desc, err)
-		return
-	}
+	// Make the channel buffered to ensure no event is dropped. Notify will drop
+	// an event if the receiver is not able to keep up the sending pace.
+	events := make(chan notify.EventInfo, 1)
+
 	if err := opts.PathsCallback(func(path, _ string, _ fs.DirEntry, err error) error {
 		if err != nil && !os.IsNotExist(err) {
 			return err
 		}
 		log.Trace("Watcher: %s watching %q", desc, path)
-		_ = watcher.Add(path)
+		if err := notify.Watch(path, events, notify.All); err != nil {
+			log.Trace("Watcher: %s unable to watch %q: error %v", desc, path, err)
+		}
 		return nil
 	}); err != nil {
 		log.Error("Unable to create watcher for %s: %v", desc, err)
-		_ = watcher.Close()
+		notify.Stop(events)
 		return
 	}
 
@@ -61,39 +62,34 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 
 	for {
 		select {
-		case event, ok := <-watcher.Events:
+		case event, ok := <-events:
 			if !ok {
-				_ = watcher.Close()
+				notify.Stop(events)
 				return
 			}
+
 			log.Debug("Watched file for %s had event: %v", desc, event)
-		case err, ok := <-watcher.Errors:
-			if !ok {
-				_ = watcher.Close()
-				return
-			}
-			log.Error("Error whilst watching files for %s: %v", desc, err)
 		case <-ctx.Done():
-			_ = watcher.Close()
+			notify.Stop(events)
 			return
 		}
 
 		// Recreate the watcher - only call the BetweenCallback after the new watcher is set-up
-		_ = watcher.Close()
-		watcher, err = fsnotify.NewWatcher()
-		if err != nil {
-			log.Error("Unable to create watcher for %s: %v", desc, err)
-			return
-		}
+		notify.Stop(events)
+		events = make(chan notify.EventInfo, 1)
+
 		if err := opts.PathsCallback(func(path, _ string, _ fs.DirEntry, err error) error {
 			if err != nil {
 				return err
 			}
-			_ = watcher.Add(path)
+			log.Trace("Watcher: %s watching %q", desc, path)
+			if err := notify.Watch(path, events, notify.All); err != nil {
+				log.Trace("Watcher: %s unable to watch %q: error %v", desc, path, err)
+			}
 			return nil
 		}); err != nil {
 			log.Error("Unable to create watcher for %s: %v", desc, err)
-			_ = watcher.Close()
+			notify.Stop(events)
 			return
 		}
 
