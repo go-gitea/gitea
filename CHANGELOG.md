@@ -4,9 +4,15 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-06-21
+## [1.16.9](https://github.com/go-gitea/gitea/releases/tag/v1.16.9) - 2022-07-12
 
+* SECURITY
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Check for permission when fetching user controlled issues (#20133) (#20196)
 * BUGFIXES
+  * Hide notify mail setting ui if not enabled (#20138) (#20337)
+  * Add write check for creating Commit status (#20332) (#20334)
+  * Only show Followers that current user can access (#20220) (#20253)
   * Release page show all tags in compare dropdown (#20070) (#20071)
   * Fix permission check for delete tag (#19985) (#20001)
   * Only log non ErrNotExist errors in git.GetNote  (#19884) (#19905)
