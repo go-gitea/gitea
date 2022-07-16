@@ -2330,7 +2330,7 @@
         }
       }
     },
-    "/projects/{projectId}/boards": {
+    "/projects/{id}/boards": {
       "get": {
         "produces": [
           "application/json"
@@ -2343,8 +2343,8 @@
         "parameters": [
           {
             "type": "string",
-            "description": "projectId of the project",
-            "name": "projectId",
+            "description": "id of the project",
+            "name": "id",
             "in": "path",
             "required": true
           },

@@ -131,15 +131,15 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 }
 
 func ListProjectBoards(ctx *context.APIContext) {
-	// swagger:operation GET /projects/{projectId}/boards board boardGetProjectBoards
+	// swagger:operation GET /projects/{id}/boards board boardGetProjectBoards
 	// ---
 	// summary: Get project boards
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: projectId
+	// - name: id
 	//   in: path
-	//   description: projectId of the project
+	//   description: id of the project
 	//   type: string
 	//   required: true
 	// - name: page
@@ -169,7 +169,7 @@ func ListProjectBoards(ctx *context.APIContext) {
 }
 
 func CreateProjectBoard(ctx *context.APIContext) {
-	// swagger:operation POST /projects/{projectId}/boards board boardCreateProjectBoard
+	// swagger:operation POST /projects/{id}/boards board boardCreateProjectBoard
 	// ---
 	// summary: Create project board
 	// produces:
