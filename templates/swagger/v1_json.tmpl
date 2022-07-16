@@ -2207,6 +2207,14 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "board",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateProjectBoardPayload"
+            }
           }
         ],
         "responses": {
@@ -2254,9 +2262,6 @@
         }
       },
       "delete": {
-        "produces": [
-          "application/json"
-        ],
         "tags": [
           "project"
         ],
@@ -2272,7 +2277,7 @@
           }
         ],
         "responses": {
-          "200": {
+          "204": {
             "description": "Deleted the project"
           },
           "403": {
@@ -2284,6 +2289,9 @@
         }
       },
       "patch": {
+        "consumes": [
+          "application/json"
+        ],
         "produces": [
           "application/json"
         ],
@@ -2299,6 +2307,14 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "project",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/UpdateProjectPayload"
+            }
           }
         ],
         "responses": {
@@ -2376,6 +2392,14 @@
             "name": "id",
             "in": "path",
             "required": true
+          },
+          {
+            "name": "board",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/NewProjectBoardPayload"
+            }
           }
         ],
         "responses": {
@@ -7950,6 +7974,12 @@
             "required": true
           },
           {
+            "type": "boolean",
+            "description": "include closed issues or not",
+            "name": "closed",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -8006,7 +8036,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/UpsertProjectPayload"
+              "$ref": "#/definitions/NewProjectPayload"
             }
           }
         ],
@@ -16981,6 +17011,55 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "NewProjectBoardPayload": {
+      "type": "object",
+      "required": [
+        "title"
+      ],
+      "properties": {
+        "color": {
+          "type": "string",
+          "x-go-name": "Color"
+        },
+        "default": {
+          "type": "boolean",
+          "x-go-name": "Default"
+        },
+        "sorting": {
+          "type": "integer",
+          "format": "int8",
+          "x-go-name": "Sorting"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "NewProjectPayload": {
+      "type": "object",
+      "required": [
+        "title",
+        "board_type"
+      ],
+      "properties": {
+        "board_type": {
+          "type": "integer",
+          "format": "uint8",
+          "x-go-name": "BoardType"
+        },
+        "description": {
+          "type": "string",
+          "x-go-name": "Description"
+        },
+        "title": {
+          "type": "string",
+          "x-go-name": "Title"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "NodeInfo": {
       "description": "NodeInfo contains standardized way of exposing metadata about a server running one of the distributed social networks",
       "type": "object",
@@ -17555,6 +17634,11 @@
           "type": "string",
           "x-go-name": "Description"
         },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
         "is_closed": {
           "type": "boolean",
           "x-go-name": "IsClosed"
@@ -17581,9 +17665,25 @@
           "type": "string",
           "x-go-name": "Color"
         },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Created"
+        },
+        "creator": {
+          "$ref": "#/definitions/User"
+        },
         "default": {
           "type": "boolean",
           "x-go-name": "Default"
+        },
+        "id": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "ID"
+        },
+        "project": {
+          "$ref": "#/definitions/Project"
         },
         "sorting": {
           "type": "integer",
@@ -17593,6 +17693,11 @@
         "title": {
           "type": "string",
           "x-go-name": "Title"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "x-go-name": "Updated"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
@@ -18841,21 +18946,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpsertProjectBoardPayload": {
+    "UpdateProjectBoardPayload": {
       "type": "object",
       "properties": {
         "color": {
           "type": "string",
           "x-go-name": "Color"
-        },
-        "default": {
-          "type": "boolean",
-          "x-go-name": "Default"
-        },
-        "sorting": {
-          "type": "integer",
-          "format": "int8",
-          "x-go-name": "Sorting"
         },
         "title": {
           "type": "string",
@@ -18864,18 +18960,12 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "UpsertProjectPayload": {
+    "UpdateProjectPayload": {
       "type": "object",
       "required": [
-        "title",
-        "board_type"
+        "title"
       ],
       "properties": {
-        "board_type": {
-          "type": "integer",
-          "format": "uint8",
-          "x-go-name": "BoardType"
-        },
         "description": {
           "type": "string",
           "x-go-name": "Description"
@@ -20070,7 +20160,7 @@
     "parameterBodies": {
       "description": "parameterBodies",
       "schema": {
-        "$ref": "#/definitions/UpsertProjectBoardPayload"
+        "$ref": "#/definitions/UpdateProjectBoardPayload"
       }
     },
     "redirect": {
