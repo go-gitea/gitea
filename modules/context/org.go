@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Organization contains organization context
@@ -69,6 +70,20 @@ func HandleOrgAssignment(ctx *Context, args ...bool) {
 		return
 	}
 	org := ctx.Org.Organization
+
+	// Handle Visibility
+	if org.Visibility != structs.VisibleTypePublic && !ctx.IsSigned {
+		// We must be signed in to see limited or private organizations
+		ctx.NotFound("OrgAssignment", err)
+		return
+	}
+
+	if org.Visibility == structs.VisibleTypePrivate {
+		requireMember = true
+	} else if ctx.IsSigned && ctx.Doer.IsRestricted {
+		requireMember = true
+	}
+
 	ctx.ContextUser = org.AsUser()
 	ctx.Data["Org"] = org
 
