@@ -524,6 +524,12 @@ func (repo *Repository) AllowsPulls() bool {
 	return repo.CanEnablePulls() && !repo.IsMirror && repo.UnitEnabled(unit.TypePullRequests)
 }
 
+// AllowsIssues returns true if repository meets the requirements of accepting issues and has them enabled.
+func (repo *Repository) AllowsIssues() bool {
+	// TODO: disable only when issues are synced
+	return !repo.IsMirror && repo.UnitEnabled(unit.TypePullRequests)
+}
+
 // CanEnableEditor returns true if repository meets the requirements of web editor.
 func (repo *Repository) CanEnableEditor() bool {
 	return !repo.IsMirror

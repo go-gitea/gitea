@@ -709,6 +709,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 	ctx.Data["CanCompareOrPull"] = canCompare
 	ctx.Data["PullRequestCtx"] = ctx.Repo.PullRequest
+	ctx.Data["AllowsIssues"] = repo.AllowsIssues()
 
 	if ctx.Repo.Repository.Status == repo_model.RepositoryPendingTransfer {
 		repoTransfer, err := models.GetPendingRepositoryTransfer(ctx.Repo.Repository)
