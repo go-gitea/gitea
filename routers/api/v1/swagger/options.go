@@ -177,5 +177,8 @@ type swaggerParameterBodies struct {
 	UpdateProjectPayload api.UpdateProjectPayload
 
 	// in:body
-	UpsertProjectBoardPayload api.UpsertProjectBoardPayload
+	NewProjectBoardPayload api.NewProjectBoardPayload
+
+	// in:body
+	UpdateProjectBoardPayload api.UpdateProjectBoardPayload
 }

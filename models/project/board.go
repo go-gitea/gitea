@@ -13,6 +13,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
+	user_model "code.gitea.io/gitea/models/user"
+
 	"xorm.io/builder"
 )
 
@@ -46,8 +48,10 @@ type Board struct {
 	Sorting int8   `xorm:"NOT NULL DEFAULT 0"`
 	Color   string `xorm:"VARCHAR(7)"`
 
-	ProjectID int64 `xorm:"INDEX NOT NULL"`
-	CreatorID int64 `xorm:"NOT NULL"`
+	ProjectID int64            `xorm:"INDEX NOT NULL"`
+	Project   *Project         `xorm:"-"`
+	CreatorID int64            `xorm:"NOT NULL"`
+	Creator   *user_model.User `xorm:"-"`
 
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -224,6 +228,29 @@ func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
 	return append([]*Board{defaultB}, boards...), nil
 }
 
+func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, error) {
+	engine := db.GetEngine(ctx)
+	boards := make([]*Board, 0, setting.UI.IssuePagingNum)
+
+	engine.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting")
+
+	defaultB, err := getDefaultBoard(ctx, projectID)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	count, err := engine.Count(new(Board))
+	if err != nil {
+		return nil, 0, fmt.Errorf("count: %v", err)
+	}
+
+	if err = engine.Find(&boards); err != nil {
+		return nil, 0, fmt.Errorf("internal server error: %v", err)
+	}
+
+	return append([]*Board{defaultB}, boards...), count, nil
+}
+
 // getDefaultBoard return default board and create a dummy if none exist
 func getDefaultBoard(ctx context.Context, projectID int64) (*Board, error) {
 	var board Board
@@ -270,6 +297,26 @@ func UpdateBoardSorting(bs BoardList) error {
 		).Update(bs[i])
 		if err != nil {
 			return err
+		}
+	}
+	return nil
+}
+
+func (b *Board) LoadBoardCreator(ctx context.Context) (err error) {
+	if b.Creator == nil {
+		b.Creator, err = user_model.GetUserByIDCtx(ctx, b.CreatorID)
+		if err != nil {
+			return fmt.Errorf("getUserByID [%d]: %v", b.CreatorID, err)
+		}
+	}
+	return nil
+}
+
+func (b *Board) LoadProject(ctx context.Context) (err error) {
+	if b.Project == nil {
+		b.Project, err = GetProjectByID(ctx, b.ProjectID)
+		if err != nil {
+			return fmt.Errorf("getProjectByID [%d]: %v", b.CreatorID, err)
 		}
 	}
 	return nil

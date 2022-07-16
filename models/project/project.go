@@ -73,7 +73,9 @@ func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
 }
 
-type ProjectList []*Project
+type (
+	ProjectList []*Project
+)
 
 // Project represents a project board
 type Project struct {
@@ -338,24 +340,24 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
-func (project *Project) LoadRepo(ctx context.Context) (err error) {
-	if project.Repo == nil {
-		project.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, project.RepoID)
+func (p *Project) LoadRepo(ctx context.Context) (err error) {
+	if p.Repo == nil {
+		p.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, p.RepoID)
 		if err != nil {
-			return fmt.Errorf("getRepositoryByID [%d]: %v", project.RepoID, err)
+			return fmt.Errorf("getRepositoryByID [%d]: %v", p.RepoID, err)
 		}
 	}
 	return nil
 }
 
-func (project *Project) LoadCreator(ctx context.Context) (err error) {
-	if project.Creator == nil {
-		project.Creator, err = user_model.GetUserByIDCtx(ctx, project.CreatorID)
+func (p *Project) LoadProjectCreator(ctx context.Context) (err error) {
+	if p.Creator == nil {
+		p.Creator, err = user_model.GetUserByIDCtx(ctx, p.CreatorID)
 		if err != nil {
-			return fmt.Errorf("getUserByID [%d]: %v", project.CreatorID, err)
+			return fmt.Errorf("getUserByID [%d]: %v", p.CreatorID, err)
 		}
 	}
-	return
+	return nil
 }
 
 func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {

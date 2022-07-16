@@ -78,8 +78,8 @@ func TestAPIGetProject(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1}).(*project_model.Project)
-	project_repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: project.RepoID}).(*repo_model.Repository)
-	project_creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: project.CreatorID}).(*user_model.User)
+	projectRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: project.RepoID}).(*repo_model.Repository)
+	projectCreator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: project.CreatorID}).(*user_model.User)
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -95,12 +95,12 @@ func TestAPIGetProject(t *testing.T) {
 	assert.Equal(t, project.Title, apiProject.Title)
 	assert.Equal(t, project.Description, apiProject.Description)
 	assert.Equal(t, uint8(project.BoardType), apiProject.BoardType)
-	assert.Equal(t, project_creator.Name, apiProject.Creator.UserName)
-	assert.Equal(t, project_creator.FullName, apiProject.Creator.FullName)
-	assert.Equal(t, project_repo.ID, apiProject.Repo.ID)
-	assert.Equal(t, project_repo.Name, apiProject.Repo.Name)
-	assert.Equal(t, project_repo.FullName(), apiProject.Repo.FullName)
-	assert.Equal(t, project_repo.OwnerName, apiProject.Repo.Owner)
+	assert.Equal(t, projectCreator.Name, apiProject.Creator.UserName)
+	assert.Equal(t, projectCreator.FullName, apiProject.Creator.FullName)
+	assert.Equal(t, projectRepo.ID, apiProject.Repo.ID)
+	assert.Equal(t, projectRepo.Name, apiProject.Repo.Name)
+	assert.Equal(t, projectRepo.FullName(), apiProject.Repo.FullName)
+	assert.Equal(t, projectRepo.OwnerName, apiProject.Repo.Owner)
 }
 
 func TestAPIUpdateProject(t *testing.T) {

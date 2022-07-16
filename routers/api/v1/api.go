@@ -1180,6 +1180,17 @@ func Routes() *web.Route {
 					Get(reqToken(), repo.GetProject).
 					Patch(reqToken(), bind(api.UpdateProjectPayload{}), repo.UpdateProject).
 					Delete(reqToken(), repo.DeleteProject)
+
+				m.Combo("/boards").
+					Post(reqToken(), bind(api.NewProjectBoardPayload{}), repo.CreateProjectBoard).
+					Get(reqToken(), repo.ListProjectBoards)
+			})
+
+			m.Group("/boards", func() {
+				m.Combo("/{id}").
+					Get(reqToken(), repo.GetProjectBoard).
+					Patch(reqToken(), bind(api.UpdateProjectBoardPayload{}), repo.UpdateProjectBoard).
+					Delete(reqToken(), repo.DeleteProjectBoard)
 			})
 		})
 	}, sudo())

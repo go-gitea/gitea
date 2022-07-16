@@ -6,7 +6,14 @@
 package repo
 
 import (
+	"net/http"
+
+	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/web"
 )
 
 func GetProjectBoard(ctx *context.APIContext) {
@@ -28,6 +35,18 @@ func GetProjectBoard(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		if project_model.IsErrProjectBoardNotExist(err) {
+			ctx.Error(http.StatusNotFound, "GetProjectBoard", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetProjectBoard", err)
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIProjectBoard(board))
 }
 
 func UpdateProjectBoard(ctx *context.APIContext) {
@@ -44,6 +63,10 @@ func UpdateProjectBoard(ctx *context.APIContext) {
 	//   description: id of the project board
 	//   type: string
 	//   required: true
+	// - name: board
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/UpdateProjectBoardPayload" }
 	// responses:
 	//   "200":
 	//     "$ref": "#/responses/ProjectBoard"
@@ -51,6 +74,33 @@ func UpdateProjectBoard(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.UpdateProjectBoardPayload)
+
+	board, err := project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "GetProjectBoard", err)
+		return
+	}
+
+	if board.Title != form.Title {
+		board.Title = form.Title
+	}
+	if board.Color != form.Color {
+		board.Color = form.Color
+	}
+
+	if err = project_model.UpdateBoard(ctx, board); err != nil {
+		ctx.Error(http.StatusInternalServerError, "UpdateProjectBoard", err)
+		return
+	}
+
+	board, err = project_model.GetBoard(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(http.StatusNotFound, "GetProjectBoard", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToAPIProjectBoard(board))
 }
 
 func DeleteProjectBoard(ctx *context.APIContext) {
@@ -72,6 +122,12 @@ func DeleteProjectBoard(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	if err := project_model.DeleteBoardByID(ctx.ParamsInt64(":id")); err != nil {
+		ctx.Error(http.StatusInternalServerError, "DeleteProjectBoard", err)
+		return
+	}
+
+	ctx.Status(http.StatusNoContent)
 }
 
 func ListProjectBoards(ctx *context.APIContext) {
@@ -101,6 +157,15 @@ func ListProjectBoards(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	boards, count, err := project_model.GetBoardsAndCount(ctx, ctx.ParamsInt64(":id"))
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "Boards", err)
+		return
+	}
+
+	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
+	ctx.SetTotalCountHeader(count)
+	ctx.JSON(http.StatusOK, convert.ToAPIProjectBoardList(boards))
 }
 
 func CreateProjectBoard(ctx *context.APIContext) {
@@ -117,6 +182,10 @@ func CreateProjectBoard(ctx *context.APIContext) {
 	//   description: id of the project
 	//   type: string
 	//   required: true
+	// - name: board
+	//   in: body
+	//   required: true
+	//   schema: { "$ref": "#/definitions/NewProjectBoardPayload" }
 	// responses:
 	//   "201":
 	//     "$ref": "#/responses/ProjectBoard"
@@ -124,4 +193,28 @@ func CreateProjectBoard(ctx *context.APIContext) {
 	//     "$ref": "#/responses/forbidden"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	form := web.GetForm(ctx).(*api.NewProjectBoardPayload)
+
+	board := &project_model.Board{
+		Title:     form.Title,
+		Default:   form.Default,
+		Sorting:   form.Sorting,
+		Color:     form.Color,
+		ProjectID: ctx.ParamsInt64(":id"),
+		CreatorID: ctx.Doer.ID,
+	}
+
+	var err error
+	if err = project_model.NewBoard(board); err != nil {
+		ctx.Error(http.StatusInternalServerError, "CreateBoard", err)
+		return
+	}
+
+	board, err = project_model.GetBoard(ctx, board.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetBoard", err)
+		return
+	}
+
+	ctx.JSON(http.StatusCreated, convert.ToAPIProjectBoard(board))
 }
