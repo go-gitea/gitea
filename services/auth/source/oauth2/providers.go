@@ -35,7 +35,7 @@ type GothProvider interface {
 	GothProviderCreator
 }
 
-// ImagedProvider provide an overrided image setting for the provider
+// ImagedProvider provide an overridden image setting for the provider
 type ImagedProvider struct {
 	GothProvider
 	image string

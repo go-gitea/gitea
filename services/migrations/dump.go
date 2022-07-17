@@ -590,7 +590,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 		opts.ReleaseAssets = true
 	} else {
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
 			case "":
 				continue
 			case "wiki":
