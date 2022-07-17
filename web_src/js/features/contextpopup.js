@@ -2,7 +2,7 @@ import $ from 'jquery';
 import Vue from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
-import {createTippy} from './tippy.js';
+import {createTippy} from '../modules/tippy.js';
 
 export default function initContextPopups() {
   const refIssues = $('.ref-issue');
