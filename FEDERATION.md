@@ -2,7 +2,7 @@
 
 *This describes Gitea's future federation capabilities, not what it can do currently.*
 
-Gitea is federated using [ActivityPub](https://www.w3.org/TR/activitypub/) and the [ForgeFed extension](https://forgefed.org/) so you can interact with users and repositories from other instances as if they were on your own instance. By using the standardized ActivityPub protocol, users on any fediverse software such as [Mastodon](https://joinmastodon.org/) can follow Gitea users, stars repos, receive activity updates, and comment on issues.
+Gitea is federated using [ActivityPub](https://www.w3.org/TR/activitypub/) and the [ForgeFed extension](https://forgefed.org/) so you can interact with users and repositories from other instances as if they were on your own instance. By using the standardized ActivityPub protocol, users on any fediverse software such as [Mastodon](https://joinmastodon.org/) can follow Gitea users, star repos, receive activity updates, and comment on issues.
 
 Currently, C2S ActivityPub is not supported.
 
@@ -18,7 +18,7 @@ You can star repositories on another instance. The full name of a remote reposit
 
 ## Organizations
 
-You can add users from other instances to organizations. An organization has a name and an instance, so its full name would look like `orgname@instance.com`. This indicates that the organization data resides on `instance.com`. To prevent syncronization errors, this data is only synchronized one-way to other instances.
+You can add users from other instances to organizations. An organization has a name and an instance, so its full name would look like `orgname@instance.com`. This indicates that the organization data resides on `instance.com`. To prevent synchronization errors, this data is only synchronized one-way to other instances.
 
 ## Collaborators
 
@@ -38,10 +38,10 @@ When opening a pull request to a remote repository, the pull request can be rend
 
 ## Comments
 
-You can comment on an issue or pull request using any fediverse software. The entire issue thread is rendered on your instance.
+You can comment on an issue or pull request using any fediverse software. The issue and existing comments are rendered on your instance.
 
 ## Migrations
 
-If you change your username or the name of repository, Gitea handles this similarly to how Mastodon does. Gitea will send a `Move` activity to your followers and update your actor to point to the new actor and the new actor to point to the old actor.
+If you change your username or the name of a repository, Gitea handles this similarly to how Mastodon does. Gitea will send a `Move` activity to your followers and update your actor to point to the new actor and the new actor to point to the old actor.
 
 Changing your instance or a repository's instance is handled in a similar way, but additionally, the data to be migrated between instances.
