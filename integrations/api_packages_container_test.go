@@ -26,6 +26,7 @@ import (
 
 func TestPackageContainer(t *testing.T) {
 	defer prepareTestEnv(t)()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
@@ -35,6 +36,15 @@ func TestPackageContainer(t *testing.T) {
 			}
 		}
 		return false
+	}
+	getAllByName := func(l packages_model.PackagePropertyList, name string) []string {
+		values := make([]string, 0, len(l))
+		for _, pp := range l {
+			if pp.Name == name {
+				values = append(values, pp.Value)
+			}
+		}
+		return values
 	}
 
 	images := []string{"test", "te/st"}
@@ -66,7 +76,7 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token"`}
+		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
@@ -236,7 +246,8 @@ func TestPackageContainer(t *testing.T) {
 						assert.Nil(t, pd.SemVer)
 						assert.Equal(t, image, pd.Package.Name)
 						assert.Equal(t, tag, pd.Version.Version)
-						assert.True(t, has(pd.Properties, container_module.PropertyManifestTagged))
+						assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+						assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
 						assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 						metadata := pd.Metadata.(*container_module.Metadata)
@@ -330,7 +341,8 @@ func TestPackageContainer(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)
 				assert.Equal(t, untaggedManifestDigest, pd.Version.Version)
-				assert.False(t, has(pd.Properties, container_module.PropertyManifestTagged))
+				assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+				assert.False(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 
@@ -362,18 +374,10 @@ func TestPackageContainer(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)
 				assert.Equal(t, multiTag, pd.Version.Version)
-				assert.True(t, has(pd.Properties, container_module.PropertyManifestTagged))
+				assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+				assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-				getAllByName := func(l packages_model.PackagePropertyList, name string) []string {
-					values := make([]string, 0, len(l))
-					for _, pp := range l {
-						if pp.Name == name {
-							values = append(values, pp.Value)
-						}
-					}
-					return values
-				}
-				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.Properties, container_module.PropertyManifestReference))
+				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 				metadata := pd.Metadata.(*container_module.Metadata)
@@ -528,4 +532,51 @@ func TestPackageContainer(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("OwnerNameChange", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		image := "namechange"
+		url := fmt.Sprintf("%sv2/%s/%s", setting.AppURL, user.Name, image)
+
+		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, blobDigest), bytes.NewReader(blobContent))
+		addTokenAuthHeader(req, userToken)
+		MakeRequest(t, req, http.StatusCreated)
+
+		pv, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_model.UploadVersion)
+		assert.NoError(t, err)
+
+		pps, err := packages_model.GetPropertiesByName(db.DefaultContext, packages_model.PropertyTypePackage, pv.PackageID, container_module.PropertyRepository)
+		assert.NoError(t, err)
+		assert.Len(t, pps, 1)
+		assert.Equal(t, strings.ToLower(user.LowerName+"/"+image), pps[0].Value)
+
+		newOwnerName := "newUsername"
+
+		session := loginUser(t, user.Name)
+		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     newOwnerName,
+			"email":    "user2@example.com",
+			"language": "en-US",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		pps, err = packages_model.GetPropertiesByName(db.DefaultContext, packages_model.PropertyTypePackage, pv.PackageID, container_module.PropertyRepository)
+		assert.NoError(t, err)
+		assert.Len(t, pps, 1)
+		assert.Equal(t, strings.ToLower(newOwnerName+"/"+image), pps[0].Value)
+
+		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     user.Name,
+			"email":    "user2@example.com",
+			"language": "en-US",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/blobs/%s", url, blobDigest))
+		addTokenAuthHeader(req, userToken)
+		MakeRequest(t, req, http.StatusAccepted)
+	})
 }

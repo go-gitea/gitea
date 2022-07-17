@@ -151,6 +151,39 @@ func Authenticate(ctx *context.Context) {
 	})
 }
 
+// https://docs.docker.com/registry/spec/api/#listing-repositories
+func GetRepositoryList(ctx *context.Context) {
+	n := ctx.FormInt("n")
+	if n <= 0 || n > 100 {
+		n = 100
+	}
+	last := ctx.FormTrim("last")
+
+	repositories, err := container_model.GetRepositories(ctx, n, last)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	type RepositoryList struct {
+		Repositories []string `json:"repositories"`
+	}
+
+	if len(repositories) == n {
+		v := url.Values{}
+		if n > 0 {
+			v.Add("n", strconv.Itoa(n))
+		}
+		v.Add("last", repositories[len(repositories)-1])
+
+		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/_catalog?%s>; rel="next"`, v.Encode()))
+	}
+
+	jsonResponse(ctx, http.StatusOK, RepositoryList{
+		Repositories: repositories,
+	})
+}
+
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#mounting-a-blob-from-another-repository
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#single-post
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks

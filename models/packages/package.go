@@ -211,7 +211,7 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		// double select workaround for MySQL
 		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
 		Where(builder.In("package.id", builder.Select("id").From(in, "temp"))).
-		Find(ps)
+		Find(&ps)
 }
 
 // HasOwnerPackages tests if a user/org has packages
