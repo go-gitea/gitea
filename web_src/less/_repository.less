@@ -323,10 +323,6 @@
         .ui.avatar {
           margin-bottom: 5px;
         }
-
-        .commit-summary a.default-link {
-          color: var(--color-text);
-        }
       }
 
       tbody {
@@ -371,6 +367,8 @@
         }
 
         &.message {
+          color: var(--color-text-light-1);
+
           @media @mediaXl {
             max-width: 400px;
           }
@@ -381,15 +379,11 @@
             max-width: 250px;
           }
           width: 66%;
-
-          a.default-link {
-            color: var(--color-text-light);
-          }
         }
 
         &.age {
           width: 120px;
-          color: var(--color-text-light);
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -440,10 +434,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
