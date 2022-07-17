@@ -6,7 +6,7 @@ export function createTippy(target, opts) {
     placement: 'top-start',
     animation: false,
     allowHTML: true,
-    arrow: `<svg width="16" height="6"><path d="m0 6 8-6 8 6Z" class="tippy-svg-arrow-outer"/><path d="m0 7 8-6 8 6Z" class="tippy-svg-arrow-inner"/></svg>`,
+    arrow: `<svg width="16" height="7"><path d="m0 7 8-7 8 7Z" class="tippy-svg-arrow-outer"/><path d="m0 8 8-7 8 7Z" class="tippy-svg-arrow-inner"/></svg>`,
     ...opts,
   });
 }
