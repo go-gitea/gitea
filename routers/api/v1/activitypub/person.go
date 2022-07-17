@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/forgefed"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -138,31 +139,43 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
+	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
+
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.ContextUser,
 		IncludePrivate:  false,
-		OnlyPerformedBy: true,
 		IncludeDeleted:  false,
+		ListOptions:     db.ListOptions{Page: 1, PageSize: 1000000},
 	})
 	if err != nil {
-		ctx.ServerError("Couldn't fetch outbox", err)
+		ctx.ServerError("Couldn't fetch feed", err)
+		return
 	}
 
-	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
 	for _, action := range feed {
-		// TODO: There are 26 action types! This is going to take quite a while to implement...
-		log.Debug("action", action)
-		var activity ap.ObjectOrLink
-		switch action.OpType {
-		case models.ActionCreateRepo:
-			activity = ap.Create{Type: ap.CreateType} //, Object: forgefed.RepositoryNew()}
-		case models.ActionRenameRepo:
-			activity = ap.Move{Type: ap.MoveType} //, Object: forgefed.RepositoryNew()}
-			// etc
+		if action.OpType == models.ActionCreateRepo {
+			// Created a repo
+			object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
+			object.Content.Set("en", ap.Content(action.GetRepoName()))
+			create := ap.Create{Type: ap.CreateType, Object: object}
+			outbox.OrderedItems.Append(create)
 		}
-		outbox.OrderedItems.Append(activity)
 	}
+
+	stars, err := repo_model.GetStarredRepos(ctx.ContextUser.ID, false, db.ListOptions{Page: 1, PageSize: 1000000})
+	if err != nil {
+		ctx.ServerError("Couldn't fetch stars", err)
+		return
+	}
+
+	for _, star := range stars {
+		object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
+		object.Content.Set("en", ap.Content("Starred " + star.Name))
+		create := ap.Create{Type: ap.CreateType, Object: object}
+		outbox.OrderedItems.Append(create)
+	}
+
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
 
 	response(ctx, outbox)
