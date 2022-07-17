@@ -2,7 +2,7 @@ import $ from 'jquery';
 import Vue from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
-import {createPopup} from './popup.js';
+import {createTippy} from './tippy.js';
 
 export default function initContextPopups() {
   const refIssues = $('.ref-issue');
@@ -33,7 +33,7 @@ export default function initContextPopups() {
       el.textContent = 'ContextPopup failed to load';
     }
 
-    createPopup(this, {
+    createTippy(this, {
       content: el,
       interactive: true,
       onShow: () => {

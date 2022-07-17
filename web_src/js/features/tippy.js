@@ -1,6 +1,6 @@
 import tippy from 'tippy.js';
 
-export function createPopup(target, opts = {}) {
+export function createTippy(target, opts = {}) {
   return tippy(target, {
     appendTo: document.body,
     placement: 'top-start',
