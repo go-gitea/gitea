@@ -2,7 +2,7 @@ import $ from 'jquery';
 import Vue from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
-import tippy from 'tippy.js';
+import {createPopup} from './popup.js';
 
 export default function initContextPopups() {
   const refIssues = $('.ref-issue');
@@ -33,14 +33,10 @@ export default function initContextPopups() {
       el.textContent = 'ContextPopup failed to load';
     }
 
-    tippy(this, {
-      appendTo: () => document.body,
-      placement: 'top-start',
+    createPopup(this, {
       delay: 250,
       content: el,
-      allowHTML: true,
       interactive: true,
-      arrow: `<svg width="16" height="6"><path d="m0 6 8-6 8 6Z" class="tippy-svg-arrow-outer"/><path d="m0 7 8-6 8 6Z" class="tippy-svg-arrow-inner"/></svg>`,
       onShow: () => {
         view.$emit('load-context-popup', {owner, repo, index});
       }
