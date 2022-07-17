@@ -34,7 +34,6 @@ export default function initContextPopups() {
     }
 
     createPopup(this, {
-      delay: 250,
       content: el,
       interactive: true,
       onShow: () => {
