@@ -34,7 +34,7 @@ func RepositoryNew(id ap.ID) *Repository {
 func (r Repository) MarshalJSON() ([]byte, error) {
 	b, err := r.Actor.MarshalJSON()
 	if len(b) == 0 || err != nil {
-		return make([]byte, 0), err
+		return nil, err
 	}
 
 	b = b[:len(b)-1]

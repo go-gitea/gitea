@@ -33,7 +33,7 @@ func CommitNew() *Commit {
 func (c Commit) MarshalJSON() ([]byte, error) {
 	b, err := c.Object.MarshalJSON()
 	if len(b) == 0 || err != nil {
-		return make([]byte, 0), err
+		return nil, err
 	}
 
 	b = b[:len(b)-1]

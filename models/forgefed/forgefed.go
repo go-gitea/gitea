@@ -13,15 +13,16 @@ const ForgeFedNamespaceURI = "https://forgefed.org/ns"
 // GetItemByType instantiates a new ForgeFed object if the type matches
 // otherwise it defaults to existing activitypub package typer function.
 func GetItemByType(typ ap.ActivityVocabularyType) (ap.Item, error) {
-	if typ == CommitType {
+	switch typ  {
+	case CommitType:
 		return CommitNew(), nil
-	} else if typ == BranchType {
+	case BranchType:
 		return BranchNew(), nil
-	} else if typ == RepositoryType {
+	case RepositoryType:
 		return RepositoryNew(""), nil
-	} else if typ == PushType {
+	case PushType:
 		return PushNew(), nil
-	} else if typ == TicketType {
+	case TicketType:
 		return TicketNew(), nil
 	}
 	return ap.GetItemByType(typ)

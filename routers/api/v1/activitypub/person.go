@@ -102,6 +102,7 @@ func PersonInbox(ctx *context.APIContext) {
 	body, err := io.ReadAll(io.LimitReader(ctx.Req.Body, setting.Federation.MaxSize))
 	if err != nil {
 		ctx.ServerError("Error reading request body", err)
+		return
 	}
 
 	var activity ap.Activity
@@ -112,7 +113,7 @@ func PersonInbox(ctx *context.APIContext) {
 	case ap.UndoType:
 		activitypub.Unfollow(ctx, activity)
 	default:
-		log.Debug("ActivityStreams type not supported", activity)
+		log.Info("Incoming unsupported ActivityStreams type: %s", activity.GetType())
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
 	}

@@ -21,6 +21,7 @@ func Comment(ctx context.Context, note ap.Note) {
 	actorUser, err := personIRIToUser(ctx, note.AttributedTo.GetLink())
 	if err != nil {
 		log.Warn("Couldn't find actor", err)
+		return
 	}
 
 	// TODO: Move IRI processing stuff to iri.go

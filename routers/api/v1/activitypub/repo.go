@@ -140,7 +140,7 @@ func RepoInbox(ctx *context.APIContext) {
 			activitypub.Comment(ctx, note)
 		}
 	default:
-		log.Warn("ActivityStreams type not supported", activity)
+		log.Info("Incoming unsupported ActivityStreams type: %s", activity["type"])
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
 	}
