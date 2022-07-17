@@ -150,7 +150,7 @@ func RepoInbox(ctx *context.APIContext) {
 
 // RepoOutbox function returns the repo's Outbox OrderedCollection
 func RepoOutbox(ctx *context.APIContext) {
-	// swagger:operation GET /activitypub/repo/{username}/outbox activitypub activitypubPersonOutbox
+	// swagger:operation GET /activitypub/repo/{username}/{reponame}/outbox activitypub activitypubPersonOutbox
 	// ---
 	// summary: Returns the outbox
 	// produces:

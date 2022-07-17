@@ -23,39 +23,6 @@
   },
   "basePath": "{{AppSubUrl | JSEscape | Safe}}/api/v1",
   "paths": {
-    "/activitypub/repo/{username}/outbox": {
-      "get": {
-        "produces": [
-          "application/activity+json"
-        ],
-        "tags": [
-          "activitypub"
-        ],
-        "summary": "Returns the outbox",
-        "operationId": "activitypubPersonOutbox",
-        "parameters": [
-          {
-            "type": "string",
-            "description": "username of the user",
-            "name": "username",
-            "in": "path",
-            "required": true
-          },
-          {
-            "type": "string",
-            "description": "name of the repository",
-            "name": "reponame",
-            "in": "path",
-            "required": true
-          }
-        ],
-        "responses": {
-          "200": {
-            "$ref": "#/responses/ActivityPub"
-          }
-        }
-      }
-    },
     "/activitypub/repo/{username}/{reponame}": {
       "get": {
         "produces": [
@@ -151,6 +118,39 @@
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
+          }
+        }
+      }
+    },
+    "/activitypub/repo/{username}/{reponame}/outbox": {
+      "get": {
+        "produces": [
+          "application/activity+json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Returns the outbox",
+        "operationId": "activitypubPersonOutbox",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repository",
+            "name": "reponame",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
           }
         }
       }
