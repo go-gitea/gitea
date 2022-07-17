@@ -40,7 +40,7 @@ export default function initContextPopups() {
       content: el,
       allowHTML: true,
       interactive: true,
-      arrow: `<svg width="16" height="6"><path d="m0 6 8-6 8 6Z" class="tippy-svg-arrow"/><path d="m0 7 8-6 8 6Z" class="tippy-svg-arrow-content"/></svg>`,
+      arrow: `<svg width="16" height="6"><path d="m0 6 8-6 8 6Z" class="tippy-svg-arrow-outer"/><path d="m0 7 8-6 8 6Z" class="tippy-svg-arrow-inner"/></svg>`,
       onShow: () => {
         view.$emit('load-context-popup', {owner, repo, index});
       }

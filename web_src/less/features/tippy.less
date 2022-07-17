@@ -22,14 +22,6 @@
   z-index: 1;
 }
 
-.tippy-svg-arrow {
-  fill: var(--color-secondary);
-}
-
-.tippy-svg-arrow-content {
-  fill: var(--color-body);
-}
-
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow {
   bottom: 0;
 }
@@ -79,4 +71,12 @@
 .tippy-svg-arrow,
 .tippy-svg-arrow > svg {
   position: absolute;
+}
+
+.tippy-svg-arrow-outer {
+  fill: var(--color-secondary);
+}
+
+.tippy-svg-arrow-inner {
+  fill: var(--color-body);
 }
