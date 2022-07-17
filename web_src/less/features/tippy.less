@@ -26,7 +26,7 @@
   bottom: 0;
 }
 
-.tippy-box[data-placement^="top"] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow::after,
 .tippy-box[data-placement^="top"] > .tippy-svg-arrow > svg {
   top: 16px;
   transform: rotate(180deg);
@@ -44,7 +44,7 @@
   right: 0;
 }
 
-.tippy-box[data-placement^="left"] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow::after,
 .tippy-box[data-placement^="left"] > .tippy-svg-arrow > svg {
   transform: rotate(90deg);
   top: calc(50% - 3px);
@@ -55,7 +55,7 @@
   left: 0;
 }
 
-.tippy-box[data-placement^="right"] > .tippy-svg-arrow:after,
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow::after,
 .tippy-box[data-placement^="right"] > .tippy-svg-arrow > svg {
   transform: rotate(-90deg);
   top: calc(50% - 3px);
