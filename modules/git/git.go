@@ -20,6 +20,7 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+
 	"github.com/hashicorp/go-version"
 )
 
