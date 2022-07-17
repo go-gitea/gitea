@@ -8,6 +8,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
+  * Add write check for creating Commit Statuses (#20332) (#20333)
 * ENHANCEMENTS
   * Make notification bell more prominent on mobile (#20108, #20236, #20251) (#20269)
   * Adjust max-widths for the repository file table (#20243) (#20247)
@@ -20,7 +21,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make sure `repo_dir` is an empty directory or doesn't exist before 'dump-repo' (#20205) (#20370)
   * Prevent context deadline error propagation in GetCommitsInfo (#20346) (#20361)
   * Correctly handle draft releases without a tag (#20314) (#20335)
-  * Add write check for creating Commit status (#20332) (#20333)
   * Prevent "empty" scrollbars on Firefox (#20294) (#20308)
   * Refactor SSH init code, fix directory creation for TrustedUserCAKeys file (#20299) (#20306)
   * Bump goldmark to v1.4.13 (#20300) (#20301)
