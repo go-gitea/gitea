@@ -240,6 +240,7 @@ func DeleteTopic(ctx *context.APIContext) {
 
 	if topic == nil {
 		ctx.NotFound()
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)
