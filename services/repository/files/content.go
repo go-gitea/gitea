@@ -149,7 +149,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	selfURLString := selfURL.String()
 
-	lastCommit, err := gitRepo.GetCommitByPath(treePath)
+	lastCommit, err := commit.GetCommitByPath(treePath)
 	if err != nil {
 		return nil, err
 	}
