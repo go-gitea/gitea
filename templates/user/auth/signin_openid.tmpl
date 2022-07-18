@@ -11,7 +11,7 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="inline field">
-				{{.i18n.Tr "auth.openid_signin_desc"}}
+				{{.locale.Tr "auth.openid_signin_desc"}}
 			</div>
 			<div class="required inline field {{if .Err_OpenID}}error{{end}}">
 				<label for="openid">
@@ -23,13 +23,13 @@
 			<div class="inline field">
 				<label></label>
 				<div class="ui checkbox">
-					<label>{{.i18n.Tr "auth.remember_me"}}</label>
+					<label>{{.locale.Tr "auth.remember_me"}}</label>
 					<input name="remember" type="checkbox">
 				</div>
 			</div>
 			<div class="inline field">
 				<label></label>
-				<button class="ui green button">{{.i18n.Tr "sign_in"}}</button>
+				<button class="ui green button">{{.locale.Tr "sign_in"}}</button>
 			</div>
 			</form>
 		</div>

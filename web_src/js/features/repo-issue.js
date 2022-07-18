@@ -2,7 +2,7 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
-import {initCompImagePaste} from './comp/ImagePaste.js';
+import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {appSubUrl, csrfToken} = window.config;
@@ -480,8 +480,9 @@ export function initRepoPullRequestReview() {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
       // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
       // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set max-height for .CodeMirror-scroll in CSS.
-      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
-      initCompImagePaste($reviewBox);
+      const $reviewTextarea = $reviewBox.find('textarea');
+      const easyMDE = await createCommentEasyMDE($reviewTextarea, {minHeight: '80px'});
+      initEasyMDEImagePaste(easyMDE, $reviewBox.find('.dropzone'));
     })();
   }
 

@@ -105,7 +105,6 @@ func NewFuncMap() []template.FuncMap {
 		"Str2html":       Str2html,
 		"TimeSince":      timeutil.TimeSince,
 		"TimeSinceUnix":  timeutil.TimeSinceUnix,
-		"RawTimeSince":   timeutil.RawTimeSince,
 		"FileSize":       base.FileSize,
 		"PrettyNumber":   base.PrettyNumber,
 		"JsPrettyNumber": JsPrettyNumber,
@@ -484,7 +483,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -630,7 +628,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:

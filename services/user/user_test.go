@@ -33,7 +33,7 @@ func TestDeleteUser(t *testing.T) {
 		ownedRepos := make([]*repo_model.Repository, 0, 10)
 		assert.NoError(t, db.GetEngine(db.DefaultContext).Find(&ownedRepos, &repo_model.Repository{OwnerID: userID}))
 		if len(ownedRepos) > 0 {
-			err := DeleteUser(user)
+			err := DeleteUser(db.DefaultContext, user, false)
 			assert.Error(t, err)
 			assert.True(t, models.IsErrUserOwnRepos(err))
 			return
@@ -47,7 +47,7 @@ func TestDeleteUser(t *testing.T) {
 				return
 			}
 		}
-		assert.NoError(t, DeleteUser(user))
+		assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
 		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
 	}
@@ -57,7 +57,7 @@ func TestDeleteUser(t *testing.T) {
 	test(11)
 
 	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	assert.Error(t, DeleteUser(org))
+	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
 }
 
 func TestCreateUser(t *testing.T) {
@@ -72,7 +72,7 @@ func TestCreateUser(t *testing.T) {
 
 	assert.NoError(t, user_model.CreateUser(user))
 
-	assert.NoError(t, DeleteUser(user))
+	assert.NoError(t, DeleteUser(db.DefaultContext, user, false))
 }
 
 func TestCreateUser_Issue5882(t *testing.T) {
@@ -101,6 +101,6 @@ func TestCreateUser_Issue5882(t *testing.T) {
 
 		assert.Equal(t, !u.AllowCreateOrganization, v.disableOrgCreation)
 
-		assert.NoError(t, DeleteUser(v.user))
+		assert.NoError(t, DeleteUser(db.DefaultContext, v.user, false))
 	}
 }

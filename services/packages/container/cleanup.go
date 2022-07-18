@@ -59,7 +59,7 @@ func cleanupExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) e
 			ExactMatch: true,
 			Value:      container_model.UploadVersion,
 		},
-		IsInternal: true,
+		IsInternal: util.OptionalBoolTrue,
 		HasFiles:   util.OptionalBoolFalse,
 	})
 	if err != nil {
