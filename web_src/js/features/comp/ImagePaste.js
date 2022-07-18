@@ -46,7 +46,8 @@ function clipboardPastedImages(e) {
   const data = e.clipboardData || e.dataTransfer;
   if (!data) return [];
 
-  const files = [], datafiles = e.clipboardData && e.clipboardData.items || e.dataTransfer && e.dataTransfer.files;
+  const files = [];
+  const datafiles = e.clipboardData?.items || e.dataTransfer?.files;
   for (const item of datafiles || []) {
     const file = (e.clipboardData ? item.getAsFile() : item);
     if (file === null || !item.type) continue;
