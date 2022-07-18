@@ -305,11 +305,21 @@ services:
 
 To set required TOKEN and SECRET values, ensure you generate new values per installation. The following docker commands will make use of Gitea's built-in [generate utility functions](https://docs.gitea.io/en-us/command-line/#generate).
 
+The following commands will output a new `SECRET_KEY` and `INTERNAL_TOKEN` to `stdout`, which you can then place in your environment variables.
+
 ```bash
 docker run -it --rm gitea/gitea:1 gitea generate secret SECRET_KEY
 docker run -it --rm  gitea/gitea:1 gitea generate secret INTERNAL_TOKEN
 ```
 
+```yaml
+...
+services:
+  server:
+    environment:
+      - GITEA__security__SECRET_KEY=[value returned by generate secret SECRET_KEY]
+      - GITEA__security__INTERNAL_TOKEN=[value returned by generate secret INTERNAL_TOKEN]
+```
 
 ## SSH Container Passthrough
 
