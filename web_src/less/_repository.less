@@ -268,47 +268,6 @@
     }
   }
 
-  #citation-panel {
-    width: 350px;
-
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .citation.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
-    }
-
-    #citation-copy-apa,
-    #citation-copy-bibtex {
-      border-right: none;
-    }
-
-    #goto-citation-btn {
-      border-left: none;
-    }
-
-    button:first-of-type {
-      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
-    }
-
-    button:last-of-type {
-      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
-    }
-  }
-
   &.file.list {
     .repo-description {
       display: flex;
@@ -1914,7 +1873,6 @@
         width: 100%;
       }
 
-      #citation-copy-content,
       #repo-clone-url {
         border-radius: 0;
         padding: 5px 10px;
@@ -2537,6 +2495,56 @@
 }
 
 // End of .repository
+
+#cite-repo-modal {
+  #citation-panel {
+    width: 500px;
+
+    @media @mediaSm {
+      width: 100%;
+    }
+
+    input {
+      border-radius: 0;
+      padding: 5px 10px;
+      width: 50%;
+      line-height: 1.4;
+    }
+
+    .citation.button {
+      font-size: 13px;
+      padding: 7.5px 5px;
+    }
+
+    #citation-copy-content{
+      border-radius: 0;
+      padding: 5px 10px;
+      font-size: 1.2em;
+      line-height: 1.4;
+    }
+
+    #citation-copy-apa,
+    #citation-copy-bibtex {
+      border-right: none;
+    }
+
+    #goto-citation-btn {
+      border-left: none;
+    }
+
+    button:first-of-type {
+      border-radius: var(--border-radius) 0 0 var(--border-radius) !important;
+    }
+
+    button:last-of-type {
+      border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
+    }
+
+    .icon.button {
+      padding: 0 10px;
+    }
+  }
+}
 
 &.user-cards {
   .list {

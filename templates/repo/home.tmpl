@@ -124,33 +124,44 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
-						<button id="download-btn" class="ui basic jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.download_archive"}}" data-position="top right">
-							{{svg "octicon-download"}}
+						<button id="download-btn" class="ui basic jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.more_actions"}}" data-position="top right">
+							{{svg "octicon-kebab-horizontal"}}
 							<div class="menu">
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_zip"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
 								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+								{{if .CitiationExist}}
+								<a class="item" onClick="$('#cite-repo-modal').modal('show')">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
+								{{end}}
 							</div>
 						</button>
 					</div>
+					<div class="ui tiny modal" id="cite-repo-modal">
+						<div class="header">
+							{{.locale.Tr "repo.cite_this_repo"}}
+						</div>
+						<div class="content">
+							<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
+								<div class="fitted item">
+									<div class="ui action input" id="citation-panel">
+										{{template "repo/citation_buttons" .}}
+										<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right">
+											{{svg "octicon-file-moved"}}
+										</a>
+									</div>
+								</div>
+							</div>
+						</div>
+						<div class="actions">
+							<div class="ui black deny button">
+								{{.locale.Tr "cancel"}}
+							</div>
+						</div>
+					</div>
 				{{end}}
 			</div>
-		</div>
-		<!-- Only show clone panel in repository home page -->
-		{{if and (eq $n 0) .CitiationExist}}
-			<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
-				<div class="fitted item">
-					{{.locale.Tr "repo.cite_this_repo"}} :&nbsp
-					<div class="ui action tiny input" id="citation-panel">
-						{{template "repo/citation_buttons" .}}
-						<a id="goto-citation-btn" class="ui basic jump icon button tooltip" href="{{$.RepoLink}}/src/{{$.BranchName}}/CITATION.cff" data-position="top right">
-							{{svg "octicon-file-moved"}}
-						</a>
-					</div>
-				</div>
-			</div>
-		{{end}}
+		</div>		
 		{{if .IsViewFile}}
 			{{template "repo/view_file" .}}
 		{{else if .IsBlame}}
