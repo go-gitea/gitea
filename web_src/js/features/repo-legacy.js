@@ -367,7 +367,9 @@ async function onEditContent(event) {
     easyMDE = await createCommentEasyMDE($textarea);
 
     initCompMarkupContentPreviewTab($editContentForm);
-    initEasyMDEImagePaste(easyMDE, $dropzone);
+    if ($dropzone.length) {
+      initEasyMDEImagePaste(easyMDE, $dropzone);
+    }
 
     const $saveButton = $editContentZone.find('.save.button');
     $textarea.on('ce-quick-submit', () => {
