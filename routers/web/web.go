@@ -365,6 +365,7 @@ func RegisterRoutes(m *web.Route) {
 	}, reqSignOut)
 
 	m.Any("/user/events", routing.MarkLongPolling, events.Events)
+	m.Any("/user/websocket", routing.MarkLongPolling, events.Websocket)
 
 	m.Group("/login/oauth", func() {
 		m.Get("/authorize", bindIgnErr(forms.AuthorizationForm{}), auth.AuthorizeOAuth)
