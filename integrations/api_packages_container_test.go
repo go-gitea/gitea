@@ -88,7 +88,7 @@ func TestPackageContainer(t *testing.T) {
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			addTokenAuthHeader(req, anonymousToken)
-			resp = MakeRequest(t, req, http.StatusOK)
+			MakeRequest(t, req, http.StatusOK)
 		})
 
 		t.Run("User", func(t *testing.T) {
@@ -112,7 +112,7 @@ func TestPackageContainer(t *testing.T) {
 
 			req = NewRequest(t, "GET", fmt.Sprintf("%sv2", setting.AppURL))
 			addTokenAuthHeader(req, userToken)
-			resp = MakeRequest(t, req, http.StatusOK)
+			MakeRequest(t, req, http.StatusOK)
 		})
 	})
 

@@ -6,12 +6,12 @@
 			{{if not .AllowOnlyInternalRegistration}}
 				<a class="item {{if not .user_exists}}active{{end}}"
 					data-tab="auth-link-signup-tab">
-					{{.i18n.Tr "auth.oauth_signup_tab"}}
+					{{.locale.Tr "auth.oauth_signup_tab"}}
 				</a>
 			{{end}}
 			<a class="item {{if .user_exists}}active{{end}}"
 				data-tab="auth-link-signin-tab">
-				{{.i18n.Tr "auth.oauth_signin_tab"}}
+				{{.locale.Tr "auth.oauth_signin_tab"}}
 			</a>
 		</div>
 	</div>

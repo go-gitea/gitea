@@ -159,6 +159,9 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	if err != nil {
 		return fmt.Errorf("Clone: %v", err)
 	}
+	if err := git.WriteCommitGraph(g.ctx, repoPath); err != nil {
+		return err
+	}
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
@@ -179,6 +182,8 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
+			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
+				return err
 			}
 		}
 	}
@@ -585,7 +590,7 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 		opts.ReleaseAssets = true
 	} else {
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
 			case "":
 				continue
 			case "wiki":

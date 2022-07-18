@@ -1011,7 +1011,7 @@ parsingLoop:
 
 func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 	// need to skip until the next cmdDiffHead
-	isFragment, wasFragment := false, false
+	var isFragment, wasFragment bool
 	var lineBytes []byte
 	for {
 		lineBytes, isFragment, err = input.ReadLine()
@@ -1036,7 +1036,7 @@ func skipToNextDiffHead(input *bufio.Reader) (line string, err error) {
 		}
 		line += tail
 	}
-	return
+	return line, err
 }
 
 func parseHunks(curFile *DiffFile, maxLines, maxLineCharacters int, input *bufio.Reader) (lineBytes []byte, isFragment bool, err error) {
@@ -1257,8 +1257,7 @@ func createDiffFile(diff *Diff, line string) *DiffFile {
 
 	rd := strings.NewReader(line[len(cmdDiffHead):] + " ")
 	curFile.Type = DiffFileChange
-	oldNameAmbiguity := false
-	newNameAmbiguity := false
+	var oldNameAmbiguity, newNameAmbiguity bool
 
 	curFile.OldName, oldNameAmbiguity = readFileName(rd)
 	curFile.Name, newNameAmbiguity = readFileName(rd)
@@ -1417,37 +1416,8 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}
 	diff.Start = opts.SkipTo
 
-	var checker *git.CheckAttributeReader
-
-	if git.CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, worktree, deleteTemporaryFile, err := gitRepo.ReadTreeToTemporaryIndex(opts.AfterCommitID)
-		if err == nil {
-			defer deleteTemporaryFile()
-
-			checker = &git.CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-				Repo:       gitRepo,
-				IndexFile:  indexFilename,
-				WorkTree:   worktree,
-			}
-			ctx, cancel := context.WithCancel(gitRepo.Ctx)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-			} else {
-				go func() {
-					err := checker.Run()
-					if err != nil && err != ctx.Err() {
-						log.Error("Unable to open checker for %s. Error: %v", opts.AfterCommitID, err)
-					}
-					cancel()
-				}()
-			}
-			defer func() {
-				_ = checker.Close()
-				cancel()
-			}()
-		}
-	}
+	checker, deferable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	defer deferable()
 
 	for _, diffFile := range diff.Files {
 

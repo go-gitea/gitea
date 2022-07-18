@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -450,4 +451,31 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 		}
 	}
 	return s, pf, err
+}
+
+// RemoveAllPackages for User
+func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
+	count := 0
+	for {
+		pkgVersions, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			OwnerID: userID,
+		})
+		if err != nil {
+			return count, fmt.Errorf("GetOwnedPackages[%d]: %w", userID, err)
+		}
+		if len(pkgVersions) == 0 {
+			break
+		}
+		for _, pv := range pkgVersions {
+			if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				return count, fmt.Errorf("unable to delete package %d:%s[%d]. Error: %w", pv.PackageID, pv.Version, pv.ID, err)
+			}
+			count++
+		}
+	}
+	return count, nil
 }

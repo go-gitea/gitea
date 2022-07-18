@@ -91,5 +91,5 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 			return
 		}
 	}
-	return
+	return sig, err
 }

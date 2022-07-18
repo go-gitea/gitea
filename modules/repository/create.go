@@ -229,7 +229,7 @@ func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibili
 		}
 
 		// Create/Remove git-daemon-export-ok for git-daemon...
-		if err := CheckDaemonExportOK(db.WithEngine(ctx, e), repo); err != nil {
+		if err := CheckDaemonExportOK(ctx, repo); err != nil {
 			return err
 		}
 

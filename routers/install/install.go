@@ -69,7 +69,7 @@ func Init(next http.Handler) http.Handler {
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
-				"i18n":          locale,
+				"locale":        locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbTypeNames":   dbTypeNames,

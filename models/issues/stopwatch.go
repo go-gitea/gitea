@@ -63,7 +63,7 @@ func getStopwatch(ctx context.Context, userID, issueID int64) (sw *Stopwatch, ex
 		Where("user_id = ?", userID).
 		And("issue_id = ?", issueID).
 		Get(sw)
-	return
+	return sw, exists, err
 }
 
 // UserIDCount is a simple coalition of UserID and Count
@@ -130,7 +130,7 @@ func HasUserStopwatch(ctx context.Context, userID int64) (exists bool, sw *Stopw
 	exists, err = db.GetEngine(ctx).
 		Where("user_id = ?", userID).
 		Get(sw)
-	return
+	return exists, sw, err
 }
 
 // FinishIssueStopwatchIfPossible if stopwatch exist then finish it otherwise ignore

@@ -9,7 +9,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
-// Follow represents relations of user and his/her followers.
+// Follow represents relations of user and their followers.
 type Follow struct {
 	ID          int64              `xorm:"pk autoincr"`
 	UserID      int64              `xorm:"UNIQUE(follow)"`
