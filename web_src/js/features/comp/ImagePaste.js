@@ -49,7 +49,7 @@ function clipboardPastedImages(e) {
   const files = [];
   const datafiles = e.clipboardData?.items || e.dataTransfer?.files;
   for (const item of datafiles || []) {
-    const file = (e.clipboardData ? item.getAsFile() : item);
+    const file = e.clipboardData ? item.getAsFile() : item;
     if (file === null || !item.type) continue;
     files.push(file);
   }
