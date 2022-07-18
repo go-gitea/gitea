@@ -85,7 +85,7 @@ func CorsHandler() func(next http.Handler) http.Handler {
 // for users that have already signed in.
 func buildAuthGroup() *auth_service.Group {
 	group := auth_service.NewGroup(
-		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth realted routers
+		&auth_service.OAuth2{}, // FIXME: this should be removed and only applied in download and oauth related routers
 		&auth_service.Basic{},  // FIXME: this should be removed and only applied in download and git/lfs routers
 		&auth_service.Session{},
 	)
@@ -138,7 +138,7 @@ func Routes() *web.Route {
 
 	// redirect default favicon to the path of the custom favicon with a default as a fallback
 	routes.Get("/favicon.ico", func(w http.ResponseWriter, req *http.Request) {
-		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), 301)
+		http.Redirect(w, req, path.Join(setting.StaticURLPrefix, "/assets/img/favicon.png"), http.StatusMovedPermanently)
 	})
 
 	common := []interface{}{}
@@ -294,6 +294,7 @@ func RegisterRoutes(m *web.Route) {
 	// Routers.
 	// for health check
 	m.Get("/", Home)
+	m.Get("/sitemap.xml", ignExploreSignIn, HomeSitemap)
 	m.Group("/.well-known", func() {
 		m.Get("/openid-configuration", auth.OIDCWellKnown)
 		m.Group("", func() {
@@ -310,7 +311,9 @@ func RegisterRoutes(m *web.Route) {
 			ctx.Redirect(setting.AppSubURL + "/explore/repos")
 		})
 		m.Get("/repos", explore.Repos)
+		m.Get("/repos/sitemap-{idx}.xml", explore.Repos)
 		m.Get("/users", explore.Users)
+		m.Get("/users/sitemap-{idx}.xml", explore.Users)
 		m.Get("/organizations", explore.Organizations)
 		m.Get("/code", explore.Code)
 		m.Get("/topics/search", explore.TopicSearch)
@@ -608,6 +611,12 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
+		m.Group("/{org}", func() {
+			m.Get("/members", org.Members)
+		}, context.OrgAssignment())
+	}, ignSignIn)
+
+	m.Group("/org", func() {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
@@ -622,7 +631,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/pulls/{team}", user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
-			m.Get("/members", org.Members)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
 		}, context.OrgAssignment(true, false, true))
@@ -737,7 +745,7 @@ func RegisterRoutes(m *web.Route) {
 						}, reqPackageAccess(perm.AccessModeWrite))
 					})
 				})
-			}, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
 	}, context_service.UserAssignmentWeb())
 
@@ -914,7 +922,7 @@ func RegisterRoutes(m *web.Route) {
 
 			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
 			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, repo.UpdateIssueProject)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
 			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
 			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
 			m.Post("/dismiss_review", reqRepoAdmin, bindIgnErr(forms.DismissReviewForm{}), repo.DismissReview)
@@ -1137,7 +1145,7 @@ func RegisterRoutes(m *web.Route) {
 			}
 
 			repo.MustBeNotEmpty(ctx)
-			return
+			return cancel
 		})
 
 		m.Group("/pulls/{index}", func() {

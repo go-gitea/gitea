@@ -150,7 +150,7 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 		defer PrintCurrentTest(t)()
 		little, big = commitAndPushTest(t, dstPath, "data-file-")
 	})
-	return
+	return little, big
 }
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
@@ -191,7 +191,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			lockTest(t, dstPath)
 		})
 	})
-	return
+	return littleLFS, bigLFS
 }
 
 func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
@@ -210,7 +210,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 			big = doCommitAndPush(t, bigSize, dstPath, prefix)
 		})
 	})
-	return
+	return little, big
 }
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {

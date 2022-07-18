@@ -86,7 +86,7 @@ type User struct {
 	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
 
 	// MustChangePassword is an attribute that determines if a user
-	// is to change his/her password after registration.
+	// is to change their password after registration.
 	MustChangePassword bool `xorm:"NOT NULL DEFAULT false"`
 
 	LoginType   auth.Type
@@ -316,37 +316,45 @@ func (u *User) GenerateEmailActivateCode(email string) string {
 }
 
 // GetUserFollowers returns range of user's followers.
-func GetUserFollowers(u *User, listOptions db.ListOptions) ([]*User, error) {
-	sess := db.GetEngine(db.DefaultContext).
+func GetUserFollowers(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
+	sess := db.GetEngine(ctx).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.user_id").
 		Where("follow.follow_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.user_id")
+		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // GetUserFollowing returns range of user's following.
-func GetUserFollowing(u *User, listOptions db.ListOptions) ([]*User, error) {
+func GetUserFollowing(ctx context.Context, u, viewer *User, listOptions db.ListOptions) ([]*User, int64, error) {
 	sess := db.GetEngine(db.DefaultContext).
+		Select("`user`.*").
+		Join("LEFT", "follow", "`user`.id=follow.follow_id").
 		Where("follow.user_id=?", u.ID).
-		Join("LEFT", "follow", "`user`.id=follow.follow_id")
+		And(isUserVisibleToViewerCond(viewer))
 
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
 
 		users := make([]*User, 0, listOptions.PageSize)
-		return users, sess.Find(&users)
+		count, err := sess.FindAndCount(&users)
+		return users, count, err
 	}
 
 	users := make([]*User, 0, 8)
-	return users, sess.Find(&users)
+	count, err := sess.FindAndCount(&users)
+	return users, count, err
 }
 
 // NewGitSig generates and returns the signature of given user.
@@ -485,6 +493,9 @@ func (u *User) GitName() string {
 
 // ShortName ellipses username to length
 func (u *User) ShortName(length int) string {
+	if setting.UI.DefaultShowFullName && len(u.FullName) > 0 {
+		return base.EllipsisString(u.FullName, length)
+	}
 	return base.EllipsisString(u.Name, length)
 }
 
@@ -537,7 +548,7 @@ func GetUserSalt() (string, error) {
 	return hex.EncodeToString(rBytes), nil
 }
 
-// NewGhostUser creates and returns a fake user for someone has deleted his/her account.
+// NewGhostUser creates and returns a fake user for someone has deleted their account.
 func NewGhostUser() *User {
 	return &User{
 		ID:        -1,
@@ -1219,6 +1230,39 @@ func GetAdminUser() (*User, error) {
 	return &admin, nil
 }
 
+func isUserVisibleToViewerCond(viewer *User) builder.Cond {
+	if viewer != nil && viewer.IsAdmin {
+		return builder.NewCond()
+	}
+
+	if viewer == nil || viewer.IsRestricted {
+		return builder.Eq{
+			"`user`.visibility": structs.VisibleTypePublic,
+		}
+	}
+
+	return builder.Neq{
+		"`user`.visibility": structs.VisibleTypePrivate,
+	}.Or(
+		builder.In("`user`.id",
+			builder.
+				Select("`follow`.user_id").
+				From("follow").
+				Where(builder.Eq{"`follow`.follow_id": viewer.ID})),
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.uid").
+				From("team_user").
+				Join("INNER", "`team_user` AS t2", "`team_user`.id = `t2`.id").
+				Where(builder.Eq{"`t2`.uid": viewer.ID})),
+		builder.In("`user`.id",
+			builder.
+				Select("`team_user`.uid").
+				From("team_user").
+				Join("INNER", "`team_user` AS t2", "`team_user`.org_id = `t2`.org_id").
+				Where(builder.Eq{"`t2`.uid": viewer.ID})))
+}
+
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 	if viewer != nil && viewer.IsAdmin {
@@ -1269,4 +1313,11 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
+}
+
+func GetOrderByName() string {
+	if setting.UI.DefaultShowFullName {
+		return "full_name, name"
+	}
+	return "name"
 }

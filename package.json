@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">= 14"
+    "node": ">= 14.0.0"
   },
   "dependencies": {
     "@claviska/jquery-minicolors": "2.3.6",
@@ -22,7 +22,7 @@
     "less": "4.1.2",
     "less-loader": "11.0.0",
     "license-checker-webpack-plugin": "0.2.1",
-    "mermaid": "9.1.1",
+    "mermaid": "9.1.2",
     "mini-css-extract-plugin": "2.6.0",
     "monaco-editor": "0.33.0",
     "monaco-editor-webpack-plugin": "7.0.1",
@@ -45,8 +45,8 @@
   },
   "devDependencies": {
     "@happy-dom/jest-environment": "4.0.1",
+    "@stoplight/spectral-cli": "6.4.1",
     "eslint": "8.15.0",
-    "eslint-plugin-html": "6.2.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-unicorn": "42.0.0",

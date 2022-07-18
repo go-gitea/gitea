@@ -44,7 +44,7 @@ func UpsertResourceIndex(ctx context.Context, tableName string, groupID int64) (
 	default:
 		return fmt.Errorf("database type not supported")
 	}
-	return
+	return err
 }
 
 var (

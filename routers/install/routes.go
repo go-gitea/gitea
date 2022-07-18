@@ -57,7 +57,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 					store := dataStore{
 						"Language":       lc.Language(),
 						"CurrentURL":     setting.AppSubURL + req.URL.RequestURI(),
-						"i18n":           lc,
+						"locale":         lc,
 						"SignedUserID":   int64(0),
 						"SignedUserName": "",
 					}
