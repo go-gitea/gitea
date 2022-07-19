@@ -24,7 +24,7 @@ func TestGenerate(t *testing.T) {
 	}
 
 	backColor := color.White
-	imgMaker, err := New(64, backColor, DarkColors...)
+	imgMaker, err := new(64, backColor, DarkColors...)
 	assert.NoError(t, err)
 	for i := 0; i < 100; i++ {
 		s := strconv.Itoa(i)

@@ -14,10 +14,10 @@ import (
 )
 
 func Test_RandomImageSize(t *testing.T) {
-	_, err := RandomImageSize(0, []byte("gitea@local"))
+	_, err := RandomImageSize(KindOrg, 0, []byte("gitea@local"))
 	assert.Error(t, err)
 
-	_, err = RandomImageSize(64, []byte("gitea@local"))
+	_, err = RandomImageSize(KindRepo, 64, []byte("gitea@local"))
 	assert.NoError(t, err)
 }
 

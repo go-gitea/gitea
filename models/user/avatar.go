@@ -41,6 +41,11 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
 
+	if img == nil {
+		// use default user image
+		return nil
+	}
+
 	u.Avatar = avatars.HashEmail(seed)
 
 	// Don't share the images so that we can delete them easily
@@ -57,7 +62,7 @@ func GenerateRandomAvatar(ctx context.Context, u *User) error {
 		return err
 	}
 
-	log.Info("New random avatar created: %d", u.ID)
+	log.Info("New random avatar for user[%d] created", u.ID)
 	return nil
 }
 

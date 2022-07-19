@@ -1,3 +1,7 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
 package identicon
 
 import (
@@ -6,11 +10,30 @@ import (
 	"image/color"
 )
 
-// RandomImageSize generates and returns a random avatar image unique to input data
+// Identicon is used to generate pseudo-random avatars
+type Identicon struct{}
+
+func (_ Identicon) Name() string {
+	return "identicon"
+}
+
+func (_ Identicon) RandomUserImage(size int, data []byte) (image.Image, error) {
+	return randomImageSize(size, data)
+}
+
+func (_ Identicon) RandomOrgImage(size int, data []byte) (image.Image, error) {
+	return randomImageSize(size, data)
+}
+
+func (_ Identicon) RandomRepoImage(size int, data []byte) (image.Image, error) {
+	return randomImageSize(size, data)
+}
+
+// randomImageSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
-func RandomImageSize(size int, data []byte) (image.Image, error) {
+func randomImageSize(size int, data []byte) (image.Image, error) {
 	// we use white as background, and use dark colors to draw blocks
-	imgMaker, err := New(size, color.White, DarkColors...)
+	imgMaker, err := new(size, color.White, DarkColors...)
 	if err != nil {
 		return nil, fmt.Errorf("identicon.New: %v", err)
 	}

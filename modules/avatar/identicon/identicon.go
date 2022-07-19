@@ -16,19 +16,19 @@ import (
 
 const minImageSize = 16
 
-// Identicon is used to generate pseudo-random avatars
-type Identicon struct {
+// identicon is used to generate pseudo-random avatars
+type identicon struct {
 	foreColors []color.Color
 	backColor  color.Color
 	size       int
 	rect       image.Rectangle
 }
 
-// New returns an Identicon struct with the correct settings
+// new returns an Identicon struct with the correct settings
 // size image size
 // back background color
 // fore all possible foreground colors. only one foreground color will be picked randomly for one image
-func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
+func new(size int, back color.Color, fore ...color.Color) (*identicon, error) {
 	if len(fore) == 0 {
 		return nil, fmt.Errorf("foreground is not set")
 	}
@@ -37,7 +37,7 @@ func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 		return nil, fmt.Errorf("size %d is smaller than min size %d", size, minImageSize)
 	}
 
-	return &Identicon{
+	return &identicon{
 		foreColors: fore,
 		backColor:  back,
 		size:       size,
@@ -46,7 +46,7 @@ func New(size int, back color.Color, fore ...color.Color) (*Identicon, error) {
 }
 
 // Make generates an avatar by data
-func (i *Identicon) Make(data []byte) image.Image {
+func (i *identicon) Make(data []byte) image.Image {
 	h := sha256.New()
 	h.Write(data)
 	sum := h.Sum(nil)
@@ -61,7 +61,7 @@ func (i *Identicon) Make(data []byte) image.Image {
 	return i.render(c, b1, b2, b1Angle, b2Angle, foreColor)
 }
 
-func (i *Identicon) render(c, b1, b2, b1Angle, b2Angle, foreColor int) image.Image {
+func (i *identicon) render(c, b1, b2, b1Angle, b2Angle, foreColor int) image.Image {
 	p := image.NewPaletted(i.rect, []color.Color{i.backColor, i.foreColors[foreColor]})
 	drawBlocks(p, i.size, centerBlocks[c], blocks[b1], blocks[b2], b1Angle, b2Angle)
 	return p

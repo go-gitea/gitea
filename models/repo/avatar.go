@@ -39,6 +39,11 @@ func generateRandomAvatar(ctx context.Context, repo *Repository) error {
 		return fmt.Errorf("RandomImage: %v", err)
 	}
 
+	if img == nil {
+		// use default repo image
+		return nil
+	}
+
 	repo.Avatar = idToString
 
 	if err := storage.SaveFrom(storage.RepoAvatars, repo.CustomAvatarRelativePath(), func(w io.Writer) error {
@@ -66,13 +71,13 @@ func (repo *Repository) relAvatarLink(ctx context.Context) string {
 		switch mode := setting.RepoAvatar.Fallback; mode {
 		case "image":
 			return setting.RepoAvatar.FallbackImage
-		case "random":
+		case "none":
+			// default behaviour: do not display avatar
+			return ""
+		default:
 			if err := generateRandomAvatar(ctx, repo); err != nil {
 				log.Error("generateRandomAvatar: %v", err)
 			}
-		default:
-			// default behaviour: do not display avatar
-			return ""
 		}
 	}
 	return setting.AppSubURL + "/repo-avatars/" + url.PathEscape(repo.Avatar)

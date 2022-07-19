@@ -281,6 +281,7 @@ func CreateOrganization(org *Organization, owner *user_model.User) (err error) {
 	if err = db.Insert(ctx, org); err != nil {
 		return fmt.Errorf("insert organization: %v", err)
 	}
+
 	if err = user_model.GenerateRandomAvatar(ctx, org.AsUser()); err != nil {
 		return fmt.Errorf("generate random avatar: %v", err)
 	}

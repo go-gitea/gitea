@@ -1,3 +1,4 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Copyright 2014 The Gogs Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
@@ -15,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/avatar/dice_bear"
 	"code.gitea.io/gitea/modules/avatar/identicon"
+	"code.gitea.io/gitea/modules/avatar/none"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/nfnt/resize"
@@ -36,24 +38,74 @@ const (
 	KindOrg Kind = 2
 )
 
+type randomImageGenerator interface {
+	Name() string
+}
+
+type randomUserImageGenerator interface {
+	randomImageGenerator
+	RandomUserImage(int, []byte) (image.Image, error)
+}
+
+type randomOrgImageGenerator interface {
+	randomImageGenerator
+	RandomOrgImage(int, []byte) (image.Image, error)
+}
+
+type randomRepoImageGenerator interface {
+	randomImageGenerator
+	RandomRepoImage(int, []byte) (image.Image, error)
+}
+
+var (
+	userImageGenerator randomUserImageGenerator = identicon.Identicon{}
+	orgImageGenerator  randomOrgImageGenerator  = identicon.Identicon{}
+	repoImageGenerator randomRepoImageGenerator = identicon.Identicon{}
+	generators                                  = []randomImageGenerator{
+		dice_bear.DiceBear{},
+		identicon.Identicon{},
+		none.None{},
+	}
+)
+
+// TODO: Init()
+func init() {
+	userPreference := "none"
+	orgPreference := "none"
+	repoPreference := setting.RepoAvatar.FallbackImage
+
+	for _, g := range generators {
+		if g, ok := g.(randomUserImageGenerator); ok && userPreference == g.Name() {
+			userImageGenerator = g
+		}
+		if g, ok := g.(randomOrgImageGenerator); ok && orgPreference == g.Name() {
+			orgImageGenerator = g
+		}
+		if g, ok := g.(randomRepoImageGenerator); ok && repoPreference == g.Name() {
+			repoImageGenerator = g
+		}
+	}
+}
+
 // RandomImageSize generates and returns a random avatar image unique to input data
 // in custom size (height and width).
-func RandomImageSize(kind Kind, size int, data []byte) (image.Image, error) {
-	generator := "dice_bear"
-
-	// NOTE: If plugins are invented, make avatar generators to plugins
-	switch generator {
-	case "dice_bear":
-		return dice_bear.RandomImageSize(size, data)
-	default: // "identicon"
-		return identicon.RandomImageSize(size, data)
+func RandomImageSize(kind Kind, size int, seed []byte) (image.Image, error) {
+	switch kind {
+	case KindUser:
+		return userImageGenerator.RandomUserImage(size, seed)
+	case KindOrg:
+		return orgImageGenerator.RandomOrgImage(size, seed)
+	case KindRepo:
+		return repoImageGenerator.RandomRepoImage(size, seed)
+	default:
+		return nil, fmt.Errorf("avatar kind %v not supported", kind)
 	}
 }
 
 // RandomImage generates and returns a random avatar image unique to input data
 // in default size (height and width).
-func RandomImage(kind Kind, data []byte) (image.Image, error) {
-	return RandomImageSize(kind, AvatarSize, data)
+func RandomImage(kind Kind, seed []byte) (image.Image, error) {
+	return RandomImageSize(kind, AvatarSize, seed)
 }
 
 // Prepare accepts a byte slice as input, validates it contains an image of an
