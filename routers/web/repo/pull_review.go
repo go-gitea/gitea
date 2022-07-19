@@ -242,7 +242,7 @@ func SubmitReview(ctx *context.Context) {
 // DismissReview dismissing stale review by repo admin
 func DismissReview(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.DismissReviewForm)
-	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true)
+	comm, err := pull_service.DismissReview(ctx, form.ReviewID, ctx.Repo.Repository.ID, form.Message, ctx.Doer, true, true)
 	if err != nil {
 		ctx.ServerError("pull_service.DismissReview", err)
 		return
