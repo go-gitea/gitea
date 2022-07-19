@@ -13,6 +13,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
@@ -217,10 +220,17 @@ func UploadPackage(ctx *context.Context) {
 		}
 	}
 
-	repository, err := npmPackage.Metadata.Repository.GetGiteaRepository()
+	repo, err := repo_model.GetRepositoryByURL(npmPackage.Metadata.RepositoryURL)
 	if err == nil {
-		if pv.CreatorID == repository.OwnerID {
-			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repository.ID); err != nil {
+		flag := repo.OwnerID == ctx.Doer.ID
+
+		if !flag {
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			flag = err == nil && perms.CanWrite(unit.TypePackages)
+		}
+
+		if flag {
+			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
 				ctx.ServerError("SetRepositoryLink", err)
 			}
 		}
