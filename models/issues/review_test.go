@@ -134,7 +134,7 @@ func TestGetReviewersByIssueID(t *testing.T) {
 			UpdatedUnix: 946684814,
 		})
 
-	allReviews, err := issues_model.GetReviewByOpts(db.DefaultContext, &issues_model.GetReviewOptions{
+	allReviews, err := issues_model.GetReviews(db.DefaultContext, &issues_model.GetReviewOptions{
 		IssueID:    issue.ID,
 		Dismissed:  util.OptionalBoolFalse,
 		LatestOnly: true,

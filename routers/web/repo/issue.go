@@ -500,7 +500,7 @@ func RetrieveRepoReviewers(ctx *context.Context, repo *repo_model.Repository, is
 	}
 	ctx.Data["OriginalReviews"] = originalAuthorReviews
 
-	reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
+	reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
 		IssueID:    issue.ID,
 		Dismissed:  util.OptionalBoolFalse,
 		LatestOnly: true,

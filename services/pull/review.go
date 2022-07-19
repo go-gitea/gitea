@@ -296,22 +296,6 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return nil, err
 	}
 
-	if dismissAntecessors {
-		reviews, err := issues_model.GetReviewByOpts(ctx, &issues_model.GetReviewOptions{
-			IssueID:    review.IssueID,
-			ReviewerID: review.ReviewerID,
-			Dismissed:  util.OptionalBoolFalse,
-		})
-		if err != nil {
-			return nil, err
-		}
-		for _, oldReview := range reviews {
-			if err = issues_model.DismissReview(oldReview, true); err != nil {
-				return nil, err
-			}
-		}
-	}
-
 	if dismissPriors {
 		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
 			IssueID:    review.IssueID,
