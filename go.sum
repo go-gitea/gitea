@@ -62,8 +62,8 @@ code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b/go.mod h1:zcNbT/aJE
 code.gitea.io/sdk/gitea v0.11.3/go.mod h1:z3uwDV/b9Ls47NGukYM9XhnHtqPh/J+t40lsUrR6JDY=
 code.gitea.io/sdk/gitea v0.15.1 h1:WJreC7YYuxbn0UDaPuWIe/mtiNKTvLN8MLkaw71yx/M=
 code.gitea.io/sdk/gitea v0.15.1/go.mod h1:klY2LVI3s3NChzIk/MzMn7G1FHrfU7qd63iSMVoHRBA=
-codeberg.org/Codeberg/avatars v0.0.0-20210202020214-c86887927797 h1:B1Wf52i7Hd5jiNVXIHdk651FL1E2Zy1GNkkNpvvfS4A=
-codeberg.org/Codeberg/avatars v0.0.0-20210202020214-c86887927797/go.mod h1:ML/htpPRb3+owhkm4+qG2ZrXnk5WXaQLASOZ5GLCPi8=
+codeberg.org/Codeberg/avatars v1.0.0 h1:MRx5QxuT/oVCcPvC5rXwgwWKD7hc6J0GnZ0Kl67lYEM=
+codeberg.org/Codeberg/avatars v1.0.0/go.mod h1:ML/htpPRb3+owhkm4+qG2ZrXnk5WXaQLASOZ5GLCPi8=
 contrib.go.opencensus.io/exporter/aws v0.0.0-20181029163544-2befc13012d0/go.mod h1:uu1P0UCM/6RbsMrgPa98ll8ZcHM858i/AD06a9aLRCA=
 contrib.go.opencensus.io/exporter/ocagent v0.5.0/go.mod h1:ImxhfLRpxoYiSq891pBrLVhN+qmP8BTVvdH2YLs7Gl0=
 contrib.go.opencensus.io/exporter/stackdriver v0.12.1/go.mod h1:iwB6wGarfphGGe/e5CWqyUk/cLzKnWsOKPVW3no6OTw=
