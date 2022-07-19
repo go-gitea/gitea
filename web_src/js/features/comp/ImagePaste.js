@@ -7,7 +7,7 @@ import {getAttachedEasyMDE} from './EasyMDE.js';
  * @param {*} file
  */
 export function addUploadedFileToEditor(editor, file) {
-  if (!editor && file.previewElement && (editor = getAttachedEasyMDE(file.previewElement.parentElement.parentElement.parentElement.querySelector('textarea')))) {
+  if (!editor && file.previewElement && (editor = getAttachedEasyMDE(file.previewElement.closest('form').querySelector('textarea')))) {
     editor = editor.codemirror;
   }
   const startPos = editor.selectionStart || editor.getCursor && editor.getCursor('start');

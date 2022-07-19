@@ -194,7 +194,7 @@ export function initGlobalDropzone() {
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
-          if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.parentElement.parentElement.querySelector('textarea')))) {
+          if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.closest('form').querySelector('textarea')))) {
             file.editor = file.editor.codemirror;
           }
           if ($dropzone.data('remove-url')) {
