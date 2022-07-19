@@ -5,7 +5,6 @@
 package ssh
 
 import (
-	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"encoding/pem"
@@ -58,20 +57,16 @@ func genKeyPair() (publicK, privateK []byte, err error) {
 		return nil, nil, err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: privateKey}
-	bufPriv := new(bytes.Buffer)
-
-	if err := pem.Encode(bufPriv, privateKeyPEM); err != nil {
-		return nil, nil, err
-	}
+	// generate private key
+	privateK = pem.EncodeToMemory(&pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: privateKey})
 
 	// generate public key
-	pub, err := gossh.NewPublicKey(&publicKey)
+	pub, err := gossh.NewPublicKey(publicKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	public := gossh.MarshalAuthorizedKey(pub)
+	publicK = gossh.MarshalAuthorizedKey(pub)
 
-	return bufPriv.Bytes(), public, nil
+	return privateK, publicK, nil
 }
