@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{.i18n.Lang}}" class="theme-{{.SignedUser.Theme}}">
+<html lang="{{.locale.Lang}}" class="theme-{{.SignedUser.Theme}}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -78,7 +78,7 @@
 	{{template "custom/body_outer_pre" .}}
 
 	<div class="full height">
-		<noscript>{{.i18n.Tr "enable_javascript"}}</noscript>
+		<noscript>{{.locale.Tr "enable_javascript"}}</noscript>
 
 		{{template "custom/body_inner_pre" .}}
 

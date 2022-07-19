@@ -5,10 +5,10 @@
 		<div id="org-info">
 			<div class="ui header">
 				{{.Org.DisplayName}}
-				<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.i18n.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
+				<a href="{{.Org.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="top center">{{svg "octicon-rss" 36}}</i></a>
 				<span class="org-visibility">
-					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
-					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.i18n.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsLimited}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.limited_shortname"}}</div>{{end}}
+					{{if .Org.Visibility.IsPrivate}}<div class="ui large basic horizontal label">{{.locale.Tr "org.settings.visibility.private_shortname"}}</div>{{end}}
 				</span>
 			</div>
 			{{if $.RenderedDescription}}<p class="render-content markup">{{$.RenderedDescription|Str2html}}</p>{{end}}
@@ -32,20 +32,18 @@
 			<div class="ui five wide column">
 				{{if .CanCreateOrgRepo}}
 					<div class="center aligned">
-						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.i18n.Tr "new_repo"}}</a>
+						<a class="ui green button" href="{{AppSubUrl}}/repo/create?org={{.Org.ID}}">{{.locale.Tr "new_repo"}}</a>
 						{{if not .DisableNewPullMirrors}}
-							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.i18n.Tr "new_migrate"}}</a>
+							<a class="ui green button" href="{{AppSubUrl}}/repo/migrate?org={{.Org.ID}}&mirror=1">{{.locale.Tr "new_migrate"}}</a>
 						{{end}}
 					</div>
 					<div class="ui divider"></div>
 				{{end}}
 				<h4 class="ui top attached header df">
-					<strong class="f1">{{.i18n.Tr "org.people"}}</strong>
-					{{if .IsOrganizationMember}}
-						<div class="ui">
-							<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.Org.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
-						</div>
-					{{end}}
+					<strong class="f1">{{.locale.Tr "org.people"}}</strong>
+					<div class="ui">
+						<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
+					</div>
 				</h4>
 				<div class="ui attached segment members">
 					{{$isMember := .IsOrganizationMember}}
@@ -60,7 +58,7 @@
 
 				{{if .IsOrganizationMember}}
 					<div class="ui top attached header df">
-						<strong class="f1">{{.i18n.Tr "org.teams"}}</strong>
+						<strong class="f1">{{.locale.Tr "org.teams"}}</strong>
 						<div class="ui">
 							<a class="text grey dif ac" href="{{.OrgLink}}/teams"><span>{{.Org.NumTeams}}</span> {{svg "octicon-chevron-right"}}</a>
 						</div>
@@ -70,15 +68,15 @@
 							<div class="item">
 								<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong class="team-name">{{.Name}}</strong></a>
 								<p class="text grey">
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.i18n.Tr "org.lower_members"}}</a> ·
-									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.i18n.Tr "org.lower_repositories"}}</a>
+									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}"><strong>{{.NumMembers}}</strong> {{$.locale.Tr "org.lower_members"}}</a> ·
+									<a href="{{$.OrgLink}}/teams/{{.LowerName | PathEscape}}/repositories"><strong>{{.NumRepos}}</strong> {{$.locale.Tr "org.lower_repositories"}}</a>
 								</p>
 							</div>
 						{{end}}
 					</div>
 					{{if .IsOrganizationOwner}}
 						<div class="ui bottom attached segment">
-							<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{.i18n.Tr "org.create_new_team"}}</a>
+							<a class="ui primary small button" href="{{.OrgLink}}/teams/new">{{.locale.Tr "org.create_new_team"}}</a>
 						</div>
 					{{end}}
 				{{end}}

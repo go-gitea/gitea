@@ -475,7 +475,7 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 	return review, comm, committer.Commit()
 }
 
-// GetReviewOptions represent filter options for GetReviewByOpts
+// GetReviewOptions represent filter options for GetReviews
 type GetReviewOptions struct {
 	db.ListOptions
 	IssueID        int64
@@ -487,8 +487,8 @@ type GetReviewOptions struct {
 	LatestOnly     bool
 }
 
-// GetReviewByOpts return reviews based on GetReviewOptions
-func GetReviewByOpts(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) {
+// GetReviews return reviews based on GetReviewOptions
+func GetReviews(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) {
 	if opts == nil {
 		return nil, fmt.Errorf("opts are nil")
 	}

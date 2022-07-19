@@ -272,7 +272,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(ctx context.Context, reviewID int64, message string, doer *user_model.User, isDismiss, dismissAntecessors bool) (comment *issues_model.Comment, err error) {
+func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPriors bool) (comment *issues_model.Comment, err error) {
 	review, err := issues_model.GetReviewByID(ctx, reviewID)
 	if err != nil {
 		return nil, err
@@ -280,6 +280,16 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 
 	if review.Type != issues_model.ReviewTypeApprove && review.Type != issues_model.ReviewTypeReject {
 		return nil, fmt.Errorf("not need to dismiss this review because it's type is not Approve or change request")
+	}
+
+	// load data for notify
+	if err = review.LoadAttributes(ctx); err != nil {
+		return nil, err
+	}
+
+	// Check if the review's repoID is the one we're currently expecting.
+	if review.Issue.RepoID != repoID {
+		return nil, fmt.Errorf("reviews's repository is not the same as the one we expect")
 	}
 
 	if err = issues_model.DismissReview(review, isDismiss); err != nil {
@@ -302,16 +312,28 @@ func DismissReview(ctx context.Context, reviewID int64, message string, doer *us
 		}
 	}
 
+	if dismissPriors {
+		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
+			IssueID:    review.IssueID,
+			ReviewerID: review.ReviewerID,
+			Dismissed:  util.OptionalBoolFalse,
+		})
+		if err != nil {
+			return nil, err
+		}
+		for _, oldReview := range reviews {
+			if err = issues_model.DismissReview(oldReview, true); err != nil {
+				return nil, err
+			}
+		}
+	}
+
 	if !isDismiss {
 		return nil, nil
 	}
 
-	// load data for notify
-	if err = review.LoadAttributes(ctx); err != nil {
-		return nil, err
-	}
 	if err = review.Issue.LoadPullRequestCtx(ctx); err != nil {
-		return nil, err
+		return
 	}
 	if err = review.Issue.LoadAttributes(ctx); err != nil {
 		return nil, err

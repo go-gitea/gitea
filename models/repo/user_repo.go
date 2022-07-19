@@ -109,7 +109,7 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 	// and just waste 1 unit is cheaper than re-allocate memory once.
 	users := make([]*user_model.User, 0, len(userIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", userIDs).Find(&users); err != nil {
+		if err = e.In("id", userIDs).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
 			return nil, err
 		}
 	}
@@ -168,5 +168,5 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 	}
 
 	users := make([]*user_model.User, 0, 8)
-	return users, db.GetEngine(ctx).Where(cond).OrderBy("name").Find(&users)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
 }

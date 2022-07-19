@@ -224,6 +224,7 @@ func CreateRelease(ctx *context.APIContext) {
 		rel.IsTag = false
 		rel.Repo = ctx.Repo.Repository
 		rel.Publisher = ctx.Doer
+		rel.Target = form.Target
 
 		if err = release_service.UpdateRelease(ctx.Doer, ctx.Repo.GitRepo, rel, nil, nil, nil); err != nil {
 			ctx.Error(http.StatusInternalServerError, "UpdateRelease", err)

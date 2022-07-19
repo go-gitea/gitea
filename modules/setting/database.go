@@ -156,6 +156,12 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "5432"
+	}
 	return host, port
 }
 
@@ -173,6 +179,7 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 
 // ParseMSSQLHostPort splits the host into host and port
 func ParseMSSQLHostPort(info string) (string, string) {
+	// the default port "0" might be related to MSSQL's dynamic port, maybe it should be double-confirmed in the future
 	host, port := "127.0.0.1", "0"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -182,6 +189,12 @@ func ParseMSSQLHostPort(info string) (string, string) {
 		port = strings.TrimSpace(strings.Split(info, ",")[1])
 	} else if len(info) > 0 {
 		host = info
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "0"
 	}
 	return host, port
 }
