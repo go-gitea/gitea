@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/auth"
 
 	"github.com/stretchr/testify/assert"
@@ -275,8 +275,7 @@ func TestLDAPUserSigninFailed(t *testing.T) {
 	addAuthSourceLDAP(t, "")
 
 	u := otherLDAPUsers[0]
-
-	testLoginFailed(t, u.UserName, u.Password, i18n.Tr("en", "form.username_password_incorrect"))
+	testLoginFailed(t, u.UserName, u.Password, translation.NewLocale("en-US").Tr("form.username_password_incorrect"))
 }
 
 func TestLDAPUserSSHKeySync(t *testing.T) {
@@ -321,7 +320,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	addAuthSourceLDAP(t, "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
-	team, err := organization.GetTeam(org.ID, "team11")
+	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
 	auth.SyncExternalUsers(context.Background(), true)
 	for _, gitLDAPUser := range gitLDAPUsers {
@@ -366,7 +365,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	addAuthSourceLDAP(t, "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
 	org, err := organization.GetOrgByName("org26")
 	assert.NoError(t, err)
-	team, err := organization.GetTeam(org.ID, "team11")
+	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
 	loginUserWithPassword(t, gitLDAPUsers[0].UserName, gitLDAPUsers[0].Password)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{

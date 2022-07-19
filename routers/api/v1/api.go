@@ -81,6 +81,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/api/v1/activitypub"
 	"code.gitea.io/gitea/routers/api/v1/admin"
 	"code.gitea.io/gitea/routers/api/v1/misc"
 	"code.gitea.io/gitea/routers/api/v1/notify"
@@ -108,7 +109,7 @@ func sudo() func(ctx *context.APIContext) {
 
 		if len(sudo) > 0 {
 			if ctx.IsSigned && ctx.Doer.IsAdmin {
-				user, err := user_model.GetUserByName(sudo)
+				user, err := user_model.GetUserByName(ctx, sudo)
 				if err != nil {
 					if user_model.IsErrUserNotExist(err) {
 						ctx.NotFound()
@@ -143,7 +144,7 @@ func repoAssignment() func(ctx *context.APIContext) {
 		if ctx.IsSigned && ctx.Doer.LowerName == strings.ToLower(userName) {
 			owner = ctx.Doer
 		} else {
-			owner, err = user_model.GetUserByName(userName)
+			owner, err = user_model.GetUserByName(ctx, userName)
 			if err != nil {
 				if user_model.IsErrUserNotExist(err) {
 					if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
@@ -467,7 +468,7 @@ func orgAssignment(args ...bool) func(ctx *context.APIContext) {
 		}
 
 		if assignTeam {
-			ctx.Org.Team, err = organization.GetTeamByID(ctx.ParamsInt64(":teamid"))
+			ctx.Org.Team, err = organization.GetTeamByID(ctx, ctx.ParamsInt64(":teamid"))
 			if err != nil {
 				if organization.IsErrTeamNotExist(err) {
 					ctx.NotFound()
@@ -592,6 +593,7 @@ func bind(obj interface{}) http.HandlerFunc {
 func buildAuthGroup() *auth.Group {
 	group := auth.NewGroup(
 		&auth.OAuth2{},
+		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
 	)
 	if setting.Service.EnableReverseProxyAuth {
@@ -642,6 +644,12 @@ func Routes() *web.Route {
 		m.Get("/version", misc.Version)
 		if setting.Federation.Enabled {
 			m.Get("/nodeinfo", misc.NodeInfo)
+			m.Group("/activitypub", func() {
+				m.Group("/user/{username}", func() {
+					m.Get("", activitypub.Person)
+					m.Post("/inbox", activitypub.ReqHTTPSignature(), activitypub.PersonInbox)
+				}, context_service.UserAssignmentAPI())
+			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
 		m.Post("/markdown", bind(api.MarkdownOption{}), misc.Markdown)
@@ -826,6 +834,7 @@ func Routes() *web.Route {
 						Delete(reqAdmin(), repo.DeleteTeam)
 				}, reqToken())
 				m.Get("/raw/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFile)
+				m.Get("/media/*", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetRawFileOrLFS)
 				m.Get("/archive/*", reqRepoReader(unit.TypeCode), repo.GetArchive)
 				m.Combo("/forks").Get(repo.ListForks).
 					Post(reqToken(), reqRepoReader(unit.TypeCode), bind(api.CreateForkOption{}), repo.CreateFork)
@@ -1008,7 +1017,7 @@ func Routes() *web.Route {
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)

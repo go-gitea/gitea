@@ -56,6 +56,9 @@ type Version struct {
 	Version int64
 }
 
+// Use noopMigration when there is a migration that has been no-oped
+var noopMigration = func(_ *xorm.Engine) error { return nil }
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
@@ -351,7 +354,7 @@ var migrations = []Migration{
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
-	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	NewMigration("No-op (remote version is using AppState now)", noopMigration),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
@@ -387,6 +390,14 @@ var migrations = []Migration{
 	NewMigration("Add auto merge table", addAutoMergeTable),
 	// v215 -> v216
 	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
+	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
+	// v217 -> v218
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v218 -> v219
+	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	// v219 -> v220
+	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -419,7 +430,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialised")
+		return fmt.Errorf("Database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -953,7 +964,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+// modifyColumn will modify column's type or other property. SQLITE is not supported
 func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error

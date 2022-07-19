@@ -78,6 +78,13 @@ Environment=USER=git HOME=/home/git GITEA_WORK_DIR=/var/lib/gitea
 #CapabilityBoundingSet=CAP_NET_BIND_SERVICE
 #AmbientCapabilities=CAP_NET_BIND_SERVICE
 ###
+# In some cases, when using CapabilityBoundingSet and AmbientCapabilities option, you may want to
+# set the following value to false to allow capabilities to be applied on gitea process. The following
+# value if set to true sandboxes gitea service and prevent any processes from running with privileges
+# in the host user namespace.
+###
+#PrivateUsers=false
+###
 
 [Install]
 WantedBy=multi-user.target

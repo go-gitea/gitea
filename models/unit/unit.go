@@ -284,7 +284,7 @@ var (
 		TypePackages,
 		"repo.packages",
 		"/packages",
-		"repo.packages.desc",
+		"packages.desc",
 		6,
 		perm.AccessModeRead,
 	}
@@ -318,7 +318,7 @@ func FindUnitTypes(nameKeys ...string) (res []Type) {
 			res = append(res, TypeInvalid)
 		}
 	}
-	return
+	return res
 }
 
 // TypeFromKey give the unit key name and return unit

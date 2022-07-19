@@ -13,5 +13,3 @@ CUSTOM_PATH="/data/gitea"
 
 # Provide docker defaults
 GITEA_WORK_DIR="${GITEA_WORK_DIR:-$WORK_DIR}" GITEA_CUSTOM="${GITEA_CUSTOM:-$CUSTOM_PATH}" exec -a "$0" "$GITEA" $CONF_ARG "$@"
-
-

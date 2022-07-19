@@ -174,7 +174,12 @@ func initIntegrationTest() {
 	setting.LoadForTest()
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
+
+	if err := git.InitOnceWithSync(context.Background()); err != nil {
+		log.Fatal("git.InitOnceWithSync: %v", err)
+	}
 	git.CheckLFSVersion()
+
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
 		fmt.Printf("Init storage failed: %v", err)
@@ -183,8 +188,13 @@ func initIntegrationTest() {
 
 	switch {
 	case setting.Database.UseMySQL:
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
+		connType := "tcp"
+		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
+			connType = "unix"
+		}
+
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s(%s)/",
+			setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -193,8 +203,16 @@ func initIntegrationTest() {
 			log.Fatal("db.Exec: %v", err)
 		}
 	case setting.Database.UsePostgreSQL:
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+		var db *sql.DB
+		var err error
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
+
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -216,8 +234,13 @@ func initIntegrationTest() {
 		}
 		db.Close()
 
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
 		// This is a different db object; requires a different Close()
 		defer db.Close()
 		if err != nil {
@@ -261,8 +284,8 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
-
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -420,7 +443,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession) string {
 		"_csrf": doc.GetCSRF(),
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	})
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", "/user/settings/applications")
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -563,6 +586,7 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
+	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

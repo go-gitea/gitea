@@ -11,17 +11,20 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNodeinfo(t *testing.T) {
-	onGiteaRun(t, func(*testing.T, *url.URL) {
-		setting.Federation.Enabled = true
-		defer func() {
-			setting.Federation.Enabled = false
-		}()
+	setting.Federation.Enabled = true
+	c = routers.NormalRoutes()
+	defer func() {
+		setting.Federation.Enabled = false
+		c = routers.NormalRoutes()
+	}()
 
+	onGiteaRun(t, func(*testing.T, *url.URL) {
 		req := NewRequestf(t, "GET", "/api/v1/nodeinfo")
 		resp := MakeRequest(t, req, http.StatusOK)
 		var nodeinfo api.NodeInfo
@@ -29,7 +32,7 @@ func TestNodeinfo(t *testing.T) {
 		assert.True(t, nodeinfo.OpenRegistrations)
 		assert.Equal(t, "gitea", nodeinfo.Software.Name)
 		assert.Equal(t, 23, nodeinfo.Usage.Users.Total)
-		assert.Equal(t, 15, nodeinfo.Usage.LocalPosts)
+		assert.Equal(t, 17, nodeinfo.Usage.LocalPosts)
 		assert.Equal(t, 2, nodeinfo.Usage.LocalComments)
 	})
 }

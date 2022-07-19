@@ -10,36 +10,36 @@
 		<input type="hidden" name="diff_end_cid">
 		<input type="hidden" name="diff_base_cid">
 		<div class="ui top tabular menu" data-write="write" data-preview="preview">
-			<a class="active item" data-tab="write">{{$.root.i18n.Tr "write"}}</a>
-			<a class="item" data-tab="preview" data-url="{{$.root.Repository.HTMLURL}}/markdown" data-context="{{$.root.RepoLink}}">{{$.root.i18n.Tr "preview"}}</a>
+			<a class="active item" data-tab="write">{{$.root.locale.Tr "write"}}</a>
+			<a class="item" data-tab="preview" data-url="{{$.root.Repository.HTMLURL}}/markdown" data-context="{{$.root.RepoLink}}">{{$.root.locale.Tr "preview"}}</a>
 		</div>
 		<div class="field">
 			<div class="ui active tab" data-tab="write">
-				<textarea name="content" placeholder="{{$.root.i18n.Tr "repo.diff.comment.placeholder"}}"></textarea>
+				<textarea name="content" placeholder="{{$.root.locale.Tr "repo.diff.comment.placeholder"}}"></textarea>
 			</div>
 			<div class="ui tab markup" data-tab="preview">
-			{{.i18n.Tr "loading"}}
+			{{.locale.Tr "loading"}}
 			</div>
 		</div>
 		<div class="field footer mx-3">
-			<span class="markup-info">{{svg "octicon-markup"}} {{$.root.i18n.Tr "repo.diff.comment.markdown_info"}}</span>
+			<span class="markup-info">{{svg "octicon-markup"}} {{$.root.locale.Tr "repo.diff.comment.markdown_info"}}</span>
 			<div class="ui right">
 				{{if $.reply}}
-					<button class="ui submit green tiny button btn-reply" type="submit">{{$.root.i18n.Tr "repo.diff.comment.reply"}}</button>
+					<button class="ui submit green tiny button btn-reply" type="submit">{{$.root.locale.Tr "repo.diff.comment.reply"}}</button>
 					<input type="hidden" name="reply" value="{{$.reply}}">
 				{{else}}
 					{{if $.root.CurrentReview}}
 						<button name="is_review" value="true" type="submit"
-								class="ui submit green tiny button btn-add-comment">{{$.root.i18n.Tr "repo.diff.comment.add_review_comment"}}</button>
+								class="ui submit green tiny button btn-add-comment">{{$.root.locale.Tr "repo.diff.comment.add_review_comment"}}</button>
 					{{else}}
 						<button name="is_review" value="true" type="submit"
-								class="ui submit green tiny button btn-start-review">{{$.root.i18n.Tr "repo.diff.comment.start_review"}}</button>
+								class="ui submit green tiny button btn-start-review">{{$.root.locale.Tr "repo.diff.comment.start_review"}}</button>
 						<button type="submit"
-								class="ui submit tiny basic button btn-add-single">{{$.root.i18n.Tr "repo.diff.comment.add_single_comment"}}</button>
+								class="ui submit tiny basic button btn-add-single">{{$.root.locale.Tr "repo.diff.comment.add_single_comment"}}</button>
 					{{end}}
 				{{end}}
 				{{if or (not $.HasComments) $.hidden}}
-					<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{$.root.i18n.Tr "cancel"}}</button>
+					<button type="button" class="ui submit tiny basic button btn-cancel cancel-code-comment">{{$.root.locale.Tr "cancel"}}</button>
 				{{end}}
 			</div>
 		</div>

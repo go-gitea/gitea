@@ -17,6 +17,7 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
@@ -155,6 +156,10 @@ var (
 			cli.StringFlag{
 				Name:  "email,e",
 				Usage: "Email of the user to delete",
+			},
+			cli.BoolFlag{
+				Name:  "purge",
+				Usage: "Purge user, all their repositories, organizations and comments",
 			},
 		},
 		Action: runDeleteUser,
@@ -490,7 +495,7 @@ func runChangePassword(c *cli.Context) error {
 		return errors.New("The password you chose is on a list of stolen passwords previously exposed in public data breaches. Please try again with a different password.\nFor more details, see https://haveibeenpwned.com/Passwords")
 	}
 	uname := c.String("username")
-	user, err := user_model.GetUserByName(uname)
+	user, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		return err
 	}
@@ -627,9 +632,10 @@ func runListUsers(c *cli.Context) error {
 			}
 		}
 	} else {
-		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
+		twofa := user_model.UserList(users).GetTwoFaStatus()
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\t2FA\n")
 		for _, u := range users {
-			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin, twofa[u.ID])
 		}
 
 	}
@@ -659,7 +665,7 @@ func runDeleteUser(c *cli.Context) error {
 	if c.IsSet("email") {
 		user, err = user_model.GetUserByEmail(c.String("email"))
 	} else if c.IsSet("username") {
-		user, err = user_model.GetUserByName(c.String("username"))
+		user, err = user_model.GetUserByName(ctx, c.String("username"))
 	} else {
 		user, err = user_model.GetUserByID(c.Int64("id"))
 	}
@@ -674,7 +680,7 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(user)
+	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
 }
 
 func runGenerateAccessToken(c *cli.Context) error {
@@ -689,7 +695,7 @@ func runGenerateAccessToken(c *cli.Context) error {
 		return err
 	}
 
-	user, err := user_model.GetUserByName(c.String("username"))
+	user, err := user_model.GetUserByName(ctx, c.String("username"))
 	if err != nil {
 		return err
 	}
@@ -722,9 +728,9 @@ func runRepoSyncReleases(_ *cli.Context) error {
 
 	log.Trace("Synchronizing repository releases (this may take a while)")
 	for page := 1; ; page++ {
-		repos, count, err := models.SearchRepositoryByName(&models.SearchRepoOptions{
+		repos, count, err := repo_model.SearchRepositoryByName(&repo_model.SearchRepoOptions{
 			ListOptions: db.ListOptions{
-				PageSize: models.RepositoryListDefaultPageSize,
+				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     page,
 			},
 			Private: true,

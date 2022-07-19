@@ -5,11 +5,13 @@
 package repo
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -74,9 +76,10 @@ func (cfg *ExternalWikiConfig) ToDB() ([]byte, error) {
 
 // ExternalTrackerConfig describes external tracker config
 type ExternalTrackerConfig struct {
-	ExternalTrackerURL    string
-	ExternalTrackerFormat string
-	ExternalTrackerStyle  string
+	ExternalTrackerURL           string
+	ExternalTrackerFormat        string
+	ExternalTrackerStyle         string
+	ExternalTrackerRegexpPattern string
 }
 
 // FromDB fills up a ExternalTrackerConfig from serialized format.
@@ -147,6 +150,10 @@ func (cfg *PullRequestsConfig) GetDefaultMergeStyle() MergeStyle {
 		return cfg.DefaultMergeStyle
 	}
 
+	if setting.Repository.PullRequest.DefaultMergeStyle != "" {
+		return MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle)
+	}
+
 	return MergeStyleMerge
 }
 
@@ -206,9 +213,9 @@ func (r *RepoUnit) ExternalTrackerConfig() *ExternalTrackerConfig {
 	return r.Config.(*ExternalTrackerConfig)
 }
 
-func getUnitsByRepoID(e db.Engine, repoID int64) (units []*RepoUnit, err error) {
+func getUnitsByRepoID(ctx context.Context, repoID int64) (units []*RepoUnit, err error) {
 	var tmpUnits []*RepoUnit
-	if err := e.Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
+	if err := db.GetEngine(ctx).Where("repo_id = ?", repoID).Find(&tmpUnits); err != nil {
 		return nil, err
 	}
 

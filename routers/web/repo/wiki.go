@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -280,6 +281,8 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		ctx.Data["footerPresent"] = false
 	}
 
+	ctx.Data["toc"] = rctx.TableOfContents
+
 	// get commit count - wiki revisions
 	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
@@ -348,7 +351,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
 		return nil, nil
 	}
-	ctx.Data["Commits"] = models.ConvertFromGitCommit(commitsHistory, ctx.Repo.Repository)
+	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(commitsHistory, ctx.Repo.Repository)
 
 	pager := context.NewPagination(int(commitsCount), setting.Git.CommitsRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)

@@ -5,13 +5,13 @@
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{if .PageIsAdminDefaultHooksNew}}
-				{{.i18n.Tr "admin.defaulthooks.add_webhook"}}
+				{{.locale.Tr "admin.defaulthooks.add_webhook"}}
 			{{else if .PageIsAdminSystemHooksNew}}
-				{{.i18n.Tr "admin.systemhooks.add_webhook"}}
+				{{.locale.Tr "admin.systemhooks.add_webhook"}}
 			{{else if .Webhook.IsSystemWebhook}}
-				{{.i18n.Tr "admin.systemhooks.update_webhook"}}
+				{{.locale.Tr "admin.systemhooks.update_webhook"}}
 			{{else}}
-				{{.i18n.Tr "admin.defaulthooks.update_webhook"}}
+				{{.locale.Tr "admin.defaulthooks.update_webhook"}}
 			{{end}}
 			<div class="ui right">
 				{{if eq .HookType "gitea"}}

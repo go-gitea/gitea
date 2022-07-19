@@ -16,5 +16,5 @@ func ReadAtMost(r io.Reader, buf []byte) (n int, err error) {
 	if err == io.EOF || err == io.ErrUnexpectedEOF {
 		err = nil
 	}
-	return
+	return n, err
 }

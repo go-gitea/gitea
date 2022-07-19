@@ -6,15 +6,17 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
 import VueLoader from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
-import {resolve, parse, dirname} from 'path';
+import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
 
 const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const glob = (pattern) => fastGlob.sync(pattern, {cwd: __dirname, absolute: true});
+const glob = (pattern) => fastGlob.sync(pattern, {
+  cwd: dirname(fileURLToPath(new URL(import.meta.url))),
+  absolute: true,
+});
 
 const themes = {};
 for (const path of glob('web_src/less/themes/*.less')) {
@@ -43,29 +45,29 @@ export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
     index: [
-      resolve(__dirname, 'web_src/js/jquery.js'),
-      resolve(__dirname, 'web_src/fomantic/build/semantic.js'),
-      resolve(__dirname, 'web_src/js/index.js'),
-      resolve(__dirname, 'node_modules/easymde/dist/easymde.min.css'),
-      resolve(__dirname, 'web_src/fomantic/build/semantic.css'),
-      resolve(__dirname, 'web_src/less/misc.css'),
-      resolve(__dirname, 'web_src/less/index.less'),
+      fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
+      fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/less/misc.css', import.meta.url)),
+      fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
     ],
     swagger: [
-      resolve(__dirname, 'web_src/js/standalone/swagger.js'),
-      resolve(__dirname, 'web_src/less/standalone/swagger.less'),
+      fileURLToPath(new URL('web_src/js/standalone/swagger.js', import.meta.url)),
+      fileURLToPath(new URL('web_src/less/standalone/swagger.less', import.meta.url)),
     ],
     serviceworker: [
-      resolve(__dirname, 'web_src/js/serviceworker.js'),
+      fileURLToPath(new URL('web_src/js/serviceworker.js', import.meta.url)),
     ],
     'eventsource.sharedworker': [
-      resolve(__dirname, 'web_src/js/features/eventsource.sharedworker.js'),
+      fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
     ...themes,
   },
   devtool: false,
   output: {
-    path: resolve(__dirname, 'public'),
+    path: fileURLToPath(new URL('public', import.meta.url)),
     filename: ({chunk}) => {
       // serviceworker can only manage assets below it's script's directory so
       // we have to put it in / instead of /js/
@@ -165,7 +167,7 @@ export default {
       },
       {
         test: /\.svg$/,
-        include: resolve(__dirname, 'public/img/svg'),
+        include: fileURLToPath(new URL('public/img/svg', import.meta.url)),
         type: 'asset/source',
       },
       {

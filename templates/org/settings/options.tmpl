@@ -7,64 +7,64 @@
 			<div class="twelve wide column content">
 				{{template "base/alert" .}}
 				<h4 class="ui top attached header">
-					{{.i18n.Tr "org.settings.options"}}
+					{{.locale.Tr "org.settings.options"}}
 				</h4>
 				<div class="ui attached segment">
 					<form class="ui form" action="{{.Link}}" method="post">
 						{{.CsrfTokenHtml}}
 						<div class="required field {{if .Err_Name}}error{{end}}">
-							<label for="org_name">{{.i18n.Tr "org.org_name_holder"}}
-								<span class="text red hide" id="org-name-change-prompt"> {{.i18n.Tr "org.settings.change_orgname_prompt"}}</span>
-								<span class="text red hide" id="org-name-change-redirect-prompt"> {{.i18n.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
+							<label for="org_name">{{.locale.Tr "org.org_name_holder"}}
+								<span class="text red hide" id="org-name-change-prompt"> {{.locale.Tr "org.settings.change_orgname_prompt"}}</span>
+								<span class="text red hide" id="org-name-change-redirect-prompt"> {{.locale.Tr "org.settings.change_orgname_redirect_prompt"}}</span>
 							</label>
 							<input id="org_name" name="name" value="{{.Org.Name}}" data-org-name="{{.Org.Name}}" autofocus required>
 						</div>
 						<div class="field {{if .Err_FullName}}error{{end}}">
-							<label for="full_name">{{.i18n.Tr "org.org_full_name_holder"}}</label>
+							<label for="full_name">{{.locale.Tr "org.org_full_name_holder"}}</label>
 							<input id="full_name" name="full_name" value="{{.Org.FullName}}">
 						</div>
 						<div class="field {{if .Err_Description}}error{{end}}">
-							<label for="description">{{$.i18n.Tr "org.org_desc"}}</label>
+							<label for="description">{{$.locale.Tr "org.org_desc"}}</label>
 							<textarea id="description" name="description" rows="2">{{.Org.Description}}</textarea>
 						</div>
 						<div class="field {{if .Err_Website}}error{{end}}">
-							<label for="website">{{.i18n.Tr "org.settings.website"}}</label>
+							<label for="website">{{.locale.Tr "org.settings.website"}}</label>
 							<input id="website" name="website" type="url" value="{{.Org.Website}}">
 						</div>
 						<div class="field">
-							<label for="location">{{.i18n.Tr "org.settings.location"}}</label>
+							<label for="location">{{.locale.Tr "org.settings.location"}}</label>
 							<input id="location" name="location"  value="{{.Org.Location}}">
 						</div>
 
 						<div class="ui divider"></div>
 						<div class="field" id="visibility_box">
-							<label for="visibility">{{.i18n.Tr "org.settings.visibility"}}</label>
+							<label for="visibility">{{.locale.Tr "org.settings.visibility"}}</label>
 							<div class="field">
 								<div class="ui radio checkbox">
 									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="0" {{if eq .CurrentVisibility 0}}checked{{end}}/>
-									<label>{{.i18n.Tr "org.settings.visibility.public"}}</label>
+									<label>{{.locale.Tr "org.settings.visibility.public"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
 									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="1" {{if eq .CurrentVisibility 1}}checked{{end}}/>
-									<label>{{.i18n.Tr "org.settings.visibility.limited"}}</label>
+									<label>{{.locale.Tr "org.settings.visibility.limited"}}</label>
 								</div>
 							</div>
 							<div class="field">
 								<div class="ui radio checkbox">
 									<input class="hidden enable-system-radio" tabindex="0" name="visibility" type="radio" value="2" {{if eq .CurrentVisibility 2}}checked{{end}}/>
-									<label>{{.i18n.Tr "org.settings.visibility.private"}}</label>
+									<label>{{.locale.Tr "org.settings.visibility.private"}}</label>
 								</div>
 							</div>
 						</div>
 
 						<div class="field" id="permission_box">
-							<label>{{.i18n.Tr "org.settings.permission"}}</label>
+							<label>{{.locale.Tr "org.settings.permission"}}</label>
 							<div class="field">
 								<div class="ui checkbox">
 									<input class="hidden" type="checkbox" name="repo_admin_change_team_access" {{if .RepoAdminChangeTeamAccess}}checked{{end}}/>
-									<label>{{.i18n.Tr "org.settings.repoadminchangeteam"}}</label>
+									<label>{{.locale.Tr "org.settings.repoadminchangeteam"}}</label>
 								</div>
 							</div>
 						</div>
@@ -73,14 +73,14 @@
 						<div class="ui divider"></div>
 
 						<div class="inline field {{if .Err_MaxRepoCreation}}error{{end}}">
-							<label for="max_repo_creation">{{.i18n.Tr "admin.users.max_repo_creation"}}</label>
+							<label for="max_repo_creation">{{.locale.Tr "admin.users.max_repo_creation"}}</label>
 							<input id="max_repo_creation" name="max_repo_creation" type="number" value="{{.Org.MaxRepoCreation}}">
-							<p class="help">{{.i18n.Tr "admin.users.max_repo_creation_desc"}}</p>
+							<p class="help">{{.locale.Tr "admin.users.max_repo_creation_desc"}}</p>
 						</div>
 						{{end}}
 
 						<div class="field">
-							<button class="ui green button">{{$.i18n.Tr "org.settings.update_settings"}}</button>
+							<button class="ui green button">{{$.locale.Tr "org.settings.update_settings"}}</button>
 						</div>
 					</form>
 
@@ -89,13 +89,13 @@
 					<form class="ui form" action="{{.Link}}/avatar" method="post" enctype="multipart/form-data">
 						{{.CsrfTokenHtml}}
 						<div class="inline field">
-							<label for="avatar">{{.i18n.Tr "settings.choose_new_avatar"}}</label>
+							<label for="avatar">{{.locale.Tr "settings.choose_new_avatar"}}</label>
 							<input name="avatar" type="file" >
 						</div>
 
 						<div class="field">
-							<button class="ui green button">{{$.i18n.Tr "settings.update_avatar"}}</button>
-							<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.i18n.Tr "settings.delete_current_avatar"}}</a>
+							<button class="ui green button">{{$.locale.Tr "settings.update_avatar"}}</button>
+							<a class="ui red button delete-post" data-request-url="{{.Link}}/avatar/delete" data-done-url="{{.Link}}">{{$.locale.Tr "settings.delete_current_avatar"}}</a>
 						</div>
 					</form>
 				</div>

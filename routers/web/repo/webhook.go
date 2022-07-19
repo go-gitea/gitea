@@ -44,7 +44,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Repo.RepoLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
-	ws, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("GetWebhooksByRepoID", err)
 		return

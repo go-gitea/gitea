@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/services/auth/source/oauth2"
 )
 
 const (
@@ -25,7 +26,6 @@ const (
 func Security(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
-	ctx.Data["RequireU2F"] = true
 
 	if ctx.FormString("openid.return_to") != "" {
 		settingsOpenIDVerify(ctx)
@@ -108,6 +108,14 @@ func loadSecurityData(ctx *context.Context) {
 		}
 	}
 	ctx.Data["AccountLinks"] = sources
+
+	orderedOAuth2Names, oauth2Providers, err := oauth2.GetActiveOAuth2Providers()
+	if err != nil {
+		ctx.ServerError("GetActiveOAuth2Providers", err)
+		return
+	}
+	ctx.Data["OrderedOAuth2Names"] = orderedOAuth2Names
+	ctx.Data["OAuth2Providers"] = oauth2Providers
 
 	openid, err := user_model.GetUserOpenIDs(ctx.Doer.ID)
 	if err != nil {

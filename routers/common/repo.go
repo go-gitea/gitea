@@ -88,10 +88,14 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 		}
 		if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
-			if st.IsSvgImage() {
+			if st.IsSvgImage() || st.IsPDF() {
 				ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 				ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-				ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
+				if st.IsSvgImage() {
+					ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
+				} else {
+					ctx.Resp.Header().Set("Content-Type", typesniffer.ApplicationOctetStream)
+				}
 			}
 		} else {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))

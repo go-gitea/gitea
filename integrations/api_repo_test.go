@@ -110,6 +110,11 @@ func TestAPISearchRepo(t *testing.T) {
 			},
 		},
 		{
+			name: "RepositoriesByName", requestURL: fmt.Sprintf("/api/v1/repos/search?q=%s&private=false", "user2/big_test_"), expectedResults: expectedResults{
+				user2: {count: 2, repoName: "big_test_"},
+			},
+		},
+		{
 			name: "RepositoriesAccessibleAndRelatedToUser", requestURL: fmt.Sprintf("/api/v1/repos/search?uid=%d", user.ID), expectedResults: expectedResults{
 				nil:   {count: 5},
 				user:  {count: 9, includesPrivate: true},
@@ -388,7 +393,7 @@ func testAPIRepoMigrateConflict(t *testing.T, u *url.URL) {
 		defer util.RemoveAll(dstPath)
 		t.Run("CreateRepo", doAPICreateRepository(httpContext, false))
 
-		user, err := user_model.GetUserByName(httpContext.Username)
+		user, err := user_model.GetUserByName(db.DefaultContext, httpContext.Username)
 		assert.NoError(t, err)
 		userID := user.ID
 

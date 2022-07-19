@@ -12,6 +12,7 @@ import (
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -50,22 +51,29 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 		Owner: ctx.ContextUser,
 	}
 
-	if ctx.Doer != nil && ctx.Doer.ID == ctx.ContextUser.ID {
-		ctx.Package.AccessMode = perm.AccessModeOwner
-	} else {
-		if ctx.Package.Owner.IsOrganization() {
-			if organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
-				ctx.Package.AccessMode = perm.AccessModeRead
-				if ctx.Doer != nil {
-					var err error
-					ctx.Package.AccessMode, err = organization.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
-					if err != nil {
-						errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
-						return
-					}
-				}
+	if ctx.Package.Owner.IsOrganization() {
+		// 1. Get user max authorize level for the org (may be none, if user is not member of the org)
+		if ctx.Doer != nil {
+			var err error
+			ctx.Package.AccessMode, err = organization.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
+			if err != nil {
+				errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
+				return
 			}
-		} else {
+		}
+		// 2. If authorize level is none, check if org is visible to user
+		if ctx.Package.AccessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
+			ctx.Package.AccessMode = perm.AccessModeRead
+		}
+	} else {
+		if ctx.Doer != nil && !ctx.Doer.IsGhost() {
+			// 1. Check if user is package owner
+			if ctx.Doer.ID == ctx.Package.Owner.ID {
+				ctx.Package.AccessMode = perm.AccessModeOwner
+			} else if ctx.Package.Owner.Visibility == structs.VisibleTypePublic || ctx.Package.Owner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
+				ctx.Package.AccessMode = perm.AccessModeRead
+			}
+		} else if ctx.Package.Owner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
 			ctx.Package.AccessMode = perm.AccessModeRead
 		}
 	}

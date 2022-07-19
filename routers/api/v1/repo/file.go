@@ -6,19 +6,26 @@
 package repo
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
+	"code.gitea.io/gitea/modules/lfs"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/storage"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
@@ -75,6 +82,142 @@ func GetRawFile(ctx *context.APIContext) {
 	}
 }
 
+// GetRawFileOrLFS get a file by repo's path, redirecting to LFS if necessary.
+func GetRawFileOrLFS(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/media/{filepath} repository repoGetRawFileOrLFS
+	// ---
+	// summary: Get a file or it's LFS object from a repository
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: filepath
+	//   in: path
+	//   description: filepath of the file to get
+	//   type: string
+	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   type: string
+	//   required: false
+	// responses:
+	//   200:
+	//     description: Returns raw file content.
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+
+	if ctx.Repo.Repository.IsEmpty {
+		ctx.NotFound()
+		return
+	}
+
+	blob, lastModified := getBlobForEntry(ctx)
+	if ctx.Written() {
+		return
+	}
+
+	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
+	if blob.Size() > 1024 {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		// OK not cached - serve!
+		if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	}
+
+	// OK, now the blob is known to have at most 1024 bytes we can simply read this in in one go (This saves reading it twice)
+	dataRc, err := blob.DataAsync()
+	if err != nil {
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	buf, err := io.ReadAll(dataRc)
+	if err != nil {
+		_ = dataRc.Close()
+		ctx.ServerError("DataAsync", err)
+		return
+	}
+
+	if err := dataRc.Close(); err != nil {
+		log.Error("Error whilst closing blob %s reader in %-v. Error: %v", blob.ID, ctx.Context.Repo.Repository, err)
+	}
+
+	// Check if the blob represents a pointer
+	pointer, _ := lfs.ReadPointer(bytes.NewReader(buf))
+
+	// if its not a pointer just serve the data directly
+	if !pointer.IsValid() {
+		// First handle caching for the blob
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		// OK not cached - serve!
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	}
+
+	// Now check if there is a meta object for this pointer
+	meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+
+	// If there isn't one just serve the data directly
+	if err == git_model.ErrLFSObjectNotExist {
+		// Handle caching for the blob SHA (not the LFS object OID)
+		if httpcache.HandleGenericETagTimeCache(ctx.Req, ctx.Resp, `"`+blob.ID.String()+`"`, lastModified) {
+			return
+		}
+
+		if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, blob.Size(), bytes.NewReader(buf)); err != nil {
+			ctx.ServerError("ServeBlob", err)
+		}
+		return
+	} else if err != nil {
+		ctx.ServerError("GetLFSMetaObjectByOid", err)
+		return
+	}
+
+	// Handle caching for the LFS object OID
+	if httpcache.HandleGenericETagCache(ctx.Req, ctx.Resp, `"`+pointer.Oid+`"`) {
+		return
+	}
+
+	if setting.LFS.ServeDirect {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.LFS.URL(pointer.RelativePath(), blob.Name())
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
+	lfsDataRc, err := lfs.ReadMetaObject(meta.Pointer)
+	if err != nil {
+		ctx.ServerError("ReadMetaObject", err)
+		return
+	}
+	defer lfsDataRc.Close()
+
+	if err := common.ServeData(ctx.Context, ctx.Repo.TreePath, meta.Size, lfsDataRc); err != nil {
+		ctx.ServerError("ServeData", err)
+	}
+}
+
 func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
@@ -108,7 +251,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 	}
 	blob = entry.Blob()
 
-	return
+	return blob, lastModified
 }
 
 // GetArchive get archive of a repository
@@ -414,7 +557,7 @@ func handleCreateOrUpdateFileError(ctx *context.APIContext, err error) {
 // Called from both CreateFile or UpdateFile to handle both
 func createOrUpdateFile(ctx *context.APIContext, opts *files_service.UpdateRepoFileOptions) (*api.FileResponse, error) {
 	if !canWriteFiles(ctx, opts.OldBranch) {
-		return nil, models.ErrUserDoesNotHaveAccessToRepo{
+		return nil, repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		}
@@ -471,7 +614,7 @@ func DeleteFile(ctx *context.APIContext) {
 
 	apiOpts := web.GetForm(ctx).(*api.DeleteFileOptions)
 	if !canWriteFiles(ctx, apiOpts.BranchName) {
-		ctx.Error(http.StatusForbidden, "DeleteFile", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusForbidden, "DeleteFile", repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})
@@ -569,7 +712,7 @@ func GetContents(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	if !canReadFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", models.ErrUserDoesNotHaveAccessToRepo{
+		ctx.Error(http.StatusInternalServerError, "GetContentsOrList", repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})

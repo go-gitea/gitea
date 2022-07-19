@@ -5,6 +5,7 @@
 package models
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -51,15 +52,15 @@ type TranslatableMessage struct {
 
 // LoadRepo loads repository of the task
 func (task *Task) LoadRepo() error {
-	return task.loadRepo(db.GetEngine(db.DefaultContext))
+	return task.loadRepo(db.DefaultContext)
 }
 
-func (task *Task) loadRepo(e db.Engine) error {
+func (task *Task) loadRepo(ctx context.Context) error {
 	if task.Repo != nil {
 		return nil
 	}
 	var repo repo_model.Repository
-	has, err := e.ID(task.RepoID).Get(&repo)
+	has, err := db.GetEngine(ctx).ID(task.RepoID).Get(&repo)
 	if err != nil {
 		return err
 	} else if !has {
@@ -155,14 +156,14 @@ type ErrTaskDoesNotExist struct {
 	Type   structs.TaskType
 }
 
-// IsErrTaskDoesNotExist checks if an error is a ErrTaskIsNotExist.
+// IsErrTaskDoesNotExist checks if an error is a ErrTaskDoesNotExist.
 func IsErrTaskDoesNotExist(err error) bool {
 	_, ok := err.(ErrTaskDoesNotExist)
 	return ok
 }
 
 func (err ErrTaskDoesNotExist) Error() string {
-	return fmt.Sprintf("task is not exist [id: %d, repo_id: %d, type: %d]",
+	return fmt.Sprintf("task does not exist [id: %d, repo_id: %d, type: %d]",
 		err.ID, err.RepoID, err.Type)
 }
 
@@ -233,12 +234,7 @@ func FindTasks(opts FindTaskOptions) ([]*Task, error) {
 
 // CreateTask creates a task on database
 func CreateTask(task *Task) error {
-	return createTask(db.GetEngine(db.DefaultContext), task)
-}
-
-func createTask(e db.Engine, task *Task) error {
-	_, err := e.Insert(task)
-	return err
+	return db.Insert(db.DefaultContext, task)
 }
 
 // FinishMigrateTask updates database when migrate task finished

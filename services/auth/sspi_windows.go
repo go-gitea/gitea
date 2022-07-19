@@ -127,7 +127,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 	log.Info("Authenticated as %s\n", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
@@ -180,7 +180,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
-	return
+	return shouldAuth
 }
 
 // newUser creates a new user object for the purpose of automatic registration

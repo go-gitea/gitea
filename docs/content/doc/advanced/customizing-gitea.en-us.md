@@ -60,14 +60,15 @@ the url `http://gitea.domain.tld/assets/image.png`.
 
 ## Changing the logo
 
-To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
-`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo and/or favicon clone the Gitea source repository, replace `assets/logo.svg` and/or `assets/favicon.svg` and run
+`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.svg` - Used for site icon, app icon
 - `public/img/logo.png` - Used for Open Graph
-- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 - `public/img/avatar_default.png` - Used as the default avatar image
 - `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
+- `public/img/favicon.svg` - Used for favicon
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 
 In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
@@ -201,7 +202,7 @@ You can display STL file directly in Gitea by adding:
 
 to the file `templates/custom/footer.tmpl`
 
-You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `$GITEA_CUSTOM/public/` folder.
+You also need to download the content of the library [Madeleine.js](https://github.com/beige90/Madeleine.js) and place it under `$GITEA_CUSTOM/public/` folder.
 
 You should end-up with a folder structure similar to:
 
@@ -334,8 +335,8 @@ The list of themes a user can choose from can be configured with the `THEMES` va
 
 To make a custom theme available to all users:
 
-1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
-  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+1. Add a CSS file to `$GITEA_CUSTOM/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
 2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).

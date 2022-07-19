@@ -8,18 +8,18 @@
 				<div class="ui floating dropdown jump filter">
 					<div class="ui basic compact button">
 						<span class="text">
-							{{.i18n.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
+							{{.locale.Tr "repo.activity.period.filter_label"}} <strong>{{.PeriodText}}</strong>
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 					</div>
 					<div class="menu">
-						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.i18n.Tr "repo.activity.period.daily"}}</a>
-						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.i18n.Tr "repo.activity.period.halfweekly"}}</a>
-						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.i18n.Tr "repo.activity.period.weekly"}}</a>
-						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.i18n.Tr "repo.activity.period.monthly"}}</a>
-						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.i18n.Tr "repo.activity.period.quarterly"}}</a>
-						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.i18n.Tr "repo.activity.period.semiyearly"}}</a>
-						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.i18n.Tr "repo.activity.period.yearly"}}</a>
+						<a class="{{if eq .Period "daily"}}active {{end}}item" href="{{$.RepoLink}}/activity/daily">{{.locale.Tr "repo.activity.period.daily"}}</a>
+						<a class="{{if eq .Period "halfweekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/halfweekly">{{.locale.Tr "repo.activity.period.halfweekly"}}</a>
+						<a class="{{if eq .Period "weekly"}}active {{end}}item" href="{{$.RepoLink}}/activity/weekly">{{.locale.Tr "repo.activity.period.weekly"}}</a>
+						<a class="{{if eq .Period "monthly"}}active {{end}}item" href="{{$.RepoLink}}/activity/monthly">{{.locale.Tr "repo.activity.period.monthly"}}</a>
+						<a class="{{if eq .Period "quarterly"}}active {{end}}item" href="{{$.RepoLink}}/activity/quarterly">{{.locale.Tr "repo.activity.period.quarterly"}}</a>
+						<a class="{{if eq .Period "semiyearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/semiyearly">{{.locale.Tr "repo.activity.period.semiyearly"}}</a>
+						<a class="{{if eq .Period "yearly"}}active {{end}}item" href="{{$.RepoLink}}/activity/yearly">{{.locale.Tr "repo.activity.period.yearly"}}</a>
 					</div>
 				</div>
 			</div>
@@ -27,7 +27,7 @@
 		<div class="ui divider"></div>
 
 		{{if (or (.Permission.CanRead $.UnitTypeIssues) (.Permission.CanRead $.UnitTypePullRequests))}}
-		<h4 class="ui top attached header">{{.i18n.Tr "repo.activity.overview"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "repo.activity.overview"}}</h4>
 		<div class="ui attached segment two column grid">
 			{{if .Permission.CanRead $.UnitTypePullRequests}}
 				<div class="column">
@@ -41,7 +41,7 @@
 						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
-					{{.i18n.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount | Safe }}
+					{{.locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount | Safe }}
 				</div>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeIssues}}
@@ -56,7 +56,7 @@
 						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
-					{{.i18n.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount | Safe }}
+					{{.locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount | Safe }}
 				</div>
 			{{end}}
 		</div>
@@ -64,21 +64,21 @@
 			{{if .Permission.CanRead $.UnitTypePullRequests}}
 				<a href="#merged-pull-requests" class="ui attached segment text center">
 					<span class="text purple">{{svg "octicon-git-pull-request"}}</span> <strong>{{.Activity.MergedPRCount}}</strong><br>
-					{{.i18n.TrN .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n"}}
+					{{.locale.TrN .Activity.MergedPRCount "repo.activity.merged_prs_count_1" "repo.activity.merged_prs_count_n"}}
 				</a>
 				<a href="#proposed-pull-requests" class="ui attached segment text center">
 					<span class="text green">{{svg "octicon-git-branch"}}</span> <strong>{{.Activity.OpenedPRCount}}</strong><br>
-					{{.i18n.TrN .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n"}}
+					{{.locale.TrN .Activity.OpenedPRCount "repo.activity.opened_prs_count_1" "repo.activity.opened_prs_count_n"}}
 				</a>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeIssues}}
 				<a href="#closed-issues" class="ui attached segment text center">
 					<span class="text red">{{svg "octicon-issue-closed"}}</span> <strong>{{.Activity.ClosedIssueCount}}</strong><br>
-					{{.i18n.TrN .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n"}}
+					{{.locale.TrN .Activity.ClosedIssueCount "repo.activity.closed_issues_count_1" "repo.activity.closed_issues_count_n"}}
 				</a>
 				<a href="#new-issues" class="ui attached segment text center">
 					<span class="text green">{{svg "octicon-issue-opened"}}</span> <strong>{{.Activity.OpenedIssueCount}}</strong><br>
-					{{.i18n.TrN .Activity.OpenedIssueCount "repo.activity.new_issues_count_1" "repo.activity.new_issues_count_n"}}
+					{{.locale.TrN .Activity.OpenedIssueCount "repo.activity.new_issues_count_1" "repo.activity.new_issues_count_n"}}
 				</a>
 			{{end}}
 		</div>
@@ -87,26 +87,26 @@
 		{{if .Permission.CanRead $.UnitTypeCode}}
 			{{if eq .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui center aligned segment">
-				<h4 class="ui header">{{.i18n.Tr "repo.activity.no_git_activity" }}</h4>
+				<h4 class="ui header">{{.locale.Tr "repo.activity.no_git_activity" }}</h4>
 				</div>
 			{{end}}
 			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui attached segment horizontal segments">
 					<div class="ui attached segment text">
-						{{.i18n.Tr "repo.activity.git_stats_exclude_merges" }}
-						<strong>{{.i18n.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n" .Activity.Code.AuthorCount}}</strong>
-						{{.i18n.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n"}}
-						<strong>{{.i18n.TrN .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCount}}</strong>
-						{{.i18n.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch }}
-						<strong>{{.i18n.TrN .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCountInAllBranches}}</strong>
-						{{.i18n.Tr "repo.activity.git_stats_push_to_all_branches" }}
-						{{.i18n.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch }}
-						<strong>{{.i18n.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n" .Activity.Code.ChangedFiles}}</strong>
-						{{.i18n.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n"}}
-						{{.i18n.Tr "repo.activity.git_stats_additions" }}
-						<strong class="text green">{{.i18n.TrN .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n" .Activity.Code.Additions}}</strong>
-						{{.i18n.Tr "repo.activity.git_stats_and_deletions" }}
-						<strong class="text red">{{.i18n.TrN .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n" .Activity.Code.Deletions}}</strong>.
+						{{.locale.Tr "repo.activity.git_stats_exclude_merges" }}
+						<strong>{{.locale.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n" .Activity.Code.AuthorCount}}</strong>
+						{{.locale.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n"}}
+						<strong>{{.locale.TrN .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCount}}</strong>
+						{{.locale.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch }}
+						<strong>{{.locale.TrN .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCountInAllBranches}}</strong>
+						{{.locale.Tr "repo.activity.git_stats_push_to_all_branches" }}
+						{{.locale.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch }}
+						<strong>{{.locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n" .Activity.Code.ChangedFiles}}</strong>
+						{{.locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n"}}
+						{{.locale.Tr "repo.activity.git_stats_additions" }}
+						<strong class="text green">{{.locale.TrN .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n" .Activity.Code.Additions}}</strong>
+						{{.locale.Tr "repo.activity.git_stats_and_deletions" }}
+						<strong class="text red">{{.locale.TrN .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n" .Activity.Code.Deletions}}</strong>.
 					</div>
 					<div class="ui attached segment">
 						<div id="repo-activity-top-authors-chart"></div>
@@ -118,20 +118,20 @@
 		{{if gt .Activity.PublishedReleaseCount 0}}
 			<h4 class="ui horizontal divider header" id="published-releases">
 				<span class="text">{{svg "octicon-tag"}}</span>
-				{{.i18n.Tr "repo.activity.title.releases_published_by"
-					(.i18n.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
-					(.i18n.TrN .Activity.PublishedReleaseAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.PublishedReleaseAuthorCount)
+				{{.locale.Tr "repo.activity.title.releases_published_by"
+					(.locale.TrN .Activity.PublishedReleaseCount "repo.activity.title.releases_1" "repo.activity.title.releases_n" .Activity.PublishedReleaseCount)
+					(.locale.TrN .Activity.PublishedReleaseAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.PublishedReleaseAuthorCount)
 				}}
 			</h4>
 			<div class="list">
 				{{range .Activity.PublishedReleases}}
 					<p class="desc">
-						<span class="ui green label">{{$.i18n.Tr "repo.activity.published_release_label"}}</span>
+						<span class="ui green label">{{$.locale.Tr "repo.activity.published_release_label"}}</span>
 						{{.TagName}}
 						{{if not .IsTag}}
 							<a class="title" href="{{$.RepoLink}}/src/{{.TagName | PathEscapeSegments}}">{{.Title | RenderEmoji}}</a>
 						{{end}}
-						{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .CreatedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>
@@ -140,17 +140,17 @@
 		{{if gt .Activity.MergedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="merged-pull-requests">
 				<span class="text">{{svg "octicon-git-pull-request"}}</span>
-				{{.i18n.Tr "repo.activity.title.prs_merged_by"
-					(.i18n.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
-					(.i18n.TrN .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.MergedPRAuthorCount)
+				{{.locale.Tr "repo.activity.title.prs_merged_by"
+					(.locale.TrN .Activity.MergedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.MergedPRCount)
+					(.locale.TrN .Activity.MergedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.MergedPRAuthorCount)
 				}}
 			</h4>
 			<div class="list">
 				{{range .Activity.MergedPRs}}
 					<p class="desc">
-						<span class="ui purple label">{{$.i18n.Tr "repo.activity.merged_prs_label"}}</span>
+						<span class="ui purple label">{{$.locale.Tr "repo.activity.merged_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .MergedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .MergedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>
@@ -159,17 +159,17 @@
 		{{if gt .Activity.OpenedPRCount 0}}
 			<h4 class="ui horizontal divider header" id="proposed-pull-requests">
 				<span class="text">{{svg "octicon-git-branch"}}</span>
-				{{.i18n.Tr "repo.activity.title.prs_opened_by"
-					(.i18n.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
-					(.i18n.TrN .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedPRAuthorCount)
+				{{.locale.Tr "repo.activity.title.prs_opened_by"
+					(.locale.TrN .Activity.OpenedPRCount "repo.activity.title.prs_1" "repo.activity.title.prs_n" .Activity.OpenedPRCount)
+					(.locale.TrN .Activity.OpenedPRAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedPRAuthorCount)
 				}}
 			</h4>
 			<div class="list">
 				{{range .Activity.OpenedPRs}}
 					<p class="desc">
-						<span class="ui green label">{{$.i18n.Tr "repo.activity.opened_prs_label"}}</span>
+						<span class="ui green label">{{$.locale.Tr "repo.activity.opened_prs_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Issue.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .Issue.CreatedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .Issue.CreatedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>
@@ -178,17 +178,17 @@
 		{{if gt .Activity.ClosedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="closed-issues">
 				<span class="text">{{svg "octicon-issue-closed"}}</span>
-				{{.i18n.Tr "repo.activity.title.issues_closed_from"
-					(.i18n.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
-					(.i18n.TrN .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.ClosedIssueAuthorCount)
+				{{.locale.Tr "repo.activity.title.issues_closed_from"
+					(.locale.TrN .Activity.ClosedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.ClosedIssueCount)
+					(.locale.TrN .Activity.ClosedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.ClosedIssueAuthorCount)
 				}}
 			</h4>
 			<div class="list">
 				{{range .Activity.ClosedIssues}}
 					<p class="desc">
-						<span class="ui red label">{{$.i18n.Tr "repo.activity.closed_issue_label"}}</span>
+						<span class="ui red label">{{$.locale.Tr "repo.activity.closed_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .ClosedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .ClosedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>
@@ -197,17 +197,17 @@
 		{{if gt .Activity.OpenedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="new-issues">
 				<span class="text">{{svg "octicon-issue-opened"}}</span>
-				{{.i18n.Tr "repo.activity.title.issues_created_by"
-					(.i18n.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
-					(.i18n.TrN .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedIssueAuthorCount)
+				{{.locale.Tr "repo.activity.title.issues_created_by"
+					(.locale.TrN .Activity.OpenedIssueCount "repo.activity.title.issues_1" "repo.activity.title.issues_n" .Activity.OpenedIssueCount)
+					(.locale.TrN .Activity.OpenedIssueAuthorCount "repo.activity.title.user_1" "repo.activity.title.user_n" .Activity.OpenedIssueAuthorCount)
 				}}
 			</h4>
 			<div class="list">
 				{{range .Activity.OpenedIssues}}
 					<p class="desc">
-						<span class="ui green label">{{$.i18n.Tr "repo.activity.new_issue_label"}}</span>
+						<span class="ui green label">{{$.locale.Tr "repo.activity.new_issue_label"}}</span>
 						#{{.Index}} <a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
-						{{TimeSinceUnix .CreatedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .CreatedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>
@@ -216,22 +216,22 @@
 		{{if gt .Activity.UnresolvedIssueCount 0}}
 			<h4 class="ui horizontal divider header" id="unresolved-conversations">
 				<span class="text">{{svg "octicon-comment-discussion"}}</span>
-				{{.i18n.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
+				{{.locale.TrN .Activity.UnresolvedIssueCount "repo.activity.title.unresolved_conv_1" "repo.activity.title.unresolved_conv_n" .Activity.UnresolvedIssueCount}}
 			</h4>
 			<div class="text center desc">
-				{{.i18n.Tr "repo.activity.unresolved_conv_desc"}}
+				{{.locale.Tr "repo.activity.unresolved_conv_desc"}}
 			</div>
 			<div class="list">
 				{{range .Activity.UnresolvedIssues}}
 					<p class="desc">
-						<span class="ui green label">{{$.i18n.Tr "repo.activity.unresolved_conv_label"}}</span>
+						<span class="ui green label">{{$.locale.Tr "repo.activity.unresolved_conv_label"}}</span>
 						#{{.Index}}
 						{{if .IsPull}}
 						<a class="title" href="{{$.RepoLink}}/pulls/{{.Index}}">{{.Title | RenderEmoji}}</a>
 						{{else}}
 						<a class="title" href="{{$.RepoLink}}/issues/{{.Index}}">{{.Title | RenderEmoji}}</a>
 						{{end}}
-						{{TimeSinceUnix .UpdatedUnix $.i18n.Lang}}
+						{{TimeSinceUnix .UpdatedUnix $.locale}}
 					</p>
 				{{end}}
 			</div>

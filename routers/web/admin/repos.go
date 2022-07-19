@@ -101,7 +101,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		ctx.ServerError("ListUnadoptedRepositories", err)
 	}
 	ctx.Data["Dirs"] = repoNames
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
@@ -121,7 +121,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	ctxUser, err := user_model.GetUserByName(dirSplit[0])
+	ctxUser, err := user_model.GetUserByName(ctx, dirSplit[0])
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("User does not exist: %s", dirSplit[0])
@@ -135,7 +135,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return

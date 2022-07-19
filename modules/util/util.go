@@ -9,6 +9,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"math/big"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -190,4 +191,54 @@ var titleCaser = cases.Title(language.English)
 // ToTitleCase returns s with all english words capitalized
 func ToTitleCase(s string) string {
 	return titleCaser.String(s)
+}
+
+var (
+	whitespaceOnly    = regexp.MustCompile("(?m)^[ \t]+$")
+	leadingWhitespace = regexp.MustCompile("(?m)(^[ \t]*)(?:[^ \t\n])")
+)
+
+// Dedent removes common indentation of a multi-line string along with whitespace around it
+// Based on https://github.com/lithammer/dedent
+func Dedent(s string) string {
+	var margin string
+
+	s = whitespaceOnly.ReplaceAllString(s, "")
+	indents := leadingWhitespace.FindAllStringSubmatch(s, -1)
+
+	for i, indent := range indents {
+		if i == 0 {
+			margin = indent[1]
+		} else if strings.HasPrefix(indent[1], margin) {
+			continue
+		} else if strings.HasPrefix(margin, indent[1]) {
+			margin = indent[1]
+		} else {
+			margin = ""
+			break
+		}
+	}
+
+	if margin != "" {
+		s = regexp.MustCompile("(?m)^"+margin).ReplaceAllString(s, "")
+	}
+	return strings.TrimSpace(s)
+}
+
+// NumberIntoInt64 transform a given int into int64.
+func NumberIntoInt64(number interface{}) int64 {
+	var value int64
+	switch v := number.(type) {
+	case int:
+		value = int64(v)
+	case int8:
+		value = int64(v)
+	case int16:
+		value = int64(v)
+	case int32:
+		value = int64(v)
+	case int64:
+		value = v
+	}
+	return value
 }

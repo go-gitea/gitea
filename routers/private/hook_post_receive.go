@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	gitea_context "code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -106,7 +106,7 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 
 		repo.IsPrivate = opts.GitPushOptions.Bool(private.GitPushOptionRepoPrivate, repo.IsPrivate)
 		repo.IsTemplate = opts.GitPushOptions.Bool(private.GitPushOptionRepoTemplate, repo.IsTemplate)
-		if err := repo_model.UpdateRepositoryCols(repo, "is_private", "is_template"); err != nil {
+		if err := repo_model.UpdateRepositoryCols(ctx, repo, "is_private", "is_template"); err != nil {
 			log.Error("Failed to Update: %s/%s Error: %v", ownerName, repoName, err)
 			ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 				Err: fmt.Sprintf("Failed to Update: %s/%s Error: %v", ownerName, repoName, err),
@@ -141,8 +141,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetPullRequestByIndex(repo.ID, pullIndex)
-			if err != nil && !models.IsErrPullRequestNotExist(err) {
+			pr, err := issues_model.GetPullRequestByIndex(ctx, repo.ID, pullIndex)
+			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get PR by index %v Error: %v", pullIndex, err)
 				ctx.JSON(http.StatusInternalServerError, private.Response{
 					Err: fmt.Sprintf("Failed to get PR by index %v Error: %v", pullIndex, err),
@@ -202,8 +202,8 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 				continue
 			}
 
-			pr, err := models.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, models.PullRequestFlowGithub)
-			if err != nil && !models.IsErrPullRequestNotExist(err) {
+			pr, err := issues_model.GetUnmergedPullRequest(repo.ID, baseRepo.ID, branch, baseRepo.DefaultBranch, issues_model.PullRequestFlowGithub)
+			if err != nil && !issues_model.IsErrPullRequestNotExist(err) {
 				log.Error("Failed to get active PR in: %-v Branch: %s to: %-v Branch: %s Error: %v", repo, branch, baseRepo, baseRepo.DefaultBranch, err)
 				ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
 					Err: fmt.Sprintf(

@@ -124,7 +124,7 @@ func IsStarring(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	if repo_model.IsStaring(ctx.Doer.ID, ctx.Repo.Repository.ID) {
+	if repo_model.IsStaring(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID) {
 		ctx.Status(http.StatusNoContent)
 	} else {
 		ctx.NotFound()

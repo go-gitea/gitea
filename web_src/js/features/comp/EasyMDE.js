@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import attachTribute from '../tribute.js';
+import {handleGlobalEnterQuickSubmit} from '../common-global.js';
 
 /**
  * @returns {EasyMDE}
@@ -37,6 +38,8 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
     indentWithTabs: false,
     tabSize: 4,
     spellChecker: false,
+    inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
+    nativeSpellcheck: true,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
       'code', 'quote', '|', {
@@ -71,9 +74,12 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
         title: 'Revert to simple textarea',
       },
     ], ...easyMDEOptions});
+
   const inputField = easyMDE.codemirror.getInputField();
-  inputField.classList.add('js-quick-submit');
+
   easyMDE.codemirror.setOption('extraKeys', {
+    'Cmd-Enter': codeMirrorQuickSubmit,
+    'Ctrl-Enter': codeMirrorQuickSubmit,
     Enter: (cm) => {
       const tributeContainer = document.querySelector('.tribute-container');
       if (!tributeContainer || tributeContainer.style.display === 'none') {
@@ -148,4 +154,13 @@ export function validateTextareaNonEmpty($textarea) {
   }
   $mdeInputField.prop('required', false);
   return true;
+}
+
+/**
+ * there is no guarantee that the CodeMirror object is inside the same form as the textarea,
+ * so can not call handleGlobalEnterQuickSubmit directly.
+ * @param {CodeMirror.EditorFromTextArea} codeMirror
+ */
+export function codeMirrorQuickSubmit(codeMirror) {
+  handleGlobalEnterQuickSubmit(codeMirror.getTextArea());
 }

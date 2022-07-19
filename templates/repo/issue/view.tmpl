@@ -9,9 +9,9 @@
 			{{if and (not .Repository.IsArchived) (not .Issue.IsPull)}}
 				<div class="column right aligned">
 					{{if .PageIsIssueList}}
-						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.i18n.Tr "repo.issues.new"}}</a>
+						<a class="ui green button" href="{{.RepoLink}}/issues/new{{if .NewIssueChooseTemplate}}/choose{{end}}">{{.locale.Tr "repo.issues.new"}}</a>
 					{{else}}
-						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | PathEscapeSegments}}...{{.PullRequestCtx.HeadInfoSubURL}}">{{.i18n.Tr "repo.pulls.new"}}</a>
+						<a class="ui green button {{if not .PullRequestCtx.Allowed}}disabled{{end}}" href="{{.RepoLink}}/compare/{{.BranchName | PathEscapeSegments}}...{{.PullRequestCtx.HeadInfoSubURL}}">{{.locale.Tr "repo.pulls.new"}}</a>
 					{{end}}
 				</div>
 			{{end}}
