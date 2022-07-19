@@ -14,6 +14,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Adjust max-widths for the repository file table (#20243) (#20247)
   * Display full name (#20171) (#20246)
 * BUGFIXES
+  * Allow RSA 2047 bit keys (#20272) (#20396)
+  * Add missing return for when topic isn't found (#20351) (#20395)
   * Fix commit status icon when in subdirectory (#20285) (#20385)
   * Initialize cron last (#20373) (#20384)
   * Set target on create release with existing tag (#20381) (#20382)
