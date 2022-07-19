@@ -62,9 +62,9 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
 			// Users can see an organization they are a member of
-			var accessCond builder.Cond = builder.In("id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": opts.Actor.ID}))
+			accessCond := builder.In("id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": opts.Actor.ID}))
 			if !opts.Actor.IsRestricted {
-				// Not-Restricted users can see public and limited users/organziations
+				// Not-Restricted users can see public and limited users/organizations
 				accessCond = accessCond.Or(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 			}
 			// Don't forget about self
