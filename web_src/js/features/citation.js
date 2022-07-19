@@ -3,14 +3,12 @@ import $ from 'jquery';
 const {pageData} = window.config;
 
 const initInputCitationValue = async () => {
-  const modules = await Promise.all([
+  const [{Cite, plugins}] = await Promise.all([
     import(/* webpackChunkName: "citation-js-core" */'@citation-js/core'),
     import(/* webpackChunkName: "citation-js-formats" */'@citation-js/plugin-software-formats'),
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-bibtex'),
     import(/* webpackChunkName: "citation-js-bibtex" */'@citation-js/plugin-csl'),
   ]);
-  const Cite = modules[0].Cite;
-  const plugins = modules[0].plugins;
   const {citiationFileContent} = pageData;
   const $citationCopyApa = $('#citation-copy-apa');
   const $citationCopyBibtex = $('#citation-copy-bibtex');
