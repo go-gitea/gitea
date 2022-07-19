@@ -12,7 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
+	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -228,7 +230,7 @@ func SearchExpiredUploadedBlobs(ctx context.Context, olderThan time.Duration) ([
 }
 
 // GetRepositories gets a sorted list of all repositories
-func GetRepositories(ctx context.Context, n int, last string) ([]string, error) {
+func GetRepositories(ctx context.Context, actor *user_model.User, n int, last string) ([]string, error) {
 	var cond builder.Cond = builder.Eq{
 		"package.type":              packages.TypeContainer,
 		"package_property.ref_type": packages.PropertyTypePackage,
@@ -246,14 +248,23 @@ func GetRepositories(ctx context.Context, n int, last string) ([]string, error) 
 		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
 	}
 
-	if n <= 0 || n > 100 {
-		n = 100
+	if actor != nil && !actor.IsGhost() {
+		if !actor.IsAdmin {
+			var accessCond builder.Cond = builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
+			if !actor.IsRestricted {
+				accessCond = accessCond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			}
+			accessCond = accessCond.Or(builder.Eq{"`user`.id": actor.ID})
+			cond = cond.And(accessCond)
+		}
+	} else {
+		cond = cond.And(builder.In("`user`.visibility", structs.VisibleTypePublic))
 	}
 
 	sess := db.GetEngine(ctx).
 		Table("package").
 		Select("package_property.value").
-		Join("INNER", "user", "user.id = package.owner_id").
+		Join("INNER", "user", "`user`.id = package.owner_id").
 		Join("INNER", "package_property", "package_property.ref_id = package.id").
 		Where(cond).
 		Asc("package_property.value").

@@ -159,7 +159,7 @@ func GetRepositoryList(ctx *context.Context) {
 	}
 	last := ctx.FormTrim("last")
 
-	repositories, err := container_model.GetRepositories(ctx, n, last)
+	repositories, err := container_model.GetRepositories(ctx, ctx.Doer, n, last)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
 		return
