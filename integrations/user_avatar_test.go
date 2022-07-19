@@ -22,14 +22,14 @@ import (
 
 func TestUserAvatar(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of the repo3, is an org
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // normal user
 
 		seed := user2.Email
 		if len(seed) == 0 {
 			seed = user2.Name
 		}
 
-		img, err := avatar.RandomImage(avatar.KindRepo, []byte(seed))
+		img, err := avatar.RandomImage(avatar.KindUser, []byte(seed))
 		if err != nil {
 			assert.NoError(t, err)
 			return
