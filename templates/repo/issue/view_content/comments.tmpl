@@ -341,7 +341,7 @@
 				<span class="text grey">
 					<a class="author" href="{{.Poster.HomeLink}}">{{.Poster.GetDisplayName}}</a>
 					{{$parsedDeadline := .Content | ParseDeadline}}
-					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 1) (index $parsedDeadline 0) $createdStr | Safe}}
+					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 0) (index $parsedDeadline 1) $createdStr | Safe}}
 				</span>
 			</div>
 		{{else if eq .Type 18}}
