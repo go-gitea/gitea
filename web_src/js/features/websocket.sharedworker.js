@@ -3,8 +3,8 @@ const sourcesByPort = {};
 
 class Source {
   constructor(url) {
-    this.url = url;
-    this.eventSource = new EventSource(url);
+    this.url = url.replace(/^http/, 'ws');
+    this.webSocket = new WebSocket(this.url);
     this.listening = {};
     this.clients = [];
     this.listen('open');
@@ -13,6 +13,21 @@ class Source {
     this.listen('notification-count');
     this.listen('stopwatches');
     this.listen('error');
+    this.webSocket.addEventListener('error', (error) => {
+      this.lastError = error;
+    });
+    this.webSocket.addEventListener('message', (event) => {
+      const message = JSON.parse(event.data);
+      if (!message) {
+        return;
+      }
+      if (this.listening[message.Name]) {
+        this.notifyClients({
+          type: message.Name,
+          data: message.Data
+        });
+      }
+    });
   }
 
   register(port) {
@@ -24,6 +39,20 @@ class Source {
       type: 'status',
       message: `registered to ${this.url}`,
     });
+
+    if (!this.webSocket) {
+      if (this.lastError) {
+        port.postMessage({
+          type: 'error',
+          message: `websocket disconnected: ${this.lastError}`
+        });
+      } else {
+        port.postMessage({
+          type: 'error',
+          message: 'websocket disconnected'
+        });
+      }
+    }
   }
 
   deregister(port) {
@@ -36,23 +65,19 @@ class Source {
   }
 
   close() {
-    if (!this.eventSource) return;
+    if (!this.webSocket) return;
 
-    this.eventSource.close();
-    this.eventSource = null;
+    this.webSocket.close();
+    this.webSocket = null;
   }
 
   listen(eventType) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    this.eventSource.addEventListener(eventType, (event) => {
-      let data;
-      if (event.data) {
-        data = JSON.parse(event.data);
-      }
+    this.webSocket.addEventListener(eventType, (event) => {
       this.notifyClients({
         type: eventType,
-        data
+        data: event.data
       });
     });
   }
@@ -66,7 +91,7 @@ class Source {
   status(port) {
     port.postMessage({
       type: 'status',
-      message: `url: ${this.url} readyState: ${this.eventSource.readyState}`,
+      message: `url: ${this.url} readyState: ${this.webSocket.readyState}`,
     });
   }
 }

@@ -26,9 +26,19 @@ export function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  let worker;
+  let workerUrl;
+  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.WebSocket && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    worker = new SharedWorker(`${__webpack_public_path__}js/websocket.sharedworker.js`, 'notification-worker');
+    workerUrl = `${window.location.origin}${appSubUrl}/user/websocket`;
+  } else if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+    // Try to connect to the event source via the shared worker first
+    worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
+    workerUrl = `${window.location.origin}${appSubUrl}/user/events`;
+  }
+
+  if (worker) {
     worker.addEventListener('error', (event) => {
       console.error(event);
     });
@@ -37,7 +47,7 @@ export function initStopwatch() {
     });
     worker.port.postMessage({
       type: 'start',
-      url: `${window.location.origin}${appSubUrl}/user/events`,
+      url: workerUrl,
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
@@ -45,7 +55,7 @@ export function initStopwatch() {
         return;
       }
       if (event.data.type === 'stopwatches') {
-        updateStopwatchData(JSON.parse(event.data.data));
+        updateStopwatchData(event.data.data);
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {

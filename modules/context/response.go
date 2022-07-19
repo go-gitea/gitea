@@ -84,14 +84,29 @@ func (r *Response) Before(f func(ResponseWriter)) {
 	r.befores = append(r.befores, f)
 }
 
+type hijackerResponse struct {
+	*Response
+	http.Hijacker
+}
+
 // NewResponse creates a response
-func NewResponse(resp http.ResponseWriter) *Response {
+func NewResponse(resp http.ResponseWriter) ResponseWriter {
 	if v, ok := resp.(*Response); ok {
 		return v
 	}
-	return &Response{
+	hijacker, ok := resp.(http.Hijacker)
+
+	response := &Response{
 		ResponseWriter: resp,
 		status:         0,
 		befores:        make([]func(ResponseWriter), 0),
 	}
+	if ok {
+		return hijackerResponse{
+			Response: response,
+			Hijacker: hijacker,
+		}
+	}
+
+	return response
 }

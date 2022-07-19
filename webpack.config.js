@@ -62,6 +62,9 @@ export default {
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
     ],
+    'websocket.sharedworker': [
+      fileURLToPath(new URL('web_src/js/features/websocket.sharedworker.js', import.meta.url)),
+    ],
     ...themes,
   },
   devtool: false,

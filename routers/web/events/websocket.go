@@ -5,11 +5,15 @@
 package events
 
 import (
+	"net/http"
+	"net/url"
+
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/auth"
 	"github.com/gorilla/websocket"
 )
@@ -25,7 +29,27 @@ func Websocket(ctx *context.Context) {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		CheckOrigin: func(r *http.Request) bool {
+			origin := r.Header["Origin"]
+			if len(origin) == 0 {
+				return true
+			}
+			u, err := url.Parse(origin[0])
+			if err != nil {
+				return false
+			}
+			appURLURL, err := url.Parse(setting.AppURL)
+			if err != nil {
+				return true
+			}
+
+			return u.Host == appURLURL.Host
+		},
 	}
+
+	// Because http proxies will tend not to pass these headers
+	ctx.Req.Header.Add("Upgrade", "websocket")
+	ctx.Req.Header.Add("Connection", "Upgrade")
 
 	conn, err := upgrader.Upgrade(ctx.Resp, ctx.Req, nil)
 	if err != nil {
