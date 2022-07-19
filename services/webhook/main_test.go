@@ -9,8 +9,16 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/setting"
+
+	_ "code.gitea.io/gitea/models"
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."))
+	setting.LoadForTest()
+	setting.NewQueueService()
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		SetUp:         Init,
+	})
 }

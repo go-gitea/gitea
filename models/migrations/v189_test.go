@@ -26,7 +26,6 @@ func (ls *LoginSourceOriginalV189) TableName() string {
 }
 
 func Test_unwrapLDAPSourceCfg(t *testing.T) {
-
 	// Prepare and load the testing database
 	x, deferable := prepareTestEnv(t, 0, new(LoginSourceOriginalV189))
 	if x == nil || t.Failed() {
@@ -80,5 +79,4 @@ func Test_unwrapLDAPSourceCfg(t *testing.T) {
 			assert.EqualValues(t, source.ID%2 == 0, source.IsActive, "unwrapLDAPSourceCfg failed for %d", source.ID)
 		}
 	}
-
 }

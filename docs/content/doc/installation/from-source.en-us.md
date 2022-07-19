@@ -43,8 +43,8 @@ Gitea</a>
 ## Download
 
 First, we must retrieve the source code. Since, the advent of go modules, the
-simplest way of doing this is to use git directly as we no longer have to have
-gitea built from within the GOPATH.
+simplest way of doing this is to use Git directly as we no longer have to have
+Gitea built from within the GOPATH.
 
 ```bash
 git clone https://github.com/go-gitea/gitea
@@ -101,7 +101,7 @@ Depending on requirements, the following build tags can be included.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
-* `gogit`: (EXPERIMENTAL) Use go-git variants of git commands.
+* `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
 Bundling assets into the binary using the `bindata` build tag is recommended for
 production deployments. It is possible to serve the static assets directly via a reverse proxy,

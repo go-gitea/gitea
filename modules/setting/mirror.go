@@ -10,31 +10,30 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// Mirror settings
-	Mirror = struct {
-		Enabled         bool
-		DisableNewPull  bool
-		DisableNewPush  bool
-		DefaultInterval time.Duration
-		MinInterval     time.Duration
-	}{
-		Enabled:         true,
-		DisableNewPull:  false,
-		DisableNewPush:  false,
-		MinInterval:     10 * time.Minute,
-		DefaultInterval: 8 * time.Hour,
-	}
-)
+// Mirror settings
+var Mirror = struct {
+	Enabled         bool
+	DisableNewPull  bool
+	DisableNewPush  bool
+	DefaultInterval time.Duration
+	MinInterval     time.Duration
+}{
+	Enabled:         true,
+	DisableNewPull:  false,
+	DisableNewPush:  false,
+	MinInterval:     10 * time.Minute,
+	DefaultInterval: 8 * time.Hour,
+}
 
 func newMirror() {
 	// Handle old configuration through `[repository]` `DISABLE_MIRRORS`
 	// - please note this was badly named and only disabled the creation of new pull mirrors
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("repository", "DISABLE_MIRRORS", "mirror", "ENABLED")
 	if Cfg.Section("repository").Key("DISABLE_MIRRORS").MustBool(false) {
-		log.Warn("Deprecated DISABLE_MIRRORS config is used, please change your config and use the options within the [mirror] section")
-		// TODO: enable on v1.17.0: log.Error("Deprecated fallback used, will be removed in v1.18.0")
 		Mirror.DisableNewPull = true
 	}
+
 	if err := Cfg.Section("mirror").MapTo(&Mirror); err != nil {
 		log.Fatal("Failed to map Mirror settings: %v", err)
 	}

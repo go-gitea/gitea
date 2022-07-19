@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
@@ -186,7 +187,7 @@ DEFAULT CONFIGURATION:
 }
 
 func formatBuiltWith() string {
-	var version = runtime.Version()
+	version := runtime.Version()
 	if len(MakeVersion) > 0 {
 		version = MakeVersion + ", " + runtime.Version()
 	}

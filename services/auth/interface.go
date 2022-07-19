@@ -8,7 +8,7 @@ import (
 	"context"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/web/middleware"
 )
@@ -26,7 +26,7 @@ type Method interface {
 	// or a new user object (with id = 0) populated with the information that was found
 	// in the authentication data (username or email).
 	// Returns nil if verification fails.
-	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *models.User
+	Verify(http *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User
 }
 
 // Initializable represents a structure that requires initialization
@@ -51,7 +51,7 @@ type Freeable interface {
 
 // PasswordAuthenticator represents a source of authentication
 type PasswordAuthenticator interface {
-	Authenticate(user *models.User, login, password string) (*models.User, error)
+	Authenticate(user *user_model.User, login, password string) (*user_model.User, error)
 }
 
 // LocalTwoFASkipper represents a source of authentication that can skip local 2fa

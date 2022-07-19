@@ -45,7 +45,7 @@ func Test_nulSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 		assert.Fail(t, "took too long to read an attribute from the list")
 	}
 
-	//Write a partial attribute
+	// Write a partial attribute
 	_, err = wr.Write([]byte("incomplete-file"))
 	assert.NoError(t, err)
 	_, err = wr.Write([]byte("name\x00"))
@@ -133,7 +133,7 @@ func Test_lineSeparatedAttributeWriter_ReadAttribute(t *testing.T) {
 		assert.Fail(t, "took too long to read an attribute from the list")
 	}
 
-	//Write a partial attribute
+	// Write a partial attribute
 	_, err = wr.Write([]byte("incomplete-file"))
 	assert.NoError(t, err)
 	_, err = wr.Write([]byte("name: "))

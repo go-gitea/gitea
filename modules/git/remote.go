@@ -4,28 +4,37 @@
 
 package git
 
-import "net/url"
+import (
+	"context"
 
-// GetRemoteAddress returns the url of a specific remote of the repository.
-func GetRemoteAddress(repoPath, remoteName string) (*url.URL, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return nil, err
-	}
+	giturl "code.gitea.io/gitea/modules/git/url"
+)
+
+// GetRemoteAddress returns remote url of git repository in the repoPath with special remote name
+func GetRemoteAddress(ctx context.Context, repoPath, remoteName string) (string, error) {
 	var cmd *Command
 	if CheckGitVersionAtLeast("2.7") == nil {
-		cmd = NewCommand("remote", "get-url", remoteName)
+		cmd = NewCommand(ctx, "remote", "get-url", remoteName)
 	} else {
-		cmd = NewCommand("config", "--get", "remote."+remoteName+".url")
+		cmd = NewCommand(ctx, "config", "--get", "remote."+remoteName+".url")
 	}
 
-	result, err := cmd.RunInDir(repoPath)
+	result, _, err := cmd.RunStdString(&RunOpts{Dir: repoPath})
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if len(result) > 0 {
 		result = result[:len(result)-1]
 	}
-	return url.Parse(result)
+	return result, nil
+}
+
+// GetRemoteURL returns the url of a specific remote of the repository.
+func GetRemoteURL(ctx context.Context, repoPath, remoteName string) (*giturl.GitURL, error) {
+	addr, err := GetRemoteAddress(ctx, repoPath, remoteName)
+	if err != nil {
+		return nil, err
+	}
+	return giturl.Parse(addr)
 }

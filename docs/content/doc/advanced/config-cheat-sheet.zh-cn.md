@@ -80,18 +80,18 @@ menu:
 
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
-- `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。**废弃** 请使用 `[lfs]` 的设置。
 
 ## Database (`database`)
 
-- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql`, `tidb` 或 `sqlite3`。
+- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql` 或 `sqlite3`。
 - `HOST`: 数据库服务器地址和端口。
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
 - `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
-- `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
+- `PATH`: SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
 - `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
@@ -175,12 +175,12 @@ menu:
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
     - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
     - Memache: `127.0.0.1:9090;127.0.0.1:9091`
-- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: 是否启用。
-- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
@@ -318,6 +318,36 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
+- RENDER_CONTENT_MODE: **sanitized** 内容如何被渲染。
+  - sanitized: 对内容进行净化并渲染到当前页面中，仅有一部分 HTML 标签和属性是被允许的。
+  - no-sanitizer: 禁用净化器，把内容渲染到当前页面中。此模式是**不安全**的，如果内容中含有恶意代码，可能会导致 XSS 攻击。
+  - iframe: 把内容渲染在一个独立的页面中并使用 iframe 嵌入到当前页面中。使用的 iframe 工作在沙箱模式并禁用了同源请求，JS 代码被安全的从父页面中隔离出去。
+
+以下两个环境变量将会被传递给渲染命令：
+
+- `GITEA_PREFIX_SRC`：包含当前的`src`路径的URL前缀，可以被用于链接的前缀。
+- `GITEA_PREFIX_RAW`：包含当前的`raw`路径的URL前缀，可以被用于图片的前缀。
+
+如果 `RENDER_CONTENT_MODE` 为 `sanitized`，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
+
+```ini
+[markup.sanitizer.TeX]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
+```
+
+- `ELEMENT`: 将要被应用到该策略的 HTML 元素，不能为空。
+- `ALLOW_ATTR`: 将要被应用到该策略的属性，不能为空。
+- `REGEXP`: 正则表达式，用来匹配属性的内容。如果为空，则跟属性内容无关。
+- `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
+
+多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 section。
+如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)
 

@@ -37,15 +37,14 @@ type Mailer struct {
 	IsTLSEnabled      bool
 
 	// Sendmail sender
-	SendmailPath    string
-	SendmailArgs    []string
-	SendmailTimeout time.Duration
+	SendmailPath        string
+	SendmailArgs        []string
+	SendmailTimeout     time.Duration
+	SendmailConvertCRLF bool
 }
 
-var (
-	// MailService the global mailer
-	MailService *Mailer
-)
+// MailService the global mailer
+var MailService *Mailer
 
 func newMailService() {
 	sec := Cfg.Section("mailer")
@@ -71,19 +70,22 @@ func newMailService() {
 		IsTLSEnabled:   sec.Key("IS_TLS_ENABLED").MustBool(),
 		SubjectPrefix:  sec.Key("SUBJECT_PREFIX").MustString(""),
 
-		SendmailPath:    sec.Key("SENDMAIL_PATH").MustString("sendmail"),
-		SendmailTimeout: sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailPath:        sec.Key("SENDMAIL_PATH").MustString("sendmail"),
+		SendmailTimeout:     sec.Key("SENDMAIL_TIMEOUT").MustDuration(5 * time.Minute),
+		SendmailConvertCRLF: sec.Key("SENDMAIL_CONVERT_CRLF").MustBool(true),
 	}
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
-		log.Warn("ENABLE_HTML_ALTERNATIVE is deprecated, use SEND_AS_PLAIN_TEXT")
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
+	// FIXME: DEPRECATED to be removed in v1.18.0
+	deprecatedSetting("mailer", "USE_SENDMAIL", "mailer", "MAILER_TYPE")
 	if sec.HasKey("USE_SENDMAIL") {
-		log.Warn("USE_SENDMAIL is deprecated, use MAILER_TYPE=sendmail")
 		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
 			MailService.MailerType = "sendmail"
 		}

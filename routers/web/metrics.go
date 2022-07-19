@@ -21,13 +21,13 @@ func Metrics(resp http.ResponseWriter, req *http.Request) {
 	}
 	header := req.Header.Get("Authorization")
 	if header == "" {
-		http.Error(resp, "", 401)
+		http.Error(resp, "", http.StatusUnauthorized)
 		return
 	}
 	got := []byte(header)
 	want := []byte("Bearer " + setting.Metrics.Token)
 	if subtle.ConstantTimeCompare(got, want) != 1 {
-		http.Error(resp, "", 401)
+		http.Error(resp, "", http.StatusUnauthorized)
 		return
 	}
 	promhttp.Handler().ServeHTTP(resp, req)

@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewUser(t *testing.T) {
@@ -33,10 +36,10 @@ func TestRenameUsername(t *testing.T) {
 		"email":    "user2@example.com",
 		"language": "en-US",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
-	unittest.AssertExistsAndLoadBean(t, &models.User{Name: "newUsername"})
-	unittest.AssertNotExistsBean(t, &models.User{Name: "user2"})
+	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
+	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
 }
 
 func TestRenameInvalidUsername(t *testing.T) {
@@ -64,10 +67,10 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
 		)
 
-		unittest.AssertNotExistsBean(t, &models.User{Name: invalidUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
 	}
 }
 
@@ -75,23 +78,41 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	reservedUsernames := []string{
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
+		"assets",
 		"attachments",
+		"avatar",
 		"avatars",
+		"captcha",
+		"commits",
+		"debug",
+		"error",
 		"explore",
-		"help",
-		"install",
+		"favicon.ico",
+		"ghost",
 		"issues",
 		"login",
+		"manifest.json",
 		"metrics",
+		"milestones",
+		"new",
 		"notifications",
 		"org",
 		"pulls",
+		"raw",
 		"repo",
-		"template",
-		"user",
+		"repo-avatars",
+		"robots.txt",
 		"search",
+		"serviceworker.js",
+		"ssh_info",
+		"swagger.v1.json",
+		"user",
+		"v2",
 	}
 
 	session := loginUser(t, "user2")
@@ -103,31 +124,32 @@ func TestRenameReservedUsername(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		resp := session.MakeRequest(t, req, http.StatusFound)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
 		)
 
-		unittest.AssertNotExistsBean(t, &models.User{Name: reservedUsername})
+		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
 	}
 }
 
 func TestExportUserGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
-	//Export empty key list
+	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO
 -----END PGP PUBLIC KEY BLOCK-----
 `)
-	//Import key
-	//User1 <user1@example.com>
+	// Import key
+	// User1 <user1@example.com>
 	session := loginUser(t, "user1")
 	token := getTokenForLoggedInUser(t, session)
 	testCreateGPGKey(t, session.MakeRequest, token, http.StatusCreated, `-----BEGIN PGP PUBLIC KEY BLOCK-----
@@ -161,7 +183,7 @@ GrE0MHOxUbc9tbtyk0F1SuzREUBH
 =DDXw
 -----END PGP PUBLIC KEY BLOCK-----
 `)
-	//Export new key
+	// Export new key
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
 
 xsBNBFyy/VUBCADJ7zbM20Z1RWmFoVgp5WkQfI2rU1Vj9cQHes9i42wVLLtcbPeo
@@ -200,6 +222,29 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	t.Logf("Testing username %s export gpg keys", user)
 	req := NewRequest(t, "GET", "/"+user+".gpg")
 	resp := session.MakeRequest(t, req, http.StatusOK)
-	//t.Log(resp.Body.String())
+	// t.Log(resp.Body.String())
 	assert.Equal(t, expected, resp.Body.String())
+}
+
+func TestListStopWatches(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+
+	session := loginUser(t, owner.Name)
+	req := NewRequestf(t, "GET", "/user/stopwatches")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiWatches []*api.StopWatch
+	DecodeJSON(t, resp, &apiWatches)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID}).(*issues_model.Stopwatch)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID}).(*issues_model.Issue)
+	if assert.Len(t, apiWatches, 1) {
+		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
+		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
+		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
+	}
 }

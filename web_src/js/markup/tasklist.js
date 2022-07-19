@@ -1,3 +1,7 @@
+import $ from 'jquery';
+
+const preventListener = (e) => e.preventDefault();
+
 /**
  * Attaches `input` handlers to markdown rendered tasklist checkboxes in comments.
  *
@@ -5,23 +9,20 @@
  * is set accordingly and sent to the server. On success it updates the raw-content on
  * error it resets the checkbox to its original value.
  */
-
-const preventListener = (e) => e.preventDefault();
-
 export function initMarkupTasklist() {
   for (const el of document.querySelectorAll(`.markup[data-can-edit=true]`) || []) {
     const container = el.parentNode;
     const checkboxes = el.querySelectorAll(`.task-list-item input[type=checkbox]`);
 
     for (const checkbox of checkboxes) {
-      if (checkbox.dataset.editable) {
+      if (checkbox.hasAttribute('data-editable')) {
         return;
       }
 
-      checkbox.dataset.editable = 'true';
+      checkbox.setAttribute('data-editable', 'true');
       checkbox.addEventListener('input', async () => {
         const checkboxCharacter = checkbox.checked ? 'x' : ' ';
-        const position = parseInt(checkbox.dataset.sourcePosition) + 1;
+        const position = parseInt(checkbox.getAttribute('data-source-position')) + 1;
 
         const rawContent = container.querySelector('.raw-content');
         const oldContent = rawContent.textContent;
@@ -43,7 +44,8 @@ export function initMarkupTasklist() {
 
         try {
           const editContentZone = container.querySelector('.edit-content-zone');
-          const {updateUrl, context} = editContentZone.dataset;
+          const updateUrl = editContentZone.getAttribute('data-update-url');
+          const context = editContentZone.getAttribute('data-context');
 
           await $.post(updateUrl, {
             ignore_attachments: true,

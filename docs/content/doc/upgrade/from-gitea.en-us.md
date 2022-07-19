@@ -76,6 +76,8 @@ a snapshot for the Gitea data volume and related object storage is more convenie
 * Replace the installed Gitea binary with the downloaded one. 
 * Start the Gitea instance.
 
+A script automating these steps for a deployment on Linux can be found at [`contrib/upgrade.sh` in Gitea's source tree](https://github.com/go-gitea/gitea/blob/main/contrib/upgrade.sh).
+
 ## Take care about customized templates
 
 Gitea's template structure and variables may change between releases, if you are using customized templates, 

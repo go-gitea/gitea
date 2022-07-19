@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
@@ -22,7 +23,7 @@ type consistencyCheck struct {
 	FixedMessage string
 }
 
-func (c *consistencyCheck) Run(logger log.Logger, autofix bool) error {
+func (c *consistencyCheck) Run(ctx context.Context, logger log.Logger, autofix bool) error {
 	count, err := c.Counter()
 	if err != nil {
 		logger.Critical("Error: %v whilst counting %s", err, c.Name)
@@ -64,18 +65,18 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 	return consistencyCheck{
 		Name: name,
 		Counter: func() (int64, error) {
-			return models.CountOrphanedObjects(subject, refobject, joincond)
+			return db.CountOrphanedObjects(subject, refobject, joincond)
 		},
 		Fixer: func() (int64, error) {
-			err := models.DeleteOrphanedObjects(subject, refobject, joincond)
+			err := db.DeleteOrphanedObjects(subject, refobject, joincond)
 			return -1, err
 		},
 	}
 }
 
-func checkDBConsistency(logger log.Logger, autofix bool) error {
+func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) error {
 	// make sure DB version is uptodate
-	if err := db.InitEngineWithMigration(context.Background(), migrations.EnsureUpToDate); err != nil {
+	if err := db.InitEngineWithMigration(ctx, migrations.EnsureUpToDate); err != nil {
 		logger.Critical("Model version on the database does not match the current Gitea version. Model consistency will not be checked until the database is upgraded")
 		return err
 	}
@@ -84,20 +85,20 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		{
 			// find labels without existing repo or org
 			Name:    "Orphaned Labels without existing repository or organisation",
-			Counter: models.CountOrphanedLabels,
-			Fixer:   asFixer(models.DeleteOrphanedLabels),
+			Counter: issues_model.CountOrphanedLabels,
+			Fixer:   asFixer(issues_model.DeleteOrphanedLabels),
 		},
 		{
 			// find IssueLabels without existing label
 			Name:    "Orphaned Issue Labels without existing label",
-			Counter: models.CountOrphanedIssueLabels,
-			Fixer:   asFixer(models.DeleteOrphanedIssueLabels),
+			Counter: issues_model.CountOrphanedIssueLabels,
+			Fixer:   asFixer(issues_model.DeleteOrphanedIssueLabels),
 		},
 		{
 			// find issues without existing repository
 			Name:    "Orphaned Issues without existing repository",
-			Counter: models.CountOrphanedIssues,
-			Fixer:   asFixer(models.DeleteOrphanedIssues),
+			Counter: issues_model.CountOrphanedIssues,
+			Fixer:   asFixer(issues_model.DeleteOrphanedIssues),
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
@@ -105,6 +106,9 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		// find pulls without existing issues
 		genericOrphanCheck("Orphaned PullRequests without existing issue",
 			"pull_request", "issue", "pull_request.issue_id=issue.id"),
+		// find pull requests without base repository
+		genericOrphanCheck("Pull request entries without existing base repository",
+			"pull_request", "repository", "pull_request.base_repo_id=repository.id"),
 		// find tracked times without existing issues/pulls
 		genericOrphanCheck("Orphaned TrackedTimes without existing issue",
 			"tracked_time", "issue", "tracked_time.issue_id=issue.id"),
@@ -124,23 +128,29 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 		// find label comments with empty labels
 		{
 			Name:         "Label comments with empty labels",
-			Counter:      models.CountCommentTypeLabelWithEmptyLabel,
-			Fixer:        models.FixCommentTypeLabelWithEmptyLabel,
+			Counter:      issues_model.CountCommentTypeLabelWithEmptyLabel,
+			Fixer:        issues_model.FixCommentTypeLabelWithEmptyLabel,
 			FixedMessage: "Fixed",
 		},
 		// find label comments with labels from outside the repository
 		{
 			Name:         "Label comments with labels from outside the repository",
-			Counter:      models.CountCommentTypeLabelWithOutsideLabels,
-			Fixer:        models.FixCommentTypeLabelWithOutsideLabels,
+			Counter:      issues_model.CountCommentTypeLabelWithOutsideLabels,
+			Fixer:        issues_model.FixCommentTypeLabelWithOutsideLabels,
 			FixedMessage: "Removed",
 		},
 		// find issue_label with labels from outside the repository
 		{
 			Name:         "IssueLabels with Labels from outside the repository",
-			Counter:      models.CountIssueLabelWithOutsideLabels,
-			Fixer:        models.FixIssueLabelWithOutsideLabels,
+			Counter:      issues_model.CountIssueLabelWithOutsideLabels,
+			Fixer:        issues_model.FixIssueLabelWithOutsideLabels,
 			FixedMessage: "Removed",
+		},
+		{
+			Name:         "Action with created_unix set as an empty string",
+			Counter:      models.CountActionCreatedUnixString,
+			Fixer:        models.FixActionCreatedUnixString,
+			FixedMessage: "Set to zero",
 		},
 	}
 
@@ -167,20 +177,38 @@ func checkDBConsistency(logger log.Logger, autofix bool) error {
 			"lfs_lock", "repository", "lfs_lock.repo_id=repository.id"),
 		// find collaborations without users
 		genericOrphanCheck("Collaborations without existing user",
-			"collaboration", "user", "collaboration.user_id=user.id"),
+			"collaboration", "user", "collaboration.user_id=`user`.id"),
 		// find collaborations without repository
 		genericOrphanCheck("Collaborations without existing repository",
 			"collaboration", "repository", "collaboration.repo_id=repository.id"),
 		// find access without users
 		genericOrphanCheck("Access entries without existing user",
-			"access", "user", "access.user_id=user.id"),
+			"access", "user", "access.user_id=`user`.id"),
 		// find access without repository
 		genericOrphanCheck("Access entries without existing repository",
 			"access", "repository", "access.repo_id=repository.id"),
+		// find action without repository
+		genericOrphanCheck("Action entries without existing repository",
+			"action", "repository", "action.repo_id=repository.id"),
+		// find OAuth2Grant without existing user
+		genericOrphanCheck("Orphaned OAuth2Grant without existing User",
+			"oauth2_grant", "user", "oauth2_grant.user_id=`user`.id"),
+		// find OAuth2Application without existing user
+		genericOrphanCheck("Orphaned OAuth2Application without existing User",
+			"oauth2_application", "user", "oauth2_application.uid=`user`.id"),
+		// find OAuth2AuthorizationCode without existing OAuth2Grant
+		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
+			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
+		// find stopwatches without existing user
+		genericOrphanCheck("Orphaned Stopwatches without existing User",
+			"stopwatch", "user", "stopwatch.user_id=`user`.id"),
+		// find stopwatches without existing issue
+		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
+			"stopwatch", "issue", "stopwatch.issue_id=`issue`.id"),
 	)
 
 	for _, c := range consistencyChecks {
-		if err := c.Run(logger, autofix); err != nil {
+		if err := c.Run(ctx, logger, autofix); err != nil {
 			return err
 		}
 	}

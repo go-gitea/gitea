@@ -103,6 +103,27 @@ Once your configuration changes have been made, restart Gitea to have changes ta
 **Note**: Prior to Gitea 1.12 there was a single `markup.sanitiser` section with keys that were redefined for multiple rules, however,
 there were significant problems with this method of configuration necessitating configuration through multiple sections.
 
+### Example: HTML
+
+Render HTML files directly:
+
+```ini
+[markup.html]
+ENABLED         = true
+FILE_EXTENSIONS = .html,.htm
+RENDER_COMMAND  = cat
+; Input is not a standard input but a file
+IS_INPUT_FILE   = true
+
+[markup.sanitizer.html.1]
+ELEMENT = div
+ALLOW_ATTR = class
+
+[markup.sanitizer.html.2]
+ELEMENT = a
+ALLOW_ATTR = class
+```
+
 ### Example: Office DOCX
 
 Display Office DOCX files with [`pandoc`](https://pandoc.org/):

@@ -8,4 +8,6 @@ package structs
 type CreateForkOption struct {
 	// organization name, if forking into an organization
 	Organization *string `json:"organization"`
+	// name of the forked repository
+	Name *string `json:"name"`
 }

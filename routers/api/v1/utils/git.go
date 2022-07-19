@@ -5,6 +5,7 @@
 package utils
 
 import (
+	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/modules/context"
@@ -35,12 +36,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 // GetGitRefs return git references based on filter
 func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, string, error) {
 	if ctx.Repo.GitRepo == nil {
-		var err error
-		ctx.Repo.GitRepo, err = git.OpenRepository(ctx.Repo.Repository.RepoPath())
-		if err != nil {
-			return nil, "OpenRepository", err
-		}
-		defer ctx.Repo.GitRepo.Close()
+		return nil, "", fmt.Errorf("no open git repo found in context")
 	}
 	if len(filter) > 0 {
 		filter = "refs/" + filter
@@ -50,12 +46,12 @@ func GetGitRefs(ctx *context.APIContext, filter string) ([]*git.Reference, strin
 }
 
 func searchRefCommitByType(ctx *context.APIContext, refType, filter string) (string, string, error) {
-	refs, lastMethodName, err := GetGitRefs(ctx, refType+"/"+filter) //Search by type
+	refs, lastMethodName, err := GetGitRefs(ctx, refType+"/"+filter) // Search by type
 	if err != nil {
 		return "", lastMethodName, err
 	}
 	if len(refs) > 0 {
-		return refs[0].Object.String(), "", nil //Return found SHA
+		return refs[0].Object.String(), "", nil // Return found SHA
 	}
 	return "", "", nil
 }

@@ -51,7 +51,7 @@ func ListHooks(ctx *context.APIContext) {
 		return
 	}
 
-	orgHooks, err := webhook.ListWebhooksByOpts(opts)
+	orgHooks, err := webhook.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -100,7 +100,7 @@ func GetHook(ctx *context.APIContext) {
 
 // CreateHook create a hook for an organization
 func CreateHook(ctx *context.APIContext) {
-	// swagger:operation POST /orgs/{org}/hooks/ organization orgCreateHook
+	// swagger:operation POST /orgs/{org}/hooks organization orgCreateHook
 	// ---
 	// summary: Create a hook
 	// consumes:
@@ -123,7 +123,7 @@ func CreateHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Hook"
 
 	form := web.GetForm(ctx).(*api.CreateHookOption)
-	//TODO in body params
+	// TODO in body params
 	if !utils.CheckCreateHookOption(ctx, form) {
 		return
 	}
@@ -161,7 +161,7 @@ func EditHook(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditHookOption)
 
-	//TODO in body params
+	// TODO in body params
 	hookID := ctx.ParamsInt64(":id")
 	utils.EditOrgHook(ctx, form, hookID)
 }

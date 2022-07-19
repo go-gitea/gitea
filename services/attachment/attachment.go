@@ -40,7 +40,7 @@ func NewAttachment(attach *repo_model.Attachment, file io.Reader) (*repo_model.A
 }
 
 // UploadAttachment upload new attachment into storage and update database
-func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName string, allowedTypes string) (*repo_model.Attachment, error) {
+func UploadAttachment(file io.Reader, actorID, repoID, releaseID int64, fileName, allowedTypes string) (*repo_model.Attachment, error) {
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(file, buf)
 	buf = buf[:n]

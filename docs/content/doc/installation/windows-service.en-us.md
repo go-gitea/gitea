@@ -27,7 +27,7 @@ COMPUTERNAME is whatever the response is from `echo %COMPUTERNAME%` on the comma
 
 ## Use absolute paths
 
-If you use sqlite3, change the `PATH` to include the full path:
+If you use SQLite3, change the `PATH` to include the full path:
 
 ```
 [database]

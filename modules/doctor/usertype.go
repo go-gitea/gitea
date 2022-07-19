@@ -5,11 +5,13 @@
 package doctor
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/modules/log"
 )
 
-func checkUserType(logger log.Logger, autofix bool) error {
+func checkUserType(ctx context.Context, logger log.Logger, autofix bool) error {
 	count, err := models.CountWrongUserType()
 	if err != nil {
 		logger.Critical("Error: %v whilst counting wrong user types")

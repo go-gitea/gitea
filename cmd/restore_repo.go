@@ -7,6 +7,7 @@ package cmd
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/private"
@@ -43,6 +44,10 @@ var CmdRestoreRepository = cli.Command{
 			Usage: `Which items will be restored, one or more units should be separated as comma.
 wiki, issues, labels, releases, release_assets, milestones, pull_requests, comments are allowed. Empty means all units.`,
 		},
+		cli.BoolFlag{
+			Name:  "validation",
+			Usage: "Sanity check the content of the files before trying to load them",
+		},
 	},
 }
 
@@ -50,14 +55,18 @@ func runRestoreRepository(c *cli.Context) error {
 	ctx, cancel := installSignals()
 	defer cancel()
 
-	setting.NewContext()
-
+	setting.LoadFromExisting()
+	var units []string
+	if s := c.String("units"); s != "" {
+		units = strings.Split(s, ",")
+	}
 	statusCode, errStr := private.RestoreRepo(
 		ctx,
 		c.String("repo_dir"),
 		c.String("owner_name"),
 		c.String("repo_name"),
-		c.StringSlice("units"),
+		units,
+		c.Bool("validation"),
 	)
 	if statusCode == http.StatusOK {
 		return nil

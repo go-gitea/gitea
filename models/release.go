@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -24,12 +25,12 @@ import (
 
 // Release represents a release of repository.
 type Release struct {
-	ID               int64       `xorm:"pk autoincr"`
-	RepoID           int64       `xorm:"INDEX UNIQUE(n)"`
-	Repo             *Repository `xorm:"-"`
-	PublisherID      int64       `xorm:"INDEX"`
-	Publisher        *User       `xorm:"-"`
-	TagName          string      `xorm:"INDEX UNIQUE(n)"`
+	ID               int64                  `xorm:"pk autoincr"`
+	RepoID           int64                  `xorm:"INDEX UNIQUE(n)"`
+	Repo             *repo_model.Repository `xorm:"-"`
+	PublisherID      int64                  `xorm:"INDEX"`
+	Publisher        *user_model.User       `xorm:"-"`
+	TagName          string                 `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -51,30 +52,30 @@ func init() {
 	db.RegisterModel(new(Release))
 }
 
-func (r *Release) loadAttributes(e db.Engine) error {
+func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = GetRepositoryByID(r.RepoID)
+		r.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
 	}
 	if r.Publisher == nil {
-		r.Publisher, err = getUserByID(e, r.PublisherID)
+		r.Publisher, err = user_model.GetUserByIDCtx(ctx, r.PublisherID)
 		if err != nil {
-			if IsErrUserNotExist(err) {
-				r.Publisher = NewGhostUser()
+			if user_model.IsErrUserNotExist(err) {
+				r.Publisher = user_model.NewGhostUser()
 			} else {
 				return err
 			}
 		}
 	}
-	return getReleaseAttachments(e, r)
+	return GetReleaseAttachments(ctx, r)
 }
 
 // LoadAttributes load repo and publisher attributes for a release
 func (r *Release) LoadAttributes() error {
-	return r.loadAttributes(db.GetEngine(db.DefaultContext))
+	return r.loadAttributes(db.DefaultContext)
 }
 
 // APIURL the api url for a release. release must have attributes loaded
@@ -98,24 +99,12 @@ func (r *Release) HTMLURL() string {
 }
 
 // IsReleaseExist returns true if release with given tag name already exists.
-func IsReleaseExist(repoID int64, tagName string) (bool, error) {
+func IsReleaseExist(ctx context.Context, repoID int64, tagName string) (bool, error) {
 	if len(tagName) == 0 {
 		return false, nil
 	}
 
-	return db.GetEngine(db.DefaultContext).Get(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
-}
-
-// InsertRelease inserts a release
-func InsertRelease(rel *Release) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(rel)
-	return err
-}
-
-// InsertReleasesContext insert releases
-func InsertReleasesContext(ctx context.Context, rels []*Release) error {
-	_, err := db.GetEngine(ctx).Insert(rels)
-	return err
+	return db.GetEngine(ctx).Exist(&Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)})
 }
 
 // UpdateRelease updates all columns of a release
@@ -143,27 +132,25 @@ func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs
 		}
 	}
 
-	return
+	return err
 }
 
 // GetRelease returns release by given ID.
 func GetRelease(repoID int64, tagName string) (*Release, error) {
-	isExist, err := IsReleaseExist(repoID, tagName)
+	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
+	has, err := db.GetEngine(db.DefaultContext).Get(rel)
 	if err != nil {
 		return nil, err
-	} else if !isExist {
+	} else if !has {
 		return nil, ErrReleaseNotExist{0, tagName}
 	}
-
-	rel := &Release{RepoID: repoID, LowerTagName: strings.ToLower(tagName)}
-	_, err = db.GetEngine(db.DefaultContext).Get(rel)
-	return rel, err
+	return rel, nil
 }
 
 // GetReleaseByID returns release with given ID.
-func GetReleaseByID(id int64) (*Release, error) {
+func GetReleaseByID(ctx context.Context, id int64) (*Release, error) {
 	rel := new(Release)
-	has, err := db.GetEngine(db.DefaultContext).
+	has, err := db.GetEngine(ctx).
 		ID(id).
 		Get(rel)
 	if err != nil {
@@ -281,11 +268,7 @@ func (s releaseMetaSearch) Less(i, j int) bool {
 }
 
 // GetReleaseAttachments retrieves the attachments for releases
-func GetReleaseAttachments(rels ...*Release) (err error) {
-	return getReleaseAttachments(db.GetEngine(db.DefaultContext), rels...)
-}
-
-func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
+func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	if len(rels) == 0 {
 		return
 	}
@@ -305,7 +288,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 	sort.Sort(sortedRels)
 
 	// Select attachments
-	err = e.
+	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
 		Find(&attachments, repo_model.Attachment{})
@@ -322,7 +305,7 @@ func getReleaseAttachments(e db.Engine, rels ...*Release) (err error) {
 		sortedRels.Rel[currentIndex].Attachments = append(sortedRels.Rel[currentIndex].Attachments, attachment)
 	}
 
-	return
+	return err
 }
 
 type releaseSorter struct {
@@ -369,3 +352,102 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 		})
 	return err
 }
+
+// PushUpdateDeleteTagsContext updates a number of delete tags with context
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
+	if len(tags) == 0 {
+		return nil
+	}
+	lowerTags := make([]string, 0, len(tags))
+	for _, tag := range tags {
+		lowerTags = append(lowerTags, strings.ToLower(tag))
+	}
+
+	if _, err := db.GetEngine(ctx).
+		Where("repo_id = ? AND is_tag = ?", repo.ID, true).
+		In("lower_tag_name", lowerTags).
+		Delete(new(Release)); err != nil {
+		return fmt.Errorf("Delete: %v", err)
+	}
+
+	if _, err := db.GetEngine(ctx).
+		Where("repo_id = ? AND is_tag = ?", repo.ID, false).
+		In("lower_tag_name", lowerTags).
+		Cols("is_draft", "num_commits", "sha1").
+		Update(&Release{
+			IsDraft: true,
+		}); err != nil {
+		return fmt.Errorf("Update: %v", err)
+	}
+
+	return nil
+}
+
+// PushUpdateDeleteTag must be called for any push actions to delete tag
+func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
+	rel, err := GetRelease(repo.ID, tagName)
+	if err != nil {
+		if IsErrReleaseNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+	if rel.IsTag {
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).Delete(new(Release)); err != nil {
+			return fmt.Errorf("Delete: %v", err)
+		}
+	} else {
+		rel.IsDraft = true
+		rel.NumCommits = 0
+		rel.Sha1 = ""
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+
+	return nil
+}
+
+// SaveOrUpdateTag must be called for any push actions to add tag
+func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
+	rel, err := GetRelease(repo.ID, newRel.TagName)
+	if err != nil && !IsErrReleaseNotExist(err) {
+		return fmt.Errorf("GetRelease: %v", err)
+	}
+
+	if rel == nil {
+		rel = newRel
+		if _, err = db.GetEngine(db.DefaultContext).Insert(rel); err != nil {
+			return fmt.Errorf("InsertOne: %v", err)
+		}
+	} else {
+		rel.Sha1 = newRel.Sha1
+		rel.CreatedUnix = newRel.CreatedUnix
+		rel.NumCommits = newRel.NumCommits
+		rel.IsDraft = false
+		if rel.IsTag && newRel.PublisherID > 0 {
+			rel.PublisherID = newRel.PublisherID
+		}
+		if _, err = db.GetEngine(db.DefaultContext).ID(rel.ID).AllCols().Update(rel); err != nil {
+			return fmt.Errorf("Update: %v", err)
+		}
+	}
+	return nil
+}
+
+// RemapExternalUser ExternalUserRemappable interface
+func (r *Release) RemapExternalUser(externalName string, externalID, userID int64) error {
+	r.OriginalAuthor = externalName
+	r.OriginalAuthorID = externalID
+	r.PublisherID = userID
+	return nil
+}
+
+// UserID ExternalUserRemappable interface
+func (r *Release) GetUserID() int64 { return r.PublisherID }
+
+// ExternalName ExternalUserRemappable interface
+func (r *Release) GetExternalName() string { return r.OriginalAuthor }
+
+// ExternalID ExternalUserRemappable interface
+func (r *Release) GetExternalID() int64 { return r.OriginalAuthorID }

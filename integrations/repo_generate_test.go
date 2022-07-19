@@ -10,14 +10,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, templateRepoName, generateOwnerName, generateRepoName string) *httptest.ResponseRecorder {
-	generateOwner := unittest.AssertExistsAndLoadBean(t, &models.User{Name: generateOwnerName}).(*models.User)
+	generateOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: generateOwnerName}).(*user_model.User)
 
 	// Step0: check the existence of the generated repo
 	req := NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)
@@ -46,7 +46,7 @@ func testRepoGenerate(t *testing.T, session *TestSession, templateOwnerName, tem
 		"repo_name":   generateRepoName,
 		"git_content": "true",
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the generated repo
 	req = NewRequestf(t, "GET", "/%s/%s", generateOwnerName, generateRepoName)

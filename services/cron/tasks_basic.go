@@ -9,22 +9,36 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
-	repository_service "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	packages_service "code.gitea.io/gitea/services/packages"
+	repo_service "code.gitea.io/gitea/services/repository"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 func registerUpdateMirrorTask() {
-	RegisterTaskFatal("update_mirrors", &BaseConfig{
-		Enabled:         true,
-		RunAtStart:      false,
-		Schedule:        "@every 10m",
-		NoSuccessNotice: true,
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
-		return mirror_service.Update(ctx)
+	type UpdateMirrorTaskConfig struct {
+		BaseConfig
+		PullLimit int
+		PushLimit int
+	}
+
+	RegisterTaskFatal("update_mirrors", &UpdateMirrorTaskConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
+		},
+		PullLimit: 50,
+		PushLimit: 50,
+	}, func(ctx context.Context, _ *user_model.User, cfg Config) error {
+		umtc := cfg.(*UpdateMirrorTaskConfig)
+		return mirror_service.Update(ctx, umtc.PullLimit, umtc.PushLimit)
 	})
 }
 
@@ -42,9 +56,9 @@ func registerRepoHealthCheck() {
 		},
 		Timeout: 60 * time.Second,
 		Args:    []string{},
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		rhcConfig := config.(*RepoHealthCheckConfig)
-		return repository_service.GitFsck(ctx, rhcConfig.Timeout, rhcConfig.Args)
+		return repo_service.GitFsck(ctx, rhcConfig.Timeout, rhcConfig.Args)
 	})
 }
 
@@ -53,7 +67,7 @@ func registerCheckRepoStats() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return models.CheckRepoStats(ctx)
 	})
 }
@@ -66,9 +80,9 @@ func registerArchiveCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		acConfig := config.(*OlderThanConfig)
-		return models.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
+		return archiver_service.DeleteOldRepositoryArchives(ctx, acConfig.OlderThan)
 	})
 }
 
@@ -80,7 +94,7 @@ func registerSyncExternalUsers() {
 			Schedule:   "@midnight",
 		},
 		UpdateExisting: true,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*UpdateExistingConfig)
 		return auth.SyncExternalUsers(ctx, realConfig.UpdateExisting)
 	})
@@ -94,9 +108,9 @@ func registerDeletedBranchesCleanup() {
 			Schedule:   "@midnight",
 		},
 		OlderThan: 24 * time.Hour,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		models.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
+		git_model.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
 		return nil
 	})
 }
@@ -106,7 +120,7 @@ func registerUpdateMigrationPosterID() {
 		Enabled:    true,
 		RunAtStart: true,
 		Schedule:   "@midnight",
-	}, func(ctx context.Context, _ *models.User, _ Config) error {
+	}, func(ctx context.Context, _ *user_model.User, _ Config) error {
 		return migrations.UpdateMigrationPosterID(ctx)
 	})
 }
@@ -121,14 +135,30 @@ func registerCleanupHookTaskTable() {
 		CleanupType:  "OlderThan",
 		OlderThan:    168 * time.Hour,
 		NumberToKeep: 10,
-	}, func(ctx context.Context, _ *models.User, config Config) error {
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*CleanupHookTaskConfig)
 		return webhook.CleanupHookTaskTable(ctx, webhook.ToHookTaskCleanupType(realConfig.CleanupType), realConfig.OlderThan, realConfig.NumberToKeep)
 	})
 }
 
+func registerCleanupPackages() {
+	RegisterTaskFatal("cleanup_packages", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return packages_service.Cleanup(ctx, realConfig.OlderThan)
+	})
+}
+
 func initBasicTasks() {
-	registerUpdateMirrorTask()
+	if setting.Mirror.Enabled {
+		registerUpdateMirrorTask()
+	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()
@@ -138,4 +168,7 @@ func initBasicTasks() {
 		registerUpdateMigrationPosterID()
 	}
 	registerCleanupHookTaskTable()
+	if setting.Packages.Enabled {
+		registerCleanupPackages()
+	}
 }

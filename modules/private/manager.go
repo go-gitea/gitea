@@ -7,8 +7,10 @@ package private
 import (
 	"context"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 
 	"code.gitea.io/gitea/modules/json"
@@ -138,6 +140,24 @@ func ReleaseReopenLogging(ctx context.Context) (int, string) {
 	return http.StatusOK, "Logging Restarted"
 }
 
+// SetLogSQL sets database logging
+func SetLogSQL(ctx context.Context, on bool) (int, string) {
+	reqURL := setting.LocalURL + "api/internal/manager/set-log-sql?on=" + strconv.FormatBool(on)
+
+	req := newInternalRequest(ctx, reqURL, "POST")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	return http.StatusOK, "Log SQL setting set"
+}
+
 // LoggerOptions represents the options for the add logger call
 type LoggerOptions struct {
 	Group  string
@@ -170,7 +190,6 @@ func AddLogger(ctx context.Context, group, name, mode string, config map[string]
 	}
 
 	return http.StatusOK, "Added"
-
 }
 
 // RemoveLogger removes a logger
@@ -189,4 +208,26 @@ func RemoveLogger(ctx context.Context, group, name string) (int, string) {
 	}
 
 	return http.StatusOK, "Removed"
+}
+
+// Processes return the current processes from this gitea instance
+func Processes(ctx context.Context, out io.Writer, flat, noSystem, stacktraces, json bool, cancel string) (int, string) {
+	reqURL := setting.LocalURL + fmt.Sprintf("api/internal/manager/processes?flat=%t&no-system=%t&stacktraces=%t&json=%t&cancel-pid=%s", flat, noSystem, stacktraces, json, url.QueryEscape(cancel))
+
+	req := newInternalRequest(ctx, reqURL, "GET")
+	resp, err := req.Response()
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Sprintf("Unable to contact gitea: %v", err.Error())
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return resp.StatusCode, decodeJSONError(resp).Err
+	}
+
+	_, err = io.Copy(out, resp.Body)
+	if err != nil {
+		return http.StatusInternalServerError, err.Error()
+	}
+	return http.StatusOK, ""
 }

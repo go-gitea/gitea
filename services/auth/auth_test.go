@@ -13,7 +13,6 @@ import (
 )
 
 func Test_isGitRawOrLFSPath(t *testing.T) {
-
 	tests := []struct {
 		path string
 

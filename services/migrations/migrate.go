@@ -15,6 +15,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
@@ -38,11 +40,11 @@ func RegisterDownloaderFactory(factory base.DownloaderFactory) {
 }
 
 // IsMigrateURLAllowed checks if an URL is allowed to be migrated from
-func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
+func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	u, err := url.Parse(remoteURL)
 	if err != nil {
-		return &models.ErrInvalidCloneAddr{IsURLError: true}
+		return &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
 
 	if u.Scheme == "file" || u.Scheme == "" {
@@ -79,11 +81,13 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 		err = nil //nolint
 		hostName = u.Host
 	}
-	addrList, err := net.LookupIP(hostName)
-	if err != nil {
-		return &models.ErrInvalidCloneAddr{Host: u.Host, NotResolvedIP: true}
-	}
 
+	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
+	addrList, _ := net.LookupIP(hostName)
+	return checkByAllowBlockList(hostName, addrList)
+}
+
+func checkByAllowBlockList(hostName string, addrList []net.IP) error {
 	var ipAllowed bool
 	var ipBlocked bool
 	for _, addr := range addrList {
@@ -92,12 +96,12 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 	}
 	var blockedError error
 	if blockList.MatchHostName(hostName) || ipBlocked {
-		blockedError = &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+		blockedError = &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
-	// if we have an allow-list, check the allow-list first
+	// if we have an allow-list, check the allow-list before return to get the more accurate error
 	if !allowList.IsEmpty() {
 		if !allowList.MatchHostName(hostName) && !ipAllowed {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+			return &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 		}
 	}
 	// otherwise, we always follow the blocked list
@@ -105,7 +109,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *models.User) error {
 }
 
 // MigrateRepository migrate repository according MigrateOptions
-func MigrateRepository(ctx context.Context, doer *models.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*models.Repository, error) {
+func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName string, opts base.MigrateOptions, messenger base.Messenger) (*repo_model.Repository, error) {
 	err := IsMigrateURLAllowed(opts.CloneAddr, doer)
 	if err != nil {
 		return nil, err
@@ -121,7 +125,7 @@ func MigrateRepository(ctx context.Context, doer *models.User, ownerName string,
 		return nil, err
 	}
 
-	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
 	if err := migrateRepository(downloader, uploader, opts, messenger); err != nil {
@@ -303,7 +307,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Issues {
 		log.Trace("migrating issues and comments")
 		messenger("repo.migrate.migrating_issues")
-		var issueBatchSize = uploader.MaxBatchInsertSize("issue")
+		issueBatchSize := uploader.MaxBatchInsertSize("issue")
 
 		for i := 1; ; i++ {
 			issues, isEnd, err := downloader.GetIssues(i, issueBatchSize)
@@ -320,12 +324,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			}
 
 			if opts.Comments && !supportAllComments {
-				var allComments = make([]*base.Comment, 0, commentBatchSize)
+				allComments := make([]*base.Comment, 0, commentBatchSize)
 				for _, issue := range issues {
 					log.Trace("migrating issue %d's comments", issue.Number)
-					comments, _, err := downloader.GetComments(base.GetCommentOptions{
-						Context: issue.Context,
-					})
+					comments, _, err := downloader.GetComments(issue)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -360,7 +362,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.PullRequests {
 		log.Trace("migrating pull requests and comments")
 		messenger("repo.migrate.migrating_pulls")
-		var prBatchSize = uploader.MaxBatchInsertSize("pullrequest")
+		prBatchSize := uploader.MaxBatchInsertSize("pullrequest")
 		for i := 1; ; i++ {
 			prs, isEnd, err := downloader.GetPullRequests(i, prBatchSize)
 			if err != nil {
@@ -378,12 +380,10 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 			if opts.Comments {
 				if !supportAllComments {
 					// plain comments
-					var allComments = make([]*base.Comment, 0, commentBatchSize)
+					allComments := make([]*base.Comment, 0, commentBatchSize)
 					for _, pr := range prs {
 						log.Trace("migrating pull request %d's comments", pr.Number)
-						comments, _, err := downloader.GetComments(base.GetCommentOptions{
-							Context: pr.Context,
-						})
+						comments, _, err := downloader.GetComments(pr)
 						if err != nil {
 							if !base.IsErrNotSupported(err) {
 								return err
@@ -408,9 +408,9 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 				}
 
 				// migrate reviews
-				var allReviews = make([]*base.Review, 0, reviewBatchSize)
+				allReviews := make([]*base.Review, 0, reviewBatchSize)
 				for _, pr := range prs {
-					reviews, err := downloader.GetReviews(pr.Context)
+					reviews, err := downloader.GetReviews(pr)
 					if err != nil {
 						if !base.IsErrNotSupported(err) {
 							return err
@@ -444,10 +444,7 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	if opts.Comments && supportAllComments {
 		log.Trace("migrating comments")
 		for i := 1; ; i++ {
-			comments, isEnd, err := downloader.GetComments(base.GetCommentOptions{
-				Page:     i,
-				PageSize: commentBatchSize,
-			})
+			comments, isEnd, err := downloader.GetAllComments(i, commentBatchSize)
 			if err != nil {
 				return err
 			}
@@ -480,5 +477,7 @@ func Init() error {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
+	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
+	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
 	return nil
 }

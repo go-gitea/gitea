@@ -2,5 +2,5 @@
 [[ -f ./setup ]] && source ./setup
 
 pushd /app/gitea >/dev/null
-exec su-exec $USER /app/gitea/gitea web
+exec su-exec $USER /usr/local/bin/gitea web
 popd

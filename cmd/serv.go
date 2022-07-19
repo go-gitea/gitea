@@ -6,6 +6,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -16,16 +17,20 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
+	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/pprof"
 	"code.gitea.io/gitea/modules/private"
+	"code.gitea.io/gitea/modules/process"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/lfs"
 
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/kballard/go-shellquote"
 	"github.com/urfave/cli"
 )
@@ -57,18 +62,33 @@ func setup(logPath string, debug bool) {
 	} else {
 		_ = log.NewLogger(1000, "console", "console", `{"level":"fatal","stacktracelevel":"NONE","stderr":true}`)
 	}
-	setting.NewContext()
+	setting.LoadFromExisting()
 	if debug {
 		setting.RunMode = "dev"
+	}
+
+	// Check if setting.RepoRootPath exists. It could be the case that it doesn't exist, this can happen when
+	// `[repository]` `ROOT` is a relative path and $GITEA_WORK_DIR isn't passed to the SSH connection.
+	if _, err := os.Stat(setting.RepoRootPath); err != nil {
+		if os.IsNotExist(err) {
+			_ = fail("Incorrect configuration, no repository directory.", "Directory `[repository].ROOT` %q was not found, please check if $GITEA_WORK_DIR is passed to the SSH connection or make `[repository].ROOT` an absolute value.", setting.RepoRootPath)
+		} else {
+			_ = fail("Incorrect configuration, repository directory is inaccessible", "Directory `[repository].ROOT` %q is inaccessible. err: %v", setting.RepoRootPath, err)
+		}
+		return
+	}
+
+	if err := git.InitSimple(context.Background()); err != nil {
+		_ = fail("Failed to init git", "Failed to init git, err: %v", err)
 	}
 }
 
 var (
-	allowedCommands = map[string]models.AccessMode{
-		"git-upload-pack":    models.AccessModeRead,
-		"git-upload-archive": models.AccessModeRead,
-		"git-receive-pack":   models.AccessModeWrite,
-		lfsAuthenticateVerb:  models.AccessModeNone,
+	allowedCommands = map[string]perm.AccessMode{
+		"git-upload-pack":    perm.AccessModeRead,
+		"git-upload-archive": perm.AccessModeRead,
+		"git-receive-pack":   perm.AccessModeWrite,
+		lfsAuthenticateVerb:  perm.AccessModeNone,
 	}
 	alphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
@@ -76,12 +96,12 @@ var (
 func fail(userMessage, logMessage string, args ...interface{}) error {
 	// There appears to be a chance to cause a zombie process and failure to read the Exit status
 	// if nothing is outputted on stdout.
-	fmt.Fprintln(os.Stdout, "")
-	fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
+	_, _ = fmt.Fprintln(os.Stdout, "")
+	_, _ = fmt.Fprintln(os.Stderr, "Gitea:", userMessage)
 
 	if len(logMessage) > 0 {
 		if !setting.IsProd {
-			fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
+			_, _ = fmt.Fprintf(os.Stderr, logMessage+"\n", args...)
 		}
 	}
 	ctx, cancel := installSignals()
@@ -90,7 +110,7 @@ func fail(userMessage, logMessage string, args ...interface{}) error {
 	if len(logMessage) > 0 {
 		_ = private.SSHLog(ctx, true, fmt.Sprintf(logMessage+": ", args...))
 	}
-	return cli.NewExitError(fmt.Sprintf("Gitea: %s", userMessage), 1)
+	return cli.NewExitError("", 1)
 }
 
 func runServ(c *cli.Context) error {
@@ -128,9 +148,9 @@ func runServ(c *cli.Context) error {
 			return fail("Internal error", "Failed to check provided key: %v", err)
 		}
 		switch key.Type {
-		case models.KeyTypeDeploy:
+		case asymkey_model.KeyTypeDeploy:
 			println("Hi there! You've successfully authenticated with the deploy key named " + key.Name + ", but Gitea does not provide shell access.")
-		case models.KeyTypePrincipal:
+		case asymkey_model.KeyTypePrincipal:
 			println("Hi there! You've successfully authenticated with the principal " + key.Content + ", but Gitea does not provide shell access.")
 		default:
 			println("Hi there, " + user.Name + "! You've successfully authenticated with the key named " + key.Name + ", but Gitea does not provide shell access.")
@@ -189,7 +209,7 @@ func runServ(c *cli.Context) error {
 		return fail("Invalid repo name", "Invalid repo name: %s", reponame)
 	}
 
-	if setting.EnablePprof || c.Bool("enable-pprof") {
+	if c.Bool("enable-pprof") {
 		if err := os.MkdirAll(setting.PprofDataPath, os.ModePerm); err != nil {
 			return fail("Error while trying to create PPROF_DATA_PATH", "Error while trying to create PPROF_DATA_PATH: %v", err)
 		}
@@ -214,9 +234,9 @@ func runServ(c *cli.Context) error {
 
 	if verb == lfsAuthenticateVerb {
 		if lfsVerb == "upload" {
-			requestedMode = models.AccessModeWrite
+			requestedMode = perm.AccessModeWrite
 		} else if lfsVerb == "download" {
-			requestedMode = models.AccessModeRead
+			requestedMode = perm.AccessModeRead
 		} else {
 			return fail("Unknown LFS verb", "Unknown lfs verb %s", lfsVerb)
 		}
@@ -233,27 +253,16 @@ func runServ(c *cli.Context) error {
 		}
 		return fail("Internal Server Error", "%s", err.Error())
 	}
-	os.Setenv(models.EnvRepoIsWiki, strconv.FormatBool(results.IsWiki))
-	os.Setenv(models.EnvRepoName, results.RepoName)
-	os.Setenv(models.EnvRepoUsername, results.OwnerName)
-	os.Setenv(models.EnvPusherName, results.UserName)
-	os.Setenv(models.EnvPusherEmail, results.UserEmail)
-	os.Setenv(models.EnvPusherID, strconv.FormatInt(results.UserID, 10))
-	os.Setenv(models.EnvRepoID, strconv.FormatInt(results.RepoID, 10))
-	os.Setenv(models.EnvPRID, fmt.Sprintf("%d", 0))
-	os.Setenv(models.EnvIsDeployKey, fmt.Sprintf("%t", results.IsDeployKey))
-	os.Setenv(models.EnvKeyID, fmt.Sprintf("%d", results.KeyID))
-	os.Setenv(models.EnvAppURL, setting.AppURL)
 
-	//LFS token authentication
+	// LFS token authentication
 	if verb == lfsAuthenticateVerb {
 		url := fmt.Sprintf("%s%s/%s.git/info/lfs", setting.AppURL, url.PathEscape(results.OwnerName), url.PathEscape(results.RepoName))
 
 		now := time.Now()
 		claims := lfs.Claims{
-			StandardClaims: jwt.StandardClaims{
-				ExpiresAt: now.Add(setting.LFS.HTTPAuthExpiry).Unix(),
-				NotBefore: now.Unix(),
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(now.Add(setting.LFS.HTTPAuthExpiry)),
+				NotBefore: jwt.NewNumericDate(now),
 			},
 			RepoID: results.RepoID,
 			Op:     lfsVerb,
@@ -267,7 +276,7 @@ func runServ(c *cli.Context) error {
 			return fail("Internal error", "Failed to sign JWT token: %v", err)
 		}
 
-		tokenAuthentication := &models.LFSTokenResponse{
+		tokenAuthentication := &git_model.LFSTokenResponse{
 			Header: make(map[string]string),
 			Href:   url,
 		}
@@ -294,10 +303,29 @@ func runServ(c *cli.Context) error {
 		gitcmd = exec.CommandContext(ctx, verb, repoPath)
 	}
 
+	process.SetSysProcAttribute(gitcmd)
 	gitcmd.Dir = setting.RepoRootPath
 	gitcmd.Stdout = os.Stdout
 	gitcmd.Stdin = os.Stdin
 	gitcmd.Stderr = os.Stderr
+	gitcmd.Env = append(gitcmd.Env, os.Environ()...)
+	gitcmd.Env = append(gitcmd.Env,
+		repo_module.EnvRepoIsWiki+"="+strconv.FormatBool(results.IsWiki),
+		repo_module.EnvRepoName+"="+results.RepoName,
+		repo_module.EnvRepoUsername+"="+results.OwnerName,
+		repo_module.EnvPusherName+"="+results.UserName,
+		repo_module.EnvPusherEmail+"="+results.UserEmail,
+		repo_module.EnvPusherID+"="+strconv.FormatInt(results.UserID, 10),
+		repo_module.EnvRepoID+"="+strconv.FormatInt(results.RepoID, 10),
+		repo_module.EnvPRID+"="+fmt.Sprintf("%d", 0),
+		repo_module.EnvDeployKeyID+"="+fmt.Sprintf("%d", results.DeployKeyID),
+		repo_module.EnvKeyID+"="+fmt.Sprintf("%d", results.KeyID),
+		repo_module.EnvAppURL+"="+setting.AppURL,
+	)
+	// to avoid breaking, here only use the minimal environment variables for the "gitea serv" command.
+	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
+	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
+
 	if err = gitcmd.Run(); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)
 	}

@@ -16,7 +16,7 @@ var (
 
 // rotate the points by center point (x,y)
 // angle: [0,1,2,3] means [0，90，180，270] degree
-func rotate(points []int, x, y int, angle int) {
+func rotate(points []int, x, y, angle int) {
 	// the angle is only used internally, and it has been guaranteed to be 0/1/2/3, so we do not check it again
 	for i := 0; i < len(points); i += 2 {
 		px, py := points[i]-x, points[i+1]-y

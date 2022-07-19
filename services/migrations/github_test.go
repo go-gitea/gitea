@@ -17,7 +17,7 @@ import (
 )
 
 func TestGitHubDownloadRepo(t *testing.T) {
-	GithubLimitRateRemaining = 3 //Wait at 3 remaining since we could have 3 CI in //
+	GithubLimitRateRemaining = 3 // Wait at 3 remaining since we could have 3 CI in //
 	downloader := NewGithubDownloaderV3(context.Background(), "https://github.com", "", "", os.Getenv("GITHUB_READ_TOKEN"), "go-gitea", "test_repo")
 	err := downloader.RefreshRate()
 	assert.NoError(t, err)
@@ -215,9 +215,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 	}, issues)
 
 	// downloader.GetComments()
-	comments, _, err := downloader.GetComments(base.GetCommentOptions{
-		Context: base.BasicIssueContext(2),
-	})
+	comments, _, err := downloader.GetComments(&base.Issue{Number: 2, ForeignIndex: 2})
 	assert.NoError(t, err)
 	assertCommentsEqual(t, []*base.Comment{
 		{
@@ -286,7 +284,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			Merged:         true,
 			MergedTime:     timePtr(time.Date(2019, 11, 12, 21, 39, 27, 0, time.UTC)),
 			MergeCommitSHA: "f32b0a9dfd09a60f616f29158f772cedd89942d2",
-			Context:        base.BasicIssueContext(3),
+			ForeignIndex:   3,
 		},
 		{
 			Number:     4,
@@ -333,11 +331,11 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Content:  "+1",
 				},
 			},
-			Context: base.BasicIssueContext(4),
+			ForeignIndex: 4,
 		},
 	}, prs)
 
-	reviews, err := downloader.GetReviews(base.BasicIssueContext(3))
+	reviews, err := downloader.GetReviews(&base.PullRequest{Number: 3, ForeignIndex: 3})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -364,12 +362,12 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			ReviewerID:   165205,
 			ReviewerName: "lafriks",
 			CommitID:     "076160cf0b039f13e5eff19619932d181269414b",
-			CreatedAt:    time.Date(2019, 11, 12, 21, 38, 00, 0, time.UTC),
+			CreatedAt:    time.Date(2019, 11, 12, 21, 38, 0, 0, time.UTC),
 			State:        base.ReviewStateApproved,
 		},
 	}, reviews)
 
-	reviews, err = downloader.GetReviews(base.BasicIssueContext(4))
+	reviews, err = downloader.GetReviews(&base.PullRequest{Number: 4, ForeignIndex: 4})
 	assert.NoError(t, err)
 	assertReviewsEqual(t, []*base.Review{
 		{
@@ -378,7 +376,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			ReviewerID:   81045,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
-			CreatedAt:    time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+			CreatedAt:    time.Date(2020, 1, 4, 5, 33, 18, 0, time.UTC),
 			State:        base.ReviewStateApproved,
 			Comments: []*base.ReviewComment{
 				{
@@ -389,8 +387,8 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Position:  3,
 					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
 					PosterID:  81045,
-					CreatedAt: time.Date(2020, 01, 04, 05, 33, 06, 0, time.UTC),
-					UpdatedAt: time.Date(2020, 01, 04, 05, 33, 18, 0, time.UTC),
+					CreatedAt: time.Date(2020, 1, 4, 5, 33, 6, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 1, 4, 5, 33, 18, 0, time.UTC),
 				},
 			},
 		},
@@ -400,7 +398,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			ReviewerID:   81045,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
-			CreatedAt:    time.Date(2020, 01, 04, 06, 07, 06, 0, time.UTC),
+			CreatedAt:    time.Date(2020, 1, 4, 6, 7, 6, 0, time.UTC),
 			State:        base.ReviewStateChangesRequested,
 			Content:      "Don't add more reviews",
 		},
@@ -410,7 +408,7 @@ func TestGitHubDownloadRepo(t *testing.T) {
 			ReviewerID:   81045,
 			ReviewerName: "lunny",
 			CommitID:     "2be9101c543658591222acbee3eb799edfc3853d",
-			CreatedAt:    time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+			CreatedAt:    time.Date(2020, 1, 4, 11, 21, 41, 0, time.UTC),
 			State:        base.ReviewStateCommented,
 			Comments: []*base.ReviewComment{
 				{
@@ -421,8 +419,8 @@ func TestGitHubDownloadRepo(t *testing.T) {
 					Position:  4,
 					CommitID:  "2be9101c543658591222acbee3eb799edfc3853d",
 					PosterID:  81045,
-					CreatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
-					UpdatedAt: time.Date(2020, 01, 04, 11, 21, 41, 0, time.UTC),
+					CreatedAt: time.Date(2020, 1, 4, 11, 21, 41, 0, time.UTC),
+					UpdatedAt: time.Date(2020, 1, 4, 11, 21, 41, 0, time.UTC),
 				},
 			},
 		},

@@ -7,8 +7,9 @@ package context
 
 import (
 	"net/http"
+	"strings"
 
-	"code.gitea.io/gitea/models/login"
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
@@ -27,20 +28,24 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 	return func(ctx *Context) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
 			}
-			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.HTML(http.StatusOK, "user/auth/prohibit_login")
 				return
 			}
 
-			if ctx.User.MustChangePassword {
+			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
+					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
+						ctx.Error(http.StatusUnauthorized, ctx.Tr("auth.must_change_password"))
+						return
+					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 					if ctx.Req.URL.Path != "/user/events" {
@@ -63,7 +68,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		}
 
 		if !options.SignOutRequired && !options.DisableCSRF && ctx.Req.Method == "POST" {
-			Validate(ctx, ctx.csrf)
+			ctx.csrf.Validate(ctx)
 			if ctx.Written() {
 				return
 			}
@@ -76,7 +81,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 				}
 				ctx.Redirect(setting.AppSubURL + "/user/login")
 				return
-			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
@@ -94,7 +99,7 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 		}
 
 		if options.AdminRequired {
-			if !ctx.User.IsAdmin {
+			if !ctx.Doer.IsAdmin {
 				ctx.Error(http.StatusForbidden)
 				return
 			}
@@ -108,15 +113,15 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 	return func(ctx *APIContext) {
 		// Check prohibit login users.
 		if ctx.IsSigned {
-			if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+			if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is not activated.",
 				})
 				return
 			}
-			if !ctx.User.IsActive || ctx.User.ProhibitLogin {
-				log.Info("Failed authentication attempt for %s from %s", ctx.User.Name, ctx.RemoteAddr())
+			if !ctx.Doer.IsActive || ctx.Doer.ProhibitLogin {
+				log.Info("Failed authentication attempt for %s from %s", ctx.Doer.Name, ctx.RemoteAddr())
 				ctx.Data["Title"] = ctx.Tr("auth.prohibit_login")
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "This account is prohibited from signing in, please contact your site administrator.",
@@ -124,7 +129,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 				return
 			}
 
-			if ctx.User.MustChangePassword {
+			if ctx.Doer.MustChangePassword {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You must change your password. Change it at: " + setting.AppURL + "/user/change_password",
 				})
@@ -145,7 +150,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 					"message": "Only signed in user is allowed to call APIs.",
 				})
 				return
-			} else if !ctx.User.IsActive && setting.Service.RegisterEmailConfirm {
+			} else if !ctx.Doer.IsActive && setting.Service.RegisterEmailConfirm {
 				ctx.Data["Title"] = ctx.Tr("auth.active_your_account")
 				ctx.HTML(http.StatusOK, "user/auth/activate")
 				return
@@ -154,9 +159,9 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 				if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
 					return // Skip 2FA
 				}
-				twofa, err := login.GetTwoFactorByUID(ctx.User.ID)
+				twofa, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 				if err != nil {
-					if login.IsErrTwoFactorNotEnrolled(err) {
+					if auth.IsErrTwoFactorNotEnrolled(err) {
 						return // No 2FA enrollment for this user
 					}
 					ctx.InternalServerError(err)
@@ -178,7 +183,7 @@ func ToggleAPI(options *ToggleOptions) func(ctx *APIContext) {
 		}
 
 		if options.AdminRequired {
-			if !ctx.User.IsAdmin {
+			if !ctx.Doer.IsAdmin {
 				ctx.JSON(http.StatusForbidden, map[string]string{
 					"message": "You have no permission to request for this.",
 				})

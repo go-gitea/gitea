@@ -4,26 +4,26 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "settings.manage_access_token"}}
+			{{.locale.Tr "settings.manage_access_token"}}
 		</h4>
 		<div class="ui attached segment">
 			<div class="ui key list">
 				<div class="item">
-					{{.i18n.Tr "settings.tokens_desc"}}
+					{{.locale.Tr "settings.tokens_desc"}}
 				</div>
 				{{range .Tokens}}
 					<div class="item">
 						<div class="right floated content">
 								<button class="ui red tiny button delete-button" data-modal-id="delete-token" data-url="{{$.Link}}/delete" data-id="{{.ID}}">
 									{{svg "octicon-trash" 16 "mr-2"}}
-									{{$.i18n.Tr "settings.delete_token"}}
+									{{$.locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
-						<i class="big send icon {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.i18n.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
+						<i class="big send icon {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
 						<div class="content">
 							<strong>{{.Name}}</strong>
 							<div class="activity meta">
-								<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> —  {{svg "octicon-info"}} {{if .HasUsed}}{{$.i18n.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.no_activity"}}{{end}}</i>
+								<i>{{$.locale.Tr "settings.add_on"}} <span>{{.CreatedUnix.FormatShort}}</span> — {{svg "octicon-info"}} {{if .HasUsed}}{{$.locale.Tr "settings.last_used"}} <span {{if .HasRecentActivity}}class="green"{{end}}>{{.UpdatedUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.no_activity"}}{{end}}</i>
 							</div>
 						</div>
 					</div>
@@ -32,17 +32,17 @@
 		</div>
 		<div class="ui attached bottom segment">
 			<h5 class="ui top header">
-				{{.i18n.Tr "settings.generate_new_token"}}
+				{{.locale.Tr "settings.generate_new_token"}}
 			</h5>
-			<p>{{.i18n.Tr "settings.new_token_desc"}}</p>
+			<p>{{.locale.Tr "settings.new_token_desc"}}</p>
 			<form class="ui form ignore-dirty" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_Name}}error{{end}}">
-					<label for="name">{{.i18n.Tr "settings.token_name"}}</label>
+					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
 				<button class="ui green button">
-					{{.i18n.Tr "settings.generate_token"}}
+					{{.locale.Tr "settings.generate_token"}}
 				</button>
 			</form>
 		</div>
@@ -57,19 +57,19 @@
 <div class="ui small basic delete modal" id="delete-token">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.access_token_deletion"}}
+		{{.locale.Tr "settings.access_token_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.access_token_deletion_desc"}}</p>
+		<p>{{.locale.Tr "settings.access_token_deletion_desc"}}</p>
 	</div>
 	<div class="actions">
-		<div class="ui red basic inverted cancel button">
+		<div class="ui cancel button">
 			<i class="remove icon"></i>
-			{{.i18n.Tr "modal.no"}}
+			{{.locale.Tr "settings.access_token_deletion_cancel_action"}}
 		</div>
-		<div class="ui green basic inverted ok button">
+		<div class="ui red basic inverted ok button">
 			<i class="checkmark icon"></i>
-			{{.i18n.Tr "modal.yes"}}
+			{{.locale.Tr "settings.access_token_deletion_confirm_action"}}
 		</div>
 	</div>
 </div>

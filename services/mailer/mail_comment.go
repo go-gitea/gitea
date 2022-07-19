@@ -5,24 +5,29 @@
 package mailer
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
-func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue *models.Issue, mentions []*models.User) error {
+func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opType models.ActionType, issue *issues_model.Issue, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	content := c.Content
-	if c.Type == models.CommentTypePullPush {
+	if c.Type == issues_model.CommentTypePullRequestPush {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(
 		&mailCommentContext{
+			Context:    ctx,
 			Issue:      issue,
 			Doer:       c.Poster,
 			ActionType: opType,
@@ -35,7 +40,7 @@ func MailParticipantsComment(c *models.Comment, opType models.ActionType, issue 
 }
 
 // MailMentionsComment sends email to users mentioned in a code comment
-func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*models.User) (err error) {
+func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *issues_model.Comment, mentions []*user_model.User) (err error) {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -45,6 +50,7 @@ func MailMentionsComment(pr *models.PullRequest, c *models.Comment, mentions []*
 	visited[c.Poster.ID] = true
 	if err = mailIssueCommentBatch(
 		&mailCommentContext{
+			Context:    ctx,
 			Issue:      pr.Issue,
 			Doer:       c.Poster,
 			ActionType: models.ActionCommentPull,

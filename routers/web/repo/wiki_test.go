@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/test"
@@ -20,11 +20,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const content = "Wiki contents for unit tests"
-const message = "Wiki commit message for unit tests"
+const (
+	content = "Wiki contents for unit tests"
+	message = "Wiki commit message for unit tests"
+)
 
-func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.TreeEntry {
-	wikiRepo, err := git.OpenRepository(repo.WikiPath())
+func wikiEntry(t *testing.T, repo *repo_model.Repository, wikiName string) *git.TreeEntry {
+	wikiRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer wikiRepo.Close()
 	commit, err := wikiRepo.GetBranchCommit("master")
@@ -39,7 +41,7 @@ func wikiEntry(t *testing.T, repo *models.Repository, wikiName string) *git.Tree
 	return nil
 }
 
-func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string {
+func wikiContent(t *testing.T, repo *repo_model.Repository, wikiName string) string {
 	entry := wikiEntry(t, repo, wikiName)
 	if !assert.NotNil(t, entry) {
 		return ""
@@ -52,11 +54,11 @@ func wikiContent(t *testing.T, repo *models.Repository, wikiName string) string 
 	return string(bytes)
 }
 
-func assertWikiExists(t *testing.T, repo *models.Repository, wikiName string) {
+func assertWikiExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
 	assert.NotNil(t, wikiEntry(t, repo, wikiName))
 }
 
-func assertWikiNotExists(t *testing.T, repo *models.Repository, wikiName string) {
+func assertWikiNotExists(t *testing.T, repo *repo_model.Repository, wikiName string) {
 	assert.Nil(t, wikiEntry(t, repo, wikiName))
 }
 
@@ -122,7 +124,7 @@ func TestNewWikiPost(t *testing.T) {
 			Message: message,
 		})
 		NewWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 	}
@@ -174,7 +176,7 @@ func TestEditWikiPost(t *testing.T) {
 			Message: message,
 		})
 		EditWikiPost(ctx)
-		assert.EqualValues(t, http.StatusFound, ctx.Resp.Status())
+		assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 		assertWikiExists(t, ctx.Repo.Repository, title)
 		assert.Equal(t, wikiContent(t, ctx.Repo.Repository, title), content)
 		if title != "Home" {

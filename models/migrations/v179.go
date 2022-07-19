@@ -21,6 +21,7 @@ func convertAvatarURLToText(x *xorm.Engine) error {
 		SQLType: schemas.SQLType{
 			Name: schemas.Text,
 		},
-		Nullable: true,
+		Nullable:       true,
+		DefaultIsEmpty: true,
 	})
 }

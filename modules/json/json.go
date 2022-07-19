@@ -4,9 +4,11 @@
 
 package json
 
+// Allow "encoding/json" import.
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/binary"
+	"encoding/json" //nolint:depguard
 	"io"
 
 	jsoniter "github.com/json-iterator/go"
@@ -139,4 +141,33 @@ func MarshalIndent(v interface{}, prefix, indent string) ([]byte, error) {
 // Valid proxy to json.Valid
 func Valid(data []byte) bool {
 	return json.Valid(data)
+}
+
+// UnmarshalHandleDoubleEncode - due to a bug in xorm (see https://gitea.com/xorm/xorm/pulls/1957) - it's
+// possible that a Blob may be double encoded or gain an unwanted prefix of 0xff 0xfe.
+func UnmarshalHandleDoubleEncode(bs []byte, v interface{}) error {
+	err := json.Unmarshal(bs, v)
+	if err != nil {
+		ok := true
+		rs := []byte{}
+		temp := make([]byte, 2)
+		for _, rn := range string(bs) {
+			if rn > 0xffff {
+				ok = false
+				break
+			}
+			binary.LittleEndian.PutUint16(temp, uint16(rn))
+			rs = append(rs, temp...)
+		}
+		if ok {
+			if len(rs) > 1 && rs[0] == 0xff && rs[1] == 0xfe {
+				rs = rs[2:]
+			}
+			err = json.Unmarshal(rs, v)
+		}
+	}
+	if err != nil && len(bs) > 2 && bs[0] == 0xff && bs[1] == 0xfe {
+		err = json.Unmarshal(bs[2:], v)
+	}
+	return err
 }

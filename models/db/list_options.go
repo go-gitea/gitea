@@ -10,6 +10,11 @@ import (
 	"xorm.io/xorm"
 )
 
+const (
+	// DefaultMaxInSize represents default variables number on IN () in SQL
+	DefaultMaxInSize = 50
+)
+
 // Paginator is the base for different ListOptions types
 type Paginator interface {
 	GetSkipTake() (skip, take int)
@@ -24,7 +29,7 @@ func GetPaginatedSession(p Paginator) *xorm.Session {
 }
 
 // SetSessionPagination sets pagination for a database session
-func SetSessionPagination(sess *xorm.Session, p Paginator) *xorm.Session {
+func SetSessionPagination(sess Engine, p Paginator) *xorm.Session {
 	skip, take := p.GetSkipTake()
 
 	return sess.Limit(take, skip)
@@ -53,7 +58,7 @@ func (opts *ListOptions) GetSkipTake() (skip, take int) {
 func (opts *ListOptions) GetStartEnd() (start, end int) {
 	start, take := opts.GetSkipTake()
 	end = start + take
-	return
+	return start, end
 }
 
 // SetDefaultValues sets default values

@@ -170,9 +170,9 @@ textarea:focus,
         margin-left: @create-page-form-input-padding;
       }
 
-      input,
-      textarea {
-        width: 50% !important;
+      .inline.field > input,
+      .inline.field > textarea {
+        width: 50%;
       }
     }
 
@@ -274,6 +274,10 @@ textarea:focus,
       margin: 0;
     }
   }
+}
+
+.user.signin.webauthn-prompt {
+  margin-top: 15px;
 }
 
 .repository {

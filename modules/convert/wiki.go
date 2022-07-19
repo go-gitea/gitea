@@ -7,7 +7,7 @@ package convert
 import (
 	"time"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -49,7 +49,7 @@ func ToWikiCommitList(commits []*git.Commit, total int64) *api.WikiCommitList {
 }
 
 // ToWikiPageMetaData converts meta information to a WikiPageMetaData
-func ToWikiPageMetaData(title string, lastCommit *git.Commit, repo *models.Repository) *api.WikiPageMetaData {
+func ToWikiPageMetaData(title string, lastCommit *git.Commit, repo *repo_model.Repository) *api.WikiPageMetaData {
 	suburl := wiki_service.NameToSubURL(title)
 	return &api.WikiPageMetaData{
 		Title:      title,

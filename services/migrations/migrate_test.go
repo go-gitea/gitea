@@ -5,11 +5,12 @@
 package migrations
 
 import (
+	"net"
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -18,8 +19,8 @@ import (
 func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user1"}).(*models.User)
-	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user2"}).(*models.User)
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
+	nonAdminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
 
 	setting.Migrations.AllowedDomains = "github.com"
 	setting.Migrations.AllowLocalNetworks = false
@@ -73,4 +74,43 @@ func TestMigrateWhiteBlocklist(t *testing.T) {
 	assert.NoError(t, err)
 
 	setting.ImportLocalPaths = old
+}
+
+func TestAllowBlockList(t *testing.T) {
+	init := func(allow, block string, local bool) {
+		setting.Migrations.AllowedDomains = allow
+		setting.Migrations.BlockedDomains = block
+		setting.Migrations.AllowLocalNetworks = local
+		assert.NoError(t, Init())
+	}
+
+	// default, allow all external, block none, no local networks
+	init("", "", false)
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+
+	// allow all including local networks (it could lead to SSRF in production)
+	init("", "", true)
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+
+	// allow wildcard, block some subdomains. if the domain name is allowed, then the local network check is skipped
+	init("*.domain.com", "blocked.domain.com", false)
+	assert.NoError(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.NoError(t, checkByAllowBlockList("sub.domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+	assert.Error(t, checkByAllowBlockList("blocked.domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.Error(t, checkByAllowBlockList("sub.other.com", []net.IP{net.ParseIP("1.2.3.4")}))
+
+	// allow wildcard (it could lead to SSRF in production)
+	init("*", "", false)
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+
+	// local network can still be blocked
+	init("*", "127.0.0.*", false)
+	assert.NoError(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("1.2.3.4")}))
+	assert.Error(t, checkByAllowBlockList("domain.com", []net.IP{net.ParseIP("127.0.0.1")}))
+
+	// reset
+	init("", "", false)
 }

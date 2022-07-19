@@ -20,8 +20,8 @@ menu:
 {{< toc >}}
 
 Gitea will verify GPG commit signatures in the provided tree by
-checking if the commits are signed by a key within the gitea database,
-or if the commit matches the default key for git.
+checking if the commits are signed by a key within the Gitea database,
+or if the commit matches the default key for Git.
 
 Keys are not checked to determine if they have expired or revoked.
 Keys are also not checked with keyservers.
@@ -33,8 +33,8 @@ it is reported to be signed with a key with an id.
 Please note: The signer of a commit does not have to be an author or
 committer of a commit.
 
-This functionality requires git >= 1.7.9 but for full functionality
-this requires git >= 2.0.0.
+This functionality requires Git >= 1.7.9 but for full functionality
+this requires Git >= 2.0.0.
 
 ## Automatic Signing
 
@@ -54,7 +54,7 @@ It is up to a server administrator to determine how best to install
 a signing key. Gitea generates all its commits using the server `git`
 command at present - and therefore the server `gpg` will be used for
 signing (if configured.) Administrators should review best-practices
-for gpg - in particular it is probably advisable to only install a
+for GPG - in particular it is probably advisable to only install a
 signing secret subkey without the master signing and certifying secret
 key.
 
@@ -83,8 +83,7 @@ The first option to discuss is the `SIGNING_KEY`. There are three main
 options:
 
 - `none` - this prevents Gitea from signing any commits
-- `default` - Gitea will default to the key configured within
-  `git config`
+- `default` - Gitea will default to the key configured within `git config`
 - `KEYID` - Gitea will sign commits with the gpg key with the ID
   `KEYID`. In this case you should provide a `SIGNING_NAME` and
   `SIGNING_EMAIL` to be displayed for this key.
@@ -93,10 +92,17 @@ The `default` option will interrogate `git config` for
 `commit.gpgsign` option - if this is set, then it will use the results
 of the `user.signingkey`, `user.name` and `user.email` as appropriate.
 
-Please note: by adjusting git's `config` file within Gitea's
+Please note: by adjusting Git's `config` file within Gitea's
 repositories, `SIGNING_KEY=default` could be used to provide different
 signing keys on a per-repository basis. However, this is clearly not an
 ideal UI and therefore subject to change.
+
+**Since 1.17**, Gitea runs git in its own home directory `[git].HOME_PATH` (default to `%(APP_DATA_PATH)/home`)
+and uses its own config `{[git].HOME_PATH}/.gitconfig`.
+If you have your own customized git config for Gitea, you should set these configs in system git config (aka `/etc/gitconfig`)
+or the Gitea internal git config `{[git].HOME_PATH}/.gitconfig`.
+Related home files for git command (like `.gnupg`) should also be put in Gitea's git home directory `[git].HOME_PATH`.
+If you like to keep the `.gnupg` directory outside of `{[git].HOME_PATH}/`, consider setting the `$GNUPGHOME` environment variable to your preferred location.
 
 ### `INITIAL_COMMIT`
 
@@ -118,7 +124,7 @@ The possible values are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `parentsigned`: Only sign if the parent commit is signed.
 - `always`: Always sign
 
@@ -132,7 +138,7 @@ editor or API CRUD actions. The possible values are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `parentsigned`: Only sign if the parent commit is signed.
 - `always`: Always sign
 
@@ -146,7 +152,7 @@ The possible options are:
 
 - `never`: Never sign
 - `pubkey`: Only sign if the user has a public key
-- `twofa`: Only sign if the user logs in with two factor authentication
+- `twofa`: Only sign if the user logs in with two-factor authentication
 - `basesigned`: Only sign if the parent commit in the base repo is signed.
 - `headsigned`: Only sign if the head commit in the head branch is signed.
 - `commitssigned`: Only sign if all the commits in the head branch to the merge point are signed.

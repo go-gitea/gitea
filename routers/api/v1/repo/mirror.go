@@ -5,12 +5,14 @@
 package repo
 
 import (
+	"errors"
 	"net/http"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/setting"
-	mirror_service "code.gitea.io/gitea/services/mirror"
 )
 
 // MirrorSync adds a mirrored repository to the sync queue
@@ -48,7 +50,16 @@ func MirrorSync(ctx *context.APIContext) {
 		return
 	}
 
-	mirror_service.StartToMirror(repo.ID)
+	if _, err := repo_model.GetMirrorByRepoID(ctx, repo.ID); err != nil {
+		if errors.Is(err, repo_model.ErrMirrorNotExist) {
+			ctx.Error(http.StatusBadRequest, "MirrorSync", "Repository is not a mirror")
+			return
+		}
+		ctx.Error(http.StatusInternalServerError, "MirrorSync", err)
+		return
+	}
+
+	mirror_module.AddPullMirrorToQueue(repo.ID)
 
 	ctx.Status(http.StatusOK)
 }

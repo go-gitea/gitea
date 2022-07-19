@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -17,19 +18,18 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	_ base.Uploader = &RepositoryDumper{}
-)
+var _ base.Uploader = &RepositoryDumper{}
 
 // RepositoryDumper implements an Uploader to the local directory
 type RepositoryDumper struct {
@@ -150,38 +150,45 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 		return err
 	}
 
-	err = git.Clone(remoteAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
 		return fmt.Errorf("Clone: %v", err)
 	}
+	if err := git.WriteCommitGraph(g.ctx, repoPath); err != nil {
+		return err
+	}
 
 	if opts.Wiki {
 		wikiPath := g.wikiPath()
-		wikiRemotePath := repository.WikiRemoteURL(remoteAddr)
+		wikiRemotePath := repository.WikiRemoteURL(g.ctx, remoteAddr)
 		if len(wikiRemotePath) > 0 {
 			if err := os.MkdirAll(wikiPath, os.ModePerm); err != nil {
 				return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 			}
 
-			if err := git.Clone(wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
+			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
+				return err
 			}
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepository(g.gitPath())
+	g.gitRepo, err = git.OpenRepository(g.ctx, g.gitPath())
 	return err
 }
 
@@ -403,7 +410,7 @@ func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File,
 
 // CreateComments creates comments of issues
 func (g *RepositoryDumper) CreateComments(comments ...*base.Comment) error {
-	var commentsMap = make(map[int64][]interface{}, len(comments))
+	commentsMap := make(map[int64][]interface{}, len(comments))
 	for _, comment := range comments {
 		commentsMap[comment.IssueIndex] = append(commentsMap[comment.IssueIndex], comment)
 	}
@@ -478,7 +485,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommand("fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
@@ -532,7 +539,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 
 // CreateReviews create pull request reviews
 func (g *RepositoryDumper) CreateReviews(reviews ...*base.Review) error {
-	var reviewsMap = make(map[int64][]interface{}, len(reviews))
+	reviewsMap := make(map[int64][]interface{}, len(reviews))
 	for _, review := range reviews {
 		reviewsMap[review.IssueIndex] = append(reviewsMap[review.IssueIndex], review)
 	}
@@ -571,7 +578,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	return nil
 }
 
-func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
+func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 	if len(units) == 0 {
 		opts.Wiki = true
 		opts.Issues = true
@@ -583,7 +590,9 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 		opts.ReleaseAssets = true
 	} else {
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
+			case "":
+				continue
 			case "wiki":
 				opts.Wiki = true
 			case "issues":
@@ -600,19 +609,22 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			default:
+				return errors.New("invalid unit: " + unit)
 			}
 		}
 	}
+	return nil
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName string, units []string) error {
-	doer, err := models.GetAdminUser()
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
+	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}
-	var uploader = NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
+	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName, validation)
 	if err != nil {
 		return err
 	}
@@ -622,10 +634,12 @@ func RestoreRepository(ctx context.Context, baseDir string, ownerName, repoName 
 	}
 	tp, _ := strconv.Atoi(opts["service_type"])
 
-	var migrateOpts = base.MigrateOptions{
+	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(tp),
 	}
-	updateOptionsUnits(&migrateOpts, units)
+	if err := updateOptionsUnits(&migrateOpts, units); err != nil {
+		return err
+	}
 
 	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {

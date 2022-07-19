@@ -18,12 +18,12 @@ import (
 type linkFormatter = func(string, string) string
 
 // noneLinkFormatter does not create a link but just returns the text
-func noneLinkFormatter(url string, text string) string {
+func noneLinkFormatter(url, text string) string {
 	return text
 }
 
 // htmlLinkFormatter creates a HTML link
-func htmlLinkFormatter(url string, text string) string {
+func htmlLinkFormatter(url, text string) string {
 	return fmt.Sprintf(`<a href="%s">%s</a>`, html.EscapeString(url), html.EscapeString(text))
 }
 
@@ -141,7 +141,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 
 func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	refLink := linkFormatter(p.Repository.HTMLURL+"/src/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
+	refLink := linkFormatter(p.Repository.HTMLURL+"/releases/tag/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
 
 	switch p.Action {
 	case api.HookReleasePublished:

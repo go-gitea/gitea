@@ -10,19 +10,17 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
-var (
-	// Proxy settings
-	Proxy = struct {
-		Enabled       bool
-		ProxyURL      string
-		ProxyURLFixed *url.URL
-		ProxyHosts    []string
-	}{
-		Enabled:    false,
-		ProxyURL:   "",
-		ProxyHosts: []string{},
-	}
-)
+// Proxy settings
+var Proxy = struct {
+	Enabled       bool
+	ProxyURL      string
+	ProxyURLFixed *url.URL
+	ProxyHosts    []string
+}{
+	Enabled:    false,
+	ProxyURL:   "",
+	ProxyHosts: []string{},
+}
 
 func newProxyService() {
 	sec := Cfg.Section("proxy")

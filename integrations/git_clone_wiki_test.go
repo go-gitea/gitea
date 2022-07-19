@@ -41,7 +41,7 @@ func TestRepoCloneWiki(t *testing.T) {
 		u, _ = url.Parse(r)
 		u.User = url.UserPassword("user2", userPassword)
 		t.Run("Clone", func(t *testing.T) {
-			assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstPath, allowLFSFilters(), git.CloneRepoOptions{}))
+			assert.NoError(t, git.CloneWithArgs(context.Background(), u.String(), dstPath, git.AllowLFSFiltersArgs(), git.CloneRepoOptions{}))
 			assertFileEqual(t, filepath.Join(dstPath, "Home.md"), []byte("# Home page\n\nThis is the home page!\n"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Image.md"))
 			assertFileExist(t, filepath.Join(dstPath, "Page-With-Spaced-Name.md"))

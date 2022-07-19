@@ -1,6 +1,6 @@
 <div class="{{TabSizeClass .Editorconfig .FileName}} non-diff-file-content">
 	<h4 class="file-header ui top attached header df ac sb">
-		<div class="file-header-left df ac">
+		<div class="file-header-left df ac pr-4">
 			{{if .ReadmeInList}}
 				{{svg "octicon-book" 16 "mr-3"}}
 				<strong>{{.FileName}}</strong>
@@ -8,63 +8,71 @@
 				<div class="file-info text grey normal mono">
 					{{if .FileIsSymlink}}
 						<div class="file-info-entry">
-							{{.i18n.Tr "repo.symbolic_link"}}
+							{{.locale.Tr "repo.symbolic_link"}}
 						</div>
 					{{end}}
 					{{if .NumLinesSet}}
 						<div class="file-info-entry">
-							{{.NumLines}} {{.i18n.Tr (TrN .i18n.Lang .NumLines "repo.line" "repo.lines") }}
+							{{.NumLines}} {{.locale.TrN .NumLines "repo.line" "repo.lines"}}
 						</div>
 					{{end}}
 					{{if .FileSize}}
 						<div class="file-info-entry">
-							{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.i18n.Tr "repo.stored_lfs"}}){{end}}
+							{{FileSize .FileSize}}{{if .IsLFSFile}} ({{.locale.Tr "repo.stored_lfs"}}){{end}}
 						</div>
 					{{end}}
 					{{if .LFSLock}}
 						<div class="file-info-entry ui tooltip" data-content="{{.LFSLockHint}}">
 							{{svg "octicon-lock" 16 "mr-2"}}
-							<a href="{{.LFSLock.Owner.HomeLink}}">{{.LFSLockOwner}}</a>
+							<a href="{{.LFSLockOwnerHomeLink}}">{{.LFSLockOwner}}</a>
 						</div>
 					{{end}}
 				</div>
 			{{end}}
 		</div>
-		{{if not .ReadmeInList}}
 		<div class="file-header-right file-actions df ac">
 			{{if .HasSourceRenderedToggle}}
 				<div class="ui compact icon buttons two-toggle-buttons">
-					<a href="{{$.Link}}?display=source" class="ui mini basic button tooltip {{if .IsDisplayingSource}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
-					<a href="{{$.Link}}" class="ui mini basic button tooltip {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file" 15}}</a>
+					<a href="{{$.Link}}?display=source" class="ui mini basic button tooltip {{if .IsDisplayingSource}}active{{end}}" data-content="{{.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code" 15}}</a>
+					<a href="{{$.Link}}" class="ui mini basic button tooltip {{if .IsDisplayingRendered}}active{{end}}" data-content="{{.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file" 15}}</a>
 				</div>
 			{{end}}
-			<div class="ui buttons mr-2">
-				<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.i18n.Tr "repo.file_raw"}}</a>
-				{{if not .IsViewCommit}}
-					<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.file_permalink"}}</a>
+			{{if not .ReadmeInList}}
+				<div class="ui buttons mr-2">
+					<a class="ui mini basic button" href="{{$.RawFileLink}}">{{.locale.Tr "repo.file_raw"}}</a>
+					{{if not .IsViewCommit}}
+						<a class="ui mini basic button" href="{{.RepoLink}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_permalink"}}</a>
+					{{end}}
+					{{if .IsRepresentableAsText}}
+						<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.blame"}}</a>
+					{{end}}
+					<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_history"}}</a>
+					{{if .EscapeStatus.Escaped}}
+						<a class="ui mini basic button unescape-button" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+						<a class="ui mini basic button escape-button">{{.locale.Tr "repo.escape_control_characters"}}</a>
+					{{end}}
+				</div>
+				<a download href="{{$.RawFileLink}}"><span class="btn-octicon tooltip" data-content="{{.locale.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
+				{{if .Repository.CanEnableEditor}}
+					{{if .CanEditFile}}
+						<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon tooltip" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
+					{{else}}
+						<span class="btn-octicon tooltip disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span>
+					{{end}}
+					{{if .CanDeleteFile}}
+						<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span></a>
+					{{else}}
+						<span class="btn-octicon tooltip disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
+					{{end}}
 				{{end}}
-				{{if .IsRepresentableAsText}}
-					<a class="ui mini basic button" href="{{.RepoLink}}/blame/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.blame"}}</a>
-				{{end}}
-				<a class="ui mini basic button" href="{{.RepoLink}}/commits/{{.BranchNameSubURL}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.file_history"}}</a>
-			</div>
-			<a download href="{{$.RawFileLink}}"><span class="btn-octicon tooltip" data-content="{{.i18n.Tr "repo.download_file"}}" data-position="bottom center">{{svg "octicon-download"}}</span></a>
-			{{if .Repository.CanEnableEditor}}
-				{{if .CanEditFile}}
-					<a href="{{.RepoLink}}/_edit/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon tooltip" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span></a>
-				{{else}}
-					<span class="btn-octicon tooltip disabled" data-content="{{.EditFileTooltip}}" data-position="bottom center">{{svg "octicon-pencil"}}</span>
-				{{end}}
-				{{if .CanDeleteFile}}
-					<a href="{{.RepoLink}}/_delete/{{PathEscapeSegments .BranchName}}/{{PathEscapeSegments .TreePath}}"><span class="btn-octicon btn-octicon-danger tooltip"  data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span></a>
-				{{else}}
-					<span class="btn-octicon tooltip disabled" data-content="{{.DeleteFileTooltip}}" data-position="bottom center">{{svg "octicon-trash"}}</span>
-				{{end}}
+			{{else if .EscapeStatus.Escaped}}
+				<a class="ui mini basic button unescape-button mr-2" style="display: none;">{{.locale.Tr "repo.unescape_control_characters"}}</a>
+				<a class="ui mini basic button escape-button mr-2">{{.locale.Tr "repo.escape_control_characters"}}</a>
 			{{end}}
 		</div>
-		{{end}}
 	</h4>
 	<div class="ui attached table unstackable segment">
+		{{template "repo/unicode_escape_prompt" dict "EscapeStatus" .EscapeStatus "root" $}}
 		<div class="file-view{{if .IsMarkup}} markup {{.MarkupType}}{{else if .IsRenderedHTML}} plain-text{{else if .IsTextSource}} code-view{{end}}">
 			{{if .IsMarkup}}
 				{{if .FileContent}}{{.FileContent | Safe}}{{end}}
@@ -76,16 +84,16 @@
 						<img src="{{$.RawFileLink}}">
 					{{else if .IsVideoFile}}
 						<video controls src="{{$.RawFileLink}}">
-							<strong>{{.i18n.Tr "repo.video_not_supported_in_browser"}}</strong>
+							<strong>{{.locale.Tr "repo.video_not_supported_in_browser"}}</strong>
 						</video>
 					{{else if .IsAudioFile}}
 						<audio controls src="{{$.RawFileLink}}">
-							<strong>{{.i18n.Tr "repo.audio_not_supported_in_browser"}}</strong>
+							<strong>{{.locale.Tr "repo.audio_not_supported_in_browser"}}</strong>
 						</audio>
 					{{else if .IsPDFFile}}
 						<iframe width="100%" height="600px" src="{{AssetUrlPrefix}}/vendor/plugins/pdfjs/web/viewer.html?file={{$.RawFileLink}}"></iframe>
 					{{else}}
-						<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.i18n.Tr "repo.file_view_raw"}}</a>
+						<a href="{{$.RawFileLink}}" rel="nofollow" class="btn btn-gray btn-radius">{{.locale.Tr "repo.file_view_raw"}}</a>
 					{{end}}
 				</div>
 			{{else if .FileSize}}
@@ -93,7 +101,7 @@
 				<table>
 					<tbody>
 						<tr>
-							<td><strong>{{.i18n.Tr "repo.file_too_large"}}</strong></td>
+							<td><strong>{{.locale.Tr "repo.file_too_large"}}</strong></td>
 						</tr>
 					</tbody>
 				</table>
@@ -103,12 +111,11 @@
 						{{range $idx, $code := .FileContent}}
 						{{$line := Add $idx 1}}
 						<tr>
-							<td id="L{{$line}}" class="lines-num">
-								<span id="L{{$line}}" data-line-number="{{$line}}"></span>
-							</td>
-							<td rel="L{{$line}}" class="lines-code chroma">
-								<code class="code-inner">{{$code | Safe}}</code>
-							</td>
+							<td id="L{{$line}}" class="lines-num"><span id="L{{$line}}" data-line-number="{{$line}}"></span></td>
+							{{if $.EscapeStatus.Escaped}}
+								<td class="lines-escape">{{if (index $.LineEscapeStatus $idx).Escaped}}<a href="" class="toggle-escape-button" title="{{$.locale.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+							{{end}}
+							<td rel="L{{$line}}" class="lines-code chroma"><code class="code-inner">{{$code | Safe}}</code></td>
 						</tr>
 						{{end}}
 					</tbody>
@@ -118,11 +125,14 @@
 						<div class="column">
 							{{if $.Permission.CanRead $.UnitTypeIssues}}
 								<div class="ui link list">
-									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/" }}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.issues.context.reference_issue"}}</a>
+									<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/" }}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
 								</div>
 							{{end}}
 							<div class="ui link list">
-								<a data-clipboard-text="{{.Repository.HTMLURL}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" class="item copy-line-permalink">{{.i18n.Tr "repo.file_copy_permalink"}}</a>
+								<a class="item view_git_blame" href="{{.Repository.HTMLURL}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.view_git_blame"}}</a>
+							</div>
+							<div class="ui link list">
+								<a data-clipboard-text="{{.Repository.HTMLURL}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" class="item copy-line-permalink">{{.locale.Tr "repo.file_copy_permalink"}}</a>
 							</div>
 						</div>
 					</div>

@@ -39,12 +39,12 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 
 	since := fromTime.Format(time.RFC3339)
 
-	stdout, err := NewCommand("rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunInDirBytes(repo.Path)
-	if err != nil {
-		return nil, err
+	stdout, _, runErr := NewCommand(repo.Ctx, "rev-list", "--count", "--no-merges", "--branches=*", "--date=iso", fmt.Sprintf("--since='%s'", since)).RunStdString(&RunOpts{Dir: repo.Path})
+	if runErr != nil {
+		return nil, runErr
 	}
 
-	c, err := strconv.ParseInt(strings.TrimSpace(string(stdout)), 10, 64)
+	c, err := strconv.ParseInt(strings.TrimSpace(stdout), 10, 64)
 	if err != nil {
 		return nil, err
 	}
@@ -67,12 +67,13 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(args...).RunInDirTimeoutEnvFullPipelineFunc(
-		nil, -1, repo.Path,
-		stdoutWriter, stderr, nil,
-		func(ctx context.Context, cancel context.CancelFunc) error {
+	err = NewCommand(repo.Ctx, args...).Run(&RunOpts{
+		Env:    []string{},
+		Dir:    repo.Path,
+		Stdout: stdoutWriter,
+		Stderr: stderr,
+		PipelineFunc: func(ctx context.Context, cancel context.CancelFunc) error {
 			_ = stdoutWriter.Close()
-
 			scanner := bufio.NewScanner(stdoutReader)
 			scanner.Split(bufio.ScanLines)
 			stats.CommitCount = 0
@@ -103,11 +104,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 				case 4: // E-mail
 					email := strings.ToLower(l)
 					if _, ok := authors[email]; !ok {
-						authors[email] = &CodeActivityAuthor{
-							Name:    author,
-							Email:   email,
-							Commits: 0,
-						}
+						authors[email] = &CodeActivityAuthor{Name: author, Email: email, Commits: 0}
 					}
 					authors[email].Commits++
 				default: // Changed file
@@ -128,7 +125,6 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 					}
 				}
 			}
-
 			a := make([]*CodeActivityAuthor, 0, len(authors))
 			for _, v := range authors {
 				a = append(a, v)
@@ -137,14 +133,13 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			sort.Slice(a, func(i, j int) bool {
 				return a[i].Commits > a[j].Commits
 			})
-
 			stats.AuthorCount = int64(len(authors))
 			stats.ChangedFiles = int64(len(files))
 			stats.Authors = a
-
 			_ = stdoutReader.Close()
 			return nil
-		})
+		},
+	})
 	if err != nil {
 		return nil, fmt.Errorf("Failed to get GetCodeActivityStats for repository.\nError: %w\nStderr: %s", err, stderr)
 	}

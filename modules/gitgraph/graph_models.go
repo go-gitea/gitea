@@ -9,8 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 )
@@ -86,12 +89,12 @@ func (graph *Graph) AddCommit(row, column int, flowID int64, data []byte) error 
 // LoadAndProcessCommits will load the git.Commits for each commit in the graph,
 // the associate the commit with the user author, and check the commit verification
 // before finally retrieving the latest status
-func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo *git.Repository) error {
+func (graph *Graph) LoadAndProcessCommits(repository *repo_model.Repository, gitRepo *git.Repository) error {
 	var err error
 
 	var ok bool
 
-	emails := map[string]*models.User{}
+	emails := map[string]*user_model.User{}
 	keyMap := map[string]bool{}
 
 	for _, c := range graph.Commits {
@@ -106,20 +109,22 @@ func (graph *Graph) LoadAndProcessCommits(repository *models.Repository, gitRepo
 		if c.Commit.Author != nil {
 			email := c.Commit.Author.Email
 			if c.User, ok = emails[email]; !ok {
-				c.User, _ = models.GetUserByEmail(email)
+				c.User, _ = user_model.GetUserByEmail(email)
 				emails[email] = c.User
 			}
 		}
 
-		c.Verification = models.ParseCommitWithSignature(c.Commit)
+		c.Verification = asymkey_model.ParseCommitWithSignature(c.Commit)
 
-		_ = models.CalculateTrustStatus(c.Verification, repository, &keyMap)
+		_ = asymkey_model.CalculateTrustStatus(c.Verification, repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
+			return repo_model.IsOwnerMemberCollaborator(repository, user.ID)
+		}, &keyMap)
 
-		statuses, err := models.GetLatestCommitStatus(repository.ID, c.Commit.ID.String(), db.ListOptions{})
+		statuses, _, err := git_model.GetLatestCommitStatus(db.DefaultContext, repository.ID, c.Commit.ID.String(), db.ListOptions{})
 		if err != nil {
 			log.Error("GetLatestCommitStatus: %v", err)
 		} else {
-			c.Status = models.CalcCommitStatus(statuses)
+			c.Status = git_model.CalcCommitStatus(statuses)
 		}
 	}
 	return nil
@@ -233,9 +238,9 @@ func newRefsFromRefNames(refNames []byte) []git.Reference {
 // Commit represents a commit at co-ordinate X, Y with the data
 type Commit struct {
 	Commit       *git.Commit
-	User         *models.User
-	Verification *models.CommitVerification
-	Status       *models.CommitStatus
+	User         *user_model.User
+	Verification *asymkey_model.CommitVerification
+	Status       *git_model.CommitStatus
 	Flow         int64
 	Row          int
 	Column       int

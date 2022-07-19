@@ -16,10 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var (
-	// ErrURLNotSupported represents url is not supported
-	ErrURLNotSupported = errors.New("url method not supported")
-)
+// ErrURLNotSupported represents url is not supported
+var ErrURLNotSupported = errors.New("url method not supported")
 
 // ErrInvalidConfiguration is called when there is invalid configuration for a storage
 type ErrInvalidConfiguration struct {
@@ -125,6 +123,9 @@ var (
 
 	// RepoArchives represents repository archives storage
 	RepoArchives ObjectStorage
+
+	// Packages represents packages storage
+	Packages ObjectStorage
 )
 
 // Init init the stoarge
@@ -145,7 +146,11 @@ func Init() error {
 		return err
 	}
 
-	return initRepoArchives()
+	if err := initRepoArchives(); err != nil {
+		return err
+	}
+
+	return initPackages()
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -164,29 +169,35 @@ func NewStorage(typStr string, cfg interface{}) (ObjectStorage, error) {
 func initAvatars() (err error) {
 	log.Info("Initialising Avatar storage with type: %s", setting.Avatar.Storage.Type)
 	Avatars, err = NewStorage(setting.Avatar.Storage.Type, &setting.Avatar.Storage)
-	return
+	return err
 }
 
 func initAttachments() (err error) {
 	log.Info("Initialising Attachment storage with type: %s", setting.Attachment.Storage.Type)
 	Attachments, err = NewStorage(setting.Attachment.Storage.Type, &setting.Attachment.Storage)
-	return
+	return err
 }
 
 func initLFS() (err error) {
 	log.Info("Initialising LFS storage with type: %s", setting.LFS.Storage.Type)
 	LFS, err = NewStorage(setting.LFS.Storage.Type, &setting.LFS.Storage)
-	return
+	return err
 }
 
 func initRepoAvatars() (err error) {
 	log.Info("Initialising Repository Avatar storage with type: %s", setting.RepoAvatar.Storage.Type)
 	RepoAvatars, err = NewStorage(setting.RepoAvatar.Storage.Type, &setting.RepoAvatar.Storage)
-	return
+	return err
 }
 
 func initRepoArchives() (err error) {
 	log.Info("Initialising Repository Archive storage with type: %s", setting.RepoArchive.Storage.Type)
 	RepoArchives, err = NewStorage(setting.RepoArchive.Storage.Type, &setting.RepoArchive.Storage)
-	return
+	return err
+}
+
+func initPackages() (err error) {
+	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
+	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
+	return err
 }

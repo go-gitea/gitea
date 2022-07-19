@@ -4,14 +4,15 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package git
 
 import (
+	"context"
 	"strings"
 
 	"github.com/go-git/go-git/v5/plumbing"
+	"github.com/go-git/go-git/v5/plumbing/storer"
 )
 
 // IsObjectExist returns true if given reference exists in the repository.
@@ -52,7 +53,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 
 // GetBranches returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
-func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
+func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
 	var branchNames []string
 
 	branches, err := repo.gogitRepo.Branches()
@@ -78,4 +79,84 @@ func (repo *Repository) GetBranches(skip, limit int) ([]string, int, error) {
 	// TODO: Sort?
 
 	return branchNames, count, nil
+}
+
+// WalkReferences walks all the references from the repository
+// refType should be empty, ObjectTag or ObjectBranch. All other values are equivalent to empty.
+func WalkReferences(ctx context.Context, repoPath string, walkfn func(sha1, refname string) error) (int, error) {
+	repo := RepositoryFromContext(ctx, repoPath)
+	if repo == nil {
+		var err error
+		repo, err = OpenRepository(ctx, repoPath)
+		if err != nil {
+			return 0, err
+		}
+		defer repo.Close()
+	}
+
+	i := 0
+	iter, err := repo.gogitRepo.References()
+	if err != nil {
+		return i, err
+	}
+	defer iter.Close()
+
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		err := walkfn(ref.Hash().String(), string(ref.Name()))
+		i++
+		return err
+	})
+	return i, err
+}
+
+// WalkReferences walks all the references from the repository
+func (repo *Repository) WalkReferences(arg ObjectType, skip, limit int, walkfn func(sha1, refname string) error) (int, error) {
+	i := 0
+	var iter storer.ReferenceIter
+	var err error
+	switch arg {
+	case ObjectTag:
+		iter, err = repo.gogitRepo.Tags()
+	case ObjectBranch:
+		iter, err = repo.gogitRepo.Branches()
+	default:
+		iter, err = repo.gogitRepo.References()
+	}
+	if err != nil {
+		return i, err
+	}
+	defer iter.Close()
+
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if i < skip {
+			i++
+			return nil
+		}
+		err := walkfn(ref.Hash().String(), string(ref.Name()))
+		i++
+		if err != nil {
+			return err
+		}
+		if limit != 0 && i >= skip+limit {
+			return storer.ErrStop
+		}
+		return nil
+	})
+	return i, err
+}
+
+// GetRefsBySha returns all references filtered with prefix that belong to a sha commit hash
+func (repo *Repository) GetRefsBySha(sha, prefix string) ([]string, error) {
+	var revList []string
+	iter, err := repo.gogitRepo.References()
+	if err != nil {
+		return nil, err
+	}
+	err = iter.ForEach(func(ref *plumbing.Reference) error {
+		if ref.Hash().String() == sha && strings.HasPrefix(string(ref.Name()), prefix) {
+			revList = append(revList, string(ref.Name()))
+		}
+		return nil
+	})
+	return revList, err
 }

@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
 	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
@@ -87,21 +88,21 @@ func migrateAttachments(dstStorage storage.ObjectStorage) error {
 }
 
 func migrateLFS(dstStorage storage.ObjectStorage) error {
-	return models.IterateLFS(func(mo *models.LFSMetaObject) error {
+	return git_model.IterateLFS(func(mo *git_model.LFSMetaObject) error {
 		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
 		return err
 	})
 }
 
 func migrateAvatars(dstStorage storage.ObjectStorage) error {
-	return models.IterateUser(func(user *models.User) error {
+	return user_model.IterateUser(func(user *user_model.User) error {
 		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
 		return err
 	})
 }
 
 func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
-	return models.IterateRepository(func(repo *models.Repository) error {
+	return repo_model.IterateRepository(func(repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
 		return err
 	})
@@ -120,7 +121,6 @@ func runMigrateStorage(ctx *cli.Context) error {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	setting.InitDBConfig()
 
 	if err := db.InitEngineWithMigration(context.Background(), migrations.Migrate); err != nil {
 		log.Fatal("Failed to initialize ORM engine: %v", err)

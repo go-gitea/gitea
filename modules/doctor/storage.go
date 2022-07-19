@@ -5,6 +5,8 @@
 package doctor
 
 import (
+	"context"
+
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/storage"
@@ -55,7 +57,7 @@ func checkAttachmentStorageFiles(logger log.Logger, autofix bool) error {
 	return nil
 }
 
-func checkStorageFiles(logger log.Logger, autofix bool) error {
+func checkStorageFiles(ctx context.Context, logger log.Logger, autofix bool) error {
 	if err := storage.Init(); err != nil {
 		logger.Error("storage.Init failed: %v", err)
 		return err

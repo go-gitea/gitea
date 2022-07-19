@@ -3,14 +3,12 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
 import (
 	"bufio"
 	"bytes"
-	"context"
 	"io"
 	"math"
 	"strings"
@@ -25,7 +23,7 @@ import (
 func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, error) {
 	// We will feed the commit IDs in order into cat-file --batch, followed by blobs as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := repo.CatFileBatch()
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	writeID := func(id string) error {
@@ -64,38 +62,19 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	var checker *CheckAttributeReader
-
-	if CheckGitVersionAtLeast("1.7.8") == nil {
-		indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
-		if err == nil {
-			defer deleteTemporaryFile()
-			checker = &CheckAttributeReader{
-				Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
-				Repo:       repo,
-				IndexFile:  indexFilename,
-				WorkTree:   worktree,
-			}
-			ctx, cancel := context.WithCancel(DefaultContext)
-			if err := checker.Init(ctx); err != nil {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-			} else {
-				go func() {
-					err = checker.Run()
-					if err != nil {
-						log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-						cancel()
-					}
-				}()
-			}
-			defer cancel()
-		}
-	}
+	checker, deferable := repo.CheckAttributeReader(commitID)
+	defer deferable()
 
 	contentBuf := bytes.Buffer{}
 	var content []byte
 	sizes := make(map[string]int64)
 	for _, f := range entries {
+		select {
+		case <-repo.Ctx.Done():
+			return sizes, repo.Ctx.Err()
+		default:
+		}
+
 		contentBuf.Reset()
 		content = contentBuf.Bytes()
 

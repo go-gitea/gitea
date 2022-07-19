@@ -20,19 +20,20 @@ import (
 func TestLinksNoLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	var links = []string{
+	links := []string{
 		"/explore/repos",
-		"/explore/repos?q=test&tab=",
+		"/explore/repos?q=test",
 		"/explore/users",
-		"/explore/users?q=test&tab=",
+		"/explore/users?q=test",
 		"/explore/organizations",
-		"/explore/organizations?q=test&tab=",
+		"/explore/organizations?q=test",
 		"/",
 		"/user/sign_up",
 		"/user/login",
 		"/user/forgot_password",
 		"/api/swagger",
 		"/user2/repo1",
+		"/user2/repo1/",
 		"/user2/repo1/projects",
 		"/user2/repo1/projects/1",
 		"/assets/img/404.png",
@@ -48,7 +49,7 @@ func TestLinksNoLogin(t *testing.T) {
 func TestRedirectsNoLogin(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	var redirects = map[string]string{
+	redirects := map[string]string{
 		"/user2/repo1/commits/master":                "/user2/repo1/commits/branch/master",
 		"/user2/repo1/src/master":                    "/user2/repo1/src/branch/master",
 		"/user2/repo1/src/master/file.txt":           "/user2/repo1/src/branch/master/file.txt",
@@ -58,7 +59,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
-		resp := MakeRequest(t, req, http.StatusFound)
+		resp := MakeRequest(t, req, http.StatusSeeOther)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
 	}
 }
@@ -66,7 +67,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 func TestNoLoginNotExist(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	var links = []string{
+	links := []string{
 		"/user5/repo4/projects",
 		"/user5/repo4/projects/3",
 	}
@@ -78,13 +79,13 @@ func TestNoLoginNotExist(t *testing.T) {
 }
 
 func testLinksAsUser(userName string, t *testing.T) {
-	var links = []string{
+	links := []string{
 		"/explore/repos",
-		"/explore/repos?q=test&tab=",
+		"/explore/repos?q=test",
 		"/explore/users",
-		"/explore/users?q=test&tab=",
+		"/explore/users?q=test",
 		"/explore/organizations",
-		"/explore/organizations?q=test&tab=",
+		"/explore/organizations?q=test",
 		"/",
 		"/user/forgot_password",
 		"/api/swagger",
@@ -137,7 +138,7 @@ func testLinksAsUser(userName string, t *testing.T) {
 	var apiRepos []*api.Repository
 	DecodeJSON(t, respAPI, &apiRepos)
 
-	var repoLinks = []string{
+	repoLinks := []string{
 		"",
 		"/issues",
 		"/pulls",

@@ -10,27 +10,33 @@ import (
 	"reflect"
 	"sync"
 
-	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation"
 )
 
-var lock = sync.Mutex{}
-var started = false
-var tasks = []*Task{}
-var tasksMap = map[string]*Task{}
+var (
+	lock     = sync.Mutex{}
+	started  = false
+	tasks    = []*Task{}
+	tasksMap = map[string]*Task{}
+)
 
 // Task represents a Cron task
 type Task struct {
-	lock      sync.Mutex
-	Name      string
-	config    Config
-	fun       func(context.Context, *models.User, Config) error
-	ExecTimes int64
+	lock        sync.Mutex
+	Name        string
+	config      Config
+	fun         func(context.Context, *user_model.User, Config) error
+	Status      string
+	LastMessage string
+	LastDoer    string
+	ExecTimes   int64
 }
 
 // DoRunAtStart returns if this task should run at the start
@@ -55,7 +61,7 @@ func (t *Task) GetConfig() Config {
 
 // Run will run the task incrementing the cron counter with no user defined
 func (t *Task) Run() {
-	t.RunWithUser(&models.User{
+	t.RunWithUser(&user_model.User{
 		ID:        -1,
 		Name:      "(Cron)",
 		LowerName: "(cron)",
@@ -63,7 +69,7 @@ func (t *Task) Run() {
 }
 
 // RunWithUser will run the task incrementing the cron counter at the time with User
-func (t *Task) RunWithUser(doer *models.User, config Config) {
+func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 	if !taskStatusTable.StartIfNotRunning(t.Name) {
 		return
 	}
@@ -82,26 +88,46 @@ func (t *Task) RunWithUser(doer *models.User, config Config) {
 		}
 	}()
 	graceful.GetManager().RunWithShutdownContext(func(baseCtx context.Context) {
-		ctx, cancel := context.WithCancel(baseCtx)
-		defer cancel()
 		pm := process.GetManager()
-		pid := pm.Add(config.FormatMessage(t.Name, "process", doer), cancel)
-		defer pm.Remove(pid)
+		doerName := ""
+		if doer != nil && doer.ID != -1 {
+			doerName = doer.Name
+		}
+
+		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
+		defer finished()
+
 		if err := t.fun(ctx, doer, config); err != nil {
+			var message string
+			var status string
 			if db.IsErrCancelled(err) {
-				message := err.(db.ErrCancelled).Message
-				if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "aborted", doer, message)); err != nil {
-					log.Error("CreateNotice: %v", err)
-				}
-				return
+				status = "cancelled"
+				message = err.(db.ErrCancelled).Message
+			} else {
+				status = "error"
+				message = err.Error()
 			}
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "error", doer, err)); err != nil {
+
+			t.lock.Lock()
+			t.LastMessage = message
+			t.Status = status
+			t.LastDoer = doerName
+			t.lock.Unlock()
+
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
 		}
+
+		t.lock.Lock()
+		t.Status = "finished"
+		t.LastMessage = ""
+		t.LastDoer = doerName
+		t.lock.Unlock()
+
 		if config.DoNoticeOnSuccess() {
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(t.Name, "finished", doer)); err != nil {
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}
@@ -118,8 +144,14 @@ func GetTask(name string) *Task {
 }
 
 // RegisterTask allows a task to be registered with the cron service
-func RegisterTask(name string, config Config, fun func(context.Context, *models.User, Config) error) error {
+func RegisterTask(name string, config Config, fun func(context.Context, *user_model.User, Config) error) error {
 	log.Debug("Registering task: %s", name)
+
+	i18nKey := "admin.dashboard." + name
+	if value := translation.NewLocale("en-US").Tr(i18nKey); value == i18nKey {
+		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
+	}
+
 	_, err := setting.GetCronSettings(name, config)
 	if err != nil {
 		log.Error("Unable to register cron task with name: %s Error: %v", name, err)
@@ -163,7 +195,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *models.
 }
 
 // RegisterTaskFatal will register a task but if there is an error log.Fatal
-func RegisterTaskFatal(name string, config Config, fun func(context.Context, *models.User, Config) error) {
+func RegisterTaskFatal(name string, config Config, fun func(context.Context, *user_model.User, Config) error) {
 	if err := RegisterTask(name, config, fun); err != nil {
 		log.Fatal("Unable to register cron task %s Error: %v", name, err)
 	}

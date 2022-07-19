@@ -12,5 +12,11 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."), "webhook.yml", "hook_task.yml")
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles: []string{
+			"webhook.yml",
+			"hook_task.yml",
+		},
+	})
 }

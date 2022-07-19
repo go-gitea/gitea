@@ -20,6 +20,12 @@ var (
 	MermaidMaxSourceCharacters int
 )
 
+const (
+	RenderContentModeSanitized   = "sanitized"
+	RenderContentModeNoSanitizer = "no-sanitizer"
+	RenderContentModeIframe      = "iframe"
+)
+
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
 	Enabled              bool
@@ -29,6 +35,7 @@ type MarkupRenderer struct {
 	IsInputFile          bool
 	NeedPostProcess      bool
 	MarkupSanitizerRules []MarkupSanitizerRule
+	RenderContentMode    string
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -123,7 +130,7 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	extensionReg := regexp.MustCompile(`\.\w`)
 
 	extensions := sec.Key("FILE_EXTENSIONS").Strings(",")
-	var exts = make([]string, 0, len(extensions))
+	exts := make([]string, 0, len(extensions))
 	for _, extension := range extensions {
 		if !extensionReg.MatchString(extension) {
 			log.Warn(sec.Name() + " file extension " + extension + " is invalid. Extension ignored")
@@ -143,12 +150,28 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 		return
 	}
 
+	if sec.HasKey("DISABLE_SANITIZER") {
+		log.Error("Deprecated setting `[markup.*]` `DISABLE_SANITIZER` present. This fallback will be removed in v1.18.0")
+	}
+
+	renderContentMode := sec.Key("RENDER_CONTENT_MODE").MustString(RenderContentModeSanitized)
+	if !sec.HasKey("RENDER_CONTENT_MODE") && sec.Key("DISABLE_SANITIZER").MustBool(false) {
+		renderContentMode = RenderContentModeNoSanitizer // if only the legacy DISABLE_SANITIZER exists, use it
+	}
+	if renderContentMode != RenderContentModeSanitized &&
+		renderContentMode != RenderContentModeNoSanitizer &&
+		renderContentMode != RenderContentModeIframe {
+		log.Error("invalid RENDER_CONTENT_MODE: %q, default to %q", renderContentMode, RenderContentModeSanitized)
+		renderContentMode = RenderContentModeSanitized
+	}
+
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:         sec.Key("ENABLED").MustBool(false),
-		MarkupName:      name,
-		FileExtensions:  exts,
-		Command:         command,
-		IsInputFile:     sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess: sec.Key("NEED_POSTPROCESS").MustBool(true),
+		Enabled:           sec.Key("ENABLED").MustBool(false),
+		MarkupName:        name,
+		FileExtensions:    exts,
+		Command:           command,
+		IsInputFile:       sec.Key("IS_INPUT_FILE").MustBool(false),
+		NeedPostProcess:   sec.Key("NEED_POSTPROCESS").MustBool(true),
+		RenderContentMode: renderContentMode,
 	})
 }

@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -25,7 +25,7 @@ func TestUserOrgs(t *testing.T) {
 
 	orgs := getUserOrgs(t, adminUsername, normalUsername)
 
-	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -54,7 +54,7 @@ func TestUserOrgs(t *testing.T) {
 }
 
 func getUserOrgs(t *testing.T, userDoer, userCheck string) (orgs []*api.Organization) {
-	var token = ""
+	token := ""
 	session := emptyTestSession(t)
 	if len(userDoer) != 0 {
 		session = loginUser(t, userDoer)
@@ -81,7 +81,7 @@ func TestMyOrgs(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
-	user3 := unittest.AssertExistsAndLoadBean(t, &models.User{Name: "user3"}).(*models.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
 
 	assert.Equal(t, []*api.Organization{
 		{

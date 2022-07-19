@@ -12,6 +12,9 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -20,9 +23,16 @@ import (
 	"code.gitea.io/gitea/modules/util"
 )
 
+// ForkRepoOptions contains the fork repository options
+type ForkRepoOptions struct {
+	BaseRepo    *repo_model.Repository
+	Name        string
+	Description string
+}
+
 // ForkRepository forks a repository
-func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *models.Repository, err error) {
-	forkedRepo, err := opts.BaseRepo.GetUserFork(owner.ID)
+func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts ForkRepoOptions) (*repo_model.Repository, error) {
+	forkedRepo, err := repo_model.GetUserFork(ctx, opts.BaseRepo.ID, owner.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +44,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		}
 	}
 
-	repo := &models.Repository{
+	repo := &repo_model.Repository{
 		OwnerID:       owner.ID,
 		Owner:         owner,
 		OwnerName:     owner.Name,
@@ -56,7 +66,7 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 			return
 		}
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
 
 		if exists, _ := util.IsExist(repoPath); !exists {
 			return
@@ -82,38 +92,38 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 		panic(panicErr)
 	}()
 
-	err = db.WithTx(func(ctx context.Context) error {
-		if err = models.CreateRepository(ctx, doer, owner, repo, false); err != nil {
+	err = db.WithTx(func(txCtx context.Context) error {
+		if err = models.CreateRepository(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
 
-		if err = models.IncrementRepoForkNum(ctx, opts.BaseRepo.ID); err != nil {
+		if err = repo_model.IncrementRepoForkNum(txCtx, opts.BaseRepo.ID); err != nil {
 			return err
 		}
 
 		// copy lfs files failure should not be ignored
-		if err = models.CopyLFS(ctx, repo, opts.BaseRepo); err != nil {
+		if err = git_model.CopyLFS(txCtx, repo, opts.BaseRepo); err != nil {
 			return err
 		}
 
 		needsRollback = true
 
-		repoPath := models.RepoPath(owner.Name, repo.Name)
-		if stdout, err := git.NewCommandContext(ctx,
+		repoPath := repo_model.RepoPath(owner.Name, repo.Name)
+		if stdout, _, err := git.NewCommand(txCtx,
 			"clone", "--bare", oldRepoPath, repoPath).
 			SetDescription(fmt.Sprintf("ForkRepository(git clone): %s to %s", opts.BaseRepo.FullName(), repo.FullName())).
-			RunInDirTimeout(10*time.Minute, ""); err != nil {
+			RunStdBytes(&git.RunOpts{Timeout: 10 * time.Minute}); err != nil {
 			log.Error("Fork Repository (git clone) Failed for %v (from %v):\nStdout: %s\nError: %v", repo, opts.BaseRepo, stdout, err)
 			return fmt.Errorf("git clone: %v", err)
 		}
 
-		if err := repo.CheckDaemonExportOK(ctx); err != nil {
+		if err := repo_module.CheckDaemonExportOK(txCtx, repo); err != nil {
 			return fmt.Errorf("checkDaemonExportOK: %v", err)
 		}
 
-		if stdout, err := git.NewCommandContext(ctx, "update-server-info").
+		if stdout, _, err := git.NewCommand(txCtx, "update-server-info").
 			SetDescription(fmt.Sprintf("ForkRepository(git update-server-info): %s", repo.FullName())).
-			RunInDir(repoPath); err != nil {
+			RunStdString(&git.RunOpts{Dir: repoPath}); err != nil {
 			log.Error("Fork Repository (git update-server-info) failed for %v:\nStdout: %s\nError: %v", repo, stdout, err)
 			return fmt.Errorf("git update-server-info: %v", err)
 		}
@@ -130,12 +140,21 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 	}
 
 	// even if below operations failed, it could be ignored. And they will be retried
-	ctx := db.DefaultContext
-	if err := repo.UpdateSize(ctx); err != nil {
+	if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
-	if err := models.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
-		log.Error("Copy language stat from oldRepo failed")
+	if err := repo_model.CopyLanguageStat(opts.BaseRepo, repo); err != nil {
+		log.Error("Copy language stat from oldRepo failed: %v", err)
+	}
+
+	gitRepo, err := git.OpenRepository(ctx, repo.RepoPath())
+	if err != nil {
+		log.Error("Open created git repository failed: %v", err)
+	} else {
+		defer gitRepo.Close()
+		if err := repo_module.SyncReleasesWithTags(repo, gitRepo); err != nil {
+			log.Error("Sync releases from git tags failed: %v", err)
+		}
 	}
 
 	notification.NotifyForkRepository(doer, opts.BaseRepo, repo)
@@ -144,9 +163,9 @@ func ForkRepository(doer, owner *models.User, opts models.ForkRepoOptions) (_ *m
 }
 
 // ConvertForkToNormalRepository convert the provided repo from a forked repo to normal repo
-func ConvertForkToNormalRepository(repo *models.Repository) error {
+func ConvertForkToNormalRepository(repo *repo_model.Repository) error {
 	err := db.WithTx(func(ctx context.Context) error {
-		repo, err := models.GetRepositoryByIDCtx(ctx, repo.ID)
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, repo.ID)
 		if err != nil {
 			return err
 		}
@@ -155,7 +174,7 @@ func ConvertForkToNormalRepository(repo *models.Repository) error {
 			return nil
 		}
 
-		if err := models.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
+		if err := repo_model.DecrementRepoForkNum(ctx, repo.ForkID); err != nil {
 			log.Error("Unable to decrement repo fork num for old root repo %d of repository %-v whilst converting from fork. Error: %v", repo.ForkID, repo, err)
 			return err
 		}
@@ -163,7 +182,7 @@ func ConvertForkToNormalRepository(repo *models.Repository) error {
 		repo.IsFork = false
 		repo.ForkID = 0
 
-		if err := models.UpdateRepositoryCtx(ctx, repo, false); err != nil {
+		if err := repo_module.UpdateRepository(ctx, repo, false); err != nil {
 			log.Error("Unable to update repository %-v whilst converting from fork. Error: %v", repo, err)
 			return err
 		}

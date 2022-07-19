@@ -1,9 +1,13 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
-export function initRepoCommitButton() {
-  $('.commit-button').on('click', function (e) {
+export function initRepoEllipsisButton() {
+  $('.ellipsis-button').on('click', function (e) {
     e.preventDefault();
+    const expanded = $(this).attr('aria-expanded') === 'true';
     $(this).parent().find('.commit-body').toggle();
+    $(this).attr('aria-expanded', String(!expanded));
   });
 }
 
@@ -41,7 +45,25 @@ export function initRepoCommitLastCommitLoader() {
         $('table#repo-files-table .commit-list').replaceWith(row);
         return;
       }
-      entryMap[$(row).attr('data-entryname')].replaceWith(row);
+      // there are other <tr> rows in response (eg: <tr class="has-parent">)
+      // at the moment only the "data-entryname" rows should be processed
+      const entryName = $(row).attr('data-entryname');
+      if (entryName) {
+        entryMap[entryName].replaceWith(row);
+      }
     });
+  });
+}
+
+export function initCommitStatuses() {
+  $('.commit-statuses-trigger').each(function () {
+    const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
+    const popupPosition = positionRight ? 'right center' : 'left center';
+    $(this)
+      .popup({
+        on: 'click',
+        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
+        position: popupPosition,
+      });
   });
 }

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build pam
-// +build pam
 
 package pam
 
@@ -27,12 +26,15 @@ func Auth(serviceName, userName, passwd string) (string, error) {
 		}
 		return "", errors.New("Unrecognized PAM message style")
 	})
-
 	if err != nil {
 		return "", err
 	}
 
 	if err = t.Authenticate(0); err != nil {
+		return "", err
+	}
+
+	if err = t.AcctMgmt(0); err != nil {
 		return "", err
 	}
 

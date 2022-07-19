@@ -28,12 +28,17 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-var converter goldmark.Markdown
-var once = sync.Once{}
+var (
+	converter goldmark.Markdown
+	once      = sync.Once{}
+)
 
-var urlPrefixKey = parser.NewContextKey()
-var isWikiKey = parser.NewContextKey()
-var renderMetasKey = parser.NewContextKey()
+var (
+	urlPrefixKey     = parser.NewContextKey()
+	isWikiKey        = parser.NewContextKey()
+	renderMetasKey   = parser.NewContextKey()
+	renderContextKey = parser.NewContextKey()
+)
 
 type limitWriter struct {
 	w     io.Writer
@@ -63,6 +68,7 @@ func newParserContext(ctx *markup.RenderContext) parser.Context {
 	pc.Set(urlPrefixKey, ctx.URLPrefix)
 	pc.Set(isWikiKey, ctx.IsWiki)
 	pc.Set(renderMetasKey, ctx.Metas)
+	pc.Set(renderContextKey, ctx)
 	return pc
 }
 
@@ -134,7 +140,6 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 				util.Prioritized(NewHTMLRenderer(), 10),
 			),
 		)
-
 	})
 
 	lw := &limitWriter{
@@ -151,7 +156,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 
 		log.Warn("Unable to render markdown due to panic in goldmark: %v", err)
 		if log.IsDebug() {
-			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 	}()
 
@@ -180,7 +185,7 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 
 		log.Warn("Unable to render markdown due to panic in goldmark - will return raw bytes")
 		if log.IsDebug() {
-			log.Debug("Panic in markdown: %v\n%s", err, string(log.Stack(2)))
+			log.Debug("Panic in markdown: %v\n%s", err, log.Stack(2))
 		}
 		_, err = io.Copy(output, input)
 		if err != nil {
@@ -190,10 +195,8 @@ func render(ctx *markup.RenderContext, input io.Reader, output io.Writer) error 
 	return actualRender(ctx, input, output)
 }
 
-var (
-	// MarkupName describes markup's name
-	MarkupName = "markdown"
-)
+// MarkupName describes markup's name
+var MarkupName = "markdown"
 
 func init() {
 	markup.RegisterRenderer(Renderer{})
@@ -202,12 +205,14 @@ func init() {
 // Renderer implements markup.Renderer
 type Renderer struct{}
 
+var _ markup.PostProcessRenderer = (*Renderer)(nil)
+
 // Name implements markup.Renderer
 func (Renderer) Name() string {
 	return MarkupName
 }
 
-// NeedPostProcess implements markup.Renderer
+// NeedPostProcess implements markup.PostProcessRenderer
 func (Renderer) NeedPostProcess() bool { return true }
 
 // Extensions implements markup.Renderer
