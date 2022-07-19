@@ -272,7 +272,7 @@ func SubmitReview(ctx context.Context, doer *user_model.User, gitRepo *git.Repos
 }
 
 // DismissReview dismissing stale review by repo admin
-func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPrior bool) (comment *issues_model.Comment, err error) {
+func DismissReview(ctx context.Context, reviewID, repoID int64, message string, doer *user_model.User, isDismiss, dismissPriors bool) (comment *issues_model.Comment, err error) {
 	review, err := issues_model.GetReviewByID(ctx, reviewID)
 	if err != nil {
 		return
@@ -296,7 +296,7 @@ func DismissReview(ctx context.Context, reviewID, repoID int64, message string, 
 		return
 	}
 
-	if dismissPrior {
+	if dismissPriors {
 		reviews, err := issues_model.GetReviews(ctx, &issues_model.GetReviewOptions{
 			IssueID:    review.IssueID,
 			ReviewerID: review.ReviewerID,
