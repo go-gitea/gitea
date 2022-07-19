@@ -7,9 +7,10 @@
     "node": ">= 14.0.0"
   },
   "dependencies": {
+    "@citation-js/core": "0.6.1",
     "@citation-js/plugin-bibtex": "0.6.1",
+    "@citation-js/plugin-csl": "0.6.3",
     "@citation-js/plugin-software-formats": "0.6.0",
-    "citation-js": "0.6.2",
     "@claviska/jquery-minicolors": "2.3.6",
     "@primer/octicons": "17.2.0",
     "add-asset-webpack-plugin": "2.0.1",
