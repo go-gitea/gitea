@@ -18,10 +18,10 @@ const initInputCitationValue = async () => {
   const citationFormatter = new Cite(citiationFileContent);
   const apaOutput = citationFormatter.format('bibliography', {
     template: 'apa',
-    lang: 'en-US'
+    lang: document.documentElement.lang || 'en-US'
   });
   const bibtexOutput = citationFormatter.format('bibtex', {
-    lang: 'en-US'
+    lang: document.documentElement.lang || 'en-US'
   });
   $citationCopyBibtex.attr('data-text', bibtexOutput);
   $citationCopyApa.attr('data-text', apaOutput);
