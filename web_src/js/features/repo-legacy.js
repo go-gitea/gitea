@@ -17,11 +17,11 @@ import {htmlEscape} from 'escape-goat';
 import {initRepoBranchTagDropdown} from '../components/RepoBranchTagDropdown.js';
 import {
   initRepoCloneLink,
-  initCitationFileCopyContent,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
   initRepoCommonLanguageStats,
 } from './repo-common.js';
+import {initCitationFileCopyContent} from './citation.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
 import attachTribute from './tribute.js';

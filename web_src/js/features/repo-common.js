@@ -1,10 +1,6 @@
 import $ from 'jquery';
-import Cite from 'citation-js';
-import '@citation-js/plugin-software-formats';
-import '@citation-js/plugin-bibtex';
-import {plugins} from '@citation-js/core';
 
-const {csrfToken, pageData} = window.config;
+const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
   $.ajax({
@@ -97,66 +93,6 @@ export function initRepoCloneLink() {
 
   $inputLink.on('click', () => {
     $inputLink.select();
-  });
-}
-
-const initInputCitationValue = () => {
-  const $citationCopyApa = $('#citation-copy-apa');
-  const $citationCopyBibtex = $('#citation-copy-bibtex');
-  const {citiationFileContent} = pageData;
-  const config = plugins.config.get('@bibtex');
-  config.constants.fieldTypes.doi = ['field', 'literal'];
-  config.constants.fieldTypes.version = ['field', 'literal'];
-  const citationFormatter = new Cite(citiationFileContent);
-  const apaOutput = citationFormatter.format('bibliography', {
-    template: 'apa',
-    lang: 'en-US'
-  });
-  const bibtexOutput = citationFormatter.format('bibtex', {
-    lang: 'en-US'
-  });
-  $citationCopyBibtex.attr('data-text', bibtexOutput);
-  $citationCopyApa.attr('data-text', apaOutput);
-};
-
-export function initCitationFileCopyContent() {
-  const defaultCitationFormat = 'apa'; // apa or bibtex
-
-  const $citationCopyApa = $('#citation-copy-apa');
-  const $citationCopyBibtex = $('#citation-copy-bibtex');
-  const $inputContent = $('#citation-copy-content');
-
-  if ((!$citationCopyApa.length && !$citationCopyBibtex.length) || !$inputContent.length) {
-    return;
-  }
-  initInputCitationValue();
-  const updateUi = () => {
-    const isBibtex = (localStorage.getItem('citation-copy-format') || defaultCitationFormat) === 'bibtex';
-    const copyContent = (isBibtex ? $citationCopyBibtex : $citationCopyApa).attr('data-text');
-
-    $inputContent.val(copyContent);
-    $citationCopyBibtex.toggleClass('primary', isBibtex);
-    $citationCopyApa.toggleClass('primary', !isBibtex);
-  };
-  updateUi();
-
-  setTimeout(() => {
-    // restore animation after first init
-    $citationCopyApa.removeClass('no-transition');
-    $citationCopyBibtex.removeClass('no-transition');
-  }, 100);
-
-  $citationCopyApa.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'apa');
-    updateUi();
-  });
-  $citationCopyBibtex.on('click', () => {
-    localStorage.setItem('citation-copy-format', 'bibtex');
-    updateUi();
-  });
-
-  $inputContent.on('click', () => {
-    $inputContent.select();
   });
 }
 
