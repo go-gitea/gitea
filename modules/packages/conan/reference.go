@@ -10,8 +10,6 @@ import (
 	"regexp"
 
 	"code.gitea.io/gitea/modules/log"
-
-	goversion "github.com/hashicorp/go-version"
 )
 
 const (
@@ -56,7 +54,7 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 	if !namePattern.MatchString(name) {
 		return nil, ErrValidation
 	}
-	if _, err := goversion.NewSemver(version); err != nil {
+	if (version == "") {
 		return nil, ErrValidation
 	}
 	if user != "" && !namePattern.MatchString(user) {
