@@ -1,13 +1,12 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
 package ssh
 
 import (
+	"crypto/ed25519"
 	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"encoding/pem"
 	"os"
 
@@ -20,12 +19,12 @@ import (
 // Public key is encoded in the format for inclusion in an OpenSSH authorized_keys file.
 // Private Key generated is PEM encoded
 func GenKeyPair(keyPath string) error {
-	privateKey, err := rsa.GenerateKey(rand.Reader, 4096)
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		return err
 	}
 
-	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
+	privateKeyPEM := &pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: privateKey}
 	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
@@ -41,7 +40,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	// generate public key
-	pub, err := gossh.NewPublicKey(&privateKey.PublicKey)
+	pub, err := gossh.NewPublicKey(&publicKey)
 	if err != nil {
 		return err
 	}
