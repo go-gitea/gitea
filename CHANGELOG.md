@@ -4,6 +4,43 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.17.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc2) - 2022-07-13
+
+* SECURITY
+  * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
+  * Add write check for creating Commit Statuses (#20332) (#20333)
+* ENHANCEMENTS
+  * Make notification bell more prominent on mobile (#20108, #20236, #20251) (#20269)
+  * Adjust max-widths for the repository file table (#20243) (#20247)
+  * Display full name (#20171) (#20246)
+* BUGFIXES
+  * Allow RSA 2047 bit keys (#20272) (#20396)
+  * Add missing return for when topic isn't found (#20351) (#20395)
+  * Fix commit status icon when in subdirectory (#20285) (#20385)
+  * Initialize cron last (#20373) (#20384)
+  * Set target on create release with existing tag (#20381) (#20382)
+  * Update xorm.io/xorm to fix a interpreting db column sizes issue on 32bit systems (#20371) (#20372)
+  * Make sure `repo_dir` is an empty directory or doesn't exist before 'dump-repo' (#20205) (#20370)
+  * Prevent context deadline error propagation in GetCommitsInfo (#20346) (#20361)
+  * Correctly handle draft releases without a tag (#20314) (#20335)
+  * Prevent "empty" scrollbars on Firefox (#20294) (#20308)
+  * Refactor SSH init code, fix directory creation for TrustedUserCAKeys file (#20299) (#20306)
+  * Bump goldmark to v1.4.13 (#20300) (#20301)
+  * Do not create empty ".ssh" directory when loading config (#20289) (#20298)
+  * Fix NPE when using non-numeric (#20277) (#20278)
+  * Store read access in access for team repositories (#20275) (#20276)
+  * EscapeFilter the group dn membership (#20200) (#20254)
+  * Only show Followers that current user can access (#20220) (#20252)
+  * Update Bluemonday to v1.0.19 (#20199) (#20209)
+  * Refix indices on actions table (#20158) (#20198)
+  * Check if project has the same repository id with issue when assign project to issue (#20133) (#20188)
+  * Fix remove file on initial comment (#20127) (#20128)
+  * Catch the error before the response is processed by goth (#20000) (#20102)
+  * Dashboard feed respect setting.UI.FeedPagingNum again (#20094) (#20099)
+  * Alter hook_task TEXT fields to LONGTEXT (#20038) (#20041)
+  * Respond with a 401 on git push when password isn't changed yet (#20026) (#20027)
+  * Return 404 when tag is broken (#20017) (#20024)
+
 ## [1.17.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc1) - 2022-06-18
 
 * BREAKING
