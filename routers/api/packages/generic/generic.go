@@ -15,8 +15,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/hashicorp/go-version"
 )
 
 var (
@@ -97,7 +95,7 @@ func UploadPackage(ctx *context.Context) {
 				Name:        packageName,
 				Version:     packageVersion,
 			},
-			SemverCompatible: true,
+			SemverCompatible: false,
 			Creator:          ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
@@ -152,15 +150,15 @@ func DeletePackage(ctx *context.Context) {
 func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 	packageName := ctx.Params("packagename")
 	filename := ctx.Params("filename")
+	packageVersion := ctx.Params("packageversion")
 
 	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
 		return "", "", "", errors.New("Invalid package name or filename")
 	}
 
-	v, err := version.NewSemver(ctx.Params("packageversion"))
-	if err != nil {
-		return "", "", "", err
+	if packageVersion == "" {
+		return "", "", "", errors.New("Invalid package version")
 	}
 
-	return packageName, v.String(), filename, nil
+	return packageName, packageVersion, filename, nil
 }
