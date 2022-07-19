@@ -45,6 +45,7 @@ func Members(ctx *context.Context) {
 		}
 		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
+	ctx.Data["PublicOnly"] = opts.PublicOnly
 
 	total, err := organization.CountOrgMembers(opts)
 	if err != nil {
