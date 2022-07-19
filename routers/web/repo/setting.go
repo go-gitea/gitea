@@ -29,6 +29,7 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
@@ -272,7 +273,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_service.StartToMirror(repo.ID)
+		mirror_module.AddPullMirrorToQueue(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -289,7 +290,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_service.AddPushMirrorToQueue(m.ID)
+		mirror_module.AddPushMirrorToQueue(m.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -357,10 +358,11 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		m := &repo_model.PushMirror{
-			RepoID:     repo.ID,
-			Repo:       repo,
-			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			Interval:   interval,
+			RepoID:       repo.ID,
+			Repo:         repo,
+			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit: form.PushMirrorSyncOnCommit,
+			Interval:     interval,
 		}
 		if err := repo_model.InsertPushMirror(m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)

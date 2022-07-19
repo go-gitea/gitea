@@ -1131,9 +1131,7 @@
             "$ref": "#/responses/HookList"
           }
         }
-      }
-    },
-    "/orgs/{org}/hooks/": {
+      },
       "post": {
         "consumes": [
           "application/json"
@@ -16078,12 +16076,6 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
-    "GitServiceType": {
-      "description": "GitServiceType represents a git service",
-      "type": "integer",
-      "format": "int64",
-      "x-go-package": "code.gitea.io/gitea/modules/structs"
-    },
     "GitTreeResponse": {
       "description": "GitTreeResponse returns a git tree",
       "type": "object",
@@ -16471,94 +16463,6 @@
         }
       },
       "x-go-name": "MergePullRequestForm",
-      "x-go-package": "code.gitea.io/gitea/services/forms"
-    },
-    "MigrateRepoForm": {
-      "description": "MigrateRepoForm form for migrating repository\nthis is used to interact with web ui",
-      "type": "object",
-      "required": [
-        "clone_addr",
-        "uid",
-        "repo_name"
-      ],
-      "properties": {
-        "auth_password": {
-          "type": "string",
-          "x-go-name": "AuthPassword"
-        },
-        "auth_token": {
-          "type": "string",
-          "x-go-name": "AuthToken"
-        },
-        "auth_username": {
-          "type": "string",
-          "x-go-name": "AuthUsername"
-        },
-        "clone_addr": {
-          "type": "string",
-          "x-go-name": "CloneAddr"
-        },
-        "description": {
-          "type": "string",
-          "x-go-name": "Description"
-        },
-        "issues": {
-          "type": "boolean",
-          "x-go-name": "Issues"
-        },
-        "labels": {
-          "type": "boolean",
-          "x-go-name": "Labels"
-        },
-        "lfs": {
-          "type": "boolean",
-          "x-go-name": "LFS"
-        },
-        "lfs_endpoint": {
-          "type": "string",
-          "x-go-name": "LFSEndpoint"
-        },
-        "milestones": {
-          "type": "boolean",
-          "x-go-name": "Milestones"
-        },
-        "mirror": {
-          "type": "boolean",
-          "x-go-name": "Mirror"
-        },
-        "mirror_interval": {
-          "type": "string",
-          "x-go-name": "MirrorInterval"
-        },
-        "private": {
-          "type": "boolean",
-          "x-go-name": "Private"
-        },
-        "pull_requests": {
-          "type": "boolean",
-          "x-go-name": "PullRequests"
-        },
-        "releases": {
-          "type": "boolean",
-          "x-go-name": "Releases"
-        },
-        "repo_name": {
-          "type": "string",
-          "x-go-name": "RepoName"
-        },
-        "service": {
-          "$ref": "#/definitions/GitServiceType"
-        },
-        "uid": {
-          "type": "integer",
-          "format": "int64",
-          "x-go-name": "UID"
-        },
-        "wiki": {
-          "type": "boolean",
-          "x-go-name": "Wiki"
-        }
-      },
       "x-go-package": "code.gitea.io/gitea/services/forms"
     },
     "MigrateRepoOptions": {
@@ -17809,6 +17713,10 @@
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
+        "allow_rebase_update": {
+          "type": "boolean",
+          "x-go-name": "AllowRebaseUpdate"
+        },
         "allow_squash_merge": {
           "type": "boolean",
           "x-go-name": "AllowSquash"
@@ -17833,6 +17741,10 @@
         "default_branch": {
           "type": "string",
           "x-go-name": "DefaultBranch"
+        },
+        "default_delete_branch_after_merge": {
+          "type": "boolean",
+          "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
           "type": "string",
@@ -18574,6 +18486,12 @@
           "description": "the user's username",
           "type": "string",
           "x-go-name": "UserName"
+        },
+        "login_name": {
+          "description": "the user's authentication sign-in name.",
+          "type": "string",
+          "default": "empty",
+          "x-go-name": "LoginName"
         },
         "prohibit_login": {
           "description": "Is user login prohibited",

@@ -151,7 +151,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.locale.Tr "admin.users.delete_account"}}</div>
+					<div class="ui red button show-modal" data-modal="#delete-user-modal" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.locale.Tr "admin.users.delete_account"}}</div>
 				</div>
 			</form>
 		</div>
@@ -196,7 +196,7 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
+<div class="ui small basic delete modal" id="delete-user-modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
 		{{.locale.Tr "settings.delete_account_title"}}
@@ -204,6 +204,17 @@
 	<div class="content">
 		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
 	</div>
-	{{template "base/delete_modal_actions" .}}
+	<form class="ui form" method="POST" action="{{.Link}}/delete">
+		{{$.CsrfTokenHtml}}
+		<input type="hidden" name="id">
+		<div class="field">
+			<div class="ui checkbox">
+				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
+				<input name="purge" type="checkbox">
+			</div>
+			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
+		</div>
+		{{template "base/delete_modal_actions" .}}
+	</form>
 </div>
 {{template "base/footer" .}}
