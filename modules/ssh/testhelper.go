@@ -12,7 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 
-	gossh "golang.org/x/crypto/ssh"
+	"github.com/mikesmitty/edkey"
+	"golang.org/x/crypto/ssh"
 )
 
 // GenKeyPair make a pair of public and private keys for SSH access.
@@ -58,15 +59,18 @@ func genKeyPair() (publicK, privateK []byte, err error) {
 	}
 
 	// generate private key
-	privateK = pem.EncodeToMemory(&pem.Block{Type: "OPENSSH PRIVATE KEY", Bytes: privateKey})
+	privateK = pem.EncodeToMemory(&pem.Block{
+		Type:  "OPENSSH PRIVATE KEY",
+		Bytes: edkey.MarshalED25519PrivateKey(privateKey),
+	})
 
 	// generate public key
-	pub, err := gossh.NewPublicKey(publicKey)
+	pub, err := ssh.NewPublicKey(publicKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	publicK = gossh.MarshalAuthorizedKey(pub)
+	publicK = ssh.MarshalAuthorizedKey(pub)
 
 	return privateK, publicK, nil
 }
