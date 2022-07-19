@@ -6,13 +6,16 @@
 package user
 
 import (
+	"fmt"
 	"net/http"
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	user_service "code.gitea.io/gitea/services/user"
 )
 
 // Search search users
@@ -145,4 +148,43 @@ func GetUserHeatmapData(ctx *context.APIContext) {
 		return
 	}
 	ctx.JSON(http.StatusOK, heatmap)
+}
+
+// DeleteAuthenticatedUser deletes the current user
+func DeleteAuthenticatedUser(ctx *context.APIContext) {
+	// swagger:operation DELETE /user user userDeleteCurrent
+	// ---
+	// summary: Delete the authenticated user
+	// produces:
+	// - application/json
+	// responses:
+	// responses:
+	//   "204":
+	//     "$ref": "#/responses/empty"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+	//   "422":
+	//     "$ref": "#/responses/validationError"
+
+	// Extract out the username as it's unavailable after deleting the user.
+	username := ctx.Doer.Name
+
+	if ctx.Doer.IsOrganization() {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("%s is an organization not a user", username))
+		return
+	}
+
+	if err := user_service.DeleteUser(ctx, ctx.Doer, ctx.FormBool("purge")); err != nil {
+		if models.IsErrUserOwnRepos(err) ||
+			models.IsErrUserHasOrgs(err) ||
+			models.IsErrUserOwnPackages(err) {
+			ctx.Error(http.StatusUnprocessableEntity, "", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "DeleteAuthenticatedUser", err)
+		}
+		return
+	}
+	log.Trace("Account deleted: %s", username)
+
+	ctx.Status(http.StatusNoContent)
 }
