@@ -28,7 +28,7 @@ func Follow(ctx context.Context, follow ap.Follow) {
 	objectIRI := follow.Object.GetID()
 	objectUser, err := personIRIToUser(ctx, objectIRI)
 	// Must be a local user
-	if strings.Contains(objectUser.Name, "@") || err != nil {
+	if err != nil || strings.Contains(objectUser.Name, "@") {
 		log.Warn("Couldn't find object user for follow", err)
 		return
 	}
@@ -44,7 +44,6 @@ func Follow(ctx context.Context, follow ap.Follow) {
 }
 
 // Process a Undo follow activity
-// I haven't tried this yet so hopefully it works
 func Unfollow(ctx context.Context, unfollow ap.Undo) {
 	follow := unfollow.Object.(*ap.Follow)
 	// Actor is the user performing the undo follow
