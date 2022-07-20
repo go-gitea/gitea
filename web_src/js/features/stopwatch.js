@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
+import {createTippy} from '../modules/tippy.js';
 
 const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
@@ -8,20 +9,23 @@ export function initStopwatch() {
     return;
   }
 
-  const stopwatchEl = $('.active-stopwatch-trigger');
+  const stopwatchEl = document.querySelector('.active-stopwatch-trigger');
+  const stopwatchPopup = document.querySelector('.active-stopwatch-popup');
 
-  if (!stopwatchEl.length) {
+  if (!stopwatchEl || !stopwatchPopup) {
     return;
   }
 
-  stopwatchEl.removeAttr('href'); // intended for noscript mode only
-  stopwatchEl.popup({
-    position: 'bottom right',
-    hoverable: true,
+  stopwatchEl.removeAttribute('href'); // intended for noscript mode only
+
+  createTippy(stopwatchEl, {
+    content: stopwatchPopup,
+    placement: 'bottom-end',
+    interactive: true,
   });
 
   // form handlers
-  $('form > button', stopwatchEl).on('click', function () {
+  $('form > button', $(stopwatchEl)).on('click', function () {
     $(this).parent().trigger('submit');
   });
 
