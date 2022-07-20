@@ -16,6 +16,7 @@ import (
 
 	"code.gitea.io/gitea/modules/avatar/dicebear"
 	"code.gitea.io/gitea/modules/avatar/identicon"
+	"code.gitea.io/gitea/modules/avatar/monsterid"
 	"code.gitea.io/gitea/modules/avatar/none"
 	"code.gitea.io/gitea/modules/avatar/robot"
 	"code.gitea.io/gitea/modules/setting"
@@ -67,6 +68,7 @@ var (
 		identicon.Identicon{},
 		none.None{},
 		robot.Robot{},
+		monsterid.Monster{},
 	}
 )
 
