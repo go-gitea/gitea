@@ -15,11 +15,11 @@ import (
 // Robot is used to generate pseudo-random avatars
 type Robot struct{}
 
-func (_ Robot) Name() string {
+func (Robot) Name() string {
 	return "robot"
 }
 
-func (_ Robot) RandomUserImage(size int, data []byte) (image.Image, error) {
+func (Robot) RandomUserImage(size int, data []byte) (image.Image, error) {
 	a, err := avatars.Generate(string(data))
 	if err != nil {
 		return nil, err
@@ -27,7 +27,8 @@ func (_ Robot) RandomUserImage(size int, data []byte) (image.Image, error) {
 	return a.Image(avatars.RenderSize(size))
 }
 
-func (_ Robot) RandomOrgImage(size int, data []byte) (image.Image, error) {
+func (Robot) RandomOrgImage(size int, data []byte) (image.Image, error) {
+	size /= 2
 	img := image.NewRGBA(image.Rect(0, 0, size*2, size*2))
 
 	for i := 0; i < 4; i++ {
@@ -39,7 +40,7 @@ func (_ Robot) RandomOrgImage(size int, data []byte) (image.Image, error) {
 		if err != nil {
 			return nil, err
 		}
-		pos := image.Rect((i-int(i/2)*2)*size, int(i/2)*size, ((i-int(i/2)*2)+1)*size, (int(i/2)+1)*size)
+		pos := image.Rect((i-(i/2)*2)*size, (i/2)*size, ((i-(i/2)*2)+1)*size, ((i/2)+1)*size)
 		draw.Draw(img, pos, av, image.Point{}, draw.Over)
 	}
 

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package dice_bear
+package dicebear
 
 import (
 	"fmt"
@@ -11,7 +11,6 @@ import (
 	"strings"
 
 	"codeberg.org/Codeberg/avatars"
-
 	"github.com/fogleman/gg"
 	"github.com/lafriks/go-svg"
 	"github.com/lafriks/go-svg/renderer"
@@ -21,16 +20,16 @@ import (
 // DiceBear is used to generate pseudo-random avatars
 type DiceBear struct{}
 
-func (_ DiceBear) Name() string {
+func (DiceBear) Name() string {
 	return "dicebear"
 }
 
-func (_ DiceBear) RandomUserImage(size int, data []byte) (image.Image, error) {
+func (DiceBear) RandomUserImage(size int, data []byte) (image.Image, error) {
 	return randomImageSize(size, data)
 }
 
-func (_ DiceBear) RandomOrgImage(size int, data []byte) (image.Image, error) {
-	size = size / 2
+func (DiceBear) RandomOrgImage(size int, data []byte) (image.Image, error) {
+	size /= 2
 	space := size / 20
 	img := image.NewRGBA(image.Rect(0, 0, size*2, size*2))
 
@@ -39,7 +38,7 @@ func (_ DiceBear) RandomOrgImage(size int, data []byte) (image.Image, error) {
 		if err != nil {
 			return nil, err
 		}
-		pos := image.Rect((i-int(i/2)*2)*(size+space), int(i/2)*(size+space), ((i-int(i/2)*2)+1)*(size+space), (int(i/2)+1)*(size+space))
+		pos := image.Rect((i-(i/2)*2)*(size+space), (i/2)*(size+space), ((i-(i/2)*2)+1)*(size+space), ((i/2)+1)*(size+space))
 		draw.Draw(img, pos, av, image.Point{}, draw.Over)
 	}
 

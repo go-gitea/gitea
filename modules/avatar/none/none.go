@@ -11,18 +11,18 @@ import (
 // None wont generate an image
 type None struct{}
 
-func (_ None) Name() string {
+func (None) Name() string {
 	return "none"
 }
 
-func (_ None) RandomUserImage(size int, data []byte) (image.Image, error) {
+func (None) RandomUserImage(size int, data []byte) (image.Image, error) {
 	return nil, nil
 }
 
-func (_ None) RandomOrgImage(size int, data []byte) (image.Image, error) {
+func (None) RandomOrgImage(size int, data []byte) (image.Image, error) {
 	return nil, nil
 }
 
-func (_ None) RandomRepoImage(size int, data []byte) (image.Image, error) {
+func (None) RandomRepoImage(size int, data []byte) (image.Image, error) {
 	return nil, nil
 }

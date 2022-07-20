@@ -14,7 +14,7 @@ import (
 	_ "image/jpeg" // for processing jpeg images
 	_ "image/png"  // for processing png images
 
-	"code.gitea.io/gitea/modules/avatar/dice_bear"
+	"code.gitea.io/gitea/modules/avatar/dicebear"
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/avatar/none"
 	"code.gitea.io/gitea/modules/avatar/robot"
@@ -63,7 +63,7 @@ var (
 	orgImageGenerator  randomOrgImageGenerator  = identicon.Identicon{}
 	repoImageGenerator randomRepoImageGenerator = identicon.Identicon{}
 	generators                                  = []randomImageGenerator{
-		dice_bear.DiceBear{},
+		dicebear.DiceBear{},
 		identicon.Identicon{},
 		none.None{},
 		robot.Robot{},

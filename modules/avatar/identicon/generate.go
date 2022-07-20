@@ -13,19 +13,19 @@ import (
 // Identicon is used to generate pseudo-random avatars
 type Identicon struct{}
 
-func (_ Identicon) Name() string {
+func (Identicon) Name() string {
 	return "identicon"
 }
 
-func (_ Identicon) RandomUserImage(size int, data []byte) (image.Image, error) {
+func (Identicon) RandomUserImage(size int, data []byte) (image.Image, error) {
 	return randomImageSize(size, data)
 }
 
-func (_ Identicon) RandomOrgImage(size int, data []byte) (image.Image, error) {
+func (Identicon) RandomOrgImage(size int, data []byte) (image.Image, error) {
 	return randomImageSize(size, data)
 }
 
-func (_ Identicon) RandomRepoImage(size int, data []byte) (image.Image, error) {
+func (Identicon) RandomRepoImage(size int, data []byte) (image.Image, error) {
 	return randomImageSize(size, data)
 }
 
