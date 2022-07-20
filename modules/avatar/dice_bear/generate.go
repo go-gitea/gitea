@@ -5,7 +5,9 @@
 package dice_bear
 
 import (
+	"fmt"
 	"image"
+	"image/draw"
 	"strings"
 
 	"codeberg.org/Codeberg/avatars"
@@ -13,7 +15,7 @@ import (
 	"github.com/srwiley/rasterx"
 )
 
-// Identicon is used to generate pseudo-random avatars
+// DiceBear is used to generate pseudo-random avatars
 type DiceBear struct{}
 
 func (_ DiceBear) Name() string {
@@ -25,8 +27,20 @@ func (_ DiceBear) RandomUserImage(size int, data []byte) (image.Image, error) {
 }
 
 func (_ DiceBear) RandomOrgImage(size int, data []byte) (image.Image, error) {
-	// TODO: group 4 images to one
-	return randomImageSize(size, data)
+	size = size / 2
+	space := size / 20
+	img := image.NewRGBA(image.Rect(0, 0, size*2, size*2))
+
+	for i := 0; i < 4; i++ {
+		av, err := randomImageSize(size, []byte(fmt.Sprintf("%s-%d", string(data), i)))
+		if err != nil {
+			return nil, err
+		}
+		pos := image.Rect((i-int(i/2)*2)*(size+space), int(i/2)*(size+space), ((i-int(i/2)*2)+1)*(size+space), (int(i/2)+1)*(size+space))
+		draw.Draw(img, pos, av, image.Point{}, draw.Over)
+	}
+
+	return img, nil
 }
 
 func randomImageSize(size int, data []byte) (image.Image, error) {

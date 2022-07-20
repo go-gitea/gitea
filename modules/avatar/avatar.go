@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/avatar/dice_bear"
 	"code.gitea.io/gitea/modules/avatar/identicon"
 	"code.gitea.io/gitea/modules/avatar/none"
+	"code.gitea.io/gitea/modules/avatar/robot"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/nfnt/resize"
@@ -65,6 +66,7 @@ var (
 		dice_bear.DiceBear{},
 		identicon.Identicon{},
 		none.None{},
+		robot.Robot{},
 	}
 )
 
