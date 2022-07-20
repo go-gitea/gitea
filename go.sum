@@ -1463,10 +1463,6 @@ github.com/spf13/viper v1.10.0/go.mod h1:SoyBPwAtKDzypXNDFKN5kzH7ppppbGZtls1UpIy
 github.com/spf13/viper v1.10.1 h1:nuJZuYpG7gTj/XqiUwg8bA0cp1+M2mC3J4g5luUYBKk=
 github.com/spf13/viper v1.10.1/go.mod h1:IGlFPqhNAPKRxohIzWpI5QEy4kuI7tcl5WvR+8qy1rU=
 github.com/src-d/gcfg v1.4.0/go.mod h1:p/UMsR43ujA89BJY9duynAwIpvqEujIH/jFlfL7jWoI=
-github.com/srwiley/oksvg v0.0.0-20220128195007-1f435e4c2b44 h1:XPYXKIuH/n5zpUoEWk2jWV/SjEMNYmqDYmTgbjmhtaI=
-github.com/srwiley/oksvg v0.0.0-20220128195007-1f435e4c2b44/go.mod h1:cNQ3dwVJtS5Hmnjxy6AgTPd0Inb3pW05ftPSX7NZO7Q=
-github.com/srwiley/rasterx v0.0.0-20220615024203-67b7089efd25 h1:uyi1c8AxAw2b9MTr639iqz45FMFb4dDR7rB++NaVooo=
-github.com/srwiley/rasterx v0.0.0-20220615024203-67b7089efd25/go.mod h1:nXTWP6+gD5+LUJ8krVhhoeHjvHTutPxMYl5SvkcnJNE=
 github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf h1:pvbZ0lM0XWPBqUKqFU8cmavspvIl9nulOYwdy6IFRRo=
 github.com/ssor/bom v0.0.0-20170718123548-6386211fdfcf/go.mod h1:RJID2RhlZKId02nZ62WenDCkgHFerpIOmW0iT7GKmXM=
 github.com/stephens2424/writerset v1.0.2/go.mod h1:aS2JhsMn6eA7e82oNmW4rfsgAOp9COBTTl8mzkwADnc=
