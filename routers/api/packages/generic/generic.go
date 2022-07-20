@@ -95,7 +95,6 @@ func UploadPackage(ctx *context.Context) {
 				Name:        packageName,
 				Version:     packageVersion,
 			},
-			SemverCompatible: false,
 			Creator:          ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
