@@ -46,8 +46,9 @@ func Follow(ctx context.Context, follow ap.Follow) {
 // Process a Undo follow activity
 // I haven't tried this yet so hopefully it works
 func Unfollow(ctx context.Context, unfollow ap.Undo) {
+	follow := unfollow.Object.(*ap.Follow)
 	// Actor is the user performing the undo follow
-	actorIRI := unfollow.Actor.GetID()
+	actorIRI := follow.Actor.GetID()
 	actorUser, err := personIRIToUser(ctx, actorIRI)
 	if err != nil {
 		log.Warn("Couldn't find actor user for follow", err)
@@ -55,7 +56,7 @@ func Unfollow(ctx context.Context, unfollow ap.Undo) {
 	}
 
 	// Object is the user being unfollowed
-	objectIRI := unfollow.Object.GetID()
+	objectIRI := follow.Object.GetID()
 	objectUser, err := personIRIToUser(ctx, objectIRI)
 	// Must be a local user
 	if strings.Contains(objectUser.Name, "@") || err != nil {
@@ -64,11 +65,4 @@ func Unfollow(ctx context.Context, unfollow ap.Undo) {
 	}
 
 	user_model.UnfollowUser(actorUser.ID, objectUser.ID)
-
-	// Send back an Accept activity
-	accept := ap.AcceptNew(objectIRI, unfollow)
-	accept.Actor = ap.Person{ID: objectIRI}
-	accept.To = ap.ItemCollection{ap.IRI(actorIRI.String() + "/inbox")}
-	accept.Object = unfollow
-	Send(objectUser, accept)
 }

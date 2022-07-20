@@ -43,10 +43,15 @@ func personIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, e
 	}
 
 	user, err := user_model.GetUserByName(ctx, name)
-	if err != nil || !strings.Contains(name, "@") {
+	if err != nil && !strings.Contains(name, "@") {
 		return user, err
 	}
-	FederatedUserNew(personIRI)
+
+	err = FederatedUserNew(personIRI)
+	if err != nil {
+		return nil, err
+	}
+
 	return user_model.GetUserByName(ctx, name)
 }
 
