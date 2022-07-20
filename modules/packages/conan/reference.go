@@ -54,7 +54,7 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 	if !namePattern.MatchString(name) {
 		return nil, ErrValidation
 	}
-	if version == "" {
+	if strings.TrimSpace(version) == "" {
 		return nil, ErrValidation
 	}
 	if user != "" && !namePattern.MatchString(user) {
