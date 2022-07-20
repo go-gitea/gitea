@@ -156,7 +156,7 @@ func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 		return "", "", "", errors.New("Invalid package name or filename")
 	}
 
-	if packageVersion == "" {
+	if strings.TrimSpace(packageVersion) == "" {
 		return "", "", "", errors.New("Invalid package version")
 	}
 
