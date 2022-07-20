@@ -76,7 +76,7 @@ func TestAdminDeleteUser(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
 		"_csrf": csrf,
 	})
-	session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	assertUserDeleted(t, 8)
 	unittest.CheckConsistencyFor(t, &user_model.User{})

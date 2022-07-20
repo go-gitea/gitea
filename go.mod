@@ -87,7 +87,7 @@ require (
 	github.com/urfave/cli v1.22.9
 	github.com/xanzy/go-gitlab v0.64.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.4.12
+	github.com/yuin/goldmark v1.4.13
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/yuin/goldmark-meta v1.1.0
 	go.jolheiser.com/hcaptcha v0.0.4
@@ -104,7 +104,7 @@ require (
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.1
+	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
 )
 
 require (
