@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/avatar/monsterid"
 	"code.gitea.io/gitea/modules/avatar/none"
 	"code.gitea.io/gitea/modules/avatar/robot"
+	"code.gitea.io/gitea/modules/avatar/wavatars"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/nfnt/resize"
@@ -69,6 +70,7 @@ var (
 		none.None{},
 		robot.Robot{},
 		monsterid.Monster{},
+		wavatars.Wavatars{},
 	}
 )
 
