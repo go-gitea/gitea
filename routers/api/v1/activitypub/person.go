@@ -7,6 +7,7 @@ package activitypub
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -106,7 +107,25 @@ func PersonInbox(ctx *context.APIContext) {
 	}
 
 	var activity ap.Activity
-	activity.UnmarshalJSON(body)
+	err = activity.UnmarshalJSON(body)
+	if err != nil {
+		ctx.ServerError("UnmarshalJSON", err)
+		return
+	}
+
+	// Make sure keyID matches the user doing the activity
+	_, keyID, _ := getKeyID(ctx.Req)
+	if activity.Actor != nil && !strings.HasPrefix(keyID, activity.Actor.GetID().String()) {
+		ctx.ServerError("Actor does not match HTTP signature keyID", nil)
+		return
+	}
+	if activity.AttributedTo != nil && !strings.HasPrefix(keyID, activity.AttributedTo.GetID().String()) {
+		ctx.ServerError("AttributedTo does not match HTTP signature keyID", nil)
+		return
+	}
+	// TODO: Check activity.Object actor and attributedTo
+
+	// Process activity
 	switch activity.Type {
 	case ap.FollowType:
 		activitypub.Follow(ctx, activity)
@@ -143,11 +162,11 @@ func PersonOutbox(ctx *context.APIContext) {
 	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:   ctx.ContextUser,
-		Actor:           ctx.ContextUser,
-		IncludePrivate:  false,
-		IncludeDeleted:  false,
-		ListOptions:     db.ListOptions{Page: 1, PageSize: 1000000},
+		RequestedUser:  ctx.ContextUser,
+		Actor:          ctx.ContextUser,
+		IncludePrivate: false,
+		IncludeDeleted: false,
+		ListOptions:    db.ListOptions{Page: 1, PageSize: 1000000},
 	})
 	if err != nil {
 		ctx.ServerError("Couldn't fetch feed", err)
@@ -172,7 +191,7 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	for _, star := range stars {
 		object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
-		object.Content.Set("en", ap.Content("Starred " + star.Name))
+		object.Content.Set("en", ap.Content("Starred "+star.Name))
 		create := ap.Create{Type: ap.CreateType, Object: object}
 		outbox.OrderedItems.Append(create)
 	}

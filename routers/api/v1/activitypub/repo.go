@@ -7,6 +7,7 @@ package activitypub
 import (
 	"io"
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/forgefed"
 	"code.gitea.io/gitea/modules/activitypub"
@@ -102,12 +103,26 @@ func RepoInbox(ctx *context.APIContext) {
 		return
 	}
 
+	// Make sure keyID matches the user doing the activity
+	_, keyID, _ := getKeyID(ctx.Req)
+	actor, ok := activity["actor"]
+	if ok && !strings.HasPrefix(keyID, actor.(string)) {
+		ctx.ServerError("Actor does not match HTTP signature keyID", nil)
+		return
+	}
+	attributedTo, ok := activity["attributedTo"]
+	if ok && !strings.HasPrefix(keyID, attributedTo.(string)) {
+		ctx.ServerError("AttributedTo does not match HTTP signature keyID", nil)
+		return
+	}
+
+	// Process activity
 	switch activity["type"].(ap.ActivityVocabularyType) {
 	case ap.CreateType:
 		// Create activity, extract the object
 		object, ok := activity["object"].(map[string]interface{})
 		if ok {
-			ctx.ServerError("Activity does not contain object", err)
+			ctx.ServerError("Create activity does not contain object", err)
 			return
 		}
 		objectBinary, err := json.Marshal(object)

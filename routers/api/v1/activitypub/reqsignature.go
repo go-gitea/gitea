@@ -42,15 +42,22 @@ func getPublicKeyFromResponse(b []byte, keyID *url.URL) (p crypto.PublicKey, err
 	return p, err
 }
 
+func getKeyID(r *http.Request) (httpsig.Verifier, string, error) {
+	v, err := httpsig.NewVerifier(r)
+	if err != nil {
+		return nil, "", err
+	}
+	return v, v.KeyId(), nil
+}
+
 func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, err error) {
 	r := ctx.Req
 
 	// 1. Figure out what key we need to verify
-	v, err := httpsig.NewVerifier(r)
+	v, ID, err := getKeyID(r)
 	if err != nil {
 		return
 	}
-	ID := v.KeyId()
 	idIRI, err := url.Parse(ID)
 	if err != nil {
 		return
@@ -65,7 +72,6 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 		return
 	}
 	// 3. Verify the other actor's key
-	// TODO: Verify attributedTo matches keyID
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
 	authenticated = v.Verify(pubKey, algo) == nil
 	return authenticated, err
