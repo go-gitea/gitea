@@ -106,8 +106,6 @@ require (
 	gopkg.in/ini.v1 v1.66.4
 	gopkg.in/yaml.v2 v2.4.0
 	mvdan.cc/xurls/v2 v2.4.0
-	src.techknowlogick.com/monster-id v0.0.0-20210202042845-b14361e87496
-	src.techknowlogick.com/wavatars v0.0.0-20190220172003-d08f03a6b865
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.11
 	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
