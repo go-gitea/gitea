@@ -10,23 +10,16 @@
 			<a href="{{AppSubUrl}}/notifications?q=read" class="{{if eq .Status 2}}active{{end}} item">
 				{{.locale.Tr "notification.read"}}
 			</a>
-			<div class="right item p-1">
-				<a href="{{AppSubUrl}}/notifications/subscriptions">
-					<button class="ui mini button primary" title='{{$.locale.Tr "notification.subscriptions"}}'>
-						{{svg "octicon-unmute"}}
-					</button>
-				</a>
-				{{if and (eq .Status 1)}}
+        {{if and (eq .Status 1)}}
 					<form action="{{AppSubUrl}}/notifications/purge" method="POST" style="margin-left: auto;">
-						{{$.CsrfTokenHtml}}
+              {{$.CsrfTokenHtml}}
 						<div class="{{if not $notificationUnreadCount}}hide{{end}}">
 							<button class="ui mini button primary" title='{{$.locale.Tr "notification.mark_all_as_read"}}'>
-								{{svg "octicon-checklist"}}
+                  {{svg "octicon-checklist"}}
 							</button>
 						</div>
 					</form>
-				{{end}}
-			</div>
+        {{end}}
 		</div>
 		<div class="ui bottom attached active tab segment">
 			{{if eq (len .Notifications) 0}}
