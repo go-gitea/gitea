@@ -328,7 +328,7 @@ a.commit-statuses-trigger {
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
 
-  &:not(:focus):not(:hover) {
+  &:not(:focus,:hover) {
     border-right-color: transparent;
   }
 }
@@ -1207,7 +1207,7 @@ a.ui.card:hover,
 
   &.pagination.menu {
     @media @mediaSm {
-      .item:not(.active):not(.navigation),
+      .item:not(.active,.navigation),
       .item.navigation span.navigation_label {
         display: none;
       }
