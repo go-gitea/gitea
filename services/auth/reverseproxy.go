@@ -41,7 +41,7 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 	if len(webAuthUser) == 0 {
 		email := req.Header.Get(setting.ReverseProxyAuthEmail)
 		webAuthUser := strings.Split(email, "@")
-		return ""
+		return webAuthUser
 	}
 	return webAuthUser
 }
