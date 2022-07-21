@@ -7,22 +7,13 @@ import (
 	"bytes"
 	"encoding/base64"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"testing"
 
-	_ "code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/stretchr/testify/assert"
 )
-
-func TestMain(m *testing.M) {
-	unittest.MainTest(m, &unittest.TestOptions{
-		GiteaRootPath: filepath.Join("..", "..", ".."),
-	})
-}
 
 func TestParsePackage(t *testing.T) {
 	packageScope := "@scope"
