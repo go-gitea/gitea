@@ -19,13 +19,13 @@ import (
 // AddCacheControlToHeader adds suitable cache-control headers to response
 func AddCacheControlToHeader(h http.Header, d time.Duration) {
 	if setting.IsProd {
-		h.Set("Cache-Control", "private, max-age="+strconv.Itoa(int(d.Seconds())))
+		h.Set("Cache-Control", "private, no-transform, max-age="+strconv.Itoa(int(d.Seconds())))
 	} else {
-		h.Set("Cache-Control", "no-store")
+		h.Set("Cache-Control", "no-store, no-transform")
 		// to remind users they are using non-prod setting.
 		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
-		h.Add("X-Gitea-Debug", "CacheControl=no-store")
+		h.Add("X-Gitea-Debug", "CacheControl=no-store, no-transform")
 	}
 }
 

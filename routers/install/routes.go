@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/http"
 	"path"
+	"time"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -62,6 +64,7 @@ func installRecovery() func(next http.Handler) http.Handler {
 						"SignedUserName": "",
 					}
 
+					httpcache.AddCacheControlToHeader(w.Header(), 0*time.Second)
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {
