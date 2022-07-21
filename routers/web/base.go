@@ -158,7 +158,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						store["SignedUserName"] = ""
 					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0, true)
+					httpcache.AddCacheControlToHeader(w.Header(), 0, []string{"no-tranform"})
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {

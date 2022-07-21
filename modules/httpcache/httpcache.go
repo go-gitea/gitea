@@ -17,25 +17,20 @@ import (
 )
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, d time.Duration, noTranform bool) {
+func AddCacheControlToHeader(h http.Header, d time.Duration, additionalDirectives []string) {
 	directives := []string{}
 
 	if setting.IsProd {
 		directives = append(directives, "private")
-		if noTranform {
-			directives = append(directives, "no-transform")
-		}
 		directives = append(directives, "max-age="+strconv.Itoa(int(d.Seconds())))
 	} else {
 		directives = append(directives, "no-store")
-		if noTranform {
-			directives = append(directives, "no-transform")
-		}
 
 		// to remind users they are using non-prod setting.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
 	}
 
+	directives = append(directives, additionalDirectives...)
 	h.Set("Cache-Control", strings.Join(directives, ", "))
 }
 
@@ -52,7 +47,7 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 
 // HandleGenericTimeCache handles time-based caching for a HTTP request
 func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
 
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
@@ -83,7 +78,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
 	return false
 }
 
@@ -127,6 +122,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
 	return false
 }
