@@ -85,6 +85,12 @@ func createDefaultPolicy() *bluemonday.Policy {
 	// Allow icons, emojis, chroma syntax and keyword markup on span
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
 
+	// Allow 'style' attribute on text elements.
+	policy.AllowAttrs("style").OnElements("span", "p")
+
+	// Allow 'color' property for the style attribute on text elements.
+	policy.AllowStyles("color").OnElements("span", "p")
+
 	// Allow generally safe attributes
 	generalSafeAttrs := []string{
 		"abbr", "accept", "accept-charset",

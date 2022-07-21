@@ -29,28 +29,30 @@
 							{{end}}
 						</div>
 					</div>
-					<div class="ui three wide column center">
-						<div class="meta">
-							{{$.locale.Tr "org.members.member_role"}}
+					{{if not .PublicOnly}}
+						<div class="ui three wide column center">
+							<div class="meta">
+								{{$.locale.Tr "org.members.member_role"}}
+							</div>
+							<div class="meta">
+								<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{$.locale.Tr "org.members.owner"}}{{else}}{{$.locale.Tr "org.members.member"}}{{end}}</strong>
+							</div>
 						</div>
-						<div class="meta">
-							<strong>{{if index $.MembersIsUserOrgOwner .ID}}{{svg "octicon-shield-lock"}} {{$.locale.Tr "org.members.owner"}}{{else}}{{$.locale.Tr "org.members.member"}}{{end}}</strong>
+						<div class="ui two wide column center">
+							<div class="meta">
+								{{$.locale.Tr "admin.users.2fa"}}
+							</div>
+							<div class="meta">
+								<strong>
+									{{if index $.MembersTwoFaStatus .ID}}
+										<span class="text green">{{svg "octicon-check"}}</span>
+									{{else}}
+										{{svg "octicon-x"}}
+									{{end}}
+								</strong>
+							</div>
 						</div>
-					</div>
-					<div class="ui two wide column center">
-						<div class="meta">
-							{{$.locale.Tr "admin.users.2fa"}}
-						</div>
-						<div class="meta">
-							<strong>
-								{{if index $.MembersTwoFaStatus .ID}}
-									<span class="text green">{{svg "octicon-check"}}</span>
-								{{else}}
-									{{svg "octicon-x"}}
-								{{end}}
-							</strong>
-						</div>
-					</div>
+					{{end}}
 					<div class="ui three wide column">
 						<div class="text right">
 							{{if eq $.SignedUser.ID .ID}}
