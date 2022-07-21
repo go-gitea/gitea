@@ -728,14 +728,9 @@ func checkHomeCodeViewable(ctx *context.Context) {
 	ctx.NotFound("Home", fmt.Errorf(ctx.Tr("units.error.no_unit_allowed_repo")))
 }
 
-func checkCitationFile(ctx *context.Context) {
+func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
 	// Check if repo is not empty and if we are on repo src
 	if ctx.Repo.Repository.IsEmpty {
-		return
-	}
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
-	if err != nil {
-		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
 	}
 	if entry.Name() != "" {
@@ -783,15 +778,10 @@ func Home(ctx *context.Context) {
 		return
 	}
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
-	checkCitationFile(ctx)
-	if ctx.Written() {
-		return
-	}
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
 	}
-
 	renderCode(ctx)
 }
 
@@ -1001,6 +991,10 @@ func renderCode(ctx *context.Context) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
+		return
+	}
+	checkCitationFile(ctx, entry)
+	if ctx.Written() {
 		return
 	}
 
