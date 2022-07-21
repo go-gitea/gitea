@@ -18,7 +18,7 @@ import (
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
 func AddCacheControlToHeader(h http.Header, d time.Duration, additionalDirectives []string) {
-	directives := []string{}
+	directives := make([]string, 0, 2+len(additionalDirectives))
 
 	if setting.IsProd {
 		directives = append(directives, "private")
@@ -47,7 +47,7 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 
 // HandleGenericTimeCache handles time-based caching for a HTTP request
 func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, nil)
 
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
@@ -78,7 +78,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, nil)
 	return false
 }
 
@@ -122,6 +122,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, []string{})
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, nil)
 	return false
 }
