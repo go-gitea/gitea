@@ -157,7 +157,11 @@ func DeleteAuthenticatedUser(ctx *context.APIContext) {
 	// summary: Delete the authenticated user
 	// produces:
 	// - application/json
-	// responses:
+	// parameters:
+	// - name: purge
+	//   in: query
+	//   description: Purge user, all their repositories, organizations and comments
+	//   type: boolean
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"

@@ -11690,6 +11690,14 @@
         ],
         "summary": "Delete the authenticated user",
         "operationId": "userDeleteCurrent",
+        "parameters": [
+          {
+            "type": "boolean",
+            "description": "Purge user, all their repositories, organizations and comments",
+            "name": "purge",
+            "in": "query"
+          }
+        ],
         "responses": {
           "204": {
             "$ref": "#/responses/empty"
