@@ -16,13 +16,9 @@ const initInputCitationValue = async () => {
   config.constants.fieldTypes.doi = ['field', 'literal'];
   config.constants.fieldTypes.version = ['field', 'literal'];
   const citationFormatter = new Cite(citiationFileContent);
-  const apaOutput = citationFormatter.format('bibliography', {
-    template: 'apa',
-    lang: document.documentElement.lang || 'en-US'
-  });
-  const bibtexOutput = citationFormatter.format('bibtex', {
-    lang: document.documentElement.lang || 'en-US'
-  });
+  const lang = document.documentElement.lang || 'en-US';
+  const apaOutput = citationFormatter.format('bibliography', {template: 'apa', lang});
+  const bibtexOutput = citationFormatter.format('bibtex', {lang});
   $citationCopyBibtex.attr('data-text', bibtexOutput);
   $citationCopyApa.attr('data-text', apaOutput);
 };
@@ -46,12 +42,6 @@ export function initCitationFileCopyContent() {
     $citationCopyApa.toggleClass('primary', !isBibtex);
   };
   initInputCitationValue().then(updateUi);
-
-  setTimeout(() => {
-    // restore animation after first init
-    $citationCopyApa.removeClass('no-transition');
-    $citationCopyBibtex.removeClass('no-transition');
-  }, 100);
 
   $citationCopyApa.on('click', () => {
     localStorage.setItem('citation-copy-format', 'apa');
