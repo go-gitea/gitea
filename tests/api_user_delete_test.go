@@ -18,8 +18,8 @@ func TestAPIDeleteUser(t *testing.T) {
 
 	// 1 -> Admin
 	// 8 -> Normal user
-	for _, userId := range []int{1, 8} {
-		username := fmt.Sprintf("user%d", userId)
+	for _, userID := range []int{1, 8} {
+		username := fmt.Sprintf("user%d", userID)
 		t.Logf("Testing username %s", username)
 
 		session := loginUser(t, username)
@@ -28,7 +28,7 @@ func TestAPIDeleteUser(t *testing.T) {
 		req := NewRequest(t, "DELETE", "/api/v1/user?token="+token)
 		session.MakeRequest(t, req, http.StatusNoContent)
 
-		assertUserDeleted(t, int64(userId))
+		assertUserDeleted(t, int64(userID))
 		unittest.CheckConsistencyFor(t, &user_model.User{})
 	}
 }
