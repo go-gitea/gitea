@@ -30,7 +30,7 @@ linters:
 
 run:
   go: 1.18
-  timeout: 10m
+  timeout: 20m
   skip-dirs:
     - node_modules
     - public
@@ -40,7 +40,7 @@ linters-settings:
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
-    max-func-lines: 0 
+    max-func-lines: 0
   gocritic:
     disabled-checks:
       - ifElseChain
