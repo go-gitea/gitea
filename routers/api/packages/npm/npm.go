@@ -169,6 +169,26 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
+	repo, err := repo_model.GetRepositoryByURL(npmPackage.Metadata.RepositoryURL)
+	if err == nil {
+		flag := repo.OwnerID == ctx.Doer.ID
+
+		if !flag {
+			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+			if err != nil {
+				apiError(ctx, http.StatusInternalServerError, err)
+				return
+			}
+
+			flag = perms.CanWrite(unit.TypePackages)
+		}
+
+		if !flag {
+			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
+			return
+		}
+	}
+
 	buf, err := packages_module.CreateHashedBufferFromReader(bytes.NewReader(npmPackage.Data), 32*1024*1024)
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -220,19 +240,10 @@ func UploadPackage(ctx *context.Context) {
 		}
 	}
 
-	repo, err := repo_model.GetRepositoryByURL(npmPackage.Metadata.RepositoryURL)
-	if err == nil {
-		flag := repo.OwnerID == ctx.Doer.ID
-
-		if !flag {
-			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
-			flag = err == nil && perms.CanWrite(unit.TypePackages)
-		}
-
-		if flag {
-			if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
-				ctx.ServerError("SetRepositoryLink", err)
-			}
+	if repo != nil {
+		if err := packages_model.SetRepositoryLink(ctx, pv.PackageID, repo.ID); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
 		}
 	}
 
