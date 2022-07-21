@@ -494,7 +494,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
