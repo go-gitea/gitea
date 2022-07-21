@@ -41,10 +41,10 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 	if len(webAuthUser) == 0 {
 		email := strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthEmail))
 		if len(email) == 0 {
-+     return ""
-+   }
-	webAuthUser := strings.Split(email, "@")[0]
-	return webAuthUser
+    	return ""
+   	}
+		webAuthUser := strings.Split(email, "@")[0]
+		return webAuthUser
 	}
 	return webAuthUser
 }
