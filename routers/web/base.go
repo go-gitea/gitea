@@ -12,7 +12,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -159,7 +158,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						store["SignedUserName"] = ""
 					}
 
-					httpcache.AddCacheControlToHeader(w.Header(), 0*time.Second, true)
+					httpcache.AddCacheControlToHeader(w.Header(), 0, true)
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {
