@@ -149,7 +149,7 @@ function updateStopwatchData(data) {
 
 function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
-  if (!Number.isFinite(secs)) return;
+  if (!Number.isFinite(secs)) return null;
 
   const start = Date.now();
   return setInterval(() => {
