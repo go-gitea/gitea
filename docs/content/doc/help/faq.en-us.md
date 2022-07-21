@@ -407,4 +407,5 @@ It is highly recommended to back-up your database before running these commands.
 
 ## Why are tabs/indents wrong when viewing files
 
-If you are using Cloudflare, turn off the auto-minify option in the dashboard.
+If you are using Cloudflare, turn off the auto-minify option in the dashboard.  
+`Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.
