@@ -131,7 +131,7 @@
 								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.BranchName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
 								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 								{{if .CitiationExist}}
-									<a class="item" onClick="$('#cite-repo-modal').modal('show')">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
+									<a class="item" id="cite-repo-button">{{svg "octicon-cross-reference" 16 "mr-3"}}{{.locale.Tr "repo.cite_this_repo"}}</a>
 								{{end}}
 							</div>
 						</button>

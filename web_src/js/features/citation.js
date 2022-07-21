@@ -55,4 +55,8 @@ export function initCitationFileCopyContent() {
   $inputContent.on('click', () => {
     $inputContent.select();
   });
+
+  $('#cite-repo-button').on('click', () => {
+    $('#cite-repo-modal').modal('show');
+  });
 }
