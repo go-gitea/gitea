@@ -729,10 +729,6 @@ func checkHomeCodeViewable(ctx *context.Context) {
 }
 
 func checkCitationFile(ctx *context.Context, entry *git.TreeEntry) {
-	// Check if repo is not empty and if we are on repo src
-	if ctx.Repo.Repository.IsEmpty {
-		return
-	}
 	if entry.Name() != "" {
 		return
 	}
@@ -993,9 +989,11 @@ func renderCode(ctx *context.Context) {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
 	}
-	checkCitationFile(ctx, entry)
-	if ctx.Written() {
-		return
+	if !ctx.Repo.Repository.IsEmpty {
+		checkCitationFile(ctx, entry)
+		if ctx.Written() {
+			return
+		}
 	}
 
 	renderLanguageStats(ctx)
