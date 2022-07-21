@@ -399,7 +399,7 @@ rules:
   sonarjs/no-useless-catch: [0]
   sonarjs/non-existent-operator: [2]
   sonarjs/prefer-immediate-return: [0]
-  sonarjs/prefer-object-literal: [2]
+  sonarjs/prefer-object-literal: [0]
   sonarjs/prefer-single-boolean-return: [0]
   sonarjs/prefer-while: [2]
   sort-imports: [0]
