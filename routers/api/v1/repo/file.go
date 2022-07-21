@@ -33,6 +33,10 @@ import (
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
+const (
+	giteaContentTypeHeader = "X-Gitea-Content-Type"
+)
+
 // GetRawFile get a file by path on a repository
 func GetRawFile(ctx *context.APIContext) {
 	// swagger:operation GET /repos/{owner}/{repo}/raw/{filepath} repository repoGetRawFile
@@ -72,10 +76,13 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaContentTypeHeader,
+		string(files_service.GetContentTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
@@ -119,10 +126,13 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaContentTypeHeader,
+		string(files_service.GetContentTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > 1024 {
@@ -218,7 +228,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 }
 
-func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -251,7 +261,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 	}
 	blob = entry.Blob()
 
-	return blob, lastModified
+	return blob, entry, lastModified
 }
 
 // GetArchive get archive of a repository
