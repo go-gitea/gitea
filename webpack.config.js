@@ -50,7 +50,6 @@ export default {
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
-      fileURLToPath(new URL('web_src/less/misc.css', import.meta.url)),
       fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
     ],
     swagger: [

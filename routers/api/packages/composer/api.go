@@ -76,7 +76,7 @@ type PackageVersionMetadata struct {
 	Dist    Dist      `json:"dist"`
 }
 
-// Dist contains package download informations
+// Dist contains package download information
 type Dist struct {
 	Type     string `json:"type"`
 	URL      string `json:"url"`
