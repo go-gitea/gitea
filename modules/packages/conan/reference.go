@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 )
@@ -54,7 +55,9 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 	if !namePattern.MatchString(name) {
 		return nil, ErrValidation
 	}
-	if strings.TrimSpace(version) == "" {
+
+	v := strings.TrimSpace(version)
+	if v == "" {
 		return nil, ErrValidation
 	}
 	if user != "" && !namePattern.MatchString(user) {
@@ -67,7 +70,7 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 		return nil, ErrValidation
 	}
 
-	return &RecipeReference{name, version, user, channel, revision}, nil
+	return &RecipeReference{name, v, user, channel, revision}, nil
 }
 
 func (r *RecipeReference) RevisionOrDefault() string {
