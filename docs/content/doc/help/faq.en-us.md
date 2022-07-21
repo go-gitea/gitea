@@ -403,3 +403,8 @@ gitea doctor recreate-table
 ```
 
 It is highly recommended to back-up your database before running these commands.
+
+
+## Why are tabs/indents wrong when viewing files
+
+If you are using Cloudflare, turn off the auto-minify option in the dashboard.
