@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
@@ -155,9 +156,10 @@ func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 		return "", "", "", errors.New("Invalid package name or filename")
 	}
 
-	if strings.TrimSpace(packageVersion) == "" {
+	v := strings.TrimSpace(packageVersion)
+	if v == "" {
 		return "", "", "", errors.New("Invalid package version")
 	}
 
-	return packageName, packageVersion, filename, nil
+	return packageName, v, filename, nil
 }
