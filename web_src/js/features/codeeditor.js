@@ -164,13 +164,13 @@ export async function createCodeEditor(textarea, filenameInput, previewFileModes
 function getEditorConfigOptions(ec) {
   if (!isObject(ec)) return {};
 
-  const opts = {};
-  opts.detectIndentation = !('indent_style' in ec) || !('indent_size' in ec);
-  if ('indent_size' in ec) opts.indentSize = Number(ec.indent_size);
-  if ('tab_width' in ec) opts.tabSize = Number(ec.tab_width) || opts.indentSize;
-  if ('max_line_length' in ec) opts.rulers = [Number(ec.max_line_length)];
-  opts.trimAutoWhitespace = ec.trim_trailing_whitespace === true;
-  opts.insertSpaces = ec.indent_style === 'space';
-  opts.useTabStops = ec.indent_style === 'tab';
-  return opts;
+  return {
+    detectIndentation: !('indent_style' in ec) || !('indent_size' in ec),
+    trimAutoWhitespace: ec.trim_trailing_whitespace === true,
+    insertSpaces: ec.indent_style === 'space',
+    useTabStops: ec.indent_style === 'tab',
+    ...('indent_size' in ec && {indentSize: Number(ec.indent_size)}),
+    ...('tab_width' in ec && {tabSize: Number(ec.tab_width) || Number(ec.indent_size)}),
+    ...('max_line_length' in ec && {rulers: [Number(ec.max_line_length)]}),
+  };
 }
