@@ -17,16 +17,26 @@ import (
 )
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, d time.Duration) {
+func AddCacheControlToHeader(h http.Header, d time.Duration, noTranform bool) {
+	directives := []string{}
+
 	if setting.IsProd {
-		h.Set("Cache-Control", "private, no-transform, max-age="+strconv.Itoa(int(d.Seconds())))
+		directives = append(directives, "private")
+		if noTranform {
+			directives = append(directives, "no-transform")
+		}
+		directives = append(directives, "max-age="+strconv.Itoa(int(d.Seconds())))
 	} else {
-		h.Set("Cache-Control", "no-store, no-transform")
+		directives = append(directives, "no-store")
+		if noTranform {
+			directives = append(directives, "no-transform")
+		}
+
 		// to remind users they are using non-prod setting.
-		// some users may be confused by "Cache-Control: no-store" in their setup if they did wrong to `RUN_MODE` in `app.ini`.
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
-		h.Add("X-Gitea-Debug", "CacheControl=no-store, no-transform")
 	}
+
+	h.Set("Cache-Control", strings.Join(directives, ", "))
 }
 
 // generateETag generates an ETag based on size, filename and file modification time
@@ -42,7 +52,7 @@ func HandleTimeCache(req *http.Request, w http.ResponseWriter, fi os.FileInfo) (
 
 // HandleGenericTimeCache handles time-based caching for a HTTP request
 func HandleGenericTimeCache(req *http.Request, w http.ResponseWriter, lastModified time.Time) (handled bool) {
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
 
 	ifModifiedSince := req.Header.Get("If-Modified-Since")
 	if ifModifiedSince != "" {
@@ -73,7 +83,7 @@ func HandleGenericETagCache(req *http.Request, w http.ResponseWriter, etag strin
 			return true
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
 	return false
 }
 
@@ -117,6 +127,6 @@ func HandleGenericETagTimeCache(req *http.Request, w http.ResponseWriter, etag s
 			}
 		}
 	}
-	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime)
+	AddCacheControlToHeader(w.Header(), setting.StaticCacheTime, false)
 	return false
 }
