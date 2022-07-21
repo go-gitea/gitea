@@ -101,8 +101,8 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	return fileList, nil
 }
 
-// GetContentTypeFromTreeEntry check what content is behind it
-func GetContentTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
+// GetObjectTypeFromTreeEntry check what content is behind it
+func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
 	switch {
 	case entry.IsDir():
 		return ContentTypeDir

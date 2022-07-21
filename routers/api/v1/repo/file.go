@@ -82,7 +82,7 @@ func GetRawFile(ctx *context.APIContext) {
 	}
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader,
-		string(files_service.GetContentTypeFromTreeEntry(entry)))
+		string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
@@ -132,7 +132,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 
 	ctx.RespHeader().Set(giteaObjectTypeHeader,
-		string(files_service.GetContentTypeFromTreeEntry(entry)))
+		string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > 1024 {
