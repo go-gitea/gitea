@@ -140,7 +140,7 @@ function updateStopwatchData(data) {
     $('.stopwatch-cancel').attr('action', `${issueUrl}/times/stopwatch/cancel`);
     $('.stopwatch-issue').text(`${repo_owner_name}/${repo_name}#${issue_index}`);
     $('.stopwatch-time').text(prettyMilliseconds(seconds * 1000));
-    updateStopwatchTime(seconds);
+    updateTimeInterval = updateStopwatchTime(seconds);
     btnEl.removeClass('hidden');
   }
 
@@ -149,10 +149,10 @@ function updateStopwatchData(data) {
 
 function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
-  if (!Number.isFinite(secs)) return;
+  if (!Number.isFinite(secs)) return null;
 
   const start = Date.now();
-  updateTimeInterval = setInterval(() => {
+  return setInterval(() => {
     const delta = Date.now() - start;
     const dur = prettyMilliseconds(secs * 1000 + delta, {compact: true});
     $('.stopwatch-time').text(dur);
