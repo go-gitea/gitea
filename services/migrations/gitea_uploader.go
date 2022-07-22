@@ -747,14 +747,13 @@ func convertReviewState(state string) issues_model.ReviewType {
 	}
 }
 
-// CreateReviews create pull request reviews of currently migrated issues
-func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+func (g *GiteaLocalUploader) prepareReviews(reviews ...*base.Review) ([]*issues_model.Review, error) {
 	cms := make([]*issues_model.Review, 0, len(reviews))
 	for _, review := range reviews {
 		var issue *issues_model.Issue
 		issue, ok := g.issues[review.IssueIndex]
 		if !ok {
-			return fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
+			return nil, fmt.Errorf("review references non existent IssueIndex %d", review.IssueIndex)
 		}
 		if review.CreatedAt.IsZero() {
 			review.CreatedAt = time.Unix(int64(issue.CreatedUnix), 0)
@@ -770,7 +769,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 		}
 
 		if err := g.remapUser(review, &cm); err != nil {
-			return err
+			return nil, err
 		}
 
 		// get pr
@@ -779,7 +778,7 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			var err error
 			pr, err = issues_model.GetPullRequestByIssueIDWithNoAttributes(issue.ID)
 			if err != nil {
-				return err
+				return nil, err
 			}
 			g.prCache[issue.ID] = pr
 		}
@@ -833,13 +832,23 @@ func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
 			}
 
 			if err := g.remapUser(review, &c); err != nil {
-				return err
+				return nil, err
 			}
 
 			cm.Comments = append(cm.Comments, &c)
 		}
 
 		cms = append(cms, &cm)
+	}
+
+	return cms, nil
+}
+
+// CreateReviews create pull request reviews of currently migrated issues
+func (g *GiteaLocalUploader) CreateReviews(reviews ...*base.Review) error {
+	cms, err := g.prepareReviews(reviews...)
+	if err != nil {
+		return err
 	}
 
 	return issues_model.InsertReviews(cms)
@@ -932,7 +941,12 @@ func (g *GiteaLocalUploader) PatchPullRequests(prs ...*base.PullRequest) error {
 }
 
 func (g *GiteaLocalUploader) PatchReviews(reviews ...*base.Review) error {
-	return nil
+	cms, err := g.prepareReviews(reviews...)
+	if err != nil {
+		return err
+	}
+
+	return issues_model.UpsertReviews(cms)
 }
 
 // Rollback when migrating failed, this will rollback all the changes.

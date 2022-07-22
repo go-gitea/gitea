@@ -626,17 +626,7 @@ func InsertReviews(reviews []*Review) error {
 			return err
 		}
 
-		if _, err := sess.NoAutoTime().Insert(&Comment{
-			Type:             CommentTypeReview,
-			Content:          review.Content,
-			PosterID:         review.ReviewerID,
-			OriginalAuthor:   review.OriginalAuthor,
-			OriginalAuthorID: review.OriginalAuthorID,
-			IssueID:          review.IssueID,
-			ReviewID:         review.ID,
-			CreatedUnix:      review.CreatedUnix,
-			UpdatedUnix:      review.UpdatedUnix,
-		}); err != nil {
+		if _, err := sess.NoAutoTime().Insert(generateCommentFromReview(review)); err != nil {
 			return err
 		}
 
@@ -652,6 +642,112 @@ func InsertReviews(reviews []*Review) error {
 	}
 
 	return committer.Commit()
+}
+
+// UpsertReviews inserts new reviews and updates existing ones.
+// This function is used for syncing from the pull mirror.
+func UpsertReviews(reviews []*Review) error {
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer committer.Close()
+	sess := db.GetEngine(ctx)
+
+	for _, review := range reviews {
+		exists, err := sess.Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Exist(&Review{})
+		if err != nil {
+			return err
+		}
+
+		if !exists {
+			if _, err := sess.NoAutoTime().Insert(review); err != nil {
+				return err
+			}
+
+			if _, err := sess.NoAutoTime().Insert(generateCommentFromReview(review)); err != nil {
+				return err
+			}
+
+			for _, c := range review.Comments {
+				c.ReviewID = review.ID
+			}
+
+			if len(review.Comments) > 0 {
+				if _, err := sess.NoAutoTime().Insert(review.Comments); err != nil {
+					return err
+				}
+			}
+		} else {
+			if _, err = sess.NoAutoTime().Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Update(review); err != nil {
+				return err
+			}
+
+			// Get id of the review
+			if err = sess.NoAutoTime().Where("issue_id = ? AND created_unix", review.IssueID, review.CreatedUnix).Find(review); err != nil {
+				return err
+			}
+
+			comment := generateCommentFromReview(review)
+			exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
+			if err != nil {
+				return err
+			}
+
+			if !exists {
+				if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+					return err
+				}
+			} else {
+				if _, err := sess.NoAutoTime().Where("review_id = ? AND created_unix = ?", review.ID, comment.CreatedUnix).Update(comment); err != nil {
+					return err
+				}
+			}
+
+			for _, c := range review.Comments {
+				c.ReviewID = review.ID
+			}
+
+			if len(review.Comments) > 0 {
+				for _, comment := range review.Comments {
+					exists, err := existsCommentByReviewIDAndCreatedUnix(sess, comment)
+					if err != nil {
+						return err
+					}
+
+					if !exists {
+						if _, err := sess.NoAutoTime().Insert(comment); err != nil {
+							return err
+						}
+					} else {
+						if _, err := sess.NoAutoTime().Where("review_id = ? AND created_unix = ?", review.ID, comment.CreatedUnix).Update(comment); err != nil {
+							return err
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return committer.Commit()
+}
+
+func existsCommentByReviewIDAndCreatedUnix(sess db.Engine, comment *Comment) (bool, error) {
+	return sess.Where("review_id = ? AND created_unix = ?", comment.ReviewID, comment.CreatedUnix).Exist(&Comment{})
+}
+
+func generateCommentFromReview(review *Review) *Comment {
+	return &Comment{
+		Type:             CommentTypeReview,
+		Content:          review.Content,
+		PosterID:         review.ReviewerID,
+		OriginalAuthor:   review.OriginalAuthor,
+		OriginalAuthorID: review.OriginalAuthorID,
+		IssueID:          review.IssueID,
+		ReviewID:         review.ID,
+		CreatedUnix:      review.CreatedUnix,
+		UpdatedUnix:      review.UpdatedUnix,
+	}
 }
 
 // AddReviewRequest add a review request from one reviewer
