@@ -58,7 +58,7 @@ func (repo *Repository) ResolveBranch(name string) (string, bool) {
 		return "", false
 	}
 
-	if repo.IsReferenceExist(name) {
+	if strings.HasPrefix(name, BranchPrefix) && repo.IsReferenceExist(name) {
 		return name, true
 	}
 	if repo.IsReferenceExist(BranchPrefix + name) {
