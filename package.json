@@ -50,6 +50,7 @@
     "eslint": "8.20.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jquery": "1.5.1",
+    "eslint-plugin-sonarjs": "0.13.0",
     "eslint-plugin-unicorn": "43.0.2",
     "eslint-plugin-vue": "9.2.0",
     "jest": "28.1.3",

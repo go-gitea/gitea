@@ -12,6 +12,7 @@ plugins:
   - eslint-plugin-unicorn
   - eslint-plugin-import
   - eslint-plugin-jquery
+  - eslint-plugin-sonarjs
 
 env:
   es2022: true
@@ -369,6 +370,38 @@ rules:
   semi-spacing: [2, {before: false, after: true}]
   semi-style: [2, last]
   semi: [2, always, {omitLastInOneLineBlock: true}]
+  sonarjs/cognitive-complexity: [0]
+  sonarjs/elseif-without-else: [0]
+  sonarjs/max-switch-cases: [0]
+  sonarjs/no-all-duplicated-branches: [2]
+  sonarjs/no-collapsible-if: [0]
+  sonarjs/no-collection-size-mischeck: [2]
+  sonarjs/no-duplicate-string: [0]
+  sonarjs/no-duplicated-branches: [0]
+  sonarjs/no-element-overwrite: [2]
+  sonarjs/no-empty-collection: [2]
+  sonarjs/no-extra-arguments: [0]
+  sonarjs/no-gratuitous-expressions: [2]
+  sonarjs/no-identical-conditions: [2]
+  sonarjs/no-identical-expressions: [0]
+  sonarjs/no-identical-functions: [0]
+  sonarjs/no-ignored-return: [2]
+  sonarjs/no-inverted-boolean-check: [2]
+  sonarjs/no-nested-switch: [0]
+  sonarjs/no-nested-template-literals: [0]
+  sonarjs/no-one-iteration-loop: [2]
+  sonarjs/no-redundant-boolean: [2]
+  sonarjs/no-redundant-jump: [0]
+  sonarjs/no-same-line-conditional: [2]
+  sonarjs/no-small-switch: [0]
+  sonarjs/no-unused-collection: [2]
+  sonarjs/no-use-of-empty-return-value: [2]
+  sonarjs/no-useless-catch: [0]
+  sonarjs/non-existent-operator: [2]
+  sonarjs/prefer-immediate-return: [0]
+  sonarjs/prefer-object-literal: [0]
+  sonarjs/prefer-single-boolean-return: [0]
+  sonarjs/prefer-while: [2]
   sort-imports: [0]
   sort-keys: [0]
   sort-vars: [0]
