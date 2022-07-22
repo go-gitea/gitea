@@ -13,21 +13,21 @@ import (
 )
 
 // CacheCommit will cache the commit from the gitRepository
-func (commit *Commit) CacheCommit(ctx context.Context) error {
-	if commit.repo.LastCommitCache == nil {
+func (c *Commit) CacheCommit(ctx context.Context) error {
+	if c.repo.LastCommitCache == nil {
 		return nil
 	}
-	commitNodeIndex, _ := commit.repo.CommitNodeIndex()
+	commitNodeIndex, _ := c.repo.CommitNodeIndex()
 
-	index, err := commitNodeIndex.Get(commit.ID)
+	index, err := commitNodeIndex.Get(c.ID)
 	if err != nil {
 		return err
 	}
 
-	return commit.recursiveCache(ctx, index, &commit.Tree, "", 1)
+	return c.recursiveCache(ctx, index, &c.Tree, "", 1)
 }
 
-func (commit *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
+func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -44,7 +44,7 @@ func (commit *Commit) recursiveCache(ctx context.Context, index cgobject.CommitN
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, index, treePath, entryPaths)
+	commits, err := GetLastCommitForPaths(ctx, c.repo.LastCommitCache, index, treePath, entryPaths)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func (commit *Commit) recursiveCache(ctx context.Context, index cgobject.CommitN
 			if err != nil {
 				return err
 			}
-			if err := commit.recursiveCache(ctx, index, subTree, entry, level-1); err != nil {
+			if err := c.recursiveCache(ctx, index, subTree, entry, level-1); err != nil {
 				return err
 			}
 		}
