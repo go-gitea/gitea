@@ -5,6 +5,7 @@ export async function initMcaptcha() {
   }
 
   const {default: mCaptcha} = await import(/* webpackChunkName: "mcaptcha-vanilla-glue" */'@mcaptcha/vanilla-glue');
+  mCaptcha.INPUT_NAME = 'm-captcha-response';
   const siteKey = siteKeyEl.getAttribute('data-sitekey');
 
   mCaptcha.default({
