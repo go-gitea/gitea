@@ -59,25 +59,18 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 	}
 
 	if opts.Actor != nil {
-		exprCond := builder.Expr("org_user.org_id = `user`.id")
-
 		// If Admin - they see all users!
 		if !opts.Actor.IsAdmin {
-			// Force visibility for privacy
-			var accessCond builder.Cond
+			// Users can see an organization they are a member of
+			accessCond := builder.In("id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": opts.Actor.ID}))
 			if !opts.Actor.IsRestricted {
-				accessCond = builder.Or(
-					builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID}, builder.Eq{"visibility": structs.VisibleTypePrivate}))),
-					builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-			} else {
-				// restricted users only see orgs they are a member of
-				accessCond = builder.In("id", builder.Select("org_id").From("org_user").LeftJoin("`user`", exprCond).Where(builder.And(builder.Eq{"uid": opts.Actor.ID})))
+				// Not-Restricted users can see public and limited users/organizations
+				accessCond = accessCond.Or(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
 			}
 			// Don't forget about self
 			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
 			cond = cond.And(accessCond)
 		}
-
 	} else {
 		// Force visibility for privacy
 		// Not logged in - only public users
