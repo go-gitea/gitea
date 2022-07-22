@@ -17,15 +17,14 @@ import (
 )
 
 // AddCacheControlToHeader adds suitable cache-control headers to response
-func AddCacheControlToHeader(h http.Header, d time.Duration, additionalDirectives ...string) {
+func AddCacheControlToHeader(h http.Header, maxAge time.Duration, additionalDirectives ...string) {
 	directives := make([]string, 0, 2+len(additionalDirectives))
 
 	if setting.IsProd {
 		if d == 0 {
 			directives = append(directives, "no-store")
 		} else {
-			directives = append(directives, "private")
-			directives = append(directives, "max-age="+strconv.Itoa(int(d.Seconds())))
+			directives = append(directives, "private", "max-age="+strconv.Itoa(int(maxAge.Seconds())))
 		}
 	} else {
 		directives = append(directives, "no-store")
@@ -34,8 +33,7 @@ func AddCacheControlToHeader(h http.Header, d time.Duration, additionalDirective
 		h.Add("X-Gitea-Debug", "RUN_MODE="+setting.RunMode)
 	}
 
-	directives = append(directives, additionalDirectives...)
-	h.Set("Cache-Control", strings.Join(directives, ", "))
+	h.Set("Cache-Control", strings.Join(append(directives, additionalDirectives...), ", "))
 }
 
 // generateETag generates an ETag based on size, filename and file modification time
