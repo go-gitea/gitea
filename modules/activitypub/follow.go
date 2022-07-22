@@ -58,7 +58,7 @@ func Unfollow(ctx context.Context, unfollow ap.Undo) {
 	objectIRI := follow.Object.GetID()
 	objectUser, err := personIRIToUser(ctx, objectIRI)
 	// Must be a local user
-	if strings.Contains(objectUser.Name, "@") || err != nil {
+	if err != nil || strings.Contains(objectUser.Name, "@") {
 		log.Warn("Couldn't find object user for follow", err)
 		return
 	}
