@@ -106,7 +106,7 @@ func (f *RegisterForm) Validate(req *http.Request, errs binding.Errors) binding.
 
 // IsEmailDomainListed checks whether the domain of an email address
 // matches a list of domains
-func IsEmailDomainListed(list []string, email string) bool {
+func IsEmailDomainListed(list []glob.Glob, email string) bool {
 	if len(list) == 0 {
 		return false
 	}
@@ -118,14 +118,28 @@ func IsEmailDomainListed(list []string, email string) bool {
 
 	domain := strings.ToLower(email[n+1:])
 
-	for _, v := range list {
-		g := glob.MustCompile(strings.ToLower(v))
-		if g.Match(domain) {
+	for _, l := range list {
+		if l.Match(domain) {
 			return true
 		}
 	}
 
 	return false
+}
+
+// BuildEmailGlobs takes in an array of strings and
+// builds an array of compiled globs used to do
+// pattern matching in IsEmailDomainAllowed. A compiled list
+func BuildEmailGlobs(list []string) []glob.Glob {
+	var EmailList []glob.Glob
+
+	for _, s := range list {
+		if g, err := glob.Compile(s); err == nil {
+			EmailList = append(EmailList, g)
+		}
+	}
+
+	return EmailList
 }
 
 // IsEmailDomainAllowed validates that the email address
@@ -135,10 +149,10 @@ func IsEmailDomainListed(list []string, email string) bool {
 // domains in the blocklist, if any such list is not empty.
 func (f RegisterForm) IsEmailDomainAllowed() bool {
 	if len(setting.Service.EmailDomainWhitelist) == 0 {
-		return !IsEmailDomainListed(setting.Service.EmailDomainBlocklist, f.Email)
+		return !IsEmailDomainListed(BuildEmailGlobs(setting.Service.EmailDomainBlocklist), f.Email)
 	}
 
-	return IsEmailDomainListed(setting.Service.EmailDomainWhitelist, f.Email)
+	return IsEmailDomainListed(BuildEmailGlobs(setting.Service.EmailDomainWhitelist), f.Email)
 }
 
 // MustChangePasswordForm form for updating your password after account creation
