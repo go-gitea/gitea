@@ -22,7 +22,12 @@ func AddCacheControlToHeader(h http.Header, d time.Duration, additionalDirective
 
 	if setting.IsProd {
 		directives = append(directives, "private")
-		directives = append(directives, "max-age="+strconv.Itoa(int(d.Seconds())))
+		if d == 0 {
+			// prefer no-store in place of max-age=0
+			directives = append(directives, "no-store")
+		} else {
+			directives = append(directives, "max-age="+strconv.Itoa(int(d.Seconds())))
+		}
 	} else {
 		directives = append(directives, "no-store")
 
