@@ -494,7 +494,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -3352,7 +3355,7 @@ td.blob-excerpt {
   .commit-header-row {
     .ui.horizontal.list {
       width: 100%;
-      overflow-x: scroll;
+      overflow-x: auto;
       margin-top: 2px;
 
       .item {
@@ -3401,7 +3404,7 @@ td.blob-excerpt {
   }
 
   .commit-table {
-    overflow-x: scroll;
+    overflow-x: auto;
 
     td.sha,
     th.sha {

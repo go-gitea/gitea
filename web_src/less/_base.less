@@ -326,7 +326,7 @@ a.commit-statuses-trigger {
 .ui.action.input:not([class*="left action"]) > .ui.dropdown.selection {
   min-width: 10em;
 
-  &:not(:focus):not(:hover) {
+  &:not(:focus,:hover) {
     border-right-color: transparent;
   }
 }
@@ -1205,7 +1205,7 @@ a.ui.card:hover,
 
   &.pagination.menu {
     @media @mediaSm {
-      .item:not(.active):not(.navigation),
+      .item:not(.active,.navigation),
       .item.navigation span.navigation_label {
         display: none;
       }
@@ -1329,7 +1329,7 @@ footer {
 @media @mediaMdAndUp {
   .mobile-only,
   .ui.button.mobile-only {
-    display: none;
+    display: none !important;
   }
 
   // has the same behaviour of sr-only, hiding the content for
@@ -1341,7 +1341,7 @@ footer {
 
 @media @mediaSm {
   .not-mobile {
-    display: none;
+    display: none !important;
   }
 }
 
