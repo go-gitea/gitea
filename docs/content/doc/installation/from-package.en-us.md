@@ -47,9 +47,9 @@ pacman -S gitea
 
 There is a [Gitea Snap](https://snapcraft.io/gitea) package which follows the latest stable version.
 
-``sh
+```sh
 snap install gitea
-``
+```
 
 ## SUSE and openSUSE
 
