@@ -118,6 +118,7 @@
   --color-text-dark: #080808;
   --color-text: #212121;
   --color-text-light: #555555;
+  --color-text-light-1: #6a6a6a;
   --color-text-light-2: #808080;
   --color-text-light-3: #a0a0a0;
   --color-box-header: #f7f7f7;
@@ -275,6 +276,7 @@ a.muted {
 
 a:hover,
 a.muted:hover,
+a.muted:hover [class*="color-text"],
 .ui.breadcrumb a:hover {
   color: var(--color-primary);
 }
@@ -2205,4 +2207,8 @@ table th[data-sortt-desc] {
       position: initial;
     }
   }
+}
+
+.color-text-light-2 {
+  color: var(--color-text-light-2);
 }
