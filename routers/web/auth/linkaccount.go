@@ -40,6 +40,8 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
@@ -96,6 +98,8 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -195,6 +199,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 

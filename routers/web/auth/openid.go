@@ -341,6 +341,8 @@ func RegisterOpenID(ctx *context.Context) {
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["OpenID"] = oid
 	userName, _ := ctx.Session.Get("openid_determined_username").(string)
 	if userName != "" {
@@ -372,6 +374,8 @@ func RegisterOpenIDPost(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["OpenID"] = oid
 
 	if setting.Service.AllowOnlyInternalRegistration {
