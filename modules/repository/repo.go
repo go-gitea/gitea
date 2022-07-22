@@ -177,11 +177,18 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 
 	if opts.Mirror {
 		mirrorModel := repo_model.Mirror{
-			RepoID:         repo.ID,
-			Interval:       setting.Mirror.DefaultInterval,
-			EnablePrune:    true,
-			NextUpdateUnix: timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
-			LFS:            opts.LFS,
+			RepoID:           repo.ID,
+			Interval:         setting.Mirror.DefaultInterval,
+			SyncWiki:         opts.Wiki,
+			SyncIssues:       opts.Issues,
+			SyncMilestones:   opts.Milestones,
+			SyncLabels:       opts.Labels,
+			SyncReleases:     opts.Releases,
+			SyncComments:     opts.Comments,
+			SyncPullRequests: opts.PullRequests,
+			EnablePrune:      true,
+			NextUpdateUnix:   timeutil.TimeStampNow().AddDuration(setting.Mirror.DefaultInterval),
+			LFS:              opts.LFS,
 		}
 		if opts.LFS {
 			mirrorModel.LFSEndpoint = opts.LFSEndpoint
