@@ -60,7 +60,7 @@ func (c *LastCommitCache) Put(ref, entryPath, commitID string) error {
 	return c.cache.Put(getCacheKey(c.repoPath, ref, entryPath), commitID, c.ttl())
 }
 
-// Get get the last commit information by commit id and entry path
+// Get gets the last commit information by commit id and entry path
 func (c *LastCommitCache) Get(ref, entryPath string) (*Commit, error) {
 	if c == nil || c.cache == nil {
 		return nil, nil
