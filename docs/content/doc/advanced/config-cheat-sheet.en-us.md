@@ -948,6 +948,8 @@ Default templates for project boards:
 ## Git (`git`)
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
+- `HOME_PATH`: **%(APP_DATA_PATH)/home**: The HOME directory for Git.
+	  This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
@@ -1081,7 +1083,7 @@ Task queue configuration has been moved to `queue.task`. However, the below conf
 - `RETRY_BACKOFF`: **3**: Backoff time per http/https request retry (seconds)
 - `ALLOWED_DOMAINS`: **\<empty\>**: Domains allowlist for migrating repositories, default is blank. It means everything will be allowed. Multiple domains could be separated by commas. Wildcard is supported: `github.com, *.github.com`.
 - `BLOCKED_DOMAINS`: **\<empty\>**: Domains blocklist for migrating repositories, default is blank. Multiple domains could be separated by commas. When `ALLOWED_DOMAINS` is not blank, this option has a higher priority to deny domains. Wildcard is supported.
-- `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291
+- `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918, RFC 1122, RFC 4632 and RFC 4291. If a domain is allowed by `ALLOWED_DOMAINS`, this option will be ignored.
 - `SKIP_TLS_VERIFY`: **false**: Allow skip tls verify
 
 ## Federation (`federation`)
