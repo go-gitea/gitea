@@ -63,7 +63,6 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 
 	fileName := path.Base(filePath)
 	st := typesniffer.DetectContentType(buf)
-	isBrowsableType := st.IsBrowsableType()
 	mimeType := ""
 	cs := ""
 
@@ -73,7 +72,7 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	if mimeType == "" {
-		if isBrowsableType {
+		if st.IsBrowsableType() {
 			mimeType = st.GetContentType()
 		} else if st.IsText() || ctx.FormBool("render") {
 			mimeType = "text/plain"
