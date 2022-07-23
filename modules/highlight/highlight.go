@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"fmt"
 	gohtml "html"
+	"io"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -26,7 +27,13 @@ import (
 )
 
 // don't index files larger than this many bytes for performance purposes
-const sizeLimit = 1000000
+const sizeLimit = 1024 * 1024
+
+// newLineInHTML is the HTML entity to be used for newline in HTML content, if it's empty then the original "\n" is kept
+// this option is here for 2 purposes:
+// (1) make it easier to switch back to the original "\n" if there is any compatibility issue in the future
+// (2) make it clear to do tests: "&#10;" is the real newline for rendering, '\n' is ignorable/trim-able and could be ignored
+var newLineInHTML = "&#10;"
 
 var (
 	// For custom user mapping
@@ -46,7 +53,6 @@ func NewContext() {
 				highlightMapping[keys[i].Name()] = keys[i].Value()
 			}
 		}
-
 		// The size 512 is simply a conservative rule of thumb
 		c, err := lru.New2Q(512)
 		if err != nil {
@@ -60,7 +66,7 @@ func NewContext() {
 func Code(fileName, language, code string) string {
 	NewContext()
 
-	// diff view newline will be passed as empty, change to literal \n so it can be copied
+	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
 		return "\n"
@@ -128,36 +134,32 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 		return code
 	}
 
-	htmlw.Flush()
+	_ = htmlw.Flush()
 	// Chroma will add newlines for certain lexers in order to highlight them properly
-	// Once highlighted, strip them here so they don't cause copy/paste trouble in HTML output
+	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
-// File returns a slice of chroma syntax highlighted lines of code
-func File(numLines int, fileName, language string, code []byte) []string {
+// File returns a slice of chroma syntax highlighted HTML lines of code
+func File(fileName, language string, code []byte) ([]string, error) {
 	NewContext()
 
 	if len(code) > sizeLimit {
-		return plainText(string(code), numLines)
+		return PlainText(code), nil
 	}
+
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
 		html.PreventSurroundingPre(true),
 	)
 
-	if formatter == nil {
-		log.Error("Couldn't create chroma formatter")
-		return plainText(string(code), numLines)
-	}
-
-	htmlbuf := bytes.Buffer{}
-	htmlw := bufio.NewWriter(&htmlbuf)
+	htmlBuf := bytes.Buffer{}
+	htmlWriter := bufio.NewWriter(&htmlBuf)
 
 	var lexer chroma.Lexer
 
 	// provided language overrides everything
-	if len(language) > 0 {
+	if language != "" {
 		lexer = lexers.Get(language)
 	}
 
@@ -168,9 +170,9 @@ func File(numLines int, fileName, language string, code []byte) []string {
 	}
 
 	if lexer == nil {
-		language := analyze.GetCodeLanguage(fileName, code)
+		guessLanguage := analyze.GetCodeLanguage(fileName, code)
 
-		lexer = lexers.Get(language)
+		lexer = lexers.Get(guessLanguage)
 		if lexer == nil {
 			lexer = lexers.Match(fileName)
 			if lexer == nil {
@@ -181,54 +183,92 @@ func File(numLines int, fileName, language string, code []byte) []string {
 
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
-		log.Error("Can't tokenize code: %v", err)
-		return plainText(string(code), numLines)
+		return nil, fmt.Errorf("can't tokenize code: %w", err)
 	}
 
-	err = formatter.Format(htmlw, styles.GitHub, iterator)
+	err = formatter.Format(htmlWriter, styles.GitHub, iterator)
 	if err != nil {
-		log.Error("Can't format code: %v", err)
-		return plainText(string(code), numLines)
+		return nil, fmt.Errorf("can't format code: %w", err)
 	}
 
-	htmlw.Flush()
-	finalNewLine := false
-	if len(code) > 0 {
-		finalNewLine = code[len(code)-1] == '\n'
-	}
+	_ = htmlWriter.Flush()
 
-	m := make([]string, 0, numLines)
-	for _, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
-		content := v
-		// need to keep lines that are only \n so copy/paste works properly in browser
-		if content == "" {
-			content = "\n"
-		} else if content == `</span><span class="w">` {
-			content += "\n</span>"
-		} else if content == `</span></span><span class="line"><span class="cl">` {
-			content += "\n"
+	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
+
+	htmlStr := htmlBuf.String()
+	line := strings.Builder{}
+	insideLine := 0 // every <span class="cl"> makes it increase one level, every closed <span class="cl"> makes it decrease one level
+	tagStack := make([]string, 0, 4)
+	for len(htmlStr) > 0 {
+		pos1 := strings.IndexByte(htmlStr, '<')
+		pos2 := strings.IndexByte(htmlStr, '>')
+		if pos1 == -1 || pos2 == -1 || pos1 > pos2 {
+			break
 		}
-		content = strings.TrimSuffix(content, `<span class="w">`)
-		content = strings.TrimPrefix(content, `</span>`)
-		m = append(m, content)
-	}
-	if finalNewLine {
-		m = append(m, "<span class=\"w\">\n</span>")
+		tag := htmlStr[pos1 : pos2+1]
+		if insideLine > 0 {
+			line.WriteString(htmlStr[:pos1])
+		}
+		if tag[1] == '/' {
+			if len(tagStack) == 0 {
+				return nil, fmt.Errorf("can't find matched tag: %q", tag)
+			}
+			popped := tagStack[len(tagStack)-1]
+			tagStack = tagStack[:len(tagStack)-1]
+			if popped == `<span class="cl">` {
+				insideLine--
+				lineStr := line.String()
+				if newLineInHTML != "" && lineStr != "" && lineStr[len(lineStr)-1] == '\n' {
+					lineStr = lineStr[:len(lineStr)-1] + newLineInHTML
+				}
+				m = append(m, lineStr)
+				line = strings.Builder{}
+			}
+			if insideLine > 0 {
+				line.WriteString(tag)
+			}
+		} else {
+			tagStack = append(tagStack, tag)
+			if insideLine > 0 {
+				line.WriteString(tag)
+			}
+			if tag == `<span class="cl">` {
+				insideLine++
+			}
+		}
+		htmlStr = htmlStr[pos2+1:]
 	}
 
-	return m
+	if len(m) == 0 {
+		m = append(m, "") // maybe we do not want to return 0 lines
+	}
+
+	return m, nil
 }
 
-// return unhiglighted map
-func plainText(code string, numLines int) []string {
-	m := make([]string, 0, numLines)
-	for _, v := range strings.SplitN(code, "\n", numLines) {
-		content := v
-		// need to keep lines that are only \n so copy/paste works properly in browser
-		if content == "" {
-			content = "\n"
+// PlainText returns non-highlighted HTML for code
+func PlainText(code []byte) []string {
+	r := bufio.NewReader(bytes.NewReader(code))
+	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
+	for {
+		content, err := r.ReadString('\n')
+		if err != nil && err != io.EOF {
+			log.Error("failed to read string from buffer: %v", err)
+			break
 		}
-		m = append(m, gohtml.EscapeString(content))
+		if content == "" && err == io.EOF {
+			break
+		}
+		s := gohtml.EscapeString(content)
+		if newLineInHTML != "" && s != "" && s[len(s)-1] == '\n' {
+			s = s[:len(s)-1] + newLineInHTML
+		}
+		m = append(m, s)
 	}
+
+	if len(m) == 0 {
+		m = append(m, "") // maybe we do not want to return 0 lines
+	}
+
 	return m
 }
