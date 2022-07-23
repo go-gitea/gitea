@@ -1086,6 +1086,9 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 				}
 				it.Content = content
 				it.FileName = entry.Name()
+				if !strings.HasPrefix(it.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+					it.Ref = "refs/heads/" + it.Ref
+				}
 				if it.Valid() {
 					issueTemplates = append(issueTemplates, it)
 				}

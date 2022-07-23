@@ -782,6 +782,10 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 					}
 				}
 			}
+			if !strings.HasPrefix(meta.Ref, "refs/") { // Assume that the ref intended is always a branch - for tags users should use refs/tags/<ref>
+				meta.Ref = "refs/heads/" + meta.Ref
+			}
+
 			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
 			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 			ctx.Data["Reference"] = meta.Ref
