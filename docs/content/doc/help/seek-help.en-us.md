@@ -44,12 +44,13 @@ menu:
     * This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
 5. If you meet slow/hanging/deadlock problems, please report the stack trace when the problem occurs:
     1. Enable pprof in `app.ini` and restart Gitea
-    ```
+    ```ini
     [server]
     ENABLE_PPROF = true
     ```
-    2. Trigger the bug, when Gitea gets stuck, use curl or browser to visit: `http://127.0.0.1:6060/debug/pprof/goroutine?debug=1` (IP is `127.0.0.1` and port is `6060`)
-    3. Report the output (the stack trace doesn't contain sensitive data)
+    2. Trigger the bug, when Gitea gets stuck, use curl or browser to visit: `http://127.0.0.1:6060/debug/pprof/goroutine?debug=1` (IP must be `127.0.0.1` and port must be `6060`). 
+    3. If you are using Docker, please use `docker exec -it <container-name> curl "http://127.0.0.1:6060/debug/pprof/goroutine?debug=1"`.
+    4. Report the output (the stack trace doesn't contain sensitive data)
 
 ## Bugs
 
