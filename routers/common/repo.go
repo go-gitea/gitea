@@ -63,6 +63,7 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 
 	fileName := path.Base(filePath)
 	st := typesniffer.DetectContentType(buf)
+	isPlain := st.IsText() || ctx.FormBool("render")
 	mimeType := ""
 	cs := ""
 
@@ -74,14 +75,14 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	if mimeType == "" {
 		if st.IsBrowsableType() {
 			mimeType = st.GetContentType()
-		} else if st.IsText() || ctx.FormBool("render") {
+		} else if isPlain {
 			mimeType = "text/plain"
 		} else {
 			mimeType = typesniffer.ApplicationOctetStream
 		}
 	}
 
-	if st.IsText() || ctx.FormBool("render") {
+	if isPlain {
 		cs, err = charset.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
