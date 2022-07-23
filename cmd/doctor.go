@@ -129,7 +129,7 @@ func runDoctor(ctx *cli.Context) error {
 	defer cancel()
 
 	// some doctor sub-commands need to use git command
-	if err := git.InitWithSync(stdCtx); err != nil {
+	if err := git.InitFull(stdCtx); err != nil {
 		return err
 	}
 

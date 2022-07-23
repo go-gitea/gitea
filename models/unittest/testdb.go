@@ -120,7 +120,7 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
-	if err = git.InitWithSync(context.Background()); err != nil {
+	if err = git.InitFull(context.Background()); err != nil {
 		fatalTestError("git.Init: %v\n", err)
 	}
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)

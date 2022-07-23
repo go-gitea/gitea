@@ -164,9 +164,9 @@ func InitSimple(ctx context.Context) error {
 	return SetExecutablePath(setting.Git.Path)
 }
 
-// InitWithSync initializes git module with version check and change global variables, sync gitconfig.
+// InitFull initializes git module with version check and change global variables, sync gitconfig.
 // It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
-func InitWithSync(ctx context.Context) (err error) {
+func InitFull(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
 		return err
 	}
