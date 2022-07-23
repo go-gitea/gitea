@@ -60,6 +60,26 @@ func TestDeleteUser(t *testing.T) {
 	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
 }
 
+func TestPurgeUser(t *testing.T) {
+	test := func(userID int64) {
+		assert.NoError(t, unittest.PrepareTestDatabase())
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: userID}).(*user_model.User)
+
+		err := DeleteUser(db.DefaultContext, user, true)
+		assert.NoError(t, err)
+
+		unittest.AssertNotExistsBean(t, &user_model.User{ID: userID})
+		unittest.CheckConsistencyFor(t, &user_model.User{}, &repo_model.Repository{})
+	}
+	test(2)
+	test(4)
+	test(8)
+	test(11)
+
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	assert.Error(t, DeleteUser(db.DefaultContext, org, false))
+}
+
 func TestCreateUser(t *testing.T) {
 	user := &user_model.User{
 		Name:               "GiteaBot",
