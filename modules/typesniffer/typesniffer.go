@@ -70,6 +70,17 @@ func (ct SniffedType) IsRepresentableAsText() bool {
 	return ct.IsText() || ct.IsSvgImage()
 }
 
+// IsBrowsableType returns whether the file content can be displayed in a browser
+// note, this excludes text types
+func (ct SniffedType) IsBrowsableType() bool {
+	return ct.IsImage() || ct.IsSvgImage() || ct.IsPDF() || ct.IsVideo() || ct.IsAudio()
+}
+
+// GetContentType returns the contentType
+func (ct SniffedType) GetContentType() string {
+	return ct.contentType
+}
+
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
 func DetectContentType(data []byte) SniffedType {
 	if len(data) == 0 {

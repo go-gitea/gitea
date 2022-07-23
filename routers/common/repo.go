@@ -7,6 +7,7 @@ package common
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strings"
@@ -42,7 +43,7 @@ func ServeBlob(ctx *context.Context, blob *git.Blob, lastModified time.Time) err
 }
 
 // ServeData download file from io.Reader
-func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) error {
+func ServeData(ctx *context.Context, filePath string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
 	n, err := util.ReadAtMost(reader, buf)
 	if err != nil {
@@ -52,55 +53,56 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 		buf = buf[:n]
 	}
 
-	ctx.Resp.Header().Set("Cache-Control", "public,max-age=86400")
+	httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 5*time.Minute)
 
 	if size >= 0 {
 		ctx.Resp.Header().Set("Content-Length", fmt.Sprintf("%d", size))
 	} else {
-		log.Error("ServeData called to serve data: %s with size < 0: %d", name, size)
+		log.Error("ServeData called to serve data: %s with size < 0: %d", filePath, size)
 	}
-	name = path.Base(name)
 
-	// Google Chrome dislike commas in filenames, so let's change it to a space
-	name = strings.ReplaceAll(name, ",", " ")
-
+	fileName := path.Base(filePath)
 	st := typesniffer.DetectContentType(buf)
+	isBrowsableType := st.IsBrowsableType()
+	fileExtension := strings.ToLower(filepath.Ext(fileName))
+	mimeType := ""
+	cs := ""
 
-	mappedMimeType := ""
 	if setting.MimeTypeMap.Enabled {
-		fileExtension := strings.ToLower(filepath.Ext(name))
-		mappedMimeType = setting.MimeTypeMap.Map[fileExtension]
+		mimeType = setting.MimeTypeMap.Map[fileExtension]
 	}
-	if st.IsText() || ctx.FormBool("render") {
-		cs, err := charset.DetectEncoding(buf)
-		if err != nil {
-			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
-			cs = "utf-8"
-		}
-		if mappedMimeType == "" {
-			mappedMimeType = "text/plain"
-		}
-		ctx.Resp.Header().Set("Content-Type", mappedMimeType+"; charset="+strings.ToLower(cs))
-	} else {
-		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if mappedMimeType != "" {
-			ctx.Resp.Header().Set("Content-Type", mappedMimeType)
-		}
-		if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
-			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
-			if st.IsSvgImage() || st.IsPDF() {
-				ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-				ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-				if st.IsSvgImage() {
-					ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
-				} else {
-					ctx.Resp.Header().Set("Content-Type", typesniffer.ApplicationOctetStream)
-				}
-			}
+
+	if mimeType == "" {
+		if isBrowsableType {
+			mimeType = st.GetContentType()
 		} else {
-			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
+			if st.IsText() || ctx.FormBool("render") {
+				mimeType = "text/plain"
+
+				cs, err = charset.DetectEncoding(buf)
+				if err != nil {
+					log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
+					cs = "utf-8"
+				}
+			} else {
+				mimeType = typesniffer.ApplicationOctetStream
+			}
 		}
 	}
+	if cs != "" {
+		ctx.Resp.Header().Set("Content-Type", mimeType+"; charset="+strings.ToLower(cs))
+	} else {
+		ctx.Resp.Header().Set("Content-Type", mimeType)
+	}
+	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
+
+	// serve types that can present a security risk with CSP
+	if st.IsImage() || st.IsPDF() {
+		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	}
+
+	ctx.Resp.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(fileName))
+	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 
 	_, err = ctx.Resp.Write(buf)
 	if err != nil {
