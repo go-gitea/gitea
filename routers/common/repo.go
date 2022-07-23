@@ -42,15 +42,6 @@ func ServeBlob(ctx *context.Context, blob *git.Blob, lastModified time.Time) err
 	return ServeData(ctx, ctx.Repo.TreePath, blob.Size(), dataRc)
 }
 
-func getCharset(buf []byte, filePath string) string {
-	cs, err := charset.DetectEncoding(buf)
-	if err != nil {
-		log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
-		return "utf-8"
-	}
-	return cs
-}
-
 // ServeData download file from io.Reader
 func ServeData(ctx *context.Context, filePath string, size int64, reader io.Reader) error {
 	buf := make([]byte, 1024)
@@ -92,7 +83,11 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	if st.IsText() || ctx.FormBool("render") {
-		cs = getCharset(buf, filePath)
+		cs, err = charset.DetectEncoding(buf)
+		if err != nil {
+			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
+			cs = "utf-8"
+		}
 	}
 
 	if cs != "" {
