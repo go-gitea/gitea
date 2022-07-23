@@ -52,16 +52,6 @@ func (repo *Repository) GetTagCommit(name string) (*Commit, error) {
 	return repo.GetCommit(commitID)
 }
 
-// GetRefCommit get the commit of then given reference.
-// The refname has to be explicit, e.g. "refs/heads/main"
-func (repo *Repository) GetRefCommit(name string) (*Commit, error) {
-	commitID, err := repo.GetRefCommitID(name)
-	if err != nil {
-		return nil, err
-	}
-	return repo.GetCommit(commitID)
-}
-
 func (repo *Repository) getCommitByPathWithID(id SHA1, relpath string) (*Commit, error) {
 	// File name starts with ':' must be escaped.
 	if relpath[0] == ':' {
