@@ -42,7 +42,7 @@
 					{{end}}
 					{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
 						<div class="inline field required">
-							<div class="m-captcha" data-sitekey="{{ .McaptchaSitekey }}"></div>
+							<div class="m-captcha" data-sitekey="{{ .McaptchaSitekey }}" data-instance-url="{{ .McaptchaURL }}"></div>
 						</div>
 					{{end}}
 					<div class="inline field">
