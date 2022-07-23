@@ -64,11 +64,11 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	fileName := path.Base(filePath)
 	st := typesniffer.DetectContentType(buf)
 	isBrowsableType := st.IsBrowsableType()
-	fileExtension := strings.ToLower(filepath.Ext(fileName))
 	mimeType := ""
 	cs := ""
 
 	if setting.MimeTypeMap.Enabled {
+		fileExtension := strings.ToLower(filepath.Ext(fileName))
 		mimeType = setting.MimeTypeMap.Map[fileExtension]
 	}
 
