@@ -773,11 +773,14 @@ func Home(ctx *context.Context) {
 		feed.ShowRepoFeed(ctx, ctx.Repo.Repository, showFeedType)
 		return
 	}
+
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
+
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {
 		return
 	}
+
 	renderCode(ctx)
 }
 
@@ -989,6 +992,7 @@ func renderCode(ctx *context.Context) {
 		ctx.NotFoundOrServerError("Repo.Commit.GetTreeEntryByPath", git.IsErrNotExist, err)
 		return
 	}
+
 	if !ctx.Repo.Repository.IsEmpty {
 		checkCitationFile(ctx, entry)
 		if ctx.Written() {
