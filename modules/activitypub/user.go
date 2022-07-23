@@ -5,23 +5,43 @@
 package activitypub
 
 import (
+	"strings"
+
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/setting"
 	user_model "code.gitea.io/gitea/models/user"
 
 	ap "github.com/go-ap/activitypub"
 )
 
-func FederatedUserNew(IRI ap.IRI) error {
-	name, err := personIRIToName(IRI)
+func FederatedUserNew(person ap.Person) error {
+	name, err := personIRIToName(person.GetLink())
 	if err != nil {
 		return err
 	}
 
+	var email string
+	if person.Location != nil {
+		email = person.Location.GetLink().String()
+	} else {
+		email = strings.ReplaceAll(name, "@", "+") + "@" + setting.Service.NoReplyAddress
+	}
+
+	var avatar string
+	if person.Icon != nil {
+		icon := person.Icon.(*ap.Image)
+		avatar = icon.URL.GetLink().String()
+	} else {
+		avatar = ""
+	}
+
 	user := &user_model.User{
 		Name:      name,
-		Email:     name, // TODO: change this to something else to prevent collisions with normal users, maybe fetch email using Gitea API
+		FullName:  person.Name.String(),
+		Email:     email,
+		Avatar:    avatar,
 		LoginType: auth.Federated,
-		Website:   IRI.String(),
+		LoginName: person.GetLink().String(),
 	}
 	return user_model.CreateUser(user)
 }

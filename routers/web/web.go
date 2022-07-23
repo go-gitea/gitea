@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -1265,6 +1266,8 @@ func RegisterRoutes(m *web.Route) {
 		m.Post("/purge", user.NotificationPurgePost)
 		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
+
+	m.Get("/authorize_interaction", activitypub.AuthorizeInteraction)
 
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
