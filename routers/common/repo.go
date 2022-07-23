@@ -66,37 +66,39 @@ func ServeData(ctx *context.Context, name string, size int64, reader io.Reader) 
 
 	st := typesniffer.DetectContentType(buf)
 
-	mappedMimeType := ""
+	mimeType := ""
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(filepath.Ext(name))
-		mappedMimeType = setting.MimeTypeMap.Map[fileExtension]
+		mimeType = setting.MimeTypeMap.Map[fileExtension]
 	}
+
 	if st.IsText() || ctx.FormBool("render") {
 		cs, err := charset.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", name, err)
 			cs = "utf-8"
 		}
-		if mappedMimeType == "" {
-			mappedMimeType = "text/plain"
+		if mimeType == "" {
+			mimeType = "text/plain"
 		}
-		ctx.Resp.Header().Set("Content-Type", mappedMimeType+"; charset="+strings.ToLower(cs))
+		ctx.Resp.Header().Set("Content-Type", mimeType+"; charset="+strings.ToLower(cs))
 	} else {
-		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
-		if mappedMimeType != "" {
-			ctx.Resp.Header().Set("Content-Type", mappedMimeType)
+		if mimeType == "" {
+			if st.IsSvgImage() {
+				mimeType = typesniffer.SvgMimeType
+			} else if st.IsPDF() {
+				mimeType = typesniffer.PdfMimeType
+			} else {
+				mimeType = typesniffer.ApplicationOctetStream
+			}
 		}
+		ctx.Resp.Header().Set("Content-Type", mimeType)
+
+		ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 		if (st.IsImage() || st.IsPDF()) && (setting.UI.SVG.Enabled || !st.IsSvgImage()) {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`inline; filename="%s"`, name))
-			if st.IsSvgImage() || st.IsPDF() {
-				ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-				ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
-				if st.IsSvgImage() {
-					ctx.Resp.Header().Set("Content-Type", typesniffer.SvgMimeType)
-				} else {
-					ctx.Resp.Header().Set("Content-Type", typesniffer.ApplicationOctetStream)
-				}
-			}
+			ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+			ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 		} else {
 			ctx.Resp.Header().Set("Content-Disposition", fmt.Sprintf(`attachment; filename="%s"`, name))
 		}

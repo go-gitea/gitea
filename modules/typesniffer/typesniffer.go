@@ -20,6 +20,8 @@ const sniffLen = 1024
 const (
 	// SvgMimeType MIME type of SVG images.
 	SvgMimeType = "image/svg+xml"
+	// PdfMimeType MIME type of PDF images.
+	PdfMimeType = "application/pdf"
 	// ApplicationOctetStream MIME type of binary files.
 	ApplicationOctetStream = "application/octet-stream"
 )
