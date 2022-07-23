@@ -67,7 +67,7 @@ func TestMain(m *testing.M) {
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
 	if err = git.InitWithSync(context.Background()); err != nil {
-		fmt.Printf("Unable to InitOnceWithSync: %v\n", err)
+		fmt.Printf("Unable to InitWithSync: %v\n", err)
 		os.Exit(1)
 	}
 	setting.InitDBConfig()

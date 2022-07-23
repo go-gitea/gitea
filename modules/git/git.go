@@ -165,7 +165,7 @@ func InitSimple(ctx context.Context) error {
 }
 
 // InitWithSync initializes git module with version check and change global variables, sync gitconfig.
-// It should only be called at the beginning of the program initialization (TestMain/GlobalInitInstalled), otherwise there will be data-race problem.
+// It should only be called once at the beginning of the program initialization (TestMain/GlobalInitInstalled) as this code makes unsynchronized changes to variables.
 func InitWithSync(ctx context.Context) (err error) {
 	if err = checkInit(); err != nil {
 		return err
