@@ -45,11 +45,11 @@ func calReleaseNumCommitsBehind(repoCtx *context.Repository, release *models.Rel
 		if repoCtx.GitRepo.IsBranchExist(release.Target) {
 			commit, err := repoCtx.GitRepo.GetBranchCommit(release.Target)
 			if err != nil {
-				return fmt.Errorf("GetRefCommit: %v", err)
+				return fmt.Errorf("GetBranchCommit: %v", err)
 			}
 			countCache[release.Target], err = commit.CommitsCount()
 			if err != nil {
-				return fmt.Errorf("GetBranchCommit: %v", err)
+				return fmt.Errorf("CommitsCount: %v", err)
 			}
 		} else {
 			// Use NumCommits of the newest release on that target
