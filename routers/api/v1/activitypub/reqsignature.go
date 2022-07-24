@@ -74,7 +74,14 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	// 3. Verify the other actor's key
 	algo := httpsig.Algorithm(setting.Federation.Algorithms[0])
 	authenticated = v.Verify(pubKey, algo) == nil
-	return authenticated, err
+	if !authenticated {
+		return
+	}
+	// 4. Create a federated user for the actor
+	var person ap.Person
+	person.UnmarshalJSON(b)
+	err = activitypub.FederatedUserNew(ctx, person)
+	return
 }
 
 // ReqHTTPSignature function

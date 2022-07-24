@@ -36,11 +36,17 @@ func AuthorizeInteraction(c *context.Context) {
 	case "Person":
 		var person ap.Person
 		person.UnmarshalJSON(resp)
-		err = FederatedUserNew(person)
-		if err != nil {
+		err = FederatedUserNew(c, person)
+		/*if err != nil {
 			c.ServerError("Could not create new federated user", err)
 			return
+		}*/
+		name, err := personIRIToName(person.GetLink())
+		if err != nil {
+			c.ServerError("personIRIToName", err)
+			return
 		}
+		c.Redirect(name)
 	/*case "organization":
 		// Do something idk
 	case "repository":

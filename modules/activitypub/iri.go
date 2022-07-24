@@ -47,7 +47,6 @@ func personIRIToUser(ctx context.Context, personIRI ap.IRI) (*user_model.User, e
 		return user, err
 	}
 
-	//FederatedUserNew(personIRI)
 	return user_model.GetUserByName(ctx, name)
 }
 
