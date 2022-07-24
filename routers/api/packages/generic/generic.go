@@ -150,16 +150,15 @@ func DeletePackage(ctx *context.Context) {
 func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 	packageName := ctx.Params("packagename")
 	filename := ctx.Params("filename")
-	packageVersion := ctx.Params("packageversion")
 
 	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
 		return "", "", "", errors.New("Invalid package name or filename")
 	}
 
-	v := strings.TrimSpace(packageVersion)
-	if v == "" {
+	packageVersion := strings.TrimSpace(ctx.Params("packageversion"))
+	if packageVersion == "" {
 		return "", "", "", errors.New("Invalid package version")
 	}
 
-	return packageName, v, filename, nil
+	return packageName, packageVersion, filename, nil
 }
