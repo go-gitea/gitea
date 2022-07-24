@@ -1267,7 +1267,9 @@ func RegisterRoutes(m *web.Route) {
 		m.Get("/new", user.NewAvailable)
 	}, reqSignIn)
 
-	m.Get("/authorize_interaction", activitypub.AuthorizeInteraction)
+	if setting.Federation.Enabled {
+		m.Get("/authorize_interaction", activitypub.AuthorizeInteraction)
+	}
 
 	if setting.API.EnableSwagger {
 		m.Get("/swagger.v1.json", SwaggerV1Json)
