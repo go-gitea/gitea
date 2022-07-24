@@ -536,25 +536,37 @@ func TestPackageContainer(t *testing.T) {
 	t.Run("OwnerNameChange", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		image := "namechange"
-		url := fmt.Sprintf("%sv2/%s/%s", setting.AppURL, user.Name, image)
+		checkCatalog := func(owner string) func(t *testing.T) {
+			return func(t *testing.T) {
+				defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "POST", fmt.Sprintf("%s/blobs/uploads?digest=%s", url, blobDigest), bytes.NewReader(blobContent))
-		addTokenAuthHeader(req, userToken)
-		MakeRequest(t, req, http.StatusCreated)
+				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL))
+				addTokenAuthHeader(req, userToken)
+				resp := MakeRequest(t, req, http.StatusOK)
 
-		pv, err := packages_model.GetInternalVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, container_model.UploadVersion)
-		assert.NoError(t, err)
+				type RepositoryList struct {
+					Repositories []string `json:"repositories"`
+				}
 
-		pps, err := packages_model.GetPropertiesByName(db.DefaultContext, packages_model.PropertyTypePackage, pv.PackageID, container_module.PropertyRepository)
-		assert.NoError(t, err)
-		assert.Len(t, pps, 1)
-		assert.Equal(t, strings.ToLower(user.LowerName+"/"+image), pps[0].Value)
+				repoList := &RepositoryList{}
+				DecodeJSON(t, resp, &repoList)
+
+				assert.Len(t, repoList.Repositories, len(images))
+				names := make([]string, 0, len(images))
+				for _, image := range images {
+					names = append(names, strings.ToLower(owner+"/"+image))
+				}
+				assert.ElementsMatch(t, names, repoList.Repositories)
+			}
+		}
+
+		t.Run(fmt.Sprintf("Catalog[%s]", user.LowerName), checkCatalog(user.LowerName))
+
+		session := loginUser(t, user.Name)
 
 		newOwnerName := "newUsername"
 
-		session := loginUser(t, user.Name)
-		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
 			"_csrf":    GetCSRF(t, session, "/user/settings"),
 			"name":     newOwnerName,
 			"email":    "user2@example.com",
@@ -562,10 +574,7 @@ func TestPackageContainer(t *testing.T) {
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
 
-		pps, err = packages_model.GetPropertiesByName(db.DefaultContext, packages_model.PropertyTypePackage, pv.PackageID, container_module.PropertyRepository)
-		assert.NoError(t, err)
-		assert.Len(t, pps, 1)
-		assert.Equal(t, strings.ToLower(newOwnerName+"/"+image), pps[0].Value)
+		t.Run(fmt.Sprintf("Catalog[%s]", newOwnerName), checkCatalog(newOwnerName))
 
 		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
 			"_csrf":    GetCSRF(t, session, "/user/settings"),
@@ -574,9 +583,5 @@ func TestPackageContainer(t *testing.T) {
 			"language": "en-US",
 		})
 		session.MakeRequest(t, req, http.StatusSeeOther)
-
-		req = NewRequest(t, "DELETE", fmt.Sprintf("%s/blobs/%s", url, blobDigest))
-		addTokenAuthHeader(req, userToken)
-		MakeRequest(t, req, http.StatusAccepted)
 	})
 }
