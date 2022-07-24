@@ -19,7 +19,7 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-func Fork(ctx context.Context, instance, username, reponame, destUsername string) {
+func Fork(ctx context.Context, instance, username, reponame, destUsername string) error {
 	// TODO: Clean this up
 
 	// Migrate repository code
@@ -42,10 +42,10 @@ func Fork(ctx context.Context, instance, username, reponame, destUsername string
 	// repo.ForkedFrom = forgefed.RepositoryNew(ap.IRI())
 	create.Object = repo
 
-	Send(user, &create)
+	return Send(user, &create)
 }
 
-func ForkFromCreate(ctx context.Context, repository forgefed.Repository) {
+func ForkFromCreate(ctx context.Context, repository forgefed.Repository) error {
 	// TODO: Clean this up
 
 	// Don't create an actual copy of the remote repo!
@@ -66,5 +66,5 @@ func ForkFromCreate(ctx context.Context, repository forgefed.Repository) {
 	repo, _ := repo_model.GetRepositoryByOwnerAndName("Ta180m", reponame) // hardcoded for now :(
 
 	_, err := repo_service.ForkRepository(ctx, user, user, repo_service.ForkRepoOptions{BaseRepo: repo, Name: reponame, Description: "this is a remote fork"})
-	log.Warn("Couldn't create copy of remote fork", err)
+	return err
 }

@@ -129,12 +129,16 @@ func PersonInbox(ctx *context.APIContext) {
 	// Process activity
 	switch activity.Type {
 	case ap.FollowType:
-		activitypub.Follow(ctx, activity)
+		err = activitypub.Follow(ctx, activity)
 	case ap.UndoType:
-		activitypub.Unfollow(ctx, activity)
+		err = activitypub.Unfollow(ctx, activity)
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.GetType())
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
+		return
+	}
+	if err != nil {
+		ctx.ServerError("Could not process activity", err)
 		return
 	}
 
@@ -180,7 +184,11 @@ func PersonOutbox(ctx *context.APIContext) {
 			object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
 			object.Content.Set("en", ap.Content(action.GetRepoName()))
 			create := ap.Create{Type: ap.CreateType, Object: object}
-			outbox.OrderedItems.Append(create)
+			err := outbox.OrderedItems.Append(create)
+			if err != nil {
+				ctx.ServerError("OrderedItems.Append", err)
+				return
+			}
 		}
 	}
 
@@ -194,7 +202,11 @@ func PersonOutbox(ctx *context.APIContext) {
 		object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
 		object.Content.Set("en", ap.Content("Starred "+star.Name))
 		create := ap.Create{Type: ap.CreateType, Object: object}
-		outbox.OrderedItems.Append(create)
+		err := outbox.OrderedItems.Append(create)
+		if err != nil {
+			ctx.ServerError("OrderedItems.Append", err)
+			return
+		}
 	}
 
 	outbox.TotalItems = uint(len(outbox.OrderedItems))
@@ -233,7 +245,11 @@ func PersonFollowing(ctx *context.APIContext) {
 	for _, user := range users {
 		// TODO: handle non-Federated users
 		person := ap.PersonNew(ap.IRI(user.Website))
-		following.OrderedItems.Append(person)
+		err := following.OrderedItems.Append(person)
+		if err != nil {
+			ctx.ServerError("OrderedItems.Append", err)
+			return
+		}
 	}
 
 	response(ctx, following)
@@ -270,7 +286,11 @@ func PersonFollowers(ctx *context.APIContext) {
 	for _, user := range users {
 		// TODO: handle non-Federated users
 		person := ap.PersonNew(ap.IRI(user.Website))
-		followers.OrderedItems.Append(person)
+		err := followers.OrderedItems.Append(person)
+		if err != nil {
+			ctx.ServerError("OrderedItems.Append", err)
+			return
+		}
 	}
 
 	response(ctx, followers)
@@ -311,7 +331,11 @@ func PersonLiked(ctx *context.APIContext) {
 	for _, repo := range repos {
 		// TODO: Handle remote starred repos
 		repo := forgefed.RepositoryNew(ap.IRI(setting.AppURL + "api/v1/activitypub/repo/" + repo.OwnerName + "/" + repo.Name))
-		liked.OrderedItems.Append(repo)
+		err := liked.OrderedItems.Append(repo)
+		if err != nil {
+			ctx.ServerError("OrderedItems.Append", err)
+			return
+		}
 	}
 
 	response(ctx, liked)

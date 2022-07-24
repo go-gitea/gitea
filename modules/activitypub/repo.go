@@ -13,7 +13,7 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-func FederatedRepoNew(user *user_model.User, name string, IRI ap.IRI) (*repo_model.Repository, error) {
+func FederatedRepoNew(user *user_model.User, name string, iri ap.IRI) (*repo_model.Repository, error) {
 	// TODO: also handle forks
 	return repository.CreateRepository(user, user, models.CreateRepoOptions{
 		Name: name,

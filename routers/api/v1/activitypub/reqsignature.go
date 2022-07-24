@@ -81,7 +81,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	var person ap.Person
 	person.UnmarshalJSON(b)
 	err = activitypub.FederatedUserNew(ctx, person)
-	return
+	return authenticated, err
 }
 
 // ReqHTTPSignature function

@@ -1,10 +1,11 @@
 package forgefed
 
 import (
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
 
 	ap "github.com/go-ap/activitypub"
 )

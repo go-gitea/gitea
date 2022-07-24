@@ -28,11 +28,10 @@ func personIRIToName(personIRI ap.IRI) (string, error) {
 	if instance == setting.Domain {
 		// Local user
 		return name, nil
-	} else {
-		// Remote user
-		// Get name in username@instance.com format
-		return name + "@" + instance, nil
 	}
+	// Remote user
+	// Get name in username@instance.com format
+	return name + "@" + instance, nil
 }
 
 // Returns the user corresponding to a Person actor IRI
@@ -63,10 +62,9 @@ func repositoryIRIToName(repoIRI ap.IRI) (string, string, error) {
 	if instance == setting.Domain {
 		// Local repo
 		return username, reponame, nil
-	} else {
-		// Remote repo
-		return username + "@" + instance, reponame, nil
 	}
+	// Remote repo
+	return username + "@" + instance, reponame, nil
 }
 
 // Returns the repository corresponding to a Repository actor IRI

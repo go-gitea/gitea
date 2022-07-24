@@ -40,15 +40,14 @@ func Fetch(iri *url.URL) (b []byte, err error) {
 }
 
 // Send an activity
-func Send(user *user_model.User, activity *ap.Activity) {
+func Send(user *user_model.User, activity *ap.Activity) error {
 	binary, err := jsonld.WithContext(
 		jsonld.IRI(ap.ActivityBaseURI),
 		jsonld.IRI(ap.SecurityContextURI),
 		jsonld.IRI(forgefed.ForgeFedNamespaceURI),
 	).Marshal(activity)
 	if err != nil {
-		log.Warn("Marshal", err)
-		return
+		return err
 	}
 
 	for _, to := range activity.To {
@@ -57,4 +56,5 @@ func Send(user *user_model.User, activity *ap.Activity) {
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 		log.Trace("Response from sending activity", string(respBody))
 	}
+	return err
 }

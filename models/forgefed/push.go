@@ -50,18 +50,18 @@ func (p Push) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
-func (c *Push) UnmarshalJSON(data []byte) error {
-	p := fastjson.Parser{}
-	val, err := p.ParseBytes(data)
+func (p *Push) UnmarshalJSON(data []byte) error {
+	ps := fastjson.Parser{}
+	val, err := ps.ParseBytes(data)
 	if err != nil {
 		return err
 	}
 
-	c.Target = ap.JSONGetItem(val, "target")
-	c.HashBefore = ap.JSONGetItem(val, "hashBefore")
-	c.HashAfter = ap.JSONGetItem(val, "hashAfter")
+	p.Target = ap.JSONGetItem(val, "target")
+	p.HashBefore = ap.JSONGetItem(val, "hashBefore")
+	p.HashAfter = ap.JSONGetItem(val, "hashAfter")
 
-	return ap.OnObject(&c.Object, func(a *ap.Object) error {
+	return ap.OnObject(&p.Object, func(a *ap.Object) error {
 		return ap.LoadObject(val, a)
 	})
 }

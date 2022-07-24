@@ -11,17 +11,15 @@ import (
 
 	"code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/log"
 
 	ap "github.com/go-ap/activitypub"
 )
 
 // Create a comment
-func Comment(ctx context.Context, note ap.Note) {
+func Comment(ctx context.Context, note ap.Note) error {
 	actorUser, err := personIRIToUser(ctx, note.AttributedTo.GetLink())
 	if err != nil {
-		log.Warn("Couldn't find actor", err)
-		return
+		return err
 	}
 
 	// TODO: Move IRI processing stuff to iri.go
@@ -33,10 +31,11 @@ func Comment(ctx context.Context, note ap.Note) {
 
 	idx, _ := strconv.ParseInt(contextSplit[len(contextSplit)-1], 10, 64)
 	issue, _ := issues.GetIssueByIndex(repo.ID, idx)
-	issues.CreateCommentCtx(ctx, &issues.CreateCommentOptions{
+	_, err = issues.CreateCommentCtx(ctx, &issues.CreateCommentOptions{
 		Doer:    actorUser,
 		Repo:    repo,
 		Issue:   issue,
 		Content: note.Content.String(),
 	})
+	return err
 }

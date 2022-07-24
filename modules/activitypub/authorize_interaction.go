@@ -22,37 +22,41 @@ func AuthorizeInteraction(c *context.Context) {
 	}
 	resp, err := Fetch(uri)
 	if err != nil {
-		c.ServerError("Could not fetch remote URI", err)
+		c.ServerError("Fetch", err)
 		return
 	}
 
 	var object map[string]interface{}
 	err = json.Unmarshal(resp, &object)
 	if err != nil {
-		c.ServerError("Could not unmarshal response into JSON", err)
+		c.ServerError("Unmarshal", err)
 		return
 	}
 	switch object["type"] {
 	case "Person":
 		var person ap.Person
-		person.UnmarshalJSON(resp)
-		err = FederatedUserNew(c, person)
-		/*if err != nil {
-			c.ServerError("Could not create new federated user", err)
+		err = person.UnmarshalJSON(resp)
+		if err != nil {
+			c.ServerError("UnmarshalJSON", err)
 			return
-		}*/
+		}
+		err = FederatedUserNew(c, person)
+		if err != nil {
+			c.ServerError("FederatedUserNew", err)
+			return
+		}
 		name, err := personIRIToName(person.GetLink())
 		if err != nil {
 			c.ServerError("personIRIToName", err)
 			return
 		}
 		c.Redirect(name)
-	/*case "organization":
-		// Do something idk
-	case "repository":
-		FederatedRepoNew() // TODO
-	case "ticket":
-		// TODO*/
+		/*case "organization":
+			// Do something idk
+		case "repository":
+			FederatedRepoNew() // TODO
+		case "ticket":
+			// TODO*/
 	}
 
 	c.Status(http.StatusOK)

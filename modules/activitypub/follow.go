@@ -9,19 +9,17 @@ import (
 	"strings"
 
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 
 	ap "github.com/go-ap/activitypub"
 )
 
 // Process a Follow activity
-func Follow(ctx context.Context, follow ap.Follow) {
+func Follow(ctx context.Context, follow ap.Follow) error {
 	// Actor is the user performing the follow
 	actorIRI := follow.Actor.GetID()
 	actorUser, err := personIRIToUser(ctx, actorIRI)
 	if err != nil {
-		log.Warn("Couldn't find actor user for follow", err)
-		return
+		return err
 	}
 
 	// Object is the user being followed
@@ -29,29 +27,30 @@ func Follow(ctx context.Context, follow ap.Follow) {
 	objectUser, err := personIRIToUser(ctx, objectIRI)
 	// Must be a local user
 	if err != nil || strings.Contains(objectUser.Name, "@") {
-		log.Warn("Couldn't find object user for follow", err)
-		return
+		return err
 	}
 
-	user_model.FollowUser(actorUser.ID, objectUser.ID)
+	err = user_model.FollowUser(actorUser.ID, objectUser.ID)
+	if err != nil {
+		return err
+	}
 
 	// Send back an Accept activity
 	accept := ap.AcceptNew(objectIRI, follow)
 	accept.Actor = ap.Person{ID: objectIRI}
 	accept.To = ap.ItemCollection{ap.IRI(actorIRI.String() + "/inbox")}
 	accept.Object = follow
-	Send(objectUser, accept)
+	return Send(objectUser, accept)
 }
 
 // Process a Undo follow activity
-func Unfollow(ctx context.Context, unfollow ap.Undo) {
+func Unfollow(ctx context.Context, unfollow ap.Undo) error {
 	follow := unfollow.Object.(*ap.Follow)
 	// Actor is the user performing the undo follow
 	actorIRI := follow.Actor.GetID()
 	actorUser, err := personIRIToUser(ctx, actorIRI)
 	if err != nil {
-		log.Warn("Couldn't find actor user for follow", err)
-		return
+		return err
 	}
 
 	// Object is the user being unfollowed
@@ -59,9 +58,8 @@ func Unfollow(ctx context.Context, unfollow ap.Undo) {
 	objectUser, err := personIRIToUser(ctx, objectIRI)
 	// Must be a local user
 	if err != nil || strings.Contains(objectUser.Name, "@") {
-		log.Warn("Couldn't find object user for follow", err)
-		return
+		return err
 	}
 
-	user_model.UnfollowUser(actorUser.ID, objectUser.ID)
+	return user_model.UnfollowUser(actorUser.ID, objectUser.ID)
 }
