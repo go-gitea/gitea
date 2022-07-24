@@ -107,7 +107,6 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
-
 	ctx.Resp.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(fileName))
 	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 
