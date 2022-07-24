@@ -98,9 +98,15 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 
 	// serve types that can present a security risk with CSP
-	if st.IsImage() || st.IsPDF() {
+	if st.IsSvgImage() {
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
+	} else if st.IsPDF() {
+		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
+		// should generally be safe as scripts inside PDF can not escape the PDF document
+		// see 	https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
+		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
+
 
 	ctx.Resp.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(fileName))
 	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
