@@ -33,7 +33,7 @@ type webfingerLink struct {
 	Properties map[string]interface{} `json:"properties,omitempty"`
 }
 
-// WebfingerQuery returns informations about a resource
+// WebfingerQuery returns information about a resource
 // https://datatracker.ietf.org/doc/html/rfc7565
 func WebfingerQuery(ctx *context.Context) {
 	appURL, _ := url.Parse(setting.AppURL)

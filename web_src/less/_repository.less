@@ -367,6 +367,8 @@
         }
 
         &.message {
+          color: var(--color-text-light-1);
+
           @media @mediaXl {
             max-width: 400px;
           }
@@ -381,6 +383,7 @@
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -431,10 +434,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
@@ -494,7 +493,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -3352,7 +3354,7 @@ td.blob-excerpt {
   .commit-header-row {
     .ui.horizontal.list {
       width: 100%;
-      overflow-x: scroll;
+      overflow-x: auto;
       margin-top: 2px;
 
       .item {
@@ -3401,7 +3403,7 @@ td.blob-excerpt {
   }
 
   .commit-table {
-    overflow-x: scroll;
+    overflow-x: auto;
 
     td.sha,
     th.sha {
