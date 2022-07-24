@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	user_model "code.gitea.io/gitea/models/user"
 	container_module "code.gitea.io/gitea/modules/packages/container"
-	"code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
 )
@@ -248,18 +247,7 @@ func GetRepositories(ctx context.Context, actor *user_model.User, n int, last st
 		cond = cond.And(builder.Gt{"package_property.value": strings.ToLower(last)})
 	}
 
-	if actor != nil && !actor.IsGhost() {
-		if !actor.IsAdmin {
-			var accessCond builder.Cond = builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
-			if !actor.IsRestricted {
-				accessCond = accessCond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-			}
-			accessCond = accessCond.Or(builder.Eq{"`user`.id": actor.ID})
-			cond = cond.And(accessCond)
-		}
-	} else {
-		cond = cond.And(builder.In("`user`.visibility", structs.VisibleTypePublic))
-	}
+	cond = cond.And(user_model.BuildCanSeeUserCondition(actor))
 
 	sess := db.GetEngine(ctx).
 		Table("package").
