@@ -45,6 +45,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		})
 		if err != nil {
 			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+			return sha
 		}
 		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
