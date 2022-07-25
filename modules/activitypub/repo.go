@@ -5,17 +5,19 @@
 package activitypub
 
 import (
-	"code.gitea.io/gitea/models"
-	repo_model "code.gitea.io/gitea/models/repo"
+	//"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/forgefed"
+	/*repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/repository"
 
-	ap "github.com/go-ap/activitypub"
+	ap "github.com/go-ap/activitypub"*/
 )
 
-func FederatedRepoNew(user *user_model.User, name string, iri ap.IRI) (*repo_model.Repository, error) {
+func FederatedRepoNew(repo forgefed.Repository) error {
 	// TODO: also handle forks
-	return repository.CreateRepository(user, user, models.CreateRepoOptions{
-		Name: name,
-	})
+	/*_, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
+		Name: repo.Name.String(),
+	})*/
+	return nil
 }

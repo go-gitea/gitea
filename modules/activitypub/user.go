@@ -48,7 +48,7 @@ func FederatedUserNew(ctx context.Context, person ap.Person) error {
 
 	user := &user_model.User{
 		Name:      name,
-		FullName:  person.Name.String(),
+		FullName:  person.Name.String(), // May not exist!!
 		Email:     email,
 		Avatar:    avatar,
 		LoginType: auth.Federated,

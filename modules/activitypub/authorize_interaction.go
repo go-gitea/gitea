@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"code.gitea.io/gitea/models/forgefed"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -26,37 +26,32 @@ func AuthorizeInteraction(c *context.Context) {
 		return
 	}
 
-	var object map[string]interface{}
-	err = json.Unmarshal(resp, &object)
+	ap.ItemTyperFunc = forgefed.GetItemByType
+	object, err := ap.UnmarshalJSON(resp)
 	if err != nil {
-		c.ServerError("Unmarshal", err)
+		c.ServerError("UnmarshalJSON", err)
 		return
 	}
-	switch object["type"] {
-	case "Person":
-		var person ap.Person
-		err = person.UnmarshalJSON(resp)
+
+	switch object.GetType() {
+	case ap.PersonType:
 		if err != nil {
 			c.ServerError("UnmarshalJSON", err)
 			return
 		}
-		err = FederatedUserNew(c, person)
+		err = FederatedUserNew(c, object.(ap.Person))
 		if err != nil {
 			c.ServerError("FederatedUserNew", err)
 			return
 		}
-		name, err := personIRIToName(person.GetLink())
+		name, err := personIRIToName(object.GetLink())
 		if err != nil {
 			c.ServerError("personIRIToName", err)
 			return
 		}
 		c.Redirect(name)
-		/*case "organization":
-			// Do something idk
-		case "repository":
-			FederatedRepoNew() // TODO
-		case "ticket":
-			// TODO*/
+	case forgefed.RepositoryType:
+		err = FederatedRepoNew(object.(forgefed.Repository))
 	}
 
 	c.Status(http.StatusOK)

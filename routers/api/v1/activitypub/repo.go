@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/forgefed"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -96,51 +95,40 @@ func RepoInbox(ctx *context.APIContext) {
 		return
 	}
 
-	var activity map[string]interface{}
-	err = json.Unmarshal(body, activity)
+	ap.ItemTyperFunc = forgefed.GetItemByType
+	var activity ap.Activity
+	err = activity.UnmarshalJSON(body)
 	if err != nil {
-		ctx.ServerError("Unmarshal", err)
+		ctx.ServerError("UnmarshalJSON", err)
 		return
 	}
 
 	// Make sure keyID matches the user doing the activity
 	_, keyID, _ := getKeyID(ctx.Req)
-	actor, ok := activity["actor"]
-	if ok && !strings.HasPrefix(keyID, actor.(string)) {
+	if activity.Actor != nil && !strings.HasPrefix(keyID, activity.Actor.GetID().String()) {
 		ctx.ServerError("Actor does not match HTTP signature keyID", nil)
 		return
 	}
-	attributedTo, ok := activity["attributedTo"]
-	if ok && !strings.HasPrefix(keyID, attributedTo.(string)) {
+	if activity.AttributedTo != nil && !strings.HasPrefix(keyID, activity.AttributedTo.GetID().String()) {
 		ctx.ServerError("AttributedTo does not match HTTP signature keyID", nil)
 		return
 	}
 
 	// Process activity
-	switch activity["type"].(ap.ActivityVocabularyType) {
+	switch activity.Type {
 	case ap.CreateType:
-		// Create activity, extract the object
-		object, ok := activity["object"].(map[string]interface{})
-		if ok {
-			ctx.ServerError("Create activity does not contain object", err)
-			return
-		}
-		objectBinary, err := json.Marshal(object)
-		if err != nil {
-			ctx.ServerError("Marshal", err)
+		if activity.Object == nil {
+			ctx.ServerError("Activity does not contain object", err)
 			return
 		}
 
-		switch object["type"].(ap.ActivityVocabularyType) {
+		switch activity.Object.(ap.Object).Type {
 		case forgefed.RepositoryType:
 			// Fork created by remote instance
-			var repository forgefed.Repository
-			repository.UnmarshalJSON(objectBinary)
-			activitypub.ForkFromCreate(ctx, repository)
+			activitypub.ForkFromCreate(ctx, activity.Object.(forgefed.Repository))
 		case forgefed.TicketType:
 			// New issue or pull request
-			var ticket forgefed.Ticket
-			ticket.UnmarshalJSON(objectBinary)
+			ticket := activity.Object.(forgefed.Ticket)
 			if ticket.Origin != nil {
 				// New pull request
 				activitypub.PullRequest(ctx, ticket)
@@ -150,12 +138,10 @@ func RepoInbox(ctx *context.APIContext) {
 			}
 		case ap.NoteType:
 			// New comment
-			var note ap.Note
-			note.UnmarshalJSON(objectBinary)
-			activitypub.Comment(ctx, note)
+			activitypub.Comment(ctx, activity.Object.(ap.Note))
 		}
 	default:
-		log.Info("Incoming unsupported ActivityStreams type: %s", activity["type"])
+		log.Info("Incoming unsupported ActivityStreams type: %s", activity.Type)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
 	}
