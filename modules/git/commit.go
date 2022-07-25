@@ -80,6 +80,9 @@ func (c *Commit) ParentCount() int {
 
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	if c.repo.LastCommitCache != nil {
+		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
