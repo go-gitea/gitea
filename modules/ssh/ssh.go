@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -142,10 +143,12 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Error("SSH: Wait: %v", err)
+		}
 	}
 
-	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+	if err := session.Exit(getExitStatusFromError(err)); err != nil && !errors.Is(err, io.EOF) {
 		log.Error("Session failed to exit. %s", err)
 	}
 }
