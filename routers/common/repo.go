@@ -73,8 +73,8 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	if mimeType == "" {
-		if st.IsBrowsableType() {
-			mimeType = st.GetContentType()
+		if st.IsBrowsableBinaryType() {
+			mimeType = st.GetMimeType()
 		} else if isPlain {
 			mimeType = "text/plain"
 		} else {
