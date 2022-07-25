@@ -26,7 +26,7 @@ import (
 )
 
 // don't index files larger than this many bytes for performance purposes
-const sizeLimit = 1000000
+const sizeLimit = 1024 * 1024
 
 var (
 	// For custom user mapping
@@ -60,7 +60,7 @@ func NewContext() {
 func Code(fileName, language, code string) string {
 	NewContext()
 
-	// diff view newline will be passed as empty, change to literal \n so it can be copied
+	// diff view newline will be passed as empty, change to literal '\n' so it can be copied
 	// preserve literal newline in blame view
 	if code == "" || code == "\n" {
 		return "\n"
@@ -106,6 +106,11 @@ func Code(fileName, language, code string) string {
 	return CodeFromLexer(lexer, code)
 }
 
+type nopPreWrapper struct{}
+
+func (nopPreWrapper) Start(code bool, styleAttr string) string { return "" }
+func (nopPreWrapper) End(code bool) string                     { return "" }
+
 // CodeFromLexer returns a HTML version of code string with chroma syntax highlighting classes
 func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	formatter := html.New(html.WithClasses(true),
@@ -128,9 +133,9 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 		return code
 	}
 
-	htmlw.Flush()
+	_ = htmlw.Flush()
 	// Chroma will add newlines for certain lexers in order to highlight them properly
-	// Once highlighted, strip them here so they don't cause copy/paste trouble in HTML output
+	// Once highlighted, strip them here, so they don't cause copy/paste trouble in HTML output
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
@@ -143,7 +148,7 @@ func File(numLines int, fileName, language string, code []byte) []string {
 	}
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
+		html.WithPreWrapper(nopPreWrapper{}),
 	)
 
 	if formatter == nil {
@@ -191,27 +196,19 @@ func File(numLines int, fileName, language string, code []byte) []string {
 		return plainText(string(code), numLines)
 	}
 
-	htmlw.Flush()
+	_ = htmlw.Flush()
 	finalNewLine := false
 	if len(code) > 0 {
 		finalNewLine = code[len(code)-1] == '\n'
 	}
 
-	m := make([]string, 0, numLines)
-	for _, v := range strings.SplitN(htmlbuf.String(), "\n", numLines) {
-		content := v
-		// need to keep lines that are only \n so copy/paste works properly in browser
-		if content == "" {
-			content = "\n"
-		} else if content == `</span><span class="w">` {
-			content += "\n</span>"
-		} else if content == `</span></span><span class="line"><span class="cl">` {
-			content += "\n"
-		}
-		content = strings.TrimSuffix(content, `<span class="w">`)
-		content = strings.TrimPrefix(content, `</span>`)
-		m = append(m, content)
+	m := strings.SplitN(htmlbuf.String(), `</span></span><span class="line"><span class="cl">`, numLines)
+	if len(m) > 0 {
+		m[0] = m[0][len(`<span class="line"><span class="cl">`):]
+		last := m[len(m)-1]
+		m[len(m)-1] = last[:len(last)-len(`</span></span>`)]
 	}
+
 	if finalNewLine {
 		m = append(m, "<span class=\"w\">\n</span>")
 	}
@@ -221,14 +218,14 @@ func File(numLines int, fileName, language string, code []byte) []string {
 
 // return unhiglighted map
 func plainText(code string, numLines int) []string {
-	m := make([]string, 0, numLines)
-	for _, v := range strings.SplitN(code, "\n", numLines) {
-		content := v
+	m := strings.SplitN(code, "\n", numLines)
+
+	for i, content := range m {
 		// need to keep lines that are only \n so copy/paste works properly in browser
 		if content == "" {
 			content = "\n"
 		}
-		m = append(m, gohtml.EscapeString(content))
+		m[i] = gohtml.EscapeString(content)
 	}
 	return m
 }
