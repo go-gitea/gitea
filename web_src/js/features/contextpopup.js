@@ -2,6 +2,7 @@ import $ from 'jquery';
 import Vue from 'vue';
 import ContextPopup from '../components/ContextPopup.vue';
 import {parseIssueHref} from '../utils.js';
+import {createTippy} from '../modules/tippy.js';
 
 export default function initContextPopups() {
   const refIssues = $('.ref-issue');
@@ -16,7 +17,6 @@ export default function initContextPopups() {
     if (!owner) return;
 
     const el = document.createElement('div');
-    el.className = 'ui custom popup hidden';
     el.innerHTML = '<div></div>';
     this.parentNode.insertBefore(el, this.nextSibling);
 
@@ -33,17 +33,12 @@ export default function initContextPopups() {
       el.textContent = 'ContextPopup failed to load';
     }
 
-    $(this).popup({
-      variation: 'wide',
-      delay: {
-        show: 250
-      },
+    createTippy(this, {
+      content: el,
+      interactive: true,
       onShow: () => {
-        view.$emit('load-context-popup', {owner, repo, index}, () => {
-          $(this).popup('reposition');
-        });
-      },
-      popup: $(el),
+        view.$emit('load-context-popup', {owner, repo, index});
+      }
     });
   });
 }

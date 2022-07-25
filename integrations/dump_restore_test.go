@@ -201,7 +201,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		"Assignees": {ignore: true}, // not implemented yet
 		"Head":      {nested: comparePullRequestBranch},
 		"Base":      {nested: comparePullRequestBranch},
-		"Labels":    {ignore: true}, // because org labels are not handled propery
+		"Labels":    {ignore: true}, // because org labels are not handled properly
 	}).([]*base.PullRequest)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(prs), 1)

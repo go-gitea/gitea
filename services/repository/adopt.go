@@ -143,8 +143,6 @@ func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, r
 				return fmt.Errorf("setDefaultBranch: %v", err)
 			}
 		}
-
-		repo.DefaultBranch = strings.TrimPrefix(repo.DefaultBranch, git.BranchPrefix)
 	}
 	branches, _, _ := gitRepo.GetBranchNames(0, 0)
 	found := false
