@@ -96,7 +96,7 @@ func UploadPackage(ctx *context.Context) {
 				Name:        packageName,
 				Version:     packageVersion,
 			},
-			Creator:          ctx.Doer,
+			Creator: ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
