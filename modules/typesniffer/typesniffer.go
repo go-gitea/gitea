@@ -77,7 +77,7 @@ func (ct SniffedType) IsBrowsableBinaryType() bool {
 
 // GetMimeType returns the mime type
 func (ct SniffedType) GetMimeType() string {
-	return strings.SplitN(ct.contentType, ";", 2)[0];
+	return strings.SplitN(ct.contentType, ";", 2)[0]
 }
 
 // DetectContentType extends http.DetectContentType with more content types. Defaults to text/unknown if input is empty.
