@@ -8,8 +8,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
@@ -19,6 +21,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		return ""
 	}
 
+	sha := ref
 	// Search branches and tags
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
@@ -27,10 +30,27 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 			return ""
 		}
 		if refSHA != "" {
-			return refSHA
+			sha = refSHA
+			break
 		}
 	}
-	return ref
+
+	if ctx.Repo.GitRepo != nil && ctx.Repo.GitRepo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, true), func() (int64, error) {
+			commit, err := ctx.Repo.GitRepo.GetCommit(sha)
+			if err != nil {
+				return 0, err
+			}
+			return commit.CommitsCount()
+		})
+		if err != nil {
+			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+			return sha
+		}
+		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
+	}
+
+	return sha
 }
 
 // GetGitRefs return git references based on filter
