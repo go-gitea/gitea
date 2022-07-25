@@ -6,6 +6,7 @@ package asymkey
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -165,7 +166,7 @@ func RewriteAllPublicKeys() error {
 		}
 	}
 
-	if err := RegeneratePublicKeys(t); err != nil {
+	if err := RegeneratePublicKeys(db.DefaultContext, t); err != nil {
 		return err
 	}
 
@@ -174,12 +175,8 @@ func RewriteAllPublicKeys() error {
 }
 
 // RegeneratePublicKeys regenerates the authorized_keys file
-func RegeneratePublicKeys(t io.StringWriter) error {
-	return regeneratePublicKeys(db.GetEngine(db.DefaultContext), t)
-}
-
-func regeneratePublicKeys(e db.Engine, t io.StringWriter) error {
-	if err := e.Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
+func RegeneratePublicKeys(ctx context.Context, t io.StringWriter) error {
+	if err := db.GetEngine(ctx).Where("type != ?", KeyTypePrincipal).Iterate(new(PublicKey), func(idx int, bean interface{}) (err error) {
 		_, err = t.WriteString((bean.(*PublicKey)).AuthorizedString())
 		return err
 	}); err != nil {

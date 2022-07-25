@@ -4,7 +4,6 @@ If you are customizing Gitea, please do not change this file.
 If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 */}}
 <script>
-	<!-- /* eslint-disable */ -->
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
 		appVer: '{{AppVer}}',
@@ -38,10 +37,10 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		mermaidMaxSourceCharacters: {{MermaidMaxSourceCharacters}},
 		{{/* this global i18n object should only contain general texts. for specialized texts, it should be provided inside the related modules by: (1) API response (2) HTML data-attribute (3) PageData */}}
 		i18n: {
-			copy_success: '{{.i18n.Tr "copy_success"}}',
-			copy_error: '{{.i18n.Tr "copy_error"}}',
-			error_occurred: '{{.i18n.Tr "error.occurred"}}',
-			network_error: '{{.i18n.Tr "error.network_error"}}',
+			copy_success: '{{.locale.Tr "copy_success"}}',
+			copy_error: '{{.locale.Tr "copy_error"}}',
+			error_occurred: '{{.locale.Tr "error.occurred"}}',
+			network_error: '{{.locale.Tr "error.network_error"}}',
 		},
 	};
 	{{/* in case some pages don't render the pageData, we make sure it is an object to prevent null access */}}

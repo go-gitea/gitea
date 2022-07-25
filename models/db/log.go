@@ -6,6 +6,7 @@ package db
 
 import (
 	"fmt"
+	"sync/atomic"
 
 	"code.gitea.io/gitea/modules/log"
 
@@ -14,15 +15,19 @@ import (
 
 // XORMLogBridge a logger bridge from Logger to xorm
 type XORMLogBridge struct {
-	showSQL bool
-	logger  log.Logger
+	showSQLint *int32
+	logger     log.Logger
 }
 
 // NewXORMLogger inits a log bridge for xorm
 func NewXORMLogger(showSQL bool) xormlog.Logger {
+	showSQLint := int32(0)
+	if showSQL {
+		showSQLint = 1
+	}
 	return &XORMLogBridge{
-		showSQL: showSQL,
-		logger:  log.GetLogger("xorm"),
+		showSQLint: &showSQLint,
+		logger:     log.GetLogger("xorm"),
 	}
 }
 
@@ -94,14 +99,16 @@ func (l *XORMLogBridge) SetLevel(lvl xormlog.LogLevel) {
 
 // ShowSQL set if record SQL
 func (l *XORMLogBridge) ShowSQL(show ...bool) {
-	if len(show) > 0 {
-		l.showSQL = show[0]
-	} else {
-		l.showSQL = true
+	showSQL := int32(1)
+	if len(show) > 0 && !show[0] {
+		showSQL = 0
 	}
+	atomic.StoreInt32(l.showSQLint, showSQL)
 }
 
 // IsShowSQL if record SQL
 func (l *XORMLogBridge) IsShowSQL() bool {
-	return l.showSQL
+	showSQL := atomic.LoadInt32(l.showSQLint)
+
+	return showSQL == 1
 }

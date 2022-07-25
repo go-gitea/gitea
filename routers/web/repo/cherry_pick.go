@@ -47,8 +47,6 @@ func CherryPick(ctx *context.Context) {
 		ctx.Data["commit_message"] = splits[1]
 	}
 
-	ctx.Data["RequireHighlightJS"] = true
-
 	canCommit := renderCommitRights(ctx)
 	ctx.Data["TreePath"] = ""
 
@@ -77,7 +75,6 @@ func CherryPickPost(ctx *context.Context) {
 		ctx.Data["CherryPickType"] = "cherry-pick"
 	}
 
-	ctx.Data["RequireHighlightJS"] = true
 	canCommit := renderCommitRights(ctx)
 	branchName := ctx.Repo.BranchName
 	if form.CommitChoice == frmCommitChoiceNewBranch {

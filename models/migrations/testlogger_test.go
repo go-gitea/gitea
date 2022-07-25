@@ -111,7 +111,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s is a slow tets (took %v)\n", t.Name(), took)
+				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
 			}
 		}
 		timer := time.AfterFunc(slowFlush, func() {

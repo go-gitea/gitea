@@ -82,6 +82,7 @@ func initMigrationTest(t *testing.T) func() {
 		}
 	}
 
+	assert.NoError(t, git.InitOnceWithSync(context.Background()))
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
@@ -185,9 +186,17 @@ func restoreOldDB(t *testing.T, version string) bool {
 		db.Close()
 
 	case setting.Database.UsePostgreSQL:
-		db, err := sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
-		assert.NoError(t, err)
+		var db *sql.DB
+		var err error
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.SSLMode, setting.Database.Host))
+			assert.NoError(t, err)
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.SSLMode))
+			assert.NoError(t, err)
+		}
 		defer db.Close()
 
 		_, err = db.Exec(fmt.Sprintf("DROP DATABASE IF EXISTS %s", setting.Database.Name))
@@ -199,8 +208,13 @@ func restoreOldDB(t *testing.T, version string) bool {
 
 		// Check if we need to setup a specific schema
 		if len(setting.Database.Schema) != 0 {
-			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			if setting.Database.Host[0] == '/' {
+				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+					setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+			} else {
+				db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+					setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+			}
 			if !assert.NoError(t, err) {
 				return false
 			}
@@ -225,8 +239,13 @@ func restoreOldDB(t *testing.T, version string) bool {
 			db.Close()
 		}
 
-		db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		if setting.Database.Host[0] == '/' {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@/%s?sslmode=%s&host=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Name, setting.Database.SSLMode, setting.Database.Host))
+		} else {
+			db, err = sql.Open("postgres", fmt.Sprintf("postgres://%s:%s@%s/%s?sslmode=%s",
+				setting.Database.User, setting.Database.Passwd, setting.Database.Host, setting.Database.Name, setting.Database.SSLMode))
+		}
 		assert.NoError(t, err)
 		defer db.Close()
 

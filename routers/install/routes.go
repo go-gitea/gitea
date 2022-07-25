@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"path"
 
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/public"
 	"code.gitea.io/gitea/modules/setting"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/routers/common"
+	"code.gitea.io/gitea/routers/web/healthcheck"
 	"code.gitea.io/gitea/services/forms"
 
 	"gitea.com/go-chi/session"
@@ -56,11 +58,12 @@ func installRecovery() func(next http.Handler) http.Handler {
 					store := dataStore{
 						"Language":       lc.Language(),
 						"CurrentURL":     setting.AppSubURL + req.URL.RequestURI(),
-						"i18n":           lc,
+						"locale":         lc,
 						"SignedUserID":   int64(0),
 						"SignedUserName": "",
 					}
 
+					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {
@@ -106,6 +109,7 @@ func Routes() *web.Route {
 	r.Use(Init)
 	r.Get("/", Install)
 	r.Post("/", web.Bind(forms.InstallForm{}), SubmitInstall)
+	r.Get("/api/healthz", healthcheck.Check)
 
 	r.NotFound(web.Wrap(installNotFound))
 	return r

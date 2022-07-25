@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -100,7 +99,7 @@ func (b *blobReader) Read(p []byte) (n int, err error) {
 	}
 	n, err = b.rd.Read(p)
 	b.n -= int64(n)
-	return
+	return n, err
 }
 
 // Close implements io.Closer

@@ -6,6 +6,7 @@ package integrations
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -17,6 +18,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,7 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/services/pull"
 	repo_service "code.gitea.io/gitea/services/repository"
 	files_service "code.gitea.io/gitea/services/repository/files"
@@ -36,10 +39,8 @@ func testPullMerge(t *testing.T, session *TestSession, user, repo, pullnum strin
 	req := NewRequest(t, "GET", path.Join(user, repo, "pulls", pullnum))
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
-	link, exists := htmlDoc.doc.Find(".ui.form." + string(mergeStyle) + "-fields > form").Attr("action")
-	assert.True(t, exists, "The template has changed")
+	link := path.Join(user, repo, "pulls", pullnum, "merge")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 		"do":    string(mergeStyle),
@@ -56,7 +57,7 @@ func testPullCleanUp(t *testing.T, session *TestSession, user, repo, pullnum str
 	// Click the little green button to create a pull
 	htmlDoc := NewHTMLParser(t, resp.Body)
 	link, exists := htmlDoc.doc.Find(".timeline-item .delete-button").Attr("data-url")
-	assert.True(t, exists, "The template has changed")
+	assert.True(t, exists, "The template has changed, can not find delete button url")
 	req = NewRequestWithValues(t, "POST", link, map[string]string{
 		"_csrf": htmlDoc.GetCSRF(),
 	})
@@ -203,7 +204,7 @@ func TestCantMergeWorkInProgress(t *testing.T) {
 		text := strings.TrimSpace(htmlDoc.doc.Find(".merge-section > .item").Last().Text())
 		assert.NotEmpty(t, text, "Can't find WIP text")
 
-		assert.Contains(t, text, i18n.Tr("en", "repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
+		assert.Contains(t, text, translation.NewLocale("en-US").Tr("repo.pulls.cannot_merge_work_in_progress"), "Unable to find WIP text")
 		assert.Contains(t, text, "[wip]", "Unable to find WIP text")
 	})
 }
@@ -233,21 +234,21 @@ func TestCantMergeConflict(t *testing.T) {
 			Name:    "repo1",
 		}).(*repo_model.Repository)
 
-		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "conflict",
 			BaseBranch: "base",
-		}).(*models.PullRequest)
+		}).(*issues_model.PullRequest)
 
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
 
-		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrMergeConflicts(err), "Merge error is not a conflict error")
 
-		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT")
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleRebase, "", "CONFLICT")
 		assert.Error(t, err, "Merge should return an error due to conflict")
 		assert.True(t, models.IsErrRebaseConflicts(err), "Merge error is not a conflict error")
 		gitRepo.Close()
@@ -335,14 +336,14 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Now this PR could be marked conflict - or at least a race may occur - so drop down to pure code at this point...
 		gitRepo, err := git.OpenRepository(git.DefaultContext, path)
 		assert.NoError(t, err)
-		pr := unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "unrelated",
 			BaseBranch: "base",
-		}).(*models.PullRequest)
+		}).(*issues_model.PullRequest)
 
-		err = pull.Merge(git.DefaultContext, pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
+		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
 		assert.True(t, models.IsErrMergeUnrelatedHistories(err), "Merge error is not a unrelated histories error")
 		gitRepo.Close()
@@ -387,7 +388,7 @@ func TestConflictChecking(t *testing.T) {
 		assert.NoError(t, err)
 
 		// create Pull to merge the important-secrets branch into main branch.
-		pullIssue := &models.Issue{
+		pullIssue := &issues_model.Issue{
 			RepoID:   baseRepo.ID,
 			Title:    "PR with conflict!",
 			PosterID: user.ID,
@@ -395,26 +396,26 @@ func TestConflictChecking(t *testing.T) {
 			IsPull:   true,
 		}
 
-		pullRequest := &models.PullRequest{
+		pullRequest := &issues_model.PullRequest{
 			HeadRepoID: baseRepo.ID,
 			BaseRepoID: baseRepo.ID,
 			HeadBranch: "important-secrets",
 			BaseBranch: "main",
 			HeadRepo:   baseRepo,
 			BaseRepo:   baseRepo,
-			Type:       models.PullRequestGitea,
+			Type:       issues_model.PullRequestGitea,
 		}
 		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 		assert.NoError(t, err)
 
-		issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{Title: "PR with conflict!"}).(*models.Issue)
-		conflictingPR, err := models.GetPullRequestByIssueID(issue.ID)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"}).(*issues_model.Issue)
+		conflictingPR, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 		assert.NoError(t, err)
 
 		// Ensure conflictedFiles is populated.
 		assert.Equal(t, 1, len(conflictingPR.ConflictedFiles))
 		// Check if status is correct.
-		assert.Equal(t, models.PullRequestStatusConflict, conflictingPR.Status)
+		assert.Equal(t, issues_model.PullRequestStatusConflict, conflictingPR.Status)
 		// Ensure that mergeable returns false
 		assert.False(t, conflictingPR.Mergeable())
 	})

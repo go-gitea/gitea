@@ -60,7 +60,7 @@ func ListHooks(ctx *context.APIContext) {
 		return
 	}
 
-	hooks, err := webhook.ListWebhooksByOpts(opts)
+	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/eventsource"
 )
 
 // IssueStopwatch creates or stops a stopwatch for the given issue.
@@ -21,7 +23,7 @@ func IssueStopwatch(c *context.Context) {
 
 	var showSuccessMessage bool
 
-	if !models.StopwatchExists(c.Doer.ID, issue.ID) {
+	if !issues_model.StopwatchExists(c.Doer.ID, issue.ID) {
 		showSuccessMessage = true
 	}
 
@@ -30,7 +32,7 @@ func IssueStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := models.CreateOrStopIssueStopwatch(c.Doer, issue); err != nil {
+	if err := issues_model.CreateOrStopIssueStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CreateOrStopIssueStopwatch", err)
 		return
 	}
@@ -54,9 +56,21 @@ func CancelStopwatch(c *context.Context) {
 		return
 	}
 
-	if err := models.CancelStopwatch(c.Doer, issue); err != nil {
+	if err := issues_model.CancelStopwatch(c.Doer, issue); err != nil {
 		c.ServerError("CancelStopwatch", err)
 		return
+	}
+
+	stopwatches, err := issues_model.GetUserStopwatches(c.Doer.ID, db.ListOptions{})
+	if err != nil {
+		c.ServerError("GetUserStopwatches", err)
+		return
+	}
+	if len(stopwatches) == 0 {
+		eventsource.GetManager().SendMessage(c.Doer.ID, &eventsource.Event{
+			Name: "stopwatches",
+			Data: "{}",
+		})
 	}
 
 	url := issue.HTMLURL()
@@ -73,7 +87,7 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	_, sw, err := models.HasUserStopwatch(ctx.Doer.ID)
+	_, sw, err := issues_model.HasUserStopwatch(ctx, ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("HasUserStopwatch", err)
 		return
@@ -83,9 +97,11 @@ func GetActiveStopwatch(ctx *context.Context) {
 		return
 	}
 
-	issue, err := models.GetIssueByID(sw.IssueID)
+	issue, err := issues_model.GetIssueByID(ctx, sw.IssueID)
 	if err != nil || issue == nil {
-		ctx.ServerError("GetIssueByID", err)
+		if !issues_model.IsErrIssueNotExist(err) {
+			ctx.ServerError("GetIssueByID", err)
+		}
 		return
 	}
 	if err = issue.LoadRepo(ctx); err != nil {

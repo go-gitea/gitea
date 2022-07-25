@@ -13,6 +13,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/log"
 )
 
 var (
@@ -83,6 +85,10 @@ func InitDBConfig() {
 	Database.Schema = sec.Key("SCHEMA").String()
 	Database.SSLMode = sec.Key("SSL_MODE").MustString("disable")
 	Database.Charset = sec.Key("CHARSET").In(defaultCharset, []string{"utf8", "utf8mb4"})
+	if Database.UseMySQL && defaultCharset != "utf8mb4" {
+		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
+	}
+
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
@@ -101,7 +107,7 @@ func InitDBConfig() {
 
 // DBConnStr returns database connection string
 func DBConnStr() (string, error) {
-	connStr := ""
+	var connStr string
 	Param := "?"
 	if strings.Contains(Database.Name, Param) {
 		Param = "&"
@@ -150,6 +156,12 @@ func parsePostgreSQLHostPort(info string) (string, string) {
 	} else if len(info) > 0 {
 		host = info
 	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "5432"
+	}
 	return host, port
 }
 
@@ -162,11 +174,12 @@ func getPostgreSQLConnectionString(dbHost, dbUser, dbPasswd, dbName, dbParam, db
 		connStr = fmt.Sprintf("postgres://%s:%s@%s:%s/%s%ssslmode=%s",
 			url.PathEscape(dbUser), url.PathEscape(dbPasswd), host, port, dbName, dbParam, dbsslMode)
 	}
-	return
+	return connStr
 }
 
 // ParseMSSQLHostPort splits the host into host and port
 func ParseMSSQLHostPort(info string) (string, string) {
+	// the default port "0" might be related to MSSQL's dynamic port, maybe it should be double-confirmed in the future
 	host, port := "127.0.0.1", "0"
 	if strings.Contains(info, ":") {
 		host = strings.Split(info, ":")[0]
@@ -176,6 +189,12 @@ func ParseMSSQLHostPort(info string) (string, string) {
 		port = strings.TrimSpace(strings.Split(info, ",")[1])
 	} else if len(info) > 0 {
 		host = info
+	}
+	if host == "" {
+		host = "127.0.0.1"
+	}
+	if port == "" {
+		port = "0"
 	}
 	return host, port
 }

@@ -313,8 +313,13 @@ in the current directory.
   - `--tempdir path`, `-t path`: Path to the temporary directory used. Optional. (default: /tmp).
   - `--skip-repository`, `-R`: Skip the repository dumping. Optional.
   - `--skip-custom-dir`: Skip dumping of the custom dir. Optional.
+  - `--skip-lfs-data`: Skip dumping of LFS data. Optional.
+  - `--skip-attachment-data`: Skip dumping of attachment data. Optional.
+  - `--skip-package-data`: Skip dumping of package data. Optional.
+  - `--skip-log`: Skip dumping of log data. Optional.
   - `--database`, `-d`: Specify the database SQL syntax. Optional.
   - `--verbose`, `-V`: If provided, shows additional details. Optional.
+  - `--type`: Set the dump output format. Optional. (default: zip)
 - Examples:
   - `gitea dump`
   - `gitea dump --verbose`

@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import {initMarkupContent} from '../markup/content.js';
-import {attachEasyMDEToElements, importEasyMDE, validateTextareaNonEmpty} from './comp/EasyMDE.js';
+import {attachEasyMDEToElements, codeMirrorQuickSubmit, importEasyMDE, validateTextareaNonEmpty} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
 
 const {csrfToken} = window.config;
@@ -67,6 +67,8 @@ async function initRepoWikiFormEditor() {
     indentWithTabs: false,
     tabSize: 4,
     spellChecker: false,
+    inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
+    nativeSpellcheck: true,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
       {
@@ -122,10 +124,12 @@ async function initRepoWikiFormEditor() {
     ]
   });
 
-  attachEasyMDEToElements(easyMDE);
+  easyMDE.codemirror.setOption('extraKeys', {
+    'Cmd-Enter': codeMirrorQuickSubmit,
+    'Ctrl-Enter': codeMirrorQuickSubmit,
+  });
 
-  const $mdeInputField = $(easyMDE.codemirror.getInputField());
-  $mdeInputField.addClass('js-quick-submit');
+  attachEasyMDEToElements(easyMDE);
 
   $form.on('submit', () => {
     if (!validateTextareaNonEmpty($editArea)) {

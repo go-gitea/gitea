@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -101,7 +102,7 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
@@ -114,23 +115,24 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
-	RepoName           string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description        string `binding:"MaxSize(255)"`
-	Website            string `binding:"ValidUrl;MaxSize(255)"`
-	Interval           string
-	MirrorAddress      string
-	MirrorUsername     string
-	MirrorPassword     string
-	LFS                bool   `form:"mirror_lfs"`
-	LFSEndpoint        string `form:"mirror_lfs_endpoint"`
-	PushMirrorID       string
-	PushMirrorAddress  string
-	PushMirrorUsername string
-	PushMirrorPassword string
-	PushMirrorInterval string
-	Private            bool
-	Template           bool
-	EnablePrune        bool
+	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
+	Description            string `binding:"MaxSize(255)"`
+	Website                string `binding:"ValidUrl;MaxSize(255)"`
+	Interval               string
+	MirrorAddress          string
+	MirrorUsername         string
+	MirrorPassword         string
+	LFS                    bool   `form:"mirror_lfs"`
+	LFSEndpoint            string `form:"mirror_lfs_endpoint"`
+	PushMirrorID           string
+	PushMirrorAddress      string
+	PushMirrorUsername     string
+	PushMirrorPassword     string
+	PushMirrorSyncOnCommit bool
+	PushMirrorInterval     string
+	Private                bool
+	Template               bool
+	EnablePrune            bool
 
 	// Advanced settings
 	EnableWiki                            bool
@@ -141,8 +143,10 @@ type RepoSettingForm struct {
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
+	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
+	EnablePackages                        bool
 	EnablePulls                           bool
 	PullsIgnoreWhitespace                 bool
 	PullsAllowMerge                       bool
@@ -422,15 +426,16 @@ func (f *NewPackagistHookForm) Validate(req *http.Request, errs binding.Errors) 
 
 // CreateIssueForm form for creating issue
 type CreateIssueForm struct {
-	Title       string `binding:"Required;MaxSize(255)"`
-	LabelIDs    string `form:"label_ids"`
-	AssigneeIDs string `form:"assignee_ids"`
-	Ref         string `form:"ref"`
-	MilestoneID int64
-	ProjectID   int64
-	AssigneeID  int64
-	Content     string
-	Files       []string
+	Title               string `binding:"Required;MaxSize(255)"`
+	LabelIDs            string `form:"label_ids"`
+	AssigneeIDs         string `form:"assignee_ids"`
+	Ref                 string `form:"ref"`
+	MilestoneID         int64
+	ProjectID           int64
+	AssigneeID          int64
+	Content             string
+	Files               []string
+	AllowMaintainerEdit bool
 }
 
 // Validate validates the fields
@@ -590,6 +595,7 @@ type MergePullRequestForm struct {
 	MergeCommitID          string // only used for manually-merged
 	HeadCommitID           string `json:"head_commit_id,omitempty"`
 	ForceMerge             *bool  `json:"force_merge,omitempty"`
+	MergeWhenChecksSucceed bool   `json:"merge_when_checks_succeed,omitempty"`
 	DeleteBranchAfterMerge bool   `json:"delete_branch_after_merge,omitempty"`
 }
 
@@ -597,31 +603,6 @@ type MergePullRequestForm struct {
 func (f *MergePullRequestForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// SetDefaults if not provided for mergestyle and commit message
-func (f *MergePullRequestForm) SetDefaults(pr *models.PullRequest) (err error) {
-	if f.Do == "" {
-		f.Do = "merge"
-	}
-
-	f.MergeTitleField = strings.TrimSpace(f.MergeTitleField)
-	if len(f.MergeTitleField) == 0 {
-		switch f.Do {
-		case "merge", "rebase-merge":
-			f.MergeTitleField, err = pr.GetDefaultMergeMessage()
-		case "squash":
-			f.MergeTitleField, err = pr.GetDefaultSquashMessage()
-		}
-	}
-
-	f.MergeMessageField = strings.TrimSpace(f.MergeMessageField)
-	if len(f.MergeMessageField) > 0 {
-		f.MergeTitleField += "\n\n" + f.MergeMessageField
-		f.MergeMessageField = ""
-	}
-
-	return
 }
 
 // CodeCommentForm form for adding code comments for PRs
@@ -645,7 +626,7 @@ func (f *CodeCommentForm) Validate(req *http.Request, errs binding.Errors) bindi
 // SubmitReviewForm for submitting a finished code review
 type SubmitReviewForm struct {
 	Content  string
-	Type     string `binding:"Required;In(approve,comment,reject)"`
+	Type     string
 	CommitID string
 	Files    []string
 }
@@ -656,17 +637,19 @@ func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) bind
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// ReviewType will return the corresponding reviewtype for type
-func (f SubmitReviewForm) ReviewType() models.ReviewType {
+// ReviewType will return the corresponding ReviewType for type
+func (f SubmitReviewForm) ReviewType() issues_model.ReviewType {
 	switch f.Type {
 	case "approve":
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case "comment":
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
 	case "reject":
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
+	case "":
+		return issues_model.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
-		return models.ReviewTypeUnknown
+		return issues_model.ReviewTypeUnknown
 	}
 }
 
@@ -674,7 +657,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
-	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+	return (reviewType == issues_model.ReviewTypeComment || reviewType == issues_model.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
 }
 
@@ -682,6 +665,11 @@ func (f SubmitReviewForm) HasEmptyContent() bool {
 type DismissReviewForm struct {
 	ReviewID int64 `binding:"Required"`
 	Message  string
+}
+
+// UpdateAllowEditsForm form for changing if PR allows edits from maintainers
+type UpdateAllowEditsForm struct {
+	AllowMaintainerEdit bool
 }
 
 // __________       .__

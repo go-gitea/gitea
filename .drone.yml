@@ -19,7 +19,7 @@ volumes:
 
 steps:
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -34,7 +34,7 @@ steps:
         path: /go
 
   - name: lint-frontend
-    image: node:16
+    image: node:18
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -82,7 +82,7 @@ steps:
         path: /go
 
   - name: checks-frontend
-    image: node:16
+    image: node:18
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
@@ -97,19 +97,19 @@ steps:
         path: /go
 
   - name: test-frontend
-    image: node:16
+    image: node:18
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:16
+    image: node:18
     commands:
       - make frontend
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.17 # this step is kept as the lowest version of golang that we support
+    image: golang:1.18 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
@@ -235,6 +235,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -330,7 +331,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
@@ -427,6 +428,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
     when:
       event:
@@ -467,7 +469,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
+      - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -483,7 +485,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
+      - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit
@@ -628,10 +630,11 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -649,6 +652,7 @@ steps:
     image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -746,10 +750,11 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
@@ -767,6 +772,7 @@ steps:
     image: techknowlogick/xgo:go-1.18.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -891,6 +897,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -954,6 +961,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1016,6 +1024,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1112,6 +1121,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1175,6 +1185,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish
@@ -1237,6 +1248,7 @@ steps:
     image: docker:git
     pull: always
     commands:
+      - git config --global --add safe.directory /drone/src
       - git fetch --tags --force
 
   - name: publish

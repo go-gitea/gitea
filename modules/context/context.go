@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -73,6 +74,16 @@ type Context struct {
 	Repo        *Repository
 	Org         *Organization
 	Package     *Package
+}
+
+// Close frees all resources hold by Context
+func (ctx *Context) Close() error {
+	var err error
+	if ctx.Req != nil && ctx.Req.MultipartForm != nil {
+		err = ctx.Req.MultipartForm.RemoveAll() // remove the temp files buffered to tmp directory
+	}
+	// TODO: close opened repo, and more
+	return err
 }
 
 // TrHTMLEscapeArgs runs Tr but pre-escapes all arguments with html.EscapeString.
@@ -693,6 +704,8 @@ func Contexter() func(next http.Handler) http.Handler {
 					"RunModeIsProd": setting.IsProd,
 				},
 			}
+			defer ctx.Close()
+
 			// PageData is passed by reference, and it will be rendered to `window.config.pageData` in `head.tmpl` for JavaScript modules
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
@@ -755,6 +768,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
+			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()
@@ -782,7 +796,7 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["UnitPullsGlobalDisabled"] = unit.TypePullRequests.UnitGlobalDisabled()
 			ctx.Data["UnitProjectsGlobalDisabled"] = unit.TypeProjects.UnitGlobalDisabled()
 
-			ctx.Data["i18n"] = locale
+			ctx.Data["locale"] = locale
 			ctx.Data["AllLangs"] = translation.AllLangs()
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)

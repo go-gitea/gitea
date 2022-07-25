@@ -41,7 +41,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	reponame := "repo1"
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	label := unittest.AssertExistsAndLoadBean(t, &Label{ID: 1}).(*Label)
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1}).(*issues_model.Label)
 	milestone := unittest.AssertExistsAndLoadBean(t, &issues_model.Milestone{ID: 1}).(*issues_model.Milestone)
 	assert.EqualValues(t, milestone.ID, 1)
 	reaction := &issues_model.Reaction{
@@ -51,7 +51,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 
 	foreignIndex := int64(12345)
 	title := "issuetitle1"
-	is := &Issue{
+	is := &issues_model.Issue{
 		RepoID:      repo.ID,
 		MilestoneID: milestone.ID,
 		Repo:        repo,
@@ -61,7 +61,7 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 		PosterID:    owner.ID,
 		Poster:      owner,
 		IsClosed:    true,
-		Labels:      []*Label{label},
+		Labels:      []*issues_model.Label{label},
 		Reactions:   []*issues_model.Reaction{reaction},
 		ForeignReference: &foreignreference.ForeignReference{
 			ForeignIndex: strconv.FormatInt(foreignIndex, 10),
@@ -72,9 +72,9 @@ func assertCreateIssues(t *testing.T, isPull bool) {
 	err := InsertIssues(is)
 	assert.NoError(t, err)
 
-	i := unittest.AssertExistsAndLoadBean(t, &Issue{Title: title}).(*Issue)
+	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: title}).(*issues_model.Issue)
 	assert.Nil(t, i.ForeignReference)
-	err = i.LoadAttributes()
+	err = i.LoadAttributes(db.DefaultContext)
 	assert.NoError(t, err)
 	assert.EqualValues(t, strconv.FormatInt(foreignIndex, 10), i.ForeignReference.ForeignIndex)
 	unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: owner.ID, IssueID: i.ID})
@@ -90,7 +90,7 @@ func TestMigrate_CreateIssuesIsPullTrue(t *testing.T) {
 
 func TestMigrate_InsertIssueComments(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 	reaction := &issues_model.Reaction{
@@ -98,7 +98,7 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		UserID: owner.ID,
 	}
 
-	comment := &Comment{
+	comment := &issues_model.Comment{
 		PosterID:  owner.ID,
 		Poster:    owner,
 		IssueID:   issue.ID,
@@ -106,13 +106,13 @@ func TestMigrate_InsertIssueComments(t *testing.T) {
 		Reactions: []*issues_model.Reaction{reaction},
 	}
 
-	err := InsertIssueComments([]*Comment{comment})
+	err := InsertIssueComments([]*issues_model.Comment{comment})
 	assert.NoError(t, err)
 
-	issueModified := unittest.AssertExistsAndLoadBean(t, &Issue{ID: 1}).(*Issue)
+	issueModified := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	assert.EqualValues(t, issue.NumComments+1, issueModified.NumComments)
 
-	unittest.CheckConsistencyFor(t, &Issue{})
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{})
 }
 
 func TestMigrate_InsertPullRequests(t *testing.T) {
@@ -121,7 +121,7 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
 
-	i := &Issue{
+	i := &issues_model.Issue{
 		RepoID:   repo.ID,
 		Repo:     repo,
 		Title:    "title1",
@@ -131,16 +131,16 @@ func TestMigrate_InsertPullRequests(t *testing.T) {
 		Poster:   owner,
 	}
 
-	p := &PullRequest{
+	p := &issues_model.PullRequest{
 		Issue: i,
 	}
 
 	err := InsertPullRequests(p)
 	assert.NoError(t, err)
 
-	_ = unittest.AssertExistsAndLoadBean(t, &PullRequest{IssueID: i.ID}).(*PullRequest)
+	_ = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{IssueID: i.ID}).(*issues_model.PullRequest)
 
-	unittest.CheckConsistencyFor(t, &Issue{}, &PullRequest{})
+	unittest.CheckConsistencyFor(t, &issues_model.Issue{}, &issues_model.PullRequest{})
 }
 
 func TestMigrate_InsertReleases(t *testing.T) {

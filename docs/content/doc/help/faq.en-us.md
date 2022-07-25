@@ -52,7 +52,8 @@ https://github.com/loganinak/MigrateGitlabToGogs
 
 - WorkPath
   - Environment variable `GITEA_WORK_DIR`
-  - Else binary location
+  - Else `--work-path` flag
+  - Else the directory that contains the Gitea binary
 - AppDataPath (default for database, indexers, etc.)
   - `APP_DATA_PATH` from `app.ini`
   - Else `%(WorkPath)/data`
@@ -63,8 +64,9 @@ https://github.com/loganinak/MigrateGitlabToGogs
   - Unix: Environment variable `HOME`
   - Windows: Environment variable `USERPROFILE`, else environment variables `HOMEDRIVE`+`HOMEPATH`
 - RepoRootPath
-  - `ROOT` in `app.ini`
-  - Else `%(AppDataPath)/gitea-repositories`
+  - `ROOT` in the \[repository] section of `app.ini` if absolute
+  - Else `%(AppWorkPath)/ROOT` if `ROOT` in the \[repository] section of `app.ini` if relative
+  - Default `%(AppDataPath)/gitea-repositories`
 - INI (config file)
   - `-c` flag
   - Else `%(CustomPath)/conf/app.ini`
@@ -401,3 +403,9 @@ gitea doctor recreate-table
 ```
 
 It is highly recommended to back-up your database before running these commands.
+
+
+## Why are tabs/indents wrong when viewing files
+
+If you are using Cloudflare, turn off the auto-minify option in the dashboard.  
+`Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !windows
-// +build !windows
 
 package graceful
 
@@ -158,6 +157,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.DoGracefulShutdown()
+			return
 		}
 	}
 }

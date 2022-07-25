@@ -9,8 +9,8 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -88,7 +88,7 @@ func migrateAttachments(dstStorage storage.ObjectStorage) error {
 }
 
 func migrateLFS(dstStorage storage.ObjectStorage) error {
-	return models.IterateLFS(func(mo *models.LFSMetaObject) error {
+	return git_model.IterateLFS(func(mo *git_model.LFSMetaObject) error {
 		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
 		return err
 	})

@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
@@ -59,7 +59,7 @@ func ListForks(ctx *context.APIContext) {
 	}
 	apiForks := make([]*api.Repository, len(forks))
 	for i, fork := range forks {
-		access, err := models.AccessLevel(ctx.Doer, fork)
+		access, err := access_model.AccessLevel(ctx.Doer, fork)
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "AccessLevel", err)
 			return

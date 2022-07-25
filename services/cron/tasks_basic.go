@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
@@ -109,7 +110,7 @@ func registerDeletedBranchesCleanup() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		models.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
+		git_model.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
 		return nil
 	})
 }
@@ -155,7 +156,9 @@ func registerCleanupPackages() {
 }
 
 func initBasicTasks() {
-	registerUpdateMirrorTask()
+	if setting.Mirror.Enabled {
+		registerUpdateMirrorTask()
+	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()

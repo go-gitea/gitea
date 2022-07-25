@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -102,5 +101,5 @@ func (repo *Repository) Close() (err error) {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
-	return
+	return err
 }

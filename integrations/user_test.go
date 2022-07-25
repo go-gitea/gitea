@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -67,7 +67,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -131,7 +131,7 @@ func TestRenameReservedUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
@@ -237,14 +237,14 @@ func TestListStopWatches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	stopwatch := unittest.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID}).(*issues_model.Stopwatch)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID}).(*issues_model.Issue)
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
 		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
 }

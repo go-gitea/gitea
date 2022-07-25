@@ -93,12 +93,12 @@ func loadApplicationsData(ctx *context.Context) {
 	ctx.Data["Tokens"] = tokens
 	ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 	if setting.OAuth2.Enable {
-		ctx.Data["Applications"], err = auth.GetOAuth2ApplicationsByUserID(ctx.Doer.ID)
+		ctx.Data["Applications"], err = auth.GetOAuth2ApplicationsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2ApplicationsByUserID", err)
 			return
 		}
-		ctx.Data["Grants"], err = auth.GetOAuth2GrantsByUserID(ctx.Doer.ID)
+		ctx.Data["Grants"], err = auth.GetOAuth2GrantsByUserID(ctx, ctx.Doer.ID)
 		if err != nil {
 			ctx.ServerError("GetOAuth2GrantsByUserID", err)
 			return

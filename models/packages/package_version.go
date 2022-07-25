@@ -107,7 +107,7 @@ func getVersionByNameAndVersion(ctx context.Context, ownerID int64, packageType 
 			ExactMatch: true,
 			Value:      version,
 		},
-		IsInternal: isInternal,
+		IsInternal: util.OptionalBoolOf(isInternal),
 		Paginator:  db.NewAbsoluteListOptions(0, 1),
 	})
 	if err != nil {
@@ -171,7 +171,7 @@ type PackageSearchOptions struct {
 	Name            SearchValue       // only results with the specific name are found
 	Version         SearchValue       // only results with the specific version are found
 	Properties      map[string]string // only results are found which contain all listed version properties with the specific value
-	IsInternal      bool
+	IsInternal      util.OptionalBool
 	HasFileWithName string            // only results are found which are associated with a file with the specific name
 	HasFiles        util.OptionalBool // only results are found which have associated files
 	Sort            string
@@ -179,7 +179,10 @@ type PackageSearchOptions struct {
 }
 
 func (opts *PackageSearchOptions) toConds() builder.Cond {
-	var cond builder.Cond = builder.Eq{"package_version.is_internal": opts.IsInternal}
+	cond := builder.NewCond()
+	if !opts.IsInternal.IsNone() {
+		cond = builder.Eq{"package_version.is_internal": opts.IsInternal.IsTrue()}
+	}
 
 	if opts.OwnerID != 0 {
 		cond = cond.And(builder.Eq{"package.owner_id": opts.OwnerID})
@@ -235,7 +238,7 @@ func (opts *PackageSearchOptions) toConds() builder.Cond {
 	}
 
 	if !opts.HasFiles.IsNone() {
-		var filesCond builder.Cond = builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
+		filesCond := builder.Exists(builder.Select("package_file.id").From("package_file").Where(builder.Expr("package_file.version_id = package_version.id")))
 
 		if opts.HasFiles.IsFalse() {
 			filesCond = builder.Not{filesCond}

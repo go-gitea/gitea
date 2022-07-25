@@ -71,6 +71,44 @@ func TestPackageAPI(t *testing.T) {
 		assert.Equal(t, packageVersion, p.Version)
 		assert.NotNil(t, p.Creator)
 		assert.Equal(t, user.Name, p.Creator.UserName)
+
+		t.Run("RepositoryLink", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			p, err := packages_model.GetPackageByName(db.DefaultContext, user.ID, packages_model.TypeGeneric, packageName)
+			assert.NoError(t, err)
+
+			// no repository link
+			req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var ap1 *api.Package
+			DecodeJSON(t, resp, &ap1)
+			assert.Nil(t, ap1.Repository)
+
+			// link to public repository
+			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 1))
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			var ap2 *api.Package
+			DecodeJSON(t, resp, &ap2)
+			assert.NotNil(t, ap2.Repository)
+			assert.EqualValues(t, 1, ap2.Repository.ID)
+
+			// link to private repository
+			assert.NoError(t, packages_model.SetRepositoryLink(db.DefaultContext, p.ID, 2))
+
+			req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s/generic/%s/%s?token=%s", user.Name, packageName, packageVersion, token))
+			resp = MakeRequest(t, req, http.StatusOK)
+
+			var ap3 *api.Package
+			DecodeJSON(t, resp, &ap3)
+			assert.Nil(t, ap3.Repository)
+
+			assert.NoError(t, packages_model.UnlinkRepositoryFromAllPackages(db.DefaultContext, 2))
+		})
 	})
 
 	t.Run("ListPackageFiles", func(t *testing.T) {

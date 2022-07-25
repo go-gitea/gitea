@@ -8,15 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/auth"
 )
 
@@ -71,8 +66,6 @@ func Events(ctx *context.Context) {
 
 	timer := time.NewTicker(30 * time.Second)
 
-	stopwatchTimer := time.NewTicker(setting.UI.Notification.MinTimeout)
-
 loop:
 	for {
 		select {
@@ -93,32 +86,6 @@ loop:
 		case <-shutdownCtx.Done():
 			go unregister()
 			break loop
-		case <-stopwatchTimer.C:
-			sws, err := models.GetUserStopwatches(ctx.Doer.ID, db.ListOptions{})
-			if err != nil {
-				log.Error("Unable to GetUserStopwatches: %v", err)
-				continue
-			}
-			apiSWs, err := convert.ToStopWatches(sws)
-			if err != nil {
-				log.Error("Unable to APIFormat stopwatches: %v", err)
-				continue
-			}
-			dataBs, err := json.Marshal(apiSWs)
-			if err != nil {
-				log.Error("Unable to marshal stopwatches: %v", err)
-				continue
-			}
-			_, err = (&eventsource.Event{
-				Name: "stopwatches",
-				Data: string(dataBs),
-			}).WriteTo(ctx.Resp)
-			if err != nil {
-				log.Error("Unable to write to EventStream for user %s: %v", ctx.Doer.Name, err)
-				go unregister()
-				break loop
-			}
-			ctx.Resp.Flush()
 		case event, ok := <-messageChan:
 			if !ok {
 				break loop

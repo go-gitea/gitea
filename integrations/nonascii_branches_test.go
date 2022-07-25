@@ -26,7 +26,7 @@ func testSrcRouteRedirect(t *testing.T, session *TestSession, user, repo, route,
 
 	// Perform redirect
 	req = NewRequest(t, "GET", location)
-	resp = session.MakeRequest(t, req, expectedStatus)
+	session.MakeRequest(t, req, expectedStatus)
 }
 
 func setDefaultBranch(t *testing.T, session *TestSession, user, repo, branch string) {

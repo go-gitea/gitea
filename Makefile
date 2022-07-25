@@ -17,7 +17,6 @@ else
 DIST := dist
 DIST_DIRS := $(DIST)/binaries $(DIST)/release
 IMPORT := code.gitea.io/gitea
-export GO111MODULE=on
 
 GO ?= go
 SHASUM ?= shasum -a 256
@@ -26,11 +25,11 @@ COMMA := ,
 
 XGO_VERSION := go-1.18.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.4.0
-ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.0
-GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.0
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.44.2
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.5.0
+ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.1
+GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
@@ -195,15 +194,16 @@ help:
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
+	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
 
 .PHONY: go-check
 go-check:
-	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
-	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9]+' go.mod | cut -d' ' -f2))
+	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
+	$(eval GO_VERSION := $(shell printf "%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
 		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
 		exit 1; \
@@ -310,8 +310,9 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
+	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 
 .PHONY: lint-backend
 lint-backend: golangci-lint vet editorconfig-checker
@@ -362,23 +363,27 @@ test\#%:
 coverage:
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' coverage.out > coverage-bodged.out
 	grep '^\(mode: .*\)\|\(.*:[0-9]\+\.[0-9]\+,[0-9]\+\.[0-9]\+ [0-9]\+ [0-9]\+\)$$' integration.coverage.out > integration.coverage-bodged.out
-	GO111MODULE=on $(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
+	$(GO) run build/gocovmerge.go integration.coverage-bodged.out coverage-bodged.out > coverage.all || (echo "gocovmerge failed"; echo "integration.coverage.out"; cat integration.coverage.out; echo "coverage.out"; cat coverage.out; exit 1)
 
 .PHONY: unit-test-coverage
 unit-test-coverage:
 	@echo "Running unit-test-coverage $(GOTESTFLAGS) -tags '$(TEST_TAGS)'..."
 	@$(GO) test $(GOTESTFLAGS) -timeout=20m -tags='$(TEST_TAGS)' -cover -coverprofile coverage.out $(GO_PACKAGES) && echo "\n==>\033[32m Ok\033[m\n" || exit 1
 
+.PHONY: tidy
+tidy:
+	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
+	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+
 .PHONY: vendor
-vendor:
-	$(GO) mod tidy && $(GO) mod vendor
+vendor: tidy
+	$(GO) mod vendor
 
 .PHONY: gomod-check
-gomod-check:
-	@$(GO) mod tidy
+gomod-check: tidy
 	@diff=$$(git diff go.sum); \
 	if [ -n "$$diff" ]; then \
-		echo "Please run '$(GO) mod tidy' and commit the result:"; \
+		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
 		exit 1; \
 	fi
@@ -611,27 +616,27 @@ release-windows: | $(DIST_DIRS)
 ifeq (,$(findstring gogit,$(TAGS)))
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -buildmode exe -dest $(DIST)/binaries -tags 'netgo osusergo gogit $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets 'windows/*' -out gitea-$(VERSION)-gogit .
 endif
-ifeq ($(CI),drone)
+ifeq ($(CI),true)
 	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-linux
 release-linux: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '-linkmode external -extldflags "-static" $(LDFLAGS)' -targets '$(LINUX_ARCHS)' -out gitea-$(VERSION) .
-ifeq ($(CI),drone)
+ifeq ($(CI),true)
 	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-darwin
 release-darwin: | $(DIST_DIRS)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) run $(XGO_PACKAGE) -go $(XGO_VERSION) -dest $(DIST)/binaries -tags 'netgo osusergo $(TAGS)' -ldflags '$(LDFLAGS)' -targets 'darwin-10.12/amd64,darwin-10.12/arm64' -out gitea-$(VERSION) .
-ifeq ($(CI),drone)
+ifeq ($(CI),true)
 	cp /build/* $(DIST)/binaries
 endif
 
 .PHONY: release-copy
 release-copy: | $(DIST_DIRS)
-	cd $(DIST); for file in `find /build -type f -name "*"`; do cp $${file} ./release/; done;
+	cd $(DIST); for file in `find . -type f -name "*"`; do cp $${file} ./release/; done;
 
 .PHONY: release-check
 release-check: | $(DIST_DIRS)
@@ -698,8 +703,8 @@ fomantic:
 	cd $(FOMANTIC_WORK_DIR) && npm install --no-save
 	cp -f $(FOMANTIC_WORK_DIR)/theme.config.less $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/theme.config
 	cp -rf $(FOMANTIC_WORK_DIR)/_site $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/
-	cp -f web_src/js/vendor/dropdown.js $(FOMANTIC_WORK_DIR)/node_modules/fomantic-ui/src/definitions/modules
 	cd $(FOMANTIC_WORK_DIR) && npx gulp -f node_modules/fomantic-ui/gulpfile.js build
+	$(SED_INPLACE) -e 's/\r//g' $(FOMANTIC_WORK_DIR)/build/semantic.css $(FOMANTIC_WORK_DIR)/build/semantic.js
 	rm -f $(FOMANTIC_WORK_DIR)/build/*.min.*
 
 .PHONY: webpack
@@ -749,15 +754,15 @@ update-translations:
 
 .PHONY: generate-license
 generate-license:
-	GO111MODULE=on $(GO) run build/generate-licenses.go
+	$(GO) run build/generate-licenses.go
 
 .PHONY: generate-gitignore
 generate-gitignore:
-	GO111MODULE=on $(GO) run build/generate-gitignores.go
+	$(GO) run build/generate-gitignores.go
 
 .PHONY: generate-images
 generate-images: | node_modules
-	npm install --no-save --no-package-lock fabric@4 imagemin-zopfli@7
+	npm install --no-save --no-package-lock fabric@5 imagemin-zopfli@7
 	node build/generate-images.js $(TAGS)
 
 .PHONY: generate-manpage
@@ -766,7 +771,7 @@ generate-manpage:
 	@mkdir -p man/man1/ man/man5
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
-	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as config man page
+	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
 
 .PHONY: pr\#%
 pr\#%: clean-all

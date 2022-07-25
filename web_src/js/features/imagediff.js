@@ -4,10 +4,12 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
   const DefaultSize = 300;
   const MaxSize = 99999;
 
-  const svg = svgXml.rootElement;
-
-  const width = svg.width.baseVal;
-  const height = svg.height.baseVal;
+  const svg = svgXml.documentElement;
+  const width = svg?.width?.baseVal;
+  const height = svg?.height?.baseVal;
+  if (width === undefined || height === undefined) {
+    return null; // in case some svg is invalid or doesn't have the width/height
+  }
   if (width.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE || height.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE) {
     const img = new Image();
     img.src = src;
@@ -29,6 +31,7 @@ function getDefaultSvgBoundsIfUndefined(svgXml, src) {
       height: DefaultSize
     };
   }
+  return null;
 }
 
 export default function initImageDiff() {
@@ -64,7 +67,8 @@ export default function initImageDiff() {
   $('.image-diff').each(function() {
     const $container = $(this);
 
-    const diffContainerWidth = $container.width() - 300;
+    // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
+    const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
     const pathAfter = $container.data('path-after');
     const pathBefore = $container.data('path-before');
 
@@ -88,6 +92,10 @@ export default function initImageDiff() {
             info.$image.on('load', () => {
               info.loaded = true;
               setReadyIfLoaded();
+            }).on('error', () => {
+              info.loaded = true;
+              setReadyIfLoaded();
+              info.$boundsInfo.text('(image error)');
             });
             info.$image.attr('src', info.path);
 

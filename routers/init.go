@@ -6,11 +6,8 @@ package routers
 
 import (
 	"context"
-	"net"
 	"reflect"
 	"runtime"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -31,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
@@ -39,6 +37,7 @@ import (
 	web_routers "code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
@@ -72,7 +71,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repo_service.NewContext)
+	mustInit(repo_service.Init)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -101,8 +100,8 @@ func GlobalInitInstalled(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	mustInitCtx(ctx, git.Init)
-	log.Info(git.VersionInfo())
+	mustInitCtx(ctx, git.InitOnceWithSync)
+	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 
 	git.CheckLFSVersion()
 	log.Info("AppPath: %s", setting.AppPath)
@@ -110,12 +109,14 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
+	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 
 	// Setup i18n
 	translation.InitLocales()
 
-	InitGitServices()
+	setting.NewServices()
+	mustInit(storage.Init)
+
 	mailer.NewContext()
 	mustInit(cache.NewContext)
 	notification.NewContext()
@@ -137,9 +138,9 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
+	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
@@ -147,22 +148,20 @@ func GlobalInitInstalled(ctx context.Context) {
 	mirror_service.InitSyncMirrors()
 	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
+	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
 	mustInitCtx(ctx, syncAppPathForGit)
 
-	if setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
-			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
-			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-	} else {
-		ssh.Unused()
-	}
+	mustInit(ssh.Init)
+
 	auth.Init()
 	svg.Init()
+
+	// Finally start up the cron
+	cron.NewContext(ctx)
 }
 
 // NormalRoutes represents non install routes
