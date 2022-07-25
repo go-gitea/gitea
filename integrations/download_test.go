@@ -79,10 +79,8 @@ func TestDownloadRawTextFileWithoutMimeTypeMapping(t *testing.T) {
 
 func TestDownloadRawTextFileWithMimeTypeMapping(t *testing.T) {
 	defer prepareTestEnv(t)()
-
 	setting.MimeTypeMap.Map[".xml"] = "text/xml"
 	setting.MimeTypeMap.Enabled = true
-	_ = mime.AddExtensionType(".xml", "text/xml")
 
 	session := loginUser(t, "user2")
 
