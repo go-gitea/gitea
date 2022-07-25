@@ -105,11 +105,11 @@ func RepoInbox(ctx *context.APIContext) {
 
 	// Make sure keyID matches the user doing the activity
 	_, keyID, _ := getKeyID(ctx.Req)
-	if activity.Actor != nil && !strings.HasPrefix(keyID, activity.Actor.GetID().String()) {
+	if activity.Actor != nil && !strings.HasPrefix(keyID, activity.Actor.GetLink().String()) {
 		ctx.ServerError("Actor does not match HTTP signature keyID", nil)
 		return
 	}
-	if activity.AttributedTo != nil && !strings.HasPrefix(keyID, activity.AttributedTo.GetID().String()) {
+	if activity.AttributedTo != nil && !strings.HasPrefix(keyID, activity.AttributedTo.GetLink().String()) {
 		ctx.ServerError("AttributedTo does not match HTTP signature keyID", nil)
 		return
 	}

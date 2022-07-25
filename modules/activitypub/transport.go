@@ -52,7 +52,7 @@ func Send(user *user_model.User, activity *ap.Activity) error {
 
 	for _, to := range activity.To {
 		client, _ := NewClient(user, setting.AppURL+"api/v1/activitypub/user/"+user.Name+"#main-key")
-		resp, _ := client.Post(binary, to.GetID().String())
+		resp, _ := client.Post(binary, to.GetLink().String())
 		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, setting.Federation.MaxSize))
 		log.Trace("Response from sending activity", string(respBody))
 	}

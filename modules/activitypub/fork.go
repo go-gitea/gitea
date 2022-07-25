@@ -52,7 +52,7 @@ func ForkFromCreate(ctx context.Context, repository forgefed.Repository) error {
 	// https://gitea.com/Ta180m/gitea/issues/7
 
 	// Create the fork
-	repoIRI := repository.GetID()
+	repoIRI := repository.GetLink()
 	repoIRISplit := strings.Split(repoIRI.String(), "/")
 	instance := repoIRISplit[2]
 	username := repoIRISplit[7]
