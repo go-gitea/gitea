@@ -75,6 +75,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) error {
 				},
 				Private: true,
 				OwnerID: u.ID,
+				Actor:   u,
 			})
 			if err != nil {
 				return fmt.Errorf("SearchRepositoryByName: %v", err)
