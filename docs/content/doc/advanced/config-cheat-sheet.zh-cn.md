@@ -346,7 +346,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
 
 多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
-为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 seciton。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 section。
 如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)

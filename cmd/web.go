@@ -148,8 +148,9 @@ func runWeb(ctx *cli.Context) error {
 		go func() {
 			http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
 			_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
+			// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
 			log.Info("Starting pprof server on localhost:6060")
-			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
+			log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
 			finished()
 		}()
 	}
