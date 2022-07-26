@@ -103,7 +103,7 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	} else if st.IsPDF() {
 		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
-		// see 	https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
+		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
