@@ -406,7 +406,7 @@ func RegisterOpenIDPost(ctx *context.Context) {
 				ctx.ServerError("", err)
 				return
 			}
-			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
