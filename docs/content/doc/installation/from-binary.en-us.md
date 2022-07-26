@@ -34,9 +34,10 @@ For Linux, you should choose:
  * `linux-arm-5` and `linux-arm-6` are for other versions of the ARM processor 
  
 For Windows, you should chose:
- * `windows-4.0-386` for 32-bit Intel/AMD processors
- * `windows-4.0-amd64` for 64-bit Intel/AMD processors
- * `gogit-windows` if you want to use the built-in (Go-based) git client; otherwise you will need to install Git.
+ * `gogit-windows-4.0-386` for 32-bit Intel/AMD processors
+ * `gogit-windows-4.0-amd64` for 64-bit Intel/AMD processors
+
+The `gogit-windows` file addresses [significant performance problems](https://github.com/go-gitea/gitea/pull/15482) that have been reported on Windows by including a built-in, Go-based git client for some operations. The `windows`-only file (i.e. without `gogit`) will exclusively use whichever git is client installed on the server.
 
 *Note that `windows-4.0` refers to Windows NT+, which is all modern versions of Windows.*
 
@@ -53,8 +54,6 @@ chmod +x gitea
 ```
 
 Note that the above command will download Gitea {{< version >}} for 64-bit Linux.
-
-
 
 
 ## Verify GPG signature
