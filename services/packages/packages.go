@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
@@ -462,7 +463,8 @@ func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
 				PageSize: repo_model.RepositoryListDefaultPageSize,
 				Page:     1,
 			},
-			OwnerID: userID,
+			OwnerID:    userID,
+			IsInternal: util.OptionalBoolNone,
 		})
 		if err != nil {
 			return count, fmt.Errorf("GetOwnedPackages[%d]: %w", userID, err)
