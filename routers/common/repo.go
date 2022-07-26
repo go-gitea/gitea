@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/modules/charset"
+	charsetModule "code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -62,10 +62,10 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	fileName := path.Base(filePath)
-	st := typesniffer.DetectContentType(buf)
-	isPlain := st.IsText() || ctx.FormBool("render")
+	sniffedType := typesniffer.DetectContentType(buf)
+	isPlain := sniffedType.IsText() || ctx.FormBool("render")
 	mimeType := ""
-	cs := ""
+	charset := ""
 
 	if setting.MimeTypeMap.Enabled {
 		fileExtension := strings.ToLower(filepath.Ext(fileName))
@@ -73,8 +73,8 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	if mimeType == "" {
-		if st.IsBrowsableBinaryType() {
-			mimeType = st.GetMimeType()
+		if sniffedType.IsBrowsableBinaryType() {
+			mimeType = sniffedType.GetMimeType()
 		} else if isPlain {
 			mimeType = "text/plain"
 		} else {
@@ -83,24 +83,24 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 
 	if isPlain {
-		cs, err = charset.DetectEncoding(buf)
+		charset, err = charsetModule.DetectEncoding(buf)
 		if err != nil {
 			log.Error("Detect raw file %s charset failed: %v, using by default utf-8", filePath, err)
-			cs = "utf-8"
+			charset = "utf-8"
 		}
 	}
 
-	if cs != "" {
-		ctx.Resp.Header().Set("Content-Type", mimeType+"; charset="+strings.ToLower(cs))
+	if charset != "" {
+		ctx.Resp.Header().Set("Content-Type", mimeType+"; charset="+strings.ToLower(charset))
 	} else {
 		ctx.Resp.Header().Set("Content-Type", mimeType)
 	}
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 
 	// serve types that can present a security risk with CSP
-	if st.IsSvgImage() {
+	if sniffedType.IsSvgImage() {
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
-	} else if st.IsPDF() {
+	} else if sniffedType.IsPDF() {
 		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
 		// should generally be safe as scripts inside PDF can not escape the PDF document
 		// see https://bugs.chromium.org/p/chromium/issues/detail?id=413851 for more discussion
