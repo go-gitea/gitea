@@ -193,11 +193,10 @@ func File(fileName, language string, code []byte) ([]string, error) {
 
 	_ = htmlWriter.Flush()
 
-	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
-
 	// at the moment, Chroma generates stable output `<span class="line"><span class="cl">...\n</span></span>` for each line
 	htmlStr := htmlBuf.String()
 	lines := strings.Split(htmlStr, `<span class="line"><span class="cl">`)
+	m := make([]string, 0, len(lines))
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
 		line = strings.TrimSuffix(line, "</span></span>")
