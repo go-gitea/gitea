@@ -310,8 +310,7 @@ func IsMarkupFile(name, markup string) bool {
 }
 
 // IsReadmeFile reports whether name looks like a README file
-// based on its name. If an extension is provided, it will strictly
-// match that extension.
+// based on its name.
 // Note that the '.' should be provided in ext, e.g ".md"
 func IsReadmeFile(name string) bool {
 	name = strings.ToLower(name)
