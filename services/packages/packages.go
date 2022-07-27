@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
