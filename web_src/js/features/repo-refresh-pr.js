@@ -6,23 +6,23 @@ async function receiveBranchUpdated(event) {
   try {
     const data = JSON.parse(event.data);
 
-    const staleBranchAlert = document.querySelector('.refresh-pull-request');
+    const refreshPullRequest = document.querySelector('.refresh-pull-request');
 
-    if (!staleBranchAlert) {
+    if (!refreshPullRequest) {
       return;
     }
 
-    const baseTarget = $(staleBranchAlert).data('baseTarget');
-    const headTarget = $(staleBranchAlert).data('headTarget');
-    const ownerName = $(staleBranchAlert).data('ownerName');
-    const repositoryName = $(staleBranchAlert).data('repositoryName');
+    const baseTarget = $(refreshPullRequest).data('baseTarget');
+    const headTarget = $(refreshPullRequest).data('headTarget');
+    const ownerName = $(refreshPullRequest).data('ownerName');
+    const repositoryName = $(refreshPullRequest).data('repositoryName');
 
     if (
       [baseTarget, headTarget].includes(data.Branch) &&
       data.Owner === ownerName &&
       data.Repository === repositoryName
     ) {
-      staleBranchAlert.classList.add('active');
+      refreshPullRequest.classList.add('active');
     }
   } catch (error) {
     console.error(error, event);
