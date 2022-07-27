@@ -143,6 +143,8 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
+		// Cannot use errors.Is here because ExitError doesn't implement Is
+		// Thus errors.Is will do equality test NOT type comparison 
 		if _, ok := err.(*exec.ExitError); !ok {
 			log.Error("SSH: Wait: %v", err)
 		}
