@@ -289,6 +289,13 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	dlSourceEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisabledDownloadSource {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -1104,7 +1111,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

@@ -78,6 +78,7 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	// Disable the showCreateNewBranch form in the dropdown on this page.
 	ctx.Data["CanCreateBranch"] = false
 	ctx.Data["HideBranchesInDropdown"] = true
+	ctx.Data["DisabledDownloadSource"] = setting.Repository.DisabledDownloadSource
 
 	if isTagList {
 		ctx.Data["Title"] = ctx.Tr("repo.release.tags")
