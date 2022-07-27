@@ -168,7 +168,6 @@ func GetListenerUnix(network string, address *net.UnixAddr) (*net.UnixListener, 
 			providedListeners = append(providedListeners[:i], providedListeners[i+1:]...)
 			activeListeners = append(activeListeners, l)
 			unixListener := l.(*net.UnixListener)
-			unixListener.SetUnlinkOnClose(true)
 			return unixListener, nil
 		}
 	}
