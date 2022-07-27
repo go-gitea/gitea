@@ -19,6 +19,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	composer_module "code.gitea.io/gitea/modules/packages/composer"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -62,10 +63,11 @@ func SearchPackages(ctx *context.Context) {
 	}
 
 	opts := &packages_model.PackageSearchOptions{
-		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packages_model.TypeComposer,
-		Name:      packages_model.SearchValue{Value: ctx.FormTrim("q")},
-		Paginator: &paginator,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeComposer,
+		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
+		IsInternal: util.OptionalBoolFalse,
+		Paginator:  &paginator,
 	}
 	if ctx.FormTrim("type") != "" {
 		opts.Properties = map[string]string{
