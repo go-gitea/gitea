@@ -195,54 +195,17 @@ func File(fileName, language string, code []byte) ([]string, error) {
 
 	m := make([]string, 0, bytes.Count(code, []byte{'\n'})+1)
 
+	// at the moment, Chroma generates stable output `<span class="line"><span class="cl">...\n</span></span>` for each line
 	htmlStr := htmlBuf.String()
-	line := strings.Builder{}
-	insideLine := 0 // every <span class="cl"> makes it increase one level, every closed <span class="cl"> makes it decrease one level
-	tagStack := make([]string, 0, 4)
-	for len(htmlStr) > 0 {
-		pos1 := strings.IndexByte(htmlStr, '<')
-		pos2 := strings.IndexByte(htmlStr, '>')
-		if pos1 == -1 || pos2 == -1 || pos1 > pos2 {
-			break
+	lines := strings.Split(htmlStr, `<span class="line"><span class="cl">`)
+	for i := 1; i < len(lines); i++ {
+		line := lines[i]
+		line = strings.TrimSuffix(line, "</span></span>")
+		if newLineInHTML != "" && line != "" && line[len(line)-1] == '\n' {
+			line = line[:len(line)-1] + newLineInHTML
 		}
-		tag := htmlStr[pos1 : pos2+1]
-		if insideLine > 0 {
-			line.WriteString(htmlStr[:pos1])
-		}
-		if tag[1] == '/' {
-			if len(tagStack) == 0 {
-				return nil, fmt.Errorf("can't find matched tag: %q", tag)
-			}
-			popped := tagStack[len(tagStack)-1]
-			tagStack = tagStack[:len(tagStack)-1]
-			if popped == `<span class="cl">` {
-				insideLine--
-				lineStr := line.String()
-				if newLineInHTML != "" && lineStr != "" && lineStr[len(lineStr)-1] == '\n' {
-					lineStr = lineStr[:len(lineStr)-1] + newLineInHTML
-				}
-				m = append(m, lineStr)
-				line = strings.Builder{}
-			}
-			if insideLine > 0 {
-				line.WriteString(tag)
-			}
-		} else {
-			tagStack = append(tagStack, tag)
-			if insideLine > 0 {
-				line.WriteString(tag)
-			}
-			if tag == `<span class="cl">` {
-				insideLine++
-			}
-		}
-		htmlStr = htmlStr[pos2+1:]
+		m = append(m, line)
 	}
-
-	if len(m) == 0 {
-		m = append(m, "") // maybe we do not want to return 0 lines
-	}
-
 	return m, nil
 }
 
@@ -265,10 +228,5 @@ func PlainText(code []byte) []string {
 		}
 		m = append(m, s)
 	}
-
-	if len(m) == 0 {
-		m = append(m, "") // maybe we do not want to return 0 lines
-	}
-
 	return m
 }
