@@ -15,7 +15,6 @@ import (
 func addContainerRepositoryProperty(x *xorm.Engine) error {
 	switch x.Dialect().URI().DBType {
 	case schemas.SQLITE:
-	case schemas.ORACLE:
 		_, err := x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, u.lower_name || '/' || p.lower_name FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?", packages_model.PropertyTypePackage, container_module.PropertyRepository, packages_model.TypeContainer)
 		if err != nil {
 			return err
