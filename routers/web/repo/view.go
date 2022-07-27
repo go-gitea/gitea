@@ -161,13 +161,34 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	renderReadmeFile(ctx, readmeFile, readmeTreelink)
 }
 
+// Note: This will always return lower-case strings
+func localizedExtensions(ext string, languageCode string) (localizedExts []string) {
+	if len(languageCode) < 1 {
+		return []string{ext}
+	}
+
+	lowerLangCode := "." + strings.ToLower(languageCode)
+
+	if strings.Contains(lowerLangCode, "-") {
+		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
+		indexOfDash := strings.Index(lowerLangCode, "-")
+		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, .md]
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, ext}
+	}
+
+	// e.g. [.en.md, .md]
+	return []string{lowerLangCode + ext, ext}
+}
+
 func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) (*namedBlob, string) {
-	// 3 for the extensions in exts[] in order
+	// 3 kinds of extensions in exts[] in order
 	// the last one is for a readme that doesn't
 	// strictly match an extension
-	var readmeFiles [4]*namedBlob
-	var docsEntries [3]*git.TreeEntry
-	exts := []string{".md", ".txt", ""} // sorted by priority
+	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	extCount := len(exts)
+	readmeFiles := make([]*namedBlob, extCount+1)
+	docsEntries := make([]*git.TreeEntry, extCount)
+
 	for _, entry := range entries {
 		if entry.IsDir() {
 			lowerName := strings.ToLower(entry.Name())
@@ -225,7 +246,7 @@ func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) 
 				}
 			}
 			if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
-				readmeFiles[3] = &namedBlob{
+				readmeFiles[extCount] = &namedBlob{
 					name,
 					isSymlink,
 					entry.Blob(),
