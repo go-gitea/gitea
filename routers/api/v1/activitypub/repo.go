@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models/forgefed"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 

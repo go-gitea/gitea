@@ -7,9 +7,9 @@ package activitypub
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/forgefed"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -49,7 +49,7 @@ func CreateFork(ctx context.Context, instance, username, reponame, destUsername 
 
 func ReceiveFork(ctx context.Context, create ap.Create) error {
 	// TODO: Clean this up
-	
+
 	repository := create.Object.(*forgefed.Repository)
 
 	actor, err := personIRIToUser(ctx, create.Actor.GetLink())

@@ -7,7 +7,7 @@ package activitypub
 import (
 	"context"
 
-	"code.gitea.io/gitea/models/forgefed"
+	"code.gitea.io/gitea/modules/forgefed"
 )
 
 // Create an issue

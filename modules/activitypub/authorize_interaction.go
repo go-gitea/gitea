@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/forgefed"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/forgefed"
 
 	ap "github.com/go-ap/activitypub"
 )

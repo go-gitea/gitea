@@ -10,8 +10,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models/forgefed"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"

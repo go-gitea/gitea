@@ -9,9 +9,9 @@ import (
 	"fmt"
 	"strings"
 
-	"code.gitea.io/gitea/models/forgefed"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
 	pull_service "code.gitea.io/gitea/services/pull"
 )
