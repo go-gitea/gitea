@@ -222,11 +222,11 @@ func (m *MatrixPayloadUnsafe) Repository(p *api.RepositoryPayload) (api.Payloade
 }
 
 // GetMatrixPayload converts a Matrix webhook into a MatrixPayloadUnsafe
-func GetMatrixPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetMatrixPayload(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error) {
 	s := new(MatrixPayloadUnsafe)
 
 	matrix := &MatrixMeta{}
-	if err := json.Unmarshal([]byte(meta), &matrix); err != nil {
+	if err := json.Unmarshal([]byte(w.Meta), &matrix); err != nil {
 		return s, errors.New("GetMatrixPayload meta json:" + err.Error())
 	}
 

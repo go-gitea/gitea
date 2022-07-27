@@ -5,12 +5,17 @@
 package webhook
 
 import (
-	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
+	cwebhook "code.gitea.io/gitea/modules/webhook"
+
+	"github.com/google/go-jsonnet"
 )
 
 type (
@@ -42,14 +47,47 @@ func (c CustomPayload) JSONPayload() ([]byte, error) {
 }
 
 // GetCustomPayload converts a custom webhook into a CustomPayload
-func GetCustomPayload(p api.Payloader, _ webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetCustomPayload(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error) {
 	s := new(CustomPayload)
 
-	custom := &CustomMeta{}
-	if err := json.Unmarshal([]byte(meta), &custom); err != nil {
-		return s, errors.New("GetPackagistPayload meta json:" + err.Error())
+	var custom CustomMeta
+	if err := json.Unmarshal([]byte(w.Meta), &custom); err != nil {
+		return s, fmt.Errorf("GetCustomPayload meta json: %v", err)
 	}
 	s.Form = custom.Form
 	s.Payload = p
-	return s, nil
+
+	payload, err := json.Marshal(s)
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomPayload marshal json: %v", err)
+	}
+
+	webhook, ok := cwebhook.Webhooks[w.CustomID]
+	if !ok {
+		return nil, fmt.Errorf("GetCustomPayload no custom webhook %q", w.CustomID)
+	}
+
+	vm := jsonnet.MakeVM()
+	vm.Importer(&jsonnet.MemoryImporter{
+		Data: map[string]jsonnet.Contents{
+			fmt.Sprintf("%s.libsonnet", event): jsonnet.MakeContents(string(payload)),
+		},
+	})
+
+	filename := fmt.Sprintf("%s.jsonnet", event)
+	snippet, err := os.ReadFile(filepath.Join(webhook.Path, filename))
+	if err != nil {
+		return nil, fmt.Errorf("GetCustomPayload read jsonnet: %v", err)
+	}
+
+	out, err := vm.EvaluateAnonymousSnippet(filename, string(snippet))
+	return stringPayloader{out}, err
+}
+
+type stringPayloader struct {
+	payload string
+}
+
+func (s stringPayloader) JSONPayload() ([]byte, error) {
+	return []byte(s.payload), nil
 }

@@ -174,6 +174,6 @@ func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error
 }
 
 // GetWechatworkPayload GetWechatworkPayload converts a ding talk webhook into a WechatworkPayload
-func GetWechatworkPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetWechatworkPayload(p api.Payloader, event webhook_model.HookEventType, _ *webhook_model.Webhook) (api.Payloader, error) {
 	return convertPayloader(new(WechatworkPayload), p, event)
 }

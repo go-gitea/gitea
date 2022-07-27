@@ -100,11 +100,11 @@ func (f *PackagistPayload) Release(p *api.ReleasePayload) (api.Payloader, error)
 }
 
 // GetPackagistPayload converts a packagist webhook into a PackagistPayload
-func GetPackagistPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetPackagistPayload(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error) {
 	s := new(PackagistPayload)
 
 	packagist := &PackagistMeta{}
-	if err := json.Unmarshal([]byte(meta), &packagist); err != nil {
+	if err := json.Unmarshal([]byte(w.Meta), &packagist); err != nil {
 		return s, errors.New("GetPackagistPayload meta json:" + err.Error())
 	}
 	s.PackagistRepository.URL = packagist.PackageURL

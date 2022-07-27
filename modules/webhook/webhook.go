@@ -19,13 +19,12 @@ var Webhooks = make(map[string]*Webhook)
 
 // Webhook is a custom webhook
 type Webhook struct {
-	ID    string   `yaml:"id"`
-	Label string   `yaml:"label"`
-	Docs  string   `yaml:"docs"`
-	HTTP  string   `yaml:"http"`
-	Exec  []string `yaml:"exec"`
-	Form  []Form   `yaml:"form"`
-	Path  string   `yaml:"-"`
+	ID    string `yaml:"id"`
+	Label string `yaml:"label"`
+	Docs  string `yaml:"docs"`
+	HTTP  string `yaml:"http"`
+	Form  []Form `yaml:"form"`
+	Path  string `yaml:"-"`
 }
 
 // Image returns a custom webhook image if it exists, else the default image
@@ -69,8 +68,8 @@ func (w *Webhook) validate() error {
 	if w.ID == "" {
 		return errors.New("webhook id is required")
 	}
-	if (w.HTTP == "" && len(w.Exec) == 0) || (w.HTTP != "" && len(w.Exec) > 0) {
-		return errors.New("webhook requires one of exec or http")
+	if w.HTTP == "" {
+		return errors.New("webhook http is required")
 	}
 	for _, form := range w.Form {
 		if form.ID == "" {

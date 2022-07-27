@@ -271,11 +271,11 @@ func (s *SlackPayload) createPayload(text string, attachments []SlackAttachment)
 }
 
 // GetSlackPayload converts a slack webhook into a SlackPayload
-func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error) {
 	s := new(SlackPayload)
 
 	slack := &SlackMeta{}
-	if err := json.Unmarshal([]byte(meta), &slack); err != nil {
+	if err := json.Unmarshal([]byte(w.Meta), &slack); err != nil {
 		return s, errors.New("GetSlackPayload meta json:" + err.Error())
 	}
 

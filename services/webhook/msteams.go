@@ -282,7 +282,7 @@ func (m *MSTeamsPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetMSTeamsPayload converts a MSTeams webhook into a MSTeamsPayload
-func GetMSTeamsPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetMSTeamsPayload(p api.Payloader, event webhook_model.HookEventType, _ *webhook_model.Webhook) (api.Payloader, error) {
 	return convertPayloader(new(MSTeamsPayload), p, event)
 }
 

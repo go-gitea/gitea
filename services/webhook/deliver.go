@@ -11,13 +11,10 @@ import (
 	"crypto/sha256"
 	"crypto/tls"
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
-	"os"
-	"os/exec"
 	"strings"
 	"sync"
 	"time"
@@ -195,48 +192,27 @@ func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 		return nil
 	}
 
-	if custom != nil && len(custom.Exec) > 0 {
-		graceful.GetManager().RunWithShutdownContext(func(ctx context.Context) {
-			cmd := exec.Command(custom.Exec[0], custom.Exec[1:]...)
-			cmd.Stdin = strings.NewReader(t.PayloadContent)
-			cmd.Dir = custom.Path
-			env := os.Environ()
-			for key, vals := range req.Header {
-				env = append(env, fmt.Sprintf("%s=%s", key, vals[0]))
-			}
-			cmd.Env = env
-			out, err := cmd.CombinedOutput()
-			var exit *exec.ExitError
-			if err != nil && !errors.As(err, &exit) {
-				t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
-				return
-			}
-			t.IsSucceed = cmd.ProcessState.Success()
-			t.ResponseInfo.Status = cmd.ProcessState.ExitCode()
-			t.ResponseInfo.Body = string(out)
-		})
-	} else {
-		resp, err := webhookHTTPClient.Do(req.WithContext(graceful.GetManager().ShutdownContext()))
-		if err != nil {
-			t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
-			return err
-		}
-		defer resp.Body.Close()
-
-		// Status code is 20x can be seen as succeed.
-		t.IsSucceed = resp.StatusCode/100 == 2
-		t.ResponseInfo.Status = resp.StatusCode
-		for k, vals := range resp.Header {
-			t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
-		}
-
-		p, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
-			return err
-		}
-		t.ResponseInfo.Body = string(p)
+	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
+	if err != nil {
+		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
+		return err
 	}
+	defer resp.Body.Close()
+
+	// Status code is 20x can be seen as succeed.
+	t.IsSucceed = resp.StatusCode/100 == 2
+	t.ResponseInfo.Status = resp.StatusCode
+	for k, vals := range resp.Header {
+		t.ResponseInfo.Headers[k] = strings.Join(vals, ",")
+	}
+
+	p, err := io.ReadAll(resp.Body)
+	if err != nil {
+		t.ResponseInfo.Body = fmt.Sprintf("read body: %s", err)
+		return err
+	}
+	t.ResponseInfo.Body = string(p)
+
 	return nil
 }
 

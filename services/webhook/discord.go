@@ -243,11 +243,11 @@ func (d *DiscordPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 }
 
 // GetDiscordPayload converts a discord webhook into a DiscordPayload
-func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetDiscordPayload(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error) {
 	s := new(DiscordPayload)
 
 	discord := &DiscordMeta{}
-	if err := json.Unmarshal([]byte(meta), &discord); err != nil {
+	if err := json.Unmarshal([]byte(w.Meta), &discord); err != nil {
 		return s, errors.New("GetDiscordPayload meta json:" + err.Error())
 	}
 	s.Username = discord.Username

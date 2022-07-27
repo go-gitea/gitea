@@ -179,7 +179,7 @@ func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) 
 }
 
 // GetTelegramPayload converts a telegram webhook into a TelegramPayload
-func GetTelegramPayload(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error) {
+func GetTelegramPayload(p api.Payloader, event webhook_model.HookEventType, _ *webhook_model.Webhook) (api.Payloader, error) {
 	return convertPayloader(new(TelegramPayload), p, event)
 }
 

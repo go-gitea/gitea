@@ -24,7 +24,7 @@ import (
 
 type webhook struct {
 	name           webhook_model.HookType
-	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, meta string) (api.Payloader, error)
+	payloadCreator func(p api.Payloader, event webhook_model.HookEventType, w *webhook_model.Webhook) (api.Payloader, error)
 }
 
 var webhooks = map[webhook_model.HookType]*webhook{
@@ -201,7 +201,7 @@ func prepareWebhook(w *webhook_model.Webhook, repo *repo_model.Repository, event
 	var err error
 	webhook, ok := webhooks[w.Type]
 	if ok {
-		payloader, err = webhook.payloadCreator(p, event, w.Meta)
+		payloader, err = webhook.payloadCreator(p, event, w)
 		if err != nil {
 			return fmt.Errorf("create payload for %s[%s]: %v", w.Type, event, err)
 		}
