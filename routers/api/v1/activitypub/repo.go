@@ -114,18 +114,18 @@ func RepoInbox(ctx *context.APIContext) {
 		return
 	}
 
+	if activity.Object == nil {
+		ctx.ServerError("Activity does not contain object", err)
+		return
+	}
+
 	// Process activity
 	switch activity.Type {
 	case ap.CreateType:
-		if activity.Object == nil {
-			ctx.ServerError("Activity does not contain object", err)
-			return
-		}
-
 		switch activity.Object.(ap.Object).Type {
 		case forgefed.RepositoryType:
 			// Fork created by remote instance
-			activitypub.ForkFromCreate(ctx, activity.Object.(forgefed.Repository))
+			activitypub.ReceiveFork(ctx, activity)
 		case forgefed.TicketType:
 			// New issue or pull request
 			ticket := activity.Object.(forgefed.Ticket)
@@ -140,6 +140,8 @@ func RepoInbox(ctx *context.APIContext) {
 			// New comment
 			activitypub.Comment(ctx, activity.Object.(ap.Note))
 		}
+	case ap.LikeType:
+		activitypub.Star(ctx, activity)
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.Type)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")

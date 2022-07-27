@@ -6,12 +6,10 @@ package activitypub
 
 import (
 	"context"
-	"strings"
 
 	"code.gitea.io/gitea/models/forgefed"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/migrations"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -19,17 +17,21 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-func Fork(ctx context.Context, instance, username, reponame, destUsername string) error {
+func CreateFork(ctx context.Context, instance, username, reponame, destUsername string) error {
 	// TODO: Clean this up
 
 	// Migrate repository code
-	user, _ := user_model.GetUserByName(ctx, destUsername)
-	_, err := migrations.MigrateRepository(ctx, user, destUsername, migrations.MigrateOptions{
+	user, err := user_model.GetUserByName(ctx, destUsername)
+	if err != nil {
+		return err
+	}
+
+	_, err = migrations.MigrateRepository(ctx, user, destUsername, migrations.MigrateOptions{
 		CloneAddr: "https://" + instance + "/" + username + "/" + reponame + ".git",
 		RepoName:  reponame,
 	}, nil)
 	if err != nil {
-		log.Warn("Couldn't create fork", err)
+		return err
 	}
 
 	// TODO: Make the migrated repo a fork
@@ -45,26 +47,33 @@ func Fork(ctx context.Context, instance, username, reponame, destUsername string
 	return Send(user, &create)
 }
 
-func ForkFromCreate(ctx context.Context, repository forgefed.Repository) error {
+func ReceiveFork(ctx context.Context, create ap.Create) error {
 	// TODO: Clean this up
+	
+	repository := create.Object.(*forgefed.Repository)
+
+	actor, err := personIRIToUser(ctx, create.Actor.GetLink())
+	if err != nil {
+		return err
+	}
 
 	// Don't create an actual copy of the remote repo!
 	// https://gitea.com/Ta180m/gitea/issues/7
 
 	// Create the fork
 	repoIRI := repository.GetLink()
-	repoIRISplit := strings.Split(repoIRI.String(), "/")
-	instance := repoIRISplit[2]
-	username := repoIRISplit[7]
-	reponame := repoIRISplit[8]
+	username, reponame, err := repositoryIRIToName(repoIRI)
+	if err != nil {
+		return err
+	}
 
 	// FederatedUserNew(username + "@" + instance, )
-	user, _ := user_model.GetUserByName(ctx, username+"@"+instance)
+	user, _ := user_model.GetUserByName(ctx, username)
 
 	// var repo forgefed.Repository
 	// repo = activity.Object
-	repo, _ := repo_model.GetRepositoryByOwnerAndName("Ta180m", reponame) // hardcoded for now :(
+	repo, _ := repo_model.GetRepositoryByOwnerAndName(actor.Name, reponame) // hardcoded for now :(
 
-	_, err := repo_service.ForkRepository(ctx, user, user, repo_service.ForkRepoOptions{BaseRepo: repo, Name: reponame, Description: "this is a remote fork"})
+	_, err = repo_service.ForkRepository(ctx, user, user, repo_service.ForkRepoOptions{BaseRepo: repo, Name: reponame, Description: "this is a remote fork"})
 	return err
 }
