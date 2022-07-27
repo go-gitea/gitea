@@ -97,8 +97,10 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 	}
 	ctx.Resp.Header().Set("X-Content-Type-Options", "nosniff")
 
+	isSVG := sniffedType.IsSvgImage()
+
 	// serve types that can present a security risk with CSP
-	if sniffedType.IsSvgImage() {
+	if isSVG {
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; sandbox")
 	} else if sniffedType.IsPDF() {
 		// no sandbox attribute for pdf as it breaks rendering in at least safari. this
@@ -107,8 +109,15 @@ func ServeData(ctx *context.Context, filePath string, size int64, reader io.Read
 		ctx.Resp.Header().Set("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'")
 	}
 
+	disposition := "inline"
+	if isSVG && !setting.UI.SVG.Enabled {
+		disposition = "attachment"
+	}
+
 	// encode filename per https://datatracker.ietf.org/doc/html/rfc5987
-	ctx.Resp.Header().Set("Content-Disposition", `inline; filename*=UTF-8''`+url.PathEscape(fileName))
+	encodedFileName := `filename*=UTF-8''` + url.PathEscape(fileName)
+
+	ctx.Resp.Header().Set("Content-Disposition", disposition+"; "+encodedFileName)
 	ctx.Resp.Header().Set("Access-Control-Expose-Headers", "Content-Disposition")
 
 	_, err = ctx.Resp.Write(buf)
