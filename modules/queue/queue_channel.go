@@ -126,6 +126,10 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
 			atomic.AddInt64(&q.numInQueue, -1)
+		default:
+			continue
+		}
+		select {
 		case <-q.baseCtx.Done():
 			return q.baseCtx.Err()
 		case <-ctx.Done():

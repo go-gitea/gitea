@@ -182,7 +182,9 @@ func (q *PersistableChannelQueue) Run(atShutdown, atTerminate func(func())) {
 				select {
 				case <-time.After(100 * time.Millisecond):
 				case <-q.internal.(*LevelQueue).shutdownCtx.Done():
-					log.Warn("LevelQueue: %s shut down before completely flushed", q.internal.(*LevelQueue).Name())
+					if !q.IsEmpty() {
+						log.Warn("LevelQueue: %s shut down before completely flushed", q.internal.(*LevelQueue).Name())
+					}
 					return
 				}
 			}
