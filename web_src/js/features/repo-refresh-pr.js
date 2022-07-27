@@ -6,9 +6,6 @@ async function receiveBranchUpdated(event) {
   try {
     const data = JSON.parse(event.data);
 
-    // eslint-disable-next-line no-console
-    console.log('Received data', data);
-
     const staleBranchAlert = document.querySelector('.refresh-pull-request');
 
     if (!staleBranchAlert) {
@@ -19,11 +16,6 @@ async function receiveBranchUpdated(event) {
     const headTarget = $(staleBranchAlert).data('headTarget');
     const ownerName = $(staleBranchAlert).data('ownerName');
     const repositoryName = $(staleBranchAlert).data('repositoryName');
-
-    // eslint-disable-next-line no-console
-    console.log($(staleBranchAlert).data());
-    // eslint-disable-next-line no-console
-    console.log(data);
 
     if (
       [baseTarget, headTarget].includes(data.Branch) &&
@@ -64,8 +56,6 @@ export function initRepoRefreshPullRequest() {
       url: `${window.location.origin}${appSubUrl}/user/events`,
     });
     worker.port.addEventListener('message', (event) => {
-      // eslint-disable-next-line no-console
-      console.log('received message', event);
       if (!event.data || !event.data.type) {
         console.error(event);
         return;
