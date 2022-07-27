@@ -14,45 +14,45 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
-func AuthorizeInteraction(c *context.Context) {
-	uri, err := url.Parse(c.Req.URL.Query().Get("uri"))
+func AuthorizeInteraction(ctx *context.Context) {
+	uri, err := url.Parse(ctx.Req.URL.Query().Get("uri"))
 	if err != nil {
-		c.ServerError("Could not parse URI", err)
+		ctx.ServerError("Could not parse URI", err)
 		return
 	}
 	resp, err := Fetch(uri)
 	if err != nil {
-		c.ServerError("Fetch", err)
+		ctx.ServerError("Fetch", err)
 		return
 	}
 
 	ap.ItemTyperFunc = forgefed.GetItemByType
 	object, err := ap.UnmarshalJSON(resp)
 	if err != nil {
-		c.ServerError("UnmarshalJSON", err)
+		ctx.ServerError("UnmarshalJSON", err)
 		return
 	}
 
 	switch object.GetType() {
 	case ap.PersonType:
 		if err != nil {
-			c.ServerError("UnmarshalJSON", err)
+			ctx.ServerError("UnmarshalJSON", err)
 			return
 		}
-		err = FederatedUserNew(c, object.(ap.Person))
+		err = FederatedUserNew(ctx, object.(ap.Person))
 		if err != nil {
-			c.ServerError("FederatedUserNew", err)
+			ctx.ServerError("FederatedUserNew", err)
 			return
 		}
 		name, err := personIRIToName(object.GetLink())
 		if err != nil {
-			c.ServerError("personIRIToName", err)
+			ctx.ServerError("personIRIToName", err)
 			return
 		}
-		c.Redirect(name)
+		ctx.Redirect(name)
 	case forgefed.RepositoryType:
-		err = FederatedRepoNew(object.(forgefed.Repository))
+		err = FederatedRepoNew(ctx, object.(forgefed.Repository))
 	}
 
-	c.Status(http.StatusOK)
+	ctx.Status(http.StatusOK)
 }

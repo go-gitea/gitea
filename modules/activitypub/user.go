@@ -15,6 +15,7 @@ import (
 	ap "github.com/go-ap/activitypub"
 )
 
+// Create a new federated user from a Person object
 func FederatedUserNew(ctx context.Context, person ap.Person) error {
 	name, err := personIRIToName(person.GetLink())
 	if err != nil {

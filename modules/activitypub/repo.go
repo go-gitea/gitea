@@ -5,19 +5,36 @@
 package activitypub
 
 import (
-	//"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/forgefed"
-	/*repo_model "code.gitea.io/gitea/models/repo"
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/repository"
+	"context"
 
-	ap "github.com/go-ap/activitypub"*/
+	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/forgefed"
 )
 
-func FederatedRepoNew(repo forgefed.Repository) error {
-	// TODO: also handle forks
-	/*_, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
-		Name: repo.Name.String(),
-	})*/
-	return nil
+// Create a new federated repo from a Repository object
+func FederatedRepoNew(ctx context.Context, repository forgefed.Repository) error {
+	ownerIRI, err := repositoryIRIToOwnerIRI(repository.GetLink())
+	if err != nil {
+		return err
+	}
+	user, err := personIRIToUser(ctx, ownerIRI)
+	if err != nil {
+		return err
+	}
+
+	repo := repo_model.Repository{
+		Name: repository.Name.String(),
+	}
+	if repository.ForkedFrom != nil {
+		repo.IsFork = true
+		forkedFrom, err := repositoryIRIToRepository(ctx, repository.ForkedFrom.GetLink())
+		if err != nil {
+			return err
+		}
+		repo.ForkID = forkedFrom.ID
+	}
+
+	// TODO: Check if repo already exists
+	return models.CreateRepository(ctx, user, user, &repo, false)
 }
