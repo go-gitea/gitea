@@ -322,8 +322,10 @@ func IsReadmeFile(name string) bool {
 }
 
 // IsReadmeFileExtension reports whether name looks like a README file
-// based on its name. If an extension is provided, it will strictly
-// match that extension.
+// based on its name. It will look through the provided extensions and check if the file matches
+// one of the extensions and provide the index in the extension list.
+// If the filename is `readme.` with an unmatched extension it will match with the index equaling
+// the length of the provided extension list.
 // Note that the '.' should be provided in ext, e.g ".md"
 func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
 	if len(name) < 6 || name[:6] != "readme" {
