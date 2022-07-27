@@ -233,6 +233,19 @@ func HookPostReceive(ctx *gitea_context.PrivateContext) {
 			}
 		}
 	}
+
+	// Notify users with read access via eventsource that a change
+	// has been made
+	if err := SendContextBranchUpdateEvents(ctx); err != nil {
+		log.Error("Failed to Get Repo Readers: %s/%s Error: %v", ownerName, repoName, err)
+
+		ctx.JSON(http.StatusInternalServerError, private.HookPostReceiveResult{
+			Err: fmt.Sprintf("Failed to Get Repo Readers: %s/%s Error: %v", ownerName, repoName, err),
+		})
+
+		return
+	}
+
 	ctx.JSON(http.StatusOK, private.HookPostReceiveResult{
 		Results:      results,
 		RepoWasEmpty: wasEmpty,

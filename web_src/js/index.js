@@ -82,6 +82,7 @@ import {initInstall} from './features/install.js';
 import {initCompWebHookEditor} from './features/comp/WebHookEditor.js';
 import {initCommonIssue} from './features/common-issue.js';
 import {initRepoBranchButton} from './features/repo-branch.js';
+import {initRepoRefreshPullRequest} from './features/repo-refresh-pr.js';
 import {initCommonOrganization} from './features/common-organization.js';
 import {initRepoWikiForm} from './features/repo-wiki.js';
 import {initRepoCommentForm, initRepository} from './features/repo-legacy.js';
@@ -176,6 +177,7 @@ $(document).ready(() => {
   initRepoSettingGitHook();
   initRepoSettingSearchTeamBox();
   initRepoSettingsCollaboration();
+  initRepoRefreshPullRequest();
   initRepoTemplateSearch();
   initRepoTopicBar();
   initRepoWikiForm();

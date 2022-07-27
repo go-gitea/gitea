@@ -1171,6 +1171,7 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["PageIsPullList"] = true
 		ctx.Data["PageIsPullConversation"] = true
+		ctx.Data["Reponame"] = ctx.Repo.Repository.Name
 	} else {
 		MustEnableIssues(ctx)
 		if ctx.Written() {

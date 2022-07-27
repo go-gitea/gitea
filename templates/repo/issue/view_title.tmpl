@@ -5,6 +5,9 @@
 				<div id="edit-title" class="ui basic secondary not-in-edit button">{{.locale.Tr "repo.issues.edit"}}</div>
 			</div>
 		{{end}}
+		<div class="edit-button not-in-edit refresh-pull-request" data-base-target="{{$.BaseTarget}}" data-head-target="{{$.HeadTarget}}" data-owner-name="{{$.Username}}" data-repository-name="{{$.Reponame}}">
+			<button class="ui inverted orange button">{{.locale.Tr "repo.pulls.refresh"}}</button>
+		</div>
 		<h1>
 			<span id="issue-title">{{RenderIssueTitle $.Context .Issue.Title $.RepoLink $.Repository.ComposeMetas}}</span>
 			<span class="index">#{{.Issue.Index}}</span>

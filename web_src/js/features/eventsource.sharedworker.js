@@ -13,6 +13,7 @@ class Source {
     this.listen('notification-count');
     this.listen('stopwatches');
     this.listen('error');
+    this.listen('branch-update');
   }
 
   register(port) {
