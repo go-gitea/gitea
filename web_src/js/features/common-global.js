@@ -389,7 +389,8 @@ export function initGlobalButtons() {
  */
 export function checkAppUrl() {
   const curUrl = window.location.href;
-  if (curUrl.startsWith(appUrl)) {
+  // some users visit "https://domain/gitea" while appUrl is "https://domain/gitea/", there should be no warning
+  if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
   if (document.querySelector('.page-content.install')) {
