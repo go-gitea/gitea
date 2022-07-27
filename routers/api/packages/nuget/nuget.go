@@ -17,6 +17,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -39,9 +40,10 @@ func ServiceIndex(ctx *context.Context) {
 // SearchService https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-for-packages
 func SearchService(ctx *context.Context) {
 	pvs, count, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		OwnerID: ctx.Package.Owner.ID,
-		Type:    packages_model.TypeNuGet,
-		Name:    packages_model.SearchValue{Value: ctx.FormTrim("q")},
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages_model.TypeNuGet,
+		Name:       packages_model.SearchValue{Value: ctx.FormTrim("q")},
+		IsInternal: util.OptionalBoolFalse,
 		Paginator: db.NewAbsoluteListOptions(
 			ctx.FormInt("skip"),
 			ctx.FormInt("take"),
