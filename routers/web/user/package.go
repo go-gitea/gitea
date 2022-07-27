@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -43,9 +44,10 @@ func ListPackages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		Type:    packages_model.Type(packageType),
-		Name:    packages_model.SearchValue{Value: query},
+		OwnerID:    ctx.ContextUser.ID,
+		Type:       packages_model.Type(packageType),
+		Name:       packages_model.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -112,7 +114,8 @@ func RedirectToLastVersion(ctx *context.Context) {
 	}
 
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID: p.ID,
+		PackageID:  p.ID,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("GetPackageByName", err)
@@ -157,8 +160,9 @@ func ViewPackageVersion(ctx *context.Context) {
 		})
 	default:
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			Paginator: db.NewAbsoluteListOptions(0, 5),
-			PackageID: pd.Package.ID,
+			Paginator:  db.NewAbsoluteListOptions(0, 5),
+			PackageID:  pd.Package.ID,
+			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -254,6 +258,7 @@ func ListPackageVersions(ctx *context.Context) {
 				ExactMatch: false,
 				Value:      query,
 			},
+			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)

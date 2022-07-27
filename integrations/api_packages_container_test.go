@@ -20,6 +20,7 @@ import (
 	container_module "code.gitea.io/gitea/modules/packages/container"
 	"code.gitea.io/gitea/modules/packages/container/oci"
 	"code.gitea.io/gitea/modules/setting"
+	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -487,6 +488,13 @@ func TestPackageContainer(t *testing.T) {
 					assert.Equal(t, c.ExpectedTags, tagList.Tags)
 					assert.Equal(t, c.ExpectedLink, resp.Header().Get("Link"))
 				}
+
+				req := NewRequest(t, "GET", fmt.Sprintf("/api/v1/packages/%s?type=container&q=%s", user.Name, image))
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				var apiPackages []*api.Package
+				DecodeJSON(t, resp, &apiPackages)
+				assert.Len(t, apiPackages, 4) // "latest", "main", "multi", "sha256:..."
 			})
 
 			t.Run("Delete", func(t *testing.T) {
