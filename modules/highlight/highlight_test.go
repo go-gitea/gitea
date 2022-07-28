@@ -12,7 +12,7 @@ import (
 )
 
 func lines(s string) []string {
-	return strings.Split(strings.TrimSpace(s), "\n")
+	return strings.Split(strings.ReplaceAll(strings.TrimSpace(s), `\n`, "\n"), "\n")
 }
 
 func TestFile(t *testing.T) {
@@ -24,37 +24,36 @@ func TestFile(t *testing.T) {
 		{
 			name: "empty.py",
 			code: "",
-			want: []string{""},
+			want: lines(""),
 		},
 		{
 			name: "tags.txt",
 			code: "<>",
-			want: []string{"&lt;&gt;"},
+			want: lines("&lt;&gt;"),
 		},
 		{
 			name: "tags.py",
 			code: "<>",
-			want: []string{`<span class="o">&lt;</span><span class="o">&gt;</span>`},
+			want: lines(`<span class="o">&lt;</span><span class="o">&gt;</span>`),
 		},
 		{
 			name: "eol-no.py",
 			code: "a=1",
-			want: []string{`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`},
+			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`),
 		},
 		{
 			name: "eol-newline1.py",
 			code: "a=1\n",
-			want: []string{
-				`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>&#10;`,
-			},
+			want: lines(`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n`),
 		},
 		{
 			name: "eol-newline2.py",
 			code: "a=1\n\n",
-			want: []string{
-				`<span class="n">a</span><span class="o">=</span><span class="mi">1</span>&#10;`,
-				`&#10;`,
-			},
+			want: lines(`
+<span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
+\n
+			`,
+			),
 		},
 		{
 			name: "empty-line-with-space.py",
@@ -67,11 +66,11 @@ b=''
 c=2
 			`), "{space}", "    "),
 			want: lines(`
-<span class="n">def</span><span class="p">:</span>&#10;
-    <span class="n">a</span><span class="o">=</span><span class="mi">1</span>&#10;
-&#10;
-<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>&#10;
-    &#10;
+<span class="n">def</span><span class="p">:</span>\n
+    <span class="n">a</span><span class="o">=</span><span class="mi">1</span>\n
+\n
+<span class="n">b</span><span class="o">=</span><span class="sa"></span><span class="s1">&#39;</span><span class="s1">&#39;</span>\n
+    \n
 <span class="n">c</span><span class="o">=</span><span class="mi">2</span>`,
 			),
 		},
@@ -98,32 +97,30 @@ func TestPlainText(t *testing.T) {
 		{
 			name: "empty.py",
 			code: "",
-			want: []string{""},
+			want: lines(""),
 		},
 		{
 			name: "tags.py",
 			code: "<>",
-			want: []string{"&lt;&gt;"},
+			want: lines("&lt;&gt;"),
 		},
 		{
 			name: "eol-no.py",
 			code: "a=1",
-			want: []string{`a=1`},
+			want: lines(`a=1`),
 		},
 		{
 			name: "eol-newline1.py",
 			code: "a=1\n",
-			want: []string{
-				`a=1&#10;`,
-			},
+			want: lines(`a=1\n`),
 		},
 		{
 			name: "eol-newline2.py",
 			code: "a=1\n\n",
-			want: []string{
-				`a=1&#10;`,
-				`&#10;`,
-			},
+			want: lines(`
+a=1\n
+\n
+			`),
 		},
 		{
 			name: "empty-line-with-space.py",
@@ -136,11 +133,11 @@ b=''
 c=2
 			`), "{space}", "    "),
 			want: lines(`
-def:&#10;
-    a=1&#10;
-&#10;
-b=&#39;&#39;&#10;
-    &#10;
+def:\n
+    a=1\n
+\n
+b=&#39;&#39;\n
+    \n
 c=2`),
 		},
 	}
