@@ -58,24 +58,7 @@ func (opts *SearchUserOptions) toSearchQueryBase() *xorm.Session {
 		cond = cond.And(builder.In("visibility", opts.Visible))
 	}
 
-	if opts.Actor != nil {
-		// If Admin - they see all users!
-		if !opts.Actor.IsAdmin {
-			// Users can see an organization they are a member of
-			accessCond := builder.In("id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": opts.Actor.ID}))
-			if !opts.Actor.IsRestricted {
-				// Not-Restricted users can see public and limited users/organizations
-				accessCond = accessCond.Or(builder.In("visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
-			}
-			// Don't forget about self
-			accessCond = accessCond.Or(builder.Eq{"id": opts.Actor.ID})
-			cond = cond.And(accessCond)
-		}
-	} else {
-		// Force visibility for privacy
-		// Not logged in - only public users
-		cond = cond.And(builder.In("visibility", structs.VisibleTypePublic))
-	}
+	cond = cond.And(BuildCanSeeUserCondition(opts.Actor))
 
 	if opts.UID > 0 {
 		cond = cond.And(builder.Eq{"id": opts.UID})
@@ -162,4 +145,27 @@ func IterateUser(f func(user *User) error) error {
 			}
 		}
 	}
+}
+
+// BuildCanSeeUserCondition creates a condition which can be used to restrict results to users/orgs the actor can see
+func BuildCanSeeUserCondition(actor *User) builder.Cond {
+	if actor != nil {
+		// If Admin - they see all users!
+		if !actor.IsAdmin {
+			// Users can see an organization they are a member of
+			cond := builder.In("`user`.id", builder.Select("org_id").From("org_user").Where(builder.Eq{"uid": actor.ID}))
+			if !actor.IsRestricted {
+				// Not-Restricted users can see public and limited users/organizations
+				cond = cond.Or(builder.In("`user`.visibility", structs.VisibleTypePublic, structs.VisibleTypeLimited))
+			}
+			// Don't forget about self
+			return cond.Or(builder.Eq{"`user`.id": actor.ID})
+		}
+
+		return nil
+	}
+
+	// Force visibility for privacy
+	// Not logged in - only public users
+	return builder.In("`user`.visibility", structs.VisibleTypePublic)
 }
