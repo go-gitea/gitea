@@ -400,6 +400,8 @@ var migrations = []Migration{
 	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
 	// v220 -> v221
 	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	// v221 -> v222
+	NewMigration("Increase WebAuthentication CredentialID size to 1640", increaseCredentialIDTo1640),
 }
 
 // GetCurrentDBVersion returns the current db version

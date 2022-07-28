@@ -20,7 +20,7 @@ func Test_remigrateU2FCredentials(t *testing.T) {
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		CredentialID    string `xorm:"INDEX VARCHAR(1640)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022 -> 1640 base32 encoding
 		PublicKey       []byte
 		AttestationType string
 		SignCount       uint32 `xorm:"BIGINT"`
@@ -40,7 +40,7 @@ func Test_remigrateU2FCredentials(t *testing.T) {
 
 	type ExpectedWebauthnCredential struct {
 		ID           int64  `xorm:"pk autoincr"`
-		CredentialID string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
+		CredentialID string `xorm:"INDEX VARCHAR(1640)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022 -> 1640 base32 encoding
 	}
 
 	// Prepare and load the testing database
