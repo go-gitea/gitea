@@ -1,0 +1,84 @@
+/* styles are based on node_modules/tippy.js/dist/tippy.css */
+
+.tippy-box[data-animation="fade"][data-state="hidden"] {
+  opacity: 0;
+}
+
+[data-tippy-root] {
+  max-width: calc(100vw - 10px);
+}
+
+.tippy-box {
+  position: relative;
+  background-color: var(--color-body);
+  color: var(--color-secondary-dark-6);
+  border: 1px solid var(--color-secondary);
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition-property: transform, visibility, opacity;
+}
+
+.tippy-content {
+  position: relative;
+  padding: 1rem;
+  z-index: 1;
+}
+
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow {
+  bottom: 0;
+}
+
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="top"] > .tippy-svg-arrow > svg {
+  top: 16px;
+  transform: rotate(180deg);
+}
+
+.tippy-box[data-placement^="bottom"] > .tippy-svg-arrow {
+  top: 0;
+}
+
+.tippy-box[data-placement^="bottom"] > .tippy-svg-arrow > svg {
+  bottom: 16px;
+}
+
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow {
+  right: 0;
+}
+
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="left"] > .tippy-svg-arrow > svg {
+  transform: rotate(90deg);
+  top: calc(50% - 3px);
+  left: 11px;
+}
+
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow {
+  left: 0;
+}
+
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow::after,
+.tippy-box[data-placement^="right"] > .tippy-svg-arrow > svg {
+  transform: rotate(-90deg);
+  top: calc(50% - 3px);
+  right: 11px;
+}
+
+.tippy-svg-arrow {
+  width: 16px;
+  height: 16px;
+  text-align: initial;
+}
+
+.tippy-svg-arrow,
+.tippy-svg-arrow > svg {
+  position: absolute;
+}
+
+.tippy-svg-arrow-outer {
+  fill: var(--color-secondary);
+}
+
+.tippy-svg-arrow-inner {
+  fill: var(--color-body);
+}

@@ -18,7 +18,7 @@ menu:
 完整的遷移從 Gitea 1.9.0 開始提供。它定義了兩個介面用來從其它 Git 託管平臺遷移儲存庫資料到 Gitea，未來或許會提供遷移到其它 git 託管平臺。
 目前已實作了從 Github, Gitlab 和其它 Gitea 遷移資料。
 
-Gitea 定義了一些基本物件於套件 [modules/migration](https://github.com/go-gitea/gitea/tree/master/modules/migration)。  
+Gitea 定義了一些基本物件於套件 [modules/migration](https://github.com/go-gitea/gitea/tree/master/modules/migration)。
 分別是 `Repository`, `Milestone`, `Release`, `ReleaseAsset`, `Label`, `Issue`, `Comment`, `PullRequest`, `Reaction`, `Review`, `ReviewComment`。
 
 ## Downloader 介面
