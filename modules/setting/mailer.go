@@ -133,7 +133,8 @@ func newMailService() {
 			case "587":
 				MailService.Protocol = "smtp+startls"
 			default:
-				log.Fatal("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = \"%s\"", MailService.SMTPPort)
+				log.Error("unable to infer unspecified mailer.PROTOCOL from mailer.SMTP_PORT = %q, assume using smtps", MailService.SMTPPort)
+				MailService.Protocol = "smtps"
 			}
 		}
 	}
@@ -186,12 +187,16 @@ func newMailService() {
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
 	}
 
-	parsed, err := mail.ParseAddress(MailService.From)
-	if err != nil {
-		log.Fatal("Invalid mailer.FROM (%s): %v", MailService.From, err)
+	if MailService.From != "" {
+		parsed, err := mail.ParseAddress(MailService.From)
+		if err != nil {
+			log.Fatal("Invalid mailer.FROM (%s): %v", MailService.From, err)
+		}
+		MailService.FromName = parsed.Name
+		MailService.FromEmail = parsed.Address
+	} else {
+		log.Error("no mailer.FROM provided, email system may not work.")
 	}
-	MailService.FromName = parsed.Name
-	MailService.FromEmail = parsed.Address
 
 	switch MailService.EnvelopeFrom {
 	case "":
@@ -200,7 +205,7 @@ func newMailService() {
 		MailService.EnvelopeFrom = ""
 		MailService.OverrideEnvelopeFrom = true
 	default:
-		parsed, err = mail.ParseAddress(MailService.EnvelopeFrom)
+		parsed, err := mail.ParseAddress(MailService.EnvelopeFrom)
 		if err != nil {
 			log.Fatal("Invalid mailer.ENVELOPE_FROM (%s): %v", MailService.EnvelopeFrom, err)
 		}
@@ -209,6 +214,7 @@ func newMailService() {
 	}
 
 	if MailService.Protocol == "sendmail" {
+		var err error
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
 			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)
