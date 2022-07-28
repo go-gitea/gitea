@@ -648,7 +648,7 @@ _NOTICE: **many options are new in 1.18**. For old Gitea, please refer to old ap
 eg: https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini_
 
 - `ENABLED`: **false**: Enable to use a mail service.
-- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy".
+- `PROTOCOL`: **\<empty\>**: Since 1.18. Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy".
   - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
   - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
   - **dummy** Send email messages to the log as a testing phase.
