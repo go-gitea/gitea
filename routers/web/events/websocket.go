@@ -7,6 +7,7 @@ package events
 import (
 	"net/http"
 	"net/url"
+	"time"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/eventsource"
@@ -16,6 +17,12 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers/web/auth"
 	"github.com/gorilla/websocket"
+)
+
+const (
+	writeWait  = 10 * time.Second
+	pongWait   = 60 * time.Second
+	pingPeriod = (pongWait * 9) / 10
 )
 
 type readMessage struct {
@@ -84,6 +91,19 @@ func Websocket(ctx *context.Context) {
 
 	readChan := make(chan readMessage, 20)
 	go func() {
+		defer conn.Close()
+		conn.SetReadLimit(2048)
+		if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			log.Error("unable to SetReadDeadline: %v", err)
+			return
+		}
+		conn.SetPongHandler(func(string) error {
+			if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+				log.Error("unable to SetReadDeadline: %v", err)
+			}
+			return nil
+		})
+
 		for {
 			messageType, message, err := conn.ReadMessage()
 			readChan <- readMessage{
@@ -95,8 +115,14 @@ func Websocket(ctx *context.Context) {
 				close(readChan)
 				return
 			}
+			if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+				log.Error("unable to SetReadDeadline: %v", err)
+				return
+			}
 		}
 	}()
+
+	pingTicker := time.NewTicker(pingPeriod)
 
 	for {
 		select {
@@ -104,21 +130,55 @@ func Websocket(ctx *context.Context) {
 			return
 		case <-shutdownCtx.Done():
 			return
-		case _, ok := <-readChan:
+		case <-pingTicker.C:
+			// ensure that we're not already cancelled
+			select {
+			case <-notify:
+				return
+			case <-shutdownCtx.Done():
+				return
+			default:
+			}
+			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				log.Error("unable to SetWriteDeadline: %v", err)
+				return
+			}
+			if err := conn.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
+				log.Error("unable to send PingMessage: %v", err)
+				return
+			}
+		case message, ok := <-readChan:
 			if !ok {
 				break
 			}
+			// ensure that we're not already cancelled
+			select {
+			case <-notify:
+				return
+			case <-shutdownCtx.Done():
+				return
+			default:
+			}
+			log.Info("Got Message: %d:%s:%v", message.messageType, message.message, message.err)
 		case event, ok := <-eventChan:
 			if !ok {
 				break
 			}
+			// ensure that we're not already cancelled
+			select {
+			case <-notify:
+				return
+			case <-shutdownCtx.Done():
+				return
+			default:
+			}
 			if event.Name == "logout" {
 				if ctx.Session.ID() == event.Data {
-					_, _ = (&eventsource.Event{
+					event = &eventsource.Event{
 						Name: "logout",
 						Data: "here",
-					}).WriteTo(ctx.Resp)
-					ctx.Resp.Flush()
+					}
+					_ = writeEvent(conn, event)
 					go unregister()
 					auth.HandleSignOut(ctx)
 					break
@@ -129,22 +189,31 @@ func Websocket(ctx *context.Context) {
 					Data: "elsewhere",
 				}
 			}
-
-			w, err := conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				log.Warn("Unable to get writer for websocket %v", err)
+			if err := writeEvent(conn, event); err != nil {
 				return
 			}
-
-			if err := json.NewEncoder(w).Encode(event); err != nil {
-				log.Error("Unable to create encoder for %v %v", event, err)
-				return
-			}
-			if err := w.Close(); err != nil {
-				log.Warn("Unable to close writer for websocket %v", err)
-				return
-			}
-
 		}
 	}
+}
+
+func writeEvent(conn *websocket.Conn, event *eventsource.Event) error {
+	if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+		log.Error("unable to SetWriteDeadline: %v", err)
+		return err
+	}
+	w, err := conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		log.Warn("Unable to get writer for websocket %v", err)
+		return err
+	}
+
+	if err := json.NewEncoder(w).Encode(event); err != nil {
+		log.Error("Unable to create encoder for %v %v", event, err)
+		return err
+	}
+	if err := w.Close(); err != nil {
+		log.Warn("Unable to close writer for websocket %v", err)
+		return err
+	}
+	return nil
 }

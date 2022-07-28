@@ -28,6 +28,18 @@ class Source {
         });
       }
     });
+    this.webSocket.addEventListener('close', (event) => {
+      if (!this.webSocket) {
+        return;
+      }
+      const oldWebSocket = this.webSocket;
+      this.webSocket = null;
+      this.notifyClients({
+        type: 'close',
+        data: event
+      });
+      oldWebSocket.close();
+    });
   }
 
   register(port) {
@@ -66,20 +78,14 @@ class Source {
 
   close() {
     if (!this.webSocket) return;
-
-    this.webSocket.close();
+    const oldWebSocket = this.webSocket;
     this.webSocket = null;
+    oldWebSocket.close();
   }
 
   listen(eventType) {
     if (this.listening[eventType]) return;
     this.listening[eventType] = true;
-    this.webSocket.addEventListener(eventType, (event) => {
-      this.notifyClients({
-        type: eventType,
-        data: event.data
-      });
-    });
   }
 
   notifyClients(event) {
@@ -104,13 +110,16 @@ self.addEventListener('connect', (e) => {
         if (sourcesByUrl[url]) {
           // we have a Source registered to this url
           const source = sourcesByUrl[url];
-          source.register(port);
-          sourcesByPort[port] = source;
-          return;
+          if (source.webSocket) {
+            source.register(port);
+            sourcesByPort[port] = source;
+            return;
+          }
+          sourcesByUrl[url] = null;
         }
         let source = sourcesByPort[port];
         if (source) {
-          if (source.eventSource && source.url === url) return;
+          if (source.webSocket && source.url === url) return;
 
           // How this has happened I don't understand...
           // deregister from that source

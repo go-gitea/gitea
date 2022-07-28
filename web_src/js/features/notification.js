@@ -24,9 +24,10 @@ export function initNotificationsTable() {
   });
 }
 
-async function receiveUpdateCount(data) {
+async function receiveUpdateCount(data, document) {
   console.log(data);
   try {
+    console.log(window, document);
     const notificationCount = document.querySelector('.notification_count');
     if (data.Count > 0) {
       notificationCount.classList.remove('hidden');
@@ -36,6 +37,9 @@ async function receiveUpdateCount(data) {
 
     notificationCount.textContent = `${data.Count}`;
     console.log(notificationCount);
+    const oldDisplay = notificationCount.style.display;
+    notificationCount.style.display = 'none';
+    notificationCount.style.display = oldDisplay;
     await updateNotificationTable();
   } catch (error) {
     console.error(error, data);
@@ -62,9 +66,11 @@ export function initNotificationCount() {
     workerUrl = `${window.location.origin}${appSubUrl}/user/events`;
   }
 
+  const currentDocument = document;
+
   if (worker) {
     worker.addEventListener('error', (event) => {
-      console.error(event);
+      console.error('error from listener: ', event);
     });
     worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
@@ -75,12 +81,13 @@ export function initNotificationCount() {
     });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
-        console.error(event);
+        console.error('Unexpected event:', event);
         return;
       }
       console.log(event);
+      console.log(currentDocument === document);
       if (event.data.type === 'notification-count') {
-        const _promise = receiveUpdateCount(event.data.data).then(console.log('done'));
+        const _promise = receiveUpdateCount(event.data.data, currentDocument).then(console.log('done'));
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
@@ -98,6 +105,7 @@ export function initNotificationCount() {
         });
         worker.port.close();
       }
+      console.log('done eventlistenter');
     });
     worker.port.addEventListener('error', (e) => {
       console.error(e);
