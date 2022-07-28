@@ -1905,14 +1905,14 @@ func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, li
 	cond := builder.And(
 		repoCond,
 		builder.Or(
-			db.BuildLikeUpper("name", kw),
-			db.BuildLikeUpper("content", kw),
+			db.BuildCaseInsensitiveLike("name", kw),
+			db.BuildCaseInsensitiveLike("content", kw),
 			builder.In("id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					db.BuildLikeUpper("content", kw),
+					db.BuildCaseInsensitiveLike("content", kw),
 				)),
 			),
 		),
