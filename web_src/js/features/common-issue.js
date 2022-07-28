@@ -2,25 +2,34 @@ import $ from 'jquery';
 import {updateIssuesMeta} from './repo-issue.js';
 
 export function initCommonIssue() {
-  const checkboxOperate = () => {
-    if ($('.issue-checkbox input').is(':checked')) {
-      $('#issue-filters').addClass('hide');
-      $('#issue-actions').removeClass('hide');
-      $('#issue-actions .six').prepend($('.issue-checkbox-all'));
+  const $issueSelectAllWrapper = $('.issue-checkbox-all');
+  const $issueSelectAll = $('.issue-checkbox-all input');
+  const $issueCheckboxes = $('.issue-checkbox input');
+
+  const syncIssueSelectionState = () => {
+    const $checked = $issueCheckboxes.filter(':checked');
+    const anyChecked = $checked.length !== 0;
+    const allChecked = anyChecked && $checked.length === $issueCheckboxes.length;
+
+    if (allChecked) {
+      $issueSelectAll.prop({'checked': true, 'indeterminate': false});
+    } else if (anyChecked) {
+      $issueSelectAll.prop({'checked': false, 'indeterminate': true});
     } else {
-      $('#issue-filters').removeClass('hide');
-      $('#issue-actions').addClass('hide');
-      $('#issue-filters .six').prepend($('.issue-checkbox-all'));
+      $issueSelectAll.prop({'checked': false, 'indeterminate': false});
     }
+    // if any issue is selected, show the action panel, otherwise show the filter panel
+    $('#issue-filters').toggle(!anyChecked);
+    $('#issue-actions').toggle(anyChecked);
+    // there are two panels but only one select-all checkbox, so move the checkbox to the visible panel
+    $('#issue-filters, #issue-actions').filter(':visible').find('.column:first').prepend($issueSelectAllWrapper);
   };
 
-  const checkboxpart = $('.issue-checkbox');
-  checkboxpart.on('click', checkboxOperate);
+  $issueCheckboxes.on('change', syncIssueSelectionState);
 
-  const checkboxall = $('.issue-checkbox-all');
-  checkboxall.on('click', (e) => {
-    checkboxpart.find('input').prop('checked', checkboxall.find('input').prop('checked'));
-    checkboxOperate(e);
+  $issueSelectAll.on('change', () => {
+    $issueCheckboxes.prop('checked', $issueSelectAll.is(':checked'));
+    syncIssueSelectionState();
   });
 
   $('.issue-action').on('click', async function () {
@@ -51,7 +60,7 @@ export function initCommonIssue() {
   });
 
   // NOTICE: This event trigger targets Firefox caching behaviour, as the checkboxes stay
-  // checked after reload trigger ckecked event, if checkboxes are checked on load
+  // checked after reload trigger checked event, if checkboxes are checked on load
   $('.issue-checkbox input[type="checkbox"]:checked').first().each((_, e) => {
     e.checked = false;
     $(e).trigger('click');
