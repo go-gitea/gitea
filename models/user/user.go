@@ -64,7 +64,7 @@ var AvailableHashAlgorithms = []string{
 }
 
 const (
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
 	EmailNotificationsOnMention = "onmention"
