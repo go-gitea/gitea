@@ -896,10 +896,14 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
-		if err != nil {
-			ctx.ServerError("GitRepo.IsEmpty", err)
-			return
+		reallyEmpty := true
+		var err error
+		if ctx.Repo.GitRepo != nil {
+			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			if err != nil {
+				ctx.ServerError("GitRepo.IsEmpty", err)
+				return
+			}
 		}
 		if reallyEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
