@@ -109,7 +109,6 @@ _表格中的符号含义:_
 | Pull/Merge requests 模板             | ✓     | ✓    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | 查看 Cherry-picking 的更改           | ✘     | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 
-
 #### 第三方集成
 
 | 特性                       | Gitea | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket | RhodeCode CE |
