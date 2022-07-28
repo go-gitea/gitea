@@ -13,7 +13,6 @@ import (
 	"errors"
 	"path/filepath"
 
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -84,23 +83,6 @@ func (repo *Repository) CatFileBatchCheck(ctx context.Context) (WriteCloserError
 		return CatFileBatchCheck(ctx, repo.Path)
 	}
 	return repo.checkWriter, repo.checkReader, func() {}
-}
-
-func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
-	if repo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
-			commit, err := repo.GetCommit(sha)
-			if err != nil {
-				return 0, err
-			}
-			return commit.CommitsCount()
-		})
-		if err != nil {
-			return err
-		}
-		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
-	}
-	return nil
 }
 
 // Close this repository, in particular close the underlying gogitStorage if this is not nil
