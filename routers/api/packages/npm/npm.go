@@ -18,6 +18,7 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	npm_module "code.gitea.io/gitea/modules/packages/npm"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
 
@@ -261,6 +262,7 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 		Properties: map[string]string{
 			npm_module.TagProperty: tag,
 		},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		return err
