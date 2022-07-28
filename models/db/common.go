@@ -18,7 +18,6 @@ import (
 func BuildCaseInsensitiveLike(key, value string) builder.Cond {
 	if setting.Database.UseSQLite3 {
 		return builder.Like{"UPPER(" + key + ")", util.ToUpperASCII(value)}
-	} else {
-		return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}
 	}
+	return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}
 }
