@@ -29,12 +29,6 @@ import (
 // don't index files larger than this many bytes for performance purposes
 const sizeLimit = 1024 * 1024
 
-// newLineInHTML is the HTML entity to be used for newline in HTML content, if it's empty then the original "\n" is kept
-// this option is here for 2 purposes:
-// (1) make it easier to switch back to the original "\n" if there is any compatibility issue in the future
-// (2) make it clear to do tests: "&#10;" is the real newline for rendering, '\n' is ignorable/trim-able and could be ignored
-var newLineInHTML = "&#10;"
-
 var (
 	// For custom user mapping
 	highlightMapping = map[string]string{}
@@ -200,9 +194,6 @@ func File(fileName, language string, code []byte) ([]string, error) {
 	for i := 1; i < len(lines); i++ {
 		line := lines[i]
 		line = strings.TrimSuffix(line, "</span></span>")
-		if newLineInHTML != "" && line != "" && line[len(line)-1] == '\n' {
-			line = line[:len(line)-1] + newLineInHTML
-		}
 		m = append(m, line)
 	}
 	return m, nil
@@ -222,9 +213,6 @@ func PlainText(code []byte) []string {
 			break
 		}
 		s := gohtml.EscapeString(content)
-		if newLineInHTML != "" && s != "" && s[len(s)-1] == '\n' {
-			s = s[:len(s)-1] + newLineInHTML
-		}
 		m = append(m, s)
 	}
 	return m

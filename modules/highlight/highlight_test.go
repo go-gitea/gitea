@@ -16,12 +16,6 @@ func lines(s string) []string {
 }
 
 func TestFile(t *testing.T) {
-	defaultNewLineInHTML := newLineInHTML
-	defer func() {
-		newLineInHTML = defaultNewLineInHTML
-	}()
-
-	newLineInHTML = "&#10;"
 	tests := []struct {
 		name string
 		code string
@@ -93,20 +87,9 @@ c=2
 			assert.EqualValues(t, expected, actual)
 		})
 	}
-
-	newLineInHTML = ""
-	out, err := File("test-original-newline.py", "", []byte("a=1\n"))
-	assert.NoError(t, err)
-	assert.EqualValues(t, `<span class="n">a</span><span class="o">=</span><span class="mi">1</span>`+"\n", strings.Join(out, ""))
 }
 
 func TestPlainText(t *testing.T) {
-	defaultNewLineInHTML := newLineInHTML
-	defer func() {
-		newLineInHTML = defaultNewLineInHTML
-	}()
-
-	newLineInHTML = "&#10;"
 	tests := []struct {
 		name string
 		code string
@@ -170,8 +153,4 @@ c=2`),
 			assert.EqualValues(t, expected, actual)
 		})
 	}
-
-	newLineInHTML = ""
-	out := PlainText([]byte("a=1\n"))
-	assert.EqualValues(t, "a=1\n", strings.Join(out, ""))
 }
