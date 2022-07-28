@@ -122,6 +122,7 @@ const (
 	PullRequestStatusManuallyMerged
 	PullRequestStatusError
 	PullRequestStatusEmpty
+	PullRequestStatusAncestor
 )
 
 // PullRequestFlow the flow of pull request
@@ -421,6 +422,11 @@ func (pr *PullRequest) CanAutoMerge() bool {
 // IsEmpty returns true if this pull request is empty.
 func (pr *PullRequest) IsEmpty() bool {
 	return pr.Status == PullRequestStatusEmpty
+}
+
+// IsAncestor returns true if the Head Commit of this PR is an ancestor of the Base Commit
+func (pr *PullRequest) IsAncestor() bool {
+	return pr.Status == PullRequestStatusAncestor
 }
 
 // SetMerged sets a pull request to merged and closes the corresponding issue
