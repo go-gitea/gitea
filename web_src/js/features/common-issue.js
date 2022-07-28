@@ -14,12 +14,12 @@ export function initCommonIssue() {
     }
   };
 
-  $('.issue-checkbox').on('click', checkboxOperate);
+  const checkboxpart = $('.issue-checkbox');
+  checkboxpart.on('click', checkboxOperate);
 
-  $('.issue-checkbox-all').on('click', (e) => {
-    const selected = $('.issue-checkbox input:checked');
-    $('.issue-checkbox input:not(:checked)').prop('checked', 1);
-    selected.prop('checked', 0);
+  const checkboxall = $('.issue-checkbox-all');
+  checkboxall.on('click', (e) => {
+    checkboxpart.find('input').prop('checked', checkboxall.find('input').prop('checked'));
     checkboxOperate(e);
   });
 
