@@ -119,8 +119,14 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 		case <-paused:
 			return nil
 		case <-q.baseCtx.Done():
+			if q.IsEmpty() {
+				return nil
+			}
 			return q.baseCtx.Err()
 		case <-ctx.Done():
+			if q.IsEmpty() {
+				return nil
+			}
 			return ctx.Err()
 		default:
 		}
@@ -171,6 +177,10 @@ func (q *ChannelQueue) Terminate() {
 	case <-q.terminateCtx.Done():
 		return
 	default:
+	}
+	if err := q.FlushWithContext(q.terminateCtx); err != nil {
+		log.Warn("ChannelQueue: %s Terminated before completed flushing", q.name)
+		return
 	}
 	q.terminateCtxCancel()
 	q.baseCtxFinished()

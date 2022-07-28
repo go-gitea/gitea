@@ -261,6 +261,7 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 			callback()
 		}
 		lock.Lock()
+		<-time.After(100 * time.Millisecond)
 		log.Info("Finally terminating")
 		callbacks = make([]func(), len(queueTerminate))
 		copy(callbacks, queueTerminate)
@@ -407,6 +408,8 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	default:
 	}
 
+	<-time.After(100 * time.Millisecond)
+
 	// terminate the queue
 	lock.Lock()
 	callbacks = make([]func(), len(queueTerminate))
@@ -531,6 +534,8 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	for _, callback := range callbacks {
 		callback()
 	}
+
+	<-time.After(100 * time.Millisecond)
 
 	// terminate the queue
 	lock.Lock()
