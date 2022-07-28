@@ -100,7 +100,7 @@ NOTES:
 
 ## Translating
 
-Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there. 
+Translations are done through Crowdin. If you want to translate to a new language ask one of the managers in the Crowdin project to add a new language there.
 
 You can also just create an issue for adding a language or ask on discord on the #translation channel. If you need context or find some translation issues, you can leave a comment on the string or ask on Discord. For general translation questions there is a section in the docs. Currently a bit empty but we hope to fill it as questions pop up.
 
@@ -113,15 +113,17 @@ https://docs.gitea.io/en-us/translation-guidelines/
 For more information and instructions about how to install Gitea, please look at our [documentation](https://docs.gitea.io/en-us/).
 If you have questions that are not covered by the documentation, you can get in contact with us on our [Discord server](https://discord.gg/Gitea) or create  a post in the [discourse forum](https://discourse.gitea.io/).
 
-We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).  
-The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).  
+We maintain a list of Gitea-related projects at [gitea/awesome-gitea](https://gitea.com/gitea/awesome-gitea).
+
+The Hugo-based documentation theme is hosted at [gitea/theme](https://gitea.com/gitea/theme).
+
 The official Gitea CLI is developed at [gitea/tea](https://gitea.com/gitea/tea).
 
 ## Authors
 
-* [Maintainers](https://github.com/orgs/go-gitea/people)
-* [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
-* [Translators](options/locale/TRANSLATORS)
+- [Maintainers](https://github.com/orgs/go-gitea/people)
+- [Contributors](https://github.com/go-gitea/gitea/graphs/contributors)
+- [Translators](options/locale/TRANSLATORS)
 
 ## Backers
 
@@ -161,6 +163,7 @@ See the [LICENSE](https://github.com/go-gitea/gitea/blob/main/LICENSE) file
 for the full license text.
 
 ## Screenshots
+
 Looking for an overview of the interface? Check it out!
 
 |![Dashboard](https://dl.gitea.io/screenshots/home_timeline.png)|![User Profile](https://dl.gitea.io/screenshots/user_profile.png)|![Global Issues](https://dl.gitea.io/screenshots/global_issues.png)|

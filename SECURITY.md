@@ -1,6 +1,7 @@
 # Reporting security issues
 
-The Gitea maintainers take security seriously.  
+The Gitea maintainers take security seriously.
+
 If you discover a security issue, please bring it to their attention right away!
 
 ## Reporting a Vulnerability
@@ -11,12 +12,16 @@ Please **DO NOT** file a public issue, instead send your report privately to `se
 
 Due to the sensitive nature of security information, you can use below GPG public key encrypt your mail body.
 
-The PGP key is valid until June 24, 2024.  
-Key ID: 6FCD2D5B  
-Key Type: RSA  
-Expires: 6/24/2024  
-Key Size: 4096/4096  
-Fingerprint: 3DE0 3D1E 144A 7F06 9359 99DC AAFD 2381 6FCD 2D5B  
+The PGP key is valid until June 24, 2024.
+
+```
+Key ID: 6FCD2D5B
+Key Type: RSA
+Expires: 6/24/2024
+Key Size: 4096/4096
+Fingerprint: 3DE0 3D1E 144A 7F06 9359 99DC AAFD 2381 6FCD 2D5B
+```
+
 UserID: Gitea Security <security@gitea.io>
 
 ```
