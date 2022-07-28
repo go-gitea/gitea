@@ -138,7 +138,6 @@ In your nginx config file containing your Gitea proxy directive, find the `locat
 `client_max_body_size 16M;` to set this limit to 16 megabytes or any other number of choice.
 If you use Git LFS, this will also limit the size of the largest file you will be able to push.
 
-
 ## Apache HTTPD
 
 If you want Apache HTTPD to serve your Gitea instance, you can add the following to your Apache HTTPD configuration (usually located at `/etc/apache2/httpd.conf` in Ubuntu):
@@ -307,6 +306,7 @@ If you wish to run Gitea with IIS. You will need to setup IIS with URL Rewrite a
 If you want HAProxy to serve your Gitea instance, you can add the following to your HAProxy configuration
 
 add an acl in the frontend section to redirect calls to gitea.example.com to the correct backend
+
 ```
 frontend http-in
     ...
@@ -316,6 +316,7 @@ frontend http-in
 ```
 
 add the previously defined backend section
+
 ```
 backend gitea
     server localhost:3000 check
@@ -338,6 +339,7 @@ frontend http-in
 With that configuration http://example.com/gitea/ will redirect to your Gitea instance.
 
 then for the backend section
+
 ```
 backend gitea
     http-request replace-path /gitea\/?(.*) \/\1

@@ -19,8 +19,10 @@ menu:
 
 {{< toc >}}
 
-Gitea `1.11.0` and above includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.  
-To tell Gitea which files to expand, you must include a `template` file inside the `.gitea` directory of the template repository.  
+Gitea `1.11.0` and above includes template repositories, and one feature implemented with them is auto-expansion of specific variables within your template files.
+
+To tell Gitea which files to expand, you must include a `template` file inside the `.gitea` directory of the template repository.
+
 Gitea uses [gobwas/glob](https://github.com/gobwas/glob) for its glob syntax. It closely resembles a traditional `.gitignore`, however there may be slight differences.
 
 ## Example `.gitea/template` file
@@ -45,7 +47,8 @@ a/b/c/d.json
 
 ## Variable Expansion
 
-In any file matched by the above globs, certain variables will be expanded.  
+In any file matched by the above globs, certain variables will be expanded.
+
 All variables must be of the form `$VAR` or `${VAR}`. To escape an expansion, use a double `$$`, such as `$$VAR` or `$${VAR}`
 
 | Variable             | Expands To                                          | Transformable |
@@ -65,7 +68,8 @@ All variables must be of the form `$VAR` or `${VAR}`. To escape an expansion, us
 
 ## Transformers :robot:
 
-Gitea `1.12.0` adds a few transformers to some of the applicable variables above.  
+Gitea `1.12.0` adds a few transformers to some of the applicable variables above.
+
 For example, to get `REPO_NAME` in `PASCAL`-case, your template would use `${REPO_NAME_PASCAL}`
 
 Feeding `go-sdk` to the available transformers yields...

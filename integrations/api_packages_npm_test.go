@@ -85,9 +85,9 @@ func TestPackageNpm(t *testing.T) {
 		assert.IsType(t, &npm.Metadata{}, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
-		assert.Len(t, pd.Properties, 1)
-		assert.Equal(t, npm.TagProperty, pd.Properties[0].Name)
-		assert.Equal(t, packageTag, pd.Properties[0].Value)
+		assert.Len(t, pd.VersionProperties, 1)
+		assert.Equal(t, npm.TagProperty, pd.VersionProperties[0].Name)
+		assert.Equal(t, packageTag, pd.VersionProperties[0].Value)
 
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
