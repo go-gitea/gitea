@@ -60,10 +60,10 @@ func getProvidedFDs() (savedErr error) {
 		providedListenersToUnlink = make([]bool, n)
 		for _, fdStr := range fdsToUnlinkStr {
 			i, err := strconv.Atoi(fdStr)
-			if err == nil || i < 0 || i >= n+startFD {
+			if err != nil || i < 0 || i >= n {
 				continue
 			}
-			providedListenersToUnlink[i-startFD] = true
+			providedListenersToUnlink[i] = true
 		}
 
 		for i := startFD; i < n+startFD; i++ {
