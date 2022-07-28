@@ -25,7 +25,6 @@ type Mailer struct {
 	FromName             string
 	FromEmail            string
 	SendAsPlainText      bool
-	MailerType           string
 	SubjectPrefix        string
 
 	// SMTP sender
@@ -60,9 +59,8 @@ func newMailService() {
 	MailService = &Mailer{
 		Name:            sec.Key("NAME").MustString(AppName),
 		SendAsPlainText: sec.Key("SEND_AS_PLAIN_TEXT").MustBool(false),
-		MailerType:      sec.Key("MAILER_TYPE").In("", []string{"smtp", "sendmail", "dummy"}),
 
-		Protocol:             sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+startls", "smtp+unix"}),
+		Protocol:             sec.Key("PROTOCOL").In("", []string{"smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy"}),
 		SMTPAddr:             sec.Key("SMTP_ADDR").String(),
 		SMTPPort:             sec.Key("SMTP_PORT").String(),
 		User:                 sec.Key("USER").String(),
@@ -83,15 +81,11 @@ func newMailService() {
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
-	deprecatedSetting("mailer", "USE_SENDMAIL", "mailer", "MAILER_TYPE")
-	if sec.HasKey("USE_SENDMAIL") && !sec.HasKey("MAILER_TYPE") {
-		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
-			MailService.MailerType = "sendmail"
+	deprecatedSetting("mailer", "MAILER_TYPE", "mailer", "PROTOCOL")
+	if sec.HasKey("MAILER_TYPE") && !sec.HasKey("PROTOCOL") {
+		if sec.Key("MAILER_TYPE").String() == "sendmail" {
+			MailService.Protocol = "sendmail"
 		}
-	}
-
-	if MailService.MailerType == "" {
-		MailService.MailerType = "smtp"
 	}
 
 	// FIXME: DEPRECATED to be removed in v1.19.0
@@ -127,7 +121,7 @@ func newMailService() {
 		}
 	}
 
-	if MailService.MailerType == "smtp" && MailService.Protocol == "" {
+	if MailService.Protocol == "" {
 		if strings.ContainsAny(MailService.SMTPAddr, "/\\") {
 			MailService.Protocol = "smtp+unix"
 		} else {
@@ -214,7 +208,7 @@ func newMailService() {
 		MailService.EnvelopeFrom = parsed.Address
 	}
 
-	if MailService.MailerType == "sendmail" {
+	if MailService.Protocol == "sendmail" {
 		MailService.SendmailArgs, err = shellquote.Split(sec.Key("SENDMAIL_ARGS").String())
 		if err != nil {
 			log.Error("Failed to parse Sendmail args: %s with error %v", CustomConf, err)

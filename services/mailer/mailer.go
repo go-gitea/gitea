@@ -355,13 +355,13 @@ func NewContext() {
 		return
 	}
 
-	switch setting.MailService.MailerType {
-	case "smtp":
-		Sender = &smtpSender{}
+	switch setting.MailService.Protocol {
 	case "sendmail":
 		Sender = &sendmailSender{}
 	case "dummy":
 		Sender = &dummySender{}
+	default:
+		Sender = &smtpSender{}
 	}
 
 	mailQueue = queue.CreateQueue("mail", func(data ...queue.Data) []queue.Data {
