@@ -23,7 +23,7 @@ export function addUploadedFileToEditor(editor, file) {
         const val = editor.getValue();
         editor.setValue(`${val}\n${isimage}[${fileName}](/attachments/${file.uuid})`);
       }
-    } else if (startPos) {
+    } else if (typeof startPos === 'number' && startPos > 0) {
       editor.value = `${editor.value.substring(0, startPos)}\n${isimage}[${fileName}](/attachments/${file.uuid})\n${editor.value.substring(endPos)}`;
     } else {
       editor.value += `\n${isimage}[${fileName}](/attachments/${file.uuid})`;
