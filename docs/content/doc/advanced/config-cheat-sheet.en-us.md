@@ -130,9 +130,9 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
   - `always`: Always sign
   - Options other than `never` and `always` can be combined as a comma separated list.
 - `DEFAULT_TRUST_MODEL`: **collaborator**: \[collaborator, committer, collaboratorcommitter\]: The default trust model used for verifying commits.
-   - `collaborator`: Trust signatures signed by keys of collaborators.
-   - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the committer).
-   - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the committer.
+  - `collaborator`: Trust signatures signed by keys of collaborators.
+  - `committer`: Trust signatures that match committers (This matches GitHub and will force Gitea signed commits to have Gitea as the committer).
+  - `collaboratorcommitter`: Trust signatures signed by keys of collaborators which match the committer.
 - `WIKI`: **never**: \[never, pubkey, twofa, always, parentsigned\]: Sign commits to wiki.
 - `CRUD_ACTIONS`: **pubkey, twofa, parentsigned**: \[never, pubkey, twofa, parentsigned, always\]: Sign CRUD actions.
   - Options as above, with the addition of:
@@ -152,6 +152,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 Configuration for set the expected MIME type based on file extensions of downloadable files. Configuration presents in key-value pairs and file extensions starts with leading `.`.
 
 The following configuration set `Content-Type: application/vnd.android.package-archive` header when downloading files with `.apk` file extension.
+
 ```ini
 .apk=application/vnd.android.package-archive
 ```
@@ -248,11 +249,11 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    Requests are then made as `%(ROOT_URL)s/static/css/index.css` and `https://cdn.example.com/css/index.css` respective.
    The static files are located in the `public/` directory of the Gitea source repository.
 - `HTTP_ADDR`: **0.0.0.0**: HTTP listen address.
-   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
+  - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
-   - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
+  - If `PROTOCOL` is set to `http+unix` or `fcgi+unix`, this should be the name of the Unix socket file to use. Relative paths will be made absolute against the AppWorkPath.
 - `HTTP_PORT`: **3000**: HTTP listen port.
-   - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
+  - If `PROTOCOL` is set to `fcgi`, Gitea will listen for FastCGI requests on TCP socket
      defined by `HTTP_ADDR` and `HTTP_PORT` configuration settings.
 - `UNIX_SOCKET_PERMISSION`: **666**: Permissions for the Unix socket.
 - `LOCAL_ROOT_URL`: **%(PROTOCOL)s://%(HTTP_ADDR)s:%(HTTP_PORT)s/**: Local
@@ -370,16 +371,16 @@ The following configuration set `Content-Type: application/vnd.android.package-a
   (e.g. `ALTER USER user SET SEARCH_PATH = schema_name,"$user",public;`).
 - `SSL_MODE`: **disable**: SSL/TLS encryption mode for connecting to the database. This option is only applied for PostgreSQL and MySQL.
   - Valid values for MySQL:
-     - `true`: Enable TLS with verification of the database server certificate against its root certificate. When selecting this option make sure that the root certificate required to validate the database server certificate (e.g. the CA certificate) is on the system certificate store of both the database and Gitea servers. See your system documentation for instructions on how to add a CA certificate to the certificate store.
-     - `false`: Disable TLS.
-     - `disable`: Alias for `false`, for compatibility with PostgreSQL.
-     - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on the database server.
-     - `prefer`: Enable TLS with fallback to non-TLS connection.
+    - `true`: Enable TLS with verification of the database server certificate against its root certificate. When selecting this option make sure that the root certificate required to validate the database server certificate (e.g. the CA certificate) is on the system certificate store of both the database and Gitea servers. See your system documentation for instructions on how to add a CA certificate to the certificate store.
+    - `false`: Disable TLS.
+    - `disable`: Alias for `false`, for compatibility with PostgreSQL.
+    - `skip-verify`: Enable TLS without database server certificate verification. Use this option if you have self-signed or invalid certificate on the database server.
+    - `prefer`: Enable TLS with fallback to non-TLS connection.
   - Valid values for PostgreSQL:
-     - `disable`: Disable TLS.
-     - `require`: Enable TLS without any verifications.
-     - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
-     - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
+    - `disable`: Disable TLS.
+    - `require`: Enable TLS without any verifications.
+    - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
+    - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
 - `SQLITE_TIMEOUT`: **500**: Query timeout for SQLite3 only.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
 - `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
@@ -509,11 +510,11 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 - `CSRF_COOKIE_HTTP_ONLY`: **true**: Set false to allow JavaScript to read CSRF cookie.
 - `MIN_PASSWORD_LENGTH`: **6**: Minimum password length for new users.
 - `PASSWORD_COMPLEXITY`: **off**: Comma separated list of character classes required to pass minimum complexity. If left empty or no valid values are specified, checking is disabled (off):
-    - lower - use one or more lower latin characters
-    - upper - use one or more upper latin characters
-    - digit - use one or more digits
-    - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
-    - off - do not check password complexity
+  - lower - use one or more lower latin characters
+  - upper - use one or more upper latin characters
+  - digit - use one or more digits
+  - spec - use one or more special characters as ``!"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~``
+  - off - do not check password complexity
 - `PASSWORD_CHECK_PWN`: **false**: Check [HaveIBeenPwned](https://haveibeenpwned.com/Passwords) to see if a password has been exposed.
 - `SUCCESSFUL_TOKENS_CACHE_SIZE`: **20**: Cache successful token hashes. API tokens are stored in the DB as pbkdf2 hashes however, this means that there is a potentially significant hashing load when there are multiple API operations. This cache will store the successfully hashed tokens in a LRU cache as a balance between performance and security.
 
@@ -535,18 +536,18 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
 
 ## OAuth2 Client (`oauth2_client`)
 
-- `REGISTER_EMAIL_CONFIRM`: *[service]* **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
+- `REGISTER_EMAIL_CONFIRM`: _[service]_ **REGISTER\_EMAIL\_CONFIRM**: Set this to enable or disable email confirmation of OAuth2 auto-registration. (Overwrites the REGISTER\_EMAIL\_CONFIRM setting of the `[service]` section)
 - `OPENID_CONNECT_SCOPES`: **\<empty\>**: List of additional openid connect scopes. (`openid` is implicitly added)
 - `ENABLE_AUTO_REGISTRATION`: **false**: Automatically create user accounts for new oauth2 users.
 - `USERNAME`: **nickname**: The source of the username for new oauth2 accounts:
-    - userid - use the userid / sub attribute
-    - nickname - use the nickname attribute
-    - email - use the username part of the email attribute
+  - userid - use the userid / sub attribute
+  - nickname - use the nickname attribute
+  - email - use the username part of the email attribute
 - `UPDATE_AVATAR`: **false**: Update avatar if available from oauth2 provider. Update will be performed on each login.
 - `ACCOUNT_LINKING`: **login**: How to handle if an account / email already exists:
-    - disabled - show an error
-    - login - show an account linking login
-    - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
+  - disabled - show an error
+  - login - show an account linking login
+  - auto - automatically link with the account (Please be aware that this will grant access to an existing account just because the same username or email is provided. You must make sure that this does not cause issues with your authentication providers.)
 
 ## Service (`service`)
 
@@ -656,23 +657,23 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
-   - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
+  - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
 - `SEND_AS_PLAIN_TEXT`: **false**: Send mails as plain text.
 - `SKIP_VERIFY`: **false**: Whether or not to skip verification of certificates; `true` to disable verification.
-   - **Warning:** This option is unsafe. Consider adding the certificate to the system trust store instead.
-   - **Note:** Gitea only supports SMTP with STARTTLS.
+  - **Warning:** This option is unsafe. Consider adding the certificate to the system trust store instead.
+  - **Note:** Gitea only supports SMTP with STARTTLS.
 - `USE_CERTIFICATE`: **false**: Use client certificate.
 - `CERT_FILE`: **custom/mailer/cert.pem**
 - `KEY_FILE`: **custom/mailer/key.pem**
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
 - `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
-   - **smtp** Use SMTP to send mail
-   - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
+  - **smtp** Use SMTP to send mail
+  - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
    This is common on Linux systems.
-   - **dummy** Send email messages to the log as a testing phase.
-   - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
+  - **dummy** Send email messages to the log as a testing phase.
+  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
      `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
-   - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
+  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
    command or full path).
 - `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
@@ -686,9 +687,9 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 - `ADAPTER`: **memory**: Cache engine adapter, either `memory`, `redis`, `twoqueue` or `memcache`. (`twoqueue` represents a size limited LRU cache.)
 - `INTERVAL`: **60**: Garbage Collection interval (sec), for memory and twoqueue cache only.
 - `HOST`: **\<empty\>**: Connection string for `redis` and `memcache`. For `twoqueue` sets configuration for the queue.
-   - Redis: `redis://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
-   - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
-   - TwoQueue LRU cache: `{"size":50000,"recent_ratio":0.25,"ghost_ratio":0.5}` or `50000` representing the maximum number of objects stored in the cache.
+  - Redis: `redis://:macaron@127.0.0.1:6379/0?pool_size=100&idle_timeout=180s`
+  - Memcache: `127.0.0.1:9090;127.0.0.1:9091`
+  - TwoQueue LRU cache: `{"size":50000,"recent_ratio":0.25,"ghost_ratio":0.5}` or `50000` representing the maximum number of objects stored in the cache.
 - `ITEM_TTL`: **16h**: Time to keep items in cache if not used, Setting it to -1 disables caching.
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
@@ -731,7 +732,6 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
   - image = default image will be used (which is set in `REPOSITORY_AVATAR_FALLBACK_IMAGE`)
 - `REPOSITORY_AVATAR_FALLBACK_IMAGE`: **/img/repo_default.png**: Image used as default repository avatar (if `REPOSITORY_AVATAR_FALLBACK` is set to image and none was uploaded)
 
-
 ## Project (`project`)
 
 Default templates for project boards:
@@ -766,11 +766,13 @@ Default templates for project boards:
 - `ENABLE_XORM_LOG`: **true**: Set whether to perform XORM logging. Please note SQL statement logging can be disabled by setting `LOG_SQL` to false in the `[database]` section.
 
 ### Router Log (`log`)
+
 - `DISABLE_ROUTER_LOG`: **false**: Mute printing of the router log.
 - `ROUTER`: **console**: The mode or name of the log the router should log to. (If you set this to `,` it will log to default Gitea logger.)
   NB: You must have `DISABLE_ROUTER_LOG` set to `false` for this option to take effect. Configure each mode in per mode log subsections `\[log.modename.router\]`.
 
 ### Access Log (`log`)
+
 - `ENABLE_ACCESS_LOG`: **false**: Creates an access.log in NCSA common log format, or as per the following template
 - `ACCESS`: **file**: Logging mode for the access logger, use a comma to separate values. Configure each mode in per mode log subsections `\[log.modename.access\]`. By default the file mode will log to `$ROOT_PATH/access.log`. (If you set this to `,` it will log to the default Gitea logger.)
 - `ACCESS_LOG_TEMPLATE`: **`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`**: Sets the template used to create the access log.
@@ -828,9 +830,9 @@ Default templates for project boards:
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 
 - `SCHEDULE` accept formats
-   - Full crontab specs, e.g. `* * * * * ?`
-   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
-   - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+  - Full crontab specs, e.g. `* * * * * ?`
+  - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
+  - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 
@@ -887,6 +889,7 @@ Default templates for project boards:
 ### Extended cron tasks (not enabled by default)
 
 #### Cron - Garbage collect all repositories ('cron.git_gc_repos')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
@@ -895,36 +898,42 @@ Default templates for project boards:
 - `ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. The default value is same with [git] -> GC_ARGS
 
 #### Cron - Update the '.ssh/authorized_keys' file with Gitea SSH keys ('cron.resync_all_sshkeys')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 #### Cron - Resynchronize pre-receive, update and post-receive hooks of all repositories ('cron.resync_all_hooks')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 #### Cron - Reinitialize all missing Git repositories for which records exist ('cron.reinit_missing_repos')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 #### Cron - Delete all repositories missing their Git files ('cron.delete_missing_repos')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 #### Cron -  Delete generated repository avatars ('cron.delete_generated_repository_avatars')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
 - `SCHEDULE`: **@every 72h**: Cron syntax for scheduling repository archive cleanup, e.g. `@every 1h`.
 
 #### Cron -  Delete all old actions from database ('cron.delete_old_actions')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NOTICE_ON_SUCCESS`: **false**: Set to true to switch on success notices.
@@ -932,6 +941,7 @@ Default templates for project boards:
 - `OLDER_THAN`: **@every 8760h**: any action older than this expression will be deleted from database, suggest using `8760h` (1 year) because that's the max length of heatmap.
 
 #### Cron -  Check for new Gitea versions ('cron.update_checker')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `ENABLE_SUCCESS_NOTICE`: **true**: Set to false to switch off success notices.
@@ -939,6 +949,7 @@ Default templates for project boards:
 - `HTTP_ENDPOINT`: **https://dl.gitea.io/gitea/version.json**: the endpoint that Gitea will check for newer versions
 
 #### Cron -  Delete all old system notices from database ('cron.delete_old_system_notices')
+
 - `ENABLED`: **false**: Enable service.
 - `RUN_AT_START`: **false**: Run tasks at start up time (if ENABLED).
 - `NO_SUCCESS_NOTICE`: **false**: Set to true to switch off success notices.
@@ -949,7 +960,7 @@ Default templates for project boards:
 
 - `PATH`: **""**: The path of Git executable. If empty, Gitea searches through the PATH environment.
 - `HOME_PATH`: **%(APP_DATA_PATH)/home**: The HOME directory for Git.
-	  This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
+   This directory will be used to contain the `.gitconfig` and possible `.gnupg` directories that Gitea's git calls will use. If you can confirm Gitea is the only application running in this environment, you can set it to the normal home directory for Gitea user.
 - `DISABLE_DIFF_HIGHLIGHT`: **false**: Disables highlight of added and removed changes.
 - `MAX_GIT_DIFF_LINES`: **1000**: Max number of lines allowed of a single file in diff view.
 - `MAX_GIT_DIFF_LINE_CHARACTERS`: **5000**: Max character count per line highlighted in diff view.
@@ -966,6 +977,7 @@ Default templates for project boards:
 - `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
 
 ## Git - Timeout settings (`git.timeout`)
+
 - `DEFAUlT`: **360**: Git operations default timeout seconds.
 - `MIGRATE`: **600**: Migrate external repositories timeout seconds.
 - `MIRROR`: **300**: Mirror external repositories timeout seconds.
@@ -1032,6 +1044,7 @@ IS_INPUT_FILE = false
   - iframe: Render the content in a separate standalone page and embed it into current page by iframe. The iframe is in sandbox mode with same-origin disabled, and the JS code are safely isolated from parent page.
 
 Two special environment variables are passed to the render command:
+
 - `GITEA_PREFIX_SRC`, which contains the current URL prefix in the `src` path tree. To be used as prefix for links.
 - `GITEA_PREFIX_RAW`, which contains the current URL prefix in the `raw` path tree. To be used as prefix for image paths.
 
@@ -1047,10 +1060,10 @@ REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
 ALLOW_DATA_URI_IMAGES = true
 ```
 
- - `ELEMENT`: The element this policy applies to. Must be non-empty.
- - `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
- - `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
- - `ALLOW_DATA_URI_IMAGES`: **false** Allow data uri images (`<img src="data:image/png;base64,..."/>`).
+- `ELEMENT`: The element this policy applies to. Must be non-empty.
+- `ALLOW_ATTR`: The attribute this policy allows. Must be non-empty.
+- `REGEXP`: A regex to match the contents of the attribute against. Must be present but may be empty for unconditional whitelisting of this attribute.
+- `ALLOW_DATA_URI_IMAGES`: **false** Allow data uri images (`<img src="data:image/png;base64,..."/>`).
 
 Multiple sanitisation rules can be defined by adding unique subsections, e.g. `[markup.sanitizer.TeX-2]`.
 To apply a sanitisation rules only for a specify external renderer they must use the renderer name, e.g. `[markup.sanitizer.asciidoc.rule-1]`.
@@ -1186,6 +1199,7 @@ is `data/repo-archive` and the default of `MINIO_BASE_PATH` is `repo-archive/`.
 - `PROXY_HOSTS`: **\<empty\>**: Comma separated list of host names requiring proxy. Glob patterns (*) are accepted; use ** to match all hosts.
 
 i.e.
+
 ```ini
 PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080

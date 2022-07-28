@@ -22,9 +22,10 @@ menu:
 
 1. Your `app.ini` (with any sensitive data scrubbed as necessary).
 2. The Gitea logs, and any other appropriate log files for the situation.
-    * The logs are likely to be outputted to console. If you need to collect logs from files, 
+    - The logs are likely to be outputted to console. If you need to collect logs from files,
       you could copy the following config into your `app.ini` (remove all other `[log]` sections),
       then you can find the `*.log` files in Gitea's log directory (default: `%(GITEA_WORK_DIR)/log`).
+
     ```ini
     ; To show all SQL logs, you can also set LOG_SQL=true in the [database] section 
     [log]
@@ -38,17 +39,20 @@ menu:
     FILE_NAME=router.log
     [log.file.xorm]
     FILE_NAME=xorm.log
-    ``` 
+    ```
+
 3. Any error messages you are seeing.
 4. When possible, try to replicate the issue on [try.gitea.io](https://try.gitea.io) and include steps so that others can reproduce the issue.
-    * This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
+    - This will greatly improve the chance that the root of the issue can be quickly discovered and resolved.
 5. If you meet slow/hanging/deadlock problems, please report the stack trace when the problem occurs:
     1. Enable pprof in `app.ini` and restart Gitea
-    ```ini
-    [server]
-    ENABLE_PPROF = true
-    ```
-    2. Trigger the bug, when Gitea gets stuck, use curl or browser to visit: `http://127.0.0.1:6060/debug/pprof/goroutine?debug=1` (IP must be `127.0.0.1` and port must be `6060`). 
+
+        ```ini
+        [server]
+        ENABLE_PPROF = true
+        ```
+
+    2. Trigger the bug, when Gitea gets stuck, use curl or browser to visit: `http://127.0.0.1:6060/debug/pprof/goroutine?debug=1` (IP must be `127.0.0.1` and port must be `6060`).
     3. If you are using Docker, please use `docker exec -it <container-name> curl "http://127.0.0.1:6060/debug/pprof/goroutine?debug=1"`.
     4. Report the output (the stack trace doesn't contain sensitive data)
 
