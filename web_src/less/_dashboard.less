@@ -81,6 +81,12 @@
 
     .ui.dropdown {
       max-width: 100%;
+
+      @media @mediaSm {
+        > .menu {
+          position: static;
+        }
+      }
     }
   }
 }
