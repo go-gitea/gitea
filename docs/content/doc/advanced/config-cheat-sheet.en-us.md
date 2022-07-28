@@ -644,16 +644,16 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Mailer (`mailer`)
 
-*NOTICE: many options are new in 1.18. For old Gitea, please refer to old app.example.ini.
-eg: https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini*
+_NOTICE: **many options are new in 1.18**. For old Gitea, please refer to old app.example.ini.
+eg: https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini_
 
 - `ENABLED`: **false**: Enable to use a mail service.
 - `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy".
-   - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
-   - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
-   - **dummy** Send email messages to the log as a testing phase.
-   - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`, `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
-   - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
+  - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
+  - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
+  - **dummy** Send email messages to the log as a testing phase.
+  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`, `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
+  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
 - `SMTP_ADDR`: **\<empty\>**: Mail server address. e.g. smtp.gmail.com. For smtp+unix, this should be a path to a unix socket instead.
 - `SMTP_PORT`: **\<empty\>**: Mail server port. If no protocol is specified, it will be inferred by this setting. Common ports are:
   - 25:  insecure SMTP
