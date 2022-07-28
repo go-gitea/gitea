@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -362,11 +361,7 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	}
 
 	if len(opts.Name) != 0 {
-		if setting.Database.UseSQLite3 {
-			cond = cond.And(builder.Like{"UPPER(name)", util.ToUpperASCII(opts.Name)})
-		} else {
-			cond = cond.And(builder.Like{"UPPER(name)", strings.ToUpper(opts.Name)})
-		}
+		cond = cond.And(db.BuildLikeUpper("name", opts.Name))
 	}
 
 	return cond
