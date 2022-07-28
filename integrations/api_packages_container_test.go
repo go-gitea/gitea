@@ -26,6 +26,7 @@ import (
 
 func TestPackageContainer(t *testing.T) {
 	defer prepareTestEnv(t)()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
@@ -35,6 +36,15 @@ func TestPackageContainer(t *testing.T) {
 			}
 		}
 		return false
+	}
+	getAllByName := func(l packages_model.PackagePropertyList, name string) []string {
+		values := make([]string, 0, len(l))
+		for _, pp := range l {
+			if pp.Name == name {
+				values = append(values, pp.Value)
+			}
+		}
+		return values
 	}
 
 	images := []string{"test", "te/st"}
@@ -66,7 +76,7 @@ func TestPackageContainer(t *testing.T) {
 			Token string `json:"token"`
 		}
 
-		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token"`}
+		authenticate := []string{`Bearer realm="` + setting.AppURL + `v2/token",service="container_registry",scope="*"`}
 
 		t.Run("Anonymous", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
@@ -236,7 +246,8 @@ func TestPackageContainer(t *testing.T) {
 						assert.Nil(t, pd.SemVer)
 						assert.Equal(t, image, pd.Package.Name)
 						assert.Equal(t, tag, pd.Version.Version)
-						assert.True(t, has(pd.Properties, container_module.PropertyManifestTagged))
+						assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+						assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
 						assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 						metadata := pd.Metadata.(*container_module.Metadata)
@@ -330,7 +341,8 @@ func TestPackageContainer(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)
 				assert.Equal(t, untaggedManifestDigest, pd.Version.Version)
-				assert.False(t, has(pd.Properties, container_module.PropertyManifestTagged))
+				assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+				assert.False(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 
@@ -362,18 +374,10 @@ func TestPackageContainer(t *testing.T) {
 				assert.Nil(t, pd.SemVer)
 				assert.Equal(t, image, pd.Package.Name)
 				assert.Equal(t, multiTag, pd.Version.Version)
-				assert.True(t, has(pd.Properties, container_module.PropertyManifestTagged))
+				assert.ElementsMatch(t, []string{strings.ToLower(user.LowerName + "/" + image)}, getAllByName(pd.PackageProperties, container_module.PropertyRepository))
+				assert.True(t, has(pd.VersionProperties, container_module.PropertyManifestTagged))
 
-				getAllByName := func(l packages_model.PackagePropertyList, name string) []string {
-					values := make([]string, 0, len(l))
-					for _, pp := range l {
-						if pp.Name == name {
-							values = append(values, pp.Value)
-						}
-					}
-					return values
-				}
-				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.Properties, container_module.PropertyManifestReference))
+				assert.ElementsMatch(t, []string{manifestDigest, untaggedManifestDigest}, getAllByName(pd.VersionProperties, container_module.PropertyManifestReference))
 
 				assert.IsType(t, &container_module.Metadata{}, pd.Metadata)
 				metadata := pd.Metadata.(*container_module.Metadata)
@@ -528,4 +532,56 @@ func TestPackageContainer(t *testing.T) {
 			})
 		})
 	}
+
+	t.Run("OwnerNameChange", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		checkCatalog := func(owner string) func(t *testing.T) {
+			return func(t *testing.T) {
+				defer PrintCurrentTest(t)()
+
+				req := NewRequest(t, "GET", fmt.Sprintf("%sv2/_catalog", setting.AppURL))
+				addTokenAuthHeader(req, userToken)
+				resp := MakeRequest(t, req, http.StatusOK)
+
+				type RepositoryList struct {
+					Repositories []string `json:"repositories"`
+				}
+
+				repoList := &RepositoryList{}
+				DecodeJSON(t, resp, &repoList)
+
+				assert.Len(t, repoList.Repositories, len(images))
+				names := make([]string, 0, len(images))
+				for _, image := range images {
+					names = append(names, strings.ToLower(owner+"/"+image))
+				}
+				assert.ElementsMatch(t, names, repoList.Repositories)
+			}
+		}
+
+		t.Run(fmt.Sprintf("Catalog[%s]", user.LowerName), checkCatalog(user.LowerName))
+
+		session := loginUser(t, user.Name)
+
+		newOwnerName := "newUsername"
+
+		req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     newOwnerName,
+			"email":    "user2@example.com",
+			"language": "en-US",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+
+		t.Run(fmt.Sprintf("Catalog[%s]", newOwnerName), checkCatalog(newOwnerName))
+
+		req = NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
+			"_csrf":    GetCSRF(t, session, "/user/settings"),
+			"name":     user.Name,
+			"email":    "user2@example.com",
+			"language": "en-US",
+		})
+		session.MakeRequest(t, req, http.StatusSeeOther)
+	})
 }
