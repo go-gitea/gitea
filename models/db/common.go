@@ -13,9 +13,10 @@ import (
 	"xorm.io/builder"
 )
 
+// BuildLikeUpper returns a condition to check if the given value is like the given key case-insensitively.
+// Handles especially SQLite correctly as UPPER there only transforms ASCII letters.
 func BuildLikeUpper(key, value string) builder.Cond {
 	if setting.Database.UseSQLite3 {
-		// SQLite's UPPER function only transforms ASCII letters.
 		return builder.Like{"UPPER(" + key + ")", util.ToUpperASCII(value)}
 	} else {
 		return builder.Like{"UPPER(" + key + ")", strings.ToUpper(value)}
