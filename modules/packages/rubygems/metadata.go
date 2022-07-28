@@ -80,7 +80,6 @@ type gemspec struct {
 		VersionRequirements requirement `yaml:"version_requirements"`
 	} `yaml:"dependencies"`
 	Description    string        `yaml:"description"`
-	Email          string        `yaml:"email"`
 	Executables    []string      `yaml:"executables"`
 	Extensions     []interface{} `yaml:"extensions"`
 	ExtraRdocFiles []string      `yaml:"extra_rdoc_files"`

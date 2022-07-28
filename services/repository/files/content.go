@@ -101,6 +101,22 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	return fileList, nil
 }
 
+// GetObjectTypeFromTreeEntry check what content is behind it
+func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
+	switch {
+	case entry.IsDir():
+		return ContentTypeDir
+	case entry.IsSubModule():
+		return ContentTypeSubmodule
+	case entry.IsExecutable(), entry.IsRegular():
+		return ContentTypeRegular
+	case entry.IsLink():
+		return ContentTypeLink
+	default:
+		return ""
+	}
+}
+
 // GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
 func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {

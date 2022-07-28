@@ -29,6 +29,7 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 	contentStore := packages_module.NewContentStore()
 
 	err := db.WithTx(func(ctx context.Context) error {
+		created := true
 		p := &packages_model.Package{
 			OwnerID:   pi.Owner.ID,
 			Type:      packages_model.TypeContainer,
@@ -37,8 +38,17 @@ func saveAsPackageBlob(hsr packages_module.HashedSizeReader, pi *packages_servic
 		}
 		var err error
 		if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-			if err != packages_model.ErrDuplicatePackage {
+			if err == packages_model.ErrDuplicatePackage {
+				created = false
+			} else {
 				log.Error("Error inserting package: %v", err)
+				return err
+			}
+		}
+
+		if created {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, container_module.PropertyRepository, strings.ToLower(pi.Owner.LowerName+"/"+pi.Name)); err != nil {
+				log.Error("Error setting package property: %v", err)
 				return err
 			}
 		}
