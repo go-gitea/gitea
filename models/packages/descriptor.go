@@ -40,15 +40,16 @@ func (l PackagePropertyList) GetByName(name string) string {
 
 // PackageDescriptor describes a package
 type PackageDescriptor struct {
-	Package    *Package
-	Owner      *user_model.User
-	Repository *repo_model.Repository
-	Version    *PackageVersion
-	SemVer     *version.Version
-	Creator    *user_model.User
-	Properties PackagePropertyList
-	Metadata   interface{}
-	Files      []*PackageFileDescriptor
+	Package           *Package
+	Owner             *user_model.User
+	Repository        *repo_model.Repository
+	Version           *PackageVersion
+	SemVer            *version.Version
+	Creator           *user_model.User
+	PackageProperties PackagePropertyList
+	VersionProperties PackagePropertyList
+	Metadata          interface{}
+	Files             []*PackageFileDescriptor
 }
 
 // PackageFileDescriptor describes a package file
@@ -102,6 +103,10 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 			return nil, err
 		}
 	}
+	pps, err := GetProperties(ctx, PropertyTypePackage, p.ID)
+	if err != nil {
+		return nil, err
+	}
 	pvps, err := GetProperties(ctx, PropertyTypeVersion, pv.ID)
 	if err != nil {
 		return nil, err
@@ -152,15 +157,16 @@ func GetPackageDescriptor(ctx context.Context, pv *PackageVersion) (*PackageDesc
 	}
 
 	return &PackageDescriptor{
-		Package:    p,
-		Owner:      o,
-		Repository: repository,
-		Version:    pv,
-		SemVer:     semVer,
-		Creator:    creator,
-		Properties: PackagePropertyList(pvps),
-		Metadata:   metadata,
-		Files:      pfds,
+		Package:           p,
+		Owner:             o,
+		Repository:        repository,
+		Version:           pv,
+		SemVer:            semVer,
+		Creator:           creator,
+		PackageProperties: PackagePropertyList(pps),
+		VersionProperties: PackagePropertyList(pvps),
+		Metadata:          metadata,
+		Files:             pfds,
 	}, nil
 }
 
