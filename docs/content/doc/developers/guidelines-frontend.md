@@ -26,6 +26,7 @@ Gitea uses [Less CSS](https://lesscss.org), [Fomantic-UI](https://fomantic-ui.co
 The HTML pages are rendered by [Go HTML Template](https://pkg.go.dev/html/template).
 
 The source files can be found in the following directories:
+
 * **Less styles:** `web_src/less/`
 * **JavaScript files:** `web_src/js/`
 * **Vue components:** `web_src/js/components/`
@@ -41,10 +42,9 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 2. HTML ids and classes should use kebab-case.
 3. HTML ids and classes used in JavaScript should be unique for the whole project, and should contain 2-3 feature related keywords. We recommend to use the `js-` prefix for classes that are only used in JavaScript.
 4. jQuery events across different features could use their own namespaces if there are potential conflicts.
-5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names with 2-3 feature related keywords to overwrite framework styles.  
+5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names with 2-3 feature related keywords to overwrite framework styles.
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
 7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
-
 
 ### Framework Usage
 
@@ -52,25 +52,27 @@ Mixing different frameworks together is discouraged, it makes the code difficult
 A JavaScript module should follow one major framework and follow the framework's best practice.
 
 Recommended implementations:
+
 * Vue + Vanilla JS
 * Fomantic-UI (jQuery)
 * Vanilla JS
 
 Discouraged implementations:
+
 * Vue + Fomantic-UI (jQuery)
 * jQuery + Vanilla JS
 
 To make UI consistent, Vue components can use Fomantic-UI CSS classes.
-Although mixing different frameworks is discouraged, 
-it should also work if the mixing is necessary and the code is well-designed and maintainable. 
+Although mixing different frameworks is discouraged,
+it should also work if the mixing is necessary and the code is well-designed and maintainable.
 
 ### `async` Functions
 
-Only mark a function as `async` if and only if there are `await` calls 
+Only mark a function as `async` if and only if there are `await` calls
 or `Promise` returns inside the function.
 
 It's not recommended to use `async` event listeners, which may lead to problems.
-The reason is that the code after await is executed outside the event dispatch. 
+The reason is that the code after await is executed outside the event dispatch.
 Reference: https://github.com/github/eslint-plugin-github/blob/main/docs/rules/async-preventdefault.md
 
 If we want to call an `async` function in a non-async context,
@@ -88,9 +90,8 @@ However, there are still some special cases, so the current guideline is:
   * `$.data()` can be used to bind some non-string data to elements in rare cases, but it is highly discouraged.
 
 * For new code:
-  * `node.dataset` should not be used, use `node.getAttribute` instead. 
+  * `node.dataset` should not be used, use `node.getAttribute` instead.
   * never bind any user data to a DOM node, use a suitable design pattern to describe the relation between node and data.
-
 
 ### Legacy Code
 
