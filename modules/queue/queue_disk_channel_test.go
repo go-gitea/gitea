@@ -257,15 +257,18 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		callbacks := make([]func(), len(queueShutdown))
 		copy(callbacks, queueShutdown)
 		lock.Unlock()
+
 		for _, callback := range callbacks {
 			callback()
 		}
-		lock.Lock()
 		<-time.After(100 * time.Millisecond)
+
+		lock.Lock()
 		log.Info("Finally terminating")
 		callbacks = make([]func(), len(queueTerminate))
 		copy(callbacks, queueTerminate)
 		lock.Unlock()
+
 		for _, callback := range callbacks {
 			callback()
 		}
@@ -340,11 +343,11 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 		return
 	}
 
+	// Once we push &test1 the queue should pause
+	paused, _ = pausable.IsPausedIsResumed()
+
 	// push test1
 	queue.Push(&test1)
-
-	// Now as this is handled it should pause
-	paused, _ = pausable.IsPausedIsResumed()
 
 	select {
 	case <-paused:
@@ -378,6 +381,13 @@ func TestPersistableChannelQueue_Pause(t *testing.T) {
 	}
 	assert.Equal(t, test1.TestString, result1.TestString)
 	assert.Equal(t, test1.TestInt, result1.TestInt)
+
+	select {
+	case unknown := <-handleChan:
+		assert.Fail(t, "handler chan should not contain: %v", unknown)
+		return
+	case <-time.After(100 * time.Millisecond):
+	}
 
 	lock.Lock()
 	callbacks := make([]func(), len(queueShutdown))
