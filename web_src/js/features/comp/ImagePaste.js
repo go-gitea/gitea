@@ -16,10 +16,17 @@ export function addUploadedFileToEditor(editor, file) {
   const fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
   if (startPos) {
     if (editor.setSelection) {
-      editor.setSelection(startPos, endPos);
-      editor.replaceSelection(`${isimage}[${fileName}](/attachments/${file.uuid})\n`);
-    } else {
+      if (startPos.line) {
+        editor.setSelection(startPos, endPos);
+        editor.replaceSelection(`${isimage}[${fileName}](/attachments/${file.uuid})\n`);
+      } else {
+        const val = editor.getValue();
+        editor.setValue(`${val}\n${isimage}[${fileName}](/attachments/${file.uuid})`);
+      }
+    } else if (startPos) {
       editor.value = `${editor.value.substring(0, startPos)}\n${isimage}[${fileName}](/attachments/${file.uuid})\n${editor.value.substring(endPos)}`;
+    } else {
+      editor.value += `\n${isimage}[${fileName}](/attachments/${file.uuid})`;
     }
   } else if (editor.setSelection) {
     editor.value(`${editor.value()}\n${isimage}[${fileName}](/attachments/${file.uuid})\n`);
