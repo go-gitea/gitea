@@ -148,14 +148,15 @@ func (q *ChannelQueue) FlushWithContext(ctx context.Context) error {
 // Shutdown processing from this queue
 func (q *ChannelQueue) Shutdown() {
 	q.lock.Lock()
-	defer q.lock.Unlock()
 	select {
 	case <-q.shutdownCtx.Done():
 		log.Trace("ChannelQueue: %s Already Shutting down", q.name)
+		q.lock.Unlock()
 		return
 	default:
 	}
 	log.Trace("ChannelQueue: %s Shutting down", q.name)
+	q.lock.Unlock()
 	go func() {
 		log.Trace("ChannelQueue: %s Flushing", q.name)
 		// We can't use Cleanup here because that will close the channel
