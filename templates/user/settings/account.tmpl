@@ -59,7 +59,7 @@
 								<div class="ui selection dropdown" tabindex="0">
 									<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="text">{{$.locale.Tr "settings.email_notifications"}}</div>
+									<div class="text"></div>
 									<div class="menu">
 										<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.enable"}}</div>
 										<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.andyourown"}}</div>
