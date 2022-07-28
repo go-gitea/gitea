@@ -23,7 +23,7 @@ import (
 const (
 	listenFDs = "LISTEN_FDS"
 	startFD   = 3
-	unlinkFDs = "UNLINK_FDS"
+	unlinkFDs = "GITEA_UNLINK_FDS"
 )
 
 // In order to keep the working directory the same as when we started we record
