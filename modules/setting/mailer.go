@@ -82,7 +82,7 @@ func newMailService() {
 	MailService.From = sec.Key("FROM").MustString(MailService.User)
 	MailService.EnvelopeFrom = sec.Key("ENVELOPE_FROM").MustString("")
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "USE_SENDMAIL", "mailer", "MAILER_TYPE")
 	if sec.HasKey("USE_SENDMAIL") {
 		if MailService.MailerType == "" && sec.Key("USE_SENDMAIL").MustBool(false) {
@@ -94,7 +94,7 @@ func newMailService() {
 		MailService.MailerType = "smtp"
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "HOST", "mailer", "SMTP_ADDR")
 	if sec.HasKey("HOST") {
 		givenHost := sec.Key("HOST").String()
@@ -106,7 +106,7 @@ func newMailService() {
 		MailService.SMTPPort = port
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "IS_TLS_ENABLED", "mailer", "PROTOCOL")
 	if sec.HasKey("IS_TLS_ENABLED") {
 		if sec.Key("IS_TLS_ENABLED").MustBool() {
@@ -156,37 +156,37 @@ func newMailService() {
 		}
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "DISABLE_HELO", "mailer", "ENABLE_HELO")
 	if sec.HasKey("DISABLE_HELO") {
 		MailService.EnableHelo = !sec.Key("DISABLE_HELO").MustBool()
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "SKIP_VERIFY", "mailer", "FORCE_TRUST_SERVER_CERT")
 	if sec.HasKey("SKIP_VERIFY") {
 		MailService.ForceTrustServerCert = sec.Key("SKIP_VERIFY").MustBool()
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "USE_CERTIFICATE", "mailer", "USE_CLIENT_CERT")
 	if sec.HasKey("USE_CERTIFICATE") {
 		MailService.UseClientCert = sec.Key("USE_CLIENT_CERT").MustBool()
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "CERT_FILE", "mailer", "CLIENT_CERT_FILE")
 	if sec.HasKey("CERT_FILE") {
 		MailService.ClientCertFile = sec.Key("CERT_FILE").String()
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "KEY_FILE", "mailer", "CLIENT_KEY_FILE")
 	if sec.HasKey("KEY_FILE") {
 		MailService.ClientKeyFile = sec.Key("KEY_FILE").String()
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
+	// FIXME: DEPRECATED to be removed in v1.19.0
 	deprecatedSetting("mailer", "ENABLE_HTML_ALTERNATIVE", "mailer", "SEND_AS_PLAIN_TEXT")
 	if sec.HasKey("ENABLE_HTML_ALTERNATIVE") {
 		MailService.SendAsPlainText = !sec.Key("ENABLE_HTML_ALTERNATIVE").MustBool(false)
