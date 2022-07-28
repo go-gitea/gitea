@@ -21,8 +21,8 @@ menu:
 
 ## Background
 
-Gitea uses Golang as the backend programming language. It uses many third-party packages and also write some itself. 
-For example, Gitea uses [Chi](https://github.com/go-chi/chi) as basic web framework. [Xorm](https://xorm.io) is an ORM framework that is used to interact with the database. 
+Gitea uses Golang as the backend programming language. It uses many third-party packages and also write some itself.
+For example, Gitea uses [Chi](https://github.com/go-chi/chi) as basic web framework. [Xorm](https://xorm.io) is an ORM framework that is used to interact with the database.
 So it's very important to manage these packages. Please take the below guidelines before you start to write backend code.
 
 ## Package Design Guideline
@@ -43,9 +43,9 @@ To maintain understandable code and avoid circular dependencies it is important 
   - `modules/git`: Package to interactive with `Git` command line or Gogit package.
 - `public`: Compiled frontend files (javascript, images, css, etc.)
 - `routers`: Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) must not depend on routers.
-  - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests. 
-  - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false). 
-  - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`. 
+  - `routers/api` Contains routers for `/api/v1` aims to handle RESTful API requests.
+  - `routers/install` Could only respond when system is in INSTALL mode (INSTALL_LOCK=false).
+  - `routers/private` will only be invoked by internal sub commands, especially `serv` and `hooks`.
   - `routers/web` will handle HTTP requests from web browsers or Git SMART HTTP protocols.
 - `services`: Support functions for common routing operations or command executions. Uses `models` and `modules` to handle the requests.
 - `templates`: Golang templates for generating the html output.
@@ -61,7 +61,7 @@ From left to right, left packages could depend on right packages, but right pack
 **NOTICE**
 
 Why do we need database transactions outside of `models`? And how?
-Some actions should allow for rollback when database record insertion/update/deletion failed. 
+Some actions should allow for rollback when database record insertion/update/deletion failed.
 So services must be allowed to create a database transaction. Here is some example,
 
 ```go
@@ -84,7 +84,7 @@ func CreateXXXX() error {\
 }
 ```
 
-You should **not** use `db.GetEngine(ctx)` in `services` directly, but just write a function under `models/`. 
+You should **not** use `db.GetEngine(ctx)` in `services` directly, but just write a function under `models/`.
 If the function will be used in the transaction, just let `context.Context` as the function's first parameter.
 
 ```go

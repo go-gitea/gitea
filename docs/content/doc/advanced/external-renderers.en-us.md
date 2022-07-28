@@ -127,6 +127,7 @@ ALLOW_ATTR = class
 ### Example: Office DOCX
 
 Display Office DOCX files with [`pandoc`](https://pandoc.org/):
+
 ```ini
 [markup.docx]
 ENABLED = true
@@ -138,6 +139,7 @@ ALLOW_DATA_URI_IMAGES = true
 ```
 
 The template file has the following content:
+
 ```
 $body$
 ```
@@ -145,6 +147,7 @@ $body$
 ### Example: Jupyter Notebook
 
 Display Jupyter Notebook files with [`nbconvert`](https://github.com/jupyter/nbconvert):
+
 ```ini
 [markup.jupyter]
 ENABLED = true
@@ -156,9 +159,11 @@ ALLOW_DATA_URI_IMAGES = true
 ```
 
 ## Customizing CSS
-The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML. 
+
+The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML.
 
 And so you could write some CSS:
+
 ```css
 .markup.XXXXX html {
   font-size: 100%;
@@ -184,6 +189,7 @@ And so you could write some CSS:
 ```
 
 Add your stylesheet to your custom directory e.g `custom/public/css/my-style-XXXXX.css` and import it using a custom header file `custom/templates/custom/header.tmpl`:
+
 ```html
 <link type="text/css" href="{{AppSubUrl}}/assets/css/my-style-XXXXX.css" />
 ```
