@@ -20,7 +20,7 @@ func renameCredentialIDBytes(x *xorm.Engine) error {
 	if err != nil {
 		return err
 	}
-	if !credentialIDExist {
+	if credentialIDExist {
 		credentialIDBytesExists, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "webauthn_credential", "credential_id_bytes")
 		if err != nil {
 			return err
