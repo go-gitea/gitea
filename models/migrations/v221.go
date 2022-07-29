@@ -16,12 +16,13 @@ import (
 func storeWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
-		ID                int64 `xorm:"pk autoincr"`
-		Name              string
-		LowerName         string `xorm:"unique(s)"`
-		UserID            int64  `xorm:"INDEX unique(s)"`
-		CredentialID      string `xorm:"INDEX VARCHAR(410)"`
-		CredentialIDBytes []byte `xorm:"INDEX VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
+		ID           int64 `xorm:"pk autoincr"`
+		Name         string
+		LowerName    string `xorm:"unique(s)"`
+		UserID       int64  `xorm:"INDEX unique(s)"`
+		CredentialID string `xorm:"INDEX VARCHAR(410)"`
+		// Note the lack of INDEX here - these will be created once the column is renamed in v223.go
+		CredentialIDBytes []byte `xorm:"VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
 		PublicKey         []byte
 		AttestationType   string
 		AAGUID            []byte
@@ -70,13 +71,5 @@ func storeWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
 		start += 50
 		creds = creds[:0]
 	}
-
-	// Drop the old credential ID
-	sess := x.NewSession()
-	defer sess.Close()
-
-	if err := dropTableColumns(sess, "webauthn_credential", "credential_id"); err != nil {
-		return fmt.Errorf("unable to drop old credentialID column: %w", err)
-	}
-	return sess.Commit()
+	return nil
 }

@@ -33,7 +33,7 @@ func Test_storeWebauthnCredentialIDAsBytes(t *testing.T) {
 
 	type ConvertedWebauthnCredential struct {
 		ID                int64  `xorm:"pk autoincr"`
-		CredentialIDBytes []byte `xorm:"INDEX VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
+		CredentialIDBytes []byte `xorm:"VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
 	}
 
 	// Prepare and load the testing database

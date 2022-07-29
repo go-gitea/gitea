@@ -402,6 +402,10 @@ var migrations = []Migration{
 	NewMigration("Add container repository property", addContainerRepositoryProperty),
 	// v221 -> v222
 	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	// v222 -> v223
+	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	// v223 -> v224
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
 }
 
 // GetCurrentDBVersion returns the current db version
