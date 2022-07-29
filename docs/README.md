@@ -30,12 +30,11 @@ make server
 When you are done with your changes just create a pull request, after merging
 the pull request the website will be updated automatically.
 
-
 ### Tips
 
-- Instead of adding things to the FAQ, try to consolidate information with existing pages or create a new section if enough once content is available.
+* Instead of adding things to the FAQ, try to consolidate information with existing pages or create a new section if enough once content is available.
 
-- For new pages, select a good location in the sidebar using the `menu.sidebar.weight` and `menu.sidebar.parent` metadata attributes
+* For new pages, select a good location in the sidebar using the `menu.sidebar.weight` and `menu.sidebar.parent` metadata attributes
 
 ## Contributing
 
