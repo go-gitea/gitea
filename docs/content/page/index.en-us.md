@@ -298,6 +298,3 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - [github.com/mattn/go-sqlite3](https://github.com/mattn/go-sqlite3)
   - [github.com/denisenkom/go-mssqldb](https://github.com/denisenkom/go-mssqldb)
 
-## Software and Service Support
-
-- [Drone](https://github.com/drone/drone) (CI)

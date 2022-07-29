@@ -1,13 +1,13 @@
 ---
 date: "2019-04-15T17:29:00+08:00"
 title: "整合"
-slug: "integrations"
+slug: "thirdparty"
 weight: 40
 toc: false
 draft: false
 menu:
   sidebar:
-    parent: "developers"
+    parent: "features"
     name: "整合"
     weight: 65
     identifier: "integrations"
