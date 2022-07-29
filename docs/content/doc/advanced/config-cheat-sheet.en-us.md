@@ -9,7 +9,7 @@ menu:
   sidebar:
     parent: "advanced"
     name: "Config Cheat Sheet"
-    weight: 20
+    weight: 1
     identifier: "config-cheat-sheet"
 ---
 
