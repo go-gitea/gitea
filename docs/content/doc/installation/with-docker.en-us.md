@@ -255,7 +255,7 @@ favorite browser to finalize the installation. Visit http://server-ip:3000 and f
 installation wizard. If the database was started with the `docker-compose` setup as
 documented above, please note that `db` must be used as the database hostname.
 
-## Configure the user inside Gitea using environment variables 
+## Configure the user inside Gitea using environment variables
 
 - `USER`: **git**: The username of the user that runs Gitea within the container.
 - `USER_UID`: **1000**: The UID (Unix user ID) of the user that runs Gitea within the container. Match this to the UID of the owner of the `/data` volume if using host volumes (this is not necessary with named volumes).
@@ -394,9 +394,9 @@ In this option, the idea is that the host simply uses the `authorized_keys` that
 Here is a detailed explanation what is happening when a SSH request is made:
 
 1. The client adds their SSH public key to Gitea using the webpage.
-2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`. 
+2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`.
     - However, because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key has been added to the host `git` user's `authorized_keys` file too.
-3. This entry has the public key, but also has a `command=` option. 
+3. This entry has the public key, but also has a `command=` option.
     - This command matches the location of the Gitea binary on the container, but also the location of the shim on the host.
 4. The client then makes an SSH request to the host SSH server using the `git` user, e.g. `git clone git@domain:user/repo.git`.
 5. The client will attempt to authenticate with the server, passing one or more public keys in turn to the host.
@@ -441,7 +441,7 @@ we create a new shell for the git user. As an administrative user on the host ru
 Here is a detailed explanation what is happening when a SSH request is made:
 
 1. The client adds their SSH public key to Gitea using the webpage.
-2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`. 
+2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`.
     - However, because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key has been added to the host `git` user's `authorized_keys` file too.
 3. This entry has the public key, but also has a `command=` option.
     - This command matches the location of the Gitea binary on the container.
@@ -482,7 +482,7 @@ sudo usermod -s /home/git/docker-shell git
 Here is a detailed explanation what is happening when a SSH request is made:
 
 1. The client adds their SSH public key to Gitea using the webpage.
-2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`. 
+2. Gitea in the container will add an entry for this key to the `.ssh/authorized_keys` file of its running user, `git`.
     - However, because `/home/git/.ssh/` on the host is mounted as `/data/git/.ssh` this means that the key has been added to the host `git` user's `authorized_keys` file too.
 3. This entry has the public key, but also has a `command=` option.
     - This command matches the location of the Gitea binary on the container.
@@ -531,7 +531,7 @@ In this option, the idea is that the host SSH uses an `AuthorizedKeysCommand` in
 
 Now all attempts to login as the `git` user on the host will be forwarded to the docker - including the `SSH_ORIGINAL_COMMAND`. We now need to set-up SSH authentication on the host.
 
-We will do this by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by Gitea. 
+We will do this by leveraging the [SSH AuthorizedKeysCommand](https://docs.gitea.io/en-us/command-line/#keys) to match the keys against those accepted by Gitea.
 
 Add the following block to `/etc/ssh/sshd_config`, on the host:
 
