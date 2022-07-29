@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	"encoding/base32"
 	"fmt"
 	"strings"
 
@@ -27,7 +26,7 @@ func (err ErrWebAuthnCredentialNotExist) Error() string {
 	if len(err.CredentialID) == 0 {
 		return fmt.Sprintf("WebAuthn credential does not exist [id: %d]", err.ID)
 	}
-	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %s]", base32.HexEncoding.EncodeToString(err.CredentialID))
+	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %x]", err.CredentialID)
 }
 
 // IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
