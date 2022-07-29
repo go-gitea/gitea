@@ -6,6 +6,7 @@ package auth
 
 import (
 	"context"
+	"encoding/base32"
 	"fmt"
 	"strings"
 
@@ -19,14 +20,14 @@ import (
 // ErrWebAuthnCredentialNotExist represents a "ErrWebAuthnCRedentialNotExist" kind of error.
 type ErrWebAuthnCredentialNotExist struct {
 	ID           int64
-	CredentialID string
+	CredentialID []byte
 }
 
 func (err ErrWebAuthnCredentialNotExist) Error() string {
-	if err.CredentialID == "" {
+	if len(err.CredentialID) == 0 {
 		return fmt.Sprintf("WebAuthn credential does not exist [id: %d]", err.ID)
 	}
-	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %s]", err.CredentialID)
+	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %s]", base32.HexEncoding.EncodeToString(err.CredentialID))
 }
 
 // IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.
@@ -162,11 +163,11 @@ func HasWebAuthnRegistrationsByUID(uid int64) (bool, error) {
 }
 
 // GetWebAuthnCredentialByCredID returns WebAuthn credential by credential ID
-func GetWebAuthnCredentialByCredID(userID int64, credID string) (*WebAuthnCredential, error) {
+func GetWebAuthnCredentialByCredID(userID int64, credID []byte) (*WebAuthnCredential, error) {
 	return getWebAuthnCredentialByCredID(db.DefaultContext, userID, credID)
 }
 
-func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID string) (*WebAuthnCredential, error) {
+func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
 	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id = ?", userID, credID).Get(cred); err != nil {
 		return nil, err
