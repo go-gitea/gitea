@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import worker from './shared-worker.js';
 
 const {appSubUrl, csrfToken, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
@@ -51,17 +52,6 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-    worker.addEventListener('error', (event) => {
-      console.error(event);
-    });
-    worker.port.addEventListener('messageerror', () => {
-      console.error('Unable to deserialize message');
-    });
-    worker.port.postMessage({
-      type: 'start',
-      url: `${window.location.origin}${appSubUrl}/user/events`,
-    });
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
         console.error(event);
@@ -69,33 +59,7 @@ export function initNotificationCount() {
       }
       if (event.data.type === 'notification-count') {
         const _promise = receiveUpdateCount(event.data);
-      } else if (event.data.type === 'error') {
-        console.error(event.data);
-      } else if (event.data.type === 'logout') {
-        if (event.data.data !== 'here') {
-          return;
-        }
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
-        window.location.href = appSubUrl;
-      } else if (event.data.type === 'close') {
-        worker.port.postMessage({
-          type: 'close',
-        });
-        worker.port.close();
       }
-    });
-    worker.port.addEventListener('error', (e) => {
-      console.error(e);
-    });
-    worker.port.start();
-    window.addEventListener('beforeunload', () => {
-      worker.port.postMessage({
-        type: 'close',
-      });
-      worker.port.close();
     });
 
     return;
