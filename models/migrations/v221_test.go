@@ -27,6 +27,11 @@ func Test_storeWebauthnCredentialIDAsBytes(t *testing.T) {
 	}
 
 	type ExpectedWebauthnCredential struct {
+		ID           int64  `xorm:"pk autoincr"`
+		CredentialID string // CredentialID is at most 1023 bytes as per spec released 20 July 2022
+	}
+
+	type ConvertedWebauthnCredential struct {
 		ID                int64  `xorm:"pk autoincr"`
 		CredentialIDBytes []byte `xorm:"INDEX VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
 	}
@@ -49,13 +54,13 @@ func Test_storeWebauthnCredentialIDAsBytes(t *testing.T) {
 		return
 	}
 
-	got := []ExpectedWebauthnCredential{}
+	got := []ConvertedWebauthnCredential{}
 	if err := x.Table("webauthn_credential").Select("id, credential_id_bytes").Asc("id").Find(&got); !assert.NoError(t, err) {
 		return
 	}
 
 	for i, e := range expected {
-		credIDBytes, _ := base32.HexEncoding.DecodeString(string(e.CredentialIDBytes))
+		credIDBytes, _ := base32.HexEncoding.DecodeString(string(e.CredentialID))
 		assert.Equal(t, credIDBytes, got[i].CredentialIDBytes)
 	}
 }
