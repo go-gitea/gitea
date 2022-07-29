@@ -24,12 +24,28 @@ embedded assets. This can be different for older releases.
 
 ## Download
 
-Choose the file matching your platform from the [downloads page](https://dl.gitea.io/gitea/), copy the URL and replace the URL within the commands below:
+You can find the file matching your platform from the [downloads page](https://dl.gitea.io/gitea/) after navigating to the version you want to download.
+
+### Choosing the right file
+
+**For Linux**, you will likely want `linux-amd64`. It's for 64-bit Intel/AMD platforms, but there are other platforms available, including `arm64` (e.g. Raspberry PI 4), `386` (i.e. 32-bit), `arm-5`, and `arm-6`.
+
+**For Windows**, you will likely want `windows-4.0-amd64`. It's for all modern versions of Windows, but there is also a `386` platform available designed for older, 32-bit versions of Windows.
+
+*Note: there is also a `gogit-windows` file available that was created to help with some [performance problems](https://github.com/go-gitea/gitea/pull/15482) reported by some Windows users on older systems/versions. You should consider using this file if you're experiencing performance issues, and let us know if it improves performance.*
+
+**For macOS**, you should choose `darwin-arm64` if your hardware uses Apple Silicon, or `darwin-amd64` for Intel.
+
+### Downloading with wget
+
+Copy the commands below and replace the URL within the one you wish to download.
 
 ```sh
 wget -O gitea https://dl.gitea.io/gitea/{{< version >}}/gitea-{{< version >}}-linux-amd64
 chmod +x gitea
 ```
+
+Note that the above command will download Gitea {{< version >}} for 64-bit Linux.
 
 ## Verify GPG signature
 
