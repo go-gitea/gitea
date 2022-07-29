@@ -60,7 +60,7 @@ func Test_storeWebauthnCredentialIDAsBytes(t *testing.T) {
 	}
 
 	for i, e := range expected {
-		credIDBytes, _ := base32.HexEncoding.DecodeString(string(e.CredentialID))
+		credIDBytes, _ := base32.HexEncoding.DecodeString(e.CredentialID)
 		assert.Equal(t, credIDBytes, got[i].CredentialIDBytes)
 	}
 }
