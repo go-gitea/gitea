@@ -169,7 +169,7 @@ func GetWebAuthnCredentialByCredID(userID int64, credID []byte) (*WebAuthnCreden
 
 func getWebAuthnCredentialByCredID(ctx context.Context, userID int64, credID []byte) (*WebAuthnCredential, error) {
 	cred := new(WebAuthnCredential)
-	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id = ?", userID, credID).Get(cred); err != nil {
+	if found, err := db.GetEngine(ctx).Where("user_id = ? AND credential_id_bytes = ?", userID, credID).Get(cred); err != nil {
 		return nil, err
 	} else if !found {
 		return nil, ErrWebAuthnCredentialNotExist{CredentialID: credID}
