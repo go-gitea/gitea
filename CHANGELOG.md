@@ -6,18 +6,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-29
 
-* SECURITY
-  * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
-  * Add write check for creating Commit Statuses (#20332) (#20333)
-* ENHANCEMENTS
-  * Make notification bell more prominent on mobile (#20108, #20236, #20251) (#20269)
-  * Adjust max-widths for the repository file table (#20243) (#20247)
-  * Display full name (#20171) (#20246)
-* BUGFIXES
-
-
-## [1.17.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc1) - 2022-06-18
-
 * BREAKING
   * Require go1.18 for Gitea 1.17 (#19918)
   * Make AppDataPath absolute against the AppWorkPath if it is not (#19815)
@@ -41,6 +29,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Restrict email address validation (#17688) 
   * Refactor Router Logger (#17308)
 * SECURITY
+  * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
+  * Add write check for creating Commit Statuses (#20332) (#20333)
   * Remove deprecated SSH ciphers from default (#18697)
 * FEDERATION
   * Return statistic information for nodeinfo (#19561)
@@ -79,6 +69,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Return primary language and repository language stats API URL (#18396)
   * Implement http signatures support for the API (#17565)
 * ENHANCEMENTS
+  * Make notification bell more prominent on mobile (#20108, #20236, #20251) (#20269)
+  * Adjust max-widths for the repository file table (#20243) (#20247)
+  * Display full name (#20171) (#20246)
   * Add dbconsistency checks for Stopwatches (#20010)
   * Add fetch.writeCommitGraph to gitconfig (#20006)
   * Add fgprof pprof profiler (#20005)
