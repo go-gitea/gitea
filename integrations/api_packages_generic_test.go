@@ -42,7 +42,6 @@ func TestPackageGeneric(t *testing.T) {
 
 		pd, err := packages.GetPackageDescriptor(db.DefaultContext, pvs[0])
 		assert.NoError(t, err)
-		assert.NotNil(t, pd.SemVer)
 		assert.Nil(t, pd.Metadata)
 		assert.Equal(t, packageName, pd.Package.Name)
 		assert.Equal(t, packageVersion, pd.Version.Version)
