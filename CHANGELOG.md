@@ -6,21 +6,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-29
 
-* BUGFIXES
-  * Add missing Tabs on organisation/package view (#20539)
-  * Ensure that all unmerged files are merged when conflict checking (#20528) (#20536)
-  * Stop logging EOFs and exit(1)s in ssh handler (#20476) (#20529)
-  * Fix Ruby package parsing by removed unused email field (#20470) (#20525)
-  * Add labels to two buttons that were missing them (#20419) (#20524)
-  * Allow non-semver packages in the Conan package registry (#20412) (#20523)
-  * Fix package permission checks for organizations (#20517) (#20520)
-  * Fix ROOT_URL detection for URLs without trailing slash (#20502) (#20503)
-  * Fix enabling repo packages when project unit is turned off (#20486) (#20488)
-  * Dismiss prior pull reviews if done via web in review dismiss (#20197) (#20407)
-  * Allow RSA 2047 bit keys (#20272) (#20396)
-
-## [1.17.0-rc2](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc2) - 2022-07-13
-
 * SECURITY
   * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
   * Add write check for creating Commit Statuses (#20332) (#20333)
@@ -29,6 +14,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Adjust max-widths for the repository file table (#20243) (#20247)
   * Display full name (#20171) (#20246)
 * BUGFIXES
+  * Ensure that all unmerged files are merged when conflict checking (#20528) (#20536)
+  * Stop logging EOFs and exit(1)s in ssh handler (#20476) (#20529)
+  * Add labels to two buttons that were missing them (#20419) (#20524)
+  * Fix ROOT_URL detection for URLs without trailing slash (#20502) (#20503)
+  * Dismiss prior pull reviews if done via web in review dismiss (#20197) (#20407)
   * Allow RSA 2047 bit keys (#20272) (#20396)
   * Add missing return for when topic isn't found (#20351) (#20395)
   * Fix commit status icon when in subdirectory (#20285) (#20385)
