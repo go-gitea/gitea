@@ -137,6 +137,17 @@ func CreateUser(ctx *context.APIContext) {
 	}
 	log.Trace("Account created by admin (%s): %s", ctx.Doer.Name, u.Name)
 
+	if form.AccessToken {
+		t := &models.AccessToken{
+			Name: "gitea-admin",
+			UID:  u.ID,
+		}
+
+		if err := models.NewAccessToken(t); err != nil {
+			ctx.Error(http.StatusInternalServerError, "CreateUser", err)
+		}
+	}
+
 	// Send email notification.
 	if form.SendNotify {
 		mailer.SendRegisterNotifyMail(u)

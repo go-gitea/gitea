@@ -21,6 +21,7 @@ type CreateUserOption struct {
 	SendNotify         bool   `json:"send_notify"`
 	Restricted         *bool  `json:"restricted"`
 	Visibility         string `json:"visibility" binding:"In(,public,limited,private)"`
+	AccessToken        bool   `json:"access_token"`
 }
 
 // EditUserOption edit user options
