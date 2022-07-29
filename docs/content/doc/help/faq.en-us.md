@@ -210,9 +210,7 @@ Which makes all other paths non-writeable to Gitea.
 
 ## Translation is incorrect/how to add more translations
 
-Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)
-
-Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
+Check the [localization section]({{< relref "doc/translation/localization.en-us.md" >}}) on how to add or change translations.
 
 ## Hooks aren't running
 
