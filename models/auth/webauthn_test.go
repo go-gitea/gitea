@@ -60,7 +60,7 @@ func TestCreateCredential(t *testing.T) {
 	res, err := CreateCredential(1, "WebAuthn Created Credential", &webauthn.Credential{ID: []byte("Test")})
 	assert.NoError(t, err)
 	assert.Equal(t, "WebAuthn Created Credential", res.Name)
-	assert.Equal(t, []byte("Test"), []byte(res.CredentialIDBytes))
+	assert.Equal(t, []byte("Test"), res.CredentialIDBytes)
 
 	unittest.AssertExistsIf(t, true, &WebAuthnCredential{Name: "WebAuthn Created Credential", UserID: 1})
 }
