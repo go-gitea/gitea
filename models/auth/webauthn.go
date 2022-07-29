@@ -6,7 +6,6 @@ package auth
 
 import (
 	"context"
-	"encoding/base32"
 	"fmt"
 	"strings"
 
@@ -39,18 +38,18 @@ func IsErrWebAuthnCredentialNotExist(err error) bool {
 // WebAuthnCredential represents the WebAuthn credential data for a public-key
 // credential conformant to WebAuthn Level 1
 type WebAuthnCredential struct {
-	ID              int64 `xorm:"pk autoincr"`
-	Name            string
-	LowerName       string `xorm:"unique(s)"`
-	UserID          int64  `xorm:"INDEX unique(s)"`
-	CredentialID    string `xorm:"INDEX VARCHAR(1640)"`
-	PublicKey       []byte
-	AttestationType string
-	AAGUID          []byte
-	SignCount       uint32 `xorm:"BIGINT"`
-	CloneWarning    bool
-	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+	ID                int64 `xorm:"pk autoincr"`
+	Name              string
+	LowerName         string `xorm:"unique(s)"`
+	UserID            int64  `xorm:"INDEX unique(s)"`
+	CredentialIDBytes []byte `xorm:"INDEX VARBINARY(1024)"`
+	PublicKey         []byte
+	AttestationType   string
+	AAGUID            []byte
+	SignCount         uint32 `xorm:"BIGINT"`
+	CloneWarning      bool
+	CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+	UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
 }
 
 func init() {
@@ -94,9 +93,8 @@ type WebAuthnCredentialList []*WebAuthnCredential
 func (list WebAuthnCredentialList) ToCredentials() []webauthn.Credential {
 	creds := make([]webauthn.Credential, 0, len(list))
 	for _, cred := range list {
-		credID, _ := base32.HexEncoding.DecodeString(cred.CredentialID)
 		creds = append(creds, webauthn.Credential{
-			ID:              credID,
+			ID:              cred.CredentialIDBytes,
 			PublicKey:       cred.PublicKey,
 			AttestationType: cred.AttestationType,
 			Authenticator: webauthn.Authenticator{
@@ -185,14 +183,14 @@ func CreateCredential(userID int64, name string, cred *webauthn.Credential) (*We
 
 func createCredential(ctx context.Context, userID int64, name string, cred *webauthn.Credential) (*WebAuthnCredential, error) {
 	c := &WebAuthnCredential{
-		UserID:          userID,
-		Name:            name,
-		CredentialID:    base32.HexEncoding.EncodeToString(cred.ID),
-		PublicKey:       cred.PublicKey,
-		AttestationType: cred.AttestationType,
-		AAGUID:          cred.Authenticator.AAGUID,
-		SignCount:       cred.Authenticator.SignCount,
-		CloneWarning:    false,
+		UserID:            userID,
+		Name:              name,
+		CredentialIDBytes: cred.ID,
+		PublicKey:         cred.PublicKey,
+		AttestationType:   cred.AttestationType,
+		AAGUID:            cred.Authenticator.AAGUID,
+		SignCount:         cred.Authenticator.SignCount,
+		CloneWarning:      false,
 	}
 
 	if err := db.Insert(ctx, c); err != nil {

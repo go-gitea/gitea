@@ -5,71 +5,78 @@
 package migrations
 
 import (
+	"encoding/base32"
+	"fmt"
+
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
-	"xorm.io/xorm/schemas"
 )
 
-func increaseCredentialIDTo1640(x *xorm.Engine) error {
+func storeWebauthnCredentialIDAsBytes(x *xorm.Engine) error {
 	// Create webauthnCredential table
 	type webauthnCredential struct {
-		ID              int64 `xorm:"pk autoincr"`
-		Name            string
-		LowerName       string `xorm:"unique(s)"`
-		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX VARCHAR(1640)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022 -> 1640 base32 encoding
-		PublicKey       []byte
-		AttestationType string
-		AAGUID          []byte
-		SignCount       uint32 `xorm:"BIGINT"`
-		CloneWarning    bool
-		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+		ID                int64 `xorm:"pk autoincr"`
+		Name              string
+		LowerName         string `xorm:"unique(s)"`
+		UserID            int64  `xorm:"INDEX unique(s)"`
+		CredentialID      string `xorm:"INDEX VARCHAR(410)"`
+		CredentialIDBytes []byte `xorm:"INDEX VARBINARY(1024)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022
+		PublicKey         []byte
+		AttestationType   string
+		AAGUID            []byte
+		SignCount         uint32 `xorm:"BIGINT"`
+		CloneWarning      bool
+		CreatedUnix       timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix       timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
 	if err := x.Sync2(&webauthnCredential{}); err != nil {
 		return err
 	}
 
-	switch x.Dialect().URI().DBType {
-	case schemas.MYSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(1640)")
+	var start int
+	creds := make([]*webauthnCredential, 0, 50)
+	for {
+		err := x.Select("id, credential_id").OrderBy("id").Limit(50, start).Find(&creds)
 		if err != nil {
-			return err
-		}
-	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(1640)")
-		if err != nil {
-			return err
-		}
-	case schemas.MSSQL:
-		// This column has an index on it. I could write all of the code to attempt to change the index OR
-		// I could just use recreate table.
-		sess := x.NewSession()
-		if err := sess.Begin(); err != nil {
-			_ = sess.Close()
 			return err
 		}
 
-		if err := recreateTable(sess, new(webauthnCredential)); err != nil {
-			_ = sess.Close()
-			return err
-		}
-		if err := sess.Commit(); err != nil {
-			_ = sess.Close()
-			return err
-		}
-		if err := sess.Close(); err != nil {
-			return err
-		}
-	case schemas.POSTGRES:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(1640)")
+		err = func() error {
+			sess := x.NewSession()
+			defer sess.Close()
+			if err := sess.Begin(); err != nil {
+				return fmt.Errorf("unable to allow start session. Error: %w", err)
+			}
+			for _, cred := range creds {
+				cred.CredentialIDBytes, err = base32.HexEncoding.DecodeString(cred.CredentialID)
+				if err != nil {
+					return fmt.Errorf("unable to parse credential id %s for credential[%d]: %w", cred.CredentialID, cred.ID, err)
+				}
+				count, err := sess.ID(cred.ID).Cols("credential_id_bytes").Update(cred)
+				if count != 1 || err != nil {
+					return fmt.Errorf("unable to update credential id bytes for credential[%d]: %d,%w", cred.ID, count, err)
+				}
+			}
+			return sess.Commit()
+		}()
 		if err != nil {
 			return err
 		}
-	default:
-		// SQLite doesn't support ALTER COLUMN, and it already makes String _TEXT_ by default so no migration needed
-		// nor is there any need to re-migrate
+
+		if len(creds) < 50 {
+			break
+		}
+		start += 50
+		creds = creds[:0]
 	}
-	return nil
+
+	// Drop the old credential ID
+	sess := x.NewSession()
+	defer sess.Close()
+
+	if err := dropTableColumns(sess, "webauthn_credential", "credential_id"); err != nil {
+		return fmt.Errorf("unable to drop old credentialID column: %w", err)
+	}
+	return sess.Commit()
 }

@@ -25,7 +25,7 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
 		UserID          int64  `xorm:"INDEX unique(s)"`
-		CredentialID    string `xorm:"INDEX VARCHAR(1640)"` // CredentialID is at most 1023 bytes as per spec released 20 July 2022 -> 1640 base32 encoding
+		CredentialID    string `xorm:"INDEX VARCHAR(410)"` // CredentalID in U2F is at most 255bytes / 5 * 8 = 408 - add a few extra characters for safety
 		PublicKey       []byte
 		AttestationType string
 		AAGUID          []byte
@@ -40,12 +40,12 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 
 	switch x.Dialect().URI().DBType {
 	case schemas.MYSQL:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(1640)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY COLUMN credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
 	case schemas.ORACLE:
-		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(1640)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential MODIFY credential_id VARCHAR(410)")
 		if err != nil {
 			return err
 		}
@@ -70,7 +70,7 @@ func remigrateU2FCredentials(x *xorm.Engine) error {
 			return err
 		}
 	case schemas.POSTGRES:
-		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(1640)")
+		_, err := x.Exec("ALTER TABLE webauthn_credential ALTER COLUMN credential_id TYPE VARCHAR(410)")
 		if err != nil {
 			return err
 		}
