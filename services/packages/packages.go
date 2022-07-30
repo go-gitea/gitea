@@ -32,10 +32,11 @@ type PackageInfo struct {
 // PackageCreationInfo describes a package to create
 type PackageCreationInfo struct {
 	PackageInfo
-	SemverCompatible bool
-	Creator          *user_model.User
-	Metadata         interface{}
-	Properties       map[string]string
+	SemverCompatible  bool
+	Creator           *user_model.User
+	Metadata          interface{}
+	PackageProperties map[string]string
+	VersionProperties map[string]string
 }
 
 // PackageFileInfo describes a package file
@@ -108,8 +109,9 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 }
 
 func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, bool, error) {
-	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", pvci.Creator.ID, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.Properties, allowDuplicate)
+	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %+v, %v", pvci.Creator.ID, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.PackageProperties, pvci.VersionProperties, allowDuplicate)
 
+	packageCreated := true
 	p := &packages_model.Package{
 		OwnerID:          pvci.Owner.ID,
 		Type:             pvci.PackageType,
@@ -119,9 +121,20 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err != packages_model.ErrDuplicatePackage {
+		if err == packages_model.ErrDuplicatePackage {
+			packageCreated = false
+		} else {
 			log.Error("Error inserting package: %v", err)
 			return nil, false, err
+		}
+	}
+
+	if packageCreated {
+		for name, value := range pvci.PackageProperties {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, name, value); err != nil {
+				log.Error("Error setting package property: %v", err)
+				return nil, false, err
+			}
 		}
 	}
 
@@ -130,7 +143,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		return nil, false, err
 	}
 
-	created := true
+	versionCreated := true
 	pv := &packages_model.PackageVersion{
 		PackageID:    p.ID,
 		CreatorID:    pvci.Creator.ID,
@@ -140,7 +153,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 	if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
 		if err == packages_model.ErrDuplicatePackageVersion {
-			created = false
+			versionCreated = false
 		}
 		if err != packages_model.ErrDuplicatePackageVersion || !allowDuplicate {
 			log.Error("Error inserting package: %v", err)
@@ -148,8 +161,8 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	if created {
-		for name, value := range pvci.Properties {
+	if versionCreated {
+		for name, value := range pvci.VersionProperties {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
 				log.Error("Error setting package version property: %v", err)
 				return nil, false, err
@@ -157,7 +170,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	return pv, created, nil
+	return pv, versionCreated, nil
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
@@ -348,8 +361,17 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 		return err
 	}
 
-	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
+	ps, err := packages_model.FindUnreferencedPackages(ctx)
+	if err != nil {
 		return err
+	}
+	for _, p := range ps {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+			return err
+		}
 	}
 
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
