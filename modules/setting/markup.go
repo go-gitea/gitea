@@ -21,22 +21,23 @@ var (
 )
 
 const (
-	RenderContentModeSanitized             = "sanitized"
-	RenderContentModeNoSanitizer           = "no-sanitizer"
-	RenderContentModeIframe                = "iframe"
-	RenderContentModeIframeAllowSameOrigin = "iframe-allow-same-origin"
+	RenderContentModeSanitized   = "sanitized"
+	RenderContentModeNoSanitizer = "no-sanitizer"
+	RenderContentModeIframe      = "iframe"
 )
 
 // MarkupRenderer defines the external parser configured in ini
 type MarkupRenderer struct {
-	Enabled              bool
-	MarkupName           string
-	Command              string
-	FileExtensions       []string
-	IsInputFile          bool
-	NeedPostProcess      bool
-	MarkupSanitizerRules []MarkupSanitizerRule
-	RenderContentMode    string
+	Enabled                    bool
+	MarkupName                 string
+	Command                    string
+	FileExtensions             []string
+	IsInputFile                bool
+	NeedPostProcess            bool
+	MarkupSanitizerRules       []MarkupSanitizerRule
+	RenderContentMode          string
+	RenderContentIframeSandbox string // allow-scripts
+	RenderContentExternalCSP   string
 }
 
 // MarkupSanitizerRule defines the policy for whitelisting attributes on
@@ -159,21 +160,23 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 	if !sec.HasKey("RENDER_CONTENT_MODE") && sec.Key("DISABLE_SANITIZER").MustBool(false) {
 		renderContentMode = RenderContentModeNoSanitizer // if only the legacy DISABLE_SANITIZER exists, use it
 	}
+
 	if renderContentMode != RenderContentModeSanitized &&
 		renderContentMode != RenderContentModeNoSanitizer &&
-		renderContentMode != RenderContentModeIframe &&
-		renderContentMode != RenderContentModeIframeAllowSameOrigin {
+		renderContentMode != RenderContentModeIframe {
 		log.Error("invalid RENDER_CONTENT_MODE: %q, default to %q", renderContentMode, RenderContentModeSanitized)
 		renderContentMode = RenderContentModeSanitized
 	}
 
 	ExternalMarkupRenderers = append(ExternalMarkupRenderers, &MarkupRenderer{
-		Enabled:           sec.Key("ENABLED").MustBool(false),
-		MarkupName:        name,
-		FileExtensions:    exts,
-		Command:           command,
-		IsInputFile:       sec.Key("IS_INPUT_FILE").MustBool(false),
-		NeedPostProcess:   sec.Key("NEED_POSTPROCESS").MustBool(true),
-		RenderContentMode: renderContentMode,
+		Enabled:                    sec.Key("ENABLED").MustBool(false),
+		MarkupName:                 name,
+		FileExtensions:             exts,
+		Command:                    command,
+		IsInputFile:                sec.Key("IS_INPUT_FILE").MustBool(false),
+		NeedPostProcess:            sec.Key("NEED_POSTPROCESS").MustBool(true),
+		RenderContentMode:          renderContentMode,
+		RenderContentIframeSandbox: sec.Key("RENDER_CONTENT_IFRAME_SANDBOX").MustString("allow-scripts"),
+		RenderContentExternalCSP:   sec.Key("RENDER_CONTENT_EXTERNAL_CSP").MustString("sandbox allow-scripts"),
 	})
 }

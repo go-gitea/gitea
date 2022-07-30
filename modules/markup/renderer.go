@@ -106,8 +106,11 @@ type ExternalRenderer interface {
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
 
-	// AllowSameOrigin represents whether render allow same origin
-	AllowSameOrigin() bool
+	// IframeSandbox represents iframe sandbox allowed options
+	IframeSandbox() string
+
+	// ExternalCSP represents external render CSP
+	ExternalCSP() string
 }
 
 // RendererContentDetector detects if the content can be rendered
@@ -180,10 +183,10 @@ func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
 		return err
 	}
 
-	if r, ok := renderer.(ExternalRenderer); ok && (r.DisplayInIFrame() || r.AllowSameOrigin()) {
+	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
 		// for an external render, it could only output its content in a standalone page
 		// otherwise, a <iframe> should be outputted to embed the external rendered page
-		return renderIFrame(ctx, output, r.AllowSameOrigin())
+		return renderIFrame(ctx, output, r.IframeSandbox())
 	}
 
 	return RenderDirect(ctx, renderer, input, output)
@@ -204,11 +207,7 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
-func renderIFrame(ctx *RenderContext, output io.Writer, allowSameOrigin bool) error {
-	var allowSameOriginStr string
-	if allowSameOrigin {
-		allowSameOriginStr = " allow-same-origin"
-	}
+func renderIFrame(ctx *RenderContext, output io.Writer, iframeSandbox string) error {
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
@@ -218,14 +217,14 @@ func renderIFrame(ctx *RenderContext, output io.Writer, allowSameOrigin bool) er
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
-sandbox="allow-scripts%s"
+sandbox="%s"
 ></iframe>`,
 		setting.AppSubURL,
 		url.PathEscape(ctx.Metas["user"]),
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
-		allowSameOriginStr,
+		iframeSandbox,
 	))
 	return err
 }

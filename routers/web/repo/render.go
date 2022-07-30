@@ -72,11 +72,11 @@ func RenderFile(ctx *context.Context) {
 		return
 	}
 
-	if r, ok := renderer.(markup.ExternalRenderer); ok && r.AllowSameOrigin() {
-		allowSameOriginStr = " allow-same-origin"
+	if r, ok := renderer.(markup.ExternalRenderer); ok {
+		allowSameOriginStr = r.ExternalCSP()
 	}
 
-	ctx.Resp.Header().Add("Content-Security-Policy", fmt.Sprintf("frame-src 'self'; sandbox%s allow-scripts", allowSameOriginStr))
+	ctx.Resp.Header().Add("Content-Security-Policy", fmt.Sprintf("frame-src 'self'; %s", allowSameOriginStr))
 
 	if err = markup.RenderDirect(&markup.RenderContext{
 		Ctx:          ctx,
