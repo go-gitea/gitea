@@ -38,11 +38,10 @@ func Test_storeWebauthnCredentialIDAsBytes(t *testing.T) {
 
 	// Prepare and load the testing database
 	x, deferable := prepareTestEnv(t, 0, new(WebauthnCredential), new(ExpectedWebauthnCredential))
+	defer deferable()
 	if x == nil || t.Failed() {
-		defer deferable()
 		return
 	}
-	defer deferable()
 
 	if err := storeWebauthnCredentialIDAsBytes(x); err != nil {
 		assert.NoError(t, err)
