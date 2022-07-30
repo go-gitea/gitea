@@ -107,7 +107,7 @@ func PushMirrorSync(ctx *context.APIContext) {
 		return
 	}
 	// Get All push mirrors of a specific repo
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "PushMirrorSync", err)
 		return
@@ -164,7 +164,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 	repo := ctx.Repo.Repository
 	// Get all push mirrors for the specified repository.
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, utils.GetListOptions(ctx))
+	pushMirrors, count, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusNotFound, "GetPushMirrorsByRepoID", err)
 		return
@@ -179,7 +179,7 @@ func ListPushMirrors(ctx *context.APIContext) {
 
 	}
 	ctx.SetLinkHeader(len(responsePushMirrors), utils.GetListOptions(ctx).PageSize)
-	ctx.SetTotalCountHeader(int64(len(responsePushMirrors)))
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, responsePushMirrors)
 }
 

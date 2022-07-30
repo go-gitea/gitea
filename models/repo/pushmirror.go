@@ -106,13 +106,17 @@ func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, er
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
-func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, error) {
-	mirrors := make([]*PushMirror, 0, 10)
+func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, int64, error) {
 	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
 	if listOptions.Page != 0 {
 		sess = db.SetSessionPagination(sess, &listOptions)
+		mirrors := make([]*PushMirror, 0, listOptions.PageSize)
+		count, err := sess.FindAndCount(&mirrors)
+		return mirrors, count, err
 	}
-	return mirrors, sess.Find(&mirrors)
+	mirrors := make([]*PushMirror, 0, 10)
+	count, err := sess.FindAndCount(&mirrors)
+	return mirrors, count, err
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
