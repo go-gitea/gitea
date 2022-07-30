@@ -80,8 +80,8 @@ gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5 h1:J/1i8u40TbcLP/w2w
 gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5/go.mod h1:hQ9SYHKdOX968wJglb/NMQ+UqpOKwW4L+EYdvkWjHSo=
 gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8 h1:tJQRXgZigkLeeW9LPlps9G9aMoE6LAmqigLA+wxmd1Q=
 gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8/go.mod h1:fc/pjt5EqNKgqQXYzcas1Z5L5whkZHyOvTA7OzWVJck=
-gitea.com/lunny/levelqueue v0.4.1 h1:RZ+AFx5gBsZuyqCvofhAkPQ9uaVDPJnsULoJZIYaJNw=
-gitea.com/lunny/levelqueue v0.4.1/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
+gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7 h1:Zc3RQWC2xOVglLciQH/ZIC5IqSk3Jn96LflGQLv18Rg=
+gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7/go.mod h1:HBqmLbz56JWpfEGG0prskAV97ATNRoj5LDmPicD22hU=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a h1:lSA0F4e9A2NcQSqGqTOXqu2aRi/XEQxDCBwM8yJtE6s=
 gitea.com/xorm/sqlfiddle v0.0.0-20180821085327-62ce714f951a/go.mod h1:EXuID2Zs0pAQhH8yz+DNjUbjppKQzKFAn28TMYPB6IU=
 gitee.com/travelliu/dm v1.8.11192/go.mod h1:DHTzyhCrM843x9VdKVbZ+GKXGRbKM2sJ4LxihRxShkE=
