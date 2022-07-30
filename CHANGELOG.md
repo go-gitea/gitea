@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-29
+## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
 * BREAKING
   * Require go1.18 for Gitea 1.17 (#19918)
@@ -194,6 +194,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Prevent double click new issue/pull/comment button (#16157)
   * Show issue assignee on project board (#15232)
 * BUGFIXES
+  * WebAuthn CredentialID field needs to be increased in size (#20530) (#20555)
   * Ensure that all unmerged files are merged when conflict checking (#20528) (#20536)
   * Stop logging EOFs and exit(1)s in ssh handler (#20476) (#20529)
   * Add labels to two buttons that were missing them (#20419) (#20524)
