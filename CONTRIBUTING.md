@@ -81,12 +81,12 @@ Here's how to run the test suite:
 |``make lint-frontend`` | lint frontend files  |
 |``make lint-backend``  | lint backend files   |
 
-- run test code (Suggest run in Linux)  
+- run test code (Suggest run in Linux)
 
 |                                        |                                                  |
 | :------------------------------------- | :----------------------------------------------- |
 |``make test[\#TestSpecificName]``       |  run unit test  |
-|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |  
+|``make test-sqlite[\#TestSpecificName]``|  run [integration](integrations) test for SQLite |
 |[More details about integrations](integrations/README.md)  |
 
 ## Vendoring
@@ -127,14 +127,14 @@ the *[How to get faster PR reviews](https://github.com/kubernetes/community/blob
 it has lots of useful tips for any project you may want to contribute.
 Some of the key points:
 
-* Make small pull requests. The smaller, the faster to review and the
+- Make small pull requests. The smaller, the faster to review and the
   more likely it will be merged soon.
-* Don't make changes unrelated to your PR. Maybe there are typos on
+- Don't make changes unrelated to your PR. Maybe there are typos on
   some comments, maybe refactoring would be welcome on a function... but
   if that is not related to your PR, please make *another* PR for that.
-* Split big pull requests into multiple small ones. An incremental change
+- Split big pull requests into multiple small ones. An incremental change
   will be faster to review than a huge PR.
-* Use the first comment as a summary explainer of your PR and you should keep this up-to-date as the PR evolves.
+- Use the first comment as a summary explainer of your PR and you should keep this up-to-date as the PR evolves.
 
 If your PR could cause a breaking change you must add a BREAKING section to this comment e.g.:
 
@@ -146,7 +146,8 @@ To explain how this could affect users and how to mitigate these changes.
 
 ## Styleguide
 
-For imports you should use the following format (_without_ the comments)
+For imports you should use the following format (*without* the comments)
+
 ```go
 import (
   // stdlib
@@ -181,11 +182,15 @@ To maintain understandable code and avoid circular dependencies it is important 
 ## API v1
 
 The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
-Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate.  
-If Gitea provides functionality that GitHub does not, a new endpoint can be created.  
+
+Thus, Gitea´s API should use the same endpoints and fields as GitHub´s API as far as possible, unless there are good reasons to deviate.
+
+If Gitea provides functionality that GitHub does not, a new endpoint can be created.
+
 If information is provided by Gitea that is not provided by the GitHub API, a new field can be used that doesn't collide with any GitHub fields.
 
 Updating an existing API should not remove existing fields unless there is a really good reason to do so.
+
 The same applies to status responses. If you notice a problem, feel free to leave a comment in the code for future refactoring to APIv2 (which is currently not planned).
 
 All expected results (errors, success, fail messages) should be documented
@@ -194,28 +199,33 @@ All expected results (errors, success, fail messages) should be documented
 All JSON input types must be defined as a struct in [modules/structs/](modules/structs/)
 ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L76-L91))
 and referenced in
-[routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/options.go).  
+[routers/api/v1/swagger/options.go](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/options.go).
+
 They can then be used like the following:
 ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L318)).
 
 All JSON responses must be defined as a struct in [modules/structs/](modules/structs/)
 ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/modules/structs/issue.go#L36-L68))
 and referenced in its category in [routers/api/v1/swagger/](routers/api/v1/swagger/)
-([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16))  
+([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/swagger/issue.go#L11-L16))
+
 They can be used like the following:
 ([example](https://github.com/go-gitea/gitea/blob/c620eb5b2d0d874da68ebd734d3864c5224f71f7/routers/api/v1/repo/issue.go#L277-L279))
 
 In general, HTTP methods are chosen as follows:
- * **GET** endpoints return requested object and status **OK (200)**
- * **DELETE** endpoints return status **No Content (204)**
- * **POST** endpoints return status **Created (201)**, used to **create** new objects (e.g. a User)
- * **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Objects (e.g. User) to something (e.g. Org-Team)
- * **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
+
+- **GET** endpoints return requested object and status **OK (200)**
+- **DELETE** endpoints return status **No Content (204)**
+- **POST** endpoints return status **Created (201)**, used to **create** new objects (e.g. a User)
+- **PUT** endpoints return status **No Content (204)**, used to **add/assign** existing Objects (e.g. User) to something (e.g. Org-Team)
+- **PATCH** endpoints return changed object and status **OK (200)**, used to **edit/change** an existing object
 
 An endpoint which changes/edits an object expects all fields to be optional (except ones to identify the object, which are required).
+
 ### Endpoints returning lists should
- * support pagination (`page` & `limit` options in query)
- * set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
+
+- support pagination (`page` & `limit` options in query)
+- set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
 ## Large Character Comments
 
@@ -368,35 +378,35 @@ and lead the development of Gitea.
 To honor the past owners, here's the history of the owners and the time
 they served:
 
-* 2022-01-01 ~ 2022-12-31 - https://github.com/go-gitea/gitea/issues/17872
-  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
-  * [Andrew Thornton](https://gitea.com/zeripath) <art27@cantab.net>
+- 2022-01-01 ~ 2022-12-31 - https://github.com/go-gitea/gitea/issues/17872
+  - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+  - [Andrew Thornton](https://gitea.com/zeripath) <art27@cantab.net>
 
-* 2021-01-01 ~ 2021-12-31 - https://github.com/go-gitea/gitea/issues/13801
-  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+- 2021-01-01 ~ 2021-12-31 - https://github.com/go-gitea/gitea/issues/13801
+  - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  - [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
 
-* 2020-01-01 ~ 2020-12-31 - https://github.com/go-gitea/gitea/issues/9230
-  * [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
+- 2020-01-01 ~ 2020-12-31 - https://github.com/go-gitea/gitea/issues/9230
+  - [Lunny Xiao](https://gitea.com/lunny) <xiaolunwen@gmail.com>
+  - [Lauris Bukšis-Haberkorns](https://gitea.com/lafriks) <lauris@nix.lv>
+  - [Matti Ranta](https://gitea.com/techknowlogick) <techknowlogick@gitea.io>
 
-* 2019-01-01 ~ 2019-12-31 - https://github.com/go-gitea/gitea/issues/5572
-  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
-  * [Matti Ranta](https://github.com/techknowlogick) <techknowlogick@gitea.io>
+- 2019-01-01 ~ 2019-12-31 - https://github.com/go-gitea/gitea/issues/5572
+  - [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  - [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  - [Matti Ranta](https://github.com/techknowlogick) <techknowlogick@gitea.io>
 
-* 2018-01-01 ~ 2018-12-31 - https://github.com/go-gitea/gitea/issues/3255
-  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
-  * [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
-  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+- 2018-01-01 ~ 2018-12-31 - https://github.com/go-gitea/gitea/issues/3255
+  - [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  - [Lauris Bukšis-Haberkorns](https://github.com/lafriks) <lauris@nix.lv>
+  - [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
-* 2016-11-04 ~ 2017-12-31
-  * [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
-  * [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
-  * [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
+- 2016-11-04 ~ 2017-12-31
+  - [Lunny Xiao](https://github.com/lunny) <xiaolunwen@gmail.com>
+  - [Thomas Boerger](https://github.com/tboerger) <thomas@webhippie.de>
+  - [Kim Carlbäcker](https://github.com/bkcsoft) <kim.carlbacker@gmail.com>
 
 ## Versions
 
@@ -413,20 +423,20 @@ be reviewed by two maintainers and must pass the automatic tests.
 
 ## Releasing Gitea
 
-* Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
-* Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
-* If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
-  * Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
-  * When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
-* If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
-* Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
-* And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
-* If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
-* Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
-* Verify all release assets were correctly published through CI on dl.gitea.io and GitHub releases. Once ACKed:
-  * bump the version of https://dl.gitea.io/gitea/version.json
-  * merge the blog post PR
-  * announce the release in discord `#announcements`
+- Let $vmaj, $vmin and $vpat be Major, Minor and Patch version numbers, $vpat should be rc1, rc2, 0, 1, ...... $vmaj.$vmin will be kept the same as milestones on github or gitea in future.
+- Before releasing, confirm all the version's milestone issues or PRs has been resolved. Then discuss the release on Discord channel #maintainers and get agreed with almost all the owners and mergers. Or you can declare the version and if nobody against in about serval hours.
+- If this is a big version first you have to create PR for changelog on branch `main` with PRs with label `changelog` and after it has been merged do following steps:
+  - Create `-dev` tag as `git tag -s -F release.notes v$vmaj.$vmin.0-dev` and push the tag as `git push origin v$vmaj.$vmin.0-dev`.
+  - When CI has finished building tag then you have to create a new branch named `release/v$vmaj.$vmin`
+- If it is bugfix version create PR for changelog on branch `release/v$vmaj.$vmin` and wait till it is reviewed and merged.
+- Add a tag as `git tag -s -F release.notes v$vmaj.$vmin.$`, release.notes file could be a temporary file to only include the changelog this version which you added to `CHANGELOG.md`.
+- And then push the tag as `git push origin v$vmaj.$vmin.$`. Drone CI will automatically create a release and upload all the compiled binary. (But currently it doesn't add the release notes automatically. Maybe we should fix that.)
+- If needed send a frontport PR for the changelog to branch `main` and update the version in `docs/config.yaml` to refer to the new version.
+- Send PR to [blog repository](https://gitea.com/gitea/blog) announcing the release.
+- Verify all release assets were correctly published through CI on dl.gitea.io and GitHub releases. Once ACKed:
+  - bump the version of https://dl.gitea.io/gitea/version.json
+  - merge the blog post PR
+  - announce the release in discord `#announcements`
 
 ## Copyright
 

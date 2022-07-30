@@ -116,6 +116,24 @@ func TestPrivateOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
+func TestOrgMembers(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	// not logged in user
+	req := NewRequest(t, "GET", "/org/org25/members")
+	MakeRequest(t, req, http.StatusOK)
+
+	// org member
+	session := loginUser(t, "user24")
+	req = NewRequest(t, "GET", "/org/org25/members")
+	session.MakeRequest(t, req, http.StatusOK)
+
+	// site admin
+	session = loginUser(t, "user1")
+	req = NewRequest(t, "GET", "/org/org25/members")
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestOrgRestrictedUser(t *testing.T) {
 	defer prepareTestEnv(t)()
 

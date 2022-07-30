@@ -55,6 +55,7 @@
     "eslint-plugin-vue": "9.2.0",
     "jest": "28.1.3",
     "jest-extended": "3.0.1",
+    "markdownlint-cli": "0.32.1",
     "postcss-less": "6.0.0",
     "stylelint": "14.9.1",
     "stylelint-config-standard": "26.0.0",
