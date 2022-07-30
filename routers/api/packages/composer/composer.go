@@ -225,7 +225,7 @@ func UploadPackage(ctx *context.Context) {
 			SemverCompatible: true,
 			Creator:          ctx.Doer,
 			Metadata:         cp.Metadata,
-			Properties: map[string]string{
+			VersionProperties: map[string]string{
 				composer_module.TypeProperty: cp.Type,
 			},
 		},
