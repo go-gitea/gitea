@@ -40,7 +40,6 @@ var (
 		LogSQL            bool
 		Charset           string
 		Timeout           int // seconds
-		SQliteJournalMode string
 		UseSQLite3        bool
 		UseMySQL          bool
 		UseMSSQL          bool
@@ -90,24 +89,10 @@ func InitDBConfig() {
 	if Database.UseMySQL && defaultCharset != "utf8mb4" {
 		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
 	}
-
 	if Database.UseSQLite3 {
 		Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 		Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-		// WAL mode is preferred for better concurent write performance, but needs special VFS driver features,
-		// which are guaranteed to be available for unix & windows OSes
-		var defaultJournalMode string
-		switch runtime.GOOS {
-		// probably the BSDs are supported too, but i found no information on this - better safe than sorry.
-		case "windows", "linux": // "darwin", "freebsd", "openbsd", "netbsd":
-			defaultJournalMode = "WAL"
-		default:
-			defaultJournalMode = "DELETE"
-		}
-		Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString(defaultJournalMode)
 	}
-
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
 		Database.ConnMaxLifetime = sec.Key("CONN_MAX_LIFETIME").MustDuration(3 * time.Second)
@@ -153,8 +138,17 @@ func DBConnStr() (string, error) {
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
+
+		// WAL mode is preferred for better concurent write performance, but needs special VFS driver features,
+		// which are guaranteed to be available for unix & windows OSes: https://www.sqlite.org/wal.html
+		journalMode := "DELETE"
+		switch runtime.GOOS {
+		// probably the BSDs are supported too, but i found no information on this - better safe than sorry.
+		case "windows", "linux": // "darwin", "freebsd", "openbsd", "netbsd":
+			journalMode = "WAL"
+		}
 		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate&_journal_mode=%s",
-			Database.Path, Database.Timeout, Database.SQliteJournalMode)
+			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}
