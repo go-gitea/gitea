@@ -23,6 +23,9 @@ const (
 	writeWait  = 10 * time.Second
 	pongWait   = 60 * time.Second
 	pingPeriod = (pongWait * 9) / 10
+
+	maximumMessageSize  = 2048
+	readMessageChanSize = 20 // <- I've put 20 here because it seems like a reasonable buffer but it may to increase
 )
 
 type readMessage struct {
@@ -89,38 +92,8 @@ func Websocket(ctx *context.Context) {
 	}
 	defer unregister()
 
-	readChan := make(chan readMessage, 20)
-	go func() {
-		defer conn.Close()
-		conn.SetReadLimit(2048)
-		if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-			log.Error("unable to SetReadDeadline: %v", err)
-			return
-		}
-		conn.SetPongHandler(func(string) error {
-			if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-				log.Error("unable to SetReadDeadline: %v", err)
-			}
-			return nil
-		})
-
-		for {
-			messageType, message, err := conn.ReadMessage()
-			readChan <- readMessage{
-				messageType: messageType,
-				message:     message,
-				err:         err,
-			}
-			if err != nil {
-				close(readChan)
-				return
-			}
-			if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
-				log.Error("unable to SetReadDeadline: %v", err)
-				return
-			}
-		}
-	}()
+	readMessageChan := make(chan readMessage, readMessageChanSize)
+	go readMessagesFromConnToChan(conn, readMessageChan)
 
 	pingTicker := time.NewTicker(pingPeriod)
 
@@ -139,6 +112,7 @@ func Websocket(ctx *context.Context) {
 				return
 			default:
 			}
+
 			if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				log.Error("unable to SetWriteDeadline: %v", err)
 				return
@@ -147,10 +121,11 @@ func Websocket(ctx *context.Context) {
 				log.Error("unable to send PingMessage: %v", err)
 				return
 			}
-		case message, ok := <-readChan:
+		case message, ok := <-readMessageChan:
 			if !ok {
 				break
 			}
+
 			// ensure that we're not already cancelled
 			select {
 			case <-notify:
@@ -159,11 +134,14 @@ func Websocket(ctx *context.Context) {
 				return
 			default:
 			}
+
+			// FIXME: HANDLE MESSAGES
 			log.Info("Got Message: %d:%s:%v", message.messageType, message.message, message.err)
 		case event, ok := <-eventChan:
 			if !ok {
 				break
 			}
+
 			// ensure that we're not already cancelled
 			select {
 			case <-notify:
@@ -172,6 +150,8 @@ func Websocket(ctx *context.Context) {
 				return
 			default:
 			}
+
+			// Handle events
 			if event.Name == "logout" {
 				if ctx.Session.ID() == event.Data {
 					event = &eventsource.Event{
@@ -196,14 +176,50 @@ func Websocket(ctx *context.Context) {
 	}
 }
 
+func readMessagesFromConnToChan(conn *websocket.Conn, messageChan chan readMessage) {
+	defer func() {
+		close(messageChan) // Please note: this has to be within a wrapping anonymous func otherwise it will be evaluated when creating the defer
+		_ = conn.Close()
+	}()
+	conn.SetReadLimit(maximumMessageSize)
+	if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		log.Error("unable to SetReadDeadline: %v", err)
+		return
+	}
+	conn.SetPongHandler(func(string) error {
+		if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			log.Error("unable to SetReadDeadline: %v", err)
+		}
+		return nil
+	})
+
+	for {
+		messageType, message, err := conn.ReadMessage()
+		messageChan <- readMessage{
+			messageType: messageType,
+			message:     message,
+			err:         err,
+		}
+		if err != nil {
+			// don't need to handle the error here as it is passed down the channel
+			return
+		}
+		if err := conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			log.Error("unable to SetReadDeadline: %v", err)
+			return
+		}
+	}
+}
+
 func writeEvent(conn *websocket.Conn, event *eventsource.Event) error {
 	if err := conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 		log.Error("unable to SetWriteDeadline: %v", err)
 		return err
 	}
+
 	w, err := conn.NextWriter(websocket.TextMessage)
 	if err != nil {
-		log.Warn("Unable to get writer for websocket %v", err)
+		log.Error("Unable to get writer for websocket %v", err)
 		return err
 	}
 

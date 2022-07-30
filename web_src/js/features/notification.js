@@ -25,21 +25,13 @@ export function initNotificationsTable() {
 }
 
 async function receiveUpdateCount(data, document) {
-  console.log(data);
   try {
-    console.log(window, document);
-    const notificationCount = document.querySelector('.notification_count');
-    if (data.Count > 0) {
-      notificationCount.classList.remove('hidden');
-    } else {
-      notificationCount.classList.add('hidden');
+    const notificationCounts = document.querySelectorAll('.notification_count');
+    for (const count of notificationCounts) {
+      count.classList.toggle('hidden', data.Count === 0);
+      count.textContent = `${data.Count}`;
     }
 
-    notificationCount.textContent = `${data.Count}`;
-    console.log(notificationCount);
-    const oldDisplay = notificationCount.style.display;
-    notificationCount.style.display = 'none';
-    notificationCount.style.display = oldDisplay;
     await updateNotificationTable();
   } catch (error) {
     console.error(error, data);
@@ -84,10 +76,8 @@ export function initNotificationCount() {
         console.error('Unexpected event:', event);
         return;
       }
-      console.log(event);
-      console.log(currentDocument === document);
       if (event.data.type === 'notification-count') {
-        const _promise = receiveUpdateCount(event.data.data, currentDocument).then(console.log('done'));
+        const _promise = receiveUpdateCount(event.data.data, currentDocument);
       } else if (event.data.type === 'error') {
         console.error(event.data);
       } else if (event.data.type === 'logout') {
@@ -105,7 +95,6 @@ export function initNotificationCount() {
         });
         worker.port.close();
       }
-      console.log('done eventlistenter');
     });
     worker.port.addEventListener('error', (e) => {
       console.error(e);

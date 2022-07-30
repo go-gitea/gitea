@@ -84,6 +84,7 @@ func (r *Response) Before(f func(ResponseWriter)) {
 	r.befores = append(r.befores, f)
 }
 
+// hijackerResponse wraps the Response to allow casting as a Hijacker if the underlying response is a hijacker
 type hijackerResponse struct {
 	*Response
 	http.Hijacker
@@ -102,6 +103,7 @@ func NewResponse(resp http.ResponseWriter) ResponseWriter {
 		befores:        make([]func(ResponseWriter), 0),
 	}
 	if ok {
+		// ensure that the Response we return is also hijackable
 		return hijackerResponse{
 			Response: response,
 			Hijacker: hijacker,
