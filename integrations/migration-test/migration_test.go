@@ -82,6 +82,7 @@ func initMigrationTest(t *testing.T) func() {
 		}
 	}
 
+	assert.NoError(t, git.InitOnceWithSync(context.Background()))
 	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)

@@ -44,27 +44,20 @@
           }
         }
       }
-
       #profile-avatar {
         background: none;
         padding: 1rem 1rem .25rem;
-
+        justify-content: center;
         img {
           width: 100%;
           height: auto;
           object-fit: contain;
           margin: 0;
-        }
-
-        @media @mediaSm {
-          height: 250px;
-          overflow: hidden;
-
-          img {
-            max-height: 767px;
-            max-width: 767px;
+          @media @mediaSm {
+            width: 30vw;
           }
         }
+
       }
 
       @media @mediaSm {
@@ -177,5 +170,5 @@
 }
 
 #notification_div .tab.segment {
-  overflow-x: scroll;
+  overflow-x: auto;
 }

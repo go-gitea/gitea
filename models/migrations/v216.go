@@ -4,29 +4,5 @@
 
 package migrations
 
-import (
-	"time"
-
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/timeutil"
-	"xorm.io/xorm"
-)
-
-func addKeypairToPushMirror(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64            `xorm:"pk autoincr"`
-		RepoID     int64            `xorm:"INDEX"`
-		Repo       *repo.Repository `xorm:"-"`
-		RemoteName string
-
-		PublicKey  string
-		PrivateKey string `xorm:"VARCHAR(400)"`
-
-		Interval       time.Duration
-		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-		LastError      string             `xorm:"text"`
-	}
-
-	return x.Sync2(new(PushMirror))
-}
+// This migration added non-ideal indices to the action table which on larger datasets slowed things down
+// it has been superceded by v218.go

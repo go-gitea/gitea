@@ -6,11 +6,14 @@
 package forms
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	project_model "code.gitea.io/gitea/models/project"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,6 +94,9 @@ func (f *MigrateRepoForm) Validate(req *http.Request, errs binding.Errors) bindi
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
+// scpRegex matches the SCP-like addresses used by Git to access repositories over SSH.
+var scpRegex = regexp.MustCompile(`^([a-zA-Z0-9_]+)@([a-zA-Z0-9._-]+):(.*)$`)
+
 // ParseRemoteAddr checks if given remote address is valid,
 // and returns composed URL with needed username and password.
 func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, error) {
@@ -101,12 +107,20 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 		strings.HasPrefix(remoteAddr, "git://") {
 		u, err := url.Parse(remoteAddr)
 		if err != nil {
-			return "", &models.ErrInvalidCloneAddr{IsURLError: true}
+			return "", &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteAddr}
 		}
 		if len(authUsername)+len(authPassword) > 0 {
 			u.User = url.UserPassword(authUsername, authPassword)
 		}
-		remoteAddr = u.String()
+		return u.String(), nil
+	}
+
+	// Detect SCP-like remote addresses and return host.
+	if m := scpRegex.FindStringSubmatch(remoteAddr); m != nil {
+		// Match SCP-like syntax and convert it to a URL.
+		// Eg, "git@gitea.com:user/repo" becomes
+		// "ssh://git@gitea.com/user/repo".
+		return fmt.Sprintf("ssh://%s@%s/%s", url.User(m[1]), m[2], m[3]), nil
 	}
 
 	return remoteAddr, nil
@@ -129,6 +143,7 @@ type RepoSettingForm struct {
 	PushMirrorPassword     string
 	PushMirrorInterval     string
 	PushMirrorUsePublicKey bool
+	PushMirrorSyncOnCommit bool
 	Private                bool
 	Template               bool
 	EnablePrune            bool
@@ -142,6 +157,7 @@ type RepoSettingForm struct {
 	ExternalTrackerURL                    string
 	TrackerURLFormat                      string
 	TrackerIssueStyle                     string
+	ExternalTrackerRegexpPattern          string
 	EnableCloseIssuesViaCommitInAnyBranch bool
 	EnableProjects                        bool
 	EnablePackages                        bool
@@ -636,18 +652,18 @@ func (f *SubmitReviewForm) Validate(req *http.Request, errs binding.Errors) bind
 }
 
 // ReviewType will return the corresponding ReviewType for type
-func (f SubmitReviewForm) ReviewType() models.ReviewType {
+func (f SubmitReviewForm) ReviewType() issues_model.ReviewType {
 	switch f.Type {
 	case "approve":
-		return models.ReviewTypeApprove
+		return issues_model.ReviewTypeApprove
 	case "comment":
-		return models.ReviewTypeComment
+		return issues_model.ReviewTypeComment
 	case "reject":
-		return models.ReviewTypeReject
+		return issues_model.ReviewTypeReject
 	case "":
-		return models.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
+		return issues_model.ReviewTypeComment // default to comment when doing quick-submit (Ctrl+Enter) on the review form
 	default:
-		return models.ReviewTypeUnknown
+		return issues_model.ReviewTypeUnknown
 	}
 }
 
@@ -655,7 +671,7 @@ func (f SubmitReviewForm) ReviewType() models.ReviewType {
 func (f SubmitReviewForm) HasEmptyContent() bool {
 	reviewType := f.ReviewType()
 
-	return (reviewType == models.ReviewTypeComment || reviewType == models.ReviewTypeReject) &&
+	return (reviewType == issues_model.ReviewTypeComment || reviewType == issues_model.ReviewTypeReject) &&
 		len(strings.TrimSpace(f.Content)) == 0
 }
 

@@ -27,12 +27,14 @@ Change the user, home directory, and other required startup values. Change the
 PORT or remove the -p flag if default port is used.
 
 Enable and start Gitea at boot:
+
 ```
 sudo systemctl enable gitea
 sudo systemctl start gitea
 ```
 
 If you have systemd version 220 or later, you can enable and immediately start Gitea at once by:
+
 ```
 sudo systemctl enable gitea --now
 ```
@@ -40,11 +42,13 @@ sudo systemctl enable gitea --now
 #### Using supervisor
 
 Install supervisor by running below command in terminal:
+
 ```
 sudo apt install supervisor
 ```
 
 Create a log dir for the supervisor logs:
+
 ```
 # assuming Gitea is installed in /home/git/gitea/
 mkdir /home/git/gitea/log/supervisor
@@ -58,12 +62,14 @@ Using your favorite editor, change the user (`git`) and home
 or remove the -p flag if default port is used.
 
 Lastly enable and start supervisor at boot:
+
 ```
 sudo systemctl enable supervisor
 sudo systemctl start supervisor
 ```
 
 If you have systemd version 220 or later, you can enable and immediately start supervisor by:
+
 ```
 sudo systemctl enable supervisor --now
 ```

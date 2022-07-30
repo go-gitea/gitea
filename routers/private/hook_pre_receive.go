@@ -13,6 +13,8 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	perm_model "code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unit"
@@ -40,7 +42,7 @@ type preReceiveContext struct {
 	canWriteCode        bool
 	checkedCanWriteCode bool
 
-	protectedTags    []*models.ProtectedTag
+	protectedTags    []*git_model.ProtectedTag
 	gotProtectedTags bool
 
 	env []string
@@ -56,7 +58,7 @@ func (ctx *preReceiveContext) CanWriteCode() bool {
 		if !ctx.loadPusherAndPermission() {
 			return false
 		}
-		ctx.canWriteCode = models.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
+		ctx.canWriteCode = issues_model.CanMaintainerWriteToBranch(ctx.userPerm, ctx.branchName, ctx.user) || ctx.deployKeyAccessMode >= perm_model.AccessModeWrite
 		ctx.checkedCanWriteCode = true
 	}
 	return ctx.canWriteCode
@@ -155,7 +157,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		return
 	}
 
-	protectBranch, err := models.GetProtectedBranchBy(ctx, repo.ID, branchName)
+	protectBranch, err := git_model.GetProtectedBranchBy(ctx, repo.ID, branchName)
 	if err != nil {
 		log.Error("Unable to get protected branch: %s in %-v Error: %v", branchName, repo, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -246,7 +248,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 
 	// 5. Check if the doer is allowed to push
-	canPush := false
+	var canPush bool
 	if ctx.opts.DeployKeyID != 0 {
 		canPush = !changedProtectedfiles && protectBranch.CanPush && (!protectBranch.EnableWhitelist || protectBranch.WhitelistDeployKeys)
 	} else {
@@ -295,7 +297,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 		// 6b. Merge (from UI or API)
 
 		// Get the PR, user and permissions for the user in the repository
-		pr, err := models.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
+		pr, err := issues_model.GetPullRequestByID(ctx, ctx.opts.PullRequestID)
 		if err != nil {
 			log.Error("Unable to get PullRequest %d Error: %v", ctx.opts.PullRequestID, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -370,7 +372,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 
 	if !ctx.gotProtectedTags {
 		var err error
-		ctx.protectedTags, err = models.GetProtectedTags(ctx.Repo.Repository.ID)
+		ctx.protectedTags, err = git_model.GetProtectedTags(ctx.Repo.Repository.ID)
 		if err != nil {
 			log.Error("Unable to get protected tags for %-v Error: %v", ctx.Repo.Repository, err)
 			ctx.JSON(http.StatusInternalServerError, private.Response{
@@ -381,7 +383,7 @@ func preReceiveTag(ctx *preReceiveContext, oldCommitID, newCommitID, refFullName
 		ctx.gotProtectedTags = true
 	}
 
-	isAllowed, err := models.IsUserAllowedToControlTag(ctx.protectedTags, tagName, ctx.opts.UserID)
+	isAllowed, err := git_model.IsUserAllowedToControlTag(ctx.protectedTags, tagName, ctx.opts.UserID)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: err.Error(),
@@ -475,7 +477,7 @@ func (ctx *preReceiveContext) loadPusherAndPermission() bool {
 
 	userPerm, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, user)
 	if err != nil {
-		log.Error("Unable to get Repo permission of repo %s/%s of User %s", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
+		log.Error("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err)
 		ctx.JSON(http.StatusInternalServerError, private.Response{
 			Err: fmt.Sprintf("Unable to get Repo permission of repo %s/%s of User %s: %v", ctx.Repo.Repository.OwnerName, ctx.Repo.Repository.Name, user.Name, err),
 		})

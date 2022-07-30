@@ -180,7 +180,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
-	return
+	return shouldAuth
 }
 
 // newUser creates a new user object for the purpose of automatic registration

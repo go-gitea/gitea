@@ -10,11 +10,13 @@ PASSWD   = {{TEST_MYSQL_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_TYPE = elasticsearch
-ISSUE_INDEXER_CONN_STR = http://elastic:changeme@elasticsearch:9200
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql/indexers/repos.bleve
+
+[queue.issue_indexer]
+TYPE = elasticsearch
+CONN_STR = http://elastic:changeme@elasticsearch:9200
+DATADIR = integrations/gitea-integration-mysql/indexers/issues.queue
 
 [queue]
 TYPE = immediate

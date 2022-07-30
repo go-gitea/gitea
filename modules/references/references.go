@@ -351,6 +351,24 @@ func FindRenderizableReferenceNumeric(content string, prOnly bool) (bool, *Rende
 	}
 }
 
+// FindRenderizableReferenceRegexp returns the first regexp unvalidated references found in a string.
+func FindRenderizableReferenceRegexp(content string, pattern *regexp.Regexp) (bool, *RenderizableReference) {
+	match := pattern.FindStringSubmatchIndex(content)
+	if len(match) < 4 {
+		return false, nil
+	}
+
+	action, location := findActionKeywords([]byte(content), match[2])
+
+	return true, &RenderizableReference{
+		Issue:          content[match[2]:match[3]],
+		RefLocation:    &RefSpan{Start: match[0], End: match[1]},
+		Action:         action,
+		ActionLocation: location,
+		IsPull:         false,
+	}
+}
+
 // FindRenderizableReferenceAlphanumeric returns the first alphanumeric unvalidated references found in a string.
 func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableReference) {
 	match := issueAlphanumericPattern.FindStringSubmatchIndex(content)
@@ -361,7 +379,7 @@ func FindRenderizableReferenceAlphanumeric(content string) (bool, *RenderizableR
 	action, location := findActionKeywords([]byte(content), match[2])
 
 	return true, &RenderizableReference{
-		Issue:          string(content[match[2]:match[3]]),
+		Issue:          content[match[2]:match[3]],
 		RefLocation:    &RefSpan{Start: match[2], End: match[3]},
 		Action:         action,
 		ActionLocation: location,
@@ -488,7 +506,7 @@ func getCrossReference(content []byte, start, end int, fromLink, prOnly bool) *r
 	}
 	repo := string(content[start : start+sep])
 	issue := string(content[start+sep+1 : end])
-	index, err := strconv.ParseInt(string(issue), 10, 64)
+	index, err := strconv.ParseInt(issue, 10, 64)
 	if err != nil {
 		return nil
 	}
@@ -547,7 +565,7 @@ func findActionKeywords(content []byte, start int) (XRefAction, *RefSpan) {
 }
 
 // IsXrefActionable returns true if the xref action is actionable (i.e. produces a result when resolved)
-func IsXrefActionable(ref *RenderizableReference, extTracker, alphaNum bool) bool {
+func IsXrefActionable(ref *RenderizableReference, extTracker bool) bool {
 	if extTracker {
 		// External issues cannot be automatically closed
 		return false

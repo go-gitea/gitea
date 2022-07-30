@@ -22,11 +22,11 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -294,8 +294,8 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -352,14 +352,14 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 	if markupType := markup.Type(readmeFile.name); markupType != "" {
 		ctx.Data["IsMarkup"] = true
-		ctx.Data["MarkupType"] = string(markupType)
+		ctx.Data["MarkupType"] = markupType
 		var result strings.Builder
 		err := markup.Render(&markup.RenderContext{
-			Ctx:       ctx,
-			Filename:  readmeFile.name,
-			URLPrefix: readmeTreelink,
-			Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-			GitRepo:   ctx.Repo.GitRepo,
+			Ctx:          ctx,
+			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			URLPrefix:    readmeTreelink,
+			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+			GitRepo:      ctx.Repo.GitRepo,
 		}, rd, &result)
 		if err != nil {
 			log.Error("Render failed: %v then fallback", err)
@@ -417,8 +417,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -466,7 +466,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	// Check LFS Lock
-	lfsLock, err := models.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+	lfsLock, err := git_model.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
@@ -527,18 +527,22 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if !detected {
 				markupType = ""
 			}
+			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Type:      markupType,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:          ctx,
+				Type:         markupType,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        metas,
+				GitRepo:      ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
+			// to prevent iframe load third-party url
+			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
@@ -626,11 +630,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.Data["MarkupType"] = markupType
 			var result strings.Builder
 			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
+				Ctx:          ctx,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:      ctx.Repo.GitRepo,
 			}, rd, &result)
 			if err != nil {
 				ctx.ServerError("Render", err)
@@ -807,11 +811,6 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
 	selected := map[string]bool{}
 	for _, pth := range ctx.FormStrings("f[]") {
 		selected[pth] = true
@@ -828,7 +827,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
@@ -842,22 +841,22 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
-	}
 
-	statuses, _, err := models.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
 
-	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
@@ -897,10 +896,14 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
-		if err != nil {
-			ctx.ServerError("GitRepo.IsEmpty", err)
-			return
+		reallyEmpty := true
+		var err error
+		if ctx.Repo.GitRepo != nil {
+			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			if err != nil {
+				ctx.ServerError("GitRepo.IsEmpty", err)
+				return
+			}
 		}
 		if reallyEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
@@ -991,12 +994,12 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
 		Page:     pager.Paginater.Current(),
-		PageSize: models.ItemsPerPage,
+		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
 		ctx.ServerError("getter", err)
@@ -1037,12 +1040,12 @@ func Forks(ctx *context.Context) {
 		page = 1
 	}
 
-	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
-		PageSize: models.ItemsPerPage,
+		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
 		ctx.ServerError("GetForks", err)

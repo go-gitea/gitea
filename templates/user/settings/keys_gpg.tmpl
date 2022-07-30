@@ -1,7 +1,7 @@
 <h4 class="ui top attached header">
-	{{.i18n.Tr "settings.manage_gpg_keys"}}
+	{{.locale.Tr "settings.manage_gpg_keys"}}
 	<div class="ui right">
-		<div class="ui primary tiny show-panel button" data-panel="#add-gpg-key-panel">{{.i18n.Tr "settings.add_key"}}</div>
+		<div class="ui primary tiny show-panel button" data-panel="#add-gpg-key-panel">{{.locale.Tr "settings.add_key"}}</div>
 	</div>
 </h4>
 <div class="ui attached segment">
@@ -10,47 +10,47 @@
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="title" value="none">
 			<div class="field {{if .Err_Content}}error{{end}}">
-				<label for="content">{{.i18n.Tr "settings.key_content"}}</label>
-				<textarea id="gpg-key-content" name="content" placeholder="{{.i18n.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
+				<label for="content">{{.locale.Tr "settings.key_content"}}</label>
+				<textarea id="gpg-key-content" name="content" placeholder="{{.locale.Tr "settings.key_content_gpg_placeholder"}}" required>{{.content}}</textarea>
 			</div>
 			{{if .Err_Signature}}
 				<div class="ui error message">
-					<p>{{.i18n.Tr "settings.gpg_token_required"}}</p>
+					<p>{{.locale.Tr "settings.gpg_token_required"}}</p>
 				</div>
 				<div class="field">
-					<label for="token">{{.i18n.Tr "setting.gpg_token"}}
+					<label for="token">{{.locale.Tr "setting.gpg_token"}}
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
-						<p>{{.i18n.Tr "settings.gpg_token_help"}}</p>
-						<p><code>{{$.i18n.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
+						<p>{{.locale.Tr "settings.gpg_token_help"}}</p>
+						<p><code>{{$.locale.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
 					</div>
 				</div>
 				<div class="field">
-					<label for="signature">{{.i18n.Tr "settings.gpg_token_signature"}}</label>
-					<textarea id="gpg-key-signature" name="signature" placeholder="{{.i18n.Tr "settings.key_signature_gpg_placeholder"}}" required>{{.signature}}</textarea>
+					<label for="signature">{{.locale.Tr "settings.gpg_token_signature"}}</label>
+					<textarea id="gpg-key-signature" name="signature" placeholder="{{.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{.signature}}</textarea>
 				</div>
 			{{end}}
 			<input name="type" type="hidden" value="gpg">
 			<button class="ui green button">
-				{{.i18n.Tr "settings.add_key"}}
+				{{.locale.Tr "settings.add_key"}}
 			</button>
 			<button class="ui hide-panel button" data-panel="#add-gpg-key-panel">
-				{{.i18n.Tr "cancel"}}
+				{{.locale.Tr "cancel"}}
 			</button>
 		</form>
 	</div>
 	<div class="ui key list mt-0">
 		<div class="item">
-			{{.i18n.Tr "settings.gpg_desc"}}
+			{{.locale.Tr "settings.gpg_desc"}}
 		</div>
 		{{range .GPGKeys}}
 			<div class="item">
 				<div class="right floated content">
 					<button class="ui red tiny button delete-button" data-modal-id="delete-gpg" data-url="{{$.Link}}/delete?type=gpg" data-id="{{.ID}}">
-						{{$.i18n.Tr "settings.delete_key"}}
+						{{$.locale.Tr "settings.delete_key"}}
 					</button>
 					{{if and (not .Verified) (ne $.VerifyingID .KeyID)}}
-						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.i18n.Tr "settings.gpg_key_verify"}}</a>
+						<a class="ui primary tiny show-panel button" href="{{$.Link}}?verify_gpg={{.KeyID}}">{{$.locale.Tr "settings.gpg_key_verify"}}</a>
 					{{end}}
 				</div>
 				<div class="left floated content">
@@ -58,49 +58,49 @@
 				</div>
 				<div class="content">
 					{{if .Verified}}
-						<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.i18n.Tr "settings.gpg_key_verified"}}</strong></span>
+						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if gt (len .Emails) 0}}
-						<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.i18n.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="print meta">
-						<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.KeyID}}
-						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
+						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.KeyID}}
+						<b>{{$.locale.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
 					</div>
 					<div class="activity meta">
-						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
+						<i>{{$.locale.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
 						-
-						<i>{{if not .ExpiredUnix.IsZero}}{{$.i18n.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.i18n.Tr "settings.valid_forever"}}{{end}}</i>
+						<i>{{if not .ExpiredUnix.IsZero}}{{$.locale.Tr "settings.valid_until"}} <span>{{.ExpiredUnix.FormatShort}}</span>{{else}}{{$.locale.Tr "settings.valid_forever"}}{{end}}</i>
 					</div>
 				</div>
 			</div>
 			{{if and (not .Verified) (eq $.VerifyingID .KeyID)}}
 				<div class="ui  segment">
-					<h4>{{$.i18n.Tr "settings.gpg_token_required"}}</h4>
+					<h4>{{$.locale.Tr "settings.gpg_token_required"}}</h4>
 					<form class="ui form{{if $.HasGPGVerifyError}} error{{end}}" action="{{$.Link}}" method="post">
 						{{$.CsrfTokenHtml}}
 						<input type="hidden" name="title" value="none">
 						<input type="hidden" name="content" value="{{.KeyID}}">
 						<input type="hidden" name="key_id" value="{{.KeyID}}">
 						<div class="field">
-							<label for="token">{{$.i18n.Tr "settings.gpg_token"}}</label>
+							<label for="token">{{$.locale.Tr "settings.gpg_token"}}</label>
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
-								<p>{{$.i18n.Tr "settings.gpg_token_help"}}</p>
-								<p><code>{{$.i18n.Tr "settings.gpg_token_code" $.TokenToSign .KeyID}}</code></p>
+								<p>{{$.locale.Tr "settings.gpg_token_help"}}</p>
+								<p><code>{{$.locale.Tr "settings.gpg_token_code" $.TokenToSign .KeyID}}</code></p>
 							</div>
 							<br>
 						</div>
 						<div class="field">
-							<label for="signature">{{$.i18n.Tr "settings.gpg_token_signature"}}</label>
-							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.i18n.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
+							<label for="signature">{{$.locale.Tr "settings.gpg_token_signature"}}</label>
+							<textarea id="gpg-key-signature" name="signature" placeholder="{{$.locale.Tr "settings.key_signature_gpg_placeholder"}}" required>{{$.signature}}</textarea>
 						</div>
 						<input name="type" type="hidden" value="verify_gpg">
 						<button class="ui green button">
-							{{$.i18n.Tr "settings.gpg_key_verify"}}
+							{{$.locale.Tr "settings.gpg_key_verify"}}
 						</button>
 						<a class="ui red button" href="{{$.Link}}">
-							{{$.i18n.Tr "settings.cancel"}}
+							{{$.locale.Tr "settings.cancel"}}
 						</a>
 					</form>
 				</div>
@@ -109,15 +109,15 @@
 	</div>
 </div>
 <br>
-<p>{{.i18n.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
+<p>{{.locale.Tr "settings.gpg_helper" "https://docs.github.com/en/free-pro-team@latest/github/authenticating-to-github/about-commit-signature-verification#gpg-commit-signature-verification" | Str2html}}</p>
 
 <div class="ui small basic delete modal" id="delete-gpg">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.i18n.Tr "settings.gpg_key_deletion"}}
+		{{.locale.Tr "settings.gpg_key_deletion"}}
 	</div>
 	<div class="content">
-		<p>{{.i18n.Tr "settings.gpg_key_deletion_desc"}}</p>
+		<p>{{.locale.Tr "settings.gpg_key_deletion_desc"}}</p>
 	</div>
 	{{template "base/delete_modal_actions" .}}
 </div>

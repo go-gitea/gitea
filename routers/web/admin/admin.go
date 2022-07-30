@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -85,7 +86,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, translation.NewLocale("en-US"))
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -247,9 +248,8 @@ func Config(ctx *context.Context) {
 	ctx.Data["DisableRouterLog"] = setting.DisableRouterLog
 	ctx.Data["RunUser"] = setting.RunUser
 	ctx.Data["RunMode"] = util.ToTitleCase(setting.RunMode)
-	if version, err := git.LocalVersion(); err == nil {
-		ctx.Data["GitVersion"] = version.Original()
-	}
+	ctx.Data["GitVersion"] = git.VersionInfo()
+
 	ctx.Data["RepoRootPath"] = setting.RepoRootPath
 	ctx.Data["CustomRootPath"] = setting.CustomPath
 	ctx.Data["StaticRootPath"] = setting.StaticRootPath

@@ -97,7 +97,7 @@ func GetStatistic() (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = e.Count(new(Comment))
+	stats.Counter.Comment, _ = e.Count(new(issues_model.Comment))
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
@@ -105,11 +105,11 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
-	stats.Counter.Label, _ = e.Count(new(Label))
+	stats.Counter.Label, _ = e.Count(new(issues_model.Label))
 	stats.Counter.HookTask, _ = e.Count(new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = e.Count(new(repo_model.Attachment))
 	stats.Counter.Project, _ = e.Count(new(project_model.Project))
 	stats.Counter.ProjectBoard, _ = e.Count(new(project_model.Board))
-	return
+	return stats
 }

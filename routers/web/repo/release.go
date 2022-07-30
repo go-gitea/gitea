@@ -98,7 +98,14 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 		listOptions.PageSize = setting.API.MaxResponseItems
 	}
 
-	tags, err := ctx.Repo.GitRepo.GetTags(listOptions.GetStartEnd())
+	// TODO(20073) tags are used for compare feature which needs all tags
+	// filtering is done on the client-side atm
+	tagListStart, tagListEnd := 0, 0
+	if isTagList {
+		tagListStart, tagListEnd = listOptions.GetStartEnd()
+	}
+
+	tags, err := ctx.Repo.GitRepo.GetTags(tagListStart, tagListEnd)
 	if err != nil {
 		ctx.ServerError("GetTags", err)
 		return
@@ -507,19 +514,23 @@ func EditReleasePost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/releases")
 }
 
-// DeleteRelease delete a release
+// DeleteRelease deletes a release
 func DeleteRelease(ctx *context.Context) {
 	deleteReleaseOrTag(ctx, false)
 }
 
-// DeleteTag delete a tag
+// DeleteTag deletes a tag
 func DeleteTag(ctx *context.Context) {
 	deleteReleaseOrTag(ctx, true)
 }
 
 func deleteReleaseOrTag(ctx *context.Context, isDelTag bool) {
 	if err := releaseservice.DeleteReleaseByID(ctx, ctx.FormInt64("id"), ctx.Doer, isDelTag); err != nil {
-		ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+		if models.IsErrProtectedTagName(err) {
+			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+		} else {
+			ctx.Flash.Error("DeleteReleaseByID: " + err.Error())
+		}
 	} else {
 		if isDelTag {
 			ctx.Flash.Success(ctx.Tr("repo.release.deletion_tag_success"))

@@ -15,7 +15,8 @@ import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/issues"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -26,7 +27,7 @@ import (
 )
 
 // DeleteUser deletes models associated to an user.
-func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
@@ -77,12 +78,12 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
 		&Action{UserID: u.ID},
-		&IssueUser{UID: u.ID},
+		&issues_model.IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
-		&issues.Reaction{UserID: u.ID},
+		&issues_model.Reaction{UserID: u.ID},
 		&organization.TeamUser{UID: u.ID},
-		&Stopwatch{UserID: u.ID},
+		&issues_model.Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
@@ -94,14 +95,14 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		return err
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
-		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
 
 		// Delete Comments
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
-			comments := make([]*Comment, 0, batchSize)
-			if err = e.Where("type=? AND poster_id=?", CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+			comments := make([]*issues_model.Comment, 0, batchSize)
+			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
 				return err
 			}
 			if len(comments) == 0 {
@@ -109,14 +110,14 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 			}
 
 			for _, comment := range comments {
-				if err = deleteComment(ctx, comment); err != nil {
+				if err = issues_model.DeleteComment(ctx, comment); err != nil {
 					return err
 				}
 			}
 		}
 
 		// Delete Reactions
-		if err = issues.DeleteReaction(ctx, &issues.ReactionOptions{DoerID: u.ID}); err != nil {
+		if err = issues_model.DeleteReaction(ctx, &issues_model.ReactionOptions{DoerID: u.ID}); err != nil {
 			return err
 		}
 	}
@@ -125,7 +126,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	{
 		const batchSize = 50
 		for start := 0; ; start += batchSize {
-			protections := make([]*ProtectedBranch, 0, batchSize)
+			protections := make([]*git_model.ProtectedBranch, 0, batchSize)
 			// @perf: We can't filter on DB side by u.ID, as those IDs are serialized as JSON strings.
 			//   We could filter down with `WHERE repo_id IN (reposWithPushPermission(u))`,
 			//   though that query will be quite complex and tricky to maintain (compare `getRepoAssignees()`).
@@ -188,7 +189,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** END: GPGPublicKey *****
 
 	// Clear assignee.
-	if _, err = db.DeleteByBean(ctx, &IssueAssignees{AssigneeID: u.ID}); err != nil {
+	if _, err = db.DeleteByBean(ctx, &issues_model.IssueAssignees{AssigneeID: u.ID}); err != nil {
 		return fmt.Errorf("clear assignee: %v", err)
 	}
 

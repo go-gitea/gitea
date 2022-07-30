@@ -10,10 +10,12 @@ PASSWD   = {{TEST_MYSQL8_PASSWORD}}
 SSL_MODE = disable
 
 [indexer]
-ISSUE_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/issues.bleve
-ISSUE_INDEXER_QUEUE_DIR = integrations/gitea-integration-mysql8/indexers/issues.queue
 REPO_INDEXER_ENABLED = true
 REPO_INDEXER_PATH = integrations/gitea-integration-mysql8/indexers/repos.bleve
+
+[queue.issue_indexer]
+PATH = integrations/gitea-integration-mysql8/indexers/issues.bleve
+DATADIR = integrations/gitea-integration-mysql8/indexers/issues.queue
 
 [queue]
 TYPE = immediate

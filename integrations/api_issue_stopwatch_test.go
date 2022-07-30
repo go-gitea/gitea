@@ -8,8 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -30,22 +30,22 @@ func TestAPIListStopWatches(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	stopwatch := unittest.AssertExistsAndLoadBean(t, &models.Stopwatch{UserID: owner.ID}).(*models.Stopwatch)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: stopwatch.IssueID}).(*models.Issue)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID}).(*issues_model.Stopwatch)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID}).(*issues_model.Issue)
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
 		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
 		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
 		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
 		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
-		assert.Greater(t, int64(apiWatches[0].Seconds), int64(0))
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
 	}
 }
 
 func TestAPIStopStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
@@ -61,7 +61,7 @@ func TestAPIStopStopWatches(t *testing.T) {
 func TestAPICancelStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
@@ -77,7 +77,7 @@ func TestAPICancelStopWatches(t *testing.T) {
 func TestAPIStartStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 3}).(*models.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
 	_ = issue.LoadRepo(db.DefaultContext)
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
