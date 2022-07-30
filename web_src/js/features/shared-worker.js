@@ -8,8 +8,6 @@ function getMemoizedSharedWorker() {
   }
 
   if (!worker) {
-    // eslint-disable-next-line no-console
-    console.log('Starting worker');
     worker = new SharedWorker(
       `${__webpack_public_path__}js/eventsource.sharedworker.js`,
       'notification-worker'
