@@ -18,7 +18,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -32,6 +31,8 @@ import (
 	"code.gitea.io/gitea/routers/web/repo"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
+
+const giteaObjectTypeHeader = "X-Gitea-Object-Type"
 
 // GetRawFile get a file by path on a repository
 func GetRawFile(ctx *context.APIContext) {
@@ -72,10 +73,12 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
@@ -119,10 +122,12 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > 1024 {
@@ -218,7 +223,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 }
 
-func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -234,12 +239,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 		return
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommitsInfo", err)
 		return
@@ -251,7 +251,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 	}
 	blob = entry.Blob()
 
-	return blob, lastModified
+	return blob, entry, lastModified
 }
 
 // GetArchive get archive of a repository
