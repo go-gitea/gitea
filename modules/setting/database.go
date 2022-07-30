@@ -11,7 +11,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"time"
 
@@ -91,22 +90,9 @@ func InitDBConfig() {
 		log.Error("Deprecated database mysql charset utf8 support, please use utf8mb4 or convert utf8 to utf8mb4.")
 	}
 
-	if Database.UseSQLite3 {
-		Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
-		Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-
-		// WAL mode is preferred for better concurent write performance, but needs special VFS driver features,
-		// which are guaranteed to be available for unix & windows OSes
-		var defaultJournalMode string
-		switch runtime.GOOS {
-		// probably the BSDs are supported too, but i found no information on this - better safe than sorry.
-		case "windows", "linux": // "darwin", "freebsd", "openbsd", "netbsd":
-			defaultJournalMode = "WAL"
-		default:
-			defaultJournalMode = "DELETE"
-		}
-		Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString(defaultJournalMode)
-	}
+	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
+	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
+	Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("DELETE")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
