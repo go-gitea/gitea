@@ -5,7 +5,6 @@
 package auth
 
 import (
-	"encoding/base32"
 	"errors"
 	"net/http"
 
@@ -129,7 +128,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Success! Get the credential and update the sign count with the new value we received.
-	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, base32.HexEncoding.EncodeToString(cred.ID))
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, cred.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
 		return
