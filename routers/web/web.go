@@ -290,7 +290,7 @@ func RegisterRoutes(m *web.Route) {
 	}
 
 	dlSourceEnabled := func(ctx *context.Context) {
-		if setting.Repository.DisabledDownloadSource {
+		if setting.Repository.DisabledDownloadSourceArchives {
 			ctx.Error(http.StatusNotFound)
 			return
 		}

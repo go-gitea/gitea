@@ -35,11 +35,11 @@ func BaseVars() Vars {
 		"IsLandingPageExplore":       setting.LandingPageURL == setting.LandingPageExplore,
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
-		"ShowRegistrationButton":      setting.Service.ShowRegistrationButton,
-		"ShowMilestonesDashboardPage": setting.Service.ShowMilestonesDashboardPage,
-		"ShowFooterBranding":          setting.ShowFooterBranding,
-		"ShowFooterVersion":           setting.ShowFooterVersion,
-		"DisabledDownloadSource":      setting.Repository.DisabledDownloadSource,
+		"ShowRegistrationButton":         setting.Service.ShowRegistrationButton,
+		"ShowMilestonesDashboardPage":    setting.Service.ShowMilestonesDashboardPage,
+		"ShowFooterBranding":             setting.ShowFooterBranding,
+		"ShowFooterVersion":              setting.ShowFooterVersion,
+		"DisabledDownloadSourceArchives": setting.Repository.DisabledDownloadSourceArchives,
 
 		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,

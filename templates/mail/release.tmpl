@@ -31,7 +31,7 @@
 		<br>
 		{{.locale.Tr "mail.release.downloads"}}
 		<ul>
-			{{if not .DisabledDownloadSource}}
+			{{if not .DisabledDownloadSourceArchives}}
 			<li>
 				<a href="{{.Release.Repo.Link}}/archive/{{.Release.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{.locale.Tr "mail.release.download.zip"}}</strong></a>
 			</li>
