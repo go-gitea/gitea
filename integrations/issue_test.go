@@ -361,12 +361,13 @@ func TestSearchIssues(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	// as this API is used in the frontend, it uses UI page size
+	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
 
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
 
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -394,14 +395,15 @@ func TestSearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
+	assert.Len(t, apiIssues, 17)
 
-	query.Add("limit", "20")
+	query.Add("limit", "5")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 17)
+	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
@@ -457,7 +459,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
 
 	query := url.Values{
 		"token": []string{token},
@@ -466,7 +468,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
