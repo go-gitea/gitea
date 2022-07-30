@@ -165,13 +165,24 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	selfURLString := selfURL.String()
 
+	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(ref, refType != git.ObjectCommit), repo.FullName(), commitID)
+	if err != nil {
+		return nil, err
+	}
+
+	lastCommit, err := commit.GetCommitByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
-		Path: treePath,
-		SHA:  entry.ID.String(),
-		Size: entry.Size(),
-		URL:  &selfURLString,
+		Name:          entry.Name(),
+		Path:          treePath,
+		SHA:           entry.ID.String(),
+		LastCommitSHA: lastCommit.ID.String(),
+		Size:          entry.Size(),
+		URL:           &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
 		},
