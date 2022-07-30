@@ -316,6 +316,14 @@ func RegisterRoutes(m *web.Route) {
 		}
 	}
 
+	userSettingModuleEnabled := func(module string) func(ctx *context.Context) {
+		return func(ctx *context.Context) {
+			if !setting.User.Enabled(module) {
+				ctx.Error(http.StatusNotFound)
+			}
+		}
+	}
+
 	// FIXME: not all routes need go through same middleware.
 	// Especially some AJAX requests, we can reduce middleware number to improve performance.
 	// Routers.
@@ -406,15 +414,15 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", bindIgnErr(forms.UpdateProfileForm{}), user_setting.ProfilePost)
-		m.Get("/change_password", auth.MustChangePassword)
-		m.Post("/change_password", bindIgnErr(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
+		m.Get("/change_password", userSettingModuleEnabled("password"), auth.MustChangePassword)
+		m.Post("/change_password", userSettingModuleEnabled("password"), bindIgnErr(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
 		m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), user_setting.AvatarPost)
 		m.Post("/avatar/delete", user_setting.DeleteAvatar)
 		m.Group("/account", func() {
 			m.Combo("").Get(user_setting.Account).Post(bindIgnErr(forms.ChangePasswordForm{}), user_setting.AccountPost)
 			m.Post("/email", bindIgnErr(forms.AddEmailForm{}), user_setting.EmailPost)
 			m.Post("/email/delete", user_setting.DeleteEmail)
-			m.Post("/delete", user_setting.DeleteAccount)
+			m.Post("/delete", userSettingModuleEnabled("suicide"), user_setting.DeleteAccount)
 		})
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
@@ -441,7 +449,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
 			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
-		})
+		}, userSettingModuleEnabled("security"))
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
 			m.Post("/{id}", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
@@ -449,10 +457,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
 			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
 			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
-		})
-		m.Combo("/applications").Get(user_setting.Applications).
-			Post(bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
-		m.Post("/applications/delete", user_setting.DeleteApplication)
+		}, userSettingModuleEnabled("applications"))
+		m.Combo("/applications").Get(userSettingModuleEnabled("applications"), user_setting.Applications).
+			Post(userSettingModuleEnabled("applications"), bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
+		m.Post("/applications/delete", userSettingModuleEnabled("applications"), user_setting.DeleteApplication)
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(bindIgnErr(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
@@ -470,13 +478,14 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 		}, packagesEnabled)
-		m.Get("/organization", user_setting.Organization)
+		m.Get("/organization", userSettingModuleEnabled("organizations"), user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
 		ctx.Data["PageIsUserSettings"] = true
 		ctx.Data["AllThemes"] = setting.UI.Themes
 		ctx.Data["EnablePackages"] = setting.Packages.Enabled
+		ctx.Data["UserModules"] = &setting.User
 	})
 
 	m.Group("/user", func() {

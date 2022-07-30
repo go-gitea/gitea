@@ -1128,6 +1128,8 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
 	}
+
+	newUserSetting()
 }
 
 func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {

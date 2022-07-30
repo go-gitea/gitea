@@ -3,40 +3,42 @@
 	{{template "user/settings/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
-		<h4 class="ui top attached header">
-			{{.locale.Tr "settings.password"}}
-		</h4>
-		<div class="ui attached segment">
-			{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
-			<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
-				{{template "base/disable_form_autofill"}}
-				{{.CsrfTokenHtml}}
-				{{if .SignedUser.IsPasswordSet}}
-				<div class="required field {{if .Err_OldPassword}}error{{end}}">
-					<label for="old_password">{{.locale.Tr "settings.old_password"}}</label>
-					<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
+		{{if $.UserModules.Enabled "password"}}
+			<h4 class="ui top attached header">
+				{{.locale.Tr "settings.password"}}
+			</h4>
+			<div class="ui attached segment">
+				{{if or (.SignedUser.IsLocal) (.SignedUser.IsOAuth2)}}
+				<form class="ui form ignore-dirty" action="{{AppSubUrl}}/user/settings/account" method="post">
+					{{template "base/disable_form_autofill"}}
+					{{.CsrfTokenHtml}}
+					{{if .SignedUser.IsPasswordSet}}
+					<div class="required field {{if .Err_OldPassword}}error{{end}}">
+						<label for="old_password">{{.locale.Tr "settings.old_password"}}</label>
+						<input id="old_password" name="old_password" type="password" autocomplete="current-password" autofocus required>
+					</div>
+					{{end}}
+					<div class="required field {{if .Err_Password}}error{{end}}">
+						<label for="password">{{.locale.Tr "settings.new_password"}}</label>
+						<input id="password" name="password" type="password" autocomplete="new-password" required>
+					</div>
+					<div class="required field {{if .Err_Password}}error{{end}}">
+						<label for="retype">{{.locale.Tr "settings.retype_new_password"}}</label>
+						<input id="retype" name="retype" type="password" autocomplete="new-password" required>
+					</div>
+
+					<div class="field">
+						<button class="ui green button">{{$.locale.Tr "settings.change_password"}}</button>
+						<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
+					</div>
+				</form>
+				{{else}}
+				<div class="ui info message">
+					<p class="text left">{{$.locale.Tr "settings.password_change_disabled"}}</p>
 				</div>
 				{{end}}
-				<div class="required field {{if .Err_Password}}error{{end}}">
-					<label for="password">{{.locale.Tr "settings.new_password"}}</label>
-					<input id="password" name="password" type="password" autocomplete="new-password" required>
-				</div>
-				<div class="required field {{if .Err_Password}}error{{end}}">
-					<label for="retype">{{.locale.Tr "settings.retype_new_password"}}</label>
-					<input id="retype" name="retype" type="password" autocomplete="new-password" required>
-				</div>
-
-				<div class="field">
-					<button class="ui green button">{{$.locale.Tr "settings.change_password"}}</button>
-					<a href="{{AppSubUrl}}/user/forgot_password?email={{.Email}}">{{.locale.Tr "auth.forgot_password"}}</a>
-				</div>
-			</form>
-			{{else}}
-			<div class="ui info message">
-				<p class="text left">{{$.locale.Tr "settings.password_change_disabled"}}</p>
 			</div>
-			{{end}}
-		</div>
+		{{end}}
 
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.manage_emails"}}
@@ -172,15 +174,17 @@
 	{{template "base/delete_modal_actions" .}}
 </div>
 
-<div class="ui small basic delete modal" id="delete-account">
-	<div class="ui icon header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.delete_account_title"}}
+{{if $.UserModules.Enabled "suicide"}}
+	<div class="ui small basic delete modal" id="delete-account">
+		<div class="ui icon header">
+			{{svg "octicon-trash"}}
+			{{.locale.Tr "settings.delete_account_title"}}
+		</div>
+		<div class="content">
+			<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
+		</div>
+		{{template "base/delete_modal_actions" .}}
 	</div>
-	<div class="content">
-		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
-	</div>
-	{{template "base/delete_modal_actions" .}}
-</div>
+{{end}}
 
 {{template "base/footer" .}}

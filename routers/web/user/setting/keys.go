@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"fmt"
 	"net/http"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -77,6 +78,11 @@ func KeysPost(ctx *context.Context) {
 		ctx.Flash.Success(ctx.Tr("settings.add_principal_success", form.Content))
 		ctx.Redirect(setting.AppSubURL + "/user/settings/keys")
 	case "gpg":
+		if !setting.User.Enabled("gpg keys") {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting are not allowed"))
+			return
+		}
+
 		token := asymkey_model.VerificationToken(ctx.Doer, 1)
 		lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
 
@@ -216,6 +222,10 @@ func KeysPost(ctx *context.Context) {
 func DeleteKey(ctx *context.Context) {
 	switch ctx.FormString("type") {
 	case "gpg":
+		if !setting.User.Enabled("gpg keys") {
+			ctx.NotFound("Not Found", fmt.Errorf("gpg keys setting are not allowed"))
+			return
+		}
 		if err := asymkey_model.DeleteGPGKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 			ctx.Flash.Error("DeleteGPGKey: " + err.Error())
 		} else {
