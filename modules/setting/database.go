@@ -39,7 +39,7 @@ var (
 		LogSQL            bool
 		Charset           string
 		Timeout           int // seconds
-		SQliteJournalMode string
+		SQLiteJournalMode string
 		UseSQLite3        bool
 		UseMySQL          bool
 		UseMSSQL          bool
@@ -92,7 +92,7 @@ func InitDBConfig() {
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-	Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
+	Database.SQLiteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
@@ -140,8 +140,8 @@ func DBConnStr() (string, error) {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
 		journalMode := ""
-		if Database.SQliteJournalMode != "" {
-			journalMode = "&_journal_mode=" + Database.SQliteJournalMode
+		if Database.SQLiteJournalMode != "" {
+			journalMode = "&_journal_mode=" + Database.SQLiteJournalMode
 		}
 		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
 			Database.Path, Database.Timeout, journalMode)
