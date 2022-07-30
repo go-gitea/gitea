@@ -73,6 +73,7 @@ export function initRepoCloneLink() {
     }
     // the empty repo guide
     $('.quickstart .empty-repo-guide .clone-url').text(cloneLink);
+    $('#repo-clone-vscode').attr('href', `vscode://vscode.git/clone?url=${encodeURIComponent(cloneLink)}`);
   };
   updateUi();
 
