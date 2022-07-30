@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
-import worker from './shared-worker.js';
+import getMemoizedSharedWorker from './shared-worker.js';
 
 const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 let updateTimeInterval = null; // holds setInterval id when active
@@ -27,7 +27,9 @@ export function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  let worker;
+
+  if (notificationSettings.EventSourceUpdateTime > 0 && (worker = getMemoizedSharedWorker())) {
     // Try to connect to the event source via the shared worker first
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {

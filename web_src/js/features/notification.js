@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import worker from './shared-worker.js';
+import getMemoizedSharedWorker from './shared-worker.js';
 
 const {appSubUrl, csrfToken, notificationSettings} = window.config;
 let notificationSequenceNumber = 0;
@@ -50,7 +50,9 @@ export function initNotificationCount() {
     return;
   }
 
-  if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
+  let worker;
+
+  if (notificationSettings.EventSourceUpdateTime > 0 && (worker = getMemoizedSharedWorker())) {
     // Try to connect to the event source via the shared worker first
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {

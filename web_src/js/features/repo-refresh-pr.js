@@ -1,5 +1,5 @@
 import $ from 'jquery';
-import worker from './shared-worker.js';
+import getMemoizedSharedWorker from './shared-worker.js';
 
 async function receiveBranchUpdated(event) {
   try {
@@ -39,7 +39,9 @@ export function initRepoRefreshPullRequest() {
     window.location.reload();
   });
 
-  if (!!window.EventSource && window.SharedWorker) {
+  const worker = getMemoizedSharedWorker();
+
+  if (worker) {
     worker.port.addEventListener('message', (event) => {
       if (!event.data || !event.data.type) {
         return;
