@@ -6,6 +6,7 @@ package repo
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -695,6 +696,9 @@ func GetUserRepositories(opts *SearchRepoOptions) (RepositoryList, int64, error)
 	}
 
 	cond := builder.NewCond()
+	if opts.Actor == nil {
+		return nil, 0, errors.New("GetUserRepositories: Actor is needed but not given")
+	}
 	cond = cond.And(builder.Eq{"owner_id": opts.Actor.ID})
 	if !opts.Private {
 		cond = cond.And(builder.Eq{"is_private": false})
