@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getExpectedContentsListResponseForContents(ref, refType string) []*api.ContentsResponse {
+func getExpectedContentsListResponseForContents(ref, refType, lastCommitSHA string) []*api.ContentsResponse {
 	treePath := "README.md"
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	selfURL := setting.AppURL + "api/v1/repos/user2/repo1/contents/" + treePath + "?ref=" + ref
@@ -30,15 +30,16 @@ func getExpectedContentsListResponseForContents(ref, refType string) []*api.Cont
 	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
 	return []*api.ContentsResponse{
 		{
-			Name:        filepath.Base(treePath),
-			Path:        treePath,
-			SHA:         sha,
-			Type:        "file",
-			Size:        30,
-			URL:         &selfURL,
-			HTMLURL:     &htmlURL,
-			GitURL:      &gitURL,
-			DownloadURL: &downloadURL,
+			Name:          filepath.Base(treePath),
+			Path:          treePath,
+			SHA:           sha,
+			LastCommitSHA: lastCommitSHA,
+			Type:          "file",
+			Size:          30,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -94,7 +95,9 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	var contentsListResponse []*api.ContentsResponse
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType)
+	lastCommit, err := gitRepo.GetCommitByPath("README.md")
+	assert.NoError(t, err)
+	expectedContentsListResponse := getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
 
 	// No ref
@@ -103,17 +106,22 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	expectedContentsListResponse = getExpectedContentsListResponseForContents(repo1.DefaultBranch, refType)
+
+	expectedContentsListResponse = getExpectedContentsListResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
 
-	// ref is the branch we created above  in setup
+	// ref is the branch we created above in setup
 	ref = newBranch
 	refType = "branch"
 	req = NewRequestf(t, "GET", "/api/v1/repos/%s/%s/contents/%s?ref=%s", user2.Name, repo1.Name, treePath, ref)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType)
+	branchCommit, err := gitRepo.GetBranchCommit(ref)
+	assert.NoError(t, err)
+	lastCommit, err = branchCommit.GetCommitByPath("README.md")
+	assert.NoError(t, err)
+	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is the new tag we created above in setup
@@ -123,7 +131,11 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType)
+	tagCommit, err := gitRepo.GetTagCommit(ref)
+	assert.NoError(t, err)
+	lastCommit, err = tagCommit.GetCommitByPath("README.md")
+	assert.NoError(t, err)
+	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
 
 	// ref is a commit
@@ -133,7 +145,7 @@ func testAPIGetContentsList(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsListResponse)
 	assert.NotNil(t, contentsListResponse)
-	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType)
+	expectedContentsListResponse = getExpectedContentsListResponseForContents(ref, refType, commitID)
 	assert.EqualValues(t, expectedContentsListResponse, contentsListResponse)
 
 	// Test file contents a file with a bad ref
