@@ -34,9 +34,11 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		}
 	}
 
-	err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
-	if err != nil {
-		log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+	if ctx.Repo.GitRepo != nil {
+		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
+		if err != nil {
+			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+		}
 	}
 
 	return sha
