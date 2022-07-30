@@ -398,6 +398,8 @@ var migrations = []Migration{
 	NewMigration("Improve Action table indices v2", improveActionTableIndices),
 	// v219 -> v220
 	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add container repository property", addContainerRepositoryProperty),
 }
 
 // GetCurrentDBVersion returns the current db version
