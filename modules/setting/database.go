@@ -92,7 +92,7 @@ func InitDBConfig() {
 
 	Database.Path = sec.Key("PATH").MustString(filepath.Join(AppDataPath, "gitea.db"))
 	Database.Timeout = sec.Key("SQLITE_TIMEOUT").MustInt(500)
-	Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("DELETE")
+	Database.SQliteJournalMode = sec.Key("SQLITE_JOURNAL_MODE").MustString("")
 
 	Database.MaxIdleConns = sec.Key("MAX_IDLE_CONNS").MustInt(2)
 	if Database.UseMySQL {
@@ -139,8 +139,12 @@ func DBConnStr() (string, error) {
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}
-		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate&_journal_mode=%s",
-			Database.Path, Database.Timeout, Database.SQliteJournalMode)
+		journalMode := ""
+		if Database.SQliteJournalMode != "" {
+			journalMode = "&_journal_mode=" + Database.SQliteJournalMode
+		}
+		connStr = fmt.Sprintf("file:%s?cache=shared&mode=rwc&_busy_timeout=%d&_txlock=immediate%s",
+			Database.Path, Database.Timeout, journalMode)
 	default:
 		return "", fmt.Errorf("Unknown database type: %s", Database.Type)
 	}
