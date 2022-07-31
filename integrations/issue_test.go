@@ -368,11 +368,6 @@ func TestSearchIssues(t *testing.T) {
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
-	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, expectedIssueCount)
-
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
 	query := url.Values{}
@@ -461,19 +456,13 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	}
 
 	session := loginUser(t, "user1")
-
 	link, _ := url.Parse("/issues/search")
-	req := NewRequest(t, "GET", link.String())
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiIssues []*api.Issue
-	DecodeJSON(t, resp, &apiIssues)
-
-	assert.Len(t, apiIssues, expectedIssueCount)
-
 	query := url.Values{}
+	var apiIssues []*api.Issue
+
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", link.String())
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, expectedIssueCount)
 
