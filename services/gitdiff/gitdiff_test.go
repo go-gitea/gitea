@@ -18,28 +18,25 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation"
 
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestDiffToHTML(t *testing.T) {
-	locale := translation.NewLocale("en_US")
-	setting.Cfg = ini.Empty()
 	assert.Equal(t, "foo <span class=\"added-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffInsert, Text: "bar"},
 		{Type: dmp.DiffDelete, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineAdd, locale))
+	}, DiffLineAdd))
 
 	assert.Equal(t, "foo <span class=\"removed-code\">bar</span> biz", diffToHTML(nil, []dmp.Diff{
 		{Type: dmp.DiffEqual, Text: "foo "},
 		{Type: dmp.DiffDelete, Text: "bar"},
 		{Type: dmp.DiffInsert, Text: " baz"},
 		{Type: dmp.DiffEqual, Text: " biz"},
-	}, DiffLineDel, locale))
+	}, DiffLineDel))
 }
 
 func TestParsePatch_skipTo(t *testing.T) {
