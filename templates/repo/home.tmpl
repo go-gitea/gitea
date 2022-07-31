@@ -124,6 +124,7 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
+						{{if not .DisableDownloadSourceArchives}}
 						<button id="download-btn" class="ui basic jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.download_archive"}}" data-position="top right">
 							{{svg "octicon-download"}}
 							<div class="menu">
@@ -133,6 +134,7 @@
 								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
+						{{end}}
 					</div>
 				{{end}}
 			</div>
