@@ -382,6 +382,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
     - `verify-ca`: Enable TLS with verification of the database server certificate against its root certificate.
     - `verify-full`: Enable TLS and verify the database server name matches the given certificate in either the `Common Name` or `Subject Alternative Name` fields.
 - `SQLITE_TIMEOUT`: **500**: Query timeout for SQLite3 only.
+- `SQLITE_JOURNAL_MODE`: **""**: Change journal mode for SQlite3. Can be used to enable [WAL mode](https://www.sqlite.org/wal.html) when high load causes write congestion. See [SQlite3 docs](https://www.sqlite.org/pragma.html#pragma_journal_mode) for possible values. Defaults to the default for the database file, often DELETE.
 - `ITERATE_BUFFER_SIZE`: **50**: Internal buffer size for iterating.
 - `CHARSET`: **utf8mb4**: For MySQL only, either "utf8" or "utf8mb4". NOTICE: for "utf8mb4" you must use MySQL InnoDB > 5.6. Gitea is unable to check this.
 - `PATH`: **data/gitea.db**: For SQLite3 only, the database file path.
