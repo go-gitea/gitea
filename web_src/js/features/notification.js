@@ -49,11 +49,28 @@ export function initNotificationCount() {
     return;
   }
 
+  const poller = () => {
+    const pollerFn = (timeout, lastCount) => {
+      if (timeout <= 0) {
+        return;
+      }
+      setTimeout(() => {
+        const _promise = updateNotificationCountWithCallback(pollerFn, timeout, lastCount);
+      }, timeout);
+    };
+
+    pollerFn(notificationSettings.MinTimeout, notificationCount.text());
+  };
+
   if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
     const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-    worker.addEventListener('error', (event) => {
-      console.error(event);
+    worker.addEventListener('error', (error) => {
+      if (error.message && error.message === 'ReferenceError: EventSource is not defined') {
+        poller();
+        return;
+      }
+      console.error(error);
     });
     worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
@@ -70,6 +87,10 @@ export function initNotificationCount() {
       if (event.data.type === 'notification-count') {
         const _promise = receiveUpdateCount(event.data);
       } else if (event.data.type === 'error') {
+        if (event.data.message === 'unable to create Source: ReferenceError: EventSource is not defined') {
+          poller();
+          return;
+        }
         console.error(event.data);
       } else if (event.data.type === 'logout') {
         if (event.data.data !== 'here') {
@@ -87,8 +108,11 @@ export function initNotificationCount() {
         worker.port.close();
       }
     });
-    worker.port.addEventListener('error', (e) => {
-      console.error(e);
+    worker.port.addEventListener('error', (error) => {
+      if (error.message && error.message === 'unable to create Source: ReferenceError: EventSource is not defined') {
+        return;
+      }
+      console.error(error);
     });
     worker.port.start();
     window.addEventListener('beforeunload', () => {
@@ -97,7 +121,6 @@ export function initNotificationCount() {
       });
       worker.port.close();
     });
-
     return;
   }
 
@@ -105,13 +128,7 @@ export function initNotificationCount() {
     return;
   }
 
-  const fn = (timeout, lastCount) => {
-    setTimeout(() => {
-      const _promise = updateNotificationCountWithCallback(fn, timeout, lastCount);
-    }, timeout);
-  };
-
-  fn(notificationSettings.MinTimeout, notificationCount.text());
+  poller();
 }
 
 async function updateNotificationCountWithCallback(callback, timeout, lastCount) {

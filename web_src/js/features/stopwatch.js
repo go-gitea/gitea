@@ -26,11 +26,34 @@ export function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
+  const poller = () => {
+    const fn = (timeout) => {
+      if (timeout <= 0) {
+        return;
+      }
+      setTimeout(() => {
+        const _promise = updateStopwatchWithCallback(fn, timeout);
+      }, timeout);
+    };
+
+    fn(notificationSettings.MinTimeout);
+
+    const currSeconds = $('.stopwatch-time').data('seconds');
+    if (currSeconds) {
+      updateTimeInterval = updateStopwatchTime(currSeconds);
+    }
+  };
+
+
   if (notificationSettings.EventSourceUpdateTime > 0 && !!window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
     const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js`, 'notification-worker');
-    worker.addEventListener('error', (event) => {
-      console.error(event);
+    worker.addEventListener('error', (error) => {
+      if (error.message && error.message === 'ReferenceError: EventSource is not defined') {
+        poller();
+        return;
+      }
+      console.error(error);
     });
     worker.port.addEventListener('messageerror', () => {
       console.error('Unable to deserialize message');
@@ -47,6 +70,10 @@ export function initStopwatch() {
       if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));
       } else if (event.data.type === 'error') {
+        if (event.data.message === 'unable to create Source: ReferenceError: EventSource is not defined') {
+          poller();
+          return;
+        }
         console.error(event.data);
       } else if (event.data.type === 'logout') {
         if (event.data.data !== 'here') {
@@ -64,8 +91,11 @@ export function initStopwatch() {
         worker.port.close();
       }
     });
-    worker.port.addEventListener('error', (e) => {
-      console.error(e);
+    worker.port.addEventListener('error', (error) => {
+      if (error.message && error.message === 'ReferenceError: EventSource is not defined') {
+        return;
+      }
+      console.error(error);
     });
     worker.port.start();
     window.addEventListener('beforeunload', () => {
@@ -82,18 +112,7 @@ export function initStopwatch() {
     return;
   }
 
-  const fn = (timeout) => {
-    setTimeout(() => {
-      const _promise = updateStopwatchWithCallback(fn, timeout);
-    }, timeout);
-  };
-
-  fn(notificationSettings.MinTimeout);
-
-  const currSeconds = $('.stopwatch-time').data('seconds');
-  if (currSeconds) {
-    updateTimeInterval = updateStopwatchTime(currSeconds);
-  }
+  poller();
 }
 
 async function updateStopwatchWithCallback(callback, timeout) {

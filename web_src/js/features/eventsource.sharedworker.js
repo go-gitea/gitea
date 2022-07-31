@@ -93,10 +93,18 @@ self.addEventListener('connect', (e) => {
           }
         }
         // Create a new Source
-        source = new Source(url);
-        source.register(port);
-        sourcesByUrl[url] = source;
-        sourcesByPort[port] = source;
+        try {
+          source = new Source(url);
+          source.register(port);
+          sourcesByUrl[url] = source;
+          sourcesByPort[port] = source;
+        } catch (error) {
+          port.postMessage({
+            type: 'error',
+            message: `unable to create Source: ${error}`,
+          });
+          port.close();
+        }
       } else if (event.data.type === 'listen') {
         const source = sourcesByPort[port];
         source.listen(event.data.eventType);
