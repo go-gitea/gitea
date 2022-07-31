@@ -124,6 +124,7 @@
 				{{if eq $n 0}}
 					<div class="ui action tiny input" id="clone-panel">
 						{{template "repo/clone_buttons" .}}
+						{{template "repo/clone_script" .}}
 						{{if not .DisableDownloadSourceArchives}}
 						<button id="download-btn" class="ui basic jump dropdown icon button tooltip" data-content="{{.locale.Tr "repo.download_archive"}}" data-position="top right">
 							{{svg "octicon-download"}}
