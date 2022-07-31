@@ -48,7 +48,7 @@ var (
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
-		DisableDownloadSourceArchives          bool
+		DisableDownloadSourceArchives           bool
 
 		// Repository editor settings
 		Editor struct {
