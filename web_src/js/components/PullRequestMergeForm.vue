@@ -145,7 +145,10 @@ export default {
 
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-    this.switchMergeStyle(this.mergeForm.mergeStyles.find((e) => e.allowed)?.name, !this.mergeForm.canMergeNow);
+
+    let mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed && e.name === this.mergeForm.defaultMergeStyle)?.name;
+    if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+    this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
   },
 
   mounted() {
