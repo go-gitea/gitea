@@ -8,6 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/activities"
+	_ "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unittest"
 )
 

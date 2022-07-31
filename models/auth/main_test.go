@@ -2,24 +2,21 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package auth
+package auth_test
 
 import (
 	"path/filepath"
 	"testing"
 
+	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/activities"
+	_ "code.gitea.io/gitea/models/auth"
+	_ "code.gitea.io/gitea/models/perm/access"
 	"code.gitea.io/gitea/models/unittest"
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles: []string{
-			"login_source.yml",
-			"oauth2_application.yml",
-			"oauth2_authorization_code.yml",
-			"oauth2_grant.yml",
-			"webauthn_credential.yml",
-		},
 	})
 }
