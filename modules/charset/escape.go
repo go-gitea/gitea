@@ -17,10 +17,10 @@ import (
 )
 
 // EscapeControlHTML escapes the unicode control sequences in a provided html document
-func EscapeControlHTML(text string, locale translation.Locale) (escaped EscapeStatus, output string) {
+func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, output string) {
 	sb := &strings.Builder{}
 	outputStream := &HTMLStreamerWriter{Writer: sb}
-	streamer := NewEscapeStreamer(locale, outputStream).(*escapeStreamer)
+	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
 
 	if err := StreamHTML(strings.NewReader(text), streamer); err != nil {
 		streamer.escaped.HasError = true
@@ -30,9 +30,9 @@ func EscapeControlHTML(text string, locale translation.Locale) (escaped EscapeSt
 }
 
 // EscapeControlReaders escapes the unicode control sequences in a provider reader and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
-func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale) (escaped EscapeStatus, err error) {
+func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, err error) {
 	outputStream := &HTMLStreamerWriter{Writer: writer}
-	streamer := NewEscapeStreamer(locale, outputStream).(*escapeStreamer)
+	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
 
 	if err = StreamHTML(reader, streamer); err != nil {
 		streamer.escaped.HasError = true
@@ -42,10 +42,10 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 }
 
 // EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
-func EscapeControlString(text string, locale translation.Locale) (escaped EscapeStatus, output string) {
+func EscapeControlString(text string, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, output string) {
 	sb := &strings.Builder{}
 	outputStream := &HTMLStreamerWriter{Writer: sb}
-	streamer := NewEscapeStreamer(locale, outputStream).(*escapeStreamer)
+	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
 
 	if err := streamer.Text(text); err != nil {
 		streamer.escaped.HasError = true

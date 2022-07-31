@@ -249,7 +249,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlHTML(buf.String(), ctx.Locale)
+	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlHTML(buf.String(), ctx.Locale, 0xa0)
 
 	if !isSideBar {
 		buf.Reset()
@@ -261,7 +261,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["sidebarPresent"] = sidebarContent != nil
-		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlHTML(buf.String(), ctx.Locale)
+		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlHTML(buf.String(), ctx.Locale, 0xa0)
 	} else {
 		ctx.Data["sidebarPresent"] = false
 	}
@@ -276,7 +276,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["footerPresent"] = footerContent != nil
-		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlHTML(buf.String(), ctx.Locale)
+		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlHTML(buf.String(), ctx.Locale, 0xa0)
 	} else {
 		ctx.Data["footerPresent"] = false
 	}

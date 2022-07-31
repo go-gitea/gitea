@@ -359,7 +359,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
 		} else {
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale, 0xa0)
 		}
 	} else {
 		ctx.Data["IsRenderedHTML"] = true
@@ -531,7 +531,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			}
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale, 0xa0)
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
@@ -640,7 +640,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				return
 			}
 
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale)
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlHTML(result.String(), ctx.Locale, 0xa0)
 		}
 	}
 

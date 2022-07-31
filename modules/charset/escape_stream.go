@@ -7,6 +7,7 @@ package charset
 import (
 	"fmt"
 	"regexp"
+	"sort"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -19,11 +20,12 @@ import (
 // VScode defaultWordRegexp
 var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@\#\$\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s\x00-\x1f]+)`)
 
-func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer) HTMLStreamer {
+func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
 	return &escapeStreamer{
 		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
 		locale:                  locale,
 		ambiguousTables:         AmbiguousTablesForLocale(locale),
+		allowed:                 allowed,
 	}
 }
 
@@ -32,6 +34,7 @@ type escapeStreamer struct {
 	escaped         EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
+	allowed         []rune
 }
 
 func (e *escapeStreamer) EscapeStatus() EscapeStatus {
@@ -252,6 +255,13 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 			runeCounts.numBrokenRunes++
 		case r == ' ' || r == '\t' || r == '\n':
 			runeCounts.numBasicRunes++
+		case e.isAllowed(r):
+			if r > 0x7f || r < 0x20 {
+				types[i] = nonBasicASCIIRuneType
+				runeCounts.numNonConfusingNonBasicRunes++
+			} else {
+				runeCounts.numBasicRunes++
+			}
 		case unicode.Is(InvisibleRanges, r):
 			types[i] = invisibleRuneType
 			runeCounts.numInvisibleRunes++
@@ -270,4 +280,17 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 		}
 	}
 	return types, confusables, runeCounts
+}
+
+func (e *escapeStreamer) isAllowed(r rune) bool {
+	if len(e.allowed) == 0 {
+		return false
+	}
+	if len(e.allowed) == 1 && e.allowed[0] == r {
+		return true
+	}
+
+	return sort.Search(len(e.allowed), func(i int) bool {
+		return e.allowed[i] <= r
+	}) != -1
 }
