@@ -37,7 +37,7 @@ For an existing remote repository, you can set up pull mirroring as follows:
 3. Enter a repository URL.
 4. If the repository needs authentication fill in your authentication information.
 5. Check the box **This repository will be a mirror**.
-5. Select **Migrate repository** to save the configuration.
+6. Select **Migrate repository** to save the configuration.
 
 The repository now gets mirrored periodically from the remote repository. You can force a sync by selecting **Synchronize Now** in the repository settings.
 

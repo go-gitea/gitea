@@ -124,6 +124,7 @@ func (e *errMergeConflict) Error() string {
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
+	log.Trace("Attempt to merge:\n%v", file)
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -295,7 +296,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			return false, err
+			lsfiles, _, _ := git.NewCommand(ctx, "ls-files", "-u").RunStdString(&git.RunOpts{Dir: tmpBasePath})
+			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
 		baseTree, err := gitRepo.GetTree("base")
