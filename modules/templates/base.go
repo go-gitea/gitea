@@ -39,7 +39,7 @@ func BaseVars() Vars {
 		"ShowMilestonesDashboardPage":    setting.Service.ShowMilestonesDashboardPage,
 		"ShowFooterBranding":             setting.ShowFooterBranding,
 		"ShowFooterVersion":              setting.ShowFooterVersion,
-		"DisabledDownloadSourceArchives": setting.Repository.DisabledDownloadSourceArchives,
+		"DisableDownloadSourceArchives": setting.Repository.DisableDownloadSourceArchives,
 
 		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
