@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -433,4 +434,21 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 		return false, err
 	}
 	return len(stdout) > 0, err
+}
+
+func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
+	if repo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
+			commit, err := repo.GetCommit(sha)
+			if err != nil {
+				return 0, err
+			}
+			return commit.CommitsCount()
+		})
+		if err != nil {
+			return err
+		}
+		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
+	}
+	return nil
 }

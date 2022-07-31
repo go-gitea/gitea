@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -55,15 +54,6 @@ type namedBlob struct {
 	name      string
 	isSymlink bool
 	blob      *git.Blob
-}
-
-func linesBytesCount(s []byte) int {
-	nl := []byte{'\n'}
-	n := bytes.Count(s, nl)
-	if len(s) > 0 && !bytes.HasSuffix(s, nl) {
-		n++
-	}
-	return n
 }
 
 // FIXME: There has to be a more efficient way of doing this
@@ -555,8 +545,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
-			lineNums := linesBytesCount(buf)
-			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
+
+			// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
+			// the NumLines is only used for the display on the UI: "xxx lines"
+			if len(buf) == 0 {
+				ctx.Data["NumLines"] = 0
+			} else {
+				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
+			}
 			ctx.Data["NumLinesSet"] = true
 
 			language := ""
@@ -584,7 +580,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
+			fileContent, err := highlight.File(blob.Name(), language, buf)
+			if err != nil {
+				log.Error("highlight.File failed, fallback to plain text: %v", err)
+				fileContent = highlight.PlainText(buf)
+			}
 			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
 			ctx.Data["EscapeStatus"] = status
 			statuses := make([]charset.EscapeStatus, len(fileContent))
