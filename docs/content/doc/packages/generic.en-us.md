@@ -37,7 +37,7 @@ PUT https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{packa
 | ----------------- | ----------- |
 | `owner`           | The owner of the package. |
 | `package_name`    | The package name. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
-| `package_version` | The package version as described in the [SemVer](https://semver.org/) spec. |
+| `package_version` | The package version, a non-empty string. |
 | `file_name`       | The filename. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
 
 Example request using HTTP Basic authentication:

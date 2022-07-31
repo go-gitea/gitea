@@ -25,7 +25,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 	for _, pd := range pds {
 		versions[pd.SemVer.String()] = createPackageMetadataVersion(registryURL, pd)
 
-		for _, pvp := range pd.Properties {
+		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == npm_module.TagProperty {
 				distTags[pvp.Value] = pd.Version.Version
 			}

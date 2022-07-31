@@ -20,7 +20,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func getExpectedContentsResponseForContents(ref, refType string) *api.ContentsResponse {
+func getExpectedContentsResponseForContents(ref, refType, lastCommitSHA string) *api.ContentsResponse {
 	treePath := "README.md"
 	sha := "4b4851ad51df6a7d9f25c979345979eaeb5b349f"
 	encoding := "base64"
@@ -30,17 +30,18 @@ func getExpectedContentsResponseForContents(ref, refType string) *api.ContentsRe
 	gitURL := setting.AppURL + "api/v1/repos/user2/repo1/git/blobs/" + sha
 	downloadURL := setting.AppURL + "user2/repo1/raw/" + refType + "/" + ref + "/" + treePath
 	return &api.ContentsResponse{
-		Name:        treePath,
-		Path:        treePath,
-		SHA:         sha,
-		Type:        "file",
-		Size:        30,
-		Encoding:    &encoding,
-		Content:     &content,
-		URL:         &selfURL,
-		HTMLURL:     &htmlURL,
-		GitURL:      &gitURL,
-		DownloadURL: &downloadURL,
+		Name:          treePath,
+		Path:          treePath,
+		SHA:           sha,
+		LastCommitSHA: lastCommitSHA,
+		Type:          "file",
+		Size:          30,
+		Encoding:      &encoding,
+		Content:       &content,
+		URL:           &selfURL,
+		HTMLURL:       &htmlURL,
+		GitURL:        &gitURL,
+		DownloadURL:   &downloadURL,
 		Links: &api.FileLinksResponse{
 			Self:    &selfURL,
 			GitURL:  &gitURL,
@@ -96,7 +97,8 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	var contentsResponse api.ContentsResponse
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType)
+	lastCommit, _ := gitRepo.GetCommitByPath("README.md")
+	expectedContentsResponse := getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// No ref
@@ -105,7 +107,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType)
+	expectedContentsResponse = getExpectedContentsResponseForContents(repo1.DefaultBranch, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the branch we created above  in setup
@@ -115,7 +117,9 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	branchCommit, _ := gitRepo.GetBranchCommit(ref)
+	lastCommit, _ = branchCommit.GetCommitByPath("README.md")
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is the new tag we created above in setup
@@ -125,7 +129,9 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	tagCommit, _ := gitRepo.GetTagCommit(ref)
+	lastCommit, _ = tagCommit.GetCommitByPath("README.md")
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, lastCommit.ID.String())
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// ref is a commit
@@ -135,7 +141,7 @@ func testAPIGetContents(t *testing.T, u *url.URL) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &contentsResponse)
 	assert.NotNil(t, contentsResponse)
-	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType)
+	expectedContentsResponse = getExpectedContentsResponseForContents(ref, refType, commitID)
 	assert.EqualValues(t, *expectedContentsResponse, contentsResponse)
 
 	// Test file contents a file with a bad ref
