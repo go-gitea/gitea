@@ -356,18 +356,23 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
+	// as this API is used in the frontend, it uses UI page size
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
+
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
-	// as this API is used in the frontend, it uses UI page size
-	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -451,6 +456,12 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
+	// as this API is used in the frontend, it uses UI page size
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
+
 	token := getUserToken(t, "user1")
 
 	link, _ := url.Parse("/api/v1/repos/issues/search?token=" + token)
@@ -459,7 +470,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
 
-	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query := url.Values{
 		"token": []string{token},
@@ -468,7 +479,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, setting.UI.IssuePagingNum)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
