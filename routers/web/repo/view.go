@@ -15,7 +15,6 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
@@ -28,7 +27,6 @@ import (
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -57,15 +55,6 @@ type namedBlob struct {
 	name      string
 	isSymlink bool
 	blob      *git.Blob
-}
-
-func linesBytesCount(s []byte) int {
-	nl := []byte{'\n'}
-	n := bytes.Count(s, nl)
-	if len(s) > 0 && !bytes.HasSuffix(s, nl) {
-		n++
-	}
-	return n
 }
 
 // FIXME: There has to be a more efficient way of doing this
@@ -557,8 +546,14 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
-			lineNums := linesBytesCount(buf)
-			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
+
+			// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
+			// the NumLines is only used for the display on the UI: "xxx lines"
+			if len(buf) == 0 {
+				ctx.Data["NumLines"] = 0
+			} else {
+				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
+			}
 			ctx.Data["NumLinesSet"] = true
 
 			language := ""
@@ -586,7 +581,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
+			fileContent, err := highlight.File(blob.Name(), language, buf)
+			if err != nil {
+				log.Error("highlight.File failed, fallback to plain text: %v", err)
+				fileContent = highlight.PlainText(buf)
+			}
 			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
 			ctx.Data["EscapeStatus"] = status
 			statuses := make([]charset.EscapeStatus, len(fileContent))
@@ -813,11 +812,6 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
 	selected := map[string]bool{}
 	for _, pth := range ctx.FormStrings("f[]") {
 		selected[pth] = true
@@ -834,7 +828,7 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 	}
 
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
@@ -855,15 +849,15 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		}
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
-	}
 
-	statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
 
-	ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
@@ -903,10 +897,14 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
-		if err != nil {
-			ctx.ServerError("GitRepo.IsEmpty", err)
-			return
+		reallyEmpty := true
+		var err error
+		if ctx.Repo.GitRepo != nil {
+			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			if err != nil {
+				ctx.ServerError("GitRepo.IsEmpty", err)
+				return
+			}
 		}
 		if reallyEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)

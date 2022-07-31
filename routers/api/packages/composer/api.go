@@ -76,7 +76,7 @@ type PackageVersionMetadata struct {
 	Dist    Dist      `json:"dist"`
 }
 
-// Dist contains package download informations
+// Dist contains package download information
 type Dist struct {
 	Type     string `json:"type"`
 	URL      string `json:"url"`
@@ -88,7 +88,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 
 	for _, pd := range pds {
 		packageType := ""
-		for _, pvp := range pd.Properties {
+		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == composer_module.TypeProperty {
 				packageType = pvp.Value
 				break

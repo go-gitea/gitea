@@ -149,13 +149,13 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 
 You can then add blocks like the following to your markdown:
 
-    ```plantuml
-        Alice -> Bob: Authentication Request
-        Bob --> Alice: Authentication Response
+```plantuml
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
 
-        Alice -> Bob: Another authentication Request
-        Alice <-- Bob: Another authentication Response
-    ```
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: Another authentication Response
+```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
@@ -202,7 +202,7 @@ You can display STL file directly in Gitea by adding:
 
 to the file `templates/custom/footer.tmpl`
 
-You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `$GITEA_CUSTOM/public/` folder.
+You also need to download the content of the library [Madeleine.js](https://github.com/beige90/Madeleine.js) and place it under `$GITEA_CUSTOM/public/` folder.
 
 You should end-up with a folder structure similar to:
 

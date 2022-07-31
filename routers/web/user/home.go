@@ -591,6 +591,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			LabelIDs:   opts.LabelIDs,
 			Org:        org,
 			Team:       team,
+			RepoCond:   opts.RepoCond,
 		}
 
 		issueStats, err = issues_model.GetUserIssueStats(statsOpts)

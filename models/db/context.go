@@ -100,7 +100,7 @@ func TxContext() (*Context, Committer, error) {
 }
 
 // WithTx represents executing database operations on a transaction
-// you can optionally change the context to a parrent one
+// you can optionally change the context to a parent one
 func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
 	parentCtx := DefaultContext
 	if len(stdCtx) != 0 && stdCtx[0] != nil {

@@ -7,7 +7,6 @@ package migrations
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -268,7 +267,7 @@ func (g *GiteaLocalUploader) CreateReleases(releases ...*base.Release) error {
 		// calc NumCommits if possible
 		if rel.TagName != "" {
 			commit, err := g.gitRepo.GetTagCommit(rel.TagName)
-			if !errors.Is(err, git.ErrNotExist{}) {
+			if !git.IsErrNotExist(err) {
 				if err != nil {
 					return fmt.Errorf("GetTagCommit[%v]: %v", rel.TagName, err)
 				}

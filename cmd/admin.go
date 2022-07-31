@@ -156,6 +156,10 @@ var (
 				Name:  "email,e",
 				Usage: "Email of the user to delete",
 			},
+			cli.BoolFlag{
+				Name:  "purge",
+				Usage: "Purge user, all their repositories, organizations and comments",
+			},
 		},
 		Action: runDeleteUser,
 	}
@@ -627,9 +631,10 @@ func runListUsers(c *cli.Context) error {
 			}
 		}
 	} else {
-		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\n")
+		twofa := user_model.UserList(users).GetTwoFaStatus()
+		fmt.Fprintf(w, "ID\tUsername\tEmail\tIsActive\tIsAdmin\t2FA\n")
 		for _, u := range users {
-			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin)
+			fmt.Fprintf(w, "%d\t%s\t%s\t%t\t%t\t%t\n", u.ID, u.Name, u.Email, u.IsActive, u.IsAdmin, twofa[u.ID])
 		}
 
 	}
@@ -674,7 +679,7 @@ func runDeleteUser(c *cli.Context) error {
 		return fmt.Errorf("The user %s does not match the provided id %d", user.Name, c.Int64("id"))
 	}
 
-	return user_service.DeleteUser(user)
+	return user_service.DeleteUser(ctx, user, c.Bool("purge"))
 }
 
 func runGenerateAccessToken(c *cli.Context) error {
