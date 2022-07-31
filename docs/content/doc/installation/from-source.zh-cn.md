@@ -26,7 +26,7 @@ go get -d -u code.gitea.io/gitea
 cd $GOPATH/src/code.gitea.io/gitea
 ```
 
-然后你可以选择编译和安装的版本，当前你有多个选择。如果你想编译 `master` 版本，你可以直接跳到 [编译](#build) 部分，这是我们的开发分支，虽然也很稳定但不建议您在正式产品中使用。
+然后你可以选择编译和安装的版本，当前你有多个选择。如果你想编译 `master` 版本，你可以直接跳到 [编译](#编译) 部分，这是我们的开发分支，虽然也很稳定但不建议您在正式产品中使用。
 
 如果你想编译最新稳定分支，你可以执行以下命令签出源码：
 
@@ -55,9 +55,9 @@ git checkout v{{< version >}}
 
 按照您的编译需求，以下 tags 可以使用：
 
-* `bindata`: 这个编译选项将会把运行Gitea所需的所有外部资源都打包到可执行文件中，这样部署将非常简单因为除了可执行程序将不再需要任何其他文件。
-* `sqlite sqlite_unlock_notify`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
-* `pam`: 这个编译选项将会启用 PAM (Linux Pluggable Authentication Modules) 认证，如果你使用这一认证模式的话需要开启这个选项。
+- `bindata`: 这个编译选项将会把运行Gitea所需的所有外部资源都打包到可执行文件中，这样部署将非常简单因为除了可执行程序将不再需要任何其他文件。
+- `sqlite sqlite_unlock_notify`: 这个编译选项将启用SQLite3数据库的支持，建议只在少数人使用时使用这个模式。
+- `pam`: 这个编译选项将会启用 PAM (Linux Pluggable Authentication Modules) 认证，如果你使用这一认证模式的话需要开启这个选项。
 
 使用 bindata 可以打包资源文件到二进制可以使开发和测试更容易，你可以根据自己的需求决定是否打包资源文件。
 要包含资源文件，请使用 `bindata` tag：

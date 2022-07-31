@@ -30,7 +30,6 @@ cd $GOPATH/src/code.gitea.io/gitea
 
 Maintenant, il est temps de décider quelle version de Gitea vous souhaitez compiler et installer. Actuellement, ils existent plusieurs options possibles. Si vous voulez compiler notre branche `master`, vous pouvez directement passer à la [section compilation](#compilation), cette branche représente la dernière version en cours de développement et n'a pas vocation à être utiliser en production.
 
-
 Si vous souhaitez compiler la dernière version stable, utilisez les étiquettes ou les différentes branches disponibles. Vous pouvez voir les branches disponibles et comment utiliser cette branche avec ces commandes:
 
 ```

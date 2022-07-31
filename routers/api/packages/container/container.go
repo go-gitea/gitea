@@ -112,7 +112,7 @@ func apiErrorDefined(ctx *context.Context, err *namedError) {
 // ReqContainerAccess is a middleware which checks the current user valid (real user or ghost for anonymous access)
 func ReqContainerAccess(ctx *context.Context) {
 	if ctx.Doer == nil {
-		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token"`)
+		ctx.Resp.Header().Add("WWW-Authenticate", `Bearer realm="`+setting.AppURL+`v2/token",service="container_registry",scope="*"`)
 		apiErrorDefined(ctx, errUnauthorized)
 	}
 }
@@ -148,6 +148,39 @@ func Authenticate(ctx *context.Context) {
 
 	ctx.JSON(http.StatusOK, map[string]string{
 		"token": token,
+	})
+}
+
+// https://docs.docker.com/registry/spec/api/#listing-repositories
+func GetRepositoryList(ctx *context.Context) {
+	n := ctx.FormInt("n")
+	if n <= 0 || n > 100 {
+		n = 100
+	}
+	last := ctx.FormTrim("last")
+
+	repositories, err := container_model.GetRepositories(ctx, ctx.Doer, n, last)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	type RepositoryList struct {
+		Repositories []string `json:"repositories"`
+	}
+
+	if len(repositories) == n {
+		v := url.Values{}
+		if n > 0 {
+			v.Add("n", strconv.Itoa(n))
+		}
+		v.Add("last", repositories[len(repositories)-1])
+
+		ctx.Resp.Header().Set("Link", fmt.Sprintf(`</v2/_catalog?%s>; rel="next"`, v.Encode()))
+	}
+
+	jsonResponse(ctx, http.StatusOK, RepositoryList{
+		Repositories: repositories,
 	})
 }
 

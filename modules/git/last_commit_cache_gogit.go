@@ -9,71 +9,25 @@ package git
 import (
 	"context"
 
-	"code.gitea.io/gitea/modules/log"
-
-	"github.com/go-git/go-git/v5/plumbing/object"
 	cgobject "github.com/go-git/go-git/v5/plumbing/object/commitgraph"
 )
 
-// LastCommitCache represents a cache to store last commit
-type LastCommitCache struct {
-	repoPath    string
-	ttl         func() int64
-	repo        *Repository
-	commitCache map[string]*object.Commit
-	cache       Cache
-}
-
-// NewLastCommitCache creates a new last commit cache for repo
-func NewLastCommitCache(repoPath string, gitRepo *Repository, ttl func() int64, cache Cache) *LastCommitCache {
-	if cache == nil {
+// CacheCommit will cache the commit from the gitRepository
+func (c *Commit) CacheCommit(ctx context.Context) error {
+	if c.repo.LastCommitCache == nil {
 		return nil
 	}
-	return &LastCommitCache{
-		repoPath:    repoPath,
-		repo:        gitRepo,
-		commitCache: make(map[string]*object.Commit),
-		ttl:         ttl,
-		cache:       cache,
-	}
-}
+	commitNodeIndex, _ := c.repo.CommitNodeIndex()
 
-// Get get the last commit information by commit id and entry path
-func (c *LastCommitCache) Get(ref, entryPath string) (interface{}, error) {
-	v := c.cache.Get(c.getCacheKey(c.repoPath, ref, entryPath))
-	if vs, ok := v.(string); ok {
-		log.Debug("LastCommitCache hit level 1: [%s:%s:%s]", ref, entryPath, vs)
-		if commit, ok := c.commitCache[vs]; ok {
-			log.Debug("LastCommitCache hit level 2: [%s:%s:%s]", ref, entryPath, vs)
-			return commit, nil
-		}
-		id, err := c.repo.ConvertToSHA1(vs)
-		if err != nil {
-			return nil, err
-		}
-		commit, err := c.repo.GoGitRepo().CommitObject(id)
-		if err != nil {
-			return nil, err
-		}
-		c.commitCache[vs] = commit
-		return commit, nil
-	}
-	return nil, nil
-}
-
-// CacheCommit will cache the commit from the gitRepository
-func (c *LastCommitCache) CacheCommit(ctx context.Context, commit *Commit) error {
-	commitNodeIndex, _ := commit.repo.CommitNodeIndex()
-
-	index, err := commitNodeIndex.Get(commit.ID)
+	index, err := commitNodeIndex.Get(c.ID)
 	if err != nil {
 		return err
 	}
 
-	return c.recursiveCache(ctx, index, &commit.Tree, "", 1)
+	return c.recursiveCache(ctx, index, &c.Tree, "", 1)
 }
 
-func (c *LastCommitCache) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
+func (c *Commit) recursiveCache(ctx context.Context, index cgobject.CommitNode, tree *Tree, treePath string, level int) error {
 	if level == 0 {
 		return nil
 	}
@@ -90,7 +44,7 @@ func (c *LastCommitCache) recursiveCache(ctx context.Context, index cgobject.Com
 		entryMap[entry.Name()] = entry
 	}
 
-	commits, err := GetLastCommitForPaths(ctx, c, index, treePath, entryPaths)
+	commits, err := GetLastCommitForPaths(ctx, c.repo.LastCommitCache, index, treePath, entryPaths)
 	if err != nil {
 		return err
 	}

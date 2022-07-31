@@ -50,7 +50,7 @@ func getCreateFileOptions() api.CreateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForCreate(repoFullName, commitID, treePath string) *api.FileResponse {
+func getExpectedFileResponseForCreate(repoFullName, commitID, treePath, latestCommitSHA string) *api.FileResponse {
 	sha := "a635aa942442ddfdba07468cf9661c08fbdf0ebf"
 	encoding := "base64"
 	content := "VGhpcyBpcyBuZXcgdGV4dA=="
@@ -60,17 +60,18 @@ func getExpectedFileResponseForCreate(repoFullName, commitID, treePath string) *
 	downloadURL := setting.AppURL + repoFullName + "/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:        filepath.Base(treePath),
-			Path:        treePath,
-			SHA:         sha,
-			Size:        16,
-			Type:        "file",
-			Encoding:    &encoding,
-			Content:     &content,
-			URL:         &selfURL,
-			HTMLURL:     &htmlURL,
-			GitURL:      &gitURL,
-			DownloadURL: &downloadURL,
+			Name:          filepath.Base(treePath),
+			Path:          treePath,
+			SHA:           sha,
+			LastCommitSHA: latestCommitSHA,
+			Size:          16,
+			Type:          "file",
+			Encoding:      &encoding,
+			Content:       &content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -170,7 +171,8 @@ func TestAPICreateFile(t *testing.T) {
 			resp := session.MakeRequest(t, req, http.StatusCreated)
 			gitRepo, _ := git.OpenRepository(stdCtx.Background(), repo1.RepoPath())
 			commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath)
+			latestCommit, _ := gitRepo.GetCommitByPath(treePath)
+			expectedFileResponse := getExpectedFileResponseForCreate("user2/repo1", commitID, treePath, latestCommit.ID.String())
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
 			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
@@ -289,7 +291,8 @@ func TestAPICreateFile(t *testing.T) {
 		emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerName: "user2", Name: "empty-repo"}).(*repo_model.Repository) // public repo
 		gitRepo, _ := git.OpenRepository(stdCtx.Background(), emptyRepo.RepoPath())
 		commitID, _ := gitRepo.GetBranchCommitID(createFileOptions.NewBranchName)
-		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath)
+		latestCommit, _ := gitRepo.GetCommitByPath(treePath)
+		expectedFileResponse := getExpectedFileResponseForCreate("user2/empty-repo", commitID, treePath, latestCommit.ID.String())
 		DecodeJSON(t, resp, &fileResponse)
 		assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)
 		assert.EqualValues(t, expectedFileResponse.Commit.SHA, fileResponse.Commit.SHA)
