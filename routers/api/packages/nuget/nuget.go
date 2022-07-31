@@ -102,7 +102,7 @@ func RegistrationLeaf(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
