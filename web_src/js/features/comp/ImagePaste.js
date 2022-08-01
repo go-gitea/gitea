@@ -17,7 +17,7 @@ export function addUploadedFileToEditor(editor, file) {
   const fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
   if (startPos) {
     if (editor.setSelection) {
-      if (startPos.line) {
+      if (startPos.line !== undefined) {
         editor.setSelection(startPos, endPos);
         editor.replaceSelection(`${isimage}[${fileName}](/attachments/${file.uuid})\n`);
       } else {
