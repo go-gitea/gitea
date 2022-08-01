@@ -78,6 +78,7 @@ Values containing `#` or `;` must be quoted using `` ` `` or `"""`.
 - `DEFAULT_BRANCH`: **main**: Default branch name of all repositories.
 - `ALLOW_ADOPTION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to adopt unadopted repositories
 - `ALLOW_DELETION_OF_UNADOPTED_REPOSITORIES`: **false**: Allow non-admin users to delete unadopted repositories
+- `DISABLE_DOWNLOAD_SOURCE_ARCHIVES`: **false**: Don't allow download source archive files from UI
 
 ### Repository - Editor (`repository.editor`)
 
