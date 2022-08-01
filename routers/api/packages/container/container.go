@@ -147,13 +147,7 @@ func Authenticate(ctx *context.Context) {
 		//
 		// If there are no query parameters, then we're creating a token for a
 		// future anonymous request, and should let it pass through successfully.
-		params, err := url.ParseQuery(ctx.Req.URL.RawQuery)
-		if err != nil {
-			apiError(ctx, http.StatusInternalServerError, err)
-			return
-		}
-		scope := params.Get("scope")
-		if len(params) > 0 && scope == "" {
+		if ctx.FormTrim("scope") == "" {
 			apiErrorDefined(ctx, errUnauthorized)
 			return
 		}
