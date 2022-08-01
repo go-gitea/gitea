@@ -19,7 +19,6 @@ menu:
 
 Gitea 会在日志文件 `log/gitea.log` 中记录登录失败的 CLI、SSH 或 HTTP 客户端 IP 地址，而你需要将 Gitea 的日志输出模式从默认的 `console` 更改为 `file`。这表示将日志输出到文件，使得 fail2ban 可以定期扫描日志内容。
 
-
 当用户的身份验证失败时，日志中会记录此类信息：
 
 ```log
