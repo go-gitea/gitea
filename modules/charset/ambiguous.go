@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 )
 
+// AmbiguousTablesForLocale provides the table of ambiguous characters for this locale.
 func AmbiguousTablesForLocale(locale translation.Locale) []*AmbiguousTable {
 	key := locale.Language()
 	var table *AmbiguousTable
