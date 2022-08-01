@@ -1286,7 +1286,7 @@ PROXY_HOSTS = *.github.com
 
 ## User (`user`)
 
-- `USER_SETTING_DISABLED_MODULES`:**** Disabled modules from user settings, could be passwods, deletion, security, applications, gpg keys, organiztions
+- `USER_SETTING_DISABLED_MODULES`:**** Disabled modules from user settings, could be a copmosite of `password`, `deletion`, `security`, `applications`, `gpg keys`, `organizations` with a comma.
 
 ## Other (`other`)
 
