@@ -25,14 +25,13 @@ export function initStopwatch() {
     $(this).parent().trigger('submit');
   });
 
-  // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the TimerPoller is used.
+  // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
   const currSeconds = $('.stopwatch-time').attr('data-seconds');
   if (currSeconds) {
     updateStopwatchTime(currSeconds);
   }
 
   let usingPeriodicPoller = false;
-  // poll the stopwatch status periodically
   const startPeriodicPoller = (timeout) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
@@ -149,9 +148,8 @@ function clearStopwatchTimer() {
 }
 function updateStopwatchTime(seconds) {
   const secs = parseInt(seconds);
-  if (!Number.isFinite(secs)) {
-    return;
-  }
+  if (!Number.isFinite(secs)) return;
+
   clearStopwatchTimer();
   const $stopwatch = $('.stopwatch-time');
   const start = Date.now();
