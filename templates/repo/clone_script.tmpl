@@ -1,6 +1,8 @@
 <script>
 	// synchronously set clone button states and urls here to avoid flickering
 	// on page load. initRepoCloneLink calls this when proto changes.
+	// this applies changes to all elements with the js-clone-url class, and allows
+	// customization using the `data-attr` and `data-prefix` attributes.
 	// TODO: This localStorage setting should be moved to backend user config
 	// so it's available during rendering, then this inline script can be removed.
 	(window.updateCloneStates = function() {
@@ -17,7 +19,9 @@
 
 		const link = btn.getAttribute('data-link');
 		for (const el of document.getElementsByClassName('js-clone-url')) {
-			el[el.nodeName === 'INPUT' ? 'value' : 'textContent'] = link;
+			let attr = el.nodeName === 'INPUT' ? 'value' : 'textContent';
+			attr = el.getAttribute('data-attr') || attr;
+			el[attr] = `${el.getAttribute('data-prefix') || ''}${link}`;
 		}
 	})();
 </script>
