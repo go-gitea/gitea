@@ -52,7 +52,9 @@ bantime = 900
 action = iptables-allports
 ```
 
-如果你的 Gitea 实例运行在 Docker 容器中，并且直接将容器端口暴露到外部网络，你还需要添加 `chain="FORWARD"` 到监狱规则配置文件 `/etc/fail2ban/jail.d/gitea-docker.conf` 以适应 Docker 的网络转发规则。但如果你在容器的宿主机上使用 Nginx 反向代理连接到 Gitea 则无需这样配置。
+如果你的 Gitea 实例运行在 Docker 容器中，并且直接将容器端口暴露到外部网络，
+你还需要添加 `chain="FORWARD"` 到监狱规则配置文件 `/etc/fail2ban/jail.d/gitea-docker.conf`
+ 以适应 Docker 的网络转发规则。但如果你在容器的宿主机上使用 Nginx 反向代理连接到 Gitea 则无需这样配置。
 
 ```ini
 [gitea-docker]
