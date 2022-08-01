@@ -1,8 +1,8 @@
 <script>
 	// synchronously set clone button states and urls here to avoid flickering
 	// on page load. initRepoCloneLink calls this when proto changes.
-	// this applies changes to all elements with the js-clone-url class, and allows
-	// customization using the `data-attr` and `data-prefix` attributes.
+	// this applies the protocol-dependant clone url to all elements with the
+	// `js-clone-url` and `js-clone-url-vs` classes.
 	// TODO: This localStorage setting should be moved to backend user config
 	// so it's available during rendering, then this inline script can be removed.
 	(window.updateCloneStates = function() {
@@ -19,11 +19,11 @@
 
 		const link = btn.getAttribute('data-link');
 		for (const el of document.getElementsByClassName('js-clone-url')) {
-			const prefix = el.getAttribute('data-prefix') || '';
-			let attr = el.getAttribute('data-attr');
-			if (!attr)
-				attr = el.nodeName === 'INPUT' ? 'value' : 'textContent';
-			el[attr] = prefix + link;
+			const attr = (el.nodeName === 'INPUT') ? 'value' : 'textContent';
+			el[attr] = link;
+		}
+		for (const el of document.getElementsByClassName('js-clone-url-vs')) {
+			el['href'] = `vscode://vscode.git/clone?url=${encodeURIComponent(link)`;
 		}
 	})();
 </script>
