@@ -19,9 +19,11 @@
 
 		const link = btn.getAttribute('data-link');
 		for (const el of document.getElementsByClassName('js-clone-url')) {
-			let attr = el.nodeName === 'INPUT' ? 'value' : 'textContent';
-			attr = el.getAttribute('data-attr') || attr;
-			el[attr] = `${el.getAttribute('data-prefix') || ''}${link}`;
+			const prefix = el.getAttribute('data-prefix') || '';
+			let attr = el.getAttribute('data-attr');
+			if (!attr)
+				attr = el.nodeName === 'INPUT' ? 'value' : 'textContent';
+			el[attr] = prefix + link;
 		}
 	})();
 </script>
