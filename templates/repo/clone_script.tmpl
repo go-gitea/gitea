@@ -23,7 +23,7 @@
 			el[attr] = link;
 		}
 		for (const el of document.getElementsByClassName('js-clone-url-vs')) {
-			el['href'] = `vscode://vscode.git/clone?url=${encodeURIComponent(link)}`;
+			el['href'] = 'vscode://vscode.git/clone?url=' + encodeURIComponent(link);
 		}
 	})();
 </script>
