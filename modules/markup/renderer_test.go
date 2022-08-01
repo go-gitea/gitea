@@ -59,6 +59,16 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 			idx:      0,
 		},
 		{
+			name:     "README.md",
+			expected: true,
+			idx:      0,
+		},
+		{
+			name:     "ReAdMe.Md",
+			expected: true,
+			idx:      0,
+		},
+		{
 			name:     "readme.txt",
 			expected: true,
 			idx:      1,
