@@ -2063,10 +2063,6 @@
     }
 
     &.view {
-      .choose.page {
-        margin-top: -5px;
-      }
-
       > .markup {
         padding: 15px 30px;
 
@@ -2091,6 +2087,12 @@
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
+      }
+    }
+
+    @media @mediaSm {
+      #clone-panel #repo-clone-url {
+        width: 160px;
       }
     }
   }
@@ -2781,6 +2783,31 @@
   margin: 2px 0;
   display: inline-block !important;
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
+}
+
+.repo-button-row {
+  margin-bottom: 10px;
+}
+
+.repo-button-row > * {
+  margin-top: 10px;
+}
+
+.wiki .repo-button-row  {
+  margin-bottom: 0;
+}
+
+.wiki .repo-button-row > * {
+  margin-top: 0;
+}
+
+.repo-button-row .button {
+  padding: 6px 10px !important;
+  height: 30px;
+}
+
+.repo-button-row input {
+  height: 30px;
 }
 
 tbody.commit-list {

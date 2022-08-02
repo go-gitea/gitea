@@ -60,8 +60,8 @@
 			</div>
 		{{end}}
 		{{template "repo/sub_menu" .}}
-		<div class="flex-button-row df ac sb fw">
-			<div class="df ac mt-3">
+		<div class="repo-button-row df ac sb fw">
+			<div class="df ac">
 				{{template "repo/branch_dropdown" dict "root" .}}
 				{{ $n := len .TreeNames}}
 				{{ $l := Subtract $n 1}}
@@ -105,7 +105,7 @@
 					<span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{ $p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span>
 				{{end}}
 			</div>
-			<div class="df ac mt-3">
+			<div class="df ac">
 				{{if eq $n 0}}
 					{{if .Repository.IsTemplate}}
 						<div class="ui tiny primary buttons">
