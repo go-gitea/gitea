@@ -25,9 +25,6 @@ func PreloadSettings(ctx context.Context) bool {
 		log.Info("Configuration file: %s", setting.CustomConf)
 		log.Info("Prepare to run install page")
 		translation.InitLocales()
-		if setting.EnableSQLite3 {
-			log.Info("SQLite3 is supported")
-		}
 		setting.InitDBConfig()
 		setting.NewServicesForInstall()
 		svg.Init()

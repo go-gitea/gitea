@@ -126,12 +126,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	external.RegisterRenderers()
 	markup.Init()
 
-	if setting.EnableSQLite3 {
-		log.Info("SQLite3 support is enabled")
-	} else if setting.Database.UseSQLite3 {
-		log.Fatal("SQLite3 support is disabled, but it is used for database setting. Please get or build a Gitea release with SQLite3 support.")
-	}
-
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
 	mustInit(appstate.Init)

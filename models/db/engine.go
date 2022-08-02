@@ -22,6 +22,7 @@ import (
 	_ "github.com/denisenkom/go-mssqldb" // Needed for the MSSQL driver
 	_ "github.com/go-sql-driver/mysql"   // Needed for the MySQL driver
 	_ "github.com/lib/pq"                // Needed for the Postgresql driver
+	_ "modernc.org/sqlite"               // Needed for the SQLite3 driver
 )
 
 var (

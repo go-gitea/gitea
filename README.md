@@ -67,10 +67,6 @@ From the root of the source tree, run:
 
     TAGS="bindata" make build
 
-or if SQLite support is required:
-
-    TAGS="bindata sqlite sqlite_unlock_notify" make build
-
 The `build` target is split into two sub-targets:
 
 - `make backend` which requires [Go Stable](https://go.dev/dl/), required version is defined in [go.mod](/go.mod).

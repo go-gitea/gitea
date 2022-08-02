@@ -5,7 +5,6 @@
 package setting
 
 import (
-	"errors"
 	"fmt"
 	"net/url"
 	"os"
@@ -19,12 +18,9 @@ import (
 
 var (
 	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql"}
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
 	// DatabaseTypeNames contains the friendly names for all database types
 	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
-
-	// EnableSQLite3 use SQLite3, set by build flag
-	EnableSQLite3 bool
 
 	// Database holds the database settings
 	Database = struct {
@@ -67,7 +63,10 @@ func InitDBConfig() {
 	Database.UseMSSQL = false
 
 	switch Database.Type {
-	case "sqlite3":
+	case "sqlite3", "sqlite":
+		if Database.Type == "sqlite3" {
+			Database.Type = "sqlite"
+		}
 		Database.UseSQLite3 = true
 	case "mysql":
 		Database.UseMySQL = true
@@ -132,10 +131,7 @@ func DBConnStr() (string, error) {
 	case "mssql":
 		host, port := ParseMSSQLHostPort(Database.Host)
 		connStr = fmt.Sprintf("server=%s; port=%s; database=%s; user id=%s; password=%s;", host, port, Database.Name, Database.User, Database.Passwd)
-	case "sqlite3":
-		if !EnableSQLite3 {
-			return "", errors.New("this binary version does not build support for SQLite3")
-		}
+	case "sqlite3", "sqlite":
 		if err := os.MkdirAll(path.Dir(Database.Path), os.ModePerm); err != nil {
 			return "", fmt.Errorf("Failed to create directories: %v", err)
 		}

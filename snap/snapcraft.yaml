@@ -50,7 +50,7 @@ parts:
       - LDFLAGS: ""
     override-pull: |
       snapcraftctl pull
-      
+
       last_committed_tag="$(git for-each-ref --sort=taggerdate --format '%(tag)' refs/tags | tail -n 1)"
       last_released_tag="$(snap info gitea | awk '$1 == "latest/candidate:" { print $2 }')"
       # If the latest tag from the upstream project has not been released to
@@ -58,7 +58,7 @@ parts:
       if [ "${last_committed_tag}" != "${last_released_tag}" ]; then
         git fetch
         git checkout "${last_committed_tag}"
-      fi          
+      fi
 
       version="$(git describe --always | sed -e 's/-/+git/;y/-/./')"
       [ -n "$(echo $version | grep "+git")" ] && grade=devel || grade=stable
@@ -68,7 +68,7 @@ parts:
     override-build: |
       set -x
       sed -i 's/os.Getuid()/1/g' modules/setting/setting.go
-      TAGS="bindata sqlite sqlite_unlock_notify pam cert" make build
+      TAGS="bindata pam cert" make build
       install -D gitea "${SNAPCRAFT_PART_INSTALL}/gitea"
       cp -r options "${SNAPCRAFT_PART_INSTALL}/"
 

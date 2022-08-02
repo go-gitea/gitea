@@ -102,16 +102,10 @@ func checkDatabase(checks checks) status {
 	}
 
 	if setting.Database.UseSQLite3 && st.Status == pass {
-		if !setting.EnableSQLite3 {
+		if _, err := os.Stat(setting.Database.Path); err != nil {
 			st.Status = fail
 			st.Time = getCheckTime()
-			log.Error("SQLite3 health check failed with error: %v", "this Gitea binary is built without SQLite3 enabled")
-		} else {
-			if _, err := os.Stat(setting.Database.Path); err != nil {
-				st.Status = fail
-				st.Time = getCheckTime()
-				log.Error("SQLite3 file exists check failed with error: %v", err)
-			}
+			log.Error("SQLite3 file exists check failed with error: %v", err)
 		}
 	}
 
