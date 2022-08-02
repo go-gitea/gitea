@@ -406,6 +406,8 @@ var migrations = []Migration{
 	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
 	// v223 -> v224
 	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+	// v224 -> v225
+	NewMigration("Add container repository property", addDescriptionAndReadmeColsForPackage),
 }
 
 // GetCurrentDBVersion returns the current db version
