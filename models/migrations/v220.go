@@ -5,20 +5,25 @@
 package migrations
 
 import (
-	"fmt"
+	packages_model "code.gitea.io/gitea/models/packages"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func addMilestoneLabels(x *xorm.Engine) error {
-	type MilestoneLabel struct {
-		ID          int64 `xorm:"pk autoincr"`
-		MilestoneID int64 `xorm:"UNIQUE(milestoneid_labelid)"`
-		LabelID     int64 `xorm:"UNIQUE(milestoneid_labelid)"`
-	}
-
-	if err := x.Sync2(new(MilestoneLabel)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+func addContainerRepositoryProperty(x *xorm.Engine) error {
+	switch x.Dialect().URI().DBType {
+	case schemas.SQLITE:
+		_, err := x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, u.lower_name || '/' || p.lower_name FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?", packages_model.PropertyTypePackage, container_module.PropertyRepository, packages_model.TypeContainer)
+		if err != nil {
+			return err
+		}
+	default:
+		_, err := x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, CONCAT(u.lower_name, '/', p.lower_name) FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?", packages_model.PropertyTypePackage, container_module.PropertyRepository, packages_model.TypeContainer)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

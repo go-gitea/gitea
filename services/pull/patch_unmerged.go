@@ -42,6 +42,17 @@ func (line *lsFileLine) SameAs(other *lsFileLine) bool {
 		line.path == other.path
 }
 
+// String provides a string representation for logging
+func (line *lsFileLine) String() string {
+	if line == nil {
+		return "<nil>"
+	}
+	if line.err != nil {
+		return fmt.Sprintf("%d %s %s %s %v", line.stage, line.mode, line.path, line.sha, line.err)
+	}
+	return fmt.Sprintf("%d %s %s %s", line.stage, line.mode, line.path, line.sha)
+}
+
 // readUnmergedLsFileLines calls git ls-files -u -z and parses the lines into mode-sha-stage-path quadruplets
 // it will push these to the provided channel closing it at the end
 func readUnmergedLsFileLines(ctx context.Context, tmpBasePath string, outputChan chan *lsFileLine) {
@@ -118,6 +129,17 @@ type unmergedFile struct {
 	err    error
 }
 
+// String provides a string representation of the an unmerged file for logging
+func (u *unmergedFile) String() string {
+	if u == nil {
+		return "<nil>"
+	}
+	if u.err != nil {
+		return fmt.Sprintf("error: %v\n%v\n%v\n%v", u.err, u.stage1, u.stage2, u.stage3)
+	}
+	return fmt.Sprintf("%v\n%v\n%v", u.stage1, u.stage2, u.stage3)
+}
+
 // unmergedFiles will collate the output from readUnstagedLsFileLines in to file triplets and send them
 // to the provided channel, closing at the end.
 func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmergedFile) {
@@ -138,6 +160,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 
 	next := &unmergedFile{}
 	for line := range lsFileLineChan {
+		log.Trace("Got line: %v Current State:\n%v", line, next)
 		if line.err != nil {
 			log.Error("Unable to run ls-files -u -z! Error: %v", line.err)
 			unmerged <- &unmergedFile{err: fmt.Errorf("unable to run ls-files -u -z! Error: %v", line.err)}
@@ -149,7 +172,7 @@ func unmergedFiles(ctx context.Context, tmpBasePath string, unmerged chan *unmer
 		case 0:
 			// Should not happen as this represents successfully merged file - we will tolerate and ignore though
 		case 1:
-			if next.stage1 != nil {
+			if next.stage1 != nil || next.stage2 != nil || next.stage3 != nil {
 				// We need to handle the unstaged file stage1,stage2,stage3
 				unmerged <- next
 			}
