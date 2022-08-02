@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package markdown
+package extension
 
 import (
 	"fmt"
@@ -14,7 +14,8 @@ import (
 	"github.com/yuin/goldmark/ast"
 )
 
-func createTOCNode(toc []markup.Header, lang string) ast.Node {
+// CreateTOCNode creates a Table of Contents node for a provided slices of Headers corresponding to the TOC
+func CreateTOCNode(toc []markup.Header, lang string) ast.Node {
 	details := NewDetails()
 	summary := NewSummary()
 

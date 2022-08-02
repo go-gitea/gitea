@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/markup/markdown/config"
 	"code.gitea.io/gitea/modules/markup/markdown/math"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
@@ -39,7 +40,6 @@ var (
 	isWikiKey        = parser.NewContextKey()
 	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
-	renderConfigKey  = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -122,10 +122,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 						}
 					}),
 				),
-				math.NewExtension(
-					math.Enabled(setting.Markdown.EnableMath),
-					math.WithInlineDollarParser(setting.Markdown.EnableInlineDollarMath),
-				),
+				math.NewExtension(),
 				meta.Meta,
 			),
 			goldmark.WithParserOptions(
@@ -175,14 +172,20 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 	}
 	buf = giteautil.NormalizeEOL(buf)
 
-	rc := &RenderConfig{
+	rc := &config.RenderConfig{
 		Meta: "table",
 		Icon: "table",
 		Lang: "",
+		Math: &config.MathConfig{
+			InlineDollar:  setting.Markdown.EnableInlineDollarMath,
+			InlineLatex:   setting.Markdown.EnableMath,
+			DisplayDollar: setting.Markdown.EnableMath,
+			DisplayLatex:  setting.Markdown.EnableMath,
+		},
 	}
 	buf, _ = ExtractMetadataBytes(buf, rc)
 
-	pc.Set(renderConfigKey, rc)
+	config.SetRenderConfig(pc, rc)
 
 	if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)

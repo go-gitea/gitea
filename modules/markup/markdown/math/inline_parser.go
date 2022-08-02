@@ -7,6 +7,7 @@ package math
 import (
 	"bytes"
 
+	"code.gitea.io/gitea/modules/markup/markdown/config"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
@@ -45,6 +46,13 @@ func (parser *inlineParser) Trigger() []byte {
 
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
+	rc := config.GetRenderConfig(pc)
+	if !rc.Math.InlineDollar && parser.start[0] == '$' {
+		return nil
+	} else if !rc.Math.InlineLatex && parser.start[0] == '\\' {
+		return nil
+	}
+
 	line, startSegment := block.PeekLine()
 	opener := bytes.Index(line, parser.start)
 	if opener < 0 {

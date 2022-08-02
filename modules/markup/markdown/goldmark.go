@@ -12,6 +12,8 @@ import (
 
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/markup/markdown/config"
+	"code.gitea.io/gitea/modules/markup/markdown/extension"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
@@ -32,17 +34,13 @@ type ASTTransformer struct{}
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
 	firstChild := node.FirstChild()
-	createTOC := false
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := pc.Get(renderConfigKey).(*RenderConfig)
-	if rc.yamlNode != nil {
-		metaNode := rc.toMetaNode()
-		if metaNode != nil {
-			node.InsertBefore(node, firstChild, metaNode)
-		}
-		createTOC = rc.TOC
-		ctx.TableOfContents = make([]markup.Header, 0, 100)
+	rc := config.GetRenderConfig(pc)
+	metaNode := rc.ToMetaNode()
+	if metaNode != nil {
+		node.InsertBefore(node, firstChild, metaNode)
 	}
+	ctx.TableOfContents = make([]markup.Header, 0, 100)
 
 	_ = ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -161,7 +159,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 						v.AppendChild(v, child)
 						continue
 					}
-					newChild := NewTaskCheckBoxListItem(listItem)
+					newChild := extension.NewTaskCheckBoxListItem(listItem)
 					newChild.IsChecked = taskCheckBox.IsChecked
 					newChild.SetAttributeString("class", []byte("task-list-item"))
 					v.AppendChild(v, newChild)
@@ -181,12 +179,12 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		return ast.WalkContinue, nil
 	})
 
-	if createTOC && len(ctx.TableOfContents) > 0 {
+	if rc.TOC && len(ctx.TableOfContents) > 0 {
 		lang := rc.Lang
 		if len(lang) == 0 {
 			lang = setting.Langs[0]
 		}
-		tocNode := createTOCNode(ctx.TableOfContents, lang)
+		tocNode := extension.CreateTOCNode(ctx.TableOfContents, lang)
 		if tocNode != nil {
 			node.InsertBefore(node, firstChild, tocNode)
 		}
@@ -264,10 +262,10 @@ type HTMLRenderer struct {
 // RegisterFuncs implements renderer.NodeRenderer.RegisterFuncs.
 func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(ast.KindDocument, r.renderDocument)
-	reg.Register(KindDetails, r.renderDetails)
-	reg.Register(KindSummary, r.renderSummary)
-	reg.Register(KindIcon, r.renderIcon)
-	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
+	reg.Register(extension.KindDetails, r.renderDetails)
+	reg.Register(extension.KindSummary, r.renderSummary)
+	reg.Register(extension.KindIcon, r.renderIcon)
+	reg.Register(extension.KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
 
@@ -333,7 +331,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 		return ast.WalkContinue, nil
 	}
 
-	n := node.(*Icon)
+	n := node.(*extension.Icon)
 
 	name := strings.TrimSpace(strings.ToLower(string(n.Name)))
 
@@ -358,7 +356,7 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 }
 
 func (r *HTMLRenderer) renderTaskCheckBoxListItem(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	n := node.(*TaskCheckBoxListItem)
+	n := node.(*extension.TaskCheckBoxListItem)
 	if entering {
 		if n.Attributes() != nil {
 			_, _ = w.WriteString("<li")

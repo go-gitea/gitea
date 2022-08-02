@@ -5,15 +5,14 @@
 package math
 
 import (
+	"code.gitea.io/gitea/modules/markup/markdown/config"
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
 	"github.com/yuin/goldmark/util"
 )
 
-type blockParser struct {
-	parseDollars bool
-}
+type blockParser struct{}
 
 type blockData struct {
 	dollars bool
@@ -23,14 +22,17 @@ type blockData struct {
 var blockInfoKey = parser.NewContextKey()
 
 // NewBlockParser creates a new math BlockParser
-func NewBlockParser(parseDollarBlocks bool) parser.BlockParser {
-	return &blockParser{
-		parseDollars: parseDollarBlocks,
-	}
+func NewBlockParser() parser.BlockParser {
+	return &blockParser{}
 }
 
 // Open parses the current line and returns a result of parsing.
 func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
+	rc := config.GetRenderConfig(pc)
+	if !rc.Math.DisplayDollar && !rc.Math.DisplayLatex {
+		return nil, parser.NoChildren
+	}
+
 	line, _ := reader.PeekLine()
 	pos := pc.BlockOffset()
 	if pos == -1 || len(line[pos:]) < 2 {
@@ -38,9 +40,9 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 	}
 
 	dollars := false
-	if b.parseDollars && line[pos] == '$' && line[pos+1] == '$' {
+	if rc.Math.DisplayDollar && line[pos] == '$' && line[pos+1] == '$' {
 		dollars = true
-	} else if line[pos] != '\\' || line[pos+1] != '[' {
+	} else if !rc.Math.DisplayLatex || line[pos] != '\\' || line[pos+1] != '[' {
 		return nil, parser.NoChildren
 	}
 

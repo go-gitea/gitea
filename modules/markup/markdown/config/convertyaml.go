@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package markdown
+package config
 
 import (
+	"code.gitea.io/gitea/modules/markup/markdown/extension"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"gopkg.in/yaml.v3"
@@ -74,9 +75,9 @@ func sequenceNodeToTable(meta *yaml.Node) ast.Node {
 }
 
 func nodeToDetails(meta *yaml.Node, icon string) ast.Node {
-	details := NewDetails()
-	summary := NewSummary()
-	summary.AppendChild(summary, NewIcon(icon))
+	details := extension.NewDetails()
+	summary := extension.NewSummary()
+	summary.AppendChild(summary, extension.NewIcon(icon))
 	details.AppendChild(details, summary)
 	details.AppendChild(details, nodeToTable(meta))
 
