@@ -1,6 +1,6 @@
 import renderMathInElement from 'katex/dist/contrib/auto-render.js';
 
-const mathNodes = document.querySelectorAll('.math');
+const mathNodes = document.querySelectorAll('.language-math');
 
 const ourRender = (nodes) => {
   for (const element of nodes) {
@@ -29,7 +29,7 @@ const config = {childList: true, subtree: true};
 // Callback function to execute when mutations are observed
 const callback = (records) => {
   for (const record of records) {
-    const mathNodes = record.target.querySelectorAll('.math');
+    const mathNodes = record.target.querySelectorAll('.language-math');
     ourRender(mathNodes);
   }
 };

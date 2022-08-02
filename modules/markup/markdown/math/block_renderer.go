@@ -11,14 +11,11 @@ import (
 )
 
 // BlockRenderer represents a renderer for math Blocks
-type BlockRenderer struct {
-	startDelim string
-	endDelim   string
-}
+type BlockRenderer struct{}
 
 // NewBlockRenderer creates a new renderer for math Blocks
-func NewBlockRenderer(start, end string) renderer.NodeRenderer {
-	return &BlockRenderer{start, end}
+func NewBlockRenderer() renderer.NodeRenderer {
+	return &BlockRenderer{}
 }
 
 // RegisterFuncs registers the renderer for math Blocks
@@ -37,10 +34,10 @@ func (r *BlockRenderer) writeLines(w util.BufWriter, source []byte, n gast.Node)
 func (r *BlockRenderer) renderBlock(w util.BufWriter, source []byte, node gast.Node, entering bool) (gast.WalkStatus, error) {
 	n := node.(*Block)
 	if entering {
-		_, _ = w.WriteString(`<p><span class="math display">` + r.startDelim)
+		_, _ = w.WriteString(`<pre class="code-block is-loading"><code class="chroma language-math display">`)
 		r.writeLines(w, source, n)
 	} else {
-		_, _ = w.WriteString(r.endDelim + `</span></p>` + "\n")
+		_, _ = w.WriteString(`</code></pre>` + "\n")
 	}
 	return gast.WalkContinue, nil
 }

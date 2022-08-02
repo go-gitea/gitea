@@ -13,19 +13,16 @@ import (
 )
 
 // InlineRenderer is an inline renderer
-type InlineRenderer struct {
-	startDelim string
-	endDelim   string
-}
+type InlineRenderer struct{}
 
 // NewInlineRenderer returns a new renderer for inline math
-func NewInlineRenderer(start, end string) renderer.NodeRenderer {
-	return &InlineRenderer{start, end}
+func NewInlineRenderer() renderer.NodeRenderer {
+	return &InlineRenderer{}
 }
 
 func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
 	if entering {
-		_, _ = w.WriteString(`<span class="math inline">` + r.startDelim)
+		_, _ = w.WriteString(`<code class="language-math is-loading">`)
 		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
 			segment := c.(*ast.Text).Segment
 			value := util.EscapeHTML(segment.Value(source))
@@ -40,7 +37,7 @@ func (r *InlineRenderer) renderInline(w util.BufWriter, source []byte, n ast.Nod
 		}
 		return ast.WalkSkipChildren, nil
 	}
-	_, _ = w.WriteString(r.endDelim + `</span>`)
+	_, _ = w.WriteString(`</code>`)
 	return ast.WalkContinue, nil
 }
 

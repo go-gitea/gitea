@@ -710,7 +710,6 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.PageData = map[string]interface{}{}
 			ctx.Data["PageData"] = ctx.PageData
 			ctx.Data["Context"] = &ctx
-			ctx.Data["MathEnabled"] = setting.Markdown.EnableMath
 
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)

@@ -99,7 +99,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							languageStr := string(language)
 
 							preClasses := []string{"code-block"}
-							if languageStr == "mermaid" {
+							if languageStr == "mermaid" || languageStr == "math" {
 								preClasses = append(preClasses, "is-loading")
 							}
 

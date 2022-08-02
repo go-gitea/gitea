@@ -13,13 +13,9 @@ import (
 
 // Extension is a math extension
 type Extension struct {
-	enabled                bool
-	inlineStartDelimRender string
-	inlineEndDelimRender   string
-	blockStartDelimRender  string
-	blockEndDelimRender    string
-	parseDollarInline      bool
-	parseDollarBlock       bool
+	enabled           bool
+	parseDollarInline bool
+	parseDollarBlock  bool
 }
 
 // Option is the interface Options should implement
@@ -66,41 +62,17 @@ func WithBlockDollarParser(enable ...bool) Option {
 	})
 }
 
-// WithInlineDelimRender sets the start and end strings for the rendered inline delimiters
-func WithInlineDelimRender(start, end string) Option {
-	return extensionFunc(func(e *Extension) {
-		e.inlineStartDelimRender = start
-		e.inlineEndDelimRender = end
-	})
-}
-
-// WithBlockDelimRender sets the start and end strings for the rendered block delimiters
-func WithBlockDelimRender(start, end string) Option {
-	return extensionFunc(func(e *Extension) {
-		e.blockStartDelimRender = start
-		e.blockEndDelimRender = end
-	})
-}
-
 // Math represents a math extension with default rendered delimiters
 var Math = &Extension{
-	enabled:                true,
-	inlineStartDelimRender: `\(`,
-	inlineEndDelimRender:   `\)`,
-	blockStartDelimRender:  `\[`,
-	blockEndDelimRender:    `\]`,
-	parseDollarBlock:       true,
+	enabled:          true,
+	parseDollarBlock: true,
 }
 
 // NewExtension creates a new math extension with the provided options
 func NewExtension(opts ...Option) *Extension {
 	r := &Extension{
-		enabled:                true,
-		inlineStartDelimRender: `\(`,
-		inlineEndDelimRender:   `\)`,
-		blockStartDelimRender:  `\[`,
-		blockEndDelimRender:    `\]`,
-		parseDollarBlock:       true,
+		enabled:          true,
+		parseDollarBlock: true,
 	}
 
 	for _, o := range opts {
@@ -128,7 +100,7 @@ func (e *Extension) Extend(m goldmark.Markdown) {
 	m.Parser().AddOptions(parser.WithInlineParsers(inlines...))
 
 	m.Renderer().AddOptions(renderer.WithNodeRenderers(
-		util.Prioritized(NewBlockRenderer(e.blockStartDelimRender, e.blockEndDelimRender), 501),
-		util.Prioritized(NewInlineRenderer(e.inlineStartDelimRender, e.inlineEndDelimRender), 502),
+		util.Prioritized(NewBlockRenderer(), 501),
+		util.Prioritized(NewInlineRenderer(), 502),
 	))
 }

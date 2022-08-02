@@ -72,9 +72,6 @@
 {{else if ne DefaultTheme "gitea"}}
 	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
 {{end}}
-{{if .MathEnabled}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/katex.css?v={{MD5 AppVer}}">
-{{end}}
 {{template "custom/header" .}}
 </head>
 <body>

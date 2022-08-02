@@ -50,6 +50,7 @@ export default {
       fileURLToPath(new URL('web_src/js/index.js', import.meta.url)),
       fileURLToPath(new URL('node_modules/easymde/dist/easymde.min.css', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.css', import.meta.url)),
+      fileURLToPath(new URL('node_modules/katex/dist/katex.css', import.meta.url)),
       fileURLToPath(new URL('web_src/less/index.less', import.meta.url)),
     ],
     swagger: [
@@ -61,12 +62,6 @@ export default {
     ],
     'eventsource.sharedworker': [
       fileURLToPath(new URL('web_src/js/features/eventsource.sharedworker.js', import.meta.url)),
-    ],
-    'katex': [
-      fileURLToPath(new URL('node_modules/katex/dist/katex.min.js', import.meta.url)),
-      fileURLToPath(new URL('node_modules/katex/dist/contrib/auto-render.min.js', import.meta.url)),
-      fileURLToPath(new URL('web_src/js/katex.js', import.meta.url)),
-      fileURLToPath(new URL('node_modules/katex/dist/katex.min.css', import.meta.url)),
     ],
     ...themes,
   },
