@@ -173,8 +173,12 @@
 							{{.locale.Tr "install.email_title"}}
 						</summary>
 						<div class="inline field">
-							<label for="smtp_host">{{.locale.Tr "install.smtp_host"}}</label>
-							<input id="smtp_host" name="smtp_host" value="{{.smtp_host}}">
+							<label for="smtp_addr">{{.locale.Tr "install.smtp_addr"}}</label>
+							<input id="smtp_addr" name="smtp_addr" value="{{.smtp_addr}}">
+						</div>
+						<div class="inline field">
+							<label for="smtp_port">{{.locale.Tr "install.smtp_port"}}</label>
+							<input id="smtp_port" name="smtp_port" value="{{.smtp_port}}">
 						</div>
 						<div class="inline field {{if .Err_SMTPFrom}}error{{end}}">
 							<label for="smtp_from">{{.locale.Tr "install.smtp_from"}}</label>
