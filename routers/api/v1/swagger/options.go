@@ -61,6 +61,8 @@ type swaggerParameterBodies struct {
 	CreateMilestoneOption api.CreateMilestoneOption
 	// in:body
 	EditMilestoneOption api.EditMilestoneOption
+	// in:body
+	MilestoneLabelsOption api.MilestoneLabelsOption
 
 	// in:body
 	CreateOrgOption api.CreateOrgOption

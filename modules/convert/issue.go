@@ -222,6 +222,7 @@ func ToAPIMilestone(m *issues_model.Milestone) *api.Milestone {
 		Description:  m.Content,
 		OpenIssues:   m.NumOpenIssues,
 		ClosedIssues: m.NumClosedIssues,
+		Labels:       ToLabelList(m.Labels, m.Repo, m.Repo.Owner),
 		Created:      m.CreatedUnix.AsTime(),
 		Updated:      m.UpdatedUnix.AsTimePtr(),
 	}

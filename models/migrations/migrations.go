@@ -378,7 +378,7 @@ var migrations = []Migration{
 	// v210 -> v211
 	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
 
-	// Gitea 1.16.2 ends at v211
+	// Gitea 1.16.2 ends at v212
 
 	// v211 -> v212
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
@@ -398,6 +398,8 @@ var migrations = []Migration{
 	NewMigration("Improve Action table indices v2", improveActionTableIndices),
 	// v219 -> v220
 	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add milestone labels", addMilestoneLabels),
 }
 
 // GetCurrentDBVersion returns the current db version

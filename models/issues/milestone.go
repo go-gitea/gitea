@@ -43,7 +43,9 @@ func (err ErrMilestoneNotExist) Error() string {
 type Milestone struct {
 	ID              int64                  `xorm:"pk autoincr"`
 	RepoID          int64                  `xorm:"INDEX"`
+	OwnerID         int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
+	Labels          []*Label               `xorm:"-"`
 	Name            string
 	Content         string `xorm:"TEXT"`
 	RenderedContent string `xorm:"-"`
@@ -118,6 +120,28 @@ func NewMilestone(m *Milestone) (err error) {
 		return err
 	}
 
+	sess := db.GetEngine(db.DefaultContext)
+
+	if len(m.Labels) > 0 {
+		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
+		// So we have to get all needed labels first.
+		labels := m.Labels
+		if err = sess.Find(&m.Labels); err != nil {
+			return fmt.Errorf("find all labels [label_ids: %v]: %v", m.Labels, err)
+		}
+
+		for _, label := range labels {
+			// Silently drop invalid labels.
+			if label.RepoID != m.RepoID && label.OrgID != m.OwnerID {
+				continue
+			}
+
+			if err = m.addLabel(ctx, label, nil); err != nil {
+				return fmt.Errorf("addLabel [id: %d]: %v", label.ID, err)
+			}
+		}
+	}
+
 	if _, err = db.Exec(ctx, "UPDATE `repository` SET num_milestones = num_milestones + 1 WHERE id = ?", m.RepoID); err != nil {
 		return err
 	}
@@ -138,20 +162,44 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 	} else if !has {
 		return nil, ErrMilestoneNotExist{ID: id, RepoID: repoID}
 	}
+	var labels []*Label
+	labels, err = GetLabelsByMilestoneID(m.ID)
+	m.Labels = labels
+	if err != nil {
+		return nil, err
+	}
+	if m.Repo == nil {
+		m.Repo, err = repo_model.GetRepositoryByID(repoID)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return m, nil
 }
 
 // GetMilestoneByRepoIDANDName return a milestone if one exist by name and repo
 func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) {
-	var mile Milestone
-	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&mile)
+	var m Milestone
+	has, err := db.GetEngine(db.DefaultContext).Where("repo_id=? AND name=?", repoID, name).Get(&m)
 	if err != nil {
 		return nil, err
 	}
 	if !has {
 		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
 	}
-	return &mile, nil
+	var labels []*Label
+	labels, err = GetLabelsByMilestoneID(m.ID)
+	m.Labels = labels
+	if err != nil {
+		return nil, err
+	}
+	if m.Repo == nil {
+		m.Repo, err = repo_model.GetRepositoryByID(repoID)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &m, nil
 }
 
 // UpdateMilestone updates information of given milestone.
@@ -174,6 +222,42 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 	if oldIsClosed != m.IsClosed {
 		if err := updateRepoMilestoneNum(ctx, m.RepoID); err != nil {
 			return err
+		}
+	}
+
+	var dbLabels []*Label
+	dbLabels, err = GetLabelsByMilestoneID(m.ID)
+	if err != nil {
+		return err
+	}
+	// delete from db missing labels associated with repo and milestone
+	for _, dbLabel := range dbLabels {
+		labelOnMilestone := false
+		for _, msLabel := range m.Labels {
+			if msLabel.ID == dbLabel.ID {
+				labelOnMilestone = true
+				break
+			}
+		}
+		if labelOnMilestone == false {
+			if err = deleteMilestoneLabel(ctx, m, dbLabel, nil); err != nil {
+				return fmt.Errorf("deleteMilestoneLabel [id: %d]: %v", dbLabel.ID, err)
+			}
+		}
+	}
+	// add to db new labels associated with repo and milestone
+	for _, msLabel := range m.Labels {
+		labelInDatabase := false
+		for _, dbLabel := range dbLabels {
+			if msLabel.ID == dbLabel.ID {
+				labelInDatabase = true
+				break
+			}
+		}
+		if labelInDatabase == false {
+			if err = m.addLabel(ctx, msLabel, nil); err != nil {
+				return fmt.Errorf("addLabel [id: %d]: %v", msLabel.ID, err)
+			}
 		}
 	}
 
@@ -270,7 +354,7 @@ func changeMilestoneStatus(ctx context.Context, m *Milestone, isClosed bool) err
 	return updateRepoMilestoneNum(ctx, m.RepoID)
 }
 
-// DeleteMilestoneByRepoID deletes a milestone from a repository.
+// DeleteMilestoneByRepoID deletes a milestone and associated labels from a repository.
 func DeleteMilestoneByRepoID(repoID, id int64) error {
 	m, err := GetMilestoneByRepoID(db.DefaultContext, repoID, id)
 	if err != nil {
@@ -320,6 +404,12 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 
 	if _, err = db.Exec(ctx, "UPDATE `issue` SET milestone_id = 0 WHERE milestone_id = ?", m.ID); err != nil {
 		return err
+	}
+
+	for _, label := range m.Labels {
+		if err = deleteMilestoneLabel(ctx, m, label, nil); err != nil {
+			return err
+		}
 	}
 	return committer.Commit()
 }
@@ -394,6 +484,13 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 
 	miles := make([]*Milestone, 0, opts.PageSize)
 	total, err := sess.FindAndCount(&miles)
+
+	for _, m := range miles {
+		var labels []*Label
+		labels, err = GetLabelsByMilestoneID(m.ID)
+		m.Labels = labels
+	}
+
 	return miles, total, err
 }
 

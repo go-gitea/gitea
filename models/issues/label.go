@@ -82,6 +82,7 @@ type Label struct {
 	Color           string `xorm:"VARCHAR(7)"`
 	NumIssues       int
 	NumClosedIssues int
+	NumMilestones   int
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 
@@ -554,6 +555,13 @@ func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
 				Where(builder.Eq{
 					"issue_label.label_id": l.ID,
 					"issue.is_closed":      true,
+				}),
+		).
+		SetExpr("num_milestones",
+			builder.Select("count(*)").From("milestone_label").
+				InnerJoin("milestone", "milestone_label.milestone_id = milestone.id").
+				Where(builder.Eq{
+					"milestone_label.milestone_id": l.ID,
 				}),
 		).
 		Cols(cols...).Update(l)

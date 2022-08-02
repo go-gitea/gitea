@@ -197,6 +197,22 @@
 						{{svg "octicon-milestone" 18 "mr-3"}}
 						{{.Issue.Milestone.Name}}
 					</a>
+					{{if .Issue.Milestone.Labels}}
+						<div class="ui labels list">
+							<span class="labels-list">
+								{{range .Issue.Milestone.Labels}}
+									<a
+										class="ui label item"
+										id="label_{{.ID}}"
+										style="color: {{.ForegroundColor}}; background-color: {{.Color}}"
+										title="{{.Description | RenderEmojiPlain}}"
+									>
+										{{.Name | RenderEmoji}}
+									</a>
+								{{end}}
+							</span>
+						</div>
+					{{end}}
 				{{end}}
 			</div>
 		</div>
