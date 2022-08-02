@@ -647,41 +647,35 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 ## Mailer (`mailer`)
 
 - `ENABLED`: **false**: Enable to use a mail service.
-- `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
-- `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
-- `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
-  - As per RFC 8314, if supported, Implicit TLS/SMTPS on port 465 is recommended, otherwise opportunistic TLS via STARTTLS on port 587 should be used.
-- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port.
-  - Note, if the port ends with `465` Implicit TLS/SMTPS/SMTP over TLS will be used despite this setting.
-  - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
-- `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
-   the "Name" \<email@example.com\> format.
-- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
+- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
+  - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
+  - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
+  - **dummy** Send email messages to the log as a testing phase.
+  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`, `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
+  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
+- `SMTP_ADDR`: **\<empty\>**: Mail server address. e.g. smtp.gmail.com. For smtp+unix, this should be a path to a unix socket instead. _Before 1.18, this was combined with `SMTP_PORT` under the name `HOST`._
+- `SMTP_PORT`: **\<empty\>**: Mail server port. If no protocol is specified, it will be inferred by this setting. Common ports are listed below. _Before 1.18, this was combined with `SMTP_ADDR` under the name `HOST`._
+  - 25:  insecure SMTP
+  - 465: SMTP Secure
+  - 587: StartTLS
+- `USE_CLIENT_CERT`: **false**: Use client certificate for TLS/SSL.
+- `CLIENT_CERT_FILE`: **custom/mailer/cert.pem**: Client certificate file.
+- `CLIENT_KEY_FILE`: **custom/mailer/key.pem**: Client key file.
+- `FORCE_TRUST_SERVER_CERT`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe. Consider adding the certificate to the system trust store instead.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
-  - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
-- `SEND_AS_PLAIN_TEXT`: **false**: Send mails as plain text.
-- `SKIP_VERIFY`: **false**: Whether or not to skip verification of certificates; `true` to disable verification.
-  - **Warning:** This option is unsafe. Consider adding the certificate to the system trust store instead.
-  - **Note:** Gitea only supports SMTP with STARTTLS.
-- `USE_CERTIFICATE`: **false**: Use client certificate.
-- `CERT_FILE`: **custom/mailer/cert.pem**
-- `KEY_FILE`: **custom/mailer/key.pem**
+  - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or SMTP host is localhost. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
+- `ENABLE_HELO`: **true**: Enable HELO operation.
+- `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
+- `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
+- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
-- `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
-  - **smtp** Use SMTP to send mail
-  - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
-   This is common on Linux systems.
-  - **dummy** Send email messages to the log as a testing phase.
-  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
-     `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
-  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
-- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
-   command or full path).
-- `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
+- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
+- `SENDMAIL_ARGS`: **\<empty\>**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
+- `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
 
 ## Cache (`cache`)
 
