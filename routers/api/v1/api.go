@@ -96,7 +96,6 @@ import (
 
 	_ "code.gitea.io/gitea/routers/api/v1/swagger" // for swagger generation
 
-	auth_service "code.gitea.io/gitea/services/auth"
 	"gitea.com/go-chi/binding"
 	"github.com/go-chi/cors"
 )
@@ -596,7 +595,7 @@ func buildAuthGroup() *auth.Group {
 		&auth.OAuth2{},
 		&auth.HTTPSign{},
 		&auth.Basic{}, // FIXME: this should be removed once we don't allow basic auth in API
-		&auth_service.Session{},
+		&auth.Session{},
 	)
 	if setting.Service.EnableReverseProxyAuth {
 		group.Add(&auth.ReverseProxy{})
