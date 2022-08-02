@@ -9,7 +9,7 @@
 		SSH
 	</button>
 {{end}}
-<input id="repo-clone-url" class="js-clone-url" value="" size="1" readonly>
+<input id="repo-clone-url" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" size="1" readonly>
 <button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.locale.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.locale.Tr "copy_url"}}">
 	{{svg "octicon-paste"}}
 </button>
