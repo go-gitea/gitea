@@ -7,6 +7,12 @@
 				<div class="sixteen wide column title">
 					<div class="issue-title">
 						<h1>{{.PackageDescriptor.Package.Name}} ({{.PackageDescriptor.Version.Version}})</h1>
+
+						<p class="description">
+							{{if .PackageDescriptor.Package.Description}}
+								{{- .PackageDescriptor.Package.Description -}}
+							{{end}}
+						</p>
 					</div>
 					<div>
 						{{$timeStr := TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}
@@ -18,6 +24,7 @@
 					</div>
 					<div class="ui divider"></div>
 				</div>
+
 				<div class="twelve wide column">
 					{{template "package/content/composer" .}}
 					{{template "package/content/conan" .}}

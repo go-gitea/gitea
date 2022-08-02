@@ -22,6 +22,8 @@
 		</div>
 	</div>
 
+	{{template "package/content/readme" .}}
+
 	{{if .PackageDescriptor.Metadata.Description}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">

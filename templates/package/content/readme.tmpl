@@ -1,0 +1,6 @@
+{{if .PackageDescriptor.Package.Readme}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.readme"}}</h4>
+	<div class="ui attached segment">
+		{{RenderMarkdownToHtml .PackageDescriptor.Package.Readme}}
+	</div>
+{{end}}

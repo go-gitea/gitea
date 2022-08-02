@@ -19,6 +19,9 @@
 			</div>
 		</div>
 	</div>
+
+	{{template "package/content/readme" .}}
+
 	{{if .PackageDescriptor.Metadata.MultiArch}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.multi_arch"}}</h4>
 		<div class="ui attached segment">
