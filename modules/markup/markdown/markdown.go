@@ -39,6 +39,7 @@ var (
 	isWikiKey        = parser.NewContextKey()
 	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
+	renderConfigKey  = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -172,7 +173,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		log.Error("Unable to ReadAll: %v", err)
 		return err
 	}
-	if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+	buf = giteautil.NormalizeEOL(buf)
+
+	rc := &RenderConfig{
+		Meta: "table",
+		Icon: "table",
+		Lang: "",
+	}
+	buf, _ = ExtractMetadataBytes(buf, rc)
+
+	pc.Set(renderConfigKey, rc)
+
+	if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
 		return err
 	}
