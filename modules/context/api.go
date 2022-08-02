@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web/middleware"
 	auth_service "code.gitea.io/gitea/services/auth"
+	"gitea.com/go-chi/session"
 )
 
 // APIContext is a specific context for API service
@@ -246,10 +247,11 @@ func APIContexter() func(http.Handler) http.Handler {
 			locale := middleware.Locale(w, req)
 			ctx := APIContext{
 				Context: &Context{
-					Resp:   NewResponse(w),
-					Data:   map[string]interface{}{},
-					Locale: locale,
-					Cache:  cache.GetCache(),
+					Resp:    NewResponse(w),
+					Data:    map[string]interface{}{},
+					Locale:  locale,
+					Session: session.GetSession(req),
+					Cache:   cache.GetCache(),
 					Repo: &Repository{
 						PullRequest: &PullRequest{},
 					},
