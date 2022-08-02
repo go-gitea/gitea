@@ -13,7 +13,6 @@ function displayError(el, err) {
   target.before(errorNode);
 }
 
-// eslint-disable-next-line import/no-unused-modules
 export async function renderMath() {
   const els = document.querySelectorAll('.markup code.language-math');
   if (!els.length) return;
