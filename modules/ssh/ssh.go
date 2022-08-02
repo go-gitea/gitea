@@ -75,11 +75,21 @@ func sessionHandler(session ssh.Session) {
 	ctx, cancel := context.WithCancel(session.Context())
 	defer cancel()
 
+	gitProtocol := ""
+	for _, env := range session.Environ() {
+		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
+			// The value would be version=2, so using normal split doesn't work here.
+			gitProtocol = strings.SplitN(env, "=", 2)[1]
+			break
+		}
+	}
+
 	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
 		"SKIP_MINWINSVC=1",
+		"GIT_PROTOCOL="+gitProtocol,
 	)
 
 	stdout, err := cmd.StdoutPipe()
