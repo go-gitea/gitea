@@ -24,7 +24,7 @@ export function initMarkupAnchors() {
     a.classList.add('anchor');
     a.setAttribute('href', `#${encodeURIComponent(originalId)}`);
     a.innerHTML = svg('octicon-link');
-    heading.prepend(a);
+    heading.append(a);
   }
 
   scrollToAnchor();
