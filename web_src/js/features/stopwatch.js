@@ -62,7 +62,7 @@ export function initStopwatch() {
       if (event.data.type === 'stopwatches') {
         updateStopwatchData(JSON.parse(event.data.data));
       } else if (event.data.type === 'no-event-source') {
-        console.error(`browser doesn't support EventSource, falling back to periodic poller`);
+        // browser doesn't support EventSource, falling back to periodic poller
         if (!usingPeriodicPoller) startPeriodicPoller(notificationSettings.MinTimeout);
       } else if (event.data.type === 'error') {
         console.error('worker port event error', event.data);
