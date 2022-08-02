@@ -275,7 +275,7 @@ func EditMilestone(ctx *context.Context) {
 		if index > 0 {
 			labelIDsString += ","
 		}
-		labelIDsString += strconv.FormatInt(int64(selectL.ID), 10)
+		labelIDsString += strconv.FormatInt(selectL.ID, 10)
 
 		for _, l := range labels {
 			if l.ID == selectL.ID {

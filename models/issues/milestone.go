@@ -168,12 +168,6 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 	if err != nil {
 		return nil, err
 	}
-	if m.Repo == nil {
-		m.Repo, err = repo_model.GetRepositoryByID(repoID)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return m, nil
 }
 
@@ -192,12 +186,6 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 	m.Labels = labels
 	if err != nil {
 		return nil, err
-	}
-	if m.Repo == nil {
-		m.Repo, err = repo_model.GetRepositoryByID(repoID)
-		if err != nil {
-			return nil, err
-		}
 	}
 	return &m, nil
 }
@@ -239,7 +227,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 				break
 			}
 		}
-		if labelOnMilestone == false {
+		if !labelOnMilestone {
 			if err = deleteMilestoneLabel(ctx, m, dbLabel, nil); err != nil {
 				return fmt.Errorf("deleteMilestoneLabel [id: %d]: %v", dbLabel.ID, err)
 			}
@@ -254,7 +242,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 				break
 			}
 		}
-		if labelInDatabase == false {
+		if !labelInDatabase {
 			if err = m.addLabel(ctx, msLabel, nil); err != nil {
 				return fmt.Errorf("addLabel [id: %d]: %v", msLabel.ID, err)
 			}
@@ -429,6 +417,7 @@ func (milestones MilestoneList) getMilestoneIDs() []int64 {
 type GetMilestonesOption struct {
 	db.ListOptions
 	RepoID   int64
+	Repo     *repo_model.Repository
 	State    api.StateType
 	Name     string
 	SortType string
@@ -489,6 +478,9 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 		var labels []*Label
 		labels, err = GetLabelsByMilestoneID(m.ID)
 		m.Labels = labels
+		if opts.Repo != nil {
+			m.Repo = opts.Repo
+		}
 	}
 
 	return miles, total, err

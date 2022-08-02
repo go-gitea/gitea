@@ -60,6 +60,7 @@ func ListMilestones(ctx *context.APIContext) {
 	milestones, total, err := issues_model.GetMilestones(issues_model.GetMilestonesOption{
 		ListOptions: utils.GetListOptions(ctx),
 		RepoID:      ctx.Repo.Repository.ID,
+		Repo:        ctx.Repo.Repository,
 		State:       api.StateType(ctx.FormString("state")),
 		Name:        ctx.FormString("name"),
 	})
@@ -148,6 +149,7 @@ func CreateMilestone(ctx *context.APIContext) {
 
 	milestone := &issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
+		Repo:         ctx.Repo.Repository,
 		Name:         form.Title,
 		Content:      form.Description,
 		DeadlineUnix: timeutil.TimeStamp(form.Deadline.Unix()),
