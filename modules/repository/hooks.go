@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -153,6 +154,9 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 func checkExecutable(filename string) bool {
+	if runtime.GOOS == "windows" {
+		return true
+	} 
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		return false
