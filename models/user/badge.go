@@ -17,8 +17,7 @@ type Badge struct {
 	ImageURL    string
 }
 
-// UserBadge links users with a badge
-type UserBadge struct {
+type userBadge struct {
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64
 	UserID  int64
@@ -26,7 +25,7 @@ type UserBadge struct {
 
 func init() {
 	db.RegisterModel(new(Badge))
-	db.RegisterModel(new(UserBadge))
+	db.RegisterModel(new(userBadge))
 }
 
 // GetUserFollowers returns range of user's followers.

@@ -15,7 +15,7 @@ func creatUserBadgesTable(x *xorm.Engine) error {
 		ImageURL    string
 	}
 
-	type UserBadge struct {
+	type userBadge struct {
 		ID      int64 `xorm:"pk autoincr"`
 		BadgeID int64
 		UserID  int64
@@ -24,8 +24,5 @@ func creatUserBadgesTable(x *xorm.Engine) error {
 	if err := x.Sync2(new(Badge)); err != nil {
 		return err
 	}
-
-	if err := x.Sync2(new(UserBadge)); err != nil {
-		return err
-	}
+	return x.Sync2(new(userBadge))
 }
