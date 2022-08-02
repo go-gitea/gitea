@@ -17,10 +17,10 @@ import (
 )
 
 var (
-	// SupportedDatabaseTypes includes all XORM supported databases type, sqlite3 maybe added by `database_sqlite3.go`
-	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite3"}
+	// SupportedDatabaseTypes includes all XORM supported databases type
+	SupportedDatabaseTypes = []string{"mysql", "postgres", "mssql", "sqlite"}
 	// DatabaseTypeNames contains the friendly names for all database types
-	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite3": "SQLite3"}
+	DatabaseTypeNames = map[string]string{"mysql": "MySQL", "postgres": "PostgreSQL", "mssql": "MSSQL", "sqlite": "SQLite3"}
 
 	// Database holds the database settings
 	Database = struct {
