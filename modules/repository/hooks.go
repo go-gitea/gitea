@@ -154,6 +154,7 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 func checkExecutable(filename string) bool {
+  // windows has no concept of a executable bit
 	if runtime.GOOS == "windows" {
 		return true
 	}
