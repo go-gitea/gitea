@@ -85,6 +85,11 @@
 							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
 						</a>
 					{{end}}
+					{{if .Project}}
+						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
+							{{svg "octicon-project" 14 "mr-2"}}{{.Project.Title}}
+						</a>
+					{{end}}
 					{{if .Ref}}
 						<a class="ref" {{if $.RepoLink}}href="{{index $.IssueRefURLs .ID}}"{{else}}href="{{.Repo.Link}}{{index $.IssueRefURLs .ID}}"{{end}}>
 							{{svg "octicon-git-branch" 14 "mr-2"}}{{index $.IssueRefEndNames .ID}}
