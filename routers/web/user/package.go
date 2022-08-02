@@ -357,6 +357,27 @@ func PackageSettingsPost(ctx *context.Context) {
 
 		ctx.Redirect(ctx.Link)
 		return
+	case "update":
+		success := func() bool {
+			description := form.Description
+			readme := form.Readme
+
+			if err := packages_model.SetDescriptions(ctx, pd.Package.ID, description, readme); err != nil {
+				log.Error("Error updating package: %v", err)
+				return false
+			}
+
+			return true
+		}()
+
+		if success {
+			ctx.Flash.Success(ctx.Tr("packages.settings.descriptions.success"))
+		} else {
+			ctx.Flash.Error(ctx.Tr("packages.settings.descriptions.error"))
+		}
+
+		ctx.Redirect(ctx.Link)
+		return
 	case "delete":
 		err := packages_service.RemovePackageVersion(ctx.Doer, ctx.Package.Descriptor.Version)
 		if err != nil {
