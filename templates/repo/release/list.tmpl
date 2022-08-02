@@ -37,8 +37,10 @@
 								<div class="download df ac">
 									{{if $.Permission.CanRead $.UnitTypeCode}}
 										<a class="mr-3 mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
-										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
-										<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
+										{{if not $.DisableDownloadSourceArchives}}
+											<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}ZIP</a>
+											<a class="archive-link mr-3" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-2"}}TAR.GZ</a>
+										{{end}}
 										{{if (and $.CanCreateRelease $release.IsTag)}}
 											<a class="mr-3" href="{{$.RepoLink}}/releases/new?tag={{.TagName}}">{{svg "octicon-tag" 16 "mr-2"}}{{$.locale.Tr "repo.release.new_release"}}</a>
 										{{end}}
@@ -104,8 +106,10 @@
 							<div class="download">
 							{{if $.Permission.CanRead $.UnitTypeCode}}
 								<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
-								<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
-								<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+								{{if not $.DisableDownloadSourceArchives}}
+									<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
+									<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+								{{end}}
 							{{end}}
 							</div>
 						{{else}}
@@ -146,7 +150,7 @@
 									{{$.locale.Tr "repo.release.downloads"}}
 								</summary>
 								<ul class="list">
-									{{if and (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
+									{{if and (not $.DisableDownloadSourceArchives) (not .IsDraft) ($.Permission.CanRead $.UnitTypeCode)}}
 										<li>
 											<a class="archive-link" href="{{$.RepoLink}}/archive/{{.TagName | PathEscapeSegments}}.zip" rel="nofollow"><strong>{{svg "octicon-file-zip" 16 "mr-2"}}{{$.locale.Tr "repo.release.source_code"}} (ZIP)</strong></a>
 										</li>
