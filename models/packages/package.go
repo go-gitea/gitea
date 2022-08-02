@@ -146,7 +146,7 @@ func SetRepositoryLink(ctx context.Context, packageID, repoID int64) error {
 }
 
 // SetDescriptions sets descriptions
-func SetDescriptions(ctx context.Context, packageID int64, description string, readme string) error {
+func SetDescriptions(ctx context.Context, packageID int64, description, readme string) error {
 	_, err := db.GetEngine(ctx).ID(packageID).Update(&Package{
 		Description: description,
 		Readme:      readme,
