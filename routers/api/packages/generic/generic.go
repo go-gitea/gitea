@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net/http"
 	"regexp"
+	"strings"
 
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/modules/context"
@@ -15,8 +16,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
-
-	"github.com/hashicorp/go-version"
 )
 
 var (
@@ -97,8 +96,7 @@ func UploadPackage(ctx *context.Context) {
 				Name:        packageName,
 				Version:     packageVersion,
 			},
-			SemverCompatible: true,
-			Creator:          ctx.Doer,
+			Creator: ctx.Doer,
 		},
 		&packages_service.PackageFileCreationInfo{
 			PackageFileInfo: packages_service.PackageFileInfo{
@@ -157,10 +155,10 @@ func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
 		return "", "", "", errors.New("Invalid package name or filename")
 	}
 
-	v, err := version.NewSemver(ctx.Params("packageversion"))
-	if err != nil {
-		return "", "", "", err
+	packageVersion := strings.TrimSpace(ctx.Params("packageversion"))
+	if packageVersion == "" {
+		return "", "", "", errors.New("Invalid package version")
 	}
 
-	return packageName, v.String(), filename, nil
+	return packageName, packageVersion, filename, nil
 }

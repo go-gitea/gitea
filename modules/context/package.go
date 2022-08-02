@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -52,13 +53,29 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 	}
 
 	if ctx.Package.Owner.IsOrganization() {
+		org := organization.OrgFromUser(ctx.Package.Owner)
+
 		// 1. Get user max authorize level for the org (may be none, if user is not member of the org)
 		if ctx.Doer != nil {
 			var err error
-			ctx.Package.AccessMode, err = organization.OrgFromUser(ctx.Package.Owner).GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
+			ctx.Package.AccessMode, err = org.GetOrgUserMaxAuthorizeLevel(ctx.Doer.ID)
 			if err != nil {
 				errCb(http.StatusInternalServerError, "GetOrgUserMaxAuthorizeLevel", err)
 				return
+			}
+			// If access mode is less than write check every team for more permissions
+			if ctx.Package.AccessMode < perm.AccessModeWrite {
+				teams, err := organization.GetUserOrgTeams(ctx, org.ID, ctx.Doer.ID)
+				if err != nil {
+					errCb(http.StatusInternalServerError, "GetUserOrgTeams", err)
+					return
+				}
+				for _, t := range teams {
+					perm := t.UnitAccessModeCtx(ctx, unit.TypePackages)
+					if ctx.Package.AccessMode < perm {
+						ctx.Package.AccessMode = perm
+					}
+				}
 			}
 		}
 		// 2. If authorize level is none, check if org is visible to user
