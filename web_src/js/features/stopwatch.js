@@ -35,9 +35,7 @@ export function initStopwatch() {
   const startPeriodicPoller = (timeout) => {
     if (timeout <= 0 || !Number.isFinite(timeout)) return;
     usingPeriodicPoller = true;
-    setTimeout(async () => {
-      await updateStopwatchWithCallback(startPeriodicPoller, timeout);
-    }, timeout);
+    setTimeout(() => updateStopwatchWithCallback(startPeriodicPoller, timeout), timeout);
   };
 
   // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
