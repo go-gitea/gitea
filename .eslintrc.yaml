@@ -30,7 +30,7 @@ overrides:
     env:
       worker: true
     rules:
-      no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
+      no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, status, statusbar, stop, toolbar, top]
   - files: ["build/generate-images.js"]
     rules:
       import/no-unresolved: [0]
@@ -287,7 +287,7 @@ rules:
   no-redeclare: [2]
   no-regex-spaces: [2]
   no-restricted-exports: [0]
-  no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top]
+  no-restricted-globals: [2, addEventListener, blur, close, closed, confirm, defaultStatus, defaultstatus, error, event, external, find, focus, frameElement, frames, history, innerHeight, innerWidth, isFinite, isNaN, length, location, locationbar, menubar, moveBy, moveTo, name, onblur, onerror, onfocus, onload, onresize, onunload, open, opener, opera, outerHeight, outerWidth, pageXOffset, pageYOffset, parent, print, removeEventListener, resizeBy, resizeTo, screen, screenLeft, screenTop, screenX, screenY, scroll, scrollbars, scrollBy, scrollTo, scrollX, scrollY, self, status, statusbar, stop, toolbar, top, __dirname, __filename]
   no-restricted-imports: [0]
   no-restricted-syntax: [2, WithStatement, ForInStatement, LabeledStatement]
   no-return-assign: [0]
