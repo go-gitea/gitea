@@ -28,8 +28,7 @@ async function receiveUpdateCount(event) {
   try {
     const data = JSON.parse(event.data);
 
-    const notificationCounts = document.querySelectorAll('.notification_count');
-    for (const count of notificationCounts) {
+    for (const count of document.querySelectorAll('.notification_count')) {
       count.classList.toggle('hidden', data.Count === 0);
       count.textContent = `${data.Count}`;
     }
