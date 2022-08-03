@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -284,6 +285,13 @@ func RegisterRoutes(m *web.Route) {
 
 	federationEnabled := func(ctx *context.Context) {
 		if !setting.Federation.Enabled {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
+	dlSourceEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableDownloadSourceArchives {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -611,6 +619,12 @@ func RegisterRoutes(m *web.Route) {
 
 	// ***** START: Organization *****
 	m.Group("/org", func() {
+		m.Group("/{org}", func() {
+			m.Get("/members", org.Members)
+		}, context.OrgAssignment())
+	}, ignSignIn)
+
+	m.Group("/org", func() {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
@@ -625,7 +639,6 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("/pulls/{team}", user.Pulls)
 			m.Get("/milestones", reqMilestonesDashboardPageEnabled, user.Milestones)
 			m.Get("/milestones/{team}", reqMilestonesDashboardPageEnabled, user.Milestones)
-			m.Get("/members", org.Members)
 			m.Post("/members/action/{action}", org.MembersAction)
 			m.Get("/teams", org.Teams)
 		}, context.OrgAssignment(true, false, true))
@@ -1006,6 +1019,7 @@ func RegisterRoutes(m *web.Route) {
 				return
 			}
 			ctx.Data["CommitsCount"] = ctx.Repo.CommitsCount
+			ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(ctx.Repo.CommitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 		})
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes(), reqRepoReleaseReader)
 
@@ -1099,7 +1113,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

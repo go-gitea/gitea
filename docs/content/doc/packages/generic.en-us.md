@@ -37,7 +37,7 @@ PUT https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{packa
 | ----------------- | ----------- |
 | `owner`           | The owner of the package. |
 | `package_name`    | The package name. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
-| `package_version` | The package version as described in the [SemVer](https://semver.org/) spec. |
+| `package_version` | The package version, a non-empty string. |
 | `file_name`       | The filename. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
 
 Example request using HTTP Basic authentication:
@@ -47,6 +47,8 @@ curl --user your_username:your_password_or_token \
      --upload-file path/to/file.bin \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
+
+If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password.
 
 The server reponds with the following HTTP Status codes.
 
