@@ -217,7 +217,7 @@ func UploadPackage(ctx *context.Context) {
 	)
 	if err != nil {
 		if err == packages_model.ErrDuplicatePackageVersion {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
