@@ -618,6 +618,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
+	if len(repoIDs) == 1 {
+		var repo = showReposMap[repoIDs[0]]
+		if repo != nil {
+			ctx.Data["Repo"] = repo.OwnerName + "/" + repo.Name
+		}
+	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
