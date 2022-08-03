@@ -566,6 +566,7 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	ctx.Data["ShowForkModal"] = len(userAndOrgForks) > 1 || (canSignedUserFork && len(userAndOrgForks) > 0)
 
 	ctx.Data["RepoCloneLink"] = repo.CloneLink()
+	ctx.Data["RepoCloneLinkUseHttps"] = !setting.Repository.DisableHTTPGit
 
 	cloneButtonShowHTTPS := !setting.Repository.DisableHTTPGit
 	cloneButtonShowSSH := !setting.SSH.Disabled && (ctx.IsSigned || setting.SSH.ExposeAnonymous)

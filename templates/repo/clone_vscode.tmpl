@@ -1,0 +1,6 @@
+<!-- there is always at least one button (by context/repo.go) -->
+{{if $.RepoCloneLinkUseHttps}}
+	<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+{{else}}
+	<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.SSH}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+{{end}}
