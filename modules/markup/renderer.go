@@ -328,11 +328,13 @@ func IsReadmeFile(name string) bool {
 // the length of the provided extension list.
 // Note that the '.' should be provided in ext, e.g ".md"
 func IsReadmeFileExtension(name string, ext ...string) (int, bool) {
+	name = strings.ToLower(name)
 	if len(name) < 6 || name[:6] != "readme" {
 		return 0, false
 	}
 
 	for i, extension := range ext {
+		extension = strings.ToLower(extension)
 		if name[6:] == extension {
 			return i, true
 		}
