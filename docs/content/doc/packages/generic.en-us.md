@@ -27,7 +27,7 @@ To authenticate to the Package Registry, you need to provide [custom HTTP header
 ## Publish a package
 
 To publish a generic package perform a HTTP PUT operation with the package content in the request body.
-You cannot publish a package if a package of the same name and version already exists. You must delete the existing package first.
+You cannot publish a file with the same name twice to a package. You must delete the existing package version first.
 
 ```
 PUT https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{file_name}
@@ -55,7 +55,7 @@ The server reponds with the following HTTP Status codes.
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
 | `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name and/or version are invalid or a package with the same name and version already exist. |
+| `400 Bad Request` | The package name and/or version and/or file name are invalid or a file with the same name exist. |
 
 ## Download a package
 
@@ -80,3 +80,38 @@ Example request using HTTP Basic authentication:
 curl --user your_username:your_token_or_password \
      https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
 ```
+
+The server reponds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `200 OK`          | Success |
+| `404 Not Found`   | The package or file was not found. |
+
+## Delete a package
+
+To delete a generic package perform a HTTP DELETE operation. This will delete all files of this version.
+
+```
+DELETE https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}
+```
+
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `owner`           | The owner of the package. |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
+
+Example request using HTTP Basic authentication:
+
+```shell
+curl --user your_username:your_token_or_password -X DELETE \
+     https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0
+```
+
+The server reponds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `200 OK`          | Success |
+| `404 Not Found`   | The package was not found. |

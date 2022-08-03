@@ -31,22 +31,16 @@ func apiError(ctx *context.Context, status int, obj interface{}) {
 
 // DownloadPackageFile serves the specific generic package.
 func DownloadPackageFile(ctx *context.Context) {
-	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
 	s, pf, err := packages_service.GetFileStreamByPackageNameAndVersion(
 		ctx,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        packageName,
-			Version:     packageVersion,
+			Name:        ctx.Params("packagename"),
+			Version:     ctx.Params("packageversion"),
 		},
 		&packages_service.PackageFileInfo{
-			Filename: filename,
+			Filename: ctx.Params("filename"),
 		},
 	)
 	if err != nil {
@@ -65,9 +59,17 @@ func DownloadPackageFile(ctx *context.Context) {
 // UploadPackage uploads the specific generic package.
 // Duplicated packages get rejected.
 func UploadPackage(ctx *context.Context) {
-	packageName, packageVersion, filename, err := sanitizeParameters(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
+	packageName := ctx.Params("packagename")
+	filename := ctx.Params("filename")
+
+	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
+		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package name or filename"))
+		return
+	}
+
+	packageVersion := strings.TrimSpace(ctx.Params("packageversion"))
+	if packageVersion == "" {
+		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package version"))
 		return
 	}
 
@@ -88,7 +90,7 @@ func UploadPackage(ctx *context.Context) {
 	}
 	defer buf.Close()
 
-	_, _, err = packages_service.CreatePackageAndAddFile(
+	_, _, err = packages_service.CreatePackageOrAddFileToExisting(
 		&packages_service.PackageCreationInfo{
 			PackageInfo: packages_service.PackageInfo{
 				Owner:       ctx.Package.Owner,
@@ -107,7 +109,7 @@ func UploadPackage(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
+		if err == packages_model.ErrDuplicatePackageFile {
 			apiError(ctx, http.StatusBadRequest, err)
 			return
 		}
@@ -120,19 +122,13 @@ func UploadPackage(ctx *context.Context) {
 
 // DeletePackage deletes the specific generic package.
 func DeletePackage(ctx *context.Context) {
-	packageName, packageVersion, _, err := sanitizeParameters(ctx)
-	if err != nil {
-		apiError(ctx, http.StatusBadRequest, err)
-		return
-	}
-
-	err = packages_service.RemovePackageVersionByNameAndVersion(
+	err := packages_service.RemovePackageVersionByNameAndVersion(
 		ctx.Doer,
 		&packages_service.PackageInfo{
 			Owner:       ctx.Package.Owner,
 			PackageType: packages_model.TypeGeneric,
-			Name:        packageName,
-			Version:     packageVersion,
+			Name:        ctx.Params("packagename"),
+			Version:     ctx.Params("packageversion"),
 		},
 	)
 	if err != nil {
@@ -145,20 +141,4 @@ func DeletePackage(ctx *context.Context) {
 	}
 
 	ctx.Status(http.StatusOK)
-}
-
-func sanitizeParameters(ctx *context.Context) (string, string, string, error) {
-	packageName := ctx.Params("packagename")
-	filename := ctx.Params("filename")
-
-	if !packageNameRegex.MatchString(packageName) || !filenameRegex.MatchString(filename) {
-		return "", "", "", errors.New("Invalid package name or filename")
-	}
-
-	packageVersion := strings.TrimSpace(ctx.Params("packageversion"))
-	if packageVersion == "" {
-		return "", "", "", errors.New("Invalid package version")
-	}
-
-	return packageName, packageVersion, filename, nil
 }
