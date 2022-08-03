@@ -26,8 +26,8 @@ func SecToTime(duration int64) string {
 	remainingDays := duration / (60 * 60 * 24)
 	years := remainingDays / 365
 	remainingDays -= years * 365
-	months := remainingDays / 30
-	remainingDays -= months * 30
+	months := remainingDays * 12 / 365
+	remainingDays -= months * 365 / 12
 	weeks := remainingDays / 7
 	remainingDays -= weeks * 7
 	days := remainingDays
