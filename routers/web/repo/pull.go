@@ -510,6 +510,8 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			return nil
 		}
 		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	} else {
+		ctx.Data["GetCommitMessages"] = ""
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())
