@@ -274,7 +274,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		case packages_model.ErrPackageNotExist:
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
