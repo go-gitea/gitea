@@ -357,6 +357,7 @@
 									'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
 									'pullHeadCommitID': {{.PullHeadCommitID}},
 									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+									'defaultMergeStyle': {{.MergeStyle}},
 									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
 
@@ -394,7 +395,7 @@
 										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
 										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
 										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
+										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultMergeMessage,
 										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{

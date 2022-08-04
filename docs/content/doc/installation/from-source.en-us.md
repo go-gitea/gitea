@@ -101,7 +101,7 @@ Depending on requirements, the following build tags can be included.
 - `pam`: Enable support for PAM (Linux Pluggable Authentication Modules). Can
   be used to authenticate local users or extend authentication to methods
   available to PAM.
-* `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
+- `gogit`: (EXPERIMENTAL) Use go-git variants of Git commands.
 
 Bundling assets into the binary using the `bindata` build tag is recommended for
 production deployments. It is possible to serve the static assets directly via a reverse proxy,
