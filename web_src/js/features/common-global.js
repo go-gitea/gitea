@@ -186,15 +186,18 @@ export function initGlobalDropzone() {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
+        this.on('addedfile', addUploadedFileToEditor);
         this.on('success', (file, data) => {
           file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
-          addUploadedFileToEditor(file.editor, file);
+          const name = file.name.slice(0, file.name.lastIndexOf('.'));
+          const placeholder = `![${name}](uploading ...)`;
+          file.editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();
-          if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.closest('form').querySelector('textarea')))) {
+          if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.closest('div.comment').querySelector('textarea')))) {
             file.editor = file.editor.codemirror;
           }
           if ($dropzone.data('remove-url')) {

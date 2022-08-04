@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import attachTribute from './tribute.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
+import {initEasyMDEFilePaste} from './comp/ImagePaste.js';
 import {createCommentEasyMDE} from './comp/EasyMDE.js';
 
 export function initRepoRelease() {
@@ -26,6 +26,6 @@ export function initRepoReleaseEditor() {
     const easyMDE = await createCommentEasyMDE($textarea);
     initCompMarkupContentPreviewTab($editor);
     const $dropzone = $editor.parent().find('.dropzone');
-    initEasyMDEImagePaste(easyMDE, $dropzone);
+    initEasyMDEFilePaste(easyMDE, $dropzone);
   })();
 }

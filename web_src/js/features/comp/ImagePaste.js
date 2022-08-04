@@ -2,55 +2,20 @@ import $ from 'jquery';
 import {getAttachedEasyMDE} from './EasyMDE.js';
 
 /**
- *
- * @param {*} editor
- * @param {*} file
- */
-export function addUploadedFileToEditor(editor, file) {
-  if (!editor && file.previewElement) {
-    editor = file.previewElement.closest('form') ? getAttachedEasyMDE(file.previewElement.closest('form').querySelector('textarea')) : getAttachedEasyMDE(file.previewElement.parentElement.parentElement.parentElement.querySelector('textarea'));
-    editor = editor.codemirror;
-  }
-  const startPos = editor.selectionStart || editor.getCursor && editor.getCursor('start');
-  const endPos = editor.selectionEnd || editor.getCursor && editor.getCursor('end');
-  const isimage = file.type.startsWith('image/') ? '!' : '';
-  const fileName = (isimage ? file.name.replace(/\.[^/.]+$/, '') : file.name);
-  if (startPos) {
-    if (editor.setSelection) {
-      if (startPos.line !== undefined) {
-        editor.setSelection(startPos, endPos);
-        editor.replaceSelection(`${isimage}[${fileName}](/attachments/${file.uuid})\n`);
-      } else {
-        const val = editor.getValue();
-        editor.setValue(`${val}\n${isimage}[${fileName}](/attachments/${file.uuid})`);
-      }
-    } else if (typeof startPos === 'number' && startPos > 0) {
-      editor.value = `${editor.value.substring(0, startPos)}\n${isimage}[${fileName}](/attachments/${file.uuid})\n${editor.value.substring(endPos)}`;
-    } else {
-      editor.value += `\n${isimage}[${fileName}](/attachments/${file.uuid})`;
-    }
-  } else if (editor.setSelection) {
-    editor.value(`${editor.value()}\n${isimage}[${fileName}](/attachments/${file.uuid})\n`);
-  } else {
-    editor.value += `${editor.value}\n${isimage}[${fileName}](/attachments/${file.uuid})\n`;
-  }
-}
-
-/**
  * @param editor{EasyMDE}
  * @param fileUuid
  */
 export function removeUploadedFileFromEditor(editor, fileUuid) {
-  // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/
+  // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/ for remove file text in textarea
   const re = new RegExp(`(!|)\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
-  if (editor.setValue) {
-    editor.setValue(editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
+  if (editor.editor.setValue) {
+    editor.editor.setValue(editor.editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
   } else {
-    editor.value = editor.value.replace(re, '');
+    editor.editor.value = editor.editor.value.replace(re, '');
   }
 }
 
-function clipboardPastedImages(e) {
+function clipboardPastedFiles(e) {
   const data = e.clipboardData || e.dataTransfer;
   if (!data) return [];
 
@@ -64,7 +29,70 @@ function clipboardPastedImages(e) {
   return files;
 }
 
-export function initEasyMDEImagePaste(easyMDE, $dropzone) {
+
+class TextareaEditor {
+  constructor(editor) {
+    this.editor = editor;
+  }
+
+  insertPlaceholder(value) {
+    const editor = this.editor;
+    const startPos = editor.selectionStart;
+    const endPos = editor.selectionEnd;
+    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
+    editor.selectionStart = startPos;
+    editor.selectionEnd = startPos + value.length;
+    editor.focus();
+  }
+
+  replacePlaceholder(oldVal, newVal) {
+    const editor = this.editor;
+    const startPos = editor.selectionStart;
+    const endPos = editor.selectionEnd;
+    if (editor.value.substring(startPos, endPos) === oldVal) {
+      editor.value = editor.value.substring(0, startPos) + newVal + editor.value.substring(endPos);
+      editor.selectionEnd = startPos + newVal.length;
+    } else {
+      editor.value = editor.value.replace(oldVal, newVal);
+      editor.selectionEnd -= oldVal.length;
+      editor.selectionEnd += newVal.length;
+    }
+    editor.selectionStart = editor.selectionEnd;
+    editor.focus();
+  }
+}
+
+class CodeMirrorEditor {
+  constructor(editor) {
+    this.editor = editor;
+  }
+
+  insertPlaceholder(value) {
+    const editor = this.editor;
+    const startPoint = editor.getCursor('start');
+    const endPoint = editor.getCursor('end');
+    editor.replaceSelection(value);
+    endPoint.ch = startPoint.ch + value.length;
+    editor.setSelection(startPoint, endPoint);
+    editor.focus();
+  }
+
+  replacePlaceholder(oldVal, newVal) {
+    const editor = this.editor;
+    const endPoint = editor.getCursor('end');
+    if (editor.getSelection() === oldVal) {
+      editor.replaceSelection(newVal);
+    } else {
+      editor.setValue(editor.getValue().replace(oldVal, newVal));
+    }
+    endPoint.ch -= oldVal.length;
+    endPoint.ch += newVal.length;
+    editor.setSelection(endPoint, endPoint);
+    editor.focus();
+  }
+}
+
+export function initEasyMDEFilePaste(easyMDE, $dropzone) {
   if ($dropzone.length !== 1) throw new Error('invalid dropzone binding for editor');
 
   const uploadUrl = $dropzone.attr('data-upload-url');
@@ -73,7 +101,7 @@ export function initEasyMDEImagePaste(easyMDE, $dropzone) {
   if (!uploadUrl || !$files.length) return;
 
   const uploadClipboardImage = async (editor, e) => {
-    const pastedImages = clipboardPastedImages(e);
+    const pastedImages = clipboardPastedFiles(e);
     if (!pastedImages || pastedImages.length === 0) {
       return;
     }
@@ -87,14 +115,28 @@ export function initEasyMDEImagePaste(easyMDE, $dropzone) {
   };
 
   easyMDE.codemirror.on('paste', async (_, e) => {
-    return uploadClipboardImage(easyMDE.codemirror, e);
+    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), e);
   });
 
   easyMDE.codemirror.on('drop', async (_, e) => {
-    return uploadClipboardImage(easyMDE.codemirror, e);
+    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), e);
   });
 
   $(easyMDE.element).on('paste drop', async (e) => {
-    return uploadClipboardImage(easyMDE.element, e.originalEvent);
+    return uploadClipboardImage(new TextareaEditor(easyMDE.element), e.originalEvent);
   });
+}
+
+export async function addUploadedFileToEditor(file) {
+  if (!file.editor) {
+    const editor = getAttachedEasyMDE(file.previewElement.closest('div.comment').querySelector('textarea'));
+    if (editor.codemirror) {
+      file.editor = new CodeMirrorEditor(editor.codemirror);
+    } else {
+      file.editor = new TextareaEditor(editor);
+    }
+  }
+  const name = file.name.slice(0, file.name.lastIndexOf('.'));
+  const placeholder = `![${name}](uploading ...)`;
+  file.editor.insertPlaceholder(placeholder);
 }

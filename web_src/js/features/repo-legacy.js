@@ -1,7 +1,7 @@
 import $ from 'jquery';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
-import {initEasyMDEImagePaste, addUploadedFileToEditor, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
+import {initEasyMDEFilePaste, addUploadedFileToEditor, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
 import {
   initRepoIssueBranchSelect, initRepoIssueCodeCommentCancel,
   initRepoIssueCommentDelete,
@@ -69,7 +69,7 @@ export function initRepoCommentForm() {
 
   (async () => {
     const easyMDE = await createCommentEasyMDE($commentForm.find('textarea:not(.review-textarea)'));
-    initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+    initEasyMDEFilePaste(easyMDE, $commentForm.find('.dropzone'));
   })();
 
   initBranchSelector();
@@ -301,17 +301,20 @@ async function onEditContent(event) {
         thumbnailWidth: 480,
         thumbnailHeight: 480,
         init() {
+          this.on('addedfile', addUploadedFileToEditor);
           this.on('success', (file, data) => {
             file.uuid = data.uuid;
             const input = $(`<input id="${file.uuid}" name="files" type="hidden">`).val(data.uuid);
             $dropzone.find('.files').append(input);
             fileUuidDict[file.uuid] = {submitted: false};
-            addUploadedFileToEditor(file.editor, file);
+            const name = file.name.slice(0, file.name.lastIndexOf('.'));
+            const placeholder = `![${name}](uploading ...)`;
+            file.editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
           });
           this.on('removedfile', (file) => {
             if (disableRemovedfileEvent) return;
             $(`#${file.uuid}`).remove();
-            if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.parentElement.parentElement.querySelector('textarea')))) {
+            if (!file.editor && (file.editor = getAttachedEasyMDE(this.element.closest('div.comment').querySelector('textarea')))) {
               file.editor = file.editor.codemirror;
             }
             if ($dropzone.data('remove-url') && !fileUuidDict[file.uuid]?.submitted) {
@@ -368,7 +371,7 @@ async function onEditContent(event) {
 
     initCompMarkupContentPreviewTab($editContentForm);
     if ($dropzone.length) {
-      initEasyMDEImagePaste(easyMDE, $dropzone);
+      initEasyMDEFilePaste(easyMDE, $dropzone);
     }
 
     const $saveButton = $editContentZone.find('.save.button');
