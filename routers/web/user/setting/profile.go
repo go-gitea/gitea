@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
+	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -87,6 +88,11 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 	err := agit.UserNameChanged(user, newName)
 	if err != nil {
 		ctx.ServerError("agit.UserNameChanged", err)
+		return err
+	}
+
+	if err := container_service.UpdateRepositoryNames(ctx, user, newName); err != nil {
+		ctx.ServerError("UpdateRepositoryNames", err)
 		return err
 	}
 
