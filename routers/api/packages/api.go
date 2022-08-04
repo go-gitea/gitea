@@ -159,7 +159,10 @@ func Routes() *web.Route {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
 				r.Group("/{filename}", func() {
 					r.Get("", generic.DownloadPackageFile)
-					r.Put("", reqPackageAccess(perm.AccessModeWrite), generic.UploadPackage)
+					r.Group("", func() {
+						r.Put("", generic.UploadPackage)
+						r.Delete("", generic.DeletePackageFile)
+					}, reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
 		})

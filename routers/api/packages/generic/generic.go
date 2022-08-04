@@ -110,7 +110,7 @@ func UploadPackage(ctx *context.Context) {
 	)
 	if err != nil {
 		if err == packages_model.ErrDuplicatePackageFile {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -140,5 +140,50 @@ func DeletePackage(ctx *context.Context) {
 		return
 	}
 
-	ctx.Status(http.StatusOK)
+	ctx.Status(http.StatusNoContent)
+}
+
+// DeletePackageFile deletes the specific file of a generic package.
+func DeletePackageFile(ctx *context.Context) {
+	pv, pf, err := func() (*packages_model.PackageVersion, *packages_model.PackageFile, error) {
+		pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeGeneric, ctx.Params("packagename"), ctx.Params("packageversion"))
+		if err != nil {
+			return nil, nil, err
+		}
+
+		pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, ctx.Params("filename"), packages_model.EmptyFileKey)
+		if err != nil {
+			return nil, nil, err
+		}
+		
+		return pv, pf, nil
+	}()
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	pfs, err := packages_model.GetFilesByVersionID(ctx, pv.ID)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if len(pfs) == 1 {
+		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	} else {
+		if err := packages_service.DeletePackageFile(ctx, pf); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	ctx.Status(http.StatusNoContent)
 }

@@ -61,7 +61,7 @@ func TestPackageGeneric(t *testing.T) {
 
 			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
 			AddBasicAuthHeader(req, user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
+			MakeRequest(t, req, http.StatusConflict)
 		})
 
 		t.Run("Additional", func(t *testing.T) {
@@ -114,18 +114,59 @@ func TestPackageGeneric(t *testing.T) {
 	t.Run("Delete", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", url)
-		AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusOK)
-
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
-		assert.NoError(t, err)
-		assert.Empty(t, pvs)
-
-		t.Run("NotExists", func(t *testing.T) {
+		t.Run("File", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
 
-			req := NewRequest(t, "GET", url+"/"+filename)
+			req := NewRequest(t, "DELETE", url+"/"+filename)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "DELETE", url+"/"+filename)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequest(t, "GET", url+"/"+filename)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequest(t, "DELETE", url+"/"+filename)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+
+			t.Run("RemovesVersion", func(t *testing.T) {
+				defer PrintCurrentTest(t)()
+	
+				req = NewRequest(t, "DELETE", url+"/dummy.bin")
+				AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+	
+				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+				assert.NoError(t, err)
+				assert.Empty(t, pvs)
+			})
+		})
+
+		t.Run("Version", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			req = NewRequest(t, "DELETE", url)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "DELETE", url)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Empty(t, pvs)
+
+			req = NewRequest(t, "GET", url+"/"+filename)
 			MakeRequest(t, req, http.StatusNotFound)
 
 			req = NewRequest(t, "DELETE", url)

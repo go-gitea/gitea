@@ -55,7 +55,8 @@ The server reponds with the following HTTP Status codes.
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
 | `201 Created`     | The package has been published. |
-| `400 Bad Request` | The package name and/or version and/or file name are invalid or a file with the same name exist. |
+| `400 Bad Request` | The package name and/or version and/or file name are invalid. |
+| `409 Conflict`    | A file with the same name exist already in the package. |
 
 ## Download a package
 
@@ -113,5 +114,33 @@ The server reponds with the following HTTP Status codes.
 
 | HTTP Status Code  | Meaning |
 | ----------------- | ------- |
-| `200 OK`          | Success |
+| `204 No Content`  | Success |
 | `404 Not Found`   | The package was not found. |
+
+## Delete a package file
+
+To delete a file of a generic package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+```
+DELETE https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{filename}
+```
+
+| Parameter         | Description |
+| ----------------- | ----------- |
+| `owner`           | The owner of the package. |
+| `package_name`    | The package name. |
+| `package_version` | The package version. |
+| `filename`        | The filename. |
+
+Example request using HTTP Basic authentication:
+
+```shell
+curl --user your_username:your_token_or_password -X DELETE \
+     https://gitea.example.com/api/packages/testuser/generic/test_package/1.0.0/file.bin
+```
+
+The server reponds with the following HTTP Status codes.
+
+| HTTP Status Code  | Meaning |
+| ----------------- | ------- |
+| `204 No Content`  | Success |
+| `404 Not Found`   | The package or file was not found. |
