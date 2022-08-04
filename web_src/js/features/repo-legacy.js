@@ -309,7 +309,8 @@ async function onEditContent(event) {
             fileUuidDict[file.uuid] = {submitted: false};
             const name = file.name.slice(0, file.name.lastIndexOf('.'));
             const placeholder = `![${name}](uploading ...)`;
-            file.editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
+            const isImage = file.type.includes('image') ? '!' : '';
+            file.editor.replacePlaceholder(placeholder, `${isImage}[${name}](/attachments/${data.uuid})`);
           });
           this.on('removedfile', (file) => {
             if (disableRemovedfileEvent) return;
