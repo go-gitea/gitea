@@ -207,7 +207,7 @@ func TestPackageMaven(t *testing.T) {
 	})
 
 	t.Run("UploadSnapshot", func(t *testing.T) {
-		snapshotVersion := packageVersion+"-SNAPSHOT"
+		snapshotVersion := packageVersion + "-SNAPSHOT"
 
 		putFile(t, fmt.Sprintf("/%s/%s", snapshotVersion, filename), "test", http.StatusCreated)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
