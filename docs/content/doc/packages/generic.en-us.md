@@ -120,6 +120,7 @@ The server reponds with the following HTTP Status codes.
 ## Delete a package file
 
 To delete a file of a generic package perform a HTTP DELETE operation. This will delete the package version too if there is no file left.
+
 ```
 DELETE https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{package_version}/{filename}
 ```
