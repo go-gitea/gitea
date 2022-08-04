@@ -47,6 +47,10 @@
 				<div class="empty center">
 					{{svg "octicon-package" 32}}
 					<h2>{{.i18n.Tr "packages.empty"}}</h2>
+					{{if and .Repository .CanWritePackages}}
+						{{$packagesUrl := URLJoin .Owner.HTMLURL "-" "packages" }}
+						<p>{{.i18n.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
+					{{end}}
 					<p>{{.i18n.Tr "packages.empty.documentation" | Safe}}</p>
 				</div>
 			{{else}}

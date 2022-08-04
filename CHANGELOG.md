@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.17.0-rc1](https://github.com/go-gitea/gitea/releases/tag/v1.17.0-rc1) - 2022-06-18
+## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
 * BREAKING
   * Require go1.18 for Gitea 1.17 (#19918)
@@ -29,6 +29,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Restrict email address validation (#17688) 
   * Refactor Router Logger (#17308)
 * SECURITY
+  * Use git.HOME_PATH for Git HOME directory (#20114) (#20293)
+  * Add write check for creating Commit Statuses (#20332) (#20333)
   * Remove deprecated SSH ciphers from default (#18697)
 * FEDERATION
   * Return statistic information for nodeinfo (#19561)
@@ -67,6 +69,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Return primary language and repository language stats API URL (#18396)
   * Implement http signatures support for the API (#17565)
 * ENHANCEMENTS
+  * Make notification bell more prominent on mobile (#20108, #20236, #20251) (#20269)
+  * Adjust max-widths for the repository file table (#20243) (#20247)
+  * Display full name (#20171) (#20246)
   * Add dbconsistency checks for Stopwatches (#20010)
   * Add fetch.writeCommitGraph to gitconfig (#20006)
   * Add fgprof pprof profiler (#20005)
@@ -111,7 +116,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * PullService lock via pullID (#19520)
   * Make repository file list useable on mobile (#19515)
   * more context for models  (#19511)
-  * Allow package dump skipping (#19506)
   * Refactor readme file renderer (#19502)
   * By default force vertical tabs on mobile (#19486)
   * Github style following followers (#19482)
@@ -128,7 +132,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Move access and repo permission to models/perm/access (#19350)
   * Disallow selecting the text of buttons (#19330)
   * Allow custom redirect for landing page (#19324)
-  * Repository level enable package or disable (#19323)
   * Remove dependent on session auth for api/v1 routers (#19321)
   * Never use /api/v1 from Gitea UI Pages (#19318)
   * Remove legacy unmaintained packages, refactor to support change default locale (#19308)
@@ -185,13 +188,44 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Allow custom default merge message with .gitea/default_merge_message/<merge_style>_TEMPLATE.md (#18177)
   * Prettify number of issues (#17760)
   * Add a "admin user generate-access-token" subcommand (#17722)
-  * Move project files into models/project sub package (#17704)
   * Custom regexp external issues (#17624)
   * Add smtp password to install page (#17564)
   * Add config options to hide issue events (#17414)
   * Prevent double click new issue/pull/comment button (#16157)
   * Show issue assignee on project board (#15232)
 * BUGFIXES
+  * WebAuthn CredentialID field needs to be increased in size (#20530) (#20555)
+  * Ensure that all unmerged files are merged when conflict checking (#20528) (#20536)
+  * Stop logging EOFs and exit(1)s in ssh handler (#20476) (#20529)
+  * Add labels to two buttons that were missing them (#20419) (#20524)
+  * Fix ROOT_URL detection for URLs without trailing slash (#20502) (#20503)
+  * Dismiss prior pull reviews if done via web in review dismiss (#20197) (#20407)
+  * Allow RSA 2047 bit keys (#20272) (#20396)
+  * Add missing return for when topic isn't found (#20351) (#20395)
+  * Fix commit status icon when in subdirectory (#20285) (#20385)
+  * Initialize cron last (#20373) (#20384)
+  * Set target on create release with existing tag (#20381) (#20382)
+  * Update xorm.io/xorm to fix a interpreting db column sizes issue on 32bit systems (#20371) (#20372)
+  * Make sure `repo_dir` is an empty directory or doesn't exist before 'dump-repo' (#20205) (#20370)
+  * Prevent context deadline error propagation in GetCommitsInfo (#20346) (#20361)
+  * Correctly handle draft releases without a tag (#20314) (#20335)
+  * Prevent "empty" scrollbars on Firefox (#20294) (#20308)
+  * Refactor SSH init code, fix directory creation for TrustedUserCAKeys file (#20299) (#20306)
+  * Bump goldmark to v1.4.13 (#20300) (#20301)
+  * Do not create empty ".ssh" directory when loading config (#20289) (#20298)
+  * Fix NPE when using non-numeric (#20277) (#20278)
+  * Store read access in access for team repositories (#20275) (#20276)
+  * EscapeFilter the group dn membership (#20200) (#20254)
+  * Only show Followers that current user can access (#20220) (#20252)
+  * Update Bluemonday to v1.0.19 (#20199) (#20209)
+  * Refix indices on actions table (#20158) (#20198)
+  * Check if project has the same repository id with issue when assign project to issue (#20133) (#20188)
+  * Fix remove file on initial comment (#20127) (#20128)
+  * Catch the error before the response is processed by goth (#20000) (#20102)
+  * Dashboard feed respect setting.UI.FeedPagingNum again (#20094) (#20099)
+  * Alter hook_task TEXT fields to LONGTEXT (#20038) (#20041)
+  * Respond with a 401 on git push when password isn't changed yet (#20026) (#20027)
+  * Return 404 when tag is broken (#20017) (#20024)
   * Alter hook_task TEXT fields to LONGTEXT (#20038) (#20041)
   * Respond with a 401 on git push when password isn't changed yet (#20026) (#20027)
   * Return 404 when tag is broken (#20017) (#20024)
@@ -266,7 +300,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * MISC
   * Fix aria for logo (#19955)
   * In code search, get code unit accessible repos in one (main) query (#19764)
-  * Enable packages by default again (#19746)
   * Add tooltip to pending PR comments (#19662)
   * Improve sync performance for pull-mirrors (#19125)
   * Improve dashboard's repo list performance (#18963)

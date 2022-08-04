@@ -88,7 +88,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 
 	for _, pd := range pds {
 		packageType := ""
-		for _, pvp := range pd.Properties {
+		for _, pvp := range pd.VersionProperties {
 			if pvp.Name == composer_module.TypeProperty {
 				packageType = pvp.Value
 				break

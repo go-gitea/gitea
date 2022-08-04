@@ -28,14 +28,12 @@ async function receiveUpdateCount(event) {
   try {
     const data = JSON.parse(event.data);
 
-    const notificationCount = document.querySelector('.notification_count');
-    if (data.Count > 0) {
-      notificationCount.classList.remove('hidden');
-    } else {
-      notificationCount.classList.add('hidden');
+    const notificationCounts = document.querySelectorAll('.notification_count');
+    for (const count of notificationCounts) {
+      count.classList.toggle('hidden', data.Count === 0);
+      count.textContent = `${data.Count}`;
     }
 
-    notificationCount.textContent = `${data.Count}`;
     await updateNotificationTable();
   } catch (error) {
     console.error(error, event);

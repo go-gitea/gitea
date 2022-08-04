@@ -9,7 +9,7 @@ require (
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
-	gitea.com/lunny/levelqueue v0.4.1
+	gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
@@ -102,7 +102,7 @@ require (
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.1
+	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
 )
 
 require (

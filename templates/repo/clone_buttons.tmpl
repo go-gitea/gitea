@@ -9,16 +9,7 @@
 		SSH
 	</button>
 {{end}}
-<!-- the value will be updated by initRepoCloneLink, the code below is used to avoid UI flicking  -->
-<input id="repo-clone-url" value="" size="1" readonly>
-<script>
-	(() => {
-		const proto = localStorage.getItem('repo-clone-protocol') || 'https';
-		const btn = document.getElementById(`repo-clone-${proto}`);
-		// it's ok if we don't find the btn here, initRepoCloneLink will take care of it
-		document.getElementById('repo-clone-url').value = btn ? btn.getAttribute('data-link') : '';
-	})();
-</script>
-<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url">
+<input id="repo-clone-url" class="js-clone-url" value="{{$.CloneButtonOriginLink.HTTPS}}" size="1" readonly>
+<button class="ui basic icon button tooltip" id="clipboard-btn" data-content="{{.i18n.Tr "copy_url"}}" data-clipboard-target="#repo-clone-url" aria-label="{{.i18n.Tr "copy_url"}}">
 	{{svg "octicon-paste"}}
 </button>
