@@ -21,6 +21,8 @@ export function initStopwatch() {
   createTippy(stopwatchEl, {
     content: stopwatchPopup,
     placement: 'bottom-end',
+    trigger: 'click',
+    maxWidth: 'none',
     interactive: true,
   });
 
