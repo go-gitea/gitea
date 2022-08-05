@@ -99,11 +99,12 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      this?._tippy.hide();
-      this?._tippy.disable();
+      // hide associated tooltip while dropdown is open
+      this?._tippy?.hide();
+      this?._tippy?.disable();
     },
     onHide() {
-      this?._tippy.enable();
+      this?._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
