@@ -75,6 +75,20 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
+export function initPopup(target) {
+  const $el = $(target);
+  const attr = $el.attr('data-variation');
+  const attrs = attr ? attr.split(' ') : [];
+  const variations = new Set([...attrs, 'inverted', 'tiny']);
+  $el.attr('data-variation', [...variations].join(' ')).popup();
+}
+
+export function initGlobalPopups() {
+  $('.tooltip').each((_, el) => {
+    initPopup(el);
+  });
+}
+
 export function initGlobalCommon() {
   // Show exact time
   $('.time-since').each(function () {
@@ -120,15 +134,6 @@ export function initGlobalCommon() {
   attachDropdownAria($uiDropdowns);
 
   $('.ui.checkbox').checkbox();
-
-  // init popups
-  $('.tooltip').each((_, el) => {
-    const $el = $(el);
-    const attr = $el.attr('data-variation');
-    const attrs = attr ? attr.split(' ') : [];
-    const variations = new Set([...attrs, 'inverted', 'tiny']);
-    $el.attr('data-variation', [...variations].join(' ')).popup();
-  });
 
   $('.top.menu .tooltip').popup({
     onShow() {
@@ -384,7 +389,8 @@ export function initGlobalButtons() {
  */
 export function checkAppUrl() {
   const curUrl = window.location.href;
-  if (curUrl.startsWith(appUrl)) {
+  // some users visit "https://domain/gitea" while appUrl is "https://domain/gitea/", there should be no warning
+  if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
   if (document.querySelector('.page-content.install')) {

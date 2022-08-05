@@ -17,7 +17,11 @@
 							{{if .IsClosed}}
 								{{svg "octicon-git-pull-request" 16 "text red"}}
 							{{else}}
-								{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{if .PullRequest.IsWorkInProgress}}
+									{{svg "octicon-git-pull-request-draft" 16 "text grey"}}
+								{{else}}
+									{{svg "octicon-git-pull-request" 16 "text green"}}
+								{{end}}
 							{{end}}
 						{{end}}
 					{{else}}
@@ -83,6 +87,11 @@
 					{{if and .Milestone (ne $.listType "milestone")}}
 						<a class="milestone" {{if $.RepoLink}}href="{{$.RepoLink}}/milestone/{{.Milestone.ID}}"{{else}}href="{{.Repo.Link}}/milestone/{{.Milestone.ID}}"{{end}}>
 							{{svg "octicon-milestone" 14 "mr-2"}}{{.Milestone.Name}}
+						</a>
+					{{end}}
+					{{if .Project}}
+						<a class="project" {{if $.RepoLink}}href="{{$.RepoLink}}/projects/{{.Project.ID}}"{{else}}href="{{.Repo.Link}}/projects/{{.Project.ID}}"{{end}}>
+							{{svg "octicon-project" 14 "mr-2"}}{{.Project.Title}}
 						</a>
 					{{end}}
 					{{if .Ref}}

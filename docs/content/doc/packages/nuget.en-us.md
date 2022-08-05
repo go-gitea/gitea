@@ -23,7 +23,7 @@ Publish [NuGet](https://www.nuget.org/) packages for your user or organization. 
 ## Requirements
 
 To work with the NuGet package registry, you can use command-line interface tools as well as NuGet features in various IDEs like Visual Studio.
-More informations about NuGet clients can be found in [the official documentation](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools).
+More information about NuGet clients can be found in [the official documentation](https://docs.microsoft.com/en-us/nuget/install-nuget-client-tools).
 The following examples use the `dotnet nuget` tool.
 
 ## Configuring the package registry
@@ -38,7 +38,7 @@ dotnet nuget add source --name {source_name} --username {username} --password {p
 | ------------- | ----------- |
 | `source_name` | The desired source name. |
 | `username`    | Your Gitea username. |
-| `password`    | Your Gitea password or a personal access token. |
+| `password`    | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
 | `owner`       | The owner of the package. |
 
 For example:
