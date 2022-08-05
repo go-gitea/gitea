@@ -67,8 +67,8 @@ func UploadPackage(ctx *context.Context) {
 		return
 	}
 
-	packageVersion := strings.TrimSpace(ctx.Params("packageversion"))
-	if packageVersion == "" {
+	packageVersion := ctx.Params("packageversion")
+	if packageVersion != strings.TrimSpace(packageVersion) {
 		apiError(ctx, http.StatusBadRequest, errors.New("Invalid package version"))
 		return
 	}
@@ -155,7 +155,7 @@ func DeletePackageFile(ctx *context.Context) {
 		if err != nil {
 			return nil, nil, err
 		}
-		
+
 		return pv, pf, nil
 	}()
 	if err != nil {

@@ -36,9 +36,9 @@ PUT https://gitea.example.com/api/packages/{owner}/generic/{package_name}/{packa
 | Parameter         | Description |
 | ----------------- | ----------- |
 | `owner`           | The owner of the package. |
-| `package_name`    | The package name. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
-| `package_version` | The package version, a non-empty string. |
-| `file_name`       | The filename. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), or underscores (`_`). |
+| `package_name`    | The package name. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), pluses (`+`), or underscores (`_`). |
+| `package_version` | The package version, a non-empty string without trailing or leading whitespaces. |
+| `file_name`       | The filename. It can contain only lowercase letters (`a-z`), uppercase letter (`A-Z`), numbers (`0-9`), dots (`.`), hyphens (`-`), pluses (`+`), or underscores (`_`). |
 
 Example request using HTTP Basic authentication:
 

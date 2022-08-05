@@ -23,7 +23,7 @@ func TestPackageGeneric(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "te-st_pac.kage"
-	packageVersion := "1.0.3"
+	packageVersion := "1.0.3-te st"
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
@@ -76,6 +76,22 @@ func TestPackageGeneric(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Len(t, pfs, 2)
 			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
+		})
+
+		t.Run("InvalidParameter", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, "%20test ", filename), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inval+id.na me"), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
 		})
 	})
 
@@ -137,11 +153,11 @@ func TestPackageGeneric(t *testing.T) {
 
 			t.Run("RemovesVersion", func(t *testing.T) {
 				defer PrintCurrentTest(t)()
-	
+
 				req = NewRequest(t, "DELETE", url+"/dummy.bin")
 				AddBasicAuthHeader(req, user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
-	
+
 				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
 				assert.NoError(t, err)
 				assert.Empty(t, pvs)
