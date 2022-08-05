@@ -196,9 +196,9 @@ func Routes() *web.Route {
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Group("/-/{version}/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/*", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
-				r.Group("/-rev/*", func() {
+				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
 				}, reqPackageAccess(perm.AccessModeWrite))
@@ -208,9 +208,9 @@ func Routes() *web.Route {
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
 				r.Group("/-/{version}/{filename}", func() {
 					r.Get("", npm.DownloadPackageFile)
-					r.Delete("/-rev/*", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
 				})
-				r.Group("/-rev/*", func() {
+				r.Group("/-rev/{revision}", func() {
 					r.Delete("", npm.DeletePackage)
 					r.Put("", npm.DeletePreview)
 				}, reqPackageAccess(perm.AccessModeWrite))
