@@ -23,7 +23,12 @@ export function createTippy(target, opts = {}) {
 export function initTooltip(el, props = {}) {
   const content = el.getAttribute('data-content') || props.content;
   if (!content) return null;
-  return createTippy(el, {content, role: 'tooltip', ...props});
+  return createTippy(el, {
+    content,
+    delay: 100,
+    role: 'tooltip',
+    ...props,
+  });
 }
 
 export function showTemporaryTooltip(target, content) {
