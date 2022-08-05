@@ -217,7 +217,7 @@ func UploadPackage(ctx *context.Context) {
 	)
 	if err != nil {
 		if err == packages_model.ErrDuplicatePackageVersion {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -274,7 +274,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		case packages_model.ErrPackageNotExist:
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
@@ -299,7 +299,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		if err != nil {
 			switch err {
 			case packages_model.ErrDuplicatePackageFile:
-				apiError(ctx, http.StatusBadRequest, err)
+				apiError(ctx, http.StatusConflict, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
 			}
@@ -414,4 +414,6 @@ func DeletePackage(ctx *context.Context) {
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 	}
+
+	ctx.Status(http.StatusNoContent)
 }
