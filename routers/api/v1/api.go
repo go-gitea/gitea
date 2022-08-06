@@ -217,6 +217,7 @@ func reqToken() func(ctx *context.APIContext) {
 			return
 		}
 		if ctx.IsSigned {
+			ctx.RequireCSRF()
 			return
 		}
 		ctx.Error(http.StatusUnauthorized, "reqToken", "token is required")

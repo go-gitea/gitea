@@ -8,6 +8,7 @@ package context
 import (
 	"context"
 	"fmt"
+	"html"
 	"net/http"
 	"net/url"
 	"strings"
@@ -191,6 +192,17 @@ func (ctx *APIContext) SetLinkHeader(total, pageSize int) {
 	}
 }
 
+// RequireCSRF requires a validated a CSRF token
+func (ctx *APIContext) RequireCSRF() {
+	headerToken := ctx.Req.Header.Get(ctx.csrf.GetHeaderName())
+	formValueToken := ctx.Req.FormValue(ctx.csrf.GetFormName())
+	if len(headerToken) > 0 || len(formValueToken) > 0 {
+		ctx.csrf.Validate(ctx.Context)
+	} else {
+		ctx.Context.Error(http.StatusUnauthorized, "Missing CSRF token.")
+	}
+}
+
 // CheckForOTP validates OTP
 func (ctx *APIContext) CheckForOTP() {
 	if skip, ok := ctx.Data["SkipLocalTwoFA"]; ok && skip.(bool) {
@@ -242,6 +254,8 @@ func APIAuth(authMethod auth_service.Method) func(*APIContext) {
 
 // APIContexter returns apicontext as middleware
 func APIContexter() func(http.Handler) http.Handler {
+	csrfOpts := getCsrfOpts()
+
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			locale := middleware.Locale(w, req)
@@ -262,6 +276,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			defer ctx.Close()
 
 			ctx.Req = WithAPIContext(WithContext(req, ctx.Context), &ctx)
+			ctx.csrf = PrepareCSRFProtector(csrfOpts, ctx.Context)
 
 			// If request sends files, parse them here otherwise the Query() can't be parsed and the CsrfToken will be invalid.
 			if ctx.Req.Method == "POST" && strings.Contains(ctx.Req.Header.Get("Content-Type"), "multipart/form-data") {
@@ -274,6 +289,7 @@ func APIContexter() func(http.Handler) http.Handler {
 			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
+			ctx.Data["CsrfToken"] = html.EscapeString(ctx.csrf.GetToken())
 			ctx.Data["Context"] = &ctx
 
 			next.ServeHTTP(ctx.Resp, ctx.Req)
