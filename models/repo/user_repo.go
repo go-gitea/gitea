@@ -172,10 +172,10 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 }
 
 // GetPullRequestPosters returns all users that have authored a pull request for the given repository
-func GetPullRequestPosters(ctx context.Context, repo *Repository) (_ []*user_model.User, err error) {
+func GetPullRequestPosters(ctx context.Context, repo *Repository) ([]*user_model.User, error) {
 	e := db.GetEngine(ctx)
 	userIDs := make([]int64, 0, 8)
-	if err = e.Table("issue").
+	if err := e.Table("issue").
 		Cols("poster_id").
 		Where("is_pull = ?", true).
 		And("repo_id = ?", repo.ID).
@@ -186,7 +186,7 @@ func GetPullRequestPosters(ctx context.Context, repo *Repository) (_ []*user_mod
 
 	users := make([]*user_model.User, 0, len(userIDs))
 	if len(userIDs) > 0 {
-		if err = e.In("id", userIDs).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
+		if err := e.In("id", userIDs).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
 			return nil, err
 		}
 	}
