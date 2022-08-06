@@ -26,11 +26,6 @@ export function initStopwatch() {
     interactive: true,
   });
 
-  // form handlers
-  $('form > button', $(stopwatchEl)).on('click', function () {
-    $(this).parent().trigger('submit');
-  });
-
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
   const currSeconds = $('.stopwatch-time').attr('data-seconds');
   if (currSeconds) {
