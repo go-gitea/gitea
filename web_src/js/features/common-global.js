@@ -100,11 +100,11 @@ export function initGlobalCommon() {
     action: 'hide',
     onShow() {
       // hide associated tooltip while dropdown is open
-      this?._tippy?.hide();
-      this?._tippy?.disable();
+      this._tippy?.hide();
+      this._tippy?.disable();
     },
     onHide() {
-      this?._tippy?.enable();
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
