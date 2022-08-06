@@ -291,7 +291,11 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	ctx.Data["Posters"] = ctx.Data["Assignees"]
+	ctx.Data["Posters"], err = repo_model.GetPullRequestPosters(ctx, repo)
+	if err != nil {
+		ctx.ServerError("GetPullRequestPosters", err)
+		return
+	}
 
 	handleTeamMentions(ctx)
 	if ctx.Written() {
