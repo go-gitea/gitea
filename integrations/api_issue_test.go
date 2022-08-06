@@ -16,6 +16,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
@@ -171,19 +172,21 @@ func TestAPISearchIssues(t *testing.T) {
 
 	token := getUserToken(t, "user2")
 
-	link, _ := url.Parse("/api/v1/repos/issues/search")
-	req := NewRequest(t, "GET", link.String()+"?token="+token)
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiIssues []*api.Issue
-	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	// as this API was used in the frontend, it uses UI page size
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
 
-	query := url.Values{"token": {token}}
+	link, _ := url.Parse("/api/v1/repos/issues/search")
+	query := url.Values{"token": {getUserToken(t, "user1")}}
+	var apiIssues []*api.Issue
+
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", link.String())
+	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -211,14 +214,15 @@ func TestAPISearchIssues(t *testing.T) {
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
+	assert.Len(t, apiIssues, 17)
 
-	query.Add("limit", "20")
+	query.Add("limit", "10")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 17)
+	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 10)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}, "token": {token}}
 	link.RawQuery = query.Encode()
@@ -266,23 +270,21 @@ func TestAPISearchIssues(t *testing.T) {
 func TestAPISearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	token := getUserToken(t, "user1")
+	// as this API was used in the frontend, it uses UI page size
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
 
 	link, _ := url.Parse("/api/v1/repos/issues/search")
-	req := NewRequest(t, "GET", link.String()+"?token="+token)
-	resp := MakeRequest(t, req, http.StatusOK)
+	query := url.Values{"token": {getUserToken(t, "user1")}}
 	var apiIssues []*api.Issue
-	DecodeJSON(t, resp, &apiIssues)
 
-	assert.Len(t, apiIssues, 10)
-
-	query := url.Values{}
-	query.Add("token", token)
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", link.String())
+	resp := MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()

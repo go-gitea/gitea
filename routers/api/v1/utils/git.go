@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
@@ -35,19 +34,11 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		}
 	}
 
-	if ctx.Repo.GitRepo != nil && ctx.Repo.GitRepo.LastCommitCache == nil {
-		commitsCount, err := cache.GetInt64(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, true), func() (int64, error) {
-			commit, err := ctx.Repo.GitRepo.GetCommit(sha)
-			if err != nil {
-				return 0, err
-			}
-			return commit.CommitsCount()
-		})
+	if ctx.Repo.GitRepo != nil {
+		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
 		if err != nil {
 			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
-			return sha
 		}
-		ctx.Repo.GitRepo.LastCommitCache = git.NewLastCommitCache(commitsCount, ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, cache.GetCache())
 	}
 
 	return sha
