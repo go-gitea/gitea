@@ -76,7 +76,7 @@
 
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
-								<a class="bold" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+								<a class="bold" href="{{if (eq .PullRequest.Flow 0)}}{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}{{else}}#{{end}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
 								</a>
