@@ -39,6 +39,7 @@ const (
 	TypeMaven     Type = "maven"
 	TypeNpm       Type = "npm"
 	TypeNuGet     Type = "nuget"
+	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
 	TypeRubyGems  Type = "rubygems"
 )
@@ -62,6 +63,8 @@ func (pt Type) Name() string {
 		return "npm"
 	case TypeNuGet:
 		return "NuGet"
+	case TypePub:
+		return "Pub"
 	case TypePyPI:
 		return "PyPI"
 	case TypeRubyGems:
@@ -89,6 +92,8 @@ func (pt Type) SVGName() string {
 		return "gitea-npm"
 	case TypeNuGet:
 		return "gitea-nuget"
+	case TypePub:
+		return "gitea-pub"
 	case TypePyPI:
 		return "gitea-python"
 	case TypeRubyGems:
