@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 	"code.gitea.io/gitea/routers/web/admin"
 	"code.gitea.io/gitea/routers/web/auth"
+	"code.gitea.io/gitea/routers/web/dev"
 	"code.gitea.io/gitea/routers/web/events"
 	"code.gitea.io/gitea/routers/web/explore"
 	"code.gitea.io/gitea/routers/web/feed"
@@ -658,6 +659,10 @@ func RegisterRoutes(m *web.Route) {
 	}, ignSignIn)
 
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
+
+	if !setting.IsProd {
+		m.Any("/dev/termdemo", dev.TermDemo)
+	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
 	reqRepoCodeWriter := context.RequireRepoWriter(unit.TypeCode)

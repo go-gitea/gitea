@@ -25,7 +25,7 @@ func DetectWorkflows(commit *git.Commit, event webhook.HookEventType) (git.Entri
 		return nil, nil, err
 	}
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveFast()
 	if err != nil {
 		return nil, nil, err
 	}

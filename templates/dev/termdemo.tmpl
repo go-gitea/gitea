@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.19.0/css/xterm.css" />
+	<script src="https://cdn.jsdelivr.net/npm/xterm@4.19.0/lib/xterm.js"></script>
+</head>
+<body>
+<div id="terminal"></div>
+
+<script type="module">
+	const term = new Terminal();
+	term.open(document.getElementById('terminal'));
+	term.write('Hello from \x1B[1;3;31mxterm.js\x1B[0m!\r\n');
+
+	let offset = -1;
+	setInterval(async ()=>{
+		const res = await fetch('?cmd=tail&offset='+offset);
+		const data = await res.json();
+		console.log("tail resp data", data);
+		offset = data.offset;
+		term.write(data.content);
+	}, 500);
+</script>
+
+</body>
+</html>
