@@ -135,6 +135,8 @@ func TeamsAction(ctx *context.Context) {
 					if err != nil {
 						if org_model.IsErrTeamInviteAlreadyExist(err) {
 							ctx.Flash.Error(ctx.Tr("form.duplicate_invite_to_team"))
+						} else if org_model.IsErrUserEmailAlreadyAdded(err) {
+							ctx.Flash.Error(ctx.Tr("org.teams.add_duplicate_users"))
 						} else {
 							ctx.ServerError("CreateTeamInvite", err)
 							return
