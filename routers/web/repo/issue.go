@@ -291,7 +291,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
-	ctx.Data["Posters"], err = repo_model.GetPullRequestPosters(ctx, repo)
+	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
 	if err != nil {
 		ctx.ServerError("GetPullRequestPosters", err)
 		return
