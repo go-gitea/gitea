@@ -36,7 +36,7 @@ https://gitea.example.com/api/packages/{owner}/rubygems: Bearer {token}
 | Parameter     | Description |
 | ------------- | ----------- |
 | `owner`       | The owner of the package. |
-| `token`       | Your personal access token. |
+| `token`       | Your [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}). |
 
 For example:
 

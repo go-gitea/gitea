@@ -414,9 +414,9 @@ var (
 			Usage: "SMTP Authentication Type (PLAIN/LOGIN/CRAM-MD5) default PLAIN",
 		},
 		cli.StringFlag{
-			Name:  "host",
+			Name:  "addr",
 			Value: "",
-			Usage: "SMTP Host",
+			Usage: "SMTP Addr",
 		},
 		cli.IntFlag{
 			Name:  "port",
@@ -956,8 +956,8 @@ func parseSMTPConfig(c *cli.Context, conf *smtp.Source) error {
 		}
 		conf.Auth = c.String("auth-type")
 	}
-	if c.IsSet("host") {
-		conf.Host = c.String("host")
+	if c.IsSet("addr") {
+		conf.Addr = c.String("addr")
 	}
 	if c.IsSet("port") {
 		conf.Port = c.Int("port")

@@ -23,6 +23,12 @@ To update Gitea, download a newer version, stop the old one, perform a backup, a
 Every time a Gitea instance starts up, it checks whether a database migration should be run.
 If a database migration is required, Gitea will take some time to complete the upgrade and then serve.
 
+## Check the Changelog for breaking changes
+
+To make Gitea better, some breaking changes are unavoidable, especially for big milestone releases.
+Before upgrade, please read the [Changelog on Gitea blog](https://blog.gitea.io/)
+and check whether the breaking changes affect your Gitea instance.
+
 ## Backup for downgrade
 
 Gitea keeps compatibility for patch versions whose first two fields are the same (`a.b.x` -> `a.b.y`),
