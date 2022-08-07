@@ -192,7 +192,7 @@ function setLabelColor(label, color) {
 }
 
 /**
- * Inspired by W3C recommandation https://www.w3.org/TR/WCAG20/#relativeluminancedef
+ * Inspired by W3C recommendation https://www.w3.org/TR/WCAG20/#relativeluminancedef
  */
 function getRelativeColor(color) {
   color /= 255;

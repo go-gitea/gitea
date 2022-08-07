@@ -5,21 +5,25 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
+	packages_model "code.gitea.io/gitea/models/packages"
+	container_module "code.gitea.io/gitea/modules/packages/container"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
-func addTeamInviteTable(x *xorm.Engine) error {
-	type TeamInvite struct {
-		ID          int64              `xorm:"pk autoincr"`
-		Token       string             `xorm:"UNIQUE(token) INDEX"`
-		InviterID   int64              `xorm:"NOT NULL"`
-		TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
-		Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+func addContainerRepositoryProperty(x *xorm.Engine) error {
+	switch x.Dialect().URI().DBType {
+	case schemas.SQLITE:
+		_, err := x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, u.lower_name || '/' || p.lower_name FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?", packages_model.PropertyTypePackage, container_module.PropertyRepository, packages_model.TypeContainer)
+		if err != nil {
+			return err
+		}
+	default:
+		_, err := x.Exec("INSERT INTO package_property (ref_type, ref_id, name, value) SELECT ?, p.id, ?, CONCAT(u.lower_name, '/', p.lower_name) FROM package p JOIN `user` u ON p.owner_id = u.id WHERE p.type = ?", packages_model.PropertyTypePackage, container_module.PropertyRepository, packages_model.TypeContainer)
+		if err != nil {
+			return err
+		}
 	}
-
-	return x.Sync2(new(TeamInvite))
+	return nil
 }

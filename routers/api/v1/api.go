@@ -982,6 +982,15 @@ func Routes() *web.Route {
 					})
 				}, reqRepoReader(unit.TypeReleases))
 				m.Post("/mirror-sync", reqToken(), reqRepoWriter(unit.TypeCode), repo.MirrorSync)
+				m.Post("/push_mirrors-sync", reqAdmin(), repo.PushMirrorSync)
+				m.Group("/push_mirrors", func() {
+					m.Combo("").Get(repo.ListPushMirrors).
+						Post(bind(api.CreatePushMirrorOption{}), repo.AddPushMirror)
+					m.Combo("/{name}").
+						Delete(repo.DeletePushMirrorByRemoteName).
+						Get(repo.GetPushMirrorByName)
+				}, reqAdmin())
+
 				m.Get("/editorconfig/{filename}", context.ReferencesGitRepo(), context.RepoRefForAPI, reqRepoReader(unit.TypeCode), repo.GetEditorconfig)
 				m.Group("/pulls", func() {
 					m.Combo("").Get(repo.ListPullRequests).
@@ -1017,7 +1026,7 @@ func Routes() *web.Route {
 				}, mustAllowPulls, reqRepoReader(unit.TypeCode), context.ReferencesGitRepo())
 				m.Group("/statuses", func() {
 					m.Combo("/{sha}").Get(repo.GetCommitStatuses).
-						Post(reqToken(), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
+						Post(reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateStatusOption{}), repo.NewCommitStatus)
 				}, reqRepoReader(unit.TypeCode))
 				m.Group("/commits", func() {
 					m.Get("", context.ReferencesGitRepo(), repo.GetAllCommits)
