@@ -348,8 +348,13 @@ func (ctx *Context) RespHeader() http.Header {
 // SetServeHeaders sets necessary content serve headers
 func (ctx *Context) SetServeHeaders(filename string) {
 	ctx.Resp.Header().Set("Content-Description", "File Transfer")
-	ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
-	ctx.Resp.Header().Set("Content-Disposition", "attachment; filename="+filename)
+	if strings.HasSuffix(filename, ".pdf") {
+		ctx.Resp.Header().Set("Content-Disposition", "inline; filename=\""+filename+"\"")
+		ctx.Resp.Header().Set("Content-Type", "application/pdf")
+	} else {
+		ctx.Resp.Header().Set("Content-Type", "application/octet-stream")
+		ctx.Resp.Header().Set("Content-Disposition", "attachment; filename=\""+filename+"\"")
+	}
 	ctx.Resp.Header().Set("Content-Transfer-Encoding", "binary")
 	ctx.Resp.Header().Set("Expires", "0")
 	ctx.Resp.Header().Set("Cache-Control", "must-revalidate")
