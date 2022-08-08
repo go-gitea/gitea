@@ -15,44 +15,35 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestTeam_EmailExists(t *testing.T) {
+func TestTeamInvite(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-	// user 2 already added to team 2, should result in error
-	_, err := organization.CreateTeamInvite(db.DefaultContext, user2, team, "user2@example.com")
-	assert.Error(t, err)
-}
+	t.Run("MailExistsInTeam", func(t *testing.T) {
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
-func TestTeam_Invite(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		// user 2 already added to team 2, should result in error
+		_, err := organization.CreateTeamInvite(db.DefaultContext, user2, team, user2.Email)
+		assert.Error(t, err)
+	})
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	t.Run("CreateAndRemove", func(t *testing.T) {
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
-	_, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
-	assert.NoError(t, err)
+		invite, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
+		assert.NotNil(t, invite)
+		assert.NoError(t, err)
 
-	// Shouldn't allow duplicate invite
-	_, err = organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
-	assert.Error(t, err)
-}
+		// Shouldn't allow duplicate invite
+		_, err = organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
+		assert.Error(t, err)
 
-func TestTeam_RemoveInvite(t *testing.T) {
-	assert.NoError(t, unittest.PrepareTestDatabase())
+		// should remove invite
+		assert.NoError(t, organization.RemoveInviteByID(db.DefaultContext, invite.ID, invite.TeamID))
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-
-	invite, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "user5@example.com")
-	assert.NoError(t, err)
-
-	// should remove invite
-	assert.NoError(t, organization.RemoveInviteByID(db.DefaultContext, invite.ID, invite.TeamID))
-
-	// invite should not exist
-	_, err = organization.GetInviteByToken(db.DefaultContext, invite.Token)
-	assert.Error(t, err)
+		// invite should not exist
+		_, err = organization.GetInviteByToken(db.DefaultContext, invite.Token)
+		assert.Error(t, err)
+	})
 }

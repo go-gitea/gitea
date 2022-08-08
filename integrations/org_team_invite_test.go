@@ -17,27 +17,22 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestEmailInvite(t *testing.T) {
+func TestOrgTeamEmailInvite(t *testing.T) {
 	defer prepareTestEnv(t)()
-	session := loginUser(t, "user1")
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).(*organization.Organization)
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
 
-	req := NewRequestf(t, "GET", "/org/%s/teams/%s", org.Name, team.Name)
-	resp := session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc := NewHTMLParser(t, resp.Body)
+	session := loginUser(t, "user1")
 
-	url := fmt.Sprintf("/org/%s/teams/%s/action/add", org.Name, team.Name)
-
-	req = NewRequestWithValues(t, "POST", url, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
+	url := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
+	csrf := GetCSRF(t, session, url)
+	req := NewRequestWithValues(t, "POST", url + "/action/add", map[string]string{
+		"_csrf": csrf,
 		"uid":   "1",
-		"uname": "user3@example.com",
+		"uname": "user5@example.com",
 	})
-
-	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
+	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 
@@ -46,22 +41,15 @@ func TestEmailInvite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
-	user3Session := loginUser(t, "user3")
-
-	// load the join page
-	req = NewRequestf(t, "GET", "/org/invite/%s", invites[0].Token)
-	resp = user3Session.MakeRequest(t, req, http.StatusOK)
-	htmlDoc = NewHTMLParser(t, resp.Body)
-
-	url = fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	session = loginUser(t, "user5")
 
 	// join the team
+	url = fmt.Sprintf("/org/invite/%s", invites[0].Token)
+	csrf = GetCSRF(t, session, url)
 	req = NewRequestWithValues(t, "POST", url, map[string]string{
-		"_csrf": htmlDoc.GetCSRF(),
+		"_csrf": csrf,
 	})
-
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
-
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	resp = session.MakeRequest(t, req, http.StatusOK)
 }
