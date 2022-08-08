@@ -205,20 +205,41 @@ func renderIFrame(ctx *RenderContext, output io.Writer, iframeSandbox string) er
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
 	// when there is a strict CORS policy, the "onload" script can not read the loaded height at the moment.
 	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
-	_, err := io.WriteString(output, fmt.Sprintf(`
-<iframe src="%s/%s/%s/render/%s/%s"
-name="giteaExternalRender"
-onload="try { this.height=giteaExternalRender.document.documentElement.scrollHeight; } catch(e) { this.style.height='80vh'; }"
+	_, err := io.WriteString(output,
+		`
+<script type='module' >
+	window.addEventListener('message', (e) => {
+		const el = document.getElementById('gitea-external-render');
+		if (e.data && e.data.giteaIframeCmd === 'resize') {
+			el.setAttribute('data-iframe-resized', 'true');
+			el.style.height = e.data.height+'px';
+		}
+	});
+	window.giteaExternalRenderOnload = (el) => {
+		setTimeout(() => {
+			if(el.getAttribute('data-iframe-resized')) return;
+			try {
+				el.height = el.document.documentElement.scrollHeight;
+			} catch(e) {
+				el.style.height = '80vh';
+			}
+		}, 100);
+	};
+</script>
+`+fmt.Sprintf(`
+<iframe id="gitea-external-render"
+src="%s/%s/%s/render/%s/%s"
 width="100%%" height="0" scrolling="auto" frameborder="0" style="overflow: hidden"
+onload="giteaExternalRenderOnload(this)"
 sandbox="%s"
 ></iframe>`,
-		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
-		html.EscapeString(iframeSandbox),
-	))
+			setting.AppSubURL,
+			url.PathEscape(ctx.Metas["user"]),
+			url.PathEscape(ctx.Metas["repo"]),
+			ctx.Metas["BranchNameSubURL"],
+			url.PathEscape(ctx.RelativePath),
+			html.EscapeString(iframeSandbox),
+		))
 	return err
 }
 

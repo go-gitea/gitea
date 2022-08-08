@@ -7,6 +7,7 @@ package repo
 import (
 	"net/http"
 	"path"
+	"strings"
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -57,6 +58,7 @@ func RenderFile(ctx *context.Context) {
 	}
 
 	ctx.Resp.Header().Add("Content-Security-Policy", externalCSP)
+	ctx.Resp.Header().Add("Content-Type", "text/html")
 
 	if err = markup.RenderDirect(&markup.RenderContext{
 		Ctx:              ctx,
@@ -68,5 +70,15 @@ func RenderFile(ctx *context.Context) {
 	}, renderer, dataRc, ctx.Resp); err != nil {
 		ctx.ServerError("RenderDirect", err)
 		return
+	}
+
+	if strings.HasPrefix(ctx.Resp.Header().Get("Content-Type"), "text/html") {
+		_, _ = ctx.Resp.Write([]byte(`
+<script type='module'>
+	const fn = () => parent.postMessage({'giteaIframeCmd':'resize','height':document.documentElement.scrollHeight}, "*");
+	fn();
+	setInterval(fn, 500);
+</script>
+`))
 	}
 }
