@@ -46,6 +46,7 @@ func Routes() *web.Route {
 	authMethods := []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
+		&nuget.Auth{},
 		&conan.Auth{},
 	}
 	if setting.Service.EnableReverseProxyAuth {
