@@ -177,6 +177,6 @@ func newMarkupRenderer(name string, sec *ini.Section) {
 		NeedPostProcess:            sec.Key("NEED_POSTPROCESS").MustBool(true),
 		RenderContentMode:          renderContentMode,
 		RenderContentIframeSandbox: sec.Key("RENDER_CONTENT_IFRAME_SANDBOX").MustString("allow-scripts"),
-		RenderContentExternalCSP:   sec.Key("RENDER_CONTENT_EXTERNAL_CSP").MustString("iframe-src 'self'; sandbox allow-scripts"),
+		RenderContentExternalCSP:   sec.Key("RENDER_CONTENT_EXTERNAL_CSP").MustString("frame-src 'self'; sandbox allow-scripts"),
 	})
 }

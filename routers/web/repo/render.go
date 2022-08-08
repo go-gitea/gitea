@@ -38,9 +38,9 @@ func RenderFile(ctx *context.Context) {
 		treeLink += "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 	}
 
-	renderer, err := markup.GetRenderer("", ctx.Repo.TreePath)
-	if err != nil {
-		ctx.ServerError("GetRenderer", err)
+	renderer := markup.GetRendererByFileName(ctx.Repo.TreePath)
+	if renderer == nil {
+		ctx.Error(http.StatusBadRequest, "No renderer")
 		return
 	}
 

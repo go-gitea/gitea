@@ -163,32 +163,16 @@ func DetectRendererType(filename string, input io.Reader) string {
 	return ""
 }
 
-// GetRenderer returned the renderer according type or relative path
-func GetRenderer(renderType, relativePath string) (Renderer, error) {
-	if renderType != "" {
-		if renderer, ok := renderers[renderType]; ok {
-			return renderer, nil
-		}
-		// FIXME: is it correct? if it returns here, then relativePath won't take effect
-		return nil, ErrUnsupportedRenderType{renderType}
-	}
-
-	if relativePath != "" {
-		extension := strings.ToLower(filepath.Ext(relativePath))
-		if renderer, ok := extRenderers[extension]; ok {
-			return renderer, nil
-		}
-		return nil, ErrUnsupportedRenderExtension{extension}
-	}
-
-	return nil, errors.New("render options both filename and type missing")
-}
-
 // Render renders markup file to HTML with all specific handling stuff.
 func Render(ctx *RenderContext, input io.Reader, output io.Writer) error {
-	renderer, err := GetRenderer(ctx.Type, ctx.RelativePath)
-	if err != nil {
-		return err
+	var renderer Renderer
+	if ctx.Type != "" {
+		renderer = GetRendererByType(ctx.Type)
+	} else {
+		renderer = GetRendererByFileName(ctx.RelativePath)
+	}
+	if renderer == nil {
+		return fmt.Errorf("no renderer for type=%q, filename=%q", ctx.Type, ctx.RelativePath)
 	}
 
 	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
@@ -219,12 +203,13 @@ func renderIFrame(ctx *RenderContext, output io.Writer, iframeSandbox string) er
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
+	// when there is a strict CORS policy, the "onload" script can not read the loaded height at the moment.
 	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
 	_, err := io.WriteString(output, fmt.Sprintf(`
 <iframe src="%s/%s/%s/render/%s/%s"
 name="giteaExternalRender"
-onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
-width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
+onload="try { this.height=giteaExternalRender.document.documentElement.scrollHeight; } catch(e) { this.style.height='80vh'; }"
+width="100%%" height="0" scrolling="auto" frameborder="0" style="overflow: hidden"
 sandbox="%s"
 ></iframe>`,
 		setting.AppSubURL,
@@ -298,24 +283,6 @@ func RenderDirect(ctx *RenderContext, renderer Renderer, input io.Reader, output
 
 	wg.Wait()
 	return err
-}
-
-// ErrUnsupportedRenderType represents
-type ErrUnsupportedRenderType struct {
-	Type string
-}
-
-func (err ErrUnsupportedRenderType) Error() string {
-	return fmt.Sprintf("Unsupported render type: %s", err.Type)
-}
-
-// ErrUnsupportedRenderExtension represents the error when extension doesn't supported to render
-type ErrUnsupportedRenderExtension struct {
-	Extension string
-}
-
-func (err ErrUnsupportedRenderExtension) Error() string {
-	return fmt.Sprintf("Unsupported render extension: %s", err.Extension)
 }
 
 // Type returns if markup format via the filename
