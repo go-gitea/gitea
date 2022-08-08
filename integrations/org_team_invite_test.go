@@ -27,14 +27,14 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 
 	url := fmt.Sprintf("/org/%s/teams/%s", org.Name, team.Name)
 	csrf := GetCSRF(t, session, url)
-	req := NewRequestWithValues(t, "POST", url + "/action/add", map[string]string{
+	req := NewRequestWithValues(t, "POST", url+"/action/add", map[string]string{
 		"_csrf": csrf,
 		"uid":   "1",
 		"uname": "user5@example.com",
 	})
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 
 	// get the invite token
 	invites, err := organization.GetInvitesByTeamID(db.DefaultContext, team.ID)
@@ -51,5 +51,5 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	})
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
-	resp = session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusOK)
 }
