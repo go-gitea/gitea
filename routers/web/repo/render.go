@@ -75,9 +75,17 @@ func RenderFile(ctx *context.Context) {
 	if strings.HasPrefix(ctx.Resp.Header().Get("Content-Type"), "text/html") {
 		_, _ = ctx.Resp.Write([]byte(`
 <script type='module'>
+	// report height to parent
 	const fn = () => parent.postMessage({'giteaIframeCmd':'resize','height':document.documentElement.scrollHeight}, "*");
 	fn();
 	setInterval(fn, 500);
+	// make all absolute links open in new window (otherwise they would be blocked by all parents' frame-src)
+	document.body.addEventListener('click', (e) => {
+		if (e.target.nodeName !== 'A') return;
+		const href = e.target.getAttribute('href');
+		if (!href.startsWith("//") && !href.includes('://')) return;
+		e.target.target = '_blank';
+	}, true);
 </script>
 `))
 	}
