@@ -23,6 +23,11 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 	if err != nil {
 		return err
 	}
+	// Prevent insert being called with an empty slice which would result in
+	// err "no element on slice when insert".
+	if len(templateLabels) == 0 {
+		return nil
+	}
 
 	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
 	for _, templateLabel := range templateLabels {

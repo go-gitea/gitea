@@ -26,7 +26,6 @@ menu:
 * .github/ISSUE_TEMPLATE.md
 * .github/issue_template.md
 
-
 以下罗列了一些可供参考的 PR 模板:
 
 * PULL_REQUEST_TEMPLATE.md
