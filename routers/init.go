@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -119,7 +118,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(storage.Init)
 
 	mailer.NewContext()
-	mailer.InitMailRender(templates.Mailer())
 	mustInit(cache.NewContext)
 	notification.NewContext()
 	mustInit(archiver.Init)
