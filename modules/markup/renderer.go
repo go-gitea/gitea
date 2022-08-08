@@ -55,6 +55,11 @@ type RenderContext struct {
 	ShaExistCache   map[string]bool
 	cancelFn        func()
 	TableOfContents []Header
+
+	// InStandalonePage is used by external render. the router "/org/repo/render/..." will output the rendered content in a standalone page
+	// It is for maintenance and security purpose, to avoid rendering external JS into embedded page unexpectedly.
+	// The caller of the Render must set security headers correctly before setting it to true
+	InStandalonePage bool
 }
 
 // Cancel runs any cleanup functions that have been registered for this Ctx
@@ -98,7 +103,7 @@ type PostProcessRenderer interface {
 	NeedPostProcess() bool
 }
 
-// PostProcessRenderer defines an interface for external renderers
+// ExternalRenderer defines an interface for external renderers
 type ExternalRenderer interface {
 	// SanitizerDisabled disabled sanitize if return true
 	SanitizerDisabled() bool
@@ -106,10 +111,10 @@ type ExternalRenderer interface {
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
 
-	// IframeSandbox represents iframe sandbox allowed options
+	// IframeSandbox represents iframe sandbox attribute for the <iframe> tag
 	IframeSandbox() string
 
-	// ExternalCSP represents external render CSP
+	// ExternalCSP represents the Content-Security-Policy header for external render
 	ExternalCSP() string
 }
 
@@ -157,13 +162,14 @@ func DetectRendererType(filename string, input io.Reader) string {
 	return ""
 }
 
-// GetRenderer returned the renderer according type or relativepath
-func GetRenderer(tp, relativePath string) (Renderer, error) {
-	if tp != "" {
-		if renderer, ok := renderers[tp]; ok {
+// GetRenderer returned the renderer according type or relative path
+func GetRenderer(renderType, relativePath string) (Renderer, error) {
+	if renderType != "" {
+		if renderer, ok := renderers[renderType]; ok {
 			return renderer, nil
 		}
-		return nil, ErrUnsupportedRenderType{tp}
+		// FIXME: is it correct? if it returns here, then relativePath won't take effect
+		return nil, ErrUnsupportedRenderType{renderType}
 	}
 
 	if relativePath != "" {
@@ -173,7 +179,8 @@ func GetRenderer(tp, relativePath string) (Renderer, error) {
 		}
 		return nil, ErrUnsupportedRenderExtension{extension}
 	}
-	return nil, errors.New("Render options both filename and type missing")
+
+	return nil, errors.New("render options both filename and type missing")
 }
 
 // Render renders markup file to HTML with all specific handling stuff.
@@ -231,6 +238,13 @@ sandbox="%s"
 
 // RenderDirect renders markup file to HTML with all specific handling stuff.
 func RenderDirect(ctx *RenderContext, renderer Renderer, input io.Reader, output io.Writer) error {
+	if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
+		// to prevent from rendering external JS into embedded page unexpectedly, which would lead to XSS attack
+		if !ctx.InStandalonePage {
+			return errors.New("external render with iframe can only render in standalone page")
+		}
+	}
+
 	var wg sync.WaitGroup
 	var err error
 	pr, pw := io.Pipe()
