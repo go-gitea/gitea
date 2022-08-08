@@ -22,6 +22,7 @@ params:
   minGoVersion: 1.18
   goVersion: 1.19
   minNodeVersion: 14
+  search: nav
 
 outputs:
   home:
