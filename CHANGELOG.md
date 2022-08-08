@@ -160,7 +160,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.16.3](https://github.com/go-gitea/gitea/releases/tag/v1.16.3) - 2022-03-02
 
 * SECURITY
-* Git backend ignore replace objects (#18979) (#18980)
+  * Git backend ignore replace objects (#18979) (#18980)
 * ENHANCEMENTS
   * Adjust error for already locked db and prevent level db lock on malformed connstr (#18923) (#18938)
 * BUGFIXES
