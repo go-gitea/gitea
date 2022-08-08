@@ -194,7 +194,9 @@ export function initGlobalDropzone() {
           const name = file.name.slice(0, file.name.lastIndexOf('.'));
           const placeholder = `![${name}](uploading ...)`;
           const isImage = file.type.includes('image') ? '!' : '';
-          file.editor.replacePlaceholder(placeholder, `${isImage}[${name}](/attachments/${data.uuid})`);
+          if (file.editor) {
+            file.editor.replacePlaceholder(placeholder, `${isImage}[${name}](/attachments/${data.uuid})`);
+          }
         });
         this.on('removedfile', (file) => {
           $(`#${file.uuid}`).remove();

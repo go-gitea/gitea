@@ -7,11 +7,13 @@ import {getAttachedEasyMDE} from './EasyMDE.js';
  */
 export function removeUploadedFileFromEditor(editor, fileUuid) {
   // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/ for remove file text in textarea
-  const re = new RegExp(`(!|)\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
-  if (editor.editor.setValue) {
-    editor.editor.setValue(editor.editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
-  } else {
-    editor.editor.value = editor.editor.value.replace(re, '');
+  if (editor.editor) {
+    const re = new RegExp(`(!|)\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
+    if (editor.editor.setValue) {
+      editor.editor.setValue(editor.editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
+    } else {
+      editor.editor.value = editor.editor.value.replace(re, '');
+    }
   }
 }
 
@@ -128,7 +130,7 @@ export function initEasyMDEFilePaste(easyMDE, $dropzone) {
 }
 
 export async function addUploadedFileToEditor(file) {
-  if (!file.editor) {
+  if (!file.editor && file.previewElement.closest('div.comment')) {
     const editor = getAttachedEasyMDE(file.previewElement.closest('div.comment').querySelector('textarea'));
     if (editor.codemirror) {
       file.editor = new CodeMirrorEditor(editor.codemirror);
@@ -136,7 +138,9 @@ export async function addUploadedFileToEditor(file) {
       file.editor = new TextareaEditor(editor);
     }
   }
-  const name = file.name.slice(0, file.name.lastIndexOf('.'));
-  const placeholder = `![${name}](uploading ...)`;
-  file.editor.insertPlaceholder(placeholder);
+  if (file.editor) {
+    const name = file.name.slice(0, file.name.lastIndexOf('.'));
+    const placeholder = `![${name}](uploading ...)`;
+    file.editor.insertPlaceholder(placeholder);
+  }
 }
