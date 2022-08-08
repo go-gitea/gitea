@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"net/url"
 	"path/filepath"
@@ -231,7 +232,7 @@ sandbox="%s"
 		url.PathEscape(ctx.Metas["repo"]),
 		ctx.Metas["BranchNameSubURL"],
 		url.PathEscape(ctx.RelativePath),
-		iframeSandbox,
+		html.EscapeString(iframeSandbox),
 	))
 	return err
 }
