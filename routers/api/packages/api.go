@@ -21,6 +21,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/maven"
 	"code.gitea.io/gitea/routers/api/packages/npm"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
+	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
 	"code.gitea.io/gitea/services/auth"
@@ -216,6 +217,20 @@ func Routes() *web.Route {
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 		})
+		r.Group("/pub", func() {
+			r.Group("/api/packages", func() {
+				r.Group("/versions/new", func() {
+					r.Get("", pub.RequestUpload)
+					r.Post("/upload", pub.UploadPackageFile)
+					r.Get("/finalize/{id}/{version}", pub.FinalizePackage)
+				}, reqPackageAccess(perm.AccessModeWrite))
+				r.Group("/{id}", func() {
+					r.Get("", pub.EnumeratePackageVersions)
+					r.Get("/files/{version}", pub.DownloadPackageFile)
+					r.Get("/{version}", pub.PackageVersionMetadata)
+				})
+			})
+		})
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
@@ -257,6 +272,7 @@ func ContainerRoutes() *web.Route {
 
 	r.Get("", container.ReqContainerAccess, container.DetermineSupport)
 	r.Get("/token", container.Authenticate)
+	r.Get("/_catalog", container.ReqContainerAccess, container.GetRepositoryList)
 	r.Group("/{username}", func() {
 		r.Group("/{image}", func() {
 			r.Group("/blobs/uploads", func() {

@@ -266,8 +266,9 @@ func UploadPackageFile(ctx *context.Context) {
 		PackageFileInfo: packages_service.PackageFileInfo{
 			Filename: params.Filename,
 		},
-		Data:   buf,
-		IsLead: false,
+		Data:              buf,
+		IsLead:            false,
+		OverwriteExisting: params.IsMeta,
 	}
 
 	// If it's the package pom file extract the metadata

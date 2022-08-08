@@ -35,7 +35,7 @@ on the executable path. If you don't add the go bin directory to the
 executable path you will have to manage this yourself.
 
 **Note 2**: Go version {{< min-go-version >}} or higher is required.
-Gitea uses `gofmt` to format source code. However, the results of 
+Gitea uses `gofmt` to format source code. However, the results of
 `gofmt` can differ by the version of `go`. Therefore it is
 recommended to install the version of Go that our continuous integration is
 running. As of last update, the Go version should be {{< go-version >}}.
@@ -69,7 +69,7 @@ One of these three distributions of Make will run on Windows:
   - [32-bits version](http://www.equation.com/ftpdir/make/32/make.exe)
   - [64-bits version](http://www.equation.com/ftpdir/make/64/make.exe)
 - [MinGW-w64](https://www.mingw-w64.org) / [MSYS2](https://www.msys2.org/).
-  - MSYS2 is a collection of tools and libraries providing you with an easy-to-use environment for building, installing and running native Windows software, it includes MinGW-w64. 
+  - MSYS2 is a collection of tools and libraries providing you with an easy-to-use environment for building, installing and running native Windows software, it includes MinGW-w64.
   - In MingGW-w64, the binary is called `mingw32-make.exe` instead of `make.exe`. Add the `bin` folder to `PATH`.
   - In MSYS2, you can use `make` directly. See [MSYS2 Porting](https://www.msys2.org/wiki/Porting/).
   - To compile Gitea with CGO_ENABLED (eg: SQLite3), you might need to use [tdm-gcc](https://jmeubank.github.io/tdm-gcc/) instead of MSYS2 gcc, because MSYS2 gcc headers lack some Windows-only CRT functions like `_beginthread`.
@@ -212,7 +212,7 @@ SVG icons are built using the `make svg` target which compiles the icon sources 
 
 ### Building the Logo
 
-The PNG and SVG versions of the Gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available. 
+The PNG and SVG versions of the Gitea logo are built from a single SVG source file `assets/logo.svg` using the `TAGS="gitea" make generate-images` target. To run it, Node.js and npm must be available.
 
 The same process can also be used to generate custom logo PNGs from a SVG source file by updating `assets/logo.svg` and running `make generate-images`. Omitting the `gitea` tag will update only the user-designated logo files.
 
@@ -312,7 +312,6 @@ may need adjustment to the local environment.
 Take a look at [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
 for more information and how to run a single test.
 
-
 ### Testing for a PR
 
 Our continuous integration will test the code passes its unit tests and that
@@ -345,13 +344,13 @@ for more information.
 
 ## GoLand
 
-Clicking the `Run Application` arrow on the function `func main()` in `/main.go` 
+Clicking the `Run Application` arrow on the function `func main()` in `/main.go`
 can quickly start a debuggable Gitea instance.
 
-The `Output Directory` in `Run/Debug Configuration` MUST be set to the 
-gitea project directory (which contains `main.go` and `go.mod`), 
-otherwise, the started instance's working directory is a GoLand's temporary directory 
-and prevents Gitea from loading dynamic resources (eg: templates) in a development environment.  
+The `Output Directory` in `Run/Debug Configuration` MUST be set to the
+gitea project directory (which contains `main.go` and `go.mod`),
+otherwise, the started instance's working directory is a GoLand's temporary directory
+and prevents Gitea from loading dynamic resources (eg: templates) in a development environment.
 
 To run unit tests with SQLite in GoLand, set `-tags sqlite,sqlite_unlock_notify`
 in `Go tool arguments` of `Run/Debug Configuration`.

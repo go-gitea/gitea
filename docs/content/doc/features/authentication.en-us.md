@@ -203,7 +203,7 @@ configure this, set the fields below:
 
 - Force SMTPS
 
-  - SMTPS will be used by default for connections to port 465, if you wish to use SMTPS 
+  - SMTPS will be used by default for connections to port 465, if you wish to use SMTPS
   for other ports. Set this value.
   - Otherwise if the server provides the `STARTTLS` extension this will be used.
 
