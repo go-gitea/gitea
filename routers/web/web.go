@@ -414,15 +414,15 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/user/settings", func() {
 		m.Get("", user_setting.Profile)
 		m.Post("", bindIgnErr(forms.UpdateProfileForm{}), user_setting.ProfilePost)
-		m.Get("/change_password", userSettingModuleEnabled("password"), auth.MustChangePassword)
-		m.Post("/change_password", userSettingModuleEnabled("password"), bindIgnErr(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
+		m.Get("/change_password", userSettingModuleEnabled(user_setting.UserPasswordKey), auth.MustChangePassword)
+		m.Post("/change_password", userSettingModuleEnabled(user_setting.UserPasswordKey), bindIgnErr(forms.MustChangePasswordForm{}), auth.MustChangePasswordPost)
 		m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), user_setting.AvatarPost)
 		m.Post("/avatar/delete", user_setting.DeleteAvatar)
 		m.Group("/account", func() {
 			m.Combo("").Get(user_setting.Account).Post(bindIgnErr(forms.ChangePasswordForm{}), user_setting.AccountPost)
 			m.Post("/email", bindIgnErr(forms.AddEmailForm{}), user_setting.EmailPost)
 			m.Post("/email/delete", user_setting.DeleteEmail)
-			m.Post("/delete", userSettingModuleEnabled("deletion"), user_setting.DeleteAccount)
+			m.Post("/delete", userSettingModuleEnabled(user_setting.UserDeletionKey), user_setting.DeleteAccount)
 		})
 		m.Group("/appearance", func() {
 			m.Get("", user_setting.Appearance)
@@ -449,7 +449,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/toggle_visibility", security.ToggleOpenIDVisibility)
 			}, openIDSignInEnabled)
 			m.Post("/account_link", linkAccountEnabled, security.DeleteAccountLink)
-		}, userSettingModuleEnabled("security"))
+		}, userSettingModuleEnabled(user_setting.UserSecurityKey))
 		m.Group("/applications/oauth2", func() {
 			m.Get("/{id}", user_setting.OAuth2ApplicationShow)
 			m.Post("/{id}", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
@@ -457,10 +457,10 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
 			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
 			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
-		}, userSettingModuleEnabled("applications"))
-		m.Combo("/applications").Get(userSettingModuleEnabled("applications"), user_setting.Applications).
-			Post(userSettingModuleEnabled("applications"), bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
-		m.Post("/applications/delete", userSettingModuleEnabled("applications"), user_setting.DeleteApplication)
+		}, userSettingModuleEnabled(user_setting.UserApplicationKey))
+		m.Combo("/applications").Get(userSettingModuleEnabled(user_setting.UserApplicationKey), user_setting.Applications).
+			Post(userSettingModuleEnabled(user_setting.UserApplicationKey), bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
+		m.Post("/applications/delete", userSettingModuleEnabled(user_setting.UserApplicationKey), user_setting.DeleteApplication)
 		m.Combo("/keys").Get(user_setting.Keys).
 			Post(bindIgnErr(forms.AddKeyForm{}), user_setting.KeysPost)
 		m.Post("/keys/delete", user_setting.DeleteKey)
@@ -478,7 +478,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			})
 		}, packagesEnabled)
-		m.Get("/organization", userSettingModuleEnabled("organizations"), user_setting.Organization)
+		m.Get("/organization", userSettingModuleEnabled(user_setting.UserOrganizations), user_setting.Organization)
 		m.Get("/repos", user_setting.Repos)
 		m.Post("/repos/unadopted", user_setting.AdoptOrDeleteRepository)
 	}, reqSignIn, func(ctx *context.Context) {
