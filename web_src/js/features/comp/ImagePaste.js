@@ -7,7 +7,7 @@ import {getAttachedEasyMDE} from './EasyMDE.js';
  */
 export function removeUploadedFileFromEditor(editor, fileUuid) {
   // the raw regexp is: /!\[[^\]]*]\(\/attachments\/{uuid}\)/ for remove file text in textarea
-  if (editor.editor) {
+  if (editor && editor.editor) {
     const re = new RegExp(`(!|)\\[[^\\]]*]\\(/attachments/${fileUuid}\\)`);
     if (editor.editor.setValue) {
       editor.editor.setValue(editor.editor.getValue().replace(re, '')); // at the moment, we assume the editor is an EasyMDE
