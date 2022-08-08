@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/json"
-	auth_model "code.gitea.io/gitea/models/auth"
 
 	"github.com/stretchr/testify/assert"
 	"xorm.io/xorm/schemas"

@@ -30,8 +30,8 @@ import (
 )
 
 /*
-	GitHub, GitLab, Gogs: *.wiki.git
-	BitBucket: *.git/wiki
+GitHub, GitLab, Gogs: *.wiki.git
+BitBucket: *.git/wiki
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
