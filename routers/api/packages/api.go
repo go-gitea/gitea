@@ -156,12 +156,15 @@ func Routes() *web.Route {
 			})
 		})
 		r.Group("/generic", func() {
-			r.Group("/{packagename}/{packageversion}/{filename}", func() {
-				r.Get("", generic.DownloadPackageFile)
-				r.Group("", func() {
-					r.Put("", generic.UploadPackage)
-					r.Delete("", generic.DeletePackage)
-				}, reqPackageAccess(perm.AccessModeWrite))
+			r.Group("/{packagename}/{packageversion}", func() {
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
+				r.Group("/{filename}", func() {
+					r.Get("", generic.DownloadPackageFile)
+					r.Group("", func() {
+						r.Put("", generic.UploadPackage)
+						r.Delete("", generic.DeletePackageFile)
+					}, reqPackageAccess(perm.AccessModeWrite))
+				})
 			})
 		})
 		r.Group("/helm", func() {
