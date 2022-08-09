@@ -1001,7 +1001,9 @@ func AddTeamPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_team_success"))
 
-	admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.addteamtorepo"), ctx.Doer.GetDisplayName(), name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if doer := ctx.Doer; doer != nil {
+		admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.addteamtorepo"), doer.GetDisplayName(), name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 }
