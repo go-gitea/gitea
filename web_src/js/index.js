@@ -56,7 +56,7 @@ import {
   initGlobalFormDirtyLeaveConfirm,
   initGlobalLinkActions,
   initHeadNavbarContentToggle,
-  initGlobalPopups,
+  initGlobalTooltips,
 } from './features/common-global.js';
 import {initRepoTopicBar} from './features/repo-home.js';
 import {initAdminEmails} from './features/admin-emails.js';
@@ -100,7 +100,7 @@ initVueEnv();
 $(document).ready(() => {
   initGlobalCommon();
 
-  initGlobalPopups();
+  initGlobalTooltips();
   initGlobalButtonClickOnEnter();
   initGlobalButtons();
   initGlobalCopyToClipboardListener();
