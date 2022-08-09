@@ -42,6 +42,7 @@ func TestPackageMaven(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
 		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusCreated)
+		putFile(t, fmt.Sprintf("/%s/%s", packageVersion, filename), "test", http.StatusBadRequest)
 		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeMaven)
@@ -135,12 +136,14 @@ func TestPackageMaven(t *testing.T) {
 		pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
 		assert.NoError(t, err)
 		assert.Len(t, pfs, 2)
-		i := 0
-		if strings.HasSuffix(pfs[1].Name, ".pom") {
-			i = 1
+		for _, pf := range pfs {
+			if strings.HasSuffix(pf.Name, ".pom") {
+				assert.Equal(t, filename+".pom", pf.Name)
+				assert.True(t, pf.IsLead)
+			} else {
+				assert.False(t, pf.IsLead)
+			}
 		}
-		assert.Equal(t, filename+".pom", pfs[i].Name)
-		assert.True(t, pfs[i].IsLead)
 	})
 
 	t.Run("DownloadPOM", func(t *testing.T) {
@@ -201,5 +204,14 @@ func TestPackageMaven(t *testing.T) {
 
 			assert.Equal(t, checksum, resp.Body.String())
 		}
+	})
+
+	t.Run("UploadSnapshot", func(t *testing.T) {
+		snapshotVersion := packageVersion + "-SNAPSHOT"
+
+		putFile(t, fmt.Sprintf("/%s/%s", snapshotVersion, filename), "test", http.StatusCreated)
+		putFile(t, "/maven-metadata.xml", "test", http.StatusOK)
+		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test", http.StatusCreated)
+		putFile(t, fmt.Sprintf("/%s/maven-metadata.xml", snapshotVersion), "test-overwrite", http.StatusCreated)
 	})
 }
