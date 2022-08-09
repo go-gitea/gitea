@@ -5,6 +5,8 @@ import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
+import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -53,20 +55,6 @@ export function initGlobalEnterQuickSubmit() {
   });
 }
 
-export function handleGlobalEnterQuickSubmit(target) {
-  const $target = $(target);
-  const $form = $(target).closest('form');
-  if ($form.length) {
-    // here use the event to trigger the submit event (instead of calling `submit()` method directly)
-    // otherwise the `areYouSure` handler won't be executed, then there will be an annoying "confirm to leave" dialog
-    $form.trigger('submit');
-  } else {
-    // if no form, then the editor is for an AJAX request, dispatch an event to the target, let the target's event handler to do the AJAX request.
-    // the 'ce-' prefix means this is a CustomEvent
-    $target.trigger('ce-quick-submit');
-  }
-}
-
 export function initGlobalButtonClickOnEnter() {
   $(document).on('keypress', '.ui.button', (e) => {
     if (e.keyCode === 13 || e.keyCode === 32) { // enter key or space bar
@@ -75,18 +63,10 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initPopup(target) {
-  const $el = $(target);
-  const attr = $el.attr('data-variation');
-  const attrs = attr ? attr.split(' ') : [];
-  const variations = new Set([...attrs, 'inverted', 'tiny']);
-  $el.attr('data-variation', [...variations].join(' ')).popup();
-}
-
-export function initGlobalPopups() {
-  $('.tooltip').each((_, el) => {
-    initPopup(el);
-  });
+export function initGlobalTooltips() {
+  for (const el of document.getElementsByClassName('tooltip')) {
+    initTooltip(el);
+  }
 }
 
 export function initGlobalCommon() {
@@ -119,7 +99,12 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      $('.tooltip').popup('hide');
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
@@ -135,13 +120,6 @@ export function initGlobalCommon() {
 
   $('.ui.checkbox').checkbox();
 
-  $('.top.menu .tooltip').popup({
-    onShow() {
-      if ($('.top.menu .menu.transition').hasClass('visible')) {
-        return false;
-      }
-    }
-  });
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
@@ -389,7 +367,8 @@ export function initGlobalButtons() {
  */
 export function checkAppUrl() {
   const curUrl = window.location.href;
-  if (curUrl.startsWith(appUrl)) {
+  // some users visit "https://domain/gitea" while appUrl is "https://domain/gitea/", there should be no warning
+  if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
   if (document.querySelector('.page-content.install')) {

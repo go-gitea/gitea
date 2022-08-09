@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {createTippy} from '../modules/tippy.js';
 
 const {csrfToken} = window.config;
 
@@ -58,12 +59,12 @@ export function initRepoCommitLastCommitLoader() {
 export function initCommitStatuses() {
   $('.commit-statuses-trigger').each(function () {
     const positionRight = $('.repository.file.list').length > 0 || $('.repository.diff').length > 0;
-    const popupPosition = positionRight ? 'right center' : 'left center';
-    $(this)
-      .popup({
-        on: 'click',
-        lastResort: popupPosition, // prevent error message "Popup does not fit within the boundaries of the viewport"
-        position: popupPosition,
-      });
+
+    createTippy(this, {
+      trigger: 'click',
+      content: this.nextSibling,
+      placement: positionRight ? 'right' : 'left',
+      interactive: true,
+    });
   });
 }
