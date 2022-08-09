@@ -23,16 +23,16 @@ func TestPackageGeneric(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 
 	packageName := "te-st_pac.kage"
-	packageVersion := "1.0.3"
+	packageVersion := "1.0.3-te st"
 	filename := "fi-le_na.me"
 	content := []byte{1, 2, 3}
 
-	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, filename)
+	url := fmt.Sprintf("/api/packages/%s/generic/%s/%s", user.Name, packageName, packageVersion)
 
 	t.Run("Upload", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
+		req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
 		AddBasicAuthHeader(req, user.Name)
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -55,54 +55,139 @@ func TestPackageGeneric(t *testing.T) {
 		pb, err := packages.GetBlobByID(db.DefaultContext, pfs[0].BlobID)
 		assert.NoError(t, err)
 		assert.Equal(t, int64(len(content)), pb.Size)
-	})
 
-	t.Run("UploadExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+		t.Run("Exists", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
-		AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusBadRequest)
+			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusConflict)
+		})
+
+		t.Run("Additional", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", url+"/dummy.bin", bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			// Check deduplication
+			pfs, err := packages.GetFilesByVersionID(db.DefaultContext, pvs[0].ID)
+			assert.NoError(t, err)
+			assert.Len(t, pfs, 2)
+			assert.Equal(t, pfs[0].BlobID, pfs[1].BlobID)
+		})
+
+		t.Run("InvalidParameter", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, "invalid+package name", packageVersion, filename), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, "%20test ", filename), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("/api/packages/%s/generic/%s/%s/%s", user.Name, packageName, packageVersion, "inval+id.na me"), bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusBadRequest)
+		})
 	})
 
 	t.Run("Download", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", url)
+		checkDownloadCount := func(count int64) {
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+			assert.Equal(t, count, pvs[0].DownloadCount)
+		}
+
+		checkDownloadCount(0)
+
+		req := NewRequest(t, "GET", url+"/"+filename)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		assert.Equal(t, content, resp.Body.Bytes())
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
-		assert.NoError(t, err)
-		assert.Len(t, pvs, 1)
-		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+		checkDownloadCount(1)
+
+		req = NewRequest(t, "GET", url+"/dummy.bin")
+		MakeRequest(t, req, http.StatusOK)
+
+		checkDownloadCount(2)
+
+		t.Run("NotExists", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequest(t, "GET", url+"/not.found")
+			MakeRequest(t, req, http.StatusNotFound)
+		})
 	})
 
 	t.Run("Delete", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "DELETE", url)
-		AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusOK)
+		t.Run("File", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
 
-		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
-		assert.NoError(t, err)
-		assert.Empty(t, pvs)
-	})
+			req := NewRequest(t, "DELETE", url+"/"+filename)
+			MakeRequest(t, req, http.StatusUnauthorized)
 
-	t.Run("DownloadNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+			req = NewRequest(t, "DELETE", url+"/"+filename)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
 
-		req := NewRequest(t, "GET", url)
-		MakeRequest(t, req, http.StatusNotFound)
-	})
+			req = NewRequest(t, "GET", url+"/"+filename)
+			MakeRequest(t, req, http.StatusNotFound)
 
-	t.Run("DeleteNotExists", func(t *testing.T) {
-		defer PrintCurrentTest(t)()
+			req = NewRequest(t, "DELETE", url+"/"+filename)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
 
-		req := NewRequest(t, "DELETE", url)
-		AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusNotFound)
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+
+			t.Run("RemovesVersion", func(t *testing.T) {
+				defer PrintCurrentTest(t)()
+
+				req = NewRequest(t, "DELETE", url+"/dummy.bin")
+				AddBasicAuthHeader(req, user.Name)
+				MakeRequest(t, req, http.StatusNoContent)
+
+				pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+				assert.NoError(t, err)
+				assert.Empty(t, pvs)
+			})
+		})
+
+		t.Run("Version", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", url+"/"+filename, bytes.NewReader(content))
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			req = NewRequest(t, "DELETE", url)
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "DELETE", url)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeGeneric)
+			assert.NoError(t, err)
+			assert.Empty(t, pvs)
+
+			req = NewRequest(t, "GET", url+"/"+filename)
+			MakeRequest(t, req, http.StatusNotFound)
+
+			req = NewRequest(t, "DELETE", url)
+			AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNotFound)
+		})
 	})
 }

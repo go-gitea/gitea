@@ -1,5 +1,5 @@
 <a class="ui link commit-statuses-trigger">{{template "repo/commit_status" .Status}}</a>
-<div class="ui popup very wide fixed basic commit-statuses">
+<div class="ui commit-statuses-popup commit-statuses hide">
 	<div class="ui relaxed list divided">
 		{{range .Statuses}}
 			<div class="ui item singular-status df">
