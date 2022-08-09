@@ -5,6 +5,7 @@
 package webhook
 
 import (
+	"strings"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -169,4 +170,22 @@ func TestSlackJSONPayload(t *testing.T) {
 	json, err := pl.JSONPayload()
 	require.NoError(t, err)
 	assert.NotEmpty(t, json)
+}
+
+func TestIsValidSlackChannel(t *testing.T) {
+	tt := []struct {
+		channelName string
+		expected    bool
+	}{
+		{"gitea", true},
+		{"  ", false},
+		{"#", false},
+		{" #", false},
+		{"gitea   ", true},
+		{"  gitea", true},
+	}
+
+	for _, v := range tt {
+		assert.Equal(t, v.expected, IsValidSlackChannel(strings.TrimSpace(v.channelName)))
+	}
 }

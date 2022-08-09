@@ -142,7 +142,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		}
 		channel = strings.TrimSpace(channel)
 
-		if !isValidSlackChannel(channel) {
+		if !webhook_service.IsValidSlackChannel(channel) {
 			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
 			return nil, false
 		}
@@ -168,10 +168,6 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 		return nil, false
 	}
 	return w, true
-}
-
-func isValidSlackChannel(name string) bool {
-	return name != "" && name != "#"
 }
 
 // EditOrgHook edit webhook `w` according to `form`. Writes to `ctx` accordingly

@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
+	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
@@ -304,7 +305,7 @@ type NewSlackHookForm struct {
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
-	if !isValidSlackChannel(strings.TrimSpace(f.Channel)) {
+	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
 		errs = append(errs, binding.Error{
 			FieldNames:     []string{"Channel"},
 			Classification: "",
@@ -312,10 +313,6 @@ func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) bind
 		})
 	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-func isValidSlackChannel(name string) bool {
-	return name != "" && name != "#"
 }
 
 // NewDiscordHookForm form for creating discord hook

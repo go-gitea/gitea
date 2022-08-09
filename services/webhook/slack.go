@@ -286,3 +286,10 @@ func GetSlackPayload(p api.Payloader, event webhook_model.HookEventType, meta st
 
 	return convertPayloader(s, p, event)
 }
+
+// IsValidSlackChannel validates a channel name conforms to what slack expects.
+// It makes sure a channel name cannot be empty and invalid ( only an # ).
+// The caller should call strings.TrimSpace first if needed.
+func IsValidSlackChannel(name string) bool {
+	return name != "" && name != "#"
+}
