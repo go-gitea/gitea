@@ -99,7 +99,9 @@
 								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 							</div>
 						</div>
-						{{template "user/dashboard/issues_create" .}}
+						{{if .Repo}}
+							<a class="ui green button" href="{{AppSubUrl}}/{{.Repo}}/issues/new">{{.locale.Tr "repo.issues.new"}}</a>
+						{{end}}
 					</div>
 				</div>
 				{{template "shared/issuelist" mergeinto . "listType" "dashboard"}}
