@@ -24,7 +24,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func addNuGetApiKeyHeader(request *http.Request, token string) *http.Request {
+func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
 	request.Header.Set("X-Nuget-Apikey", token)
 	return request
 }
@@ -70,7 +70,7 @@ func TestPackageNuGet(t *testing.T) {
 		MakeRequest(t, req, http.StatusOK)
 
 		req = NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
-		req = addNuGetApiKeyHeader(req, token)
+		req = addNuGetAPIKeyHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result nuget.ServiceIndexResponse
