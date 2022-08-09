@@ -25,7 +25,7 @@ import (
 )
 
 func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
-	request.Header.Set("X-Nuget-Apikey", token)
+	request.Header.Set("X-NuGet-ApiKey", token)
 	return request
 }
 

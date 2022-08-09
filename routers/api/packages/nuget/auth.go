@@ -22,7 +22,7 @@ func (a *Auth) Name() string {
 
 // https://docs.microsoft.com/en-us/nuget/api/package-publish-resource#request-parameters
 func (a *Auth) Verify(req *http.Request, w http.ResponseWriter, store auth.DataStore, sess auth.SessionStore) *user_model.User {
-	token, err := models.GetAccessTokenBySHA(req.Header.Get("X-Nuget-Apikey"))
+	token, err := models.GetAccessTokenBySHA(req.Header.Get("X-NuGet-ApiKey"))
 	if err != nil {
 		if !(models.IsErrAccessTokenNotExist(err) || models.IsErrAccessTokenEmpty(err)) {
 			log.Error("GetAccessTokenBySHA: %v", err)
