@@ -926,8 +926,9 @@ func CollaborationPost(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
 
-	admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.addusertorepo"), ctx.Doer.GetDisplayName(), name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-
+	if doer := ctx.Doer; doer != nil {
+		admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.addusertorepo"), doer.GetDisplayName(), name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
 	ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
 }
 
@@ -950,8 +951,9 @@ func DeleteCollaboration(ctx *context.Context) {
 	}
 
 	u, _ := user_model.GetUserByID(ctx.FormInt64("id"))
-	admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.removeuserfromrepo"), ctx.Doer.GetDisplayName(), u.Name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-
+	if doer := ctx.Doer; doer != nil {
+		admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.removeuserfromrepo"), doer.GetDisplayName(), u.Name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
 	})
@@ -1029,7 +1031,9 @@ func DeleteTeam(ctx *context.Context) {
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.remove_team_success"))
 
-	admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.removeteamfromrepo"), ctx.Doer.GetDisplayName(), team.Name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	if doer := ctx.Doer; doer != nil {
+		admin_model.CreatePermissionNotice(ctx.Tr("admin.notices.removeteamfromrepo"), doer.GetDisplayName(), team.Name, ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
+	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/settings/collaboration",
