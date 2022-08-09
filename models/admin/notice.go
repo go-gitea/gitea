@@ -24,6 +24,8 @@ const (
 	NoticeRepository NoticeType = iota + 1
 	// NoticeTask type
 	NoticeTask
+	// Permission type
+	NoticePermission
 )
 
 // Notice represents a system notice for admin.
@@ -59,6 +61,13 @@ func CreateNotice(ctx context.Context, tp NoticeType, desc string, args ...inter
 func CreateRepositoryNotice(desc string, args ...interface{}) error {
 	// Note we use the db.DefaultContext here rather than passing in a context as the context may be cancelled
 	return CreateNotice(db.DefaultContext, NoticeRepository, desc, args...)
+}
+
+// CreatePermissionNotice creates new notice with type NoticePermission.
+func CreatePermissionNotice(desc string, args ...interface{}) {
+	if err := CreateNotice(db.DefaultContext, NoticePermission, desc, args...); err != nil {
+		log.Error("CreatePermissionNotice: %v", err)
+	}
 }
 
 // RemoveAllWithNotice removes all directories in given path and
