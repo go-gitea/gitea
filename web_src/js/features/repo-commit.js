@@ -62,7 +62,7 @@ export function initCommitStatuses() {
 
     createTippy(this, {
       trigger: 'click',
-      content: this.nextElementSibling,
+      content: this.nextSibling,
       placement: positionRight ? 'right' : 'left',
       interactive: true,
     });
