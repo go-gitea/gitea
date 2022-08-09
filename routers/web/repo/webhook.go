@@ -264,7 +264,6 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		HTTPMethod:  form.HTTPMethod,
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.GITEA,
-		Meta:        nil,
 	})
 }
 
@@ -281,10 +280,8 @@ func GogsHooksNewPost(ctx *context.Context) {
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		Secret:      form.Secret,
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.GOGS,
-		Meta:        nil,
 	})
 }
 
@@ -295,8 +292,6 @@ func DiscordHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.DISCORD,
 		Meta: &webhook_service.DiscordMeta{
@@ -313,11 +308,8 @@ func DingtalkHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.DINGTALK,
-		Meta:        nil,
 	})
 }
 
@@ -328,8 +320,6 @@ func TelegramHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.TELEGRAM,
 		Meta: &webhook_service.TelegramMeta{
@@ -346,8 +336,7 @@ func MatrixHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "PUT",
+		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.MATRIX,
 		Meta: &webhook_service.MatrixMeta{
@@ -366,11 +355,8 @@ func MSTeamsHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.MSTEAMS,
-		Meta:        nil,
 	})
 }
 
@@ -381,8 +367,6 @@ func SlackHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.SLACK,
 		Meta: &webhook_service.SlackMeta{
@@ -401,11 +385,8 @@ func FeishuHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.FEISHU,
-		Meta:        nil,
 	})
 }
 
@@ -416,11 +397,8 @@ func WechatworkHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.WECHATWORK,
-		Meta:        nil,
 	})
 }
 
@@ -431,8 +409,6 @@ func PackagistHooksNewPost(ctx *context.Context) {
 	createWebhook(ctx, webhookCreationParams{
 		URL:         fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
 		ContentType: webhook.ContentTypeJSON,
-		Secret:      "",
-		HTTPMethod:  "",
 		WebhookForm: form.WebhookForm,
 		Type:        webhook.PACKAGIST,
 		Meta: &webhook_service.PackagistMeta{
