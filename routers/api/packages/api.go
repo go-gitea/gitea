@@ -46,6 +46,7 @@ func Routes() *web.Route {
 	authMethods := []auth.Method{
 		&auth.OAuth2{},
 		&auth.Basic{},
+		&nuget.Auth{},
 		&conan.Auth{},
 	}
 	if setting.Service.EnableReverseProxyAuth {
@@ -156,12 +157,15 @@ func Routes() *web.Route {
 			})
 		})
 		r.Group("/generic", func() {
-			r.Group("/{packagename}/{packageversion}/{filename}", func() {
-				r.Get("", generic.DownloadPackageFile)
-				r.Group("", func() {
-					r.Put("", generic.UploadPackage)
-					r.Delete("", generic.DeletePackage)
-				}, reqPackageAccess(perm.AccessModeWrite))
+			r.Group("/{packagename}/{packageversion}", func() {
+				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
+				r.Group("/{filename}", func() {
+					r.Get("", generic.DownloadPackageFile)
+					r.Group("", func() {
+						r.Put("", generic.UploadPackage)
+						r.Delete("", generic.DeletePackageFile)
+					}, reqPackageAccess(perm.AccessModeWrite))
+				})
 			})
 		})
 		r.Group("/helm", func() {
@@ -195,12 +199,26 @@ func Routes() *web.Route {
 			r.Group("/@{scope}/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Group("/-/{version}/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
+				r.Group("/-rev/{revision}", func() {
+					r.Delete("", npm.DeletePackage)
+					r.Put("", npm.DeletePreview)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 			r.Group("/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Group("/-/{version}/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
+				r.Group("/-rev/{revision}", func() {
+					r.Delete("", npm.DeletePackage)
+					r.Put("", npm.DeletePreview)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
 				r.Get("", npm.ListPackageTags)

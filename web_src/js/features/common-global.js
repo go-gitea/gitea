@@ -6,6 +6,7 @@ import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
 import {attachDropdownAria} from './aria.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -62,18 +63,10 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initPopup(target) {
-  const $el = $(target);
-  const attr = $el.attr('data-variation');
-  const attrs = attr ? attr.split(' ') : [];
-  const variations = new Set([...attrs, 'inverted', 'tiny']);
-  $el.attr('data-variation', [...variations].join(' ')).popup();
-}
-
-export function initGlobalPopups() {
-  $('.tooltip').each((_, el) => {
-    initPopup(el);
-  });
+export function initGlobalTooltips() {
+  for (const el of document.getElementsByClassName('tooltip')) {
+    initTooltip(el);
+  }
 }
 
 export function initGlobalCommon() {
@@ -106,7 +99,12 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      $('.tooltip').popup('hide');
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
@@ -122,13 +120,6 @@ export function initGlobalCommon() {
 
   $('.ui.checkbox').checkbox();
 
-  $('.top.menu .tooltip').popup({
-    onShow() {
-      if ($('.top.menu .menu.transition').hasClass('visible')) {
-        return false;
-      }
-    }
-  });
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
