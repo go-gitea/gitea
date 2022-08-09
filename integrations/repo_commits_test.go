@@ -96,21 +96,21 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "circle", "yellow")
+	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "success", "check", "green")
+	doTestRepoCommitWithStatus(t, "success", "octicon-check", "green")
 }
 
 func TestRepoCommitsWithStatusError(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "error", "warning", "red")
+	doTestRepoCommitWithStatus(t, "error", "gitea-exclamation", "red")
 }
 
 func TestRepoCommitsWithStatusFailure(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "failure", "remove", "red")
+	doTestRepoCommitWithStatus(t, "failure", "octicon-x", "red")
 }
 
 func TestRepoCommitsWithStatusWarning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "warning", "warning", "sign", "yellow")
+	doTestRepoCommitWithStatus(t, "warning", "gitea-exclamation", "yellow")
 }
