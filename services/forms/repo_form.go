@@ -305,11 +305,18 @@ type NewSlackHookForm struct {
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
+	if f.hasInvalidChannel() {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Channel"},
+			Classification: "",
+			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+		})
+	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-// HasInvalidChannel validates the channel name is in the right format
-func (f NewSlackHookForm) HasInvalidChannel() bool {
+// hasInvalidChannel validates the channel name is in the right format
+func (f NewSlackHookForm) hasInvalidChannel() bool {
 	return !utils.IsValidSlackChannel(f.Channel)
 }
 
