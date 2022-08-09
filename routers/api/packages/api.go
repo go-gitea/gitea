@@ -198,12 +198,26 @@ func Routes() *web.Route {
 			r.Group("/@{scope}/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Group("/-/{version}/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
+				r.Group("/-rev/{revision}", func() {
+					r.Delete("", npm.DeletePackage)
+					r.Put("", npm.DeletePreview)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 			r.Group("/{id}", func() {
 				r.Get("", npm.PackageMetadata)
 				r.Put("", reqPackageAccess(perm.AccessModeWrite), npm.UploadPackage)
-				r.Get("/-/{version}/{filename}", npm.DownloadPackageFile)
+				r.Group("/-/{version}/{filename}", func() {
+					r.Get("", npm.DownloadPackageFile)
+					r.Delete("/-rev/{revision}", reqPackageAccess(perm.AccessModeWrite), npm.DeletePackageVersion)
+				})
+				r.Group("/-rev/{revision}", func() {
+					r.Delete("", npm.DeletePackage)
+					r.Put("", npm.DeletePreview)
+				}, reqPackageAccess(perm.AccessModeWrite))
 			})
 			r.Group("/-/package/@{scope}/{id}/dist-tags", func() {
 				r.Get("", npm.ListPackageTags)
