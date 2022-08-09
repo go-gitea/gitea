@@ -5,6 +5,7 @@
 package forms
 
 import (
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/setting"
@@ -61,5 +62,23 @@ func TestIssueLock_HasValidReason(t *testing.T) {
 
 	for _, v := range cases {
 		assert.Equal(t, v.expected, v.form.HasValidReason())
+	}
+}
+
+func TestIsValidSlackChannel(t *testing.T) {
+	tt := []struct {
+		channelName string
+		expected    bool
+	}{
+		{"gitea", true},
+		{"  ", false},
+		{"#", false},
+		{" #", false},
+		{"gitea   ", true},
+		{"  gitea", true},
+	}
+
+	for _, v := range tt {
+		assert.Equal(t, v.expected, isValidSlackChannel(strings.TrimSpace(v.channelName)))
 	}
 }
