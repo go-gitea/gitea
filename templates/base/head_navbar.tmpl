@@ -86,10 +86,10 @@
 					<span class="sr-mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
 				</span>
 			</a>
-			<div class="ui popup very wide">
+			<div class="active-stopwatch-popup hide">
 				<div class="df ac">
 					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
-						{{svg "octicon-issue-opened"}}
+						{{svg "octicon-issue-opened" 16 "mr-3"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui primary label stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
@@ -98,6 +98,7 @@
 					<form class="stopwatch-commit" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
+							type="submit"
 							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
 							data-position="top right"
@@ -106,6 +107,7 @@
 					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
+							type="submit"
 							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right"
