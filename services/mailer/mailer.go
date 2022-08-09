@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
@@ -379,6 +380,8 @@ func NewContext() {
 	}, &Message{})
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
+
+	subjectTemplates, bodyTemplates = templates.Mailer()
 }
 
 // SendAsync send mail asynchronously

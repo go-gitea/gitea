@@ -67,7 +67,7 @@ export function initRepoCloneLink() {
     window.updateCloneStates();
   });
 
-  $inputLink.on('click', () => {
+  $inputLink.on('focus', () => {
     $inputLink.select();
   });
 }
