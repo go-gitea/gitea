@@ -258,7 +258,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	if log.IsDebug() { // <- FingerprintSHA256 is kinda expensive so only calculate it if necessary
 		log.Debug("Successfully authenticated: %s Public Key Fingerprint: %s", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
+	ctx.Lock()
 	ctx.SetValue(giteaKeyID, pkey.ID)
+	ctx.Unlock()
 
 	return true
 }
