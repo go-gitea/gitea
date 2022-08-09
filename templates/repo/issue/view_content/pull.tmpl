@@ -139,8 +139,8 @@
 			{{if $canUpdatePull }}
 				{{if eq .Issue.PullRequest.Flow 0}}
 					{{$headRepoFullName := printf "%s/%s" .Issue.PullRequest.HeadRepo.OwnerName .Issue.PullRequest.HeadRepo.Name }}
-                    {{$headBranchHref := printf "<a href=\"%s\">%s</a>" $.HeadBranchHTMLURL .Issue.PullRequest.HeadBranch }}
-                    {{$headRepoHref := printf "<a href=\"%s\">%s</a>" .PullRequest.HeadRepo.HTMLURL $headRepoFullName }}
+					{{$headBranchHref := printf "<a href=\"%s\">%s</a>" $.HeadBranchHTMLURL .Issue.PullRequest.HeadBranch }}
+					{{$headRepoHref := printf "<a href=\"%s\">%s</a>" .PullRequest.HeadRepo.HTMLURL $headRepoFullName }}
 					<div class="item text">
 						{{svg "octicon-dot-fill"}}
 						{{$.locale.Tr "repo.pulls.update_pull_help" $headBranchHref $headRepoHref | Safe}}
