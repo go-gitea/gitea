@@ -58,9 +58,9 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		statesIcons := map[api.CommitStatusState]string{
 			api.CommitStatusPending: "octicon-dot-fill",
 			api.CommitStatusSuccess: "octicon-check",
-			api.CommitStatusError:   "octicon-alert",
+			api.CommitStatusError:   "octicon-no-entry",
 			api.CommitStatusFailure: "octicon-x",
-			api.CommitStatusWarning: "octicon-alert",
+			api.CommitStatusWarning: "octicon-no-entry",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1")

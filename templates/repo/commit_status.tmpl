@@ -5,11 +5,11 @@
 	{{svg "octicon-check" 18 "commit-status icon text green"}}
 {{end}}
 {{if eq .State "error"}}
-	{{svg "octicon-alert" 18 "commit-status icon text red"}}
+	{{svg "octicon-no-entry" 18 "commit-status icon text red"}}
 {{end}}
 {{if eq .State "failure"}}
 	{{svg "octicon-x" 18 "commit-status icon text red"}}
 {{end}}
 {{if eq .State "warning"}}
-	{{svg "octicon-alert" 18 "commit-status icon text yellow"}}
+	{{svg "octicon-no-entry" 18 "commit-status icon text yellow"}}
 {{end}}
