@@ -361,6 +361,13 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 
 	actions := make([]*Action, 0, opts.PageSize)
 
+	// De-duplicate any action that has the same created unix, as actions are stored for each user
+	// who can see that action. This probably (though there is no guarantee) means that they were the same
+	// action.
+	if opts.RequestedRepo != nil {
+		sess = sess.GroupBy("`action`.created_unix")
+	}
+
 	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
 		return nil, fmt.Errorf("Find: %v", err)
 	}
