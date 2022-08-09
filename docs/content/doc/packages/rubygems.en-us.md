@@ -8,7 +8,7 @@ menu:
   sidebar:
     parent: "packages"
     name: "RubyGems"
-    weight: 100
+    weight: 110
     identifier: "rubygems"
 ---
 
