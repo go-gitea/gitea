@@ -312,6 +312,8 @@ func createPackageAndVersion(ctx context.Context, mci *manifestCreationInfo, met
 				return nil, err
 			}
 
+			_pv.DownloadCount = pv.DownloadCount
+
 			if pv, err = packages_model.GetOrInsertVersion(ctx, _pv); err != nil {
 				log.Error("Error inserting package: %v", err)
 				return nil, err
