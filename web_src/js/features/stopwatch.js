@@ -1,5 +1,6 @@
 import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
+import {createTippy} from '../modules/tippy.js';
 
 const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking} = window.config;
 
@@ -8,21 +9,21 @@ export function initStopwatch() {
     return;
   }
 
-  const stopwatchEl = $('.active-stopwatch-trigger');
+  const stopwatchEl = document.querySelector('.active-stopwatch-trigger');
+  const stopwatchPopup = document.querySelector('.active-stopwatch-popup');
 
-  if (!stopwatchEl.length) {
+  if (!stopwatchEl || !stopwatchPopup) {
     return;
   }
 
-  stopwatchEl.removeAttr('href'); // intended for noscript mode only
-  stopwatchEl.popup({
-    position: 'bottom right',
-    hoverable: true,
-  });
+  stopwatchEl.removeAttribute('href'); // intended for noscript mode only
 
-  // form handlers
-  $('form > button', stopwatchEl).on('click', function () {
-    $(this).parent().trigger('submit');
+  createTippy(stopwatchEl, {
+    content: stopwatchPopup,
+    placement: 'bottom-end',
+    trigger: 'click',
+    maxWidth: 'none',
+    interactive: true,
   });
 
   // global stop watch (in the head_navbar), it should always work in any case either the EventSource or the PeriodicPoller is used.
