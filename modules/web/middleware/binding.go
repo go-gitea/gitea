@@ -137,9 +137,11 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
 			default:
 				msg := errs[0].Classification
-				if msg == "" {
-					msg = errs[0].Message
+				if msg != "" {
+					msg += ": "
 				}
+
+				msg += errs[0].Message
 				if msg == "" {
 					msg = l.Tr("form.unknown_error")
 				}
