@@ -55,12 +55,6 @@ var (
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
 
-// InitMailRender initializes the mail renderer
-func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
-	subjectTemplates = subjectTpl
-	bodyTemplates = bodyTpl
-}
-
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
 	if setting.MailService == nil {

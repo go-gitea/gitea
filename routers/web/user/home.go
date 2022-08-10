@@ -618,6 +618,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
+	if len(repoIDs) == 1 {
+		repo := showReposMap[repoIDs[0]]
+		if repo != nil {
+			ctx.Data["SingleRepoLink"] = repo.Link()
+		}
+	}
 
 	ctx.Data["IsShowClosed"] = isShowClosed
 
