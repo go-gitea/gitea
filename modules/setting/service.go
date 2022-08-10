@@ -47,6 +47,9 @@ var Service = struct {
 	RecaptchaURL                            string
 	HcaptchaSecret                          string
 	HcaptchaSitekey                         string
+	McaptchaSecret                          string
+	McaptchaSitekey                         string
+	McaptchaURL                             string
 	DefaultKeepEmailPrivate                 bool
 	DefaultAllowCreateOrganization          bool
 	DefaultUserIsRestricted                 bool
@@ -133,6 +136,9 @@ func newService() {
 	Service.RecaptchaURL = sec.Key("RECAPTCHA_URL").MustString("https://www.google.com/recaptcha/")
 	Service.HcaptchaSecret = sec.Key("HCAPTCHA_SECRET").MustString("")
 	Service.HcaptchaSitekey = sec.Key("HCAPTCHA_SITEKEY").MustString("")
+	Service.McaptchaURL = sec.Key("MCAPTCHA_URL").MustString("https://demo.mcaptcha.org/")
+	Service.McaptchaSecret = sec.Key("MCAPTCHA_SECRET").MustString("")
+	Service.McaptchaSitekey = sec.Key("MCAPTCHA_SITEKEY").MustString("")
 	Service.DefaultKeepEmailPrivate = sec.Key("DEFAULT_KEEP_EMAIL_PRIVATE").MustBool()
 	Service.DefaultAllowCreateOrganization = sec.Key("DEFAULT_ALLOW_CREATE_ORGANIZATION").MustBool(true)
 	Service.DefaultUserIsRestricted = sec.Key("DEFAULT_USER_IS_RESTRICTED").MustBool(false)
