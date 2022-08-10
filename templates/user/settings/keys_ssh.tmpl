@@ -47,7 +47,7 @@
 
 				</div>
 				<div class="left floated content">
-					<span class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}" data-variation="inverted tiny"{{end}}>{{svg "octicon-key" 32}}</span>
+					<span class="tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</span>
 				</div>
 				<div class="content">
 						{{if .Verified}}

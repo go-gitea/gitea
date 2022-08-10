@@ -98,7 +98,7 @@
 							{{else if and (not $.CanSignedUserFork) (eq (len $.UserAndOrgForks) 0)}}
 								data-content="{{$.locale.Tr "repo.fork_from_self"}}"
 							{{end}}
-						data-position="top center" data-variation="tiny" tabindex="0">
+						data-position="top center" tabindex="0">
 							<a class="ui compact{{if $.ShowForkModal}} show-modal{{end}} small basic button"
 								{{if not $.CanSignedUserFork}}
 									{{if gt (len $.UserAndOrgForks) 1}}

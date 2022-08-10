@@ -164,6 +164,63 @@ func UploadPackage(ctx *context.Context) {
 	ctx.Status(http.StatusCreated)
 }
 
+// DeletePreview does nothing
+// The client tells the server what package version it knows about after deleting a version.
+func DeletePreview(ctx *context.Context) {
+	ctx.Status(http.StatusOK)
+}
+
+// DeletePackageVersion deletes the package version
+func DeletePackageVersion(ctx *context.Context) {
+	packageName := packageNameFromParams(ctx)
+	packageVersion := ctx.Params("version")
+
+	err := packages_service.RemovePackageVersionByNameAndVersion(
+		ctx.Doer,
+		&packages_service.PackageInfo{
+			Owner:       ctx.Package.Owner,
+			PackageType: packages_model.TypeNpm,
+			Name:        packageName,
+			Version:     packageVersion,
+		},
+	)
+	if err != nil {
+		if err == packages_model.ErrPackageNotExist {
+			apiError(ctx, http.StatusNotFound, err)
+			return
+		}
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
+// DeletePackage deletes the package and all versions
+func DeletePackage(ctx *context.Context) {
+	packageName := packageNameFromParams(ctx)
+
+	pvs, err := packages_model.GetVersionsByPackageName(ctx, ctx.Package.Owner.ID, packages_model.TypeNpm, packageName)
+	if err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	if len(pvs) == 0 {
+		apiError(ctx, http.StatusNotFound, err)
+		return
+	}
+
+	for _, pv := range pvs {
+		if err := packages_service.RemovePackageVersion(ctx.Doer, pv); err != nil {
+			apiError(ctx, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
+	ctx.Status(http.StatusOK)
+}
+
 // ListPackageTags returns all tags for a package
 func ListPackageTags(ctx *context.Context) {
 	packageName := packageNameFromParams(ctx)
