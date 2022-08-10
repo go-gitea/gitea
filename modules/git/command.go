@@ -95,33 +95,47 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunOpts represents parameters to run the command
+// RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
 type RunOpts struct {
-	Env            []string
-	Timeout        time.Duration
-	Dir            string
-	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	PipelineFunc   func(context.Context, context.CancelFunc) error
+	Env               []string
+	Timeout           time.Duration
+	UseContextTimeout bool
+	Dir               string
+	Stdout, Stderr    io.Writer
+	Stdin             io.Reader
+	PipelineFunc      func(context.Context, context.CancelFunc) error
+}
+
+func commonBaseEnvs() []string {
+	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
+	envs := []string{
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+	}
+
+	// some environment variables should be passed to git command
+	passThroughEnvKeys := []string{
+		"GNUPGHOME", // git may call gnupg to do commit signing
+	}
+	for _, key := range passThroughEnvKeys {
+		if val, ok := os.LookupEnv(key); ok {
+			envs = append(envs, key+"="+val)
+		}
+	}
+	return envs
 }
 
 // CommonGitCmdEnvs returns the common environment variables for a "git" command.
 func CommonGitCmdEnvs() []string {
-	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
-	return []string{
-		fmt.Sprintf("LC_ALL=%s", DefaultLocale),
-		"GIT_TERMINAL_PROMPT=0",    // avoid prompting for credentials interactively, supported since git v2.3
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-	}
+	return append(commonBaseEnvs(), []string{
+		"LC_ALL=" + DefaultLocale,
+		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
+	}...)
 }
 
 // CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
 func CommonCmdServEnvs() []string {
-	return []string{
-		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
-		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
-	}
+	return commonBaseEnvs()
 }
 
 // Run runs the command with the RunOpts
@@ -158,7 +172,15 @@ func (c *Command) Run(opts *RunOpts) error {
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var finished context.CancelFunc
+
+	if opts.UseContextTimeout {
+		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+	} else {
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	}
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)

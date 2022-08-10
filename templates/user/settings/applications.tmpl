@@ -19,7 +19,7 @@
 									{{$.locale.Tr "settings.delete_token"}}
 								</button>
 						</div>
-						<i class="big send icon {{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}" data-variation="inverted tiny"{{end}}></i>
+						<i class="big send icon tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.token_state_desc"}}"{{end}}></i>
 						<div class="content">
 							<strong>{{.Name}}</strong>
 							<div class="activity meta">

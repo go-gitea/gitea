@@ -23,13 +23,13 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.18.x
+XGO_VERSION := go-1.19.x
 
-AIR_PACKAGE ?= github.com/cosmtrek/air@v1.29.0
-EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.4.0
-ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.0
+AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
+EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.5.0
+ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.1
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
-GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.0
+GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
@@ -201,9 +201,9 @@ help:
 
 .PHONY: go-check
 go-check:
-	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
-	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
-	$(eval GO_VERSION := $(shell printf "%03d%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9.]+' | tr '.' ' ');))
+	$(eval MIN_GO_VERSION_STR := $(shell grep -Eo '^go\s+[0-9]+\.[0-9]+' go.mod | cut -d' ' -f2))
+	$(eval MIN_GO_VERSION := $(shell printf "%03d%03d" $(shell echo '$(MIN_GO_VERSION_STR)' | tr '.' ' ')))
+	$(eval GO_VERSION := $(shell printf "%03d%03d" $(shell $(GO) version | grep -Eo '[0-9]+\.[0-9]+' | tr '.' ' ');))
 	@if [ "$(GO_VERSION)" -lt "$(MIN_GO_VERSION)" ]; then \
 		echo "Gitea requires Go $(MIN_GO_VERSION_STR) or greater to build. You can get it at https://go.dev/dl/"; \
 		exit 1; \
@@ -310,8 +310,10 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 web_src/js build templates *.config.js docs/assets/js
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js
 	npx stylelint --color --max-warnings=0 web_src/less
+	npx spectral lint -q -F hint $(SWAGGER_SPEC)
+	npx markdownlint docs *.md
 
 .PHONY: lint-backend
 lint-backend: golangci-lint vet editorconfig-checker
@@ -770,7 +772,7 @@ generate-manpage:
 	@mkdir -p man/man1/ man/man5
 	@./gitea docs --man > man/man1/gitea.1
 	@gzip -9 man/man1/gitea.1 && echo man/man1/gitea.1.gz created
-	@#TODO A smal script witch format config-cheat-sheet.en-us.md nicely to suit as config man page
+	@#TODO A small script that formats config-cheat-sheet.en-us.md nicely for use as a config man page
 
 .PHONY: pr\#%
 pr\#%: clean-all

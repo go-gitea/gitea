@@ -41,11 +41,9 @@
 				{{end}}
 				<h4 class="ui top attached header df">
 					<strong class="f1">{{.locale.Tr "org.people"}}</strong>
-					{{if .IsOrganizationMember}}
-						<div class="ui">
-							<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.Org.NumMembers}}</span> {{svg "octicon-chevron-right"}}</a>
-						</div>
-					{{end}}
+					<div class="ui">
+						<a class="text grey dif ac" href="{{.OrgLink}}/members"><span>{{.MembersTotal}}</span> {{svg "octicon-chevron-right"}}</a>
+					</div>
 				</h4>
 				<div class="ui attached segment members">
 					{{$isMember := .IsOrganizationMember}}

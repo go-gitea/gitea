@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -1903,23 +1902,17 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	// SQLite's UPPER function only transforms ASCII letters.
-	if setting.Database.UseSQLite3 {
-		kw = util.ToUpperASCII(kw)
-	} else {
-		kw = strings.ToUpper(kw)
-	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
-			builder.Like{"UPPER(name)", kw},
-			builder.Like{"UPPER(content)", kw},
+			db.BuildCaseInsensitiveLike("name", kw),
+			db.BuildCaseInsensitiveLike("content", kw),
 			builder.In("id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					builder.Like{"UPPER(content)", kw},
+					db.BuildCaseInsensitiveLike("content", kw),
 				)),
 			),
 		),

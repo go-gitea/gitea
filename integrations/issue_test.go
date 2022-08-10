@@ -356,17 +356,17 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
+
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
-
-	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -394,14 +394,15 @@ func TestSearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
+	assert.Len(t, apiIssues, 17)
 
-	query.Add("limit", "20")
+	query.Add("limit", "5")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 17)
+	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
@@ -449,29 +450,26 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	token := getUserToken(t, "user1")
-
-	link, _ := url.Parse("/api/v1/repos/issues/search?token=" + token)
-	req := NewRequest(t, "GET", link.String())
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiIssues []*api.Issue
-	DecodeJSON(t, resp, &apiIssues)
-
-	assert.Len(t, apiIssues, 10)
-
-	query := url.Values{
-		"token": []string{token},
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
 	}
+
+	session := loginUser(t, "user1")
+	link, _ := url.Parse("/issues/search")
+	query := url.Values{}
+	var apiIssues []*api.Issue
+
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", link.String())
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -479,7 +477,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -487,7 +485,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
@@ -496,7 +494,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Add("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -504,7 +502,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }

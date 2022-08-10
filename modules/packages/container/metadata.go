@@ -16,6 +16,7 @@ import (
 )
 
 const (
+	PropertyRepository        = "container.repository"
 	PropertyDigest            = "container.digest"
 	PropertyMediaType         = "container.mediatype"
 	PropertyManifestTagged    = "container.manifest.tagged"
