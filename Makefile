@@ -23,7 +23,7 @@ SHASUM ?= shasum -a 256
 HAS_GO = $(shell hash $(GO) > /dev/null 2>&1 && echo "GO" || echo "NOGO" )
 COMMA := ,
 
-XGO_VERSION := go-1.18.x
+XGO_VERSION := go-1.19.x
 
 AIR_PACKAGE ?= github.com/cosmtrek/air@v1.40.4
 EDITORCONFIG_CHECKER_PACKAGE ?= github.com/editorconfig-checker/editorconfig-checker/cmd/editorconfig-checker@2.5.0

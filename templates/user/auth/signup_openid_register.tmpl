@@ -40,6 +40,11 @@
 							<div class="h-captcha" data-sitekey="{{ .HcaptchaSitekey }}"></div>
 						</div>
 					{{end}}
+					{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
+						<div class="inline field required">
+							<div class="m-captcha" data-sitekey="{{ .McaptchaSitekey }}" data-instance-url="{{ .McaptchaURL }}"></div>
+						</div>
+					{{end}}
 					<div class="inline field">
 						<label for="openid">OpenID URI</label>
 						<input id="openid" value="{{ .OpenID }}" readonly>
