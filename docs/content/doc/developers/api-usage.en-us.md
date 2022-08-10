@@ -110,7 +110,7 @@ the `token=` string in a GET request.
 The API supports pagination. The `page` and `limit` parameters are used to specify the page number and the number of items per page. As well, the `Link` header is returned with the next, previous, and last page links if there are more than one pages. The `x-total-count` is also returned to indicate the total number of items.
 
 ```sh
-curl -v http://localhost/api/v1/repos/search\?limit\=1
+curl -v "http://localhost/api/v1/repos/search?limit=1"
 ...
 < link: <http://localhost/api/v1/repos/search?limit=1&page=2>; rel="next",<http://localhost/api/v1/repos/search?limit=1&page=5252>; rel="last"
 ...
