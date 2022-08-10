@@ -68,6 +68,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8}).(*repo_model.Repository)
+	repoWithCollabs := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	// private repo & no login
 	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
@@ -99,6 +100,13 @@ func TestGetFeedsForRepos(t *testing.T) {
 		RequestedRepo:  pubRepo,
 		IncludePrivate: true,
 		Actor:          user,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, actions, 1)
+
+	// public repo & login
+	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
+		RequestedRepo: repoWithCollabs,
 	})
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)

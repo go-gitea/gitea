@@ -52,7 +52,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		},
 		{
 			"multiple actions performed with two grouped together",
-			10, 10, 3, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":2}]`,
+			10, 10, 4, `[{"timestamp":1603009800,"contributions":1},{"timestamp":1603010700,"contributions":3}]`,
 		},
 	}
 	// Prepare
