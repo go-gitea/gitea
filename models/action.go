@@ -365,7 +365,7 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	// who can see that action. This probably (though there is no guarantee) means that they were the same
 	// action.
 	if opts.RequestedRepo != nil {
-		sess = sess.GroupBy("`action`.created_unix, `action`.op_type, `action`.act_user_id")
+		sess = sess.In("`action`.id", builder.Select("min(id) as id").From("action").GroupBy("`action`.created_unix, `action`.op_type, `action`.act_user_id"))
 	}
 
 	if err := sess.Desc("`action`.created_unix").Find(&actions); err != nil {
