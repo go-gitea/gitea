@@ -70,14 +70,6 @@ export function initGlobalTooltips() {
 }
 
 export function initGlobalCommon() {
-  // Show exact time
-  $('.time-since').each(function () {
-    $(this)
-      .addClass('tooltip')
-      .attr('data-content', $(this).attr('title'))
-      .attr('title', '');
-  });
-
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
     $(window).resize(() => {
