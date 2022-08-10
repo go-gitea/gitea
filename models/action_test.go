@@ -68,7 +68,7 @@ func TestGetFeedsForRepos(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
 	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
 	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8}).(*repo_model.Repository)
-	repoWithCollabs := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoWithActions := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
 
 	// private repo & no login
 	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
@@ -104,12 +104,15 @@ func TestGetFeedsForRepos(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, actions, 1)
 
-	// public repo & login
+	// Check repository with four actions, all of them were created
+	// at the same time, but two of them are comments(one should be de-duped)
+	// the other one is closing a issue and the last one is also comment but by a different user.
+	// So in told there are 3 de-deduped actions.
 	actions, err = GetFeeds(db.DefaultContext, GetFeedsOptions{
-		RequestedRepo: repoWithCollabs,
+		RequestedRepo: repoWithActions,
 	})
 	assert.NoError(t, err)
-	assert.Len(t, actions, 1)
+	assert.Len(t, actions, 3)
 }
 
 func TestGetFeeds2(t *testing.T) {

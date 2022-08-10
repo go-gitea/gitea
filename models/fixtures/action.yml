@@ -72,7 +72,7 @@
   repo_id: 1
   content: HelloWorld
   is_private: false
-  created_unix: 1603011301
+  created_unix: 1603011301 # same as 10, 11, 12
 
 - id: 10
   user_id: 9
@@ -81,4 +81,21 @@
   repo_id: 1
   content: HelloWorld
   is_private: false
-  created_unix: 1603011301
+  created_unix: 1603011301 # same as id 9, 11, 12
+
+- id: 11
+  user_id: 9
+  op_type: 12 # differ op_type
+  act_user_id: 10
+  repo_id: 1
+  is_private: false
+  created_unix: 1603011301 # same as id 9, 10, 12
+
+- id: 12
+  user_id: 9
+  op_type: 10
+  act_user_id: 9 # differ act_user_id
+  repo_id: 1
+  content: HelloWorld
+  is_private: false
+  created_unix: 1603011301 # same as id 9, 10, 11
