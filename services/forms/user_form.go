@@ -96,6 +96,7 @@ type RegisterForm struct {
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 	HcaptchaResponse   string `form:"h-captcha-response"`
+	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields
