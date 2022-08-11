@@ -59,6 +59,7 @@ const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
 )
 
 // settings
@@ -262,8 +263,8 @@ var (
 	}{
 		ExplorePagingNum:    20,
 		SitemapPagingNum:    20,
-		IssuePagingNum:      10,
-		RepoSearchPagingNum: 10,
+		IssuePagingNum:      20,
+		RepoSearchPagingNum: 20,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
