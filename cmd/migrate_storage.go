@@ -12,9 +12,11 @@ import (
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/migrations"
+	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	packages_module "code.gitea.io/gitea/modules/packages"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 
@@ -81,29 +83,54 @@ var CmdMigrateStorage = cli.Command{
 }
 
 func migrateAttachments(dstStorage storage.ObjectStorage) error {
-	return repo_model.IterateAttachment(func(attach *repo_model.Attachment) error {
+	return db.IterateObjects(db.DefaultContext, func(attach *repo_model.Attachment) error {
 		_, err := storage.Copy(dstStorage, attach.RelativePath(), storage.Attachments, attach.RelativePath())
 		return err
 	})
 }
 
 func migrateLFS(dstStorage storage.ObjectStorage) error {
-	return git_model.IterateLFS(func(mo *git_model.LFSMetaObject) error {
+	return db.IterateObjects(db.DefaultContext, func(mo *git_model.LFSMetaObject) error {
 		_, err := storage.Copy(dstStorage, mo.RelativePath(), storage.LFS, mo.RelativePath())
 		return err
 	})
 }
 
 func migrateAvatars(dstStorage storage.ObjectStorage) error {
-	return user_model.IterateUser(func(user *user_model.User) error {
+	return db.IterateObjects(db.DefaultContext, func(user *user_model.User) error {
 		_, err := storage.Copy(dstStorage, user.CustomAvatarRelativePath(), storage.Avatars, user.CustomAvatarRelativePath())
 		return err
 	})
 }
 
 func migrateRepoAvatars(dstStorage storage.ObjectStorage) error {
-	return repo_model.IterateRepository(func(repo *repo_model.Repository) error {
+	return db.IterateObjects(db.DefaultContext, func(repo *repo_model.Repository) error {
 		_, err := storage.Copy(dstStorage, repo.CustomAvatarRelativePath(), storage.RepoAvatars, repo.CustomAvatarRelativePath())
+		return err
+	})
+}
+
+func migrateRepoArchivers(dstStorage storage.ObjectStorage) error {
+	return db.IterateObjects(db.DefaultContext, func(archiver *repo_model.RepoArchiver) error {
+		p, err := archiver.RelativePath()
+		if err != nil {
+			return err
+		}
+		_, err = storage.Copy(dstStorage, p, storage.RepoArchives, p)
+		return err
+	})
+}
+
+func migratePackages(dstStorage storage.ObjectStorage) error {
+	ctx := db.DefaultContext
+	return db.IterateObjects(ctx, func(pf *packages_model.PackageFile) error {
+		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
+		if err != nil {
+			return err
+		}
+
+		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
+		_, err = storage.Copy(dstStorage, p, storage.RepoAvatars, p)
 		return err
 	})
 }
@@ -168,25 +195,21 @@ func runMigrateStorage(ctx *cli.Context) error {
 		return err
 	}
 
+	migratedMethods := map[string]func(storage.ObjectStorage) error{
+		"attachments":    migrateAttachments,
+		"lfs":            migrateLFS,
+		"avatars":        migrateAvatars,
+		"repo-avatars":   migrateRepoAvatars,
+		"repo-archivers": migrateRepoArchivers,
+		"packages":       migratePackages,
+	}
+
 	tp := strings.ToLower(ctx.String("type"))
-	switch tp {
-	case "attachments":
-		if err := migrateAttachments(dstStorage); err != nil {
+	if m, ok := migratedMethods[tp]; ok {
+		if err := m(dstStorage); err != nil {
 			return err
 		}
-	case "lfs":
-		if err := migrateLFS(dstStorage); err != nil {
-			return err
-		}
-	case "avatars":
-		if err := migrateAvatars(dstStorage); err != nil {
-			return err
-		}
-	case "repo-avatars":
-		if err := migrateRepoAvatars(dstStorage); err != nil {
-			return err
-		}
-	default:
+	} else {
 		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
 	}
 
