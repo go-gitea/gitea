@@ -5,7 +5,6 @@
 package webhook
 
 import (
-	"strings"
 	"testing"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -178,14 +177,15 @@ func TestIsValidSlackChannel(t *testing.T) {
 		expected    bool
 	}{
 		{"gitea", true},
+		{"#gitea", true},
 		{"  ", false},
 		{"#", false},
 		{" #", false},
-		{"gitea   ", true},
-		{"  gitea", true},
+		{"gitea   ", false},
+		{"  gitea", false},
 	}
 
 	for _, v := range tt {
-		assert.Equal(t, v.expected, IsValidSlackChannel(strings.TrimSpace(v.channelName)))
+		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
 	}
 }
