@@ -591,6 +591,7 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			LabelIDs:   opts.LabelIDs,
 			Org:        org,
 			Team:       team,
+			RepoCond:   opts.RepoCond,
 		}
 
 		issueStats, err = issues_model.GetUserIssueStats(statsOpts)
@@ -615,6 +616,12 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 		shownIssues = 0
 		for _, repoID := range repoIDs {
 			shownIssues += int(issueCountByRepo[repoID])
+		}
+	}
+	if len(repoIDs) == 1 {
+		repo := showReposMap[repoIDs[0]]
+		if repo != nil {
+			ctx.Data["SingleRepoLink"] = repo.Link()
 		}
 	}
 

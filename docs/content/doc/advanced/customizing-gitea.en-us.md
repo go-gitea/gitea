@@ -149,13 +149,13 @@ copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highl
 
 You can then add blocks like the following to your markdown:
 
-    ```plantuml
-        Alice -> Bob: Authentication Request
-        Bob --> Alice: Authentication Response
+```plantuml
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
 
-        Alice -> Bob: Another authentication Request
-        Alice <-- Bob: Another authentication Response
-    ```
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: Another authentication Response
+```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 

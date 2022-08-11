@@ -100,10 +100,8 @@ func GlobalInitInstalled(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	mustInitCtx(ctx, git.InitOnceWithSync)
+	mustInitCtx(ctx, git.InitFull)
 	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
-
-	git.CheckLFSVersion()
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
@@ -141,7 +139,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	cron.NewContext(ctx)
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
@@ -160,6 +157,9 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	auth.Init()
 	svg.Init()
+
+	// Finally start up the cron
+	cron.NewContext(ctx)
 }
 
 // NormalRoutes represents non install routes
