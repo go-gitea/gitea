@@ -27,13 +27,13 @@ import (
 var CmdMigrateStorage = cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
-	Description: "This is a command for migrating storage.",
+	Description: "This is a command for migrating current storage to external storage.",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
-			Usage: "Kinds of files to migrate, currently only 'attachments' is supported",
+			Usage: "Kinds of files to migrate, could be one of 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
 		},
 		cli.StringFlag{
 			Name:  "storage, s",
@@ -122,14 +122,9 @@ func migrateRepoArchivers(ctx context.Context, dstStorage storage.ObjectStorage)
 }
 
 func migratePackages(ctx context.Context, dstStorage storage.ObjectStorage) error {
-	return db.IterateObjects(ctx, func(pf *packages_model.PackageFile) error {
-		pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
-		if err != nil {
-			return err
-		}
-
+	return db.IterateObjects(ctx, func(pb *packages_model.PackageBlob) error {
 		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
-		_, err = storage.Copy(dstStorage, p, storage.Packages, p)
+		_, err := storage.Copy(dstStorage, p, storage.Packages, p)
 		return err
 	})
 }
