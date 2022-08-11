@@ -35,7 +35,7 @@ If you don't give the volume correct permissions, the container may not start.
 For a stable release you could use `:latest-rootless`, `:1-rootless` or specify a certain release like `:{{< version >}}-rootless`, but if you'd like to use the latest development version then `:dev-rootless` would be an appropriate tag. If you'd like to run the latest commit from a release branch you can use the `:1.x-dev-rootless` tag, where x is the minor version of Gitea. (e.g. `:1.16-dev-rootless`)
 
 ```yaml
-version: "2"
+version: "3"
 
 services:
   server:
@@ -57,8 +57,8 @@ To bind the integrated ssh and the webserver on a different port, adjust
 the port section. It's common to just change the host port and keep the ports within
 the container like they are.
 
-```diff
-version: "2"
+```yaml
+version: "3"
 
 services:
   server:
@@ -70,10 +70,9 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
--      - "3000:3000"
--      - "2222:2222"
-+      - "80:3000"
-+      - "22:2222"
+      # change here
+      - "80:3000"
+      - "22:2222"
 ```
 
 ## MySQL database
@@ -81,18 +80,19 @@ services:
 To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
 
-```diff
-version: "2"
+```yaml
+version: "3"
 
 services:
   server:
     image: gitea/gitea:{{< version >}}-rootless
-+    environment:
-+      - GITEA__database__DB_TYPE=mysql
-+      - GITEA__database__HOST=db:3306
-+      - GITEA__database__NAME=gitea
-+      - GITEA__database__USER=gitea
-+      - GITEA__database__PASSWD=gitea
+    environment:
+      # database configuration
+      - GITEA__database__DB_TYPE=mysql
+      - GITEA__database__HOST=db:3306
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -102,19 +102,21 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: mysql:8
-+    restart: always
-+    environment:
-+      - MYSQL_ROOT_PASSWORD=gitea
-+      - MYSQL_USER=gitea
-+      - MYSQL_PASSWORD=gitea
-+      - MYSQL_DATABASE=gitea
-+    volumes:
-+      - ./mysql:/var/lib/mysql
+    # waiting for database
+    depends_on:
+      - db
+
+  # database section
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=gitea
+      - MYSQL_USER=gitea
+      - MYSQL_PASSWORD=gitea
+      - MYSQL_DATABASE=gitea
+    volumes:
+      - ./mysql:/var/lib/mysql
 ```
 
 ## PostgreSQL database
@@ -122,18 +124,19 @@ services:
 To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
 
-```diff
-version: "2"
+```yaml
+version: "3"
 
 services:
   server:
     image: gitea/gitea:{{< version >}}-rootless
     environment:
-+      - GITEA__database__DB_TYPE=postgres
-+      - GITEA__database__HOST=db:5432
-+      - GITEA__database__NAME=gitea
-+      - GITEA__database__USER=gitea
-+      - GITEA__database__PASSWD=gitea
+      # database configuration
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
     restart: always
     volumes:
       - ./data:/var/lib/gitea
@@ -143,18 +146,20 @@ services:
     ports:
       - "3000:3000"
       - "2222:2222"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: postgres:14
-+    restart: always
-+    environment:
-+      - POSTGRES_USER=gitea
-+      - POSTGRES_PASSWORD=gitea
-+      - POSTGRES_DB=gitea
-+    volumes:
-+      - ./postgres:/var/lib/postgresql/data
+    # waiting for database
+    depends_on:
+      - db
+
+  # database section
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
 ```
 
 ## Named volumes
@@ -164,24 +169,24 @@ within the `docker-compose.yml` configuration. This change will automatically
 create the required volume. You don't need to worry about permissions with
 named volumes; Docker will deal with that automatically.
 
-```diff
-version: "2"
+```yaml
+version: "3"
 
-+volumes:
-+  gitea-data:
-+    driver: local
-+  gitea-config:
-+    driver: local
-+
+# volumes section
+volumes:
+  data:
+    driver: local
+  config:
+    driver: local
+
 services:
   server:
     image: gitea/gitea:{{< version >}}-rootless
     restart: always
     volumes:
--      - ./data:/var/lib/gitea
-+      - gitea-data:/var/lib/gitea
--      - ./config:/etc/gitea
-+      - gitea-config:/etc/gitea
+      # mount volumes
+      - data:/var/lib/gitea
+      - config:/etc/gitea
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -197,14 +202,15 @@ You can choose to use a custom user (following --user flag definition https://do
 As an example to clone the host user `git` definition use the command `id -u git` and add it to `docker-compose.yml` file:
 Please make sure that the mounted folders are writable by the user.
 
-```diff
-version: "2"
+```yaml
+version: "3"
 
 services:
   server:
     image: gitea/gitea:{{< version >}}-rootless
     restart: always
-+    user: 1001
+    # custom uid
+    user: 1001
     volumes:
       - ./data:/var/lib/gitea
       - ./config:/etc/gitea
