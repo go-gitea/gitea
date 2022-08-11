@@ -130,7 +130,7 @@ func migratePackages(dstStorage storage.ObjectStorage) error {
 		}
 
 		p := packages_module.KeyToRelativePath(packages_module.BlobHash256Key(pb.HashSHA256))
-		_, err = storage.Copy(dstStorage, p, storage.RepoAvatars, p)
+		_, err = storage.Copy(dstStorage, p, storage.Packages, p)
 		return err
 	})
 }
@@ -189,7 +189,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 				UseSSL:          ctx.Bool("minio-use-ssl"),
 			})
 	default:
-		return fmt.Errorf("Unsupported storage type: %s", ctx.String("storage"))
+		return fmt.Errorf("unsupported storage type: %s", ctx.String("storage"))
 	}
 	if err != nil {
 		return err
@@ -209,11 +209,9 @@ func runMigrateStorage(ctx *cli.Context) error {
 		if err := m(dstStorage); err != nil {
 			return err
 		}
-	} else {
-		return fmt.Errorf("Unsupported storage: %s", ctx.String("type"))
+		log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
+		return nil
 	}
 
-	log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
-
-	return nil
+	return fmt.Errorf("unsupported storage: %s", ctx.String("type"))
 }
