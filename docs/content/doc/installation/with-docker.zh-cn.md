@@ -78,6 +78,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
+      # 修改这里
       - "3022:22"
 ```
 

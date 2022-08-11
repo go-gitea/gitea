@@ -91,7 +91,8 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "3000:3000"
-      - "222:22"
+      # change here
+      - "3022:22"
 ```
 
 ## Databases
