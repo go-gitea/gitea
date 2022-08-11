@@ -19,12 +19,6 @@ type Option interface {
 	SetOption(e *Extension)
 }
 
-type extensionFunc func(e *Extension)
-
-func (fn extensionFunc) SetOption(e *Extension) {
-	fn(e)
-}
-
 // Math represents a math extension with default rendered delimiters
 var Math = &Extension{}
 

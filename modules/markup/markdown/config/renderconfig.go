@@ -117,7 +117,6 @@ func (y *yamlGitea) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(yExact); err != nil {
 		return fmt.Errorf("unable to parse yamlGitea: %w", err)
 	}
-	y = (*yamlGitea)(yExact)
 
 	return nil
 }
@@ -149,25 +148,38 @@ func (m *MathConfig) UnmarshalYAML(node *yaml.Node) error {
 	}
 	if enableMathStrs != nil {
 		for _, value := range enableMathStrs {
+			value = strings.TrimSpace(strings.ToLower(value))
+			set := true
+			if value != "" && value[0] == '!' {
+				set = false
+				value = value[1:]
+			}
 			switch strings.TrimSpace(strings.ToLower(value)) {
+			case "none":
+				fallthrough
+			case "false":
+				m.InlineLatex = !set
+				m.DisplayLatex = !set
+				m.DisplayDollar = !set
+				m.InlineDollar = !set
 			case "all":
-				m.InlineLatex = true
-				m.DisplayLatex = true
-				m.DisplayDollar = true
-				m.InlineDollar = true
-				break
+				m.InlineLatex = set
+				m.DisplayLatex = set
+				m.DisplayDollar = set
+				m.InlineDollar = set
+				return nil
 			case "inline_dollar":
-				m.InlineDollar = true
+				m.InlineDollar = set
 			case "inline_latex":
-				m.InlineLatex = true
+				m.InlineLatex = set
 			case "display_dollar":
-				m.DisplayDollar = true
+				m.DisplayDollar = set
 			case "display_latex":
-				m.DisplayLatex = true
+				m.DisplayLatex = set
 			case "true":
-				m.InlineLatex = true
-				m.DisplayLatex = true
-				m.DisplayDollar = true
+				m.InlineLatex = set
+				m.DisplayLatex = set
+				m.DisplayDollar = set
 			}
 		}
 		return nil
@@ -178,7 +190,6 @@ func (m *MathConfig) UnmarshalYAML(node *yaml.Node) error {
 	if err := node.Decode(mExact); err != nil {
 		return fmt.Errorf("unable to parse MathConfig: %w", err)
 	}
-	m = (*MathConfig)(mExact)
 	return nil
 }
 
