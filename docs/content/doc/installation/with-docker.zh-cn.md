@@ -23,7 +23,7 @@ Gitea 在其 Docker Hub 组织内提供自动更新的 Docker 镜像。可以始
 
 ## 基本
 
-最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `:1.13.0`。
+最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `:1.17.0`。
 
 ```yaml
 version: "3"
@@ -55,7 +55,7 @@ services:
 
 要将集成的 openSSH 守护进程和 Web 服务器绑定到其他端口，请调整端口部分。通常，只需更改主机端口，容器内的端口保持原样即可。
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -77,10 +77,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
--     - "3000:3000"
--     - "222:22"
-+     - "8080:3000"
-+     - "2221:22"
+      - "3000:3000"
+      - "3022:22"
 ```
 
 ## 数据库
@@ -89,7 +87,7 @@ services:
 
 要将 Gitea 与 MySQL 数据库结合使用，请将这些更改应用于上面创建的 `docker-compose.yml` 文件。
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -103,11 +101,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=mysql
-+     - DB_HOST=db:3306
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
+      - GITEA__database__DB_TYPE=mysql
+      - GITEA__database__HOST=db:3306
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -118,28 +116,28 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: mysql:8
-+    restart: always
-+    environment:
-+      - MYSQL_ROOT_PASSWORD=gitea
-+      - MYSQL_USER=gitea
-+      - MYSQL_PASSWORD=gitea
-+      - MYSQL_DATABASE=gitea
-+    networks:
-+      - gitea
-+    volumes:
-+      - ./mysql:/var/lib/mysql
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=gitea
+      - MYSQL_USER=gitea
+      - MYSQL_PASSWORD=gitea
+      - MYSQL_DATABASE=gitea
+    networks:
+      - gitea
+    volumes:
+      - ./mysql:/var/lib/mysql
 ```
 
 ### PostgreSQL 数据库
 
 要将 Gitea 与 PostgreSQL 数据库结合使用，请将这些更改应用于上面创建的 `docker-compose.yml` 文件。
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -153,11 +151,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=postgres
-+     - DB_HOST=db:5432
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
+      - DB_TYPE=postgres
+      - DB_HOST=db:5432
+      - DB_NAME=gitea
+      - DB_USER=gitea
+      - DB_PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -168,37 +166,37 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: postgres:14
-+    restart: always
-+    environment:
-+      - POSTGRES_USER=gitea
-+      - POSTGRES_PASSWORD=gitea
-+      - POSTGRES_DB=gitea
-+    networks:
-+      - gitea
-+    volumes:
-+      - ./postgres:/var/lib/postgresql/data
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    networks:
+      - gitea
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
 ```
 
 ## 命名卷
 
 要使用命名卷而不是主机卷，请在 `docker-compose.yml` 配置中定义并使用命名卷。此更改将自动创建所需的卷。您无需担心命名卷的权限；Docker 将自动处理该问题。
 
-```diff
+```yaml
 version: "3"
 
 networks:
   gitea:
     external: false
 
-+volumes:
-+  gitea:
-+    driver: local
-+
+volumes:
+   gitea:
+     driver: local
+
 services:
   server:
     image: gitea/gitea:{{< version >}}
@@ -207,8 +205,7 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+      - ./gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:

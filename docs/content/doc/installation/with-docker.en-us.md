@@ -68,7 +68,7 @@ To bind the integrated OpenSSH daemon and the webserver on a different port, adj
 the port section. It's common to just change the host port and keep the ports within
 the container like they are.
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -90,10 +90,8 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
--     - "3000:3000"
--     - "222:22"
-+     - "8080:3000"
-+     - "2221:22"
+      - "3000:3000"
+      - "222:22"
 ```
 
 ## Databases
@@ -103,7 +101,7 @@ services:
 To start Gitea in combination with a MySQL database, apply these changes to the
 `docker-compose.yml` file created above.
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -117,11 +115,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=mysql
-+     - GITEA__database__HOST=db:3306
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
+      - GITEA__database__DB_TYPE=mysql
+      - GITEA__database__HOST=db:3306
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -132,21 +130,21 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: mysql:8
-+    restart: always
-+    environment:
-+      - MYSQL_ROOT_PASSWORD=gitea
-+      - MYSQL_USER=gitea
-+      - MYSQL_PASSWORD=gitea
-+      - MYSQL_DATABASE=gitea
-+    networks:
-+      - gitea
-+    volumes:
-+      - ./mysql:/var/lib/mysql
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=gitea
+      - MYSQL_USER=gitea
+      - MYSQL_PASSWORD=gitea
+      - MYSQL_DATABASE=gitea
+    networks:
+      - gitea
+    volumes:
+      - ./mysql:/var/lib/mysql
 ```
 
 ### PostgreSQL database
@@ -154,7 +152,7 @@ services:
 To start Gitea in combination with a PostgreSQL database, apply these changes to
 the `docker-compose.yml` file created above.
 
-```diff
+```yaml
 version: "3"
 
 networks:
@@ -168,11 +166,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - GITEA__database__DB_TYPE=postgres
-+     - GITEA__database__HOST=db:5432
-+     - GITEA__database__NAME=gitea
-+     - GITEA__database__USER=gitea
-+     - GITEA__database__PASSWD=gitea
+      - GITEA__database__DB_TYPE=postgres
+      - GITEA__database__HOST=db:5432
+      - GITEA__database__NAME=gitea
+      - GITEA__database__USER=gitea
+      - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -183,20 +181,20 @@ services:
     ports:
       - "3000:3000"
       - "222:22"
-+    depends_on:
-+      - db
-+
-+  db:
-+    image: postgres:14
-+    restart: always
-+    environment:
-+      - POSTGRES_USER=gitea
-+      - POSTGRES_PASSWORD=gitea
-+      - POSTGRES_DB=gitea
-+    networks:
-+      - gitea
-+    volumes:
-+      - ./postgres:/var/lib/postgresql/data
+    depends_on:
+      - db
+
+  db:
+    image: postgres:14
+    restart: always
+    environment:
+      - POSTGRES_USER=gitea
+      - POSTGRES_PASSWORD=gitea
+      - POSTGRES_DB=gitea
+    networks:
+      - gitea
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
 ```
 
 ## Named volumes
@@ -206,17 +204,17 @@ within the `docker-compose.yml` configuration. This change will automatically
 create the required volume. You don't need to worry about permissions with
 named volumes; Docker will deal with that automatically.
 
-```diff
+```yaml
 version: "3"
 
 networks:
   gitea:
     external: false
 
-+volumes:
-+  gitea:
-+    driver: local
-+
+volumes:
+  gitea:
+    driver: local
+
 services:
   server:
     image: gitea/gitea:{{< version >}}
@@ -225,8 +223,7 @@ services:
     networks:
       - gitea
     volumes:
--     - ./gitea:/data
-+     - gitea:/data
+      - ./gitea:/data
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
