@@ -178,7 +178,8 @@
 			{{if or .AddedLabels .RemovedLabels}}
 				<div class="timeline-item event" id="{{.HashTag}}">
 					<span class="badge">{{svg "octicon-tag"}}</span>
-					{{template "shared/user/avatarlink" .Poster}}					<span class="text grey">
+					{{template "shared/user/avatarlink" .Poster}}
+					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
 						{{if and .AddedLabels (not .RemovedLabels)}}
 							{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
