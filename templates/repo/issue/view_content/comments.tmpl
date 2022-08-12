@@ -99,7 +99,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if .Issue.IsPull }}
 						{{$.locale.Tr "repo.pulls.reopened_at" .EventTag $createdStr | Safe}}
 					{{else}}
@@ -113,7 +112,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if .Issue.IsPull }}
 						{{$.locale.Tr "repo.pulls.closed_at" .EventTag $createdStr | Safe}}
 					{{else}}
@@ -127,7 +125,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
 					{{if eq $.Issue.PullRequest.Status 3}}
 						{{$.locale.Tr "repo.issues.manually_pull_merged_at" ($link|Escape) (ShortSha $.Issue.PullRequest.MergedCommitID) ($.BaseTarget|Escape) $createdStr | Str2html}}
@@ -152,10 +149,10 @@
 			{{ $createdStr:= TimeSinceUnix .CreatedUnix $.locale }}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				{{if eq .RefAction 3}}<del>{{end}}
+				{{template "shared/user/avatarlink" .Poster}}
+				{{if eq .RefAction 3}}<del>{{end}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr $refTr (.EventTag|Escape) $createdStr (.RefCommentHTMLURL|Escape) $refFrom | Safe}}
 				</span>
 				{{if eq .RefAction 3}}</del>{{end}}
@@ -170,7 +167,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
 				</span>
 				<div class="detail">
@@ -184,7 +180,6 @@
 					<span class="badge">{{svg "octicon-tag"}}</span>
 					{{template "shared/user/avatarlink" .Poster}}					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
-
 						{{if and .AddedLabels (not .RemovedLabels)}}
 							{{$.locale.TrN (len .AddedLabels) "repo.issues.add_label" "repo.issues.add_labels" (RenderLabels .AddedLabels) $createdStr | Safe}}
 						{{else if and (not .AddedLabels) .RemovedLabels}}
@@ -201,7 +196,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
 				</span>
 			</div>
@@ -223,7 +217,6 @@
 						{{template "shared/user/avatarlink" .Assignee}}
 						<span class="text grey">
 							{{template "shared/user/authorlink" .Assignee}}
-
 							{{if eq .Poster.ID .AssigneeID}}
 								{{$.locale.Tr "repo.issues.self_assign_at" $createdStr | Safe}}
 							{{else}}
@@ -239,7 +232,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
 				</span>
 			</div>
@@ -249,7 +241,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
 				</span>
 			</div>
@@ -259,7 +250,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
 				</span>
 			</div>
@@ -269,7 +259,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
 				</span>
 				{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
@@ -284,7 +273,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
 				</span>
 				{{ template "repo/issue/view_content/comments_delete_time" Dict "ctx" $ "comment" . }}
@@ -299,7 +287,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
 				</span>
 			</div>
@@ -309,7 +296,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
 				</span>
 			</div>
@@ -319,7 +305,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$parsedDeadline := .Content | ParseDeadline}}
 					{{$.locale.Tr "repo.issues.due_date_modified" (index $parsedDeadline 0) (index $parsedDeadline 1) $createdStr | Safe}}
 				</span>
@@ -330,7 +315,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
 				</span>
 			</div>
@@ -340,7 +324,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
 				</span>
 				{{if .DependentIssue}}
@@ -364,7 +347,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
 				</span>
 				{{if .DependentIssue}}
@@ -402,7 +384,6 @@
 							<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 						{{else}}
 							{{template "shared/user/authorlink" .Poster}}
-
 						{{end}}
 
 						{{if eq .Review.Type 1}}
@@ -434,7 +415,6 @@
 										<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 									{{else}}
 										{{template "shared/user/authorlink" .Poster}}
-
 									{{end}}
 
 									{{$.locale.Tr "repo.issues.review.left_comment" | Safe}}
@@ -563,7 +543,6 @@
 																		<span class="text migrate">({{$.locale.Tr "repo.migrated_from" ($.Repository.OriginalURL|Escape) ($.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}</span>
 																	{{else}}
 																		{{template "shared/user/authorlink" .Poster}}
-
 																	{{end}}
 																	{{$.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdSubStr | Safe}}
 																</span>
@@ -648,16 +627,15 @@
 		{{else if eq .Type 23}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-lock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				{{ if .Content }}
+				{{template "shared/user/avatarlink" .Poster}}
+				{{ if .Content }}
 					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
-
 						{{$.locale.Tr "repo.issues.lock_with_reason" .Content $createdStr | Safe}}
 					</span>
 				{{ else }}
 					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
-
 						{{$.locale.Tr "repo.issues.lock_no_reason" $createdStr | Safe}}
 					</span>
 				{{ end }}
@@ -668,7 +646,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{$.locale.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
 				</span>
 			</div>
@@ -701,7 +678,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if (gt .AssigneeID 0)}}
 						{{if .RemovedAssignee}}
 							{{if eq .PosterID .AssigneeID}}
@@ -726,7 +702,6 @@
 				<span class="badge">{{svg "octicon-repo-push"}}</span>
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{ if .IsForcePush }}
 						{{$.locale.Tr "repo.issues.force_push_codes" ($.Issue.PullRequest.HeadBranch|Escape) (ShortSha .OldCommit) (($.Issue.Repo.CommitLink .OldCommit)|Escape)  (ShortSha .NewCommit) (($.Issue.Repo.CommitLink .NewCommit)|Escape) $createdStr | Safe}}
 					{{else}}
@@ -744,7 +719,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if gt .OldProjectID 0}}
 						{{if gt .ProjectID 0}}
 							{{$.locale.Tr "repo.issues.change_project_at" (.OldProject.Title|Escape) (.Project.Title|Escape) $createdStr | Safe}}
@@ -766,7 +740,6 @@
 					<span class="badge grey">{{svg "octicon-x" 16}}</span>
 					<span class="text grey">
 						{{template "shared/user/authorlink" .Poster}}
-
 						{{$reviewerName := ""}}
 						{{if eq .Review.OriginalAuthor ""}}
 							{{$reviewerName = .Review.Reviewer.Name}}
@@ -803,7 +776,6 @@
 				{{template "shared/user/avatarlink" .Poster}}
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if and .OldRef .NewRef}}
 						{{$.locale.Tr "repo.issues.change_ref_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 					{{else if .OldRef}}
@@ -818,7 +790,6 @@
 				<span class="badge">{{svg "octicon-git-merge" 16}}</span>
 				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
-
 					{{if eq .Type 34}}{{$.locale.Tr "repo.pulls.auto_merge_newly_scheduled_comment" $createdStr | Safe}}
 					{{else}}{{$.locale.Tr "repo.pulls.auto_merge_canceled_schedule_comment" $createdStr | Safe}}{{end}}
 				</span>
