@@ -256,7 +256,7 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 		case r == ' ' || r == '\t' || r == '\n':
 			runeCounts.numBasicRunes++
 		case e.isAllowed(r):
-			if r > 0x7f || r < 0x20 {
+			if r > 0x7e || r < 0x20 {
 				types[i] = nonBasicASCIIRuneType
 				runeCounts.numNonConfusingNonBasicRunes++
 			} else {
@@ -272,7 +272,7 @@ func (e *escapeStreamer) runeTypes(runes ...rune) (types []runeType, confusables
 			confusables = append(confusables, confusable)
 			types[i] = ambiguousRuneType
 			runeCounts.numAmbiguousRunes++
-		case r > 0x7f || r < 0x20:
+		case r > 0x7e || r < 0x20:
 			types[i] = nonBasicASCIIRuneType
 			runeCounts.numNonConfusingNonBasicRunes++
 		default:
@@ -292,5 +292,5 @@ func (e *escapeStreamer) isAllowed(r rune) bool {
 
 	return sort.Search(len(e.allowed), func(i int) bool {
 		return e.allowed[i] <= r
-	}) != -1
+	}) >= 0
 }
