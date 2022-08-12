@@ -105,9 +105,15 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		}
 	}
 
+	var fullname string
+	if setting.Service.EnableReverseProxyFullName {
+		fullname = req.Header.Get(setting.ReverseProxyAuthFullName)
+	}
+
 	user := &user_model.User{
-		Name:  username,
-		Email: email,
+		Name:     username,
+		Email:    email,
+		FullName: fullname,
 	}
 
 	overwriteDefault := user_model.CreateUserOverwriteOptions{
