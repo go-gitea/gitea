@@ -81,7 +81,6 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	gitea_git.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
 		setting.Database.Type = "sqlite3"

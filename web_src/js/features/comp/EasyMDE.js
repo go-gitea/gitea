@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import attachTribute from '../tribute.js';
-import {handleGlobalEnterQuickSubmit} from '../common-global.js';
+import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 
 /**
  * @returns {EasyMDE}

@@ -112,7 +112,7 @@
 												{{svg "octicon-git-branch"}}
 											</div>
 										{{end}}
-										{{if (not .IsDeleted)}}
+										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.locale.Tr "repo.branch.download" (.Name)}}" data-position="top right">
 												{{svg "octicon-download"}}
 												<div class="menu">
