@@ -120,6 +120,7 @@ _表格中的符号含义:_
 | 集成 AD / LDAP             | ✓     | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 支持多个 LDAP / AD 服务    | ✓     | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | LDAP 用户同步              | ✓     | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 支持 OpenId 连接           | ✓     | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | 集成 OAuth 2.0（外部授权） | ✓     | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | 作为 OAuth 2.0 provider    | [✓](https://github.com/go-gitea/gitea/pull/5378)     | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
