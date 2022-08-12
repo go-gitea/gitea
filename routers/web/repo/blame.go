@@ -40,7 +40,7 @@ type blameRow struct {
 	CommitMessage  string
 	CommitSince    gotemplate.HTML
 	Code           gotemplate.HTML
-	EscapeStatus   charset.EscapeStatus
+	EscapeStatus   *charset.EscapeStatus
 }
 
 // RefBlame render blame page
@@ -235,7 +235,7 @@ func renderBlame(ctx *context.Context, blameParts []git.BlamePart, commitNames m
 	}
 	lines := make([]string, 0)
 	rows := make([]*blameRow, 0)
-	escapeStatus := charset.EscapeStatus{}
+	escapeStatus := &charset.EscapeStatus{}
 
 	i := 0
 	commitCnt := 0

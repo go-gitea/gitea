@@ -14,7 +14,7 @@ type EscapeStatus struct {
 }
 
 // Or combines two EscapeStatus structs into one representing the conjunction of the two
-func (status EscapeStatus) Or(other EscapeStatus) EscapeStatus {
+func (status *EscapeStatus) Or(other *EscapeStatus) *EscapeStatus {
 	st := status
 	st.Escaped = st.Escaped || other.Escaped
 	st.HasError = st.HasError || other.HasError

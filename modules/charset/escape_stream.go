@@ -22,6 +22,7 @@ var defaultWordRegexp = regexp.MustCompile(`(-?\d*\.\d\w*)|([^\` + "`" + `\~\!\@
 
 func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...rune) HTMLStreamer {
 	return &escapeStreamer{
+		escaped:                 &EscapeStatus{},
 		PassthroughHTMLStreamer: *NewPassthroughStreamer(next),
 		locale:                  locale,
 		ambiguousTables:         AmbiguousTablesForLocale(locale),
@@ -31,13 +32,13 @@ func NewEscapeStreamer(locale translation.Locale, next HTMLStreamer, allowed ...
 
 type escapeStreamer struct {
 	PassthroughHTMLStreamer
-	escaped         EscapeStatus
+	escaped         *EscapeStatus
 	locale          translation.Locale
 	ambiguousTables []*AmbiguousTable
 	allowed         []rune
 }
 
-func (e *escapeStreamer) EscapeStatus() EscapeStatus {
+func (e *escapeStreamer) EscapeStatus() *EscapeStatus {
 	return e.escaped
 }
 
@@ -177,7 +178,7 @@ func (e *escapeStreamer) ambiguousRune(r, c rune) error {
 	}); err != nil {
 		return err
 	}
-	if err := e.PassthroughHTMLStreamer.Text(fmt.Sprintf("%c", r)); err != nil {
+	if err := e.PassthroughHTMLStreamer.Text(string(r)); err != nil {
 		return err
 	}
 	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
@@ -206,7 +207,7 @@ func (e *escapeStreamer) invisibleRune(r rune) error {
 	}); err != nil {
 		return err
 	}
-	if err := e.PassthroughHTMLStreamer.Text(fmt.Sprintf("%c", r)); err != nil {
+	if err := e.PassthroughHTMLStreamer.Text(string(r)); err != nil {
 		return err
 	}
 	if err := e.PassthroughHTMLStreamer.EndTag("span"); err != nil {
@@ -286,11 +287,11 @@ func (e *escapeStreamer) isAllowed(r rune) bool {
 	if len(e.allowed) == 0 {
 		return false
 	}
-	if len(e.allowed) == 1 && e.allowed[0] == r {
-		return true
+	if len(e.allowed) == 1 {
+		return e.allowed[0] == r
 	}
 
 	return sort.Search(len(e.allowed), func(i int) bool {
-		return e.allowed[i] <= r
+		return e.allowed[i] >= r
 	}) >= 0
 }

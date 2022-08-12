@@ -268,7 +268,7 @@ func init() {
 
 // DiffInline is a struct that has a content and escape status
 type DiffInline struct {
-	EscapeStatus charset.EscapeStatus
+	EscapeStatus *charset.EscapeStatus
 	Content      template.HTML
 }
 

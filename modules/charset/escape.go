@@ -16,8 +16,11 @@ import (
 	"code.gitea.io/gitea/modules/translation"
 )
 
+// RuneNBSP is the codepoint for NBSP
+const RuneNBSP = 0xa0
+
 // EscapeControlHTML escapes the unicode control sequences in a provided html document
-func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, output string) {
+func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output string) {
 	sb := &strings.Builder{}
 	outputStream := &HTMLStreamerWriter{Writer: sb}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
@@ -30,7 +33,7 @@ func EscapeControlHTML(text string, locale translation.Locale, allowed ...rune) 
 }
 
 // EscapeControlReaders escapes the unicode control sequences in a provider reader and writer in a locale and returns the findings as an EscapeStatus and the escaped []byte
-func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, err error) {
+func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, err error) {
 	outputStream := &HTMLStreamerWriter{Writer: writer}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
 
@@ -42,7 +45,7 @@ func EscapeControlReader(reader io.Reader, writer io.Writer, locale translation.
 }
 
 // EscapeControlString escapes the unicode control sequences in a provided string and returns the findings as an EscapeStatus and the escaped string
-func EscapeControlString(text string, locale translation.Locale, allowed ...rune) (escaped EscapeStatus, output string) {
+func EscapeControlString(text string, locale translation.Locale, allowed ...rune) (escaped *EscapeStatus, output string) {
 	sb := &strings.Builder{}
 	outputStream := &HTMLStreamerWriter{Writer: sb}
 	streamer := NewEscapeStreamer(locale, outputStream, allowed...).(*escapeStreamer)
