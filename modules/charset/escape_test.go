@@ -138,7 +138,7 @@ func TestEscapeControlString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			locale := translation.NewLocale("en_US")
 			status, result := EscapeControlString(tt.text, locale)
-			if !reflect.DeepEqual(status, tt.status) {
+			if !reflect.DeepEqual(*status, tt.status) {
 				t.Errorf("EscapeControlString() status = %v, wanted= %v", status, tt.status)
 			}
 			if result != tt.result {
@@ -179,7 +179,7 @@ func TestEscapeControlReader(t *testing.T) {
 				t.Errorf("EscapeControlReader(): err = %v", err)
 			}
 
-			if !reflect.DeepEqual(status, tt.status) {
+			if !reflect.DeepEqual(*status, tt.status) {
 				t.Errorf("EscapeControlReader() status = %v, wanted= %v", status, tt.status)
 			}
 			if result != tt.result {
