@@ -60,19 +60,17 @@
 						{{$.i18n.Tr .GetLastEventLabelFake $timeStr (.Poster.GetDisplayName | Escape) | Safe}}
 					{{end}}
 					{{if .IsPull}}
-						<div class="branches">
+						<div class="branches df ac">
 							<div class="branch">
-								<a class="bold" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
+								<a href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
-
-							&laquo;
-
+							{{svg "gitea-double-chevron-left" 12 "mx-1"}}
 							{{if .PullRequest.HeadRepo}}
 							<div class="branch">
-								<a class="bold" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
+								<a href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
 									{{/* inline to remove the spaces between spans */}}
 									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name">{{.PullRequest.HeadBranch}}</span>
 								</a>
