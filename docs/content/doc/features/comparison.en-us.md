@@ -122,6 +122,7 @@ _Symbols used in table:_
 | AD / LDAP integration                          | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Multiple LDAP / AD server support              | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | LDAP user synchronization                      | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | OpenId Connect support                         | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | OAuth 2.0 integration (external authorization) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | Act as OAuth 2.0 provider                      | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
