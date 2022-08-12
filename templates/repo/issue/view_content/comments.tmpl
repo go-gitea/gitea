@@ -110,7 +110,8 @@
 		{{else if eq .Type 2}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-red text-white">{{svg "octicon-circle-slash"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{if .Issue.IsPull }}
@@ -123,7 +124,8 @@
 		{{else if eq .Type 28}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge bg-purple text-white">{{svg "octicon-git-merge"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$link := printf "%s/commit/%s" $.Repository.HTMLURL ($.Issue.PullRequest.MergedCommitID|PathEscape)}}
@@ -165,7 +167,8 @@
 		{{else if eq .Type 4}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-bookmark"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.commit_ref_at" .EventTag $createdStr | Safe}}
@@ -195,7 +198,8 @@
 		{{else if eq .Type 8}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-milestone"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{if gt .OldMilestoneID 0}}{{if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.change_milestone_at" (.OldMilestone.Name|Escape) (.Milestone.Name|Escape) $createdStr | Safe}}{{else}}{{$.locale.Tr "repo.issues.remove_milestone_at" (.OldMilestone.Name|Escape) $createdStr | Safe}}{{end}}{{else if gt .MilestoneID 0}}{{$.locale.Tr "repo.issues.add_milestone_at" (.Milestone.Name|Escape) $createdStr | Safe}}{{end}}
@@ -232,7 +236,8 @@
 		{{else if eq .Type 10}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-pencil"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.change_title_at" (.OldTitle|RenderEmoji) (.NewTitle|RenderEmoji) $createdStr | Safe}}
@@ -241,7 +246,8 @@
 		{{else if eq .Type 11}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.delete_branch_at" (.OldRef|Escape) $createdStr | Safe}}
@@ -250,7 +256,8 @@
 		{{else if eq .Type 12}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.start_tracking_history"  $createdStr | Safe}}
@@ -259,7 +266,8 @@
 		{{else if eq .Type 13}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.stop_tracking_history"  $createdStr | Safe}}
@@ -273,7 +281,8 @@
 		{{else if eq .Type 14}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.add_time_history"  $createdStr | Safe}}
@@ -287,7 +296,8 @@
 		{{else if eq .Type 15}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.cancel_tracking_history"  $createdStr | Safe}}
@@ -296,7 +306,8 @@
 		{{else if eq .Type 16}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.due_date_added" .Content $createdStr | Safe}}
@@ -305,7 +316,8 @@
 		{{else if eq .Type 17}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$parsedDeadline := .Content | ParseDeadline}}
@@ -315,7 +327,8 @@
 		{{else if eq .Type 18}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.due_date_remove" .Content $createdStr | Safe}}
@@ -324,7 +337,8 @@
 		{{else if eq .Type 19}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-package-dependents"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.dependency.added_dependency" $createdStr | Safe}}
@@ -347,7 +361,8 @@
 		{{else if eq .Type 20}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-package-dependents"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.dependency.removed_dependency" $createdStr | Safe}}
@@ -650,7 +665,8 @@
 		{{else if eq .Type 24}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-key"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.unlock_comment" $createdStr | Safe}}
@@ -659,7 +675,8 @@
 		{{else if eq .Type 25}}
 			<div class="timeline-item event">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					<a{{if gt .Poster.ID 0}} href="{{.Poster.HomeLink}}"{{end}}>{{.Poster.Name}}</a>
 					{{$.locale.Tr "repo.pulls.change_target_branch_at" (.OldRef|Escape) (.NewRef|Escape) $createdStr | Safe}}
 				</span>
@@ -667,7 +684,8 @@
 		{{else if eq .Type 26}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-clock"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{$.locale.Tr "repo.issues.del_time_history"  $createdStr | Safe}}
@@ -680,7 +698,8 @@
 		{{else if eq .Type 27}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-eye"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{if (gt .AssigneeID 0)}}
@@ -722,7 +741,8 @@
 			{{if not $.UnitProjectsGlobalDisabled}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-project"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{if gt .OldProjectID 0}}
@@ -780,7 +800,8 @@
 		{{else if eq .Type 33}}
 			<div class="timeline-item event" id="{{.HashTag}}">
 				<span class="badge">{{svg "octicon-git-branch"}}</span>
-				{{template "shared/user/avatarlink" .Poster}}				<span class="text grey">
+				{{template "shared/user/avatarlink" .Poster}}
+				<span class="text grey">
 					{{template "shared/user/authorlink" .Poster}}
 
 					{{if and .OldRef .NewRef}}
