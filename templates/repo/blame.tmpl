@@ -57,7 +57,7 @@
 							{{if $.EscapeStatus.Escaped}}
 								<td class="lines-escape">
 									{{if $row.EscapeStatus.Escaped}}
-										<a href="" class="toggle-escape-button" title="{{if $row.EscapeStatus.HasInvisible}}{{$.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $row.EscapeStatus.HasAmbiguous}}{{$.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>
+										<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $row "locale" $.locale}}"></a>
 									{{end}}
 								</td>
 							{{end}}
