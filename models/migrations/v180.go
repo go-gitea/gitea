@@ -66,7 +66,7 @@ func deleteMigrationCredentials(x *xorm.Engine) (err error) {
 			return
 		}
 	}
-	return
+	return err
 }
 
 func removeCredentials(payload string) (string, error) {

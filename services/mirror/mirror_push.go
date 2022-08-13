@@ -94,7 +94,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 		log.Error("PANIC whilst syncPushMirror[%d] Panic: %v\nStacktrace: %s", mirrorID, err, log.Stack(2))
 	}()
 
-	m, err := repo_model.GetPushMirrorByID(mirrorID)
+	m, err := repo_model.GetPushMirror(ctx, repo_model.PushMirrorOptions{ID: mirrorID})
 	if err != nil {
 		log.Error("GetPushMirrorByID [%d]: %v", mirrorID, err)
 		return false
@@ -116,7 +116,7 @@ func SyncPushMirror(ctx context.Context, mirrorID int64) bool {
 
 	m.LastUpdateUnix = timeutil.TimeStampNow()
 
-	if err := repo_model.UpdatePushMirror(m); err != nil {
+	if err := repo_model.UpdatePushMirror(ctx, m); err != nil {
 		log.Error("UpdatePushMirror [%d]: %v", m.ID, err)
 
 		return false
@@ -131,7 +131,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 	timeout := time.Duration(setting.Git.Timeout.Mirror) * time.Second
 
 	performPush := func(path string) error {
-		remoteAddr, err := git.GetRemoteAddress(ctx, path, m.RemoteName)
+		remoteURL, err := git.GetRemoteURL(ctx, path, m.RemoteName)
 		if err != nil {
 			log.Error("GetRemoteAddress(%s) Error %v", path, err)
 			return errors.New("Unexpected error")
@@ -147,7 +147,7 @@ func runPushSync(ctx context.Context, m *repo_model.PushMirror) error {
 			}
 			defer gitRepo.Close()
 
-			endpoint := lfs.DetermineEndpoint(remoteAddr.String(), "")
+			endpoint := lfs.DetermineEndpoint(remoteURL.String(), "")
 			lfsClient := lfs.NewClient(endpoint, nil)
 			if err := pushAllLFSObjects(ctx, gitRepo, lfsClient); err != nil {
 				return util.SanitizeErrorCredentialURLs(err)

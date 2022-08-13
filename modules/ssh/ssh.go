@@ -11,6 +11,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -74,11 +75,20 @@ func sessionHandler(session ssh.Session) {
 	ctx, cancel := context.WithCancel(session.Context())
 	defer cancel()
 
+	gitProtocol := ""
+	for _, env := range session.Environ() {
+		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
+			_, gitProtocol, _ = strings.Cut(env, "=")
+			break
+		}
+	}
+
 	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
 		"SKIP_MINWINSVC=1",
+		"GIT_PROTOCOL="+gitProtocol,
 	)
 
 	stdout, err := cmd.StdoutPipe()
@@ -101,6 +111,8 @@ func sessionHandler(session ssh.Session) {
 		return
 	}
 	defer stdin.Close()
+
+	process.SetSysProcAttribute(cmd)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -140,10 +152,14 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		// Cannot use errors.Is here because ExitError doesn't implement Is
+		// Thus errors.Is will do equality test NOT type comparison
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Error("SSH: Wait: %v", err)
+		}
 	}
 
-	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+	if err := session.Exit(getExitStatusFromError(err)); err != nil && !errors.Is(err, io.EOF) {
 		log.Error("Session failed to exit. %s", err)
 	}
 }
@@ -186,8 +202,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			c := &gossh.CertChecker{
 				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					marshaled := auth.Marshal()
 					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+						if bytes.Equal(marshaled, k.Marshal()) {
 							return true
 						}
 					}

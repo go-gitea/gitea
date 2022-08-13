@@ -48,7 +48,6 @@ A new token can be generated with a `POST` request to
 Note that `/users/:name/tokens` is a special endpoint and requires you
 to authenticate using `BasicAuth` and a password, as follows:
 
-
 ```sh
 $ curl -XPOST -H "Content-Type: application/json"  -k -d '{"name":"test"}' -u username:password https://gitea.your.host/api/v1/users/<username>/tokens
 {"id":1,"name":"test","sha1":"9fcb1158165773dd010fca5f0cf7174316c3e37d","token_last_eight":"16c3e37d"}
@@ -105,6 +104,18 @@ curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 
 As mentioned above, the token used is the same one you would use in
 the `token=` string in a GET request.
+
+## Pagination
+
+The API supports pagination. The `page` and `limit` parameters are used to specify the page number and the number of items per page. As well, the `Link` header is returned with the next, previous, and last page links if there are more than one pages. The `x-total-count` is also returned to indicate the total number of items.
+
+```sh
+curl -v "http://localhost/api/v1/repos/search?limit=1"
+...
+< link: <http://localhost/api/v1/repos/search?limit=1&page=2>; rel="next",<http://localhost/api/v1/repos/search?limit=1&page=5252>; rel="last"
+...
+< x-total-count: 5252
+```
 
 ## API Guide:
 

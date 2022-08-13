@@ -128,7 +128,7 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 			case binding.ERR_EMAIL:
 				data["ErrorMsg"] = trName + l.Tr("form.email_error")
 			case binding.ERR_URL:
-				data["ErrorMsg"] = trName + l.Tr("form.url_error")
+				data["ErrorMsg"] = trName + l.Tr("form.url_error", errs[0].Message)
 			case binding.ERR_INCLUDE:
 				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
 			case validation.ErrGlobPattern:
@@ -136,7 +136,16 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 			case validation.ErrRegexPattern:
 				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
 			default:
-				data["ErrorMsg"] = l.Tr("form.unknown_error") + " " + errs[0].Classification
+				msg := errs[0].Classification
+				if msg != "" && errs[0].Message != "" {
+					msg += ": "
+				}
+
+				msg += errs[0].Message
+				if msg == "" {
+					msg = l.Tr("form.unknown_error")
+				}
+				data["ErrorMsg"] = trName + ": " + msg
 			}
 			return errs
 		}

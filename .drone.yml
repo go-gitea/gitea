@@ -19,13 +19,13 @@ volumes:
 
 steps:
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
@@ -34,7 +34,7 @@ steps:
         path: /go
 
   - name: lint-frontend
-    image: node:16
+    image: node:18
     commands:
       - make lint-frontend
     depends_on: [deps-frontend]
@@ -82,13 +82,13 @@ steps:
         path: /go
 
   - name: checks-frontend
-    image: node:16
+    image: node:18
     commands:
       - make checks-frontend
     depends_on: [deps-frontend]
 
   - name: checks-backend
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - make checks-backend
     depends_on: [deps-backend]
@@ -97,19 +97,19 @@ steps:
         path: /go
 
   - name: test-frontend
-    image: node:16
+    image: node:18
     commands:
       - make test-frontend
     depends_on: [lint-frontend]
 
   - name: build-frontend
-    image: node:16
+    image: node:18
     commands:
       - make frontend
     depends_on: [test-frontend]
 
   - name: build-backend-no-gcc
-    image: golang:1.17 # this step is kept as the lowest version of golang that we support
+    image: golang:1.18 # this step is kept as the lowest version of golang that we support
     pull: always
     environment:
       GO111MODULE: on
@@ -122,7 +122,7 @@ steps:
         path: /go
 
   - name: build-backend-arm64
-    image: golang:1.18
+    image: golang:1.19
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -138,7 +138,7 @@ steps:
         path: /go
 
   - name: build-backend-windows
-    image: golang:1.18
+    image: golang:1.19
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -153,7 +153,7 @@ steps:
         path: /go
 
   - name: build-backend-386
-    image: golang:1.18
+    image: golang:1.19
     environment:
       GO111MODULE: on
       GOPROXY: https://goproxy.io
@@ -243,7 +243,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
@@ -331,7 +331,7 @@ steps:
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-mysql8-migration test-mysql8
+      - timeout -s ABRT 50m make test-mysql8-migration test-mysql8
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata
@@ -360,7 +360,7 @@ steps:
         path: /go
 
   - name: generate-coverage
-    image: golang:1.18
+    image: golang:1.19
     commands:
       - make coverage
     environment:
@@ -436,7 +436,7 @@ steps:
           - pull_request
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
@@ -469,7 +469,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-sqlite-migration test-sqlite
+      - timeout -s ABRT 50m make test-sqlite-migration test-sqlite
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit sqlite sqlite_unlock_notify
@@ -485,7 +485,7 @@ steps:
     image: gitea/test_env:linux-arm64  # https://gitea.com/gitea/test-env
     user: gitea
     commands:
-      - timeout -s ABRT 40m make test-pgsql-migration test-pgsql
+      - timeout -s ABRT 50m make test-pgsql-migration test-pgsql
     environment:
       GOPROXY: https://goproxy.io
       TAGS: bindata gogit
@@ -578,7 +578,7 @@ trigger:
 
 steps:
   - name: download
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - timeout -s ABRT 40m make generate-license generate-gitignore
@@ -634,13 +634,13 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
@@ -649,9 +649,10 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.18.x
+    image: techknowlogick/xgo:go-1.19.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
@@ -753,13 +754,13 @@ steps:
       - git fetch --tags --force
 
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
 
   - name: deps-backend
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make deps-backend
@@ -768,9 +769,10 @@ steps:
         path: /go
 
   - name: static
-    image: techknowlogick/xgo:go-1.18.x
+    image: techknowlogick/xgo:go-1.19.x
     pull: always
     commands:
+      # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
       - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release

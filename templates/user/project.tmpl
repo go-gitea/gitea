@@ -5,12 +5,12 @@
 			<form class="ui form" action="{{.Link}}" method="post">
 				{{.CsrfTokenHtml}}
 				<h3 class="ui top attached header">
-					{{.i18n.Tr "new_project"}}
+					{{.locale.Tr "new_project"}}
 				</h3>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
 					<div class="inline required field {{if .Err_Owner}}error{{end}}">
-						<label>{{.i18n.Tr "repo.owner"}}</label>
+						<label>{{.locale.Tr "repo.owner"}}</label>
 						<div class="ui selection owner dropdown">
 							<input type="hidden" id="uid" name="uid" value="{{.ContextUser.ID}}" required>
 							<span class="text truncated-item-container" title="{{.ContextUser.Name}}">
@@ -34,22 +34,22 @@
 					</div>
 
 					<div class="inline field {{if .Err_Title}}error{{end}}">
-						<label>{{.i18n.Tr "repo.projects.title"}}</label>
-						<input name="title" placeholder="{{.i18n.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
+						<label>{{.locale.Tr "repo.projects.title"}}</label>
+						<input name="title" placeholder="{{.locale.Tr "repo.projects.title"}}" value="{{.title}}" autofocus required>
 					</div>
 					<div class="inline field">
-						<label>{{.i18n.Tr "repo.projects.desc"}}</label>
+						<label>{{.locale.Tr "repo.projects.desc"}}</label>
 						<textarea name="content">{{.content}}</textarea>
 					</div>
 
 					<div class="inline field">
-						<label>{{.i18n.Tr "repo.projects.template.desc"}}</label>
+						<label>{{.locale.Tr "repo.projects.template.desc"}}</label>
 						<div class="ui selection dropdown">
 							<input type="hidden" name="board_type" value="{{.type}}">
-							<div class="default text">{{.i18n.Tr "repo.projects.template.desc_helper"}}</div>
+							<div class="default text">{{.locale.Tr "repo.projects.template.desc_helper"}}</div>
 							<div class="menu">
 								{{range $element := .ProjectTypes}}
-								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.i18n.Tr $element.Translation}}</div>
+								<div class="item" data-id="{{$element.BoardType}}" data-value="{{$element.BoardType}}">{{$.locale.Tr $element.Translation}}</div>
 								{{end}}
 							</div>
 						</div>
@@ -58,9 +58,9 @@
 					<div class="inline field">
 						<label></label>
 						<button class="ui green button">
-							{{.i18n.Tr "repo.projects.create" }}
+							{{.locale.Tr "repo.projects.create" }}
 						</button>
-						<a class="ui button" href="{{AppSubUrl}}/">{{.i18n.Tr "cancel"}}</a>
+						<a class="ui button" href="{{AppSubUrl}}/">{{.locale.Tr "cancel"}}</a>
 					</div>
 				</div>
 			</form>

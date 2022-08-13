@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/doctor"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -124,12 +125,17 @@ func runRecreateTable(ctx *cli.Context) error {
 }
 
 func runDoctor(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	// some doctor sub-commands need to use git command
+	if err := git.InitFull(stdCtx); err != nil {
+		return err
+	}
+
 	// Silence the default loggers
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
-
-	stdCtx, cancel := installSignals()
-	defer cancel()
 
 	// Now setup our own
 	logFile := ctx.String("log-file")
@@ -203,7 +209,7 @@ func runDoctor(ctx *cli.Context) error {
 
 	// Now we can set up our own logger to return information about what the doctor is doing
 	if err := log.NewNamedLogger("doctorouter",
-		1000,
+		0,
 		"console",
 		"console",
 		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {

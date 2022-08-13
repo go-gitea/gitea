@@ -20,21 +20,21 @@ type ResourceIndex struct {
 }
 
 // UpsertResourceIndex the function will not return until it acquires the lock or receives an error.
-func UpsertResourceIndex(e Engine, tableName string, groupID int64) (err error) {
+func UpsertResourceIndex(ctx context.Context, tableName string, groupID int64) (err error) {
 	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
 	// that ensures that the key is actually locked.
 	switch {
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
-		_, err = e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+		_, err = Exec(ctx, fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
 			"VALUES (?,1) ON CONFLICT (group_id) DO UPDATE SET max_index = %s.max_index+1",
 			tableName, tableName), groupID)
 	case setting.Database.UseMySQL:
-		_, err = e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+		_, err = Exec(ctx, fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
 			"VALUES (?,1) ON DUPLICATE KEY UPDATE max_index = max_index+1", tableName),
 			groupID)
 	case setting.Database.UseMSSQL:
 		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
-		_, err = e.Exec(fmt.Sprintf("MERGE %s WITH (HOLDLOCK) as target "+
+		_, err = Exec(ctx, fmt.Sprintf("MERGE %s WITH (HOLDLOCK) as target "+
 			"USING (SELECT ? AS group_id) AS src "+
 			"ON src.group_id = target.group_id "+
 			"WHEN MATCHED THEN UPDATE SET target.max_index = target.max_index+1 "+
@@ -44,7 +44,7 @@ func UpsertResourceIndex(e Engine, tableName string, groupID int64) (err error) 
 	default:
 		return fmt.Errorf("database type not supported")
 	}
-	return
+	return err
 }
 
 var (
@@ -82,30 +82,29 @@ func DeleteResouceIndex(ctx context.Context, tableName string, groupID int64) er
 
 // getNextResourceIndex return the next index
 func getNextResourceIndex(tableName string, groupID int64) (int64, error) {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return 0, err
-	}
-	var preIdx int64
-	_, err := sess.SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ?", tableName), groupID).Get(&preIdx)
+	ctx, commiter, err := TxContext()
 	if err != nil {
 		return 0, err
 	}
+	defer commiter.Close()
+	var preIdx int64
+	if _, err := GetEngine(ctx).SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ?", tableName), groupID).Get(&preIdx); err != nil {
+		return 0, err
+	}
 
-	if err := UpsertResourceIndex(sess, tableName, groupID); err != nil {
+	if err := UpsertResourceIndex(ctx, tableName, groupID); err != nil {
 		return 0, err
 	}
 
 	var curIdx int64
-	has, err := sess.SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ? AND max_index=?", tableName), groupID, preIdx+1).Get(&curIdx)
+	has, err := GetEngine(ctx).SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id = ? AND max_index=?", tableName), groupID, preIdx+1).Get(&curIdx)
 	if err != nil {
 		return 0, err
 	}
 	if !has {
 		return 0, ErrResouceOutdated
 	}
-	if err := sess.Commit(); err != nil {
+	if err := commiter.Commit(); err != nil {
 		return 0, err
 	}
 	return curIdx, nil

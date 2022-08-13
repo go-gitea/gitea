@@ -102,13 +102,13 @@ func GetStatistic(ctx context.Context, metrics bool) (stats Statistic) {
 
 	stats.Counter.Issue = stats.Counter.IssueClosed + stats.Counter.IssueOpen
 
-	stats.Counter.Comment, _ = db.EstimateCount(ctx, new(Comment))
+	stats.Counter.Comment, _ = db.EstimateCount(ctx, new(issues_model.Comment))
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
 	stats.Counter.Release, _ = e.Count(new(Release))
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))
-	stats.Counter.Label, _ = e.Count(new(Label))
+	stats.Counter.Label, _ = e.Count(new(issues_model.Label))
 	stats.Counter.HookTask, _ = db.EstimateCount(ctx, new(webhook.HookTask))
 	stats.Counter.Team, _ = e.Count(new(organization.Team))
 	stats.Counter.Attachment, _ = db.EstimateCount(ctx, new(repo_model.Attachment))
@@ -117,5 +117,5 @@ func GetStatistic(ctx context.Context, metrics bool) (stats Statistic) {
 	stats.Counter.Oauth = 0
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Time = time.Now()
-	return
+	return stats
 }

@@ -44,7 +44,7 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	// Remote address can be HTTP/HTTPS/Git URL or local path.
 	u, err := url.Parse(remoteURL)
 	if err != nil {
-		return &models.ErrInvalidCloneAddr{IsURLError: true}
+		return &models.ErrInvalidCloneAddr{IsURLError: true, Host: remoteURL}
 	}
 
 	if u.Scheme == "file" || u.Scheme == "" {
@@ -84,7 +84,10 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 
 	// some users only use proxy, there is no DNS resolver. it's safe to ignore the LookupIP error
 	addrList, _ := net.LookupIP(hostName)
+	return checkByAllowBlockList(hostName, addrList)
+}
 
+func checkByAllowBlockList(hostName string, addrList []net.IP) error {
 	var ipAllowed bool
 	var ipBlocked bool
 	for _, addr := range addrList {
@@ -93,12 +96,12 @@ func IsMigrateURLAllowed(remoteURL string, doer *user_model.User) error {
 	}
 	var blockedError error
 	if blockList.MatchHostName(hostName) || ipBlocked {
-		blockedError = &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+		blockedError = &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 	}
-	// if we have an allow-list, check the allow-list first
+	// if we have an allow-list, check the allow-list before return to get the more accurate error
 	if !allowList.IsEmpty() {
 		if !allowList.MatchHostName(hostName) && !ipAllowed {
-			return &models.ErrInvalidCloneAddr{Host: u.Host, IsPermissionDenied: true}
+			return &models.ErrInvalidCloneAddr{Host: hostName, IsPermissionDenied: true}
 		}
 	}
 	// otherwise, we always follow the blocked list
@@ -474,5 +477,7 @@ func Init() error {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
+	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
+	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
 	return nil
 }

@@ -17,8 +17,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
@@ -150,17 +150,12 @@ func standardCommitAndPushTest(t *testing.T, dstPath string) (little, big string
 		defer PrintCurrentTest(t)()
 		little, big = commitAndPushTest(t, dstPath, "data-file-")
 	})
-	return
+	return little, big
 }
 
 func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS string) {
 	t.Run("LFS", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
-		git.CheckLFSVersion()
-		if !setting.LFS.StartServer {
-			t.Skip()
-			return
-		}
 		prefix := "lfs-data-file-"
 		err := git.NewCommand(git.DefaultContext, "lfs").AddArguments("install").Run(&git.RunOpts{Dir: dstPath})
 		assert.NoError(t, err)
@@ -191,7 +186,7 @@ func lfsCommitAndPushTest(t *testing.T, dstPath string) (littleLFS, bigLFS strin
 			lockTest(t, dstPath)
 		})
 	})
-	return
+	return littleLFS, bigLFS
 }
 
 func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string) {
@@ -210,7 +205,7 @@ func commitAndPushTest(t *testing.T, dstPath, prefix string) (little, big string
 			big = doCommitAndPush(t, bigSize, dstPath, prefix)
 		})
 	})
-	return
+	return little, big
 }
 
 func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS string) {
@@ -226,7 +221,6 @@ func rawTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS s
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
-		git.CheckLFSVersion()
 		if setting.LFS.StartServer {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/raw/branch/master/", littleLFS))
 			resp := session.MakeRequest(t, req, http.StatusOK)
@@ -268,12 +262,9 @@ func mediaTest(t *testing.T, ctx *APITestContext, little, big, littleLFS, bigLFS
 		resp := session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
 		assert.Equal(t, littleSize, resp.Length)
 
-		git.CheckLFSVersion()
-		if setting.LFS.StartServer {
-			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
-			resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
-			assert.Equal(t, littleSize, resp.Length)
-		}
+		req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", littleLFS))
+		resp = session.MakeRequestNilResponseRecorder(t, req, http.StatusOK)
+		assert.Equal(t, littleSize, resp.Length)
 
 		if !testing.Short() {
 			req = NewRequest(t, "GET", path.Join("/", username, reponame, "/media/branch/master/", big))
@@ -715,7 +706,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 		defer gitRepo.Close()
 
 		var (
-			pr1, pr2 *models.PullRequest
+			pr1, pr2 *issues_model.PullRequest
 			commit   string
 		)
 		repo, err := repo_model.GetRepositoryByOwnerAndName(ctx.Username, ctx.Reponame)
@@ -723,7 +714,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			return
 		}
 
-		pullNum := unittest.GetCount(t, &models.PullRequest{})
+		pullNum := unittest.GetCount(t, &issues_model.PullRequest{})
 
 		t.Run("CreateHeadBranch", doGitCreateBranch(dstPath, headBranch))
 
@@ -759,11 +750,11 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+1)
-			pr1 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+1)
+			pr1 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 				HeadRepoID: repo.ID,
-				Flow:       models.PullRequestFlowAGit,
-			}).(*models.PullRequest)
+				Flow:       issues_model.PullRequestFlowAGit,
+			}).(*issues_model.PullRequest)
 			if !assert.NotEmpty(t, pr1) {
 				return
 			}
@@ -780,12 +771,12 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
-			pr2 = unittest.AssertExistsAndLoadBean(t, &models.PullRequest{
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
+			pr2 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
-				Flow:       models.PullRequestFlowAGit,
-			}).(*models.PullRequest)
+				Flow:       issues_model.PullRequestFlowAGit,
+			}).(*issues_model.PullRequest)
 			if !assert.NotEmpty(t, pr2) {
 				return
 			}
@@ -833,7 +824,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
 			prMsg, err := doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr1.Index)(t)
 			if !assert.NoError(t, err) {
 				return
@@ -845,7 +836,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			if !assert.NoError(t, err) {
 				return
 			}
-			unittest.AssertCount(t, &models.PullRequest{}, pullNum+2)
+			unittest.AssertCount(t, &issues_model.PullRequest{}, pullNum+2)
 			prMsg, err = doAPIGetPullRequest(*ctx, ctx.Username, ctx.Reponame, pr2.Index)(t)
 			if !assert.NoError(t, err) {
 				return

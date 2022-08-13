@@ -101,7 +101,8 @@
         padding-left: 5px;
       }
 
-      a.milestone {
+      a.milestone,
+      a.project {
         margin-left: 5px;
       }
 
@@ -116,6 +117,23 @@
       .overdue {
         color: var(--color-red);
       }
+    }
+  }
+
+  .branches {
+    display: inline-flex;
+    padding: 0 4px;
+
+    .branch {
+      background-color: var(--color-secondary);
+      border-radius: 3px;
+    }
+
+    .truncated-name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 10em;
     }
   }
 

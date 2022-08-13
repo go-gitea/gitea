@@ -1,6 +1,6 @@
 import $ from 'jquery';
 import attachTribute from '../tribute.js';
-import {handleGlobalEnterQuickSubmit} from '../common-global.js';
+import {handleGlobalEnterQuickSubmit} from './QuickSubmit.js';
 
 /**
  * @returns {EasyMDE}
@@ -38,6 +38,8 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
     indentWithTabs: false,
     tabSize: 4,
     spellChecker: false,
+    inputStyle: 'contenteditable', // nativeSpellcheck requires contenteditable
+    nativeSpellcheck: true,
     toolbar: ['bold', 'italic', 'strikethrough', '|',
       'heading-1', 'heading-2', 'heading-3', 'heading-bigger', 'heading-smaller', '|',
       'code', 'quote', '|', {

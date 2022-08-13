@@ -139,5 +139,5 @@ func runMigrateTask(t *models.Task) (err error) {
 
 	// do not be tempted to coalesce this line with the return
 	err = handleCreateError(t.Owner, err)
-	return
+	return err
 }

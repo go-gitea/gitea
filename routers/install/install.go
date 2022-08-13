@@ -69,7 +69,7 @@ func Init(next http.Handler) http.Handler {
 			Render:  rnd,
 			Session: session.GetSession(req),
 			Data: map[string]interface{}{
-				"i18n":          locale,
+				"locale":        locale,
 				"Title":         locale.Tr("install.install"),
 				"PageIsInstall": true,
 				"DbTypeNames":   dbTypeNames,
@@ -133,7 +133,8 @@ func Install(ctx *context.Context) {
 
 	// E-mail service settings
 	if setting.MailService != nil {
-		form.SMTPHost = setting.MailService.Host
+		form.SMTPAddr = setting.MailService.SMTPAddr
+		form.SMTPPort = setting.MailService.SMTPPort
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
 		form.SMTPPasswd = setting.MailService.Passwd
@@ -421,9 +422,10 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
-	if len(strings.TrimSpace(form.SMTPHost)) > 0 {
+	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
-		cfg.Section("mailer").Key("HOST").SetValue(form.SMTPHost)
+		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
+		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
 		cfg.Section("mailer").Key("FROM").SetValue(form.SMTPFrom)
 		cfg.Section("mailer").Key("USER").SetValue(form.SMTPUser)
 		cfg.Section("mailer").Key("PASSWD").SetValue(form.SMTPPasswd)
@@ -455,6 +457,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
+
+	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 
 	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
 

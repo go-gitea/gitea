@@ -59,6 +59,7 @@ const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
 )
 
 // settings
@@ -170,7 +171,7 @@ var (
 		ServerMACs:                    []string{"hmac-sha2-256-etm@openssh.com", "hmac-sha2-256", "hmac-sha1"},
 		KeygenPath:                    "ssh-keygen",
 		MinimumKeySizeCheck:           true,
-		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2048},
+		MinimumKeySizes:               map[string]int{"ed25519": 256, "ed25519-sk": 256, "ecdsa": 256, "ecdsa-sk": 256, "rsa": 2047},
 		ServerHostKeys:                []string{"ssh/gitea.rsa", "ssh/gogs.rsa"},
 		AuthorizedKeysCommandTemplate: "{{.AppPath}} --config={{.CustomConf}} serv key-{{.Key.ID}}",
 		PerWriteTimeout:               PerWriteTimeout,
@@ -207,6 +208,7 @@ var (
 	// UI settings
 	UI = struct {
 		ExplorePagingNum      int
+		SitemapPagingNum      int
 		IssuePagingNum        int
 		RepoSearchPagingNum   int
 		MembersPagingNum      int
@@ -261,8 +263,9 @@ var (
 		} `ini:"ui.meta"`
 	}{
 		ExplorePagingNum:    20,
-		IssuePagingNum:      10,
-		RepoSearchPagingNum: 10,
+		SitemapPagingNum:    20,
+		IssuePagingNum:      20,
+		RepoSearchPagingNum: 20,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
@@ -403,11 +406,6 @@ var (
 		MaxTokenLength:             math.MaxInt16,
 	}
 
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F = struct {
-		AppID string
-	}{}
-
 	// Metrics settings
 	Metrics = struct {
 		Enabled                  bool
@@ -481,6 +479,18 @@ func getWorkPath(appPath string) string {
 			workPath = appPath
 		} else {
 			workPath = appPath[:i]
+		}
+	}
+	workPath = strings.ReplaceAll(workPath, "\\", "/")
+	if !filepath.IsAbs(workPath) {
+		log.Info("Provided work path %s is not absolute - will be made absolute against the current working directory", workPath)
+
+		absPath, err := filepath.Abs(workPath)
+		if err != nil {
+			log.Error("Unable to absolute %s against the current working directory %v. Will absolute against the AppPath %s", workPath, err, appPath)
+			workPath = filepath.Join(appPath, workPath)
+		} else {
+			workPath = absPath
 		}
 	}
 	return strings.ReplaceAll(workPath, "\\", "/")
@@ -774,6 +784,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	StaticRootPath = sec.Key("STATIC_ROOT_PATH").MustString(StaticRootPath)
 	StaticCacheTime = sec.Key("STATIC_CACHE_TIME").MustDuration(6 * time.Hour)
 	AppDataPath = sec.Key("APP_DATA_PATH").MustString(path.Join(AppWorkPath, "data"))
+	if !filepath.IsAbs(AppDataPath) {
+		log.Info("The provided APP_DATA_PATH: %s is not absolute - it will be made absolute against the work path: %s", AppDataPath, AppWorkPath)
+		AppDataPath = filepath.ToSlash(filepath.Join(AppWorkPath, AppDataPath))
+	}
 
 	EnableGzip = sec.Key("ENABLE_GZIP").MustBool()
 	EnablePprof = sec.Key("ENABLE_PPROF").MustBool(false)
@@ -832,8 +846,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 		SSH.StartBuiltinServer = false
 	}
 
-	trustedUserCaKeys := sec.Key("SSH_TRUSTED_USER_CA_KEYS").Strings(",")
-	for _, caKey := range trustedUserCaKeys {
+	SSH.TrustedUserCAKeysFile = sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
+
+	for _, caKey := range SSH.TrustedUserCAKeys {
 		pubKey, _, _, _, err := gossh.ParseAuthorizedKey([]byte(caKey))
 		if err != nil {
 			log.Fatal("Failed to parse TrustedUserCaKeys: %s %v", caKey, err)
@@ -841,7 +856,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 		SSH.TrustedUserCAKeysParsed = append(SSH.TrustedUserCAKeysParsed, pubKey)
 	}
-	if len(trustedUserCaKeys) > 0 {
+	if len(SSH.TrustedUserCAKeys) > 0 {
 		// Set the default as email,username otherwise we can leave it empty
 		sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").MustString("username,email")
 	} else {
@@ -849,22 +864,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	SSH.AuthorizedPrincipalsAllow, SSH.AuthorizedPrincipalsEnabled = parseAuthorizedPrincipalsAllow(sec.Key("SSH_AUTHORIZED_PRINCIPALS_ALLOW").Strings(","))
-
-	if !SSH.Disabled && !SSH.StartBuiltinServer {
-		if err := os.MkdirAll(SSH.RootPath, 0o700); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.RootPath, err)
-		} else if err = os.MkdirAll(SSH.KeyTestPath, 0o644); err != nil {
-			log.Fatal("Failed to create '%s': %v", SSH.KeyTestPath, err)
-		}
-
-		if len(trustedUserCaKeys) > 0 && SSH.AuthorizedPrincipalsEnabled {
-			fname := sec.Key("SSH_TRUSTED_USER_CA_KEYS_FILENAME").MustString(filepath.Join(SSH.RootPath, "gitea-trusted-user-ca-keys.pem"))
-			if err := os.WriteFile(fname,
-				[]byte(strings.Join(trustedUserCaKeys, "\n")), 0o600); err != nil {
-				log.Fatal("Failed to create '%s': %v", fname, err)
-			}
-		}
-	}
 
 	SSH.MinimumKeySizeCheck = sec.Key("MINIMUM_KEY_SIZE_CHECK").MustBool(SSH.MinimumKeySizeCheck)
 	minimumKeySizes := Cfg.Section("ssh.minimum_key_sizes").Keys()
@@ -1089,16 +1088,6 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
 		UI.CustomEmojisMap[emoji] = ":" + emoji + ":"
-	}
-
-	// FIXME: DEPRECATED to be removed in v1.18.0
-	U2F.AppID = strings.TrimSuffix(AppURL, "/")
-	if Cfg.Section("U2F").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[U2F]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("U2F").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
-	} else if Cfg.Section("u2f").HasKey("APP_ID") {
-		log.Error("Deprecated setting `[u2]` `APP_ID` present. This fallback will be removed in v1.18.0")
-		U2F.AppID = Cfg.Section("u2f").Key("APP_ID").MustString(strings.TrimSuffix(AppURL, "/"))
 	}
 }
 

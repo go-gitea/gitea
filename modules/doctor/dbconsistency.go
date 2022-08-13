@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
@@ -64,10 +65,10 @@ func genericOrphanCheck(name, subject, refobject, joincond string) consistencyCh
 	return consistencyCheck{
 		Name: name,
 		Counter: func() (int64, error) {
-			return models.CountOrphanedObjects(subject, refobject, joincond)
+			return db.CountOrphanedObjects(subject, refobject, joincond)
 		},
 		Fixer: func() (int64, error) {
-			err := models.DeleteOrphanedObjects(subject, refobject, joincond)
+			err := db.DeleteOrphanedObjects(subject, refobject, joincond)
 			return -1, err
 		},
 	}
@@ -84,20 +85,20 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		{
 			// find labels without existing repo or org
 			Name:    "Orphaned Labels without existing repository or organisation",
-			Counter: models.CountOrphanedLabels,
-			Fixer:   asFixer(models.DeleteOrphanedLabels),
+			Counter: issues_model.CountOrphanedLabels,
+			Fixer:   asFixer(issues_model.DeleteOrphanedLabels),
 		},
 		{
 			// find IssueLabels without existing label
 			Name:    "Orphaned Issue Labels without existing label",
-			Counter: models.CountOrphanedIssueLabels,
-			Fixer:   asFixer(models.DeleteOrphanedIssueLabels),
+			Counter: issues_model.CountOrphanedIssueLabels,
+			Fixer:   asFixer(issues_model.DeleteOrphanedIssueLabels),
 		},
 		{
 			// find issues without existing repository
 			Name:    "Orphaned Issues without existing repository",
-			Counter: models.CountOrphanedIssues,
-			Fixer:   asFixer(models.DeleteOrphanedIssues),
+			Counter: issues_model.CountOrphanedIssues,
+			Fixer:   asFixer(issues_model.DeleteOrphanedIssues),
 		},
 		// find releases without existing repository
 		genericOrphanCheck("Orphaned Releases without existing repository",
@@ -127,22 +128,22 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find label comments with empty labels
 		{
 			Name:         "Label comments with empty labels",
-			Counter:      models.CountCommentTypeLabelWithEmptyLabel,
-			Fixer:        models.FixCommentTypeLabelWithEmptyLabel,
+			Counter:      issues_model.CountCommentTypeLabelWithEmptyLabel,
+			Fixer:        issues_model.FixCommentTypeLabelWithEmptyLabel,
 			FixedMessage: "Fixed",
 		},
 		// find label comments with labels from outside the repository
 		{
 			Name:         "Label comments with labels from outside the repository",
-			Counter:      models.CountCommentTypeLabelWithOutsideLabels,
-			Fixer:        models.FixCommentTypeLabelWithOutsideLabels,
+			Counter:      issues_model.CountCommentTypeLabelWithOutsideLabels,
+			Fixer:        issues_model.FixCommentTypeLabelWithOutsideLabels,
 			FixedMessage: "Removed",
 		},
 		// find issue_label with labels from outside the repository
 		{
 			Name:         "IssueLabels with Labels from outside the repository",
-			Counter:      models.CountIssueLabelWithOutsideLabels,
-			Fixer:        models.FixIssueLabelWithOutsideLabels,
+			Counter:      issues_model.CountIssueLabelWithOutsideLabels,
+			Fixer:        issues_model.FixIssueLabelWithOutsideLabels,
 			FixedMessage: "Removed",
 		},
 		{
@@ -198,6 +199,12 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find OAuth2AuthorizationCode without existing OAuth2Grant
 		genericOrphanCheck("Orphaned OAuth2AuthorizationCode without existing OAuth2Grant",
 			"oauth2_authorization_code", "oauth2_grant", "oauth2_authorization_code.grant_id=oauth2_grant.id"),
+		// find stopwatches without existing user
+		genericOrphanCheck("Orphaned Stopwatches without existing User",
+			"stopwatch", "user", "stopwatch.user_id=`user`.id"),
+		// find stopwatches without existing issue
+		genericOrphanCheck("Orphaned Stopwatches without existing Issue",
+			"stopwatch", "issue", "stopwatch.issue_id=`issue`.id"),
 	)
 
 	for _, c := range consistencyChecks {

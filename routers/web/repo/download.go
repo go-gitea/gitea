@@ -9,8 +9,7 @@ import (
 	"path"
 	"time"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/modules/cache"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -43,7 +42,7 @@ func ServeBlobOrLFS(ctx *context.Context, blob *git.Blob, lastModified time.Time
 
 	pointer, _ := lfs.ReadPointer(dataRc)
 	if pointer.IsValid() {
-		meta, _ := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+		meta, _ := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
 		if meta == nil {
 			if err = dataRc.Close(); err != nil {
 				log.Error("ServeBlobOrLFS: Close: %v", err)
@@ -99,12 +98,7 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 		return
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return
@@ -116,7 +110,7 @@ func getBlobForEntry(ctx *context.Context) (blob *git.Blob, lastModified time.Ti
 	}
 	blob = entry.Blob()
 
-	return
+	return blob, lastModified
 }
 
 // SingleDownload download a file by repos path
