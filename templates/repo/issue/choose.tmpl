@@ -35,11 +35,11 @@
 				<div class="text left">
 					<div>The following issue templates have errors:</div>
 					<ul>
-            {{range $filename, $errors := .IssueTemplateErrors}}
-                {{range $errors}}
+						{{range $filename, $errors := .IssueTemplateErrors}}
+								{{range $errors}}
 									<li>{{$filename}}: {{.}}</li>
-                {{end}}
-            {{end}}
+								{{end}}
+						{{end}}
 					</ul>
 				</div>
 			</div>
