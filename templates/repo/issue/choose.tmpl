@@ -30,6 +30,20 @@
 				</div>
 			</div>
 		</div>
+		{{- if .IssueTemplateErrors}}
+			<div class="ui warning message">
+				<div class="text left">
+					<div>The following issue templates have errors:</div>
+					<ul>
+            {{range $filename, $errors := .IssueTemplateErrors}}
+                {{range $errors}}
+									<li>{{$filename}}: {{.}}</li>
+                {{end}}
+            {{end}}
+					</ul>
+				</div>
+			</div>
+		{{end}}
 	</div>
 </div>
 {{template "base/footer" .}}

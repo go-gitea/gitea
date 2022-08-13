@@ -1080,5 +1080,6 @@ func GetIssueTemplates(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/IssueTemplates"
 
-	ctx.JSON(http.StatusOK, ctx.IssueTemplatesFromDefaultBranch())
+	issueTemplates, _ := ctx.IssueTemplatesFromDefaultBranch()
+	ctx.JSON(http.StatusOK, issueTemplates)
 }

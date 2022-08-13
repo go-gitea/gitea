@@ -65,6 +65,7 @@ const (
 
 	issueTemplateKey      = "IssueTemplate"
 	issueFormTemplateKey  = "IssueFormTemplate"
+	issueFormErrorsKey    = "IssueTemplateErrors"
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
@@ -408,7 +409,8 @@ func Issues(ctx *context.Context) {
 		}
 		ctx.Data["Title"] = ctx.Tr("repo.issues")
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		issueTemplates, _ := ctx.IssueTemplatesFromDefaultBranch()
+		ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	}
 
 	issues(ctx, ctx.FormInt64("milestone"), ctx.FormInt64("project"), util.OptionalBoolOf(isPullList))
@@ -751,7 +753,9 @@ func getFileContentFromDefaultBranch(repo *context.Repository, filename string) 
 	return string(bytes), true
 }
 
-func getTemplate(repo *context.Repository, template string, possibleDirs, possibleFiles []string) (*api.IssueTemplate, string, *api.IssueFormTemplate, error) {
+func getTemplate(repo *context.Repository, template string, possibleDirs, possibleFiles []string) (*api.IssueTemplate, string, *api.IssueFormTemplate, map[string][]string, error) {
+	validationErrs := make(map[string][]string)
+
 	// Add `possibleFiles` and each `{possibleDirs}/{template}` to `templateCandidates`
 	templateCandidates := make([]string, 0, len(possibleFiles))
 	if template != "" {
@@ -772,35 +776,41 @@ func getTemplate(repo *context.Repository, template string, possibleDirs, possib
 
 			if strings.HasSuffix(filename, ".md") {
 				// Parse markdown template
-				templateBody, err = markdown.ExtractMetadata(templateContent, meta)
+				templateBody, err = markdown.ExtractMetadata(templateContent, &meta)
 			} else if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
 				// Parse yaml (form) template
-				formTemplateBody, err = context.ExtractTemplateFromYaml([]byte(templateContent), &meta)
-				formTemplateBody.FileName = path.Base(filename)
+				var tmplValidationErrs []string
+				formTemplateBody, tmplValidationErrs, err = context.ExtractTemplateFromYaml([]byte(templateContent), &meta)
+				if err == nil {
+					formTemplateBody.FileName = path.Base(filename)
+				} else if tmplValidationErrs != nil {
+					validationErrs[path.Base(filename)] = tmplValidationErrs
+				}
 			} else {
 				err = errors.New("invalid template type")
 			}
 			if err != nil {
 				log.Debug("could not extract metadata from %s [%s]: %v", filename, repo.Repository.FullName(), err)
-				templateBody = templateContent
-				err = nil
 			}
 
-			return &meta, templateBody, formTemplateBody, err
+			return &meta, templateBody, formTemplateBody, validationErrs, err
 		}
 	}
 
-	return nil, "", nil, errors.New("no template found")
+	return nil, "", nil, validationErrs, errors.New("no template found")
 }
 
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
-	templateMeta, templateBody, formTemplateBody, err := getTemplate(ctx.Repo, ctx.FormString("template"), possibleDirs, possibleFiles)
+	templateMeta, templateBody, formTemplateBody, validationErrs, err := getTemplate(ctx.Repo, ctx.FormString("template"), possibleDirs, possibleFiles)
 	if err != nil {
 		return
 	}
 
 	if formTemplateBody != nil {
 		ctx.Data[issueFormTemplateKey] = formTemplateBody
+	}
+	if validationErrs != nil && len(validationErrs) > 0 {
+		ctx.Data[issueFormErrorsKey] = validationErrs
 	}
 
 	ctx.Data[issueTemplateTitleKey] = templateMeta.Title
@@ -836,7 +846,8 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 func NewIssue(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	issueTemplates, _ := ctx.IssueTemplatesFromDefaultBranch()
+	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	title := ctx.FormString("title")
@@ -893,7 +904,10 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
+	issueTemplates, validationErrs := ctx.IssueTemplatesFromDefaultBranch()
+	if validationErrs != nil && len(validationErrs) > 0 {
+		ctx.Data[issueFormErrorsKey] = validationErrs
+	}
 	ctx.Data["IssueTemplates"] = issueTemplates
 
 	if len(issueTemplates) == 0 {
@@ -1039,7 +1053,7 @@ func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, erro
 	}
 
 	// Fetch template
-	_, _, formTemplateBody, err := getTemplate(
+	_, _, formTemplateBody, _, err := getTemplate(
 		ctx.Repo,
 		form.Get("form-type"),
 		context.IssueTemplateDirCandidates,
@@ -1094,7 +1108,8 @@ func NewIssuePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
-	ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+	issueTemplates, _ := ctx.IssueTemplatesFromDefaultBranch()
+	ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	ctx.Data["PullRequestWorkInProgressPrefixes"] = setting.Repository.PullRequest.WorkInProgressPrefixes
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
@@ -1287,7 +1302,8 @@ func ViewIssue(ctx *context.Context) {
 			return
 		}
 		ctx.Data["PageIsIssueList"] = true
-		ctx.Data["NewIssueChooseTemplate"] = len(ctx.IssueTemplatesFromDefaultBranch()) > 0
+		issueTemplates, _ := ctx.IssueTemplatesFromDefaultBranch()
+		ctx.Data["NewIssueChooseTemplate"] = len(issueTemplates) > 0
 	}
 
 	if issue.IsPull && !ctx.Repo.CanRead(unit.TypeIssues) {

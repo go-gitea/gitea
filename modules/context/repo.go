@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"strconv"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -1033,11 +1034,23 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (*api.IssueFormTemplate, error) {
+func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (*api.IssueFormTemplate, []string, error) {
 	var tmpl *api.IssueFormTemplate
 	err := yaml.Unmarshal(templateContent, &tmpl)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
+	}
+
+	// Make sure it's valid
+	if validationErrs := tmpl.Valid(); len(validationErrs) > 0 {
+		return nil, validationErrs, fmt.Errorf("invalid issue template: %v", validationErrs)
+	}
+
+	// Fill missing field IDs with the field index
+	for i, f := range tmpl.Fields {
+		if f.ID == "" {
+			tmpl.Fields[i].ID = strconv.FormatInt(int64(i+1), 10)
+		}
 	}
 
 	// Copy metadata
@@ -1050,22 +1063,23 @@ func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (*
 		meta.Ref = tmpl.Ref
 	}
 
-	return tmpl, nil
+	return tmpl, nil, nil
 }
 
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
+func (ctx *Context) IssueTemplatesFromDefaultBranch() ([]api.IssueTemplate, map[string][]string) {
 	var issueTemplates []api.IssueTemplate
+	validationErrs := make(map[string][]string)
 
 	if ctx.Repo.Repository.IsEmpty {
-		return issueTemplates
+		return issueTemplates, nil
 	}
 
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			return issueTemplates
+			return issueTemplates, nil
 		}
 	}
 
@@ -1076,7 +1090,7 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 		}
 		entries, err := tree.ListEntries()
 		if err != nil {
-			return issueTemplates
+			return issueTemplates, nil
 		}
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".md") {
@@ -1111,6 +1125,8 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 				it.FileName = entry.Name()
 				if it.Valid() {
 					issueTemplates = append(issueTemplates, it)
+				} else {
+					fmt.Printf("%#v\n", it)
 				}
 			} else if strings.HasSuffix(entry.Name(), ".yaml") || strings.HasSuffix(entry.Name(), ".yml") {
 				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
@@ -1137,9 +1153,14 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 
 				var it api.IssueTemplate
 				it.FileName = path.Base(entry.Name())
-				_, err = ExtractTemplateFromYaml(templateContent, &it)
+
+				var tmplValidationErrs []string
+				_, tmplValidationErrs, err = ExtractTemplateFromYaml(templateContent, &it)
 				if err != nil {
 					log.Debug("ExtractTemplateFromYaml: %v", err)
+					if tmplValidationErrs != nil {
+						validationErrs[path.Base(entry.Name())] = tmplValidationErrs
+					}
 					continue
 				}
 				if it.Valid() {
@@ -1148,8 +1169,8 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 			}
 		}
 		if len(issueTemplates) > 0 {
-			return issueTemplates
+			return issueTemplates, validationErrs
 		}
 	}
-	return issueTemplates
+	return issueTemplates, validationErrs
 }
