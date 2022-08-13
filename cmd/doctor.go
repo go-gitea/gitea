@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/doctor"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
@@ -127,11 +126,6 @@ func runRecreateTable(ctx *cli.Context) error {
 func runDoctor(ctx *cli.Context) error {
 	stdCtx, cancel := installSignals()
 	defer cancel()
-
-	// some doctor sub-commands need to use git command
-	if err := git.InitFull(stdCtx); err != nil {
-		return err
-	}
 
 	// Silence the default loggers
 	log.DelNamedLogger("console")
