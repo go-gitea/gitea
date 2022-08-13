@@ -20,7 +20,7 @@ import (
 )
 
 // ambiguous.json provides a one to one mapping of ambiguous characters to other characters
-// See https://github.com/hediet/vscode-unicode-data
+// See https://github.com/hediet/vscode-unicode-data/blob/main/out/ambiguous.json
 
 type AmbiguousTable struct {
 	Confusable []rune
@@ -130,6 +130,8 @@ var generatorTemplate = template.Must(template.New("ambiguousTemplate").Parse(`/
 package charset
 
 import "unicode"
+
+// This file is generated from https://github.com/hediet/vscode-unicode-data/blob/main/out/ambiguous.json
 
 // AmbiguousTable matches a confusable rune with its partner for the Locale
 type AmbiguousTable struct {

@@ -7,6 +7,8 @@ package charset
 
 import "unicode"
 
+// This file is generated from https://github.com/hediet/vscode-unicode-data/blob/main/out/ambiguous.json
+
 // AmbiguousTable matches a confusable rune with its partner for the Locale
 type AmbiguousTable struct {
 	Confusable []rune
