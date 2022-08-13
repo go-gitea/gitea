@@ -809,7 +809,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 	if formTemplateBody != nil {
 		ctx.Data[issueFormTemplateKey] = formTemplateBody
 	}
-	if validationErrs != nil && len(validationErrs) > 0 {
+	if len(validationErrs) > 0 {
 		ctx.Data[issueFormErrorsKey] = validationErrs
 	}
 
@@ -905,7 +905,7 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["PageIsIssueList"] = true
 
 	issueTemplates, validationErrs := ctx.IssueTemplatesFromDefaultBranch()
-	if validationErrs != nil && len(validationErrs) > 0 {
+	if len(validationErrs) > 0 {
 		ctx.Data[issueFormErrorsKey] = validationErrs
 	}
 	ctx.Data["IssueTemplates"] = issueTemplates
