@@ -41,7 +41,7 @@
 		<h4 class="ui top attached header">
 			{{.locale.Tr "settings.manage_emails"}}
 		</h4>
-		<div class="ui attached segment">
+		<div class="ui attached segment unicode-escaped">
 			<div class="ui email list">
 				{{if $.EnableNotifyMail}}
 				<div class="item">
@@ -106,7 +106,7 @@
 							</div>
 						{{end}}
 						<div class="content">
-							<strong>{{.Email}}</strong>
+							<strong>{{escapeAmbiguous $.locale .Email}}</strong>
 							{{if .IsPrimary}}
 								<div class="ui primary label">{{$.locale.Tr "settings.primary"}}</div>
 							{{end}}

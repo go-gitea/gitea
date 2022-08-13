@@ -339,7 +339,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 		if err != nil {
 			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.name, ctx.Repo.Repository, err)
 			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlHTMLReader(rd, buf, ctx.Locale)
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
@@ -347,7 +347,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	} else {
 		ctx.Data["IsRenderedHTML"] = true
 		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, &charset.BreakWriter{Writer: buf}, ctx.Locale, charset.RuneNBSP)
+		ctx.Data["EscapeStatus"], err = charset.EscapeControlHTMLReader(rd, &charset.BreakWriter{Writer: buf}, ctx.Locale, charset.RuneNBSP)
 		if err != nil {
 			log.Error("Read failed: %v", err)
 		}
@@ -517,7 +517,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlHTMLReader(rd, buf, ctx.Locale)
 
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
@@ -644,7 +644,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	go func() {
 		sb := &strings.Builder{}
 		// We allow NBSP here this is rendered
-		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		escaped, _ = charset.EscapeControlHTMLReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
 		output = sb.String()
 		close(done)
 	}()

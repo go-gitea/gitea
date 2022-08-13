@@ -24,9 +24,9 @@
 					<label for="full_name">{{.locale.Tr "settings.full_name"}}</label>
 					<input id="full_name" name="full_name" value="{{.SignedUser.FullName}}">
 				</div>
-				<div class="field {{if .Err_Email}}error{{end}}">
+				<div class="field {{if .Err_Email}}error{{end}} unicode-escaped">
 					<label for="email">{{.locale.Tr "email"}}</label>
-					<p>{{.SignedUser.Email}}</p>
+					<p>{{escapeAmbiguous .locale .SignedUser.Email}}</p>
 				</div>
 				<div class="inline field">
 					<div class="ui checkbox" id="keep-email-private">

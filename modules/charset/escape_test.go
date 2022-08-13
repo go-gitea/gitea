@@ -173,7 +173,7 @@ func TestEscapeControlReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			input := strings.NewReader(tt.text)
 			output := &strings.Builder{}
-			status, err := EscapeControlReader(input, output, translation.NewLocale("en_US"))
+			status, err := EscapeControlHTMLReader(input, output, translation.NewLocale("en_US"))
 			result := output.String()
 			if err != nil {
 				t.Errorf("EscapeControlReader(): err = %v", err)

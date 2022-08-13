@@ -3,7 +3,7 @@
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="ui five wide column">
-				<div class="ui card">
+				<div class="ui card unicode-escaped">
 					<div id="profile-avatar" class="content df"/>
 					{{if eq .SignedUserName .Owner.Name}}
 						<a class="image tooltip" href="{{AppSubUrl}}/user/settings" data-content="{{.locale.Tr "user.change_avatar"}}" data-position="bottom center">
@@ -16,7 +16,7 @@
 					{{end}}
 					</div>
 					<div class="content word-break profile-avatar-name">
-						{{if .Owner.FullName}}<span class="header text center">{{.Owner.FullName}}</span>{{end}}
+						{{if .Owner.FullName}}<span class="header text center">{{escapeAmbiguous .locale .Owner.FullName}}</span>{{end}}
 						<span class="username text center">{{.Owner.Name}}</span>
 						<a href="{{.Owner.HomeLink}}.rss"><i class="ui grey icon tooltip ml-3" data-content="{{.locale.Tr "rss_feed"}}" data-position="bottom center">{{svg "octicon-rss" 18}}</i></a>
 						<div class="mt-3">
@@ -26,23 +26,23 @@
 					<div class="extra content word-break">
 						<ul>
 							{{if .Owner.Location}}
-								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
+								<li>{{svg "octicon-location"}} {{escapeAmbiguous .locale .Owner.Location}}</li>
 							{{end}}
 							{{if .ShowUserEmail }}
 								<li>
 									{{svg "octicon-mail"}}
-									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
+									{{escapeAmbiguousLink .locale .Owner.Email (printf "mailto:%s" .Owner.Email) "rel" "nofollow"}}
 								</li>
 							{{end}}
 							{{if .Owner.Website}}
 								<li>
 									{{svg "octicon-link"}}
-									<a target="_blank" rel="noopener noreferrer me" href="{{.Owner.Website}}">{{.Owner.Website}}</a>
+									{{escapeAmbiguousLink .locale .Owner.Website .Owner.Website "target" "_blank" "rel" "noopener noreferrer me"}}
 								</li>
 							{{end}}
 							{{if $.RenderedDescription}}
 								<li>
-									<div class="render-content markup">{{$.RenderedDescription|Str2html}}</div>
+									<div class="render-content markup">{{escapeAmbiguousHTML .locale $.RenderedDescription}}</div>
 								</li>
 							{{end}}
 							{{range .OpenIDs}}

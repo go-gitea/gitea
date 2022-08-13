@@ -39,7 +39,7 @@
 			</button>
 		</form>
 	</div>
-	<div class="ui key list mt-0">
+	<div class="ui key list mt-0 unicode-escaped">
 		<div class="item">
 			{{.locale.Tr "settings.gpg_desc"}}
 		</div>
@@ -61,7 +61,7 @@
 						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_verified_long"}}">{{svg "octicon-shield-check"}} <strong>{{$.locale.Tr "settings.gpg_key_verified"}}</strong></span>
 					{{end}}
 					{{if gt (len .Emails) 0}}
-						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
+						<span class="tooltip" data-content="{{$.locale.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.locale.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{escapeAmbiguous $.locale .Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="print meta">
 						<b>{{$.locale.Tr "settings.key_id"}}:</b> {{.KeyID}}

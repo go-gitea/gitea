@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content repository diff">
+<div class="page-content repository diff unicode-escaped">
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsSplitStyle}}fluid padded{{end}}">
 		{{$class := ""}}
@@ -19,7 +19,7 @@
 		{{end}}
 		<div class="ui top attached header clearing segment pr commit-header {{$class}}">
 			<div class="df mb-4 fw">
-				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
+				<h3 class="mb-0 f1"><span class="commit-summary" title="{{.Commit.Summary}}">{{RenderCommitMessage $.Context $.locale .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</span>{{template "repo/commit_statuses" dict "Status" .CommitStatus "Statuses" .CommitStatuses  "root" $}}</h3>
 				{{if not $.PageIsWiki}}
 					<div class="ui">
 						<a class="ui primary tiny button" href="{{.SourcePath}}">
@@ -134,13 +134,13 @@
 				{{end}}
 			</div>
 			{{if IsMultilineCommitMessage .Commit.Message}}
-				<pre class="commit-body mt-0">{{RenderCommitBody $.Context .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body mt-0">{{RenderCommitBody $.Context $.locale .Commit.Message $.RepoLink $.Repository.ComposeMetas}}</pre>
 			{{end}}
 			{{if .BranchName}}
-				<span class="text grey mr-3">{{svg "octicon-git-branch" 16 "mr-2"}}{{.BranchName}}</span>
+				<span class="text grey mr-3">{{svg "octicon-git-branch" 16 "mr-2"}}{{escapeAmbiguous $.locale .BranchName}}</span>
 			{{end}}
 			{{if .TagName}}
-				<span class="text grey mr-3">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</span>
+				<span class="text grey mr-3">{{svg "octicon-tag" 16 "mr-2"}}{{escapeAmbiguous $.locale .TagName}}</span>
 			{{end}}
 		</div>
 		<div class="ui attached segment df ac sb py-2 commit-header-row fw {{$class}}">
@@ -148,23 +148,23 @@
 					{{if .Author}}
 						{{avatar .Author 28 "mr-3"}}
 						{{if .Author.FullName}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Author.FullName}}</strong></a>
+							{{escapeAmbiguousLink $.locale .Author.FullName .Author.HomeLink "class" "strong"}}
 						{{else}}
-							<a href="{{.Author.HomeLink}}"><strong>{{.Commit.Author.Name}}</strong></a>
+							{{escapeAmbiguousLink $.locale .Author.FullName .Commit.Author.Name "class" "strong"}}
 						{{end}}
 					{{else}}
 						{{avatarByEmail .Commit.Author.Email .Commit.Author.Email 28 "mr-3"}}
-						<strong>{{.Commit.Author.Name}}</strong>
+						<strong>{{escapeAmbiguous $.locale .Commit.Author.Name}}</strong>
 					{{end}}
 					<span class="text grey ml-3" id="authored-time">{{TimeSince .Commit.Author.When $.locale}}</span>
 					{{if or (ne .Commit.Committer.Name .Commit.Author.Name) (ne .Commit.Committer.Email .Commit.Author.Email)}}
 						<span class="text grey mx-3">{{.locale.Tr "repo.diff.committed_by"}}</span>
 						{{if ne .Verification.CommittingUser.ID 0}}
 							{{avatar .Verification.CommittingUser 28 "mx-3"}}
-							<a href="{{.Verification.CommittingUser.HomeLink}}"><strong>{{.Commit.Committer.Name}}</strong></a>
+							{{escapeAmbiguousLink $.locale .Verification.CommittingUser.HomeLink .Commit.Committer.Name "class" "strong"}}
 						{{else}}
 							{{avatarByEmail .Commit.Committer.Email .Commit.Committer.Name 28 "mr-3"}}
-							<strong>{{.Commit.Committer.Name}}</strong>
+							<strong>{{escapeAmbiguous $.locale .Commit.Committer.Name}}</strong>
 						{{end}}
 					{{end}}
 				</div>
@@ -206,7 +206,7 @@
 							<span title="{{.locale.Tr "gpg.default_key"}}">{{svg "gitea-lock-cog" 16 "mr-3"}}</span>
 							<span class="ui text mr-3">{{.locale.Tr "repo.commits.signed_by"}}:</span>
 							{{avatarByEmail .Verification.SigningEmail "" 28}}
-							<strong>{{.Verification.SigningUser.GetDisplayName}}</strong>
+							<strong>{{escapeAmbiguous $.locale .Verification.SigningUser.GetDisplayName}}</strong>
 						{{end}}
 					{{else}}
 						{{svg "gitea-unlock" 16 "mr-3"}}
@@ -269,18 +269,18 @@
 				{{if .NoteAuthor}}
 					<a href="{{.NoteAuthor.HomeLink}}">
 						{{if .NoteAuthor.FullName}}
-							<strong>{{.NoteAuthor.FullName}}</strong>
+							<strong>{{escapeAmbiguous $.locale .NoteAuthor.FullName}}</strong>
 						{{else}}
-							<strong>{{.NoteCommit.Author.Name}}</strong>
+							<strong>{{escapeAmbiguous $.locale .NoteCommit.Author.Name}}</strong>
 						{{end}}
 					</a>
 				{{else}}
-					<strong>{{.NoteCommit.Author.Name}}</strong>
+					<strong>{{escapeAmbiguous $.locale .NoteCommit.Author.Name}}</strong>
 				{{end}}
 				<span class="text grey" id="note-authored-time">{{TimeSince .NoteCommit.Author.When $.locale}}</span>
 			</div>
 			<div class="ui bottom attached info segment git-notes">
-				<pre class="commit-body">{{RenderNote $.Context .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
+				<pre class="commit-body">{{RenderNote $.Context $.locale .Note $.RepoLink $.Repository.ComposeMetas}}</pre>
 			</div>
 		{{end}}
 		{{template "repo/diff/box" .}}

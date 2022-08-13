@@ -4,19 +4,19 @@
 	<div class="ui container">
 		{{template "explore/search" .}}
 
-		<div class="ui user list">
+		<div class="ui user list unicode-escaped">
 			{{range .Users}}
 				<div class="item">
 					{{avatar .}}
 					<div class="content">
-						<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}</span>
+						<span class="header"><a href="{{.HomeLink}}">{{.Name}}</a> {{escapeAmbiguous $.locale .FullName}}</span>
 						<div class="description">
 							{{if .Location}}
-								{{svg "octicon-location"}} {{.Location}}
+								{{svg "octicon-location"}} {{escapeAmbiguous $.locale .Location}}
 							{{end}}
 							{{if and $.ShowUserEmail .Email $.IsSigned (not .KeepEmailPrivate)}}
 								{{svg "octicon-mail"}}
-								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
+								{{escapeAmbiguousLink $.locale .Email (printf "mailto:%s" .Email)}}
 							{{end}}
 							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 						</div>

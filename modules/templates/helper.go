@@ -31,6 +31,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/charset"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
 	giturl "code.gitea.io/gitea/modules/git/url"
@@ -42,6 +43,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
 
@@ -343,12 +345,15 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return false
 		},
-		"svg":            SVG,
-		"avatar":         Avatar,
-		"avatarHTML":     AvatarHTML,
-		"avatarByAction": AvatarByAction,
-		"avatarByEmail":  AvatarByEmail,
-		"repoAvatar":     RepoAvatar,
+		"svg":                 SVG,
+		"avatar":              Avatar,
+		"avatarHTML":          AvatarHTML,
+		"avatarByAction":      AvatarByAction,
+		"avatarByEmail":       AvatarByEmail,
+		"escapeAmbiguous":     EscapeAmbiguous,
+		"escapeAmbiguousHTML": EscapeAmbiguousHTML,
+		"escapeAmbiguousLink": EscapeAmbiguousLink,
+		"repoAvatar":          RepoAvatar,
 		"SortArrow": func(normSort, revSort, urlSort string, isDefault bool) template.HTML {
 			// if needed
 			if len(normSort) == 0 || len(urlSort) == 0 {
@@ -680,6 +685,67 @@ func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
 	return template.HTML("")
 }
 
+// EscapeAmbiguous
+func EscapeAmbiguous(locale translation.Locale, text string) template.HTML {
+	sb := &strings.Builder{}
+	status, _ := charset.EscapeControlStringWriter(text, sb, locale)
+	escapeStatusSwitch(locale, sb, status)
+
+	return template.HTML(sb.String())
+}
+
+// EscapeAmbiguousHTML
+func EscapeAmbiguousHTML(locale translation.Locale, html string) template.HTML {
+	sb := &strings.Builder{}
+	status, _ := charset.EscapeControlHTMLReader(strings.NewReader(html), sb, locale)
+	escapeStatusSwitch(locale, sb, status)
+	return template.HTML(sb.String())
+}
+
+// EscapeAmbiguousLink takes a locale, text body - which is assumed to be a string not html, href and other attributes
+func EscapeAmbiguousLink(locale translation.Locale, text, href string, attrs ...string) template.HTML {
+	sb := &strings.Builder{}
+	_, _ = sb.WriteString(`<a href="`)
+	template.HTMLEscape(sb, []byte(href))
+	_, _ = sb.WriteString(`"`)
+	attrValue := false
+	for _, attr := range attrs {
+		if attrValue {
+			_, _ = sb.WriteString(`="`)
+		} else {
+			_, _ = sb.WriteString(` `)
+		}
+		template.HTMLEscape(sb, []byte(attr))
+		if attrValue {
+			_, _ = sb.WriteString(`"`)
+		}
+		attrValue = !attrValue
+	}
+	_, _ = sb.WriteString(`>`)
+	status, _ := charset.EscapeControlStringWriter(text, sb, locale)
+	_, _ = sb.WriteString(`</a>`)
+
+	escapeStatusSwitch(locale, sb, status)
+	return template.HTML(sb.String())
+}
+
+func escapeStatusSwitch(locale translation.Locale, sb *strings.Builder, status *charset.EscapeStatus) {
+	if status.Escaped {
+		_, _ = sb.WriteString(`<a href="" class="toggle-escape-button" title="`)
+		if status.HasInvisible {
+			_, _ = sb.WriteString(locale.Tr("invisible_runes"))
+		}
+		if status.HasInvisible && status.HasAmbiguous {
+			_, _ = sb.WriteString(` `)
+		}
+		if status.HasAmbiguous {
+			_, _ = sb.WriteString(locale.Tr("ambiguous_runes"))
+		}
+
+		_, _ = sb.WriteString(`"></a>`)
+	}
+}
+
 // Safe render raw as HTML
 func Safe(raw string) template.HTML {
 	return template.HTML(raw)
@@ -711,13 +777,13 @@ func DotEscape(raw string) string {
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
-func RenderCommitMessage(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
-	return RenderCommitMessageLink(ctx, msg, urlPrefix, "", metas)
+func RenderCommitMessage(ctx context.Context, locale translation.Locale, msg, urlPrefix string, metas map[string]string) template.HTML {
+	return RenderCommitMessageLink(ctx, locale, msg, urlPrefix, "", metas)
 }
 
 // RenderCommitMessageLink renders commit message as a XXS-safe link to the provided
 // default url, handling for special links.
-func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLink(ctx context.Context, locale translation.Locale, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	// we can safely assume that it will not return any error, since there
 	// shouldn't be any special HTML.
@@ -731,16 +797,17 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
+	msgLines := strings.SplitN(strings.TrimSpace(fullMessage), "\n", 2)
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
-	return template.HTML(msgLines[0])
+	_, renderedMessage := charset.EscapeControlHTML(msgLines[0], locale)
+	return template.HTML(renderedMessage)
 }
 
 // RenderCommitMessageLinkSubject renders commit message as a XXS-safe link to
 // the provided default url, handling for special links without email to links.
-func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
+func RenderCommitMessageLinkSubject(ctx context.Context, locale translation.Locale, msg, urlPrefix, urlDefault string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimLeftFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -763,11 +830,12 @@ func RenderCommitMessageLinkSubject(ctx context.Context, msg, urlPrefix, urlDefa
 		log.Error("RenderCommitMessageSubject: %v", err)
 		return template.HTML("")
 	}
+	_, renderedMessage = charset.EscapeControlHTML(renderedMessage, locale)
 	return template.HTML(renderedMessage)
 }
 
 // RenderCommitBody extracts the body of a commit message without its title.
-func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderCommitBody(ctx context.Context, locale translation.Locale, msg, urlPrefix string, metas map[string]string) template.HTML {
 	msgLine := strings.TrimRightFunc(msg, unicode.IsSpace)
 	lineEnd := strings.IndexByte(msgLine, '\n')
 	if lineEnd > 0 {
@@ -789,11 +857,12 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
+	_, renderedMessage = charset.EscapeControlHTML(renderedMessage, locale)
 	return template.HTML(renderedMessage)
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
-func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[string]string) template.HTML {
+func RenderIssueTitle(ctx context.Context, locale translation.Locale, text, urlPrefix string, metas map[string]string) template.HTML {
 	renderedText, err := markup.RenderIssueTitle(&markup.RenderContext{
 		Ctx:       ctx,
 		URLPrefix: urlPrefix,
@@ -803,6 +872,7 @@ func RenderIssueTitle(ctx context.Context, text, urlPrefix string, metas map[str
 		log.Error("RenderIssueTitle: %v", err)
 		return template.HTML("")
 	}
+	_, renderedText = charset.EscapeControlHTML(renderedText, locale)
 	return template.HTML(renderedText)
 }
 
@@ -830,7 +900,7 @@ func ReactionToEmoji(reaction string) template.HTML {
 }
 
 // RenderNote renders the contents of a git-notes file as a commit message.
-func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]string) template.HTML {
+func RenderNote(ctx context.Context, locale translation.Locale, msg, urlPrefix string, metas map[string]string) template.HTML {
 	cleanMsg := template.HTMLEscapeString(msg)
 	fullMessage, err := markup.RenderCommitMessage(&markup.RenderContext{
 		Ctx:       ctx,
@@ -841,6 +911,8 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		log.Error("RenderNote: %v", err)
 		return ""
 	}
+	_, fullMessage = charset.EscapeControlHTML(fullMessage, locale)
+
 	return template.HTML(fullMessage)
 }
 

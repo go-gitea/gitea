@@ -1,4 +1,4 @@
-<div class="ui attached table segment commit-table">
+<div class="ui attached table segment commit-table unicode-escaped">
 		<table class="ui very basic striped table unstackable fixed" id="commits-table">
 			<thead>
 				<tr>
@@ -18,10 +18,10 @@
 								{{if .User.FullName}}
 									{{$userName = .User.FullName}}
 								{{end}}
-								{{avatar .User 28 "mr-2"}}<a href="{{.User.HomeLink}}">{{$userName}}</a>
+								{{avatar .User 28 "mr-2"}}{{escapeAmbiguousLink $.locale $userName .User.HomeLink}}
 							{{else}}
 								{{avatarByEmail .Author.Email .Author.Name 28 "mr-2"}}
-								{{$userName}}
+								{{escapeAmbiguous $.locale $userName}}
 							{{end}}
 						</td>
 						<td class="sha df">
@@ -64,7 +64,7 @@
 								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{.Summary | RenderEmoji}}</span>
 							{{else }}
 								{{ $commitLink:= printf "%s/commit/%s" $commitRepoLink (PathEscape .ID.String) }}
-								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
+								<span class="commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.Context $.locale .Message $commitRepoLink $commitLink $.Repository.ComposeMetas}}</span>
 							{{end}}
 							</span>
 							{{if IsMultilineCommitMessage .Message}}
@@ -72,7 +72,7 @@
 							{{end}}
 							{{template "repo/commit_statuses" dict "Status" .Status "Statuses" .Statuses "root" $}}
 							{{if IsMultilineCommitMessage .Message}}
-							<pre class="commit-body" style="display: none;">{{RenderCommitBody $.Context .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
+							<pre class="commit-body" style="display: none;">{{RenderCommitBody $.Context $.locale .Message $commitRepoLink $.Repository.ComposeMetas}}</pre>
 							{{end}}
 						</td>
 						{{if .Committer}}

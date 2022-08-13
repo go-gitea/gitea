@@ -10,7 +10,7 @@
 					{{avatar .}}
 					<div class="content">
 						<span class="header">
-							<a href="{{.HomeLink}}">{{.Name}}</a> {{.FullName}}
+							<a href="{{.HomeLink}}">{{.Name}}</a> {{escapeAmbiguous $.locale .FullName}}
 							{{if .Visibility.IsPrivate}}
 								<span class="ui basic label">{{$.locale.Tr "repo.desc.private"}}</span>
 							{{end}}

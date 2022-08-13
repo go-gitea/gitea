@@ -19,14 +19,15 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		notificationSettings: {{NotificationSettings}}, {{/*a map provided by NewFuncMap in helper.go*/}}
 		enableTimeTracking: {{EnableTimetracking}},
 		{{if .RequireTribute}}
+		{{- /* WARNING: fullname below is assumed to be safe for HTML in tribute.js do not add unescaped content as fullname */}}
 		tributeValues: Array.from(new Map([
 			{{ range .Participants }}
 			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
+			name: '{{.Name}}', fullname: '{{escapeAmbiguous $.locale .FullName}}', avatar: '{{.AvatarLink}}'}],
 			{{ end }}
 			{{ range .Assignees }}
 			['{{.Name}}', {key: '{{.Name}} {{.FullName}}', value: '{{.Name}}',
-			name: '{{.Name}}', fullname: '{{.FullName}}', avatar: '{{.AvatarLink}}'}],
+			name: '{{.Name}}', fullname: '{{escapeAmbiguous $.locale .FullName}}', avatar: '{{.AvatarLink}}'}],
 			{{ end }}
 			{{ range .MentionableTeams }}
 				['{{$.MentionableTeamsOrg}}/{{.Name}}', {key: '{{$.MentionableTeamsOrg}}/{{.Name}}', value: '{{$.MentionableTeamsOrg}}/{{.Name}}',

@@ -35,11 +35,13 @@ function makeCollections({mentions, emoji}) {
       values: window.config.tributeValues,
       requireLeadingSpace: true,
       menuItemTemplate: (item) => {
+        // WARNING: item.original.fullname is assumed to be safe for HTML
+        // This is the case head_script.tmpl because we use escapeAmbiguous
         return `
           <div class="tribute-item">
             <img src="${htmlEscape(item.original.avatar)}"/>
             <span class="name">${htmlEscape(item.original.name)}</span>
-            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${htmlEscape(item.original.fullname)}</span>` : ''}
+            ${item.original.fullname && item.original.fullname !== '' ? `<span class="fullname">${item.original.fullname}</span>` : ''}
           </div>
         `;
       }

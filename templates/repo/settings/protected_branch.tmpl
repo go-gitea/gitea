@@ -49,7 +49,7 @@
 									{{range .Users}}
 										<div class="item" data-value="{{.ID}}">
 											{{avatar . 28 "mini"}}
-											{{.GetDisplayName}}
+											{{escapeAmbiguous $.locale .GetDisplayName}}
 										</div>
 									{{end}}
 								</div>
