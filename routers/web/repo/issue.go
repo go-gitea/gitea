@@ -64,6 +64,7 @@ const (
 	tplReactions base.TplName = "repo/issue/view_content/reactions"
 
 	issueTemplateKey      = "IssueTemplate"
+	issueFormTemplateKey  = "IssueFormTemplate"
 	issueTemplateTitleKey = "IssueTemplateTitle"
 )
 
@@ -722,16 +723,16 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	if ctx.Repo.Commit == nil {
+func getFileContentFromDefaultBranch(repo *context.Repository, filename string) (string, bool) {
+	if repo.Commit == nil {
 		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+		repo.Commit, err = repo.GitRepo.GetBranchCommit(repo.Repository.DefaultBranch)
 		if err != nil {
 			return "", false
 		}
 	}
 
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
+	entry, err := repo.Commit.GetTreeEntryByPath(filename)
 	if err != nil {
 		return "", false
 	}
@@ -750,53 +751,89 @@ func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (str
 	return string(bytes), true
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
+func getTemplate(repo *context.Repository, template string, possibleDirs, possibleFiles []string) (
+	outMeta *api.IssueTemplate,
+	outTemplateBody string,
+	outFormTemplateBody *api.IssueFormTemplate,
+	err error,
+) {
+	// Add `possibleFiles` and each `{possibleDirs}/{template}` to `templateCandidates`
 	templateCandidates := make([]string, 0, len(possibleFiles))
-	if ctx.FormString("template") != "" {
+	if template != "" {
 		for _, dirName := range possibleDirs {
-			templateCandidates = append(templateCandidates, path.Join(dirName, ctx.FormString("template")))
+			templateCandidates = append(templateCandidates, path.Join(dirName, template))
 		}
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
-	for _, filename := range templateCandidates {
-		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
-		if found {
-			var meta api.IssueTemplate
-			templateBody, err := markdown.ExtractMetadata(templateContent, &meta)
-			if err != nil {
-				log.Debug("could not extract metadata from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
-				ctx.Data[ctxDataKey] = templateContent
-				return
-			}
-			ctx.Data[issueTemplateTitleKey] = meta.Title
-			ctx.Data[ctxDataKey] = templateBody
-			labelIDs := make([]string, 0, len(meta.Labels))
-			if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
-				ctx.Data["Labels"] = repoLabels
-				if ctx.Repo.Owner.IsOrganization() {
-					if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
-						ctx.Data["OrgLabels"] = orgLabels
-						repoLabels = append(repoLabels, orgLabels...)
-					}
-				}
 
-				for _, metaLabel := range meta.Labels {
-					for _, repoLabel := range repoLabels {
-						if strings.EqualFold(repoLabel.Name, metaLabel) {
-							repoLabel.IsChecked = true
-							labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
-							break
-						}
-					}
-				}
+	for _, filename := range templateCandidates {
+		// Read each template
+		templateContent, found := getFileContentFromDefaultBranch(repo, filename)
+		if found {
+			meta := api.IssueTemplate{FileName: filename}
+
+			if strings.HasSuffix(filename, ".md") {
+				// Parse markdown template
+				outTemplateBody, err = markdown.ExtractMetadata(templateContent, meta)
+			} else if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
+				// Parse yaml (form) template
+				outFormTemplateBody, err = context.ExtractTemplateFromYaml([]byte(templateContent), &meta)
+				outFormTemplateBody.FileName = path.Base(filename)
+			} else {
+				err = errors.New("invalid template type")
 			}
-			ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
-			ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
-			ctx.Data["Reference"] = meta.Ref
-			ctx.Data["RefEndName"] = git.RefEndName(meta.Ref)
+			if err != nil {
+				log.Debug("could not extract metadata from %s [%s]: %v", filename, repo.Repository.FullName(), err)
+				outTemplateBody = templateContent
+				err = nil
+			}
+
+			outMeta = &meta
 			return
 		}
 	}
+	err = errors.New("no template found")
+	return
+}
+
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
+	templateMeta, templateBody, formTemplateBody, err := getTemplate(ctx.Repo, ctx.FormString("template"), possibleDirs, possibleFiles)
+	if err != nil {
+		return
+	}
+
+	if formTemplateBody != nil {
+		ctx.Data[issueFormTemplateKey] = formTemplateBody
+	}
+
+	ctx.Data[issueTemplateTitleKey] = templateMeta.Title
+	ctx.Data[ctxDataKey] = templateBody
+
+	labelIDs := make([]string, 0, len(templateMeta.Labels))
+	if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
+		ctx.Data["Labels"] = repoLabels
+		if ctx.Repo.Owner.IsOrganization() {
+			if orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{}); err == nil {
+				ctx.Data["OrgLabels"] = orgLabels
+				repoLabels = append(repoLabels, orgLabels...)
+			}
+		}
+
+		for _, metaLabel := range templateMeta.Labels {
+			for _, repoLabel := range repoLabels {
+				if strings.EqualFold(repoLabel.Name, metaLabel) {
+					repoLabel.IsChecked = true
+					labelIDs = append(labelIDs, strconv.FormatInt(repoLabel.ID, 10))
+					break
+				}
+			}
+		}
+	}
+	ctx.Data["HasSelectedLabel"] = len(labelIDs) > 0
+	ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
+	ctx.Data["Reference"] = templateMeta.Ref
+	ctx.Data["RefEndName"] = git.RefEndName(templateMeta.Ref)
+	return
 }
 
 // NewIssue render creating issue page
@@ -997,6 +1034,65 @@ func ValidateRepoMetas(ctx *context.Context, form forms.CreateIssueForm, isPull 
 	return labelIDs, assigneeIDs, milestoneID, form.ProjectID
 }
 
+// Renders the given form values to Markdown
+// Returns an empty string if user submitted a non-form issue
+func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, error) {
+	// Skip if submitted without a form
+	if form.Has("content") || !form.Has("form-type") {
+		return "", nil
+	}
+
+	// Fetch template
+	_, _, formTemplateBody, err := getTemplate(
+		ctx.Repo,
+		form.Get("form-type"),
+		context.IssueTemplateDirCandidates,
+		IssueTemplateCandidates,
+	)
+	if err != nil {
+		return "", err
+	}
+	if formTemplateBody == nil {
+		return "", errors.New("no form template found")
+	}
+
+	// Render values
+	result := ""
+	for _, field := range formTemplateBody.Fields {
+		if field.Id != "" {
+			// Get field label
+			label := field.Attributes["label"]
+			if label == "" {
+				label = field.Id
+			}
+
+			// Format the value into Markdown
+			switch field.Type {
+			case "markdown":
+				// Markdown blocks do not appear in output
+			case "input", "textarea", "dropdown":
+				if renderType, ok := field.Attributes["render"]; ok {
+					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.Id))
+				} else {
+					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.Id))
+				}
+			case "checkboxes":
+				result += fmt.Sprintf("### %s\n", label)
+				for i, option := range field.Attributes["options"].([]interface{}) {
+					checked := " "
+					if form.Get(fmt.Sprintf("form-field-%s-%d", field.Id, i)) == "on" {
+						checked = "x"
+					}
+					result += fmt.Sprintf("- [%s] %s\n", checked, option.(map[interface{}]interface{})["label"])
+				}
+				result += "\n"
+			}
+		}
+	}
+
+	return result, nil
+}
+
 // NewIssuePost response for creating new issue
 func NewIssuePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateIssueForm)
@@ -1031,6 +1127,16 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
+	// If the issue submitted is a form, render it to Markdown
+	issueContents, err := renderIssueFormValues(ctx, &ctx.Req.Form)
+	if err != nil {
+		return
+	}
+	if issueContents == "" {
+		// Not a form
+		issueContents = form.Content
+	}
+
 	issue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1038,7 +1144,7 @@ func NewIssuePost(ctx *context.Context) {
 		PosterID:    ctx.Doer.ID,
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
-		Content:     form.Content,
+		Content:     issueContents,
 		Ref:         form.Ref,
 	}
 

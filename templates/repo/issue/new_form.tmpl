@@ -1,3 +1,9 @@
+{{- if .IssueFormTemplate}}
+	<h1>{{.locale.Tr "issue"}}: {{.IssueFormTemplate.Name}}</h1>
+	<span>{{.IssueFormTemplate.About}}</span>
+	<br>
+	<br>
+{{end}}
 <form class="ui comment form stackable grid" id="new-issue" action="{{.Link}}" method="post">
 	{{.CsrfTokenHtml}}
 	{{if .Flash}}

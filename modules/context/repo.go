@@ -8,6 +8,7 @@ package context
 import (
 	"context"
 	"fmt"
+	"gopkg.in/yaml.v2"
 	"html"
 	"io"
 	"net/http"
@@ -1032,6 +1033,25 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
+func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (tmpl *api.IssueFormTemplate, err error) {
+	err = yaml.Unmarshal(templateContent, &tmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	// Copy metadata
+	if meta != nil {
+		meta.Name = tmpl.Name
+		meta.Title = tmpl.Title
+		meta.About = tmpl.About
+		meta.Labels = tmpl.Labels
+		// TODO: meta.Assignees = tmpl.Assignees
+		meta.Ref = tmpl.Ref
+	}
+
+	return
+}
+
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
 func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 	var issueTemplates []api.IssueTemplate
@@ -1088,6 +1108,39 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 				}
 				it.Content = content
 				it.FileName = entry.Name()
+				if it.Valid() {
+					issueTemplates = append(issueTemplates, it)
+				}
+			} else if strings.HasSuffix(entry.Name(), ".yaml") || strings.HasSuffix(entry.Name(), ".yml") {
+				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+					log.Debug("Issue form template is too large: %s", entry.Name())
+					continue
+				}
+				r, err := entry.Blob().DataAsync()
+				if err != nil {
+					log.Debug("DataAsync: %v", err)
+					continue
+				}
+				closed := false
+				defer func() {
+					if !closed {
+						_ = r.Close()
+					}
+				}()
+				templateContent, err := io.ReadAll(r)
+				if err != nil {
+					log.Debug("ReadAll: %v", err)
+					continue
+				}
+				_ = r.Close()
+
+				var it api.IssueTemplate
+				it.FileName = path.Base(entry.Name())
+				_, err = ExtractTemplateFromYaml(templateContent, &it)
+				if err != nil {
+					log.Debug("ExtractTemplateFromYaml: %v", err)
+					continue
+				}
 				if it.Valid() {
 					issueTemplates = append(issueTemplates, it)
 				}
