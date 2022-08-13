@@ -15,8 +15,6 @@ import (
 	"path"
 	"strings"
 
-	"gopkg.in/yaml.v2"
-
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -37,6 +35,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v2"
 )
 
 // IssueTemplateDirCandidates issue templates directory
