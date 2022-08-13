@@ -23,7 +23,9 @@
 						{{end}}
 					</td>{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale}}
 					<td class="lines-escape lines-escape-old">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"></a>{{end}}</td>
-					<td colspan="6" class="lines-code lines-code-old "><code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</span></td>
+					<td colspan="6" class="lines-code lines-code-old ">{{/*
+						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
+					*/}}</td>
 				{{else if and (eq .GetType 3) $hasmatch}}{{/* DEL */}}
 					{{$match := index $section.Lines $line.Match}}
 					{{- $leftDiff := ""}}{{if $line.LeftIdx}}{{$leftDiff = $section.GetComputedInlineDiffFor $line $.root.locale}}{{end}}
@@ -38,7 +40,7 @@
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
 						*/}}{{if $line.LeftIdx}}{{/*
-							*/}}<code {{if $leftDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $leftDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $leftDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$leftDiff.Content}}</code>{{/*
+							*/}}{{template "repo/diff/section_code" dict "diff" $leftDiff "locale" $.root.locale}}{{/*
 						*/}}{{else}}{{/*
 						*/}}<code class="code-inner"></code>{{/*
 						*/}}{{end}}{{/*
@@ -53,7 +55,7 @@
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
 						*/}}{{if $match.RightIdx}}{{/*
-							*/}}<code {{if $rightDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $rightDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $rightDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$rightDiff.Content}}</code>{{/*
+							*/}}{{template "repo/diff/section_code" dict "diff" $rightDiff "locale" $.root.locale}}{{/*
 						*/}}{{else}}{{/*
 							*/}}<code class="code-inner"></code>{{/*
 						*/}}{{end}}{{/*
@@ -70,7 +72,7 @@
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
 						*/}}{{if $line.LeftIdx}}{{/*
-							*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+							*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 						*/}}{{else}}{{/*
 						*/}}<code class="code-inner"></code>{{/*
 						*/}}{{end}}{{/*
@@ -85,7 +87,7 @@
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
 						*/}}{{if $line.RightIdx}}{{/*
-							*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+							*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 						*/}}{{else}}{{/*
 						*/}}<code class="code-inner"></code>{{/*
 						*/}}{{end}}{{/*

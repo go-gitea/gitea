@@ -30,7 +30,7 @@
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk">{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 					*/}}</td>
 				{{else}}
 					<td class="chroma lines-code{{if (not $line.RightIdx)}} lines-code-old{{end}}">{{/*
@@ -39,7 +39,7 @@
 								*/}}{{svg "octicon-plus"}}{{/*
 							*/}}</a>{{/*
 						*/}}{{end}}{{/*
-						*/}}<code {{if $inlineDiff.EscapeStatus.Escaped}}class="code-inner has-escaped" title="{{if $inlineDiff.EscapeStatus.HasInvisible}}{{$.root.locale.Tr "repo.invisible_runes_line"}} {{end}}{{if $inlineDiff.EscapeStatus.HasAmbiguous}}{{$.root.locale.Tr "repo.ambiguous_runes_line"}}{{end}}"{{else}}class="code-inner"{{end}}>{{$inlineDiff.Content}}</code>{{/*
+						*/}}{{template "repo/diff/section_code" dict "diff" $inlineDiff "locale" $.root.locale}}{{/*
 					*/}}</td>
 				{{end}}
 			</tr>

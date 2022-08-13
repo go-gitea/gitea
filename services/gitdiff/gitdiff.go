@@ -174,7 +174,7 @@ func getLineContent(content string, locale translation.Locale) DiffInline {
 	if len(content) > 0 {
 		return DiffInlineWithUnicodeEscape(template.HTML(html.EscapeString(content)), locale)
 	}
-	return DiffInline{Content: "<br>"}
+	return DiffInline{EscapeStatus: &charset.EscapeStatus{}, Content: "<br>"}
 }
 
 // DiffSection represents a section of a DiffFile.
