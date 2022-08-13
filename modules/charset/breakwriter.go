@@ -14,7 +14,7 @@ type BreakWriter struct {
 	io.Writer
 }
 
-// Write writes the provided bs transparently replacing '\n' with '<br>'
+// Write writes the provided byte slice transparently replacing '\n' with '<br>'
 func (b *BreakWriter) Write(bs []byte) (n int, err error) {
 	pos := 0
 	for pos < len(bs) {

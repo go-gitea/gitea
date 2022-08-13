@@ -651,7 +651,7 @@ func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input i
 	err = markup.Render(renderCtx, input, markupWr)
 	_ = markupWr.CloseWithError(err)
 	<-done
-	return
+	return escaped, output, err
 }
 
 func safeURL(address string) string {
