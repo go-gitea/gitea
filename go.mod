@@ -5,6 +5,8 @@ go 1.18
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
+	gitea.com/gitea/proto v0.0.0-20220802024851-7ee5947f928a
+	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
 	gitea.com/go-chi/cache v0.2.0
@@ -54,6 +56,7 @@ require (
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
 	github.com/gorilla/sessions v1.2.1
+	github.com/gorilla/websocket v1.4.2
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/huandu/xstrings v1.3.2
@@ -71,6 +74,7 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.20
 	github.com/minio/minio-go/v7 v7.0.39
 	github.com/msteinert/pam v1.1.0
+	github.com/nektos/act v0.2.24
 	github.com/nfnt/resize v0.0.0-20180221191011-83c6a9932646
 	github.com/niklasfasching/go-org v1.6.5
 	github.com/oliamb/cutter v0.2.2
@@ -198,7 +202,6 @@ require (
 	github.com/gorilla/handlers v1.5.1 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
-	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
@@ -233,7 +236,6 @@ require (
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/mrjones/oauth v0.0.0-20190623134757-126b35219450 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
-	github.com/nektos/act v0.2.26 // indirect
 	github.com/nwaples/rardecode v1.1.3 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
