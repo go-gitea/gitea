@@ -5,7 +5,7 @@ go 1.18
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
-	gitea.com/gitea/proto v0.0.0-20220802024851-7ee5947f928a
+	gitea.com/gitea/proto v0.0.0-20220813120843-ce4b5dd68c1f
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
