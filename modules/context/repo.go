@@ -8,13 +8,14 @@ package context
 import (
 	"context"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"html"
 	"io"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
+
+	"gopkg.in/yaml.v2"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
@@ -1033,8 +1034,9 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (tmpl *api.IssueFormTemplate, err error) {
-	err = yaml.Unmarshal(templateContent, &tmpl)
+func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (*api.IssueFormTemplate, error) {
+	var tmpl *api.IssueFormTemplate
+	err := yaml.Unmarshal(templateContent, &tmpl)
 	if err != nil {
 		return nil, err
 	}
@@ -1049,7 +1051,7 @@ func ExtractTemplateFromYaml(templateContent []byte, meta *api.IssueTemplate) (t
 		meta.Ref = tmpl.Ref
 	}
 
-	return
+	return tmpl, nil
 }
 
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch

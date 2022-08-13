@@ -751,12 +751,7 @@ func getFileContentFromDefaultBranch(repo *context.Repository, filename string) 
 	return string(bytes), true
 }
 
-func getTemplate(repo *context.Repository, template string, possibleDirs, possibleFiles []string) (
-	outMeta *api.IssueTemplate,
-	outTemplateBody string,
-	outFormTemplateBody *api.IssueFormTemplate,
-	err error,
-) {
+func getTemplate(repo *context.Repository, template string, possibleDirs, possibleFiles []string) (*api.IssueTemplate, string, *api.IssueFormTemplate, error) {
 	// Add `possibleFiles` and each `{possibleDirs}/{template}` to `templateCandidates`
 	templateCandidates := make([]string, 0, len(possibleFiles))
 	if template != "" {
@@ -771,29 +766,31 @@ func getTemplate(repo *context.Repository, template string, possibleDirs, possib
 		templateContent, found := getFileContentFromDefaultBranch(repo, filename)
 		if found {
 			meta := api.IssueTemplate{FileName: filename}
+			var templateBody string
+			var formTemplateBody *api.IssueFormTemplate
+			var err error
 
 			if strings.HasSuffix(filename, ".md") {
 				// Parse markdown template
-				outTemplateBody, err = markdown.ExtractMetadata(templateContent, meta)
+				templateBody, err = markdown.ExtractMetadata(templateContent, meta)
 			} else if strings.HasSuffix(filename, ".yaml") || strings.HasSuffix(filename, ".yml") {
 				// Parse yaml (form) template
-				outFormTemplateBody, err = context.ExtractTemplateFromYaml([]byte(templateContent), &meta)
-				outFormTemplateBody.FileName = path.Base(filename)
+				formTemplateBody, err = context.ExtractTemplateFromYaml([]byte(templateContent), &meta)
+				formTemplateBody.FileName = path.Base(filename)
 			} else {
 				err = errors.New("invalid template type")
 			}
 			if err != nil {
 				log.Debug("could not extract metadata from %s [%s]: %v", filename, repo.Repository.FullName(), err)
-				outTemplateBody = templateContent
+				templateBody = templateContent
 				err = nil
 			}
 
-			outMeta = &meta
-			return
+			return &meta, templateBody, formTemplateBody, err
 		}
 	}
-	err = errors.New("no template found")
-	return
+
+	return nil, "", nil, errors.New("no template found")
 }
 
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
@@ -833,7 +830,6 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 	ctx.Data["label_ids"] = strings.Join(labelIDs, ",")
 	ctx.Data["Reference"] = templateMeta.Ref
 	ctx.Data["RefEndName"] = git.RefEndName(templateMeta.Ref)
-	return
 }
 
 // NewIssue render creating issue page
@@ -1059,11 +1055,11 @@ func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, erro
 	// Render values
 	result := ""
 	for _, field := range formTemplateBody.Fields {
-		if field.Id != "" {
+		if field.ID != "" {
 			// Get field label
 			label := field.Attributes["label"]
 			if label == "" {
-				label = field.Id
+				label = field.ID
 			}
 
 			// Format the value into Markdown
@@ -1072,15 +1068,15 @@ func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, erro
 				// Markdown blocks do not appear in output
 			case "input", "textarea", "dropdown":
 				if renderType, ok := field.Attributes["render"]; ok {
-					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.Id))
+					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.ID))
 				} else {
-					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.Id))
+					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.ID))
 				}
 			case "checkboxes":
 				result += fmt.Sprintf("### %s\n", label)
 				for i, option := range field.Attributes["options"].([]interface{}) {
 					checked := " "
-					if form.Get(fmt.Sprintf("form-field-%s-%d", field.Id, i)) == "on" {
+					if form.Get(fmt.Sprintf("form-field-%s-%d", field.ID, i)) == "on" {
 						checked = "x"
 					}
 					result += fmt.Sprintf("- [%s] %s\n", checked, option.(map[interface{}]interface{})["label"])

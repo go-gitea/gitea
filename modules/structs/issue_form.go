@@ -8,7 +8,7 @@ import "strings"
 
 type FormField struct {
 	Type        string                 `yaml:"type"`
-	Id          string                 `yaml:"id"`
+	ID          string                 `yaml:"id"`
 	Attributes  map[string]interface{} `yaml:"attributes"`
 	Validations map[string]interface{} `yaml:"validations"`
 }
@@ -33,7 +33,7 @@ func (it IssueFormTemplate) Valid() bool {
 	}
 
 	for _, field := range it.Fields {
-		if strings.TrimSpace(field.Id) == "" {
+		if strings.TrimSpace(field.ID) == "" {
 			// TODO: add IDs should be optional, maybe generate slug from label? or use numberic id
 			return false
 		}

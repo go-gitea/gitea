@@ -9,26 +9,26 @@
 		{{else if eq .Type "input"}}
 			<input type="text"
 						 aria-labelledby="form-label-{{$field_idx}}"
-						 name="form-field-{{$field.Id}}"
-						 id="form-field-{{$field.Id}}"
+						 name="form-field-{{$field.ID}}"
+						 id="form-field-{{$field.ID}}"
 						 placeholder="{{$field.Attributes.placeholder}}"
 						 value="{{$field.Attributes.value}}"
              {{- if .Validations.required}}required{{end}} />
 		{{else if eq .Type "textarea"}}
 			{{- if .Attributes.render}}
-				<input type="hidden" name="attrs-form-field-{{$field.Id}}" value="{&quot;render&quot;: &quot;{{.Attributes.render}}&quot;}">
+				<input type="hidden" name="attrs-form-field-{{$field.ID}}" value="{&quot;render&quot;: &quot;{{.Attributes.render}}&quot;}">
 			{{end}}
 			<textarea aria-labelledby="form-label-{{$field_idx}}"
-								name="form-field-{{$field.Id}}"
-						    id="form-field-{{$field.Id}}"
+								name="form-field-{{$field.ID}}"
+						    id="form-field-{{$field.ID}}"
 						    placeholder="{{$field.Attributes.placeholder}}"
                 {{- if .Attributes.render}}class="no-easymde"{{end}}
                 {{- if .Validations.required}}required{{end}}>{{$field.Attributes.value}}</textarea>
 		{{else if eq .Type "dropdown"}}
 			{{/* TODO: work with .Attribtes.multiple */}}
 			<select aria-labelledby="form-label-{{$field_idx}}"
-							name="form-field-{{$field.Id}}"
-							id="form-field-{{$field.Id}}"
+							name="form-field-{{$field.ID}}"
+							id="form-field-{{$field.ID}}"
 							{{- if .Validations.required}}required{{end}}>
 				{{range $field.Attributes.options}}
 					<option value="{{.}}">{{.}}</option>
@@ -38,8 +38,8 @@
 			{{range $chk_id, $chk := $field.Attributes.options}}
 				<label>
 					<input type="checkbox"
-								 name="form-field-{{$field.Id}}-{{$chk_id}}"
-								 id="form-field-{{$field.Id}}-{{$chk_id}}"
+								 name="form-field-{{$field.ID}}-{{$chk_id}}"
+								 id="form-field-{{$field.ID}}-{{$chk_id}}"
 								 {{if .checked}}checked{{end}}
 								 {{if .required}}required{{end}} />
 					{{.label}}{{if .required}} <span style="color: orangered;">*</span>{{end}}
