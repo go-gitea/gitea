@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -49,7 +50,11 @@ func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
 
 	setting.NewXORMLogService(disableConsole)
 	if err := db.InitEngine(ctx); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+		return fmt.Errorf("db.InitEngine: %w", err)
+	}
+	// some doctor sub-commands need to use git command
+	if err := git.InitOnceWithSync(ctx); err != nil {
+		return fmt.Errorf("git.InitOnceWithSync: %w", err)
 	}
 	return nil
 }
