@@ -26,7 +26,7 @@
 					<td class="lines-num lines-num-new" data-line-num="{{if $line.RightIdx}}{{$line.RightIdx}}{{end}}"><span rel="{{if $line.RightIdx}}diff-{{$file.NameHash}}R{{$line.RightIdx}}{{end}}"></span></td>
 				{{end}}
 				{{$inlineDiff := $section.GetComputedInlineDiffFor $line $.root.locale -}}
-				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.locale}}"></a>{{end}}</td>
+				<td class="lines-escape">{{if $inlineDiff.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $inlineDiff "locale" $.root.locale}}"></a>{{end}}</td>
 				<td class="lines-type-marker"><span class="mono" data-type-marker="{{$line.GetLineTypeMarker}}"></span></td>
 				{{if eq .GetType 4}}
 					<td class="chroma lines-code blob-hunk">{{/*
