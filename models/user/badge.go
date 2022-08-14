@@ -29,7 +29,7 @@ func init() {
 	db.RegisterModel(new(UserBadge))
 }
 
-// GetUserFollowers returns range of user's followers.
+// GetUserBadges returns the user's badges.
 func GetUserBadges(ctx context.Context, u *User) ([]*Badge, int64, error) {
 	sess := db.GetEngine(ctx).
 		Select("`badge`.*").
