@@ -15,8 +15,8 @@
 					<a class="index ml-0 mr-2" href="{{if .HTMLURL}}{{.HTMLURL}}{{else}}{{$.Link}}/{{.Index}}{{end}}">
 						#{{.Index}} {{.Title}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .Updated $.i18n.Lang }}
-					{{$.i18n.Tr "repo.builds.opened_by" $timeStr (.TriggerUser.GetDisplayName | Escape) | Safe}}
+					{{ $timeStr := TimeSinceUnix .Updated $.locale }}
+					{{$.locale.Tr "repo.builds.opened_by" $timeStr (.TriggerUser.GetDisplayName | Escape) | Safe}}
 				</div>
 			</div>
 		</li>
