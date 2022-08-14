@@ -70,14 +70,6 @@ export function initGlobalTooltips() {
 }
 
 export function initGlobalCommon() {
-  // Show exact time
-  $('.time-since').each(function () {
-    $(this)
-      .addClass('tooltip')
-      .attr('data-content', $(this).attr('title'))
-      .attr('title', '');
-  });
-
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
     $(window).resize(() => {
@@ -142,16 +134,12 @@ export function initGlobalCommon() {
     }
   });
 
-  // loading-button this logic used to prevent push one form more than one time
-  $(document).on('click', '.button.loading-button', function (e) {
-    const $btn = $(this);
-
-    if ($btn.hasClass('loading')) {
-      e.preventDefault();
-      return false;
-    }
-
-    $btn.addClass('loading disabled');
+  // prevent multiple form submissions on forms containing .loading-button
+  document.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('.loading-button');
+    if (!btn) return;
+    if (btn.classList.contains('loading')) return e.preventDefault();
+    btn.classList.add('loading');
   });
 }
 

@@ -239,9 +239,28 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 		IsWiki:    true,
 	}
+	buf := &strings.Builder{}
 
-	var buf strings.Builder
-	if err := markdown.Render(rctx, bytes.NewReader(data), &buf); err != nil {
+	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {
+		markupRd, markupWr := io.Pipe()
+		defer markupWr.Close()
+		done := make(chan struct{})
+		go func() {
+			// We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.RuneNBSP)
+			output = buf.String()
+			buf.Reset()
+			close(done)
+		}()
+
+		err = markdown.Render(rctx, bytes.NewReader(data), markupWr)
+		_ = markupWr.CloseWithError(err)
+		<-done
+		return escaped, output, err
+	}
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"], err = renderFn(data)
+	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
@@ -249,11 +268,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
-
 	if !isSideBar {
 		buf.Reset()
-		if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"], err = renderFn(sidebarContent)
+		if err != nil {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
@@ -261,14 +279,14 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["sidebarPresent"] = sidebarContent != nil
-		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 	} else {
 		ctx.Data["sidebarPresent"] = false
 	}
 
 	if !isFooter {
 		buf.Reset()
-		if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"], err = renderFn(footerContent)
+		if err != nil {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
@@ -276,7 +294,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["footerPresent"] = footerContent != nil
-		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 	} else {
 		ctx.Data["footerPresent"] = false
 	}
