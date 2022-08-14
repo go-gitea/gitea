@@ -87,6 +87,14 @@ func TestPatch(pr *issues_model.PullRequest) error {
 		}
 	}
 	pr.MergeBase = strings.TrimSpace(pr.MergeBase)
+	if pr.HeadCommitID, err = gitRepo.GetRefCommitID(git.BranchPrefix + "tracking"); err != nil {
+		return fmt.Errorf("GetBranchCommitID: can't find commit ID for head: %w", err)
+	}
+
+	if pr.HeadCommitID == pr.MergeBase {
+		pr.Status = issues_model.PullRequestStatusAncestor
+		return nil
+	}
 
 	// 2. Check for conflicts
 	if conflicts, err := checkConflicts(ctx, pr, gitRepo, tmpBasePath); err != nil || conflicts || pr.Status == issues_model.PullRequestStatusEmpty {
@@ -116,6 +124,7 @@ func (e *errMergeConflict) Error() string {
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
+	log.Trace("Attempt to merge:\n%v", file)
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -287,7 +296,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			return false, err
+			lsfiles, _, _ := git.NewCommand(ctx, "ls-files", "-u").RunStdString(&git.RunOpts{Dir: tmpBasePath})
+			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
 		baseTree, err := gitRepo.GetTree("base")

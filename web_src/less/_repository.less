@@ -67,22 +67,6 @@
     min-width: 40% !important;
   }
 
-  #file-buttons {
-    /* The reason for the !important is that Semantic itself has
-    margin-left: 0 !important on right items on mobile, which is mostly
-    to make sure elements which on menus would otherwise be on the right
-    align correctly with other elements when stacked.
-    Unfortunately, this brings some weird alignment on this particular
-    element, so we need to override it. */
-    margin-left: auto !important;
-    font-weight: normal;
-
-    .ui.button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
-  }
-
   .unicode-escaped .escaped-code-point {
     &[data-escaped]::before {
       visibility: visible;
@@ -98,7 +82,11 @@
 
   .broken-code-point {
     font-family: var(--fonts-monospace);
-    color: blue;
+    color: var(--color-blue);
+  }
+
+  .unicode-escaped .ambiguous-code-point {
+    border: 1px var(--color-yellow) solid;
   }
 
   .metas {
@@ -223,22 +211,15 @@
   }
 
   #clone-panel {
-    width: 350px;
+    #repo-clone-url {
+      width: 320px;
 
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .clone.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
+      @media @mediaMd {
+        width: 200px;
+      }
+      @media @mediaSm {
+        width: 200px;
+      }
     }
 
     #repo-clone-https,
@@ -256,10 +237,6 @@
 
     button:last-of-type {
       border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
     }
 
     .dropdown .menu {
@@ -290,25 +267,6 @@
       .section,
       .divider {
         display: inline;
-      }
-    }
-
-    #file-buttons {
-      font-weight: normal;
-
-      .ui.button {
-        padding: 8px 10px;
-        font-weight: normal;
-      }
-
-      .ui.tiny.primary.buttons {
-        @media @mediaSm {
-          width: 100%;
-        }
-      }
-
-      .button + .button {
-        border-left: none;
       }
     }
 
@@ -352,15 +310,38 @@
         overflow: initial;
 
         &.name {
-          max-width: 150px;
+          @media @mediaXl {
+            max-width: 150px;
+          }
+          @media @mediaLg {
+            max-width: 200px;
+          }
+          @media @mediaMd {
+            max-width: 300px;
+          }
+          width: 33%;
+
+          max-width: calc(100vw - 140px);
         }
 
         &.message {
-          max-width: 400px;
+          color: var(--color-text-light-1);
+
+          @media @mediaXl {
+            max-width: 400px;
+          }
+          @media @mediaLg {
+            max-width: 350px;
+          }
+          @media @mediaMd {
+            max-width: 250px;
+          }
+          width: 66%;
         }
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -411,10 +392,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
@@ -474,7 +451,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -2087,10 +2067,6 @@
     }
 
     &.view {
-      .choose.page {
-        margin-top: -5px;
-      }
-
       > .markup {
         padding: 15px 30px;
 
@@ -2115,6 +2091,12 @@
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
+      }
+    }
+
+    @media @mediaSm {
+      #clone-panel #repo-clone-url {
+        width: 160px;
       }
     }
   }
@@ -2807,6 +2789,31 @@
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
+.repo-button-row {
+  margin-bottom: 10px;
+}
+
+.repo-button-row > * {
+  margin-top: 10px;
+}
+
+.wiki .repo-button-row {
+  margin-bottom: 0;
+}
+
+.wiki .repo-button-row > * {
+  margin-top: 0;
+}
+
+.repo-button-row .button {
+  padding: 6px 10px !important;
+  height: 30px;
+}
+
+.repo-button-row input {
+  height: 30px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -2882,20 +2889,6 @@ tbody.commit-list {
 
 .git-notes.top {
   text-align: left;
-}
-
-@media @mediaSm {
-  .ui.stackable.menu {
-    &.mobile--margin-between-items > .item {
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    &.mobile--no-negative-margins {
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
 }
 
 #topic_edit {
@@ -3332,7 +3325,7 @@ td.blob-excerpt {
   .commit-header-row {
     .ui.horizontal.list {
       width: 100%;
-      overflow-x: scroll;
+      overflow-x: auto;
       margin-top: 2px;
 
       .item {
@@ -3381,7 +3374,7 @@ td.blob-excerpt {
   }
 
   .commit-table {
-    overflow-x: scroll;
+    overflow-x: auto;
 
     td.sha,
     th.sha {
@@ -3407,5 +3400,17 @@ td.blob-excerpt {
         display: none !important;
       }
     }
+  }
+}
+
+.branch-dropdown-button {
+  max-width: 340px;
+  vertical-align: bottom !important;
+
+  @media @mediaMd {
+    max-width: 185px;
+  }
+  @media @mediaSm {
+    max-width: 165px;
   }
 }

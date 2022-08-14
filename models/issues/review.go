@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -472,6 +473,35 @@ func SubmitReview(doer *user_model.User, issue *Issue, reviewType ReviewType, co
 
 	comm.Review = review
 	return review, comm, committer.Commit()
+}
+
+// GetReviewOptions represent filter options for GetReviews
+type GetReviewOptions struct {
+	IssueID    int64
+	ReviewerID int64
+	Dismissed  util.OptionalBool
+}
+
+// GetReviews return reviews based on GetReviewOptions
+func GetReviews(ctx context.Context, opts *GetReviewOptions) ([]*Review, error) {
+	if opts == nil {
+		return nil, fmt.Errorf("opts are nil")
+	}
+
+	sess := db.GetEngine(ctx)
+
+	if opts.IssueID != 0 {
+		sess = sess.Where("issue_id=?", opts.IssueID)
+	}
+	if opts.ReviewerID != 0 {
+		sess = sess.Where("reviewer_id=?", opts.ReviewerID)
+	}
+	if !opts.Dismissed.IsNone() {
+		sess = sess.Where("dismissed=?", opts.Dismissed.IsTrue())
+	}
+
+	reviews := make([]*Review, 0, 4)
+	return reviews, sess.Find(&reviews)
 }
 
 // GetReviewersByIssueID gets the latest review of each reviewer for a pull request
