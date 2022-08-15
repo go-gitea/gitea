@@ -22,7 +22,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -43,7 +42,6 @@ import (
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
-	"code.gitea.io/gitea/services/mailer"
 
 	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
@@ -151,8 +149,6 @@ func Routes() *web.Route {
 		}
 		common = append(common, h)
 	}
-
-	mailer.InitMailRender(templates.Mailer())
 
 	if setting.Service.EnableCaptcha {
 		// The captcha http.Handler should only fire on /captcha/* so we can just mount this on that url
@@ -285,6 +281,13 @@ func RegisterRoutes(m *web.Route) {
 
 	federationEnabled := func(ctx *context.Context) {
 		if !setting.Federation.Enabled {
+			ctx.Error(http.StatusNotFound)
+			return
+		}
+	}
+
+	dlSourceEnabled := func(ctx *context.Context) {
+		if setting.Repository.DisableDownloadSourceArchives {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
@@ -1106,7 +1109,7 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/archive", func() {
 			m.Get("/*", repo.Download)
 			m.Post("/*", repo.InitiateDownload)
-		}, repo.MustBeNotEmpty, reqRepoCodeReader)
+		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
 			m.Get("", repo.Branches)

@@ -124,12 +124,12 @@ func runRecreateTable(ctx *cli.Context) error {
 }
 
 func runDoctor(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
 	// Silence the default loggers
 	log.DelNamedLogger("console")
 	log.DelNamedLogger(log.DEFAULT)
-
-	stdCtx, cancel := installSignals()
-	defer cancel()
 
 	// Now setup our own
 	logFile := ctx.String("log-file")
