@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@claviska/jquery-minicolors": "2.3.6",
+    "@mcaptcha/vanilla-glue": "0.1.0-alpha-2",
     "@primer/octicons": "17.4.0",
     "add-asset-webpack-plugin": "2.0.1",
     "css-loader": "6.7.1",
