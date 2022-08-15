@@ -82,7 +82,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 	assert.Equal(t, issues_model.CommentTypeIssueRef, ref.Type)
 	assert.Equal(t, references.XRefActionNone, ref.RefAction)
 
-	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	i.Title = "title2, no mentions"
 	assert.NoError(t, issues_model.ChangeIssueTitle(i, d, title))
 
@@ -94,7 +94,7 @@ func TestXRef_NeuterCrossReferences(t *testing.T) {
 func TestXRef_ResolveCrossReferences(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	i1 := testCreateIssue(t, 1, 2, "title1", "content1", false)
 	i2 := testCreateIssue(t, 1, 2, "title2", "content2", false)
@@ -128,8 +128,8 @@ func TestXRef_ResolveCrossReferences(t *testing.T) {
 }
 
 func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispull bool) *issues_model.Issue {
-	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
-	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo})
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 
 	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
 	assert.NoError(t, err)
@@ -159,8 +159,8 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 }
 
 func testCreatePR(t *testing.T, repo, doer int64, title, content string) *issues_model.PullRequest {
-	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo}).(*repo_model.Repository)
-	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
+	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo})
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 	i := &issues_model.Issue{RepoID: r.ID, PosterID: d.ID, Poster: d, Title: title, Content: content, IsPull: true}
 	pr := &issues_model.PullRequest{HeadRepoID: repo, BaseRepoID: repo, HeadBranch: "head", BaseBranch: "base", Status: issues_model.PullRequestStatusMergeable}
 	assert.NoError(t, issues_model.NewPullRequest(db.DefaultContext, r, i, nil, nil, pr))
@@ -169,8 +169,8 @@ func testCreatePR(t *testing.T, repo, doer int64, title, content string) *issues
 }
 
 func testCreateComment(t *testing.T, repo, doer, issue int64, content string) *issues_model.Comment {
-	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer}).(*user_model.User)
-	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue}).(*issues_model.Issue)
+	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
+	i := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: issue})
 	c := &issues_model.Comment{Type: issues_model.CommentTypeComment, PosterID: doer, Poster: d, IssueID: issue, Issue: i, Content: content}
 
 	ctx, committer, err := db.TxContext()

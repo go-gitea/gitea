@@ -74,8 +74,8 @@ func TestFindReviews(t *testing.T) {
 
 func TestGetCurrentReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	review, err := issues_model.GetCurrentReview(db.DefaultContext, user, issue)
 	assert.NoError(t, err)
@@ -83,7 +83,7 @@ func TestGetCurrentReview(t *testing.T) {
 	assert.Equal(t, issues_model.ReviewTypePending, review.Type)
 	assert.Equal(t, "Pending Review", review.Content)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 7})
 	review2, err := issues_model.GetCurrentReview(db.DefaultContext, user2, issue)
 	assert.Error(t, err)
 	assert.True(t, issues_model.IsErrReviewNotExist(err))
@@ -93,8 +93,8 @@ func TestGetCurrentReview(t *testing.T) {
 func TestCreateReview(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2}).(*issues_model.Issue)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	review, err := issues_model.CreateReview(db.DefaultContext, issues_model.CreateReviewOptions{
 		Content:  "New Review",
@@ -110,10 +110,10 @@ func TestCreateReview(t *testing.T) {
 func TestGetReviewersByIssueID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3}).(*issues_model.Issue)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 3})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	expectedReviews := []*issues_model.Review{}
 	expectedReviews = append(expectedReviews,

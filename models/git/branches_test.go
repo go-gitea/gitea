@@ -18,7 +18,7 @@ import (
 
 func TestAddDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.DeletedBranch{ID: 1}).(*git_model.DeletedBranch)
 
 	assert.Error(t, git_model.AddDeletedBranch(repo.ID, firstBranch.Name, firstBranch.Commit, firstBranch.DeletedByID))
@@ -27,7 +27,7 @@ func TestAddDeletedBranch(t *testing.T) {
 
 func TestGetDeletedBranches(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	branches, err := git_model.GetDeletedBranches(repo.ID)
 	assert.NoError(t, err)
@@ -62,7 +62,7 @@ func TestDeletedBranchLoadUser(t *testing.T) {
 
 func TestRemoveDeletedBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	firstBranch := unittest.AssertExistsAndLoadBean(t, &git_model.DeletedBranch{ID: 1}).(*git_model.DeletedBranch)
 
@@ -73,7 +73,7 @@ func TestRemoveDeletedBranch(t *testing.T) {
 }
 
 func getDeletedBranch(t *testing.T, branch *git_model.DeletedBranch) *git_model.DeletedBranch {
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	deletedBranch, err := git_model.GetDeletedBranchByID(repo.ID, branch.ID)
 	assert.NoError(t, err)
@@ -99,7 +99,7 @@ func TestFindRenamedBranch(t *testing.T) {
 
 func TestRenameBranch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	_isDefault := false
 
 	ctx, committer, err := db.TxContext()
@@ -117,13 +117,13 @@ func TestRenameBranch(t *testing.T) {
 	}))
 
 	assert.Equal(t, true, _isDefault)
-	repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo1.DefaultBranch)
 
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest) // merged
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}) // merged
 	assert.Equal(t, "master", pull.BaseBranch)
 
-	pull = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest) // open
+	pull = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}) // open
 	assert.Equal(t, "main", pull.BaseBranch)
 
 	renamedBranch := unittest.AssertExistsAndLoadBean(t, &git_model.RenamedBranch{ID: 2}).(*git_model.RenamedBranch)
@@ -143,7 +143,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 	// Get deletedBranch with ID of 1 on repo with ID 2.
 	// This should return a nil branch as this deleted branch
 	// is actually on repo with ID 1.
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 
 	deletedBranch, err := git_model.GetDeletedBranchByID(repo2.ID, 1)
 
@@ -153,7 +153,7 @@ func TestOnlyGetDeletedBranchOnCorrectRepo(t *testing.T) {
 
 	// Now get the deletedBranch with ID of 1 on repo with ID 1.
 	// This should return the deletedBranch.
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	deletedBranch, err = git_model.GetDeletedBranchByID(repo1.ID, 1)
 

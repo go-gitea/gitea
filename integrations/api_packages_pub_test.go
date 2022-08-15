@@ -27,7 +27,7 @@ import (
 
 func TestPackagePub(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	token := "Bearer " + getUserToken(t, user.Name)
 
