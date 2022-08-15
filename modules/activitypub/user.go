@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
+	user_service "code.gitea.io/gitea/services/user"
 
 	ap "github.com/go-ap/activitypub"
 )
@@ -39,15 +40,6 @@ func FederatedUserNew(ctx context.Context, person *ap.Person) error {
 		email = strings.ReplaceAll(name, "@", "+") + "@" + setting.Service.NoReplyAddress
 	}
 
-	var avatar string
-	if person.Icon != nil {
-		icon := person.Icon.(*ap.Image)
-		// Currently doesn't work
-		avatar = icon.URL.GetLink().String()
-	} else {
-		avatar = ""
-	}
-
 	if person.PublicKey.PublicKeyPem == "" {
 		return errors.New("person public key not found")
 	}
@@ -56,13 +48,30 @@ func FederatedUserNew(ctx context.Context, person *ap.Person) error {
 		Name:      name,
 		FullName:  person.Name.String(), // May not exist!!
 		Email:     email,
-		Avatar:    avatar,
 		LoginType: auth.Federated,
 		LoginName: person.GetLink().String(),
 	}
 	err = user_model.CreateUser(user)
 	if err != nil {
 		return err
+	}
+
+	if person.Icon != nil {
+		icon := person.Icon.(*ap.Image)
+		iconURL, err := icon.URL.GetLink().URL()
+		if err != nil {
+			return err
+		}
+
+		body, err := Fetch(iconURL)
+		if err != nil {
+			return err
+		}
+
+		err = user_service.UploadAvatar(user, body)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = user_model.SetUserSetting(user.ID, user_model.UserActivityPubPrivPem, "")

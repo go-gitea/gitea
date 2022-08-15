@@ -23,7 +23,7 @@ var (
 	}{
 		Enabled:             false,
 		ShareUserStatistics: true,
-		MaxSize:             4,
+		MaxSize:             8,
 		Algorithms:          []string{"rsa-sha256", "rsa-sha512", "ed25519"},
 		DigestAlgorithm:     "SHA-256",
 		GetHeaders:          []string{"(request-target)", "Date"},
