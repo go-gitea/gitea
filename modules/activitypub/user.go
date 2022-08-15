@@ -6,6 +6,7 @@ package activitypub
 
 import (
 	"context"
+	"errors"
 	"strings"
 
 	"code.gitea.io/gitea/models/auth"
@@ -16,7 +17,7 @@ import (
 )
 
 // Create a new federated user from a Person object
-func FederatedUserNew(ctx context.Context, person ap.Person) error {
+func FederatedUserNew(ctx context.Context, person *ap.Person) error {
 	name, err := personIRIToName(person.GetLink())
 	if err != nil {
 		return err
@@ -47,6 +48,10 @@ func FederatedUserNew(ctx context.Context, person ap.Person) error {
 		avatar = ""
 	}
 
+	if person.PublicKey.PublicKeyPem == "" {
+		return errors.New("person public key not found")
+	}
+
 	user := &user_model.User{
 		Name:      name,
 		FullName:  person.Name.String(), // May not exist!!
@@ -55,5 +60,14 @@ func FederatedUserNew(ctx context.Context, person ap.Person) error {
 		LoginType: auth.Federated,
 		LoginName: person.GetLink().String(),
 	}
-	return user_model.CreateUser(user)
+	err = user_model.CreateUser(user)
+	if err != nil {
+		return err
+	}
+
+	err = user_model.SetUserSetting(user.ID, user_model.UserActivityPubPrivPem, "")
+	if err != nil {
+		return err
+	}
+	return user_model.SetUserSetting(user.ID, user_model.UserActivityPubPubPem, person.PublicKey.PublicKeyPem)
 }

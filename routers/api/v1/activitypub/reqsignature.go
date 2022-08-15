@@ -80,7 +80,7 @@ func verifyHTTPSignatures(ctx *gitea_context.APIContext) (authenticated bool, er
 	// 4. Create a federated user for the actor
 	var person ap.Person
 	person.UnmarshalJSON(b)
-	err = activitypub.FederatedUserNew(ctx, person)
+	err = activitypub.FederatedUserNew(ctx, &person)
 	return authenticated, err
 }
 

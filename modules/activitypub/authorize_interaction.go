@@ -39,7 +39,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("UnmarshalJSON", err)
 			return
 		}
-		err = FederatedUserNew(ctx, object.(ap.Person))
+		err = FederatedUserNew(ctx, object.(*ap.Person))
 		if err != nil {
 			ctx.ServerError("FederatedUserNew", err)
 			return
@@ -52,6 +52,10 @@ func AuthorizeInteraction(ctx *context.Context) {
 		ctx.Redirect(name)
 	case forgefed.RepositoryType:
 		err = FederatedRepoNew(ctx, object.(forgefed.Repository))
+		if err != nil {
+			ctx.ServerError("FederatedRepoNew", err)
+			return
+		}
 	}
 
 	ctx.Status(http.StatusOK)
