@@ -38,7 +38,7 @@ dotnet nuget add source --name {source_name} --username {username} --password {p
 | ------------- | ----------- |
 | `source_name` | The desired source name. |
 | `username`    | Your Gitea username. |
-| `password`    | Your Gitea password or a personal access token. |
+| `password`    | Your Gitea password. If you are using 2FA or OAuth use a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}) instead of the password. |
 | `owner`       | The owner of the package. |
 
 For example:
@@ -46,6 +46,8 @@ For example:
 ```shell
 dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/packages/testuser/nuget/index.json
 ```
+
+You can add the source without credentials and use the [`--api-key`](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-nuget-push) parameter when publishing packages. In this case you need to provide a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}).
 
 ## Publish a package
 

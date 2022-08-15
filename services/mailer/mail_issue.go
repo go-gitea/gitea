@@ -91,7 +91,9 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
-	visited[ctx.Doer.ID] = true
+	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn {
+		visited[ctx.Doer.ID] = true
+	}
 
 	// =========== Mentions ===========
 	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
@@ -133,6 +135,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
+			user.EmailNotificationsPreference == user_model.EmailNotificationsAndYourOwn ||
 			fromMention && user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention) {
 			continue
 		}

@@ -121,6 +121,7 @@ menu:
 | 整合 AD / LDAP            | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | 支援多重 LDAP / AD 伺服器 | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | 同步 LDAP 使用者          | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | 支援 OpenId Connect       | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | 整合 OAuth 2.0 (外部驗證) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | 成為 OAuth 2.0 提供者     | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |
