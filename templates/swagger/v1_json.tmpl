@@ -155,6 +155,46 @@
         }
       }
     },
+    "/activitypub/ticket/{username}/{reponame}/{id}": {
+      "get": {
+        "produces": [
+          "application/activity+json"
+        ],
+        "tags": [
+          "activitypub"
+        ],
+        "summary": "Returns the Ticket object for an issue or PR",
+        "operationId": "forgefedTicket",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "username of the user",
+            "name": "username",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "reponame",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "ID number of the issue or PR",
+            "name": "id",
+            "in": "path",
+            "required": true
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ActivityPub"
+          }
+        }
+      }
+    },
     "/activitypub/user/{username}": {
       "get": {
         "produces": [

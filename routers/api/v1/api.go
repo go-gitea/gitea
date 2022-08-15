@@ -659,6 +659,7 @@ func Routes() *web.Route {
 					m.Get("/outbox", activitypub.RepoOutbox)
 					m.Get("/followers", activitypub.RepoFollowers)
 				}, repoAssignment())
+				m.Get("/ticket/{username}/{reponame}/{id}", repoAssignment(), activitypub.Ticket)
 			})
 		}
 		m.Get("/signing-key.gpg", misc.SigningKey)
