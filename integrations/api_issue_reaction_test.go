@@ -80,7 +80,7 @@ func TestAPIIssuesReactions(t *testing.T) {
 func TestAPICommentReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2}).(*issues_model.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
 	_ = comment.LoadIssue()
 	issue := comment.Issue
 	_ = issue.LoadRepo(db.DefaultContext)

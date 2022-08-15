@@ -24,7 +24,7 @@ import (
 func TestAPITeam(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{}).(*organization.TeamUser)
+	teamUser := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamUser.TeamID})
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser.UID})
 
@@ -39,7 +39,7 @@ func TestAPITeam(t *testing.T) {
 	assert.Equal(t, team.Name, apiTeam.Name)
 
 	// non team member user will not access the teams details
-	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3}).(*organization.TeamUser)
+	teamUser2 := unittest.AssertExistsAndLoadBean(t, &organization.TeamUser{ID: 3})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: teamUser2.UID})
 
 	session = loginUser(t, user2.Name)
@@ -247,7 +247,7 @@ func TestAPIGetTeamRepo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
-	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24}).(*repo.Repository)
+	teamRepo := unittest.AssertExistsAndLoadBean(t, &repo.Repository{ID: 24})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
 
 	var results api.Repository

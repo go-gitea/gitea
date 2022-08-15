@@ -65,7 +65,7 @@ func TestAPIPullReview(t *testing.T) {
 	assert.EqualValues(t, *reviews[5], review)
 
 	// test GetPullReviewComments
-	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 7}).(*issues_model.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 7})
 	req = NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/reviews/%d/comments?token=%s", repo.OwnerName, repo.Name, pullIssue.Index, 10, token)
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	var reviewComments []*api.PullReviewComment

@@ -275,7 +275,7 @@ func TestChangeOrgUserStatus(t *testing.T) {
 
 	testSuccess := func(orgID, userID int64, public bool) {
 		assert.NoError(t, organization.ChangeOrgUserStatus(orgID, userID, public))
-		orgUser := unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: orgID, UID: userID}).(*organization.OrgUser)
+		orgUser := unittest.AssertExistsAndLoadBean(t, &organization.OrgUser{OrgID: orgID, UID: userID})
 		assert.Equal(t, public, orgUser.IsPublic)
 	}
 

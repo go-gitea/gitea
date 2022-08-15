@@ -23,7 +23,7 @@ func TestAPINotification(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -127,7 +127,7 @@ func TestAPINotification(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusResetContent)
 
 	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
-	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
 	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
 
 	// -- check notifications --
@@ -141,7 +141,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)

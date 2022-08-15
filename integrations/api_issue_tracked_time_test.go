@@ -64,7 +64,7 @@ func TestAPIGetTrackedTimes(t *testing.T) {
 func TestAPIDeleteTrackedTime(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	time6 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 6}).(*issues_model.TrackedTime)
+	time6 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 6})
 	issue2 := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2})
 	assert.NoError(t, issue2.LoadRepo(db.DefaultContext))
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
@@ -76,7 +76,7 @@ func TestAPIDeleteTrackedTime(t *testing.T) {
 	req := NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time6.ID, token)
 	session.MakeRequest(t, req, http.StatusForbidden)
 
-	time3 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 3}).(*issues_model.TrackedTime)
+	time3 := unittest.AssertExistsAndLoadBean(t, &issues_model.TrackedTime{ID: 3})
 	req = NewRequestf(t, "DELETE", "/api/v1/repos/%s/%s/issues/%d/times/%d?token=%s", user2.Name, issue2.Repo.Name, issue2.Index, time3.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 	// Delete non existing time
