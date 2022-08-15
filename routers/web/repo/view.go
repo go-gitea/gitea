@@ -328,35 +328,31 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	if markupType := markup.Type(readmeFile.name); markupType != "" {
 		ctx.Data["IsMarkup"] = true
 		ctx.Data["MarkupType"] = markupType
-		var result strings.Builder
-		err := markup.Render(&markup.RenderContext{
+
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 			Ctx:          ctx,
 			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
 			URLPrefix:    readmeTreelink,
 			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 			GitRepo:      ctx.Repo.GitRepo,
-		}, rd, &result)
+		}, rd)
 		if err != nil {
-			log.Error("Render failed: %v then fallback", err)
+			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.name, ctx.Repo.Repository, err)
 			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
-		} else {
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	} else {
 		ctx.Data["IsRenderedHTML"] = true
 		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf)
+		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, &charset.BreakWriter{Writer: buf}, ctx.Locale, charset.RuneNBSP)
 		if err != nil {
 			log.Error("Read failed: %v", err)
 		}
 
-		ctx.Data["FileContent"] = strings.ReplaceAll(
-			gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
-		)
+		ctx.Data["FileContent"] = buf.String()
 	}
 }
 
@@ -498,32 +494,30 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			var result strings.Builder
 			if !detected {
 				markupType = ""
 			}
 			metas := ctx.Repo.Repository.ComposeDocumentMetas()
 			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
-			err := markup.Render(&markup.RenderContext{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				Type:         markupType,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
 				Metas:        metas,
 				GitRepo:      ctx.Repo.GitRepo,
-			}, rd, &result)
+			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
 			// to prevent iframe load third-party url
 			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
@@ -570,12 +564,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				log.Error("highlight.File failed, fallback to plain text: %v", err)
 				fileContent = highlight.PlainText(buf)
 			}
-			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
-			ctx.Data["EscapeStatus"] = status
-			statuses := make([]charset.EscapeStatus, len(fileContent))
+			status := &charset.EscapeStatus{}
+			statuses := make([]*charset.EscapeStatus, len(fileContent))
 			for i, line := range fileContent {
-				statuses[i], fileContent[i] = charset.EscapeControlString(line)
+				statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
+				status = status.Or(statuses[i])
 			}
+			ctx.Data["EscapeStatus"] = status
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
@@ -613,20 +608,17 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			var result strings.Builder
-			err := markup.Render(&markup.RenderContext{
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
 				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
 				GitRepo:      ctx.Repo.GitRepo,
-			}, rd, &result)
+			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
-
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	}
 
@@ -643,6 +635,23 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
+}
+
+func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
+	markupRd, markupWr := io.Pipe()
+	defer markupWr.Close()
+	done := make(chan struct{})
+	go func() {
+		sb := &strings.Builder{}
+		// We allow NBSP here this is rendered
+		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		output = sb.String()
+		close(done)
+	}()
+	err = markup.Render(renderCtx, input, markupWr)
+	_ = markupWr.CloseWithError(err)
+	<-done
+	return escaped, output, err
 }
 
 func safeURL(address string) string {
