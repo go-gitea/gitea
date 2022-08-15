@@ -616,7 +616,6 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
-	ctx.Data["TotalShownIssueCount"] = shownIssues
 
 	var allIssueCount int64
 	for _, issueCount := range issueCountByRepo {
