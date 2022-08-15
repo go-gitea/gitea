@@ -141,7 +141,6 @@ func (r *stripRenderer) AddOptions(...renderer.Option) {
 }
 
 // StripMarkdown parses markdown content by removing all markup and code blocks
-//
 //	in order to extract links and other references
 func StripMarkdown(rawBytes []byte) (string, []string) {
 	buf, links := StripMarkdownBytes(rawBytes)
@@ -154,7 +153,6 @@ var (
 )
 
 // StripMarkdownBytes parses markdown content by removing all markup and code blocks
-//
 //	in order to extract links and other references
 func StripMarkdownBytes(rawBytes []byte) ([]byte, []string) {
 	once.Do(func() {
