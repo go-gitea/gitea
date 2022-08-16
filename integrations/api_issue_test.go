@@ -25,8 +25,8 @@ import (
 func TestAPIListIssues(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -76,8 +76,8 @@ func TestAPICreateIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const body, title = "apiTestBody", "apiTestTitle"
 
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -100,7 +100,7 @@ func TestAPICreateIssue(t *testing.T) {
 		Title:      title,
 	})
 
-	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, repoBefore.NumIssues+1, repoAfter.NumIssues)
 	assert.Equal(t, repoBefore.NumClosedIssues, repoAfter.NumClosedIssues)
 }
@@ -108,9 +108,9 @@ func TestAPICreateIssue(t *testing.T) {
 func TestAPIEditIssue(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
@@ -139,8 +139,8 @@ func TestAPIEditIssue(t *testing.T) {
 	var apiIssue api.Issue
 	DecodeJSON(t, resp, &apiIssue)
 
-	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
-	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
+	issueAfter := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repoAfter := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
 
 	// check deleted user
 	assert.Equal(t, int64(500), issueAfter.PosterID)
