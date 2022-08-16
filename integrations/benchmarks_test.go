@@ -33,7 +33,7 @@ func BenchmarkRepoBranchCommit(b *testing.B) {
 
 		for _, repoID := range samples {
 			b.StopTimer()
-			repo := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: repoID}).(*repo_model.Repository)
+			repo := unittest.AssertExistsAndLoadBean(b, &repo_model.Repository{ID: repoID})
 			b.StartTimer()
 			b.Run(repo.Name, func(b *testing.B) {
 				session := loginUser(b, "user2")

@@ -20,7 +20,7 @@ func TestCsrfProtection(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// test web form csrf via form
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	req := NewRequestWithValues(t, "POST", "/user/settings", map[string]string{
 		"_csrf": "fake_csrf",
