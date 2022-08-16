@@ -27,7 +27,7 @@ import (
 var CmdMigrateStorage = cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
-	Description: "This is a command for migrating Gitea configured storage to a parameter indicated storage.",
+	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
 		cli.StringFlag{
