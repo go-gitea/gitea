@@ -76,15 +76,13 @@
 								<table class="ui celled table">
 									<thead>
 										<tr>
-											<th class="center aligned">{{.locale.Tr "units.unit"}}</th>
+											<th>{{.locale.Tr "units.unit"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.none_access"}}
-											<i class="circle help icon link tooltip" data-content="{{.locale.Tr "org.teams.none_access_helper"}}"></i></th>
+											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.none_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</th>
 											<th class="center aligned">{{.locale.Tr "org.teams.read_access"}}
-											<i class="circle help icon link tooltip" data-content="{{.locale.Tr "org.teams.read_access_helper"}}"></i>
-											</th>
+											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.read_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
 											<th class="center aligned">{{.locale.Tr "org.teams.write_access"}}
-											<i class="circle help icon link tooltip" data-content="{{.locale.Tr "org.teams.write_access_helper"}}"></i>
-											</th>
+											<span class="tooltip vm" data-content="{{.locale.Tr "org.teams.write_access_helper"}}">{{svg "octicon-question" 16 "ml-2"}}</span></th>
 										</tr>
 									</thead>
 									<tbody>

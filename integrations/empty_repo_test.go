@@ -21,8 +21,8 @@ func TestEmptyRepo(t *testing.T) {
 		"commit/1ae57b34ccf7e18373",
 		"graph",
 	}
-	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}, unittest.Cond("is_empty = ?", true)).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID}).(*user_model.User)
+	emptyRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}, unittest.Cond("is_empty = ?", true))
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: emptyRepo.OwnerID})
 	for _, subpath := range subpaths {
 		req := NewRequestf(t, "GET", "/%s/%s/%s", owner.Name, emptyRepo.Name, subpath)
 		MakeRequest(t, req, http.StatusNotFound)
