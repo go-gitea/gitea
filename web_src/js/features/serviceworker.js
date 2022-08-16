@@ -1,6 +1,6 @@
 import {joinPaths} from '../utils.js';
 
-const {useServiceWorker, assetUrlPrefix, appVer} = window.config;
+const {useServiceWorker, assetUrlPrefix, appVer, appVerMd5} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
 const workerAssetPath = joinPaths(assetUrlPrefix, 'serviceworker.js');
 
@@ -43,7 +43,7 @@ export default async function initServiceWorker() {
     try {
       // the spec strictly requires it to be same-origin so the AssetUrlPrefix should contain AppSubUrl
       await checkCacheValidity();
-      await navigator.serviceWorker.register(workerAssetPath);
+      await navigator.serviceWorker.register(`${workerAssetPath}?v=${appVerMd5}`);
     } catch (err) {
       console.error(err);
       await invalidateCache();
