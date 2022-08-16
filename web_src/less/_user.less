@@ -170,18 +170,9 @@
 }
 
 .user-badges {
-  display: flex;
-  flex-flow: row wrap;
-  padding: 0;
-  margin: -3px !important;
-
-  li {
-    display: flex;
-    border-bottom: 0 !important;
-    padding: 3px !important;
-    width: 20%;
-    max-width: 60px;
-  }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 64px);
+  gap: 2px;
 }
 
 #notification_div .tab.segment {
