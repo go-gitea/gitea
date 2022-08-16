@@ -63,7 +63,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 	defer timeutil.Unset()
 
 	for _, tc := range testCases {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: tc.userID})
 
 		doer := &user_model.User{ID: tc.doerID}
 		_, err := unittest.LoadBeanIfExists(doer)

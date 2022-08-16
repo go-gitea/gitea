@@ -53,9 +53,9 @@ func TestEventSourceManagerRun(t *testing.T) {
 		}
 	}
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5}).(*models.Notification)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
