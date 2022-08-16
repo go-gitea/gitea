@@ -50,18 +50,21 @@ export function initRepoDiffConversationForm() {
       return;
     }
 
-    const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
-    const {path, side, idx} = newConversationHolder.data();
+    const $newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
+    const {path, side, idx} = $newConversationHolder.data();
 
-    initTooltip(newConversationHolder.find('.tooltip'));
-    form.closest('.conversation-holder').replaceWith(newConversationHolder);
+    $newConversationHolder.find('.tooltip').each(function () {
+      initTooltip(this);
+    });
+
+    form.closest('.conversation-holder').replaceWith($newConversationHolder);
     if (form.closest('tr').data('line-type') === 'same') {
       $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).addClass('invisible');
     } else {
       $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
     }
-    newConversationHolder.find('.dropdown').dropdown();
-    initCompReactionSelector(newConversationHolder);
+    $newConversationHolder.find('.dropdown').dropdown();
+    initCompReactionSelector($newConversationHolder);
   });
 
 
