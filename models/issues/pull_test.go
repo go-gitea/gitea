@@ -16,7 +16,7 @@ import (
 
 func TestPullRequest_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NotNil(t, pr.Merger)
 	assert.Equal(t, pr.MergerID, pr.Merger.ID)
@@ -24,7 +24,7 @@ func TestPullRequest_LoadAttributes(t *testing.T) {
 
 func TestPullRequest_LoadIssue(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadIssue())
 	assert.NotNil(t, pr.Issue)
 	assert.Equal(t, int64(2), pr.Issue.ID)
@@ -35,7 +35,7 @@ func TestPullRequest_LoadIssue(t *testing.T) {
 
 func TestPullRequest_LoadBaseRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadBaseRepo())
 	assert.NotNil(t, pr.BaseRepo)
 	assert.Equal(t, pr.BaseRepoID, pr.BaseRepo.ID)
@@ -46,7 +46,7 @@ func TestPullRequest_LoadBaseRepo(t *testing.T) {
 
 func TestPullRequest_LoadHeadRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadHeadRepo())
 	assert.NotNil(t, pr.HeadRepo)
 	assert.Equal(t, pr.HeadRepoID, pr.HeadRepo.ID)
@@ -180,12 +180,12 @@ func TestGetPullRequestByIssueID(t *testing.T) {
 
 func TestPullRequest_Update(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	pr.BaseBranch = "baseBranch"
 	pr.HeadBranch = "headBranch"
 	pr.Update()
 
-	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID}).(*issues_model.PullRequest)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: pr.ID})
 	assert.Equal(t, "baseBranch", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	unittest.CheckConsistencyFor(t, pr)
@@ -200,7 +200,7 @@ func TestPullRequest_UpdateCols(t *testing.T) {
 	}
 	assert.NoError(t, pr.UpdateCols("head_branch"))
 
-	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.Equal(t, "master", pr.BaseBranch)
 	assert.Equal(t, "headBranch", pr.HeadBranch)
 	unittest.CheckConsistencyFor(t, pr)
@@ -210,8 +210,8 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	prs := []*issues_model.PullRequest{
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest),
-		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}),
+		unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}),
 	}
 	assert.NoError(t, issues_model.PullRequestList(prs).LoadAttributes())
 	for _, pr := range prs {
@@ -227,7 +227,7 @@ func TestPullRequestList_LoadAttributes(t *testing.T) {
 func TestPullRequest_IsWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue()
 
 	assert.False(t, pr.IsWorkInProgress())
@@ -242,7 +242,7 @@ func TestPullRequest_IsWorkInProgress(t *testing.T) {
 func TestPullRequest_GetWorkInProgressPrefixWorkInProgress(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	pr.LoadIssue()
 
 	assert.Empty(t, pr.GetWorkInProgressPrefix())

@@ -26,8 +26,8 @@ import (
 func TestAPIPullUpdate(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
@@ -54,8 +54,8 @@ func TestAPIPullUpdate(t *testing.T) {
 func TestAPIPullUpdateByRebase(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
 		// Create PR to test
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+		org26 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 26})
 		pr := createOutdatedPR(t, user, org26)
 
 		// Test GetDiverging
@@ -166,7 +166,7 @@ func createOutdatedPR(t *testing.T, actor, forkOrg *user_model.User) *issues_mod
 	err = pull_service.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 	assert.NoError(t, err)
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"}).(*issues_model.Issue)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "Test Pull -to-update-"})
 	pr, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 	assert.NoError(t, err)
 

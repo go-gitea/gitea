@@ -26,8 +26,8 @@ func TestMain(m *testing.M) {
 func TestRenameRepoAction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{OwnerID: user.ID})
 	repo.Owner = user
 
 	oldRepoName := repo.Name

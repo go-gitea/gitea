@@ -17,7 +17,7 @@ import (
 // TestAPICreateAndDeleteToken tests that token that was just created can be deleted
 func TestAPICreateAndDeleteToken(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/users/user1/tokens", map[string]string{
 		"name": "test-key-1",
@@ -57,7 +57,7 @@ func TestAPICreateAndDeleteToken(t *testing.T) {
 // TestAPIDeleteMissingToken ensures that error is thrown when token not found
 func TestAPIDeleteMissingToken(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	req := NewRequestf(t, "DELETE", "/api/v1/users/user1/tokens/%d", unittest.NonexistentID)
 	req = AddBasicAuthHeader(req, user.Name)
