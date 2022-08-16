@@ -135,6 +135,7 @@ type RepoSettingForm struct {
 	EnablePrune            bool
 
 	// Advanced settings
+	EnableCode                            bool
 	EnableWiki                            bool
 	EnableExternalWiki                    bool
 	ExternalWikiURL                       string
