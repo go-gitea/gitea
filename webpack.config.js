@@ -74,8 +74,7 @@ export default {
     },
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
-      const name = language ? `monaco-language-${language.toLowerCase()}` : `[name]`;
-      return `js/${name}.[contenthash:8].js`;
+      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
   optimization: {
