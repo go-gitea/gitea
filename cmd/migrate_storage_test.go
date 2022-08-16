@@ -23,7 +23,7 @@ import (
 func TestMigratePackages(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	creator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	content := "package main\n\nfunc main() {\nfmt.Println(\"hi\")\n}\n"
 	buf, err := packages_module.CreateHashedBufferFromReader(strings.NewReader(content), 1024)
