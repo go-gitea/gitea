@@ -229,16 +229,16 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 func TestListStopWatches(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	req := NewRequestf(t, "GET", "/user/stopwatches")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiWatches []*api.StopWatch
 	DecodeJSON(t, resp, &apiWatches)
-	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID}).(*issues_model.Stopwatch)
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID}).(*issues_model.Issue)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID})
 	if assert.Len(t, apiWatches, 1) {
 		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
 		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)

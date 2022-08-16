@@ -171,3 +171,7 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
+    - path: models/user/badge.go
+      linters:
+        - revive
+      text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"

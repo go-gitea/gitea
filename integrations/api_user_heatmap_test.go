@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"github.com/stretchr/testify/assert"
@@ -29,10 +29,10 @@ func TestUserHeatmap(t *testing.T) {
 	urlStr := fmt.Sprintf("/api/v1/users/%s/heatmap?token=%s", normalUsername, token)
 	req := NewRequest(t, "GET", urlStr)
 	resp := MakeRequest(t, req, http.StatusOK)
-	var heatmap []*models.UserHeatmapData
+	var heatmap []*activities_model.UserHeatmapData
 	DecodeJSON(t, resp, &heatmap)
-	var dummyheatmap []*models.UserHeatmapData
-	dummyheatmap = append(dummyheatmap, &models.UserHeatmapData{Timestamp: 1603227600, Contributions: 1})
+	var dummyheatmap []*activities_model.UserHeatmapData
+	dummyheatmap = append(dummyheatmap, &activities_model.UserHeatmapData{Timestamp: 1603227600, Contributions: 1})
 
 	assert.Equal(t, dummyheatmap, heatmap)
 }

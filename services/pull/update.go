@@ -87,6 +87,9 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 	headRepoPerm, err := access_model.GetUserRepoPermission(ctx, pull.HeadRepo, user)
 	if err != nil {
+		if repo_model.IsErrUnitTypeNotExist(err) {
+			return false, false, nil
+		}
 		return false, false, err
 	}
 

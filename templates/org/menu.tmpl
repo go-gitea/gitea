@@ -18,7 +18,7 @@
 			<a class="{{if $.PageIsOrgTeams}}active{{end}} item" href="{{$.OrgLink}}/teams">
 				{{svg "octicon-people"}}&nbsp;{{$.locale.Tr "org.teams"}}
 				{{if .NumTeams}}
-					<div class="ui black label">{{.NumTeams}}</div>
+					<div class="ui primary label">{{.NumTeams}}</div>
 				{{end}}
 			</a>
 		{{end}}
