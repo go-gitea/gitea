@@ -27,13 +27,13 @@ import (
 var CmdMigrateStorage = cli.Command{
 	Name:        "migrate-storage",
 	Usage:       "Migrate the storage",
-	Description: "This is a command for migrating Gitea configured storage to a parameter indicated storage.",
+	Description: "Copies stored files from storage configured in app.ini to parameter-configured storage",
 	Action:      runMigrateStorage,
 	Flags: []cli.Flag{
 		cli.StringFlag{
 			Name:  "type, t",
 			Value: "",
-			Usage: "Kinds of files to migrate, could be one of 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
+			Usage: "Type of stored files to copy.  Allowed types: 'attachments', 'lfs', 'avatars', 'repo-avatars', 'repo-archivers', 'packages'",
 		},
 		cli.StringFlag{
 			Name:  "storage, s",
@@ -201,7 +201,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		if err := m(stdCtx, dstStorage); err != nil {
 			return err
 		}
-		log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
+		log.Info("%s files have successfully been copied to the new storage.", tp)
 		return nil
 	}
 
