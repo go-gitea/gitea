@@ -60,7 +60,7 @@ func TestNewAccessTokenResponse_OIDCToken(t *testing.T) {
 	assert.Empty(t, oidcToken.Email)
 	assert.False(t, oidcToken.EmailVerified)
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	grants, err = auth.GetOAuth2GrantsByUserID(db.DefaultContext, user.ID)
 	assert.NoError(t, err)
 	assert.Len(t, grants, 1)

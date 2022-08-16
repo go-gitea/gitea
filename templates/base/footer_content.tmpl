@@ -1,7 +1,7 @@
 <footer>
 	<div class="ui container">
 		<div class="ui left">
-			{{.locale.Tr "powered_by" "Gitea"}}
+			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "powered_by" "Gitea"}}</a>
 			{{if (or .ShowFooterVersion .PageIsAdmin)}}
 				{{.locale.Tr "version"}}:
 				{{if .IsAdmin}}
@@ -31,7 +31,6 @@
 			</div>
 			<a href="{{AssetUrlPrefix}}/js/licenses.txt">{{.locale.Tr "licenses"}}</a>
 			{{if .EnableSwagger}}<a href="{{AppSubUrl}}/api/swagger">API</a>{{end}}
-			<a target="_blank" rel="noopener noreferrer" href="https://gitea.io">{{.locale.Tr "website"}}</a>
 			{{template "custom/extra_links_footer" .}}
 		</div>
 	</div>

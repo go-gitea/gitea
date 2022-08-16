@@ -16,12 +16,12 @@ import (
 func TestRepoGetReviewerTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	teams, err := GetReviewerTeams(repo2)
 	assert.NoError(t, err)
 	assert.Empty(t, teams)
 
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	teams, err = GetReviewerTeams(repo3)
 	assert.NoError(t, err)
 	assert.Len(t, teams, 2)
