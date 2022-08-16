@@ -87,7 +87,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 		Fingerprint: ctx.FormString("fingerprint"),
 	}
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, opts)
+	keys, err := asymkey_model.ListDeployKeys(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -107,7 +107,7 @@ func ListDeployKeys(ctx *context.APIContext) {
 			return
 		}
 		apiKeys[i] = convert.ToDeployKey(apiLink, keys[i])
-		if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+		if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == keys[i].RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
 			apiKeys[i], _ = appendPrivateInformation(apiKeys[i], keys[i], ctx.Repo.Repository)
 		}
 	}
@@ -144,7 +144,7 @@ func GetDeployKey(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/DeployKey"
 
-	key, err := asymkey_model.GetDeployKeyByID(db.DefaultContext, ctx.ParamsInt64(":id"))
+	key, err := asymkey_model.GetDeployKeyByID(ctx, ctx.ParamsInt64(":id"))
 	if err != nil {
 		if asymkey_model.IsErrDeployKeyNotExist(err) {
 			ctx.NotFound()
@@ -161,7 +161,7 @@ func GetDeployKey(ctx *context.APIContext) {
 
 	apiLink := composeDeployKeysAPILink(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
 	apiKey := convert.ToDeployKey(apiLink, key)
-	if ctx.User.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.User.ID == ctx.Repo.Owner.ID)) {
+	if ctx.Doer.IsAdmin || ((ctx.Repo.Repository.ID == key.RepoID) && (ctx.Doer.ID == ctx.Repo.Owner.ID)) {
 		apiKey, _ = appendPrivateInformation(apiKey, key, ctx.Repo.Repository)
 	}
 	ctx.JSON(http.StatusOK, apiKey)
@@ -270,7 +270,7 @@ func DeleteDeploykey(ctx *context.APIContext) {
 	//   "403":
 	//     "$ref": "#/responses/forbidden"
 
-	if err := asymkey_service.DeleteDeployKey(ctx.User, ctx.ParamsInt64(":id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.ParamsInt64(":id")); err != nil {
 		if asymkey_model.IsErrKeyAccessDenied(err) {
 			ctx.Error(http.StatusForbidden, "", "You do not have access to this key")
 		} else {

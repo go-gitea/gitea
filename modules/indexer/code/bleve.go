@@ -182,7 +182,8 @@ func NewBleveIndexer(indexDir string) (*BleveIndexer, bool, error) {
 }
 
 func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteCloserError, batchReader *bufio.Reader, commitSha string,
-	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch) error {
+	update fileUpdate, repo *repo_model.Repository, batch *gitea_bleve.FlushingBatch,
+) error {
 	// Ignore vendored files in code search
 	if setting.Indexer.ExcludeVendored && analyze.IsVendor(update.Filename) {
 		return nil
@@ -190,9 +191,10 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 
 	size := update.Size
 
+	var err error
 	if !update.Sized {
-		stdout, err := git.NewCommandContext(ctx, "cat-file", "-s", update.BlobSha).
-			RunInDir(repo.RepoPath())
+		var stdout string
+		stdout, _, err = git.NewCommand(ctx, "cat-file", "-s", update.BlobSha).RunStdString(&git.RunOpts{Dir: repo.RepoPath()})
 		if err != nil {
 			return err
 		}
@@ -209,7 +211,7 @@ func (b *BleveIndexer) addUpdate(ctx context.Context, batchWriter git.WriteClose
 		return err
 	}
 
-	_, _, size, err := git.ReadBatchLine(batchReader)
+	_, _, size, err = git.ReadBatchLine(batchReader)
 	if err != nil {
 		return err
 	}
@@ -271,6 +273,15 @@ func (b *BleveIndexer) Close() {
 	log.Info("PID: %d Repository Indexer closed", os.Getpid())
 }
 
+// SetAvailabilityChangeCallback does nothing
+func (b *BleveIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+}
+
+// Ping does nothing
+func (b *BleveIndexer) Ping() bool {
+	return true
+}
+
 // Index indexes the data
 func (b *BleveIndexer) Index(ctx context.Context, repo *repo_model.Repository, sha string, changes *repoChanges) error {
 	batch := gitea_bleve.NewFlushingBatch(b.indexer, maxBatchSize)
@@ -319,7 +330,7 @@ func (b *BleveIndexer) Delete(repoID int64) error {
 
 // Search searches for files in the specified repo.
 // Returns the matching file-paths
-func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
+func (b *BleveIndexer) Search(ctx context.Context, repoIDs []int64, language, keyword string, page, pageSize int, isMatch bool) (int64, []*SearchResult, []*SearchResultLanguages, error) {
 	var (
 		indexerQuery query.Query
 		keywordQuery query.Query
@@ -372,7 +383,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 		searchRequest.AddFacet("languages", bleve.NewFacetRequest("Language", 10))
 	}
 
-	result, err := b.indexer.Search(searchRequest)
+	result, err := b.indexer.SearchInContext(ctx, searchRequest)
 	if err != nil {
 		return 0, nil, nil, err
 	}
@@ -381,7 +392,7 @@ func (b *BleveIndexer) Search(repoIDs []int64, language, keyword string, page, p
 
 	searchResults := make([]*SearchResult, len(result.Hits))
 	for i, hit := range result.Hits {
-		var startIndex, endIndex int = -1, -1
+		startIndex, endIndex := -1, -1
 		for _, locations := range hit.Locations["Content"] {
 			location := locations[0]
 			locationStart := int(location.Start)

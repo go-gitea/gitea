@@ -27,7 +27,7 @@ func TestRenameBranch(t *testing.T) {
 		"to":    "main",
 	}
 	req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/rename_branch", postData)
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// check new branch link
 	req = NewRequestWithValues(t, "GET", "/user2/repo1/src/branch/main/README.md", postData)
@@ -35,11 +35,11 @@ func TestRenameBranch(t *testing.T) {
 
 	// check old branch link
 	req = NewRequestWithValues(t, "GET", "/user2/repo1/src/branch/master/README.md", postData)
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	location := resp.HeaderMap.Get("Location")
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
 	// check db
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo1.DefaultBranch)
 }

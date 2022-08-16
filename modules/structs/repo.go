@@ -59,6 +59,8 @@ type Repository struct {
 	Parent        *Repository `json:"parent"`
 	Mirror        bool        `json:"mirror"`
 	Size          int         `json:"size"`
+	Language      string      `json:"language"`
+	LanguagesURL  string      `json:"languages_url"`
 	HTMLURL       string      `json:"html_url"`
 	SSHURL        string      `json:"ssh_url"`
 	CloneURL      string      `json:"clone_url"`
@@ -75,24 +77,26 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time        `json:"updated_at"`
-	Permissions               *Permission      `json:"permissions,omitempty"`
-	HasIssues                 bool             `json:"has_issues"`
-	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
-	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	HasWiki                   bool             `json:"has_wiki"`
-	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-	HasPullRequests           bool             `json:"has_pull_requests"`
-	HasProjects               bool             `json:"has_projects"`
-	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool             `json:"allow_merge_commits"`
-	AllowRebase               bool             `json:"allow_rebase"`
-	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
-	AllowSquash               bool             `json:"allow_squash_merge"`
-	DefaultMergeStyle         string           `json:"default_merge_style"`
-	AvatarURL                 string           `json:"avatar_url"`
-	Internal                  bool             `json:"internal"`
-	MirrorInterval            string           `json:"mirror_interval"`
+	Updated                       time.Time        `json:"updated_at"`
+	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasIssues                     bool             `json:"has_issues"`
+	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                       bool             `json:"has_wiki"`
+	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests               bool             `json:"has_pull_requests"`
+	HasProjects                   bool             `json:"has_projects"`
+	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                    bool             `json:"allow_merge_commits"`
+	AllowRebase                   bool             `json:"allow_rebase"`
+	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
+	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
+	DefaultMergeStyle             string           `json:"default_merge_style"`
+	AvatarURL                     string           `json:"avatar_url"`
+	Internal                      bool             `json:"internal"`
+	MirrorInterval                string           `json:"mirror_interval"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
@@ -175,6 +179,8 @@ type EditRepoOption struct {
 	AllowManualMerge *bool `json:"allow_manual_merge,omitempty"`
 	// either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.
 	AutodetectManualMerge *bool `json:"autodetect_manual_merge,omitempty"`
+	// either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.
+	AllowRebaseUpdate *bool `json:"allow_rebase_update,omitempty"`
 	// set to `true` to delete pr branch after merge by default
 	DefaultDeleteBranchAfterMerge *bool `json:"default_delete_branch_after_merge,omitempty"`
 	// set to a merge style to be used by this repository: "merge", "rebase", "rebase-merge", or "squash". `has_pull_requests` must be `true`.
@@ -183,6 +189,8 @@ type EditRepoOption struct {
 	Archived *bool `json:"archived,omitempty"`
 	// set to a string like `8h30m0s` to set the mirror interval time
 	MirrorInterval *string `json:"mirror_interval,omitempty"`
+	// enable prune - remove obsolete remote-tracking references
+	EnablePrune *bool `json:"enable_prune,omitempty"`
 }
 
 // GenerateRepoOption options when creating repository using a template
@@ -197,6 +205,8 @@ type GenerateRepoOption struct {
 	// required: true
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
+	// Default branch of the new repository
+	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
 	Description string `json:"description" binding:"MaxSize(255)"`
 	// Whether the repository is private
@@ -218,7 +228,6 @@ type GenerateRepoOption struct {
 // CreateBranchRepoOption options when creating a branch in a repository
 // swagger:model
 type CreateBranchRepoOption struct {
-
 	// Name of the branch to create
 	//
 	// required: true

@@ -33,7 +33,7 @@ func TestRepoLanguages(t *testing.T) {
 			"content":       "package main",
 			"commit_choice": "direct",
 		})
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		// let gitea calculate language stats
 		time.Sleep(time.Second)

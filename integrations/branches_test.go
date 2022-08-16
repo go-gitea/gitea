@@ -9,8 +9,9 @@ import (
 	"net/url"
 	"testing"
 
+	"code.gitea.io/gitea/modules/translation"
+
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewBranches(t *testing.T) {
@@ -36,7 +37,7 @@ func TestUndoDeleteBranch(t *testing.T) {
 		htmlDoc, name := branchAction(t, ".undo-button")
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.positive.message").Text(),
-			i18n.Tr("en", "repo.branch.restore_success", name),
+			translation.NewLocale("en-US").Tr("repo.branch.restore_success", name),
 		)
 	})
 }
@@ -45,7 +46,7 @@ func deleteBranch(t *testing.T) {
 	htmlDoc, name := branchAction(t, ".delete-branch-button")
 	assert.Contains(t,
 		htmlDoc.doc.Find(".ui.positive.message").Text(),
-		i18n.Tr("en", "repo.branch.deletion_success", name),
+		translation.NewLocale("en-US").Tr("repo.branch.deletion_success", name),
 	)
 }
 

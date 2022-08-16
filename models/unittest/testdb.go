@@ -14,6 +14,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/util"
@@ -39,19 +40,27 @@ func fatalTestError(fmtStr string, args ...interface{}) {
 	os.Exit(1)
 }
 
+// TestOptions represents test options
+type TestOptions struct {
+	GiteaRootPath string
+	FixtureFiles  []string
+	SetUp         func() error // SetUp will be executed before all tests in this package
+	TearDown      func() error // TearDown will be executed after all tests in this package
+}
+
 // MainTest a reusable TestMain(..) function for unit tests that need to use a
 // test database. Creates the test database, and sets necessary settings.
-func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
+func MainTest(m *testing.M, testOpts *TestOptions) {
 	var err error
 
-	giteaRoot = pathToGiteaRoot
-	fixturesDir = filepath.Join(pathToGiteaRoot, "models", "fixtures")
+	giteaRoot = testOpts.GiteaRootPath
+	fixturesDir = filepath.Join(testOpts.GiteaRootPath, "models", "fixtures")
 
 	var opts FixturesOptions
-	if len(fixtureFiles) == 0 {
+	if len(testOpts.FixtureFiles) == 0 {
 		opts.Dir = fixturesDir
 	} else {
-		for _, f := range fixtureFiles {
+		for _, f := range testOpts.FixtureFiles {
 			if len(f) != 0 {
 				opts.Files = append(opts.Files, filepath.Join(fixturesDir, f))
 			}
@@ -64,9 +73,12 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 
 	setting.AppURL = "https://try.gitea.io/"
 	setting.RunUser = "runuser"
+	setting.SSH.User = "sshuser"
+	setting.SSH.BuiltinServerUser = "builtinuser"
 	setting.SSH.Port = 3000
 	setting.SSH.Domain = "try.gitea.io"
 	setting.Database.UseSQLite3 = true
+	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	repoRootPath, err := os.MkdirTemp(os.TempDir(), "repos")
 	if err != nil {
 		fatalTestError("TempDir: %v\n", err)
@@ -77,8 +89,8 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		fatalTestError("TempDir: %v\n", err)
 	}
 	setting.AppDataPath = appDataPath
-	setting.AppWorkPath = pathToGiteaRoot
-	setting.StaticRootPath = pathToGiteaRoot
+	setting.AppWorkPath = testOpts.GiteaRootPath
+	setting.StaticRootPath = testOpts.GiteaRootPath
 	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
 	if err != nil {
 		fatalTestError("url.Parse: %v\n", err)
@@ -93,6 +105,10 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 
 	setting.RepoArchive.Storage.Path = filepath.Join(setting.AppDataPath, "repo-archive")
 
+	setting.Packages.Storage.Path = filepath.Join(setting.AppDataPath, "packages")
+
+	setting.Git.HomePath = filepath.Join(setting.AppDataPath, "home")
+
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
 	}
@@ -100,10 +116,13 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
-	if err = util.CopyDir(filepath.Join(pathToGiteaRoot, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
+	if err = CopyDir(filepath.Join(testOpts.GiteaRootPath, "integrations", "gitea-repositories-meta"), setting.RepoRootPath); err != nil {
 		fatalTestError("util.CopyDir: %v\n", err)
 	}
 
+	if err = git.InitFull(context.Background()); err != nil {
+		fatalTestError("git.Init: %v\n", err)
+	}
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		fatalTestError("unable to read the new repo root: %v\n", err)
@@ -124,7 +143,20 @@ func MainTest(m *testing.M, pathToGiteaRoot string, fixtureFiles ...string) {
 		}
 	}
 
+	if testOpts.SetUp != nil {
+		if err := testOpts.SetUp(); err != nil {
+			fatalTestError("set up failed: %v\n", err)
+		}
+	}
+
 	exitStatus := m.Run()
+
+	if testOpts.TearDown != nil {
+		if err := testOpts.TearDown(); err != nil {
+			fatalTestError("tear down failed: %v\n", err)
+		}
+	}
+
 	if err = util.RemoveAll(repoRootPath); err != nil {
 		fatalTestError("util.RemoveAll: %v\n", err)
 	}
@@ -171,8 +203,7 @@ func PrepareTestEnv(t testing.TB) {
 	assert.NoError(t, PrepareTestDatabase())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	metaPath := filepath.Join(giteaRoot, "integrations", "gitea-repositories-meta")
-	assert.NoError(t, util.CopyDir(metaPath, setting.RepoRootPath))
-
+	assert.NoError(t, CopyDir(metaPath, setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	assert.NoError(t, err)
 	for _, ownerDir := range ownerDirs {

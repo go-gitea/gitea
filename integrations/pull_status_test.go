@@ -29,7 +29,7 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls")
 		resp := session.MakeRequest(t, req, http.StatusOK)
@@ -56,27 +56,20 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		}
 
 		statesIcons := map[api.CommitStatusState]string{
-			api.CommitStatusPending: "circle icon yellow",
-			api.CommitStatusSuccess: "check icon green",
-			api.CommitStatusError:   "warning icon red",
-			api.CommitStatusFailure: "remove icon red",
-			api.CommitStatusWarning: "warning sign icon yellow",
+			api.CommitStatusPending: "octicon-dot-fill",
+			api.CommitStatusSuccess: "octicon-check",
+			api.CommitStatusError:   "gitea-exclamation",
+			api.CommitStatusFailure: "octicon-x",
+			api.CommitStatusWarning: "gitea-exclamation",
 		}
+
+		testCtx := NewAPITestContext(t, "user1", "repo1")
 
 		// Update commit status, and check if icon is updated as well
 		for _, status := range statusList {
 
 			// Call API to add status for commit
-			token := getTokenForLoggedInUser(t, session)
-			req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/user1/repo1/statuses/%s?token=%s", commitID, token),
-				api.CreateStatusOption{
-					State:       status,
-					TargetURL:   "http://test.ci/",
-					Description: "",
-					Context:     "testci",
-				},
-			)
-			session.MakeRequest(t, req, http.StatusCreated)
+			t.Run("CreateStatus", doAPICreateCommitStatus(testCtx, commitID, status))
 
 			req = NewRequestf(t, "GET", "/user1/repo1/pulls/1/commits")
 			resp = session.MakeRequest(t, req, http.StatusOK)
@@ -87,14 +80,36 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			assert.NotEmpty(t, commitURL)
 			assert.EqualValues(t, commitID, path.Base(commitURL))
 
-			cls, ok := doc.doc.Find("#commits-table tbody tr td.message i.commit-status").Last().Attr("class")
+			cls, ok := doc.doc.Find("#commits-table tbody tr td.message .commit-status").Last().Attr("class")
 			assert.True(t, ok)
-			assert.EqualValues(t, "commit-status "+statesIcons[status], cls)
+			assert.Contains(t, cls, statesIcons[status])
 		}
 	})
 }
 
-func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
+func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.CommitStatusState) func(*testing.T) {
+	return func(t *testing.T) {
+		req := NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/statuses/%s?token=%s", ctx.Username, ctx.Reponame, commitID, ctx.Token),
+			api.CreateStatusOption{
+				State:       status,
+				TargetURL:   "http://test.ci/",
+				Description: "",
+				Context:     "testci",
+			},
+		)
+		if ctx.ExpectedCode != 0 {
+			ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+			return
+		}
+		ctx.Session.MakeRequest(t, req, http.StatusCreated)
+	}
+}
+
+func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
+	// Merge must continue if commits SHA are different, even if content is same
+	// Reason: gitflow and merging master back into develop, where is high possiblity, there are no changes
+	// but just commit saying "Merge branch". And this meta commit can be also tagged,
+	// so we need to have this meta commit also in develop branch.
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		session := loginUser(t, "user1")
 		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
@@ -108,13 +123,35 @@ func TestPullCreate_EmptyChangesWithCommits(t *testing.T) {
 				"title": "pull request from status1",
 			},
 		)
-		session.MakeRequest(t, req, http.StatusFound)
+		session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
 		resp := session.MakeRequest(t, req, http.StatusOK)
 		doc := NewHTMLParser(t, resp.Body)
 
 		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
-		assert.Contains(t, text, "This branch is equal with the target branch.")
+		assert.Contains(t, text, "This pull request can be merged automatically.")
+	})
+}
+
+func TestPullCreate_EmptyChangesWithSameCommits(t *testing.T) {
+	onGiteaRun(t, func(t *testing.T, u *url.URL) {
+		session := loginUser(t, "user1")
+		testRepoFork(t, session, "user2", "repo1", "user1", "repo1")
+		testCreateBranch(t, session, "user1", "repo1", "branch/master", "status1", http.StatusSeeOther)
+		url := path.Join("user1", "repo1", "compare", "master...status1")
+		req := NewRequestWithValues(t, "POST", url,
+			map[string]string{
+				"_csrf": GetCSRF(t, session, url),
+				"title": "pull request from status1",
+			},
+		)
+		session.MakeRequest(t, req, http.StatusSeeOther)
+		req = NewRequest(t, "GET", "/user1/repo1/pulls/1")
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		doc := NewHTMLParser(t, resp.Body)
+
+		text := strings.TrimSpace(doc.doc.Find(".merge-section").Text())
+		assert.Contains(t, text, "This branch is already included in the target branch. There is nothing to merge.")
 	})
 }

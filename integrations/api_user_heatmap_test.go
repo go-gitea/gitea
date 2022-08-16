@@ -20,15 +20,15 @@ func TestUserHeatmap(t *testing.T) {
 	defer prepareTestEnv(t)()
 	adminUsername := "user1"
 	normalUsername := "user2"
-	session := loginUser(t, adminUsername)
+	token := getUserToken(t, adminUsername)
 
 	fakeNow := time.Date(2011, 10, 20, 0, 0, 0, 0, time.Local)
 	timeutil.Set(fakeNow)
 	defer timeutil.Unset()
 
-	urlStr := fmt.Sprintf("/api/v1/users/%s/heatmap", normalUsername)
+	urlStr := fmt.Sprintf("/api/v1/users/%s/heatmap?token=%s", normalUsername, token)
 	req := NewRequest(t, "GET", urlStr)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	resp := MakeRequest(t, req, http.StatusOK)
 	var heatmap []*models.UserHeatmapData
 	DecodeJSON(t, resp, &heatmap)
 	var dummyheatmap []*models.UserHeatmapData

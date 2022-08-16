@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -92,5 +91,5 @@ func newSignatureFromCommitline(line []byte) (sig *Signature, err error) {
 			return
 		}
 	}
-	return
+	return sig, err
 }

@@ -44,6 +44,6 @@ func RepositoryFromContextOrOpen(ctx context.Context, path string) (*Repository,
 		return gitRepo, nopCloser(nil), nil
 	}
 
-	gitRepo, err := OpenRepositoryCtx(ctx, path)
+	gitRepo, err := OpenRepository(ctx, path)
 	return gitRepo, gitRepo, err
 }

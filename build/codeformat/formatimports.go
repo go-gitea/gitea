@@ -7,6 +7,7 @@ package codeformat
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"sort"
@@ -158,7 +159,7 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 }
 
 // FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string) error {
+func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -181,11 +182,20 @@ func FormatGoImports(file string) error {
 	if bytes.Equal(contentBytes, formattedBytes) {
 		return nil
 	}
-	f, err = os.OpenFile(file, os.O_TRUNC|os.O_WRONLY, 0o644)
-	if err != nil {
+
+	if doChangedFiles {
+		fmt.Println(file)
+	}
+
+	if doWriteFile {
+		f, err = os.OpenFile(file, os.O_TRUNC|os.O_WRONLY, 0o644)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		_, err = f.Write(formattedBytes)
 		return err
 	}
-	defer f.Close()
-	_, err = f.Write(formattedBytes)
+
 	return err
 }

@@ -10,6 +10,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
@@ -32,12 +34,12 @@ func NewNotifier() base.Notifier {
 	return &actionNotifier{}
 }
 
-func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
+func (a *actionNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*user_model.User) {
 	if err := issue.LoadPoster(); err != nil {
 		log.Error("issue.LoadPoster: %v", err)
 		return
 	}
-	if err := issue.LoadRepo(); err != nil {
+	if err := issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("issue.LoadRepo: %v", err)
 		return
 	}
@@ -57,7 +59,7 @@ func (a *actionNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_mo
 }
 
 // NotifyIssueChangeStatus notifies close or reopen issue to notifiers
-func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *models.Issue, actionComment *models.Comment, closeOrReopen bool) {
+func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
 	act := &models.Action{
@@ -91,7 +93,8 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *m
 
 // NotifyCreateIssueComment notifies comment on an issue to notifiers
 func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User) {
+	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
+) {
 	act := &models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -124,12 +127,12 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *r
 	}
 }
 
-func (a *actionNotifier) NotifyNewPullRequest(pull *models.PullRequest, mentions []*user_model.User) {
+func (a *actionNotifier) NotifyNewPullRequest(pull *issues_model.PullRequest, mentions []*user_model.User) {
 	if err := pull.LoadIssue(); err != nil {
 		log.Error("pull.LoadIssue: %v", err)
 		return
 	}
-	if err := pull.Issue.LoadRepo(); err != nil {
+	if err := pull.Issue.LoadRepo(db.DefaultContext); err != nil {
 		log.Error("pull.Issue.LoadRepo: %v", err)
 		return
 	}
@@ -205,7 +208,7 @@ func (a *actionNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, re
 	}
 }
 
-func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review *models.Review, comment *models.Comment, mentions []*user_model.User) {
+func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, review *issues_model.Review, comment *issues_model.Comment, mentions []*user_model.User) {
 	ctx, _, finished := process.GetManager().AddContext(graceful.GetManager().HammerContext(), fmt.Sprintf("actionNotifier.NotifyPullRequestReview Pull[%d] #%d in [%d]", pr.ID, pr.Index, pr.BaseRepoID))
 	defer finished()
 
@@ -237,7 +240,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		}
 	}
 
-	if review.Type != models.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
+	if review.Type != issues_model.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
 		action := &models.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
@@ -250,9 +253,9 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 		}
 
 		switch review.Type {
-		case models.ReviewTypeApprove:
+		case issues_model.ReviewTypeApprove:
 			action.OpType = models.ActionApprovePullRequest
-		case models.ReviewTypeReject:
+		case issues_model.ReviewTypeReject:
 			action.OpType = models.ActionRejectPullRequest
 		default:
 			action.OpType = models.ActionCommentPull
@@ -266,7 +269,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *models.PullRequest, review 
 	}
 }
 
-func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user_model.User) {
+func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
 	if err := models.NotifyWatchers(&models.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
@@ -280,7 +283,7 @@ func (*actionNotifier) NotifyMergePullRequest(pr *models.PullRequest, doer *user
 	}
 }
 
-func (*actionNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *models.Review, comment *models.Comment) {
+func (*actionNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *issues_model.Review, comment *issues_model.Comment) {
 	reviewerName := review.Reviewer.Name
 	if len(review.OriginalAuthor) > 0 {
 		reviewerName = review.OriginalAuthor

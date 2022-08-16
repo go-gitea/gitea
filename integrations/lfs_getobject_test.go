@@ -12,9 +12,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
@@ -28,7 +27,7 @@ func storeObjectInRepo(t *testing.T, repositoryID int64, content *[]byte) string
 	pointer, err := lfs.GeneratePointer(bytes.NewReader(*content))
 	assert.NoError(t, err)
 
-	_, err = models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
+	_, err = git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointer, RepositoryID: repositoryID})
 	assert.NoError(t, err)
 	contentStore := lfs.NewContentStore()
 	exist, err := contentStore.Exists(pointer)
@@ -44,7 +43,7 @@ func storeAndGetLfs(t *testing.T, content *[]byte, extraHeader *http.Header, exp
 	repo, err := repo_model.GetRepositoryByOwnerAndName("user2", "repo1")
 	assert.NoError(t, err)
 	oid := storeObjectInRepo(t, repo.ID, content)
-	defer models.RemoveLFSMetaObjectByOid(repo.ID, oid)
+	defer git_model.RemoveLFSMetaObjectByOid(repo.ID, oid)
 
 	session := loginUser(t, "user2")
 
@@ -83,11 +82,6 @@ func checkResponseTestContentEncoding(t *testing.T, content *[]byte, resp *httpt
 
 func TestGetLFSSmall(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	content := []byte("A very small file\n")
 
 	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
@@ -96,11 +90,6 @@ func TestGetLFSSmall(t *testing.T) {
 
 func TestGetLFSLarge(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	content := make([]byte, web.GzipMinSize*10)
 	for i := range content {
 		content[i] = byte(i % 256)
@@ -112,11 +101,6 @@ func TestGetLFSLarge(t *testing.T) {
 
 func TestGetLFSGzip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
@@ -133,11 +117,6 @@ func TestGetLFSGzip(t *testing.T) {
 
 func TestGetLFSZip(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	b := make([]byte, web.GzipMinSize*10)
 	for i := range b {
 		b[i] = byte(i % 256)
@@ -156,11 +135,6 @@ func TestGetLFSZip(t *testing.T) {
 
 func TestGetLFSRangeNo(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	content := []byte("123456789\n")
 
 	resp := storeAndGetLfs(t, &content, nil, http.StatusOK)
@@ -169,11 +143,6 @@ func TestGetLFSRangeNo(t *testing.T) {
 
 func TestGetLFSRange(t *testing.T) {
 	defer prepareTestEnv(t)()
-	git.CheckLFSVersion()
-	if !setting.LFS.StartServer {
-		t.Skip()
-		return
-	}
 	content := []byte("123456789\n")
 
 	tests := []struct {

@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -22,6 +21,9 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
 	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
+		if IsErrNotExist(err) {
+			return err
+		}
 		log.Error("Unable to get commit from ref %q. Error: %v", NotesRef, err)
 		return err
 	}
@@ -81,7 +83,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		log.Error("Unable to get the commit for the path %q. Error: %v", path, err)
 		return err
 	}
-	note.Commit = convertCommit(lastCommits[path])
+	note.Commit = lastCommits[path]
 
 	return nil
 }

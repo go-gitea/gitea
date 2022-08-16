@@ -13,7 +13,6 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -45,7 +44,7 @@ func Webhooks(ctx *context.Context) {
 	ctx.Data["BaseLinkNew"] = ctx.Repo.RepoLink + "/settings/hooks"
 	ctx.Data["Description"] = ctx.Tr("repo.settings.hooks_desc", "https://docs.gitea.io/en-us/webhooks/")
 
-	ws, err := webhook.ListWebhooksByOpts(&webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
+	ws, err := webhook.ListWebhooksByOpts(ctx, &webhook.ListWebhookOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("GetWebhooksByRepoID", err)
 		return
@@ -85,7 +84,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	if ctx.User.IsAdmin {
+	if ctx.Doer.IsAdmin {
 		// Are we looking at default webhooks?
 		if ctx.Params(":configType") == "default-hooks" {
 			return &orgRepoCtx{
@@ -106,7 +105,7 @@ func getOrgRepoCtx(ctx *context.Context) (*orgRepoCtx, error) {
 		}, nil
 	}
 
-	return nil, errors.New("Unable to set OrgRepo context")
+	return nil, errors.New("unable to set OrgRepo context")
 }
 
 func checkHookType(ctx *context.Context) string {
@@ -148,7 +147,6 @@ func WebhooksNew(ctx *context.Context) {
 	if hookType == "discord" {
 		ctx.Data["DiscordHook"] = map[string]interface{}{
 			"Username": "Gitea",
-			"IconURL":  setting.AppURL + "img/favicon.png",
 		}
 	}
 	ctx.Data["BaseLink"] = orCtx.LinkNew
@@ -181,19 +179,28 @@ func ParseHookEvent(form forms.WebhookForm) *webhook.HookEvent {
 			PullRequestReview:    form.PullRequestReview,
 			PullRequestSync:      form.PullRequestSync,
 			Repository:           form.Repository,
+			Package:              form.Package,
 		},
 		BranchFilter: form.BranchFilter,
 	}
 }
 
-// GiteaHooksNewPost response for creating Gitea webhook
-func GiteaHooksNewPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWebhookForm)
+type webhookCreationParams struct {
+	URL         string
+	ContentType webhook.HookContentType
+	Secret      string
+	HTTPMethod  string
+	WebhookForm forms.WebhookForm
+	Type        string
+	Meta        interface{}
+}
+
+func createWebhook(ctx *context.Context, params webhookCreationParams) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
 	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.GITEA
+	ctx.Data["HookType"] = params.Type
 
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
@@ -207,484 +214,212 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		return
 	}
 
-	contentType := webhook.ContentTypeJSON
-	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
-		contentType = webhook.ContentTypeForm
+	var meta []byte
+	if params.Meta != nil {
+		meta, err = json.Marshal(params.Meta)
+		if err != nil {
+			ctx.ServerError("Marshal", err)
+			return
+		}
 	}
 
 	w := &webhook.Webhook{
 		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		HTTPMethod:      form.HTTPMethod,
-		ContentType:     contentType,
-		Secret:          form.Secret,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.GITEA,
+		URL:             params.URL,
+		HTTPMethod:      params.HTTPMethod,
+		ContentType:     params.ContentType,
+		Secret:          params.Secret,
+		HookEvent:       ParseHookEvent(params.WebhookForm),
+		IsActive:        params.WebhookForm.Active,
+		Type:            params.Type,
+		Meta:            string(meta),
 		OrgID:           orCtx.OrgID,
 		IsSystemWebhook: orCtx.IsSystemWebhook,
 	}
 	if err := w.UpdateEvent(); err != nil {
 		ctx.ServerError("UpdateEvent", err)
 		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
+	} else if err := webhook.CreateWebhook(ctx, w); err != nil {
 		ctx.ServerError("CreateWebhook", err)
 		return
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
 	ctx.Redirect(orCtx.Link)
+}
+
+// GiteaHooksNewPost response for creating Gitea webhook
+func GiteaHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewWebhookForm)
+
+	contentType := webhook.ContentTypeJSON
+	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
+		contentType = webhook.ContentTypeForm
+	}
+
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: contentType,
+		Secret:      form.Secret,
+		HTTPMethod:  form.HTTPMethod,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.GITEA,
+	})
 }
 
 // GogsHooksNewPost response for creating webhook
 func GogsHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewGogshookForm)
-	newGogsWebhookPost(ctx, *form, webhook.GOGS)
-}
-
-// newGogsWebhookPost response for creating gogs hook
-func newGogsWebhookPost(ctx *context.Context, form forms.NewGogshookForm, kind webhook.HookType) {
-	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.GOGS
-
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-	ctx.Data["BaseLink"] = orCtx.LinkNew
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
 
 	contentType := webhook.ContentTypeJSON
 	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
 		contentType = webhook.ContentTypeForm
 	}
 
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     contentType,
-		Secret:          form.Secret,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            kind,
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: contentType,
+		Secret:      form.Secret,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.GOGS,
+	})
 }
 
 // DiscordHooksNewPost response for creating discord hook
 func DiscordHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.DISCORD
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.DiscordMeta{
-		Username: form.Username,
-		IconURL:  form.IconURL,
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.DISCORD,
+		Meta: &webhook_service.DiscordMeta{
+			Username: form.Username,
+			IconURL:  form.IconURL,
+		},
 	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.DISCORD,
-		Meta:            string(meta),
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
 }
 
 // DingtalkHooksNewPost response for creating dingtalk hook
 func DingtalkHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.DINGTALK
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.DINGTALK,
-		Meta:            "",
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.DINGTALK,
+	})
 }
 
 // TelegramHooksNewPost response for creating telegram hook
 func TelegramHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.TELEGRAM
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.TelegramMeta{
-		BotToken: form.BotToken,
-		ChatID:   form.ChatID,
+	createWebhook(ctx, webhookCreationParams{
+		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.TELEGRAM,
+		Meta: &webhook_service.TelegramMeta{
+			BotToken: form.BotToken,
+			ChatID:   form.ChatID,
+		},
 	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.TELEGRAM,
-		Meta:            string(meta),
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
 }
 
 // MatrixHooksNewPost response for creating a Matrix hook
 func MatrixHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.MATRIX
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.MatrixMeta{
-		HomeserverURL: form.HomeserverURL,
-		Room:          form.RoomID,
-		AccessToken:   form.AccessToken,
-		MessageType:   form.MessageType,
+	createWebhook(ctx, webhookCreationParams{
+		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
+		ContentType: webhook.ContentTypeJSON,
+		HTTPMethod:  http.MethodPut,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.MATRIX,
+		Meta: &webhook_service.MatrixMeta{
+			HomeserverURL: form.HomeserverURL,
+			Room:          form.RoomID,
+			AccessToken:   form.AccessToken,
+			MessageType:   form.MessageType,
+		},
 	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
-		ContentType:     webhook.ContentTypeJSON,
-		HTTPMethod:      "PUT",
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.MATRIX,
-		Meta:            string(meta),
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
 }
 
 // MSTeamsHooksNewPost response for creating MS Teams hook
 func MSTeamsHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.MSTEAMS
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.MSTEAMS,
-		Meta:            "",
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.MSTEAMS,
+	})
 }
 
 // SlackHooksNewPost response for creating slack hook
 func SlackHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.SLACK
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	if form.HasInvalidChannel() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
-		ctx.Redirect(orCtx.LinkNew + "/slack/new")
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.SlackMeta{
-		Channel:  strings.TrimSpace(form.Channel),
-		Username: form.Username,
-		IconURL:  form.IconURL,
-		Color:    form.Color,
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.SLACK,
+		Meta: &webhook_service.SlackMeta{
+			Channel:  strings.TrimSpace(form.Channel),
+			Username: form.Username,
+			IconURL:  form.IconURL,
+			Color:    form.Color,
+		},
 	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.SLACK,
-		Meta:            string(meta),
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
 }
 
 // FeishuHooksNewPost response for creating feishu hook
 func FeishuHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.FEISHU
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.FEISHU,
-		Meta:            "",
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.FEISHU,
+	})
 }
 
 // WechatworkHooksNewPost response for creating wechatwork hook
 func WechatworkHooksNewPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
 
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksNew"] = true
-	ctx.Data["Webhook"] = webhook.Webhook{HookEvent: &webhook.HookEvent{}}
-	ctx.Data["HookType"] = webhook.WECHATWORK
+	createWebhook(ctx, webhookCreationParams{
+		URL:         form.PayloadURL,
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.WECHATWORK,
+	})
+}
 
-	orCtx, err := getOrgRepoCtx(ctx)
-	if err != nil {
-		ctx.ServerError("getOrgRepoCtx", err)
-		return
-	}
+// PackagistHooksNewPost response for creating packagist hook
+func PackagistHooksNewPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w := &webhook.Webhook{
-		RepoID:          orCtx.RepoID,
-		URL:             form.PayloadURL,
-		ContentType:     webhook.ContentTypeJSON,
-		HookEvent:       ParseHookEvent(form.WebhookForm),
-		IsActive:        form.Active,
-		Type:            webhook.WECHATWORK,
-		Meta:            "",
-		OrgID:           orCtx.OrgID,
-		IsSystemWebhook: orCtx.IsSystemWebhook,
-	}
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.CreateWebhook(db.DefaultContext, w); err != nil {
-		ctx.ServerError("CreateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_hook_success"))
-	ctx.Redirect(orCtx.Link)
+	createWebhook(ctx, webhookCreationParams{
+		URL:         fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
+		ContentType: webhook.ContentTypeJSON,
+		WebhookForm: form.WebhookForm,
+		Type:        webhook.PACKAGIST,
+		Meta: &webhook_service.PackagistMeta{
+			Username:   form.Username,
+			APIToken:   form.APIToken,
+			PackageURL: form.PackageURL,
+		},
+	})
 }
 
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
-	ctx.Data["RequireHighlightJS"] = true
-
 	orCtx, err := getOrgRepoCtx(ctx)
 	if err != nil {
 		ctx.ServerError("getOrgRepoCtx", err)
@@ -719,6 +454,8 @@ func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
 		ctx.Data["TelegramHook"] = webhook_service.GetTelegramHook(w)
 	case webhook.MATRIX:
 		ctx.Data["MatrixHook"] = webhook_service.GetMatrixHook(w)
+	case webhook.PACKAGIST:
+		ctx.Data["PackagistHook"] = webhook_service.GetPackagistHook(w)
 	}
 
 	ctx.Data["History"], err = w.History(1)
@@ -839,12 +576,6 @@ func SlackHooksEditPost(ctx *context.Context) {
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	if form.HasInvalidChannel() {
-		ctx.Flash.Error(ctx.Tr("repo.settings.add_webhook.invalid_channel_name"))
-		ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 		return
 	}
 
@@ -1137,13 +868,57 @@ func WechatworkHooksEditPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
+// PackagistHooksEditPost response for editing packagist hook
+func PackagistHooksEditPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
+	ctx.Data["Title"] = ctx.Tr("repo.settings")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	meta, err := json.Marshal(&webhook_service.PackagistMeta{
+		Username:   form.Username,
+		APIToken:   form.APIToken,
+		PackageURL: form.PackageURL,
+	})
+	if err != nil {
+		ctx.ServerError("Marshal", err)
+		return
+	}
+
+	w.Meta = string(meta)
+	w.URL = fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken))
+	w.HookEvent = ParseHookEvent(form.WebhookForm)
+	w.IsActive = form.Active
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
 // TestWebhook test if web hook is work fine
 func TestWebhook(ctx *context.Context) {
 	hookID := ctx.ParamsInt64(":id")
 	w, err := webhook.GetWebhookByRepoID(ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		ctx.Flash.Error("GetWebhookByID: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 		return
 	}
 
@@ -1159,7 +934,7 @@ func TestWebhook(ctx *context.Context) {
 		}
 	}
 
-	apiUser := convert.ToUserWithAccessMode(ctx.User, perm.AccessModeNone)
+	apiUser := convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone)
 
 	apiCommit := &api.PayloadCommit{
 		ID:      commit.ID.String(),
@@ -1187,10 +962,10 @@ func TestWebhook(ctx *context.Context) {
 	}
 	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
-		ctx.Status(500)
+		ctx.Status(http.StatusInternalServerError)
 	} else {
 		ctx.Flash.Info(ctx.Tr("repo.settings.webhook.delivery.success"))
-		ctx.Status(200)
+		ctx.Status(http.StatusOK)
 	}
 }
 

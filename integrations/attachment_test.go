@@ -59,7 +59,7 @@ func createAttachment(t *testing.T, session *TestSession, repoURL, filename stri
 func TestCreateAnonymousAttachment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	session := emptyTestSession(t)
-	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusFound)
+	createAttachment(t, session, "user2/repo1", "image.png", generateImg(), http.StatusSeeOther)
 }
 
 func TestCreateIssueAttachment(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCreateIssueAttachment(t *testing.T) {
 	}
 
 	req = NewRequestWithValues(t, "POST", link, postData)
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	test.RedirectURL(resp) // check that redirect URL exists
 
 	// Validate that attachment is available

@@ -40,7 +40,8 @@ type InstallForm struct {
 	AppURL       string `binding:"Required"`
 	LogRootPath  string `binding:"Required"`
 
-	SMTPHost        string
+	SMTPAddr        string
+	SMTPPort        string
 	SMTPFrom        string
 	SMTPUser        string `binding:"OmitEmpty;MaxSize(254)" locale:"install.mailer_user"`
 	SMTPPasswd      string
@@ -95,6 +96,7 @@ type RegisterForm struct {
 	Retype             string
 	GRecaptchaResponse string `form:"g-recaptcha-response"`
 	HcaptchaResponse   string `form:"h-captcha-response"`
+	McaptchaResponse   string `form:"m-captcha-response"`
 }
 
 // Validate validates the fields
@@ -427,6 +429,18 @@ type WebauthnDeleteForm struct {
 
 // Validate validates the fields
 func (f *WebauthnDeleteForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// PackageSettingForm form for package settings
+type PackageSettingForm struct {
+	Action string
+	RepoID int64 `form:"repo_id"`
+}
+
+// Validate validates the fields
+func (f *PackageSettingForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }

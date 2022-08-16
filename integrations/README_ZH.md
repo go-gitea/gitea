@@ -36,7 +36,7 @@ TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root T
 ## 如何使用 pgsql 数据库进行集成测试
 同上，首先在 docker 容器里部署一个 pgsql 数据库
 ```
-docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:13 #(just ctrl-c to stop db and clean the container) 
+docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:14 #(just ctrl-c to stop db and clean the container) 
 ```
 之后便可以基于这个数据库进行集成测试
 ```

@@ -62,7 +62,7 @@ func init() {
 
 // NewAccessToken creates new access token.
 func NewAccessToken(t *AccessToken) error {
-	salt, err := util.RandomString(10)
+	salt, err := util.CryptoRandomString(10)
 	if err != nil {
 		return err
 	}

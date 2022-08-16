@@ -38,13 +38,13 @@ func CheckOAuthAccessToken(accessToken string) int64 {
 		return 0
 	}
 	var grant *auth.OAuth2Grant
-	if grant, err = auth.GetOAuth2GrantByID(token.GrantID); err != nil || grant == nil {
+	if grant, err = auth.GetOAuth2GrantByID(db.DefaultContext, token.GrantID); err != nil || grant == nil {
 		return 0
 	}
 	if token.Type != oauth2.TypeAccessToken {
 		return 0
 	}
-	if token.ExpiresAt < time.Now().Unix() || token.IssuedAt > time.Now().Unix() {
+	if token.ExpiresAt.Before(time.Now()) || token.IssuedAt.After(time.Now()) {
 		return 0
 	}
 	return grant.UserID

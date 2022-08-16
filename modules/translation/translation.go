@@ -5,14 +5,16 @@
 package translation
 
 import (
+	"path"
 	"sort"
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/util"
 
-	"github.com/unknwon/i18n"
 	"golang.org/x/text/language"
 )
 
@@ -25,33 +27,50 @@ type Locale interface {
 
 // LangType represents a lang type
 type LangType struct {
-	Lang, Name string
+	Lang, Name string // these fields are used directly in templates: {{range .AllLangs}}{{.Lang}}{{.Name}}{{end}}
 }
 
 var (
 	matcher       language.Matcher
-	allLangs      []LangType
+	allLangs      []*LangType
+	allLangMap    map[string]*LangType
 	supportedTags []language.Tag
 )
 
 // AllLangs returns all supported languages sorted by name
-func AllLangs() []LangType {
+func AllLangs() []*LangType {
 	return allLangs
 }
 
 // InitLocales loads the locales
 func InitLocales() {
-	i18n.Reset()
+	i18n.ResetDefaultLocales(setting.IsProd)
 	localeNames, err := options.Dir("locale")
 	if err != nil {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
-	localFiles := make(map[string][]byte)
+	localFiles := make(map[string]interface{}, len(localeNames))
 	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
-		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
+		if options.IsDynamic() {
+			// Try to check if CustomPath has the file, otherwise fallback to StaticRootPath
+			value := path.Join(setting.CustomPath, "options/locale", name)
+
+			isFile, err := util.IsFile(value)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
+
+			if isFile {
+				localFiles[name] = value
+			} else {
+				localFiles[name] = path.Join(setting.StaticRootPath, "options/locale", name)
+			}
+		} else {
+			localFiles[name], err = options.Locale(name)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
 		}
 	}
 
@@ -63,20 +82,29 @@ func InitLocales() {
 	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err = i18n.SetMessageWithDesc(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+
+		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
-	i18n.SetDefaultLang("en-US")
-
-	allLangs = make([]LangType, 0, i18n.Count()-1)
-	langs := i18n.ListLangs()
-	names := i18n.ListLangDescs()
-	for i, v := range langs {
-		allLangs = append(allLangs, LangType{v, names[i]})
+	if len(setting.Langs) != 0 {
+		defaultLangName := setting.Langs[0]
+		if defaultLangName != "en-US" {
+			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+		}
+		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 	}
 
-	// Sort languages case insensitive according to their name - needed for the user settings
+	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
+	allLangs = make([]*LangType, 0, len(langs))
+	allLangMap = map[string]*LangType{}
+	for i, v := range langs {
+		l := &LangType{v, descs[i]}
+		allLangs = append(allLangs, l)
+		allLangMap[v] = l
+	}
+
+	// Sort languages case-insensitive according to their name - needed for the user settings
 	sort.Slice(allLangs, func(i, j int) bool {
 		return strings.ToLower(allLangs[i].Name) < strings.ToLower(allLangs[j].Name)
 	})
@@ -90,13 +118,18 @@ func Match(tags ...language.Tag) language.Tag {
 
 // locale represents the information of localization.
 type locale struct {
-	Lang string
+	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	langName := "unknown"
+	if l, ok := allLangMap[lang]; ok {
+		langName = l.Name
+	}
 	return &locale{
-		Lang: lang,
+		Lang:     lang,
+		LangName: langName,
 	}
 }
 

@@ -29,9 +29,6 @@ func (Renderer) Name() string {
 	return "csv"
 }
 
-// NeedPostProcess implements markup.Renderer
-func (Renderer) NeedPostProcess() bool { return false }
-
 // Extensions implements markup.Renderer
 func (Renderer) Extensions() []string {
 	return []string{".csv", ".tsv"}

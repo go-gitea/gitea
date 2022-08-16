@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
@@ -115,9 +115,9 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 	return func(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: username,
-		}).(*user_model.User)
+		})
 
-		orgs, err := models.FindOrgs(models.FindOrgOptions{
+		orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 			UserID:         user.ID,
 			IncludePrivate: true,
 		})

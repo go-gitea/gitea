@@ -17,7 +17,7 @@ import (
 )
 
 func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkOwnerName, forkRepoName string) *httptest.ResponseRecorder {
-	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName}).(*user_model.User)
+	forkOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: forkOwnerName})
 
 	// Step0: check the existence of the to-fork repo
 	req := NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)
@@ -45,7 +45,7 @@ func testRepoFork(t *testing.T, session *TestSession, ownerName, repoName, forkO
 		"uid":       fmt.Sprintf("%d", forkOwner.ID),
 		"repo_name": forkRepoName,
 	})
-	resp = session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	// Step4: check the existence of the forked repo
 	req = NewRequestf(t, "GET", "/%s/%s", forkOwnerName, forkRepoName)

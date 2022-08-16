@@ -13,19 +13,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"io"
-
-	"code.gitea.io/gitea/modules/util"
 )
-
-// New creates a new secret
-func New() (string, error) {
-	return NewWithLength(44)
-}
-
-// NewWithLength creates a new secret for a given length
-func NewWithLength(length int64) (string, error) {
-	return util.RandomString(length)
-}
 
 // AesEncrypt encrypts text and given key with AES.
 func AesEncrypt(key, text []byte) ([]byte, error) {

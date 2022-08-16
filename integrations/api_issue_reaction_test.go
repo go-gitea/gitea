@@ -10,7 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/convert"
@@ -22,14 +23,14 @@ import (
 func TestAPIIssuesReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
-	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	_ = issue.LoadRepo(db.DefaultContext)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/%d/reactions?token=%s",
 		owner.Name, issue.Repo.Name, issue.Index, token)
 
@@ -79,17 +80,17 @@ func TestAPIIssuesReactions(t *testing.T) {
 func TestAPICommentReactions(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
 	_ = comment.LoadIssue()
 	issue := comment.Issue
-	_ = issue.LoadRepo()
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID}).(*user_model.User)
+	_ = issue.LoadRepo(db.DefaultContext)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: issue.Repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	urlStr := fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments/%d/reactions?token=%s",
 		owner.Name, issue.Repo.Name, comment.ID, token)
 

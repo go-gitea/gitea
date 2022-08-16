@@ -1,11 +1,30 @@
+import $ from 'jquery';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
 import {initRepoIssueContentHistory} from './repo-issue-content.js';
 import {validateTextareaNonEmpty} from './comp/EasyMDE.js';
+import {initViewedCheckboxListenerFor, countAndUpdateViewedFiles} from './pull-view-file.js';
+import {initTooltip} from '../modules/tippy.js';
+
 const {csrfToken} = window.config;
 
 export function initRepoDiffReviewButton() {
+  const $reviewBox = $('#review-box');
+  const $counter = $reviewBox.find('.review-comments-counter');
+
   $(document).on('click', 'button[name="is_review"]', (e) => {
-    $(e.target).closest('form').append('<input type="hidden" name="is_review" value="true">');
+    const $form = $(e.target).closest('form');
+    $form.append('<input type="hidden" name="is_review" value="true">');
+
+    // Watch for the form's submit event.
+    $form.on('submit', () => {
+      const num = parseInt($counter.attr('data-pending-comment-number')) + 1 || 1;
+      $counter.attr('data-pending-comment-number', num);
+      $counter.text(num);
+      // Force the browser to reflow the DOM. This is to ensure that the browser replay the animation
+      $reviewBox.removeClass('pulse');
+      $reviewBox.width();
+      $reviewBox.addClass('pulse');
+    });
   });
 }
 
@@ -34,6 +53,7 @@ export function initRepoDiffConversationForm() {
     const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
     const {path, side, idx} = newConversationHolder.data();
 
+    initTooltip(newConversationHolder.find('.tooltip'));
     form.closest('.conversation-holder').replaceWith(newConversationHolder);
     if (form.closest('tr').data('line-type') === 'same') {
       $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).addClass('invisible');
@@ -87,6 +107,13 @@ export function initRepoDiffConversationNav() {
   });
 }
 
+// Will be called when the show more (files) button has been pressed
+function onShowMoreFiles() {
+  initRepoIssueContentHistory();
+  initViewedCheckboxListenerFor();
+  countAndUpdateViewedFiles();
+}
+
 export function initRepoDiffShowMore() {
   $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
     e.preventDefault();
@@ -108,7 +135,7 @@ export function initRepoDiffShowMore() {
       $('#diff-too-many-files-stats').remove();
       $('#diff-files').append($(resp).find('#diff-files li'));
       $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-      initRepoIssueContentHistory();
+      onShowMoreFiles();
     }).fail(() => {
       $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
     });
@@ -134,7 +161,7 @@ export function initRepoDiffShowMore() {
       }
 
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
-      initRepoIssueContentHistory();
+      onShowMoreFiles();
     }).fail(() => {
       $target.removeClass('disabled');
     });

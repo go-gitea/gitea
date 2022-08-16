@@ -6,6 +6,7 @@ package migrations
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -22,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/repository"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 
 	"gopkg.in/yaml.v2"
@@ -149,12 +151,16 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 	}
 
 	err = git.Clone(g.ctx, remoteAddr, repoPath, git.CloneRepoOptions{
-		Mirror:  true,
-		Quiet:   true,
-		Timeout: migrateTimeout,
+		Mirror:        true,
+		Quiet:         true,
+		Timeout:       migrateTimeout,
+		SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 	})
 	if err != nil {
 		return fmt.Errorf("Clone: %v", err)
+	}
+	if err := git.WriteCommitGraph(g.ctx, repoPath); err != nil {
+		return err
 	}
 
 	if opts.Wiki {
@@ -166,20 +172,23 @@ func (g *RepositoryDumper) CreateRepo(repo *base.Repository, opts base.MigrateOp
 			}
 
 			if err := git.Clone(g.ctx, wikiRemotePath, wikiPath, git.CloneRepoOptions{
-				Mirror:  true,
-				Quiet:   true,
-				Timeout: migrateTimeout,
-				Branch:  "master",
+				Mirror:        true,
+				Quiet:         true,
+				Timeout:       migrateTimeout,
+				Branch:        "master",
+				SkipTLSVerify: setting.Migrations.SkipTLSVerify,
 			}); err != nil {
 				log.Warn("Clone wiki: %v", err)
 				if err := os.RemoveAll(wikiPath); err != nil {
 					return fmt.Errorf("Failed to remove %s: %v", wikiPath, err)
 				}
+			} else if err := git.WriteCommitGraph(g.ctx, wikiPath); err != nil {
+				return err
 			}
 		}
 	}
 
-	g.gitRepo, err = git.OpenRepositoryCtx(g.ctx, g.gitPath())
+	g.gitRepo, err = git.OpenRepository(g.ctx, g.gitPath())
 	return err
 }
 
@@ -476,7 +485,7 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 				}
 
 				if ok {
-					_, err = git.NewCommandContext(g.ctx, "fetch", remote, pr.Head.Ref).RunInDir(g.gitPath())
+					_, _, err = git.NewCommand(g.ctx, "fetch", remote, pr.Head.Ref).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 					if err != nil {
 						log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
 					} else {
@@ -569,7 +578,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 	return nil
 }
 
-func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
+func updateOptionsUnits(opts *base.MigrateOptions, units []string) error {
 	if len(units) == 0 {
 		opts.Wiki = true
 		opts.Issues = true
@@ -581,7 +590,9 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 		opts.ReleaseAssets = true
 	} else {
 		for _, unit := range units {
-			switch strings.ToLower(unit) {
+			switch strings.ToLower(strings.TrimSpace(unit)) {
+			case "":
+				continue
 			case "wiki":
 				opts.Wiki = true
 			case "issues":
@@ -598,19 +609,22 @@ func updateOptionsUnits(opts *base.MigrateOptions, units []string) {
 				opts.Comments = true
 			case "pull_requests":
 				opts.PullRequests = true
+			default:
+				return errors.New("invalid unit: " + unit)
 			}
 		}
 	}
+	return nil
 }
 
 // RestoreRepository restore a repository from the disk directory
-func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string) error {
+func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string, units []string, validation bool) error {
 	doer, err := user_model.GetAdminUser()
 	if err != nil {
 		return err
 	}
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, repoName)
-	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName)
+	downloader, err := NewRepositoryRestorer(ctx, baseDir, ownerName, repoName, validation)
 	if err != nil {
 		return err
 	}
@@ -623,7 +637,9 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 	migrateOpts := base.MigrateOptions{
 		GitServiceType: structs.GitServiceType(tp),
 	}
-	updateOptionsUnits(&migrateOpts, units)
+	if err := updateOptionsUnits(&migrateOpts, units); err != nil {
+		return err
+	}
 
 	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {

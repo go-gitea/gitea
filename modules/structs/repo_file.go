@@ -30,6 +30,11 @@ type CreateFileOptions struct {
 	Content string `json:"content"`
 }
 
+// Branch returns branch name
+func (o *CreateFileOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
 // DeleteFileOptions options for deleting files (used for other File structs below)
 // Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
 type DeleteFileOptions struct {
@@ -37,6 +42,11 @@ type DeleteFileOptions struct {
 	// sha is the SHA for the file that already exists
 	// required: true
 	SHA string `json:"sha" binding:"Required"`
+}
+
+// Branch returns branch name
+func (o *DeleteFileOptions) Branch() string {
+	return o.FileOptions.BranchName
 }
 
 // UpdateFileOptions options for updating files
@@ -50,6 +60,24 @@ type UpdateFileOptions struct {
 	FromPath string `json:"from_path" binding:"MaxSize(500)"`
 }
 
+// Branch returns branch name
+func (o *UpdateFileOptions) Branch() string {
+	return o.FileOptions.BranchName
+}
+
+// FileOptionInterface provides a unified interface for the different file options
+type FileOptionInterface interface {
+	Branch() string
+}
+
+// ApplyDiffPatchFileOptions options for applying a diff patch
+// Note: `author` and `committer` are optional (if only one is given, it will be used for the other, otherwise the authenticated user will be used)
+type ApplyDiffPatchFileOptions struct {
+	DeleteFileOptions
+	// required: true
+	Content string `json:"content"`
+}
+
 // FileLinksResponse contains the links for a repo's file
 type FileLinksResponse struct {
 	Self    *string `json:"self"`
@@ -59,9 +87,10 @@ type FileLinksResponse struct {
 
 // ContentsResponse contains information about a repo's entry's (dir, file, symlink, submodule) metadata and content
 type ContentsResponse struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-	SHA  string `json:"sha"`
+	Name          string `json:"name"`
+	Path          string `json:"path"`
+	SHA           string `json:"sha"`
+	LastCommitSHA string `json:"last_commit_sha"`
 	// `type` will be `file`, `dir`, `symlink`, or `submodule`
 	Type string `json:"type"`
 	Size int64  `json:"size"`

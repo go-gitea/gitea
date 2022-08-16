@@ -1,13 +1,8 @@
+#!/usr/bin/env node
 import imageminZopfli from 'imagemin-zopfli';
 import {optimize} from 'svgo';
 import {fabric} from 'fabric';
-import fs from 'fs';
-import {resolve, dirname} from 'path';
-import {fileURLToPath} from 'url';
-
-const {readFile, writeFile} = fs.promises;
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const logoFile = resolve(__dirname, '../assets/logo.svg');
+import {readFile, writeFile} from 'fs/promises';
 
 function exit(err) {
   if (err) console.error(err);
@@ -22,8 +17,10 @@ function loadSvg(svg) {
   });
 }
 
-async function generate(svg, outputFile, {size, bg}) {
-  if (outputFile.endsWith('.svg')) {
+async function generate(svg, path, {size, bg}) {
+  const outputFile = new URL(path, import.meta.url);
+
+  if (String(outputFile).endsWith('.svg')) {
     const {data} = optimize(svg, {
       plugins: [
         'preset-default',
@@ -68,17 +65,18 @@ async function generate(svg, outputFile, {size, bg}) {
 
 async function main() {
   const gitea = process.argv.slice(2).includes('gitea');
-  const svg = await readFile(logoFile, 'utf8');
+  const logoSvg = await readFile(new URL('../assets/logo.svg', import.meta.url), 'utf8');
+  const faviconSvg = await readFile(new URL('../assets/favicon.svg', import.meta.url), 'utf8');
 
   await Promise.all([
-    generate(svg, resolve(__dirname, '../public/img/logo.svg'), {size: 32}),
-    generate(svg, resolve(__dirname, '../public/img/logo.png'), {size: 512}),
-    generate(svg, resolve(__dirname, '../public/img/favicon.png'), {size: 180}),
-    generate(svg, resolve(__dirname, '../public/img/avatar_default.png'), {size: 200}),
-    generate(svg, resolve(__dirname, '../public/img/apple-touch-icon.png'), {size: 180, bg: true}),
-    gitea && generate(svg, resolve(__dirname, '../public/img/gitea.svg'), {size: 32}),
+    generate(logoSvg, '../public/img/logo.svg', {size: 32}),
+    generate(logoSvg, '../public/img/logo.png', {size: 512}),
+    generate(faviconSvg, '../public/img/favicon.svg', {size: 32}),
+    generate(faviconSvg, '../public/img/favicon.png', {size: 180}),
+    generate(logoSvg, '../public/img/avatar_default.png', {size: 200}),
+    generate(logoSvg, '../public/img/apple-touch-icon.png', {size: 180, bg: true}),
+    gitea && generate(logoSvg, '../public/img/gitea.svg', {size: 32}),
   ]);
 }
 
 main().then(exit).catch(exit);
-

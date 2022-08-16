@@ -45,7 +45,7 @@ type AuthenticationForm struct {
 	IsActive                      bool
 	IsSyncEnabled                 bool
 	SMTPAuth                      string
-	SMTPHost                      string
+	SMTPAddr                      string
 	SMTPPort                      int
 	AllowedDomains                string
 	SecurityProtocol              int `binding:"Range(0,2)"`
@@ -79,6 +79,8 @@ type AuthenticationForm struct {
 	SSPIStripDomainNames          bool
 	SSPISeparatorReplacement      string `binding:"AlphaDashDot;MaxSize(5)"`
 	SSPIDefaultLanguage           string
+	GroupTeamMap                  string
+	GroupTeamMapRemoval           bool
 }
 
 // Validate validates fields

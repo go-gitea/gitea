@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"context"
 	"os"
 	"testing"
 
@@ -25,7 +26,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	defer indexer.Close()
 
 	if _, err := indexer.Init(); err != nil {
-		assert.Fail(t, "Unable to initialise bleve indexer: %v", err)
+		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 
@@ -84,7 +85,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	}
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(kw.Keyword, []int64{2}, 10, 0)
+		res, err := indexer.Search(context.TODO(), kw.Keyword, []int64{2}, 10, 0)
 		assert.NoError(t, err)
 
 		ids := make([]int64, 0, len(res.Hits))

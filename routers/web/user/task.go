@@ -15,7 +15,7 @@ import (
 
 // TaskStatus returns task's status
 func TaskStatus(ctx *context.Context) {
-	task, opts, err := models.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.User.ID)
+	task, opts, err := models.GetMigratingTaskByID(ctx.ParamsInt64("task"), ctx.Doer.ID)
 	if err != nil {
 		if models.IsErrTaskDoesNotExist(err) {
 			ctx.JSON(http.StatusNotFound, map[string]interface{}{

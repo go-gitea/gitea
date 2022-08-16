@@ -101,6 +101,22 @@ func GetContentsOrList(ctx context.Context, repo *repo_model.Repository, treePat
 	return fileList, nil
 }
 
+// GetObjectTypeFromTreeEntry check what content is behind it
+func GetObjectTypeFromTreeEntry(entry *git.TreeEntry) ContentType {
+	switch {
+	case entry.IsDir():
+		return ContentTypeDir
+	case entry.IsSubModule():
+		return ContentTypeSubmodule
+	case entry.IsExecutable(), entry.IsRegular():
+		return ContentTypeRegular
+	case entry.IsLink():
+		return ContentTypeLink
+	default:
+		return ""
+	}
+}
+
 // GetContents gets the meta data on a file's contents. Ref can be a branch, commit or tag
 func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref string, forList bool) (*api.ContentsResponse, error) {
 	if ref == "" {
@@ -149,13 +165,24 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	}
 	selfURLString := selfURL.String()
 
+	err = gitRepo.AddLastCommitCache(repo.GetCommitsCountCacheKey(ref, refType != git.ObjectCommit), repo.FullName(), commitID)
+	if err != nil {
+		return nil, err
+	}
+
+	lastCommit, err := commit.GetCommitByPath(treePath)
+	if err != nil {
+		return nil, err
+	}
+
 	// All content types have these fields in populated
 	contentsResponse := &api.ContentsResponse{
-		Name: entry.Name(),
-		Path: treePath,
-		SHA:  entry.ID.String(),
-		Size: entry.Size(),
-		URL:  &selfURLString,
+		Name:          entry.Name(),
+		Path:          treePath,
+		SHA:           entry.ID.String(),
+		LastCommitSHA: lastCommit.ID.String(),
+		Size:          entry.Size(),
+		URL:           &selfURLString,
 		Links: &api.FileLinksResponse{
 			Self: &selfURLString,
 		},
@@ -164,7 +191,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 	// Now populate the rest of the ContentsResponse based on entry type
 	if entry.IsRegular() || entry.IsExecutable() {
 		contentsResponse.Type = string(ContentTypeRegular)
-		if blobResponse, err := GetBlobBySHA(ctx, repo, entry.ID.String()); err != nil {
+		if blobResponse, err := GetBlobBySHA(ctx, repo, gitRepo, entry.ID.String()); err != nil {
 			return nil, err
 		} else if !forList {
 			// We don't show the content if we are getting a list of FileContentResponses
@@ -220,12 +247,7 @@ func GetContents(ctx context.Context, repo *repo_model.Repository, treePath, ref
 }
 
 // GetBlobBySHA get the GitBlobResponse of a repository using a sha hash.
-func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, sha string) (*api.GitBlobResponse, error) {
-	gitRepo, closer, err := git.RepositoryFromContextOrOpen(ctx, repo.RepoPath())
-	if err != nil {
-		return nil, err
-	}
-	defer closer.Close()
+func GetBlobBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git.Repository, sha string) (*api.GitBlobResponse, error) {
 	gitBlob, err := gitRepo.GetBlob(sha)
 	if err != nil {
 		return nil, err

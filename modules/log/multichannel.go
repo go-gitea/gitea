@@ -31,7 +31,7 @@ func newLogger(name string, buffer int64) *MultiChannelledLogger {
 
 // SetLogger sets new logger instance with given logger provider and config.
 func (l *MultiChannelledLogger) SetLogger(name, provider, config string) error {
-	eventLogger, err := NewChannelledLog(name, provider, config, l.bufferLength)
+	eventLogger, err := NewChannelledLog(l.ctx, name, provider, config, l.bufferLength)
 	if err != nil {
 		return fmt.Errorf("Failed to create sublogger (%s): %v", name, err)
 	}
@@ -71,6 +71,13 @@ func (l *MultiChannelledLogger) Log(skip int, level Level, format string, v ...i
 	msg := format
 	if len(v) > 0 {
 		msg = ColorSprintf(format, v...)
+	}
+	labels := getGoroutineLabels()
+	if labels != nil {
+		pid, ok := labels["pid"]
+		if ok {
+			msg = "[" + ColorString(FgHiYellow) + pid + ColorString(Reset) + "] " + msg
+		}
 	}
 	stack := ""
 	if l.GetStacktraceLevel() <= level {

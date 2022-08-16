@@ -90,17 +90,17 @@ func TestSettingLandingPage(t *testing.T) {
 
 	setting.LandingPageURL = setting.LandingPageExplore
 	req = NewRequest(t, "GET", "/")
-	resp := MakeRequest(t, req, http.StatusFound)
+	resp := MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/explore", resp.Header().Get("Location"))
 
 	setting.LandingPageURL = setting.LandingPageOrganizations
 	req = NewRequest(t, "GET", "/")
-	resp = MakeRequest(t, req, http.StatusFound)
+	resp = MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/explore/organizations", resp.Header().Get("Location"))
 
 	setting.LandingPageURL = setting.LandingPageLogin
 	req = NewRequest(t, "GET", "/")
-	resp = MakeRequest(t, req, http.StatusFound)
+	resp = MakeRequest(t, req, http.StatusSeeOther)
 	assert.Equal(t, "/user/login", resp.Header().Get("Location"))
 
 	setting.LandingPageURL = landingPage

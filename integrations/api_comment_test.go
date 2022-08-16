@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,11 +23,11 @@ import (
 func TestAPIListRepoComments(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{},
-		unittest.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
+		unittest.Cond("type = ?", issues_model.CommentTypeComment))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	link, _ := url.Parse(fmt.Sprintf("/api/v1/repos/%s/%s/issues/comments", repoOwner.Name, repo.Name))
@@ -38,10 +38,10 @@ func TestAPIListRepoComments(t *testing.T) {
 	DecodeJSON(t, resp, &apiComments)
 	assert.Len(t, apiComments, 2)
 	for _, apiComment := range apiComments {
-		c := &models.Comment{ID: apiComment.ID}
+		c := &issues_model.Comment{ID: apiComment.ID}
 		unittest.AssertExistsAndLoadBean(t, c,
-			unittest.Cond("type = ?", models.CommentTypeComment))
-		unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: c.IssueID, RepoID: repo.ID})
+			unittest.Cond("type = ?", issues_model.CommentTypeComment))
+		unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: c.IssueID, RepoID: repo.ID})
 	}
 
 	// test before and since filters
@@ -69,11 +69,11 @@ func TestAPIListRepoComments(t *testing.T) {
 func TestAPIListIssueComments(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{},
-		unittest.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
+		unittest.Cond("type = ?", issues_model.CommentTypeComment))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/issues/%d/comments",
@@ -82,8 +82,8 @@ func TestAPIListIssueComments(t *testing.T) {
 
 	var comments []*api.Comment
 	DecodeJSON(t, resp, &comments)
-	expectedCount := unittest.GetCount(t, &models.Comment{IssueID: issue.ID},
-		unittest.Cond("type = ?", models.CommentTypeComment))
+	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID},
+		unittest.Cond("type = ?", issues_model.CommentTypeComment))
 	assert.EqualValues(t, expectedCount, len(comments))
 }
 
@@ -91,9 +91,9 @@ func TestAPICreateComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const commentBody = "Comment body"
 
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -107,16 +107,16 @@ func TestAPICreateComment(t *testing.T) {
 	var updatedComment api.Comment
 	DecodeJSON(t, resp, &updatedComment)
 	assert.EqualValues(t, commentBody, updatedComment.Body)
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: updatedComment.ID, IssueID: issue.ID, Content: commentBody})
 }
 
 func TestAPIGetComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2}).(*models.Comment)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2})
 	assert.NoError(t, comment.LoadIssue())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: comment.Issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -141,11 +141,11 @@ func TestAPIEditComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 	const newCommentBody = "This is the new comment body"
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{},
-		unittest.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
+		unittest.Cond("type = ?", issues_model.CommentTypeComment))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -160,17 +160,17 @@ func TestAPIEditComment(t *testing.T) {
 	DecodeJSON(t, resp, &updatedComment)
 	assert.EqualValues(t, comment.ID, updatedComment.ID)
 	assert.EqualValues(t, newCommentBody, updatedComment.Body)
-	unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
+	unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: comment.ID, IssueID: issue.ID, Content: newCommentBody})
 }
 
 func TestAPIDeleteComment(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	comment := unittest.AssertExistsAndLoadBean(t, &models.Comment{},
-		unittest.Cond("type = ?", models.CommentTypeComment)).(*models.Comment)
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: comment.IssueID}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	comment := unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{},
+		unittest.Cond("type = ?", issues_model.CommentTypeComment))
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: comment.IssueID})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -178,16 +178,16 @@ func TestAPIDeleteComment(t *testing.T) {
 		repoOwner.Name, repo.Name, comment.ID, token)
 	session.MakeRequest(t, req, http.StatusNoContent)
 
-	unittest.AssertNotExistsBean(t, &models.Comment{ID: comment.ID})
+	unittest.AssertNotExistsBean(t, &issues_model.Comment{ID: comment.ID})
 }
 
 func TestAPIListIssueTimeline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	// load comment
-	issue := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1}).(*models.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	// make request
 	session := loginUser(t, repoOwner.Name)
@@ -199,6 +199,6 @@ func TestAPIListIssueTimeline(t *testing.T) {
 	// lists extracted directly from DB are the same
 	var comments []*api.TimelineComment
 	DecodeJSON(t, resp, &comments)
-	expectedCount := unittest.GetCount(t, &models.Comment{IssueID: issue.ID})
+	expectedCount := unittest.GetCount(t, &issues_model.Comment{IssueID: issue.ID})
 	assert.EqualValues(t, expectedCount, len(comments))
 }

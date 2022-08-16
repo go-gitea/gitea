@@ -15,7 +15,7 @@ import (
 
 // TopicsPost response for creating repository
 func TopicsPost(ctx *context.Context) {
-	if ctx.User == nil {
+	if ctx.Doer == nil {
 		ctx.JSON(http.StatusForbidden, map[string]interface{}{
 			"message": "Only owners could change the topics.",
 		})

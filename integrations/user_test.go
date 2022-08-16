@@ -8,12 +8,15 @@ import (
 	"net/http"
 	"testing"
 
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/test"
+	"code.gitea.io/gitea/modules/translation"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/unknwon/i18n"
 )
 
 func TestViewUser(t *testing.T) {
@@ -33,7 +36,7 @@ func TestRenameUsername(t *testing.T) {
 		"email":    "user2@example.com",
 		"language": "en-US",
 	})
-	session.MakeRequest(t, req, http.StatusFound)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "newUsername"})
 	unittest.AssertNotExistsBean(t, &user_model.User{Name: "user2"})
@@ -64,7 +67,7 @@ func TestRenameInvalidUsername(t *testing.T) {
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "form.alpha_dash_dot_error"),
+			translation.NewLocale("en-US").Tr("form.alpha_dash_dot_error"),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: invalidUsername})
@@ -75,23 +78,41 @@ func TestRenameReservedUsername(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	reservedUsernames := []string{
+		".",
+		"..",
+		".well-known",
 		"admin",
 		"api",
+		"assets",
 		"attachments",
+		"avatar",
 		"avatars",
+		"captcha",
+		"commits",
+		"debug",
+		"error",
 		"explore",
-		"help",
-		"install",
+		"favicon.ico",
+		"ghost",
 		"issues",
 		"login",
+		"manifest.json",
 		"metrics",
+		"milestones",
+		"new",
 		"notifications",
 		"org",
 		"pulls",
+		"raw",
 		"repo",
-		"template",
-		"user",
+		"repo-avatars",
+		"robots.txt",
 		"search",
+		"serviceworker.js",
+		"ssh_info",
+		"swagger.v1.json",
+		"user",
+		"v2",
 	}
 
 	session := loginUser(t, "user2")
@@ -103,14 +124,14 @@ func TestRenameReservedUsername(t *testing.T) {
 			"email":    "user2@example.com",
 			"language": "en-US",
 		})
-		resp := session.MakeRequest(t, req, http.StatusFound)
+		resp := session.MakeRequest(t, req, http.StatusSeeOther)
 
 		req = NewRequest(t, "GET", test.RedirectURL(resp))
 		resp = session.MakeRequest(t, req, http.StatusOK)
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		assert.Contains(t,
 			htmlDoc.doc.Find(".ui.negative.message").Text(),
-			i18n.Tr("en", "user.form.name_reserved", reservedUsername),
+			translation.NewLocale("en-US").Tr("user.form.name_reserved", reservedUsername),
 		)
 
 		unittest.AssertNotExistsBean(t, &user_model.User{Name: reservedUsername})
@@ -121,6 +142,7 @@ func TestExportUserGPGKeys(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
+Note: This user hasn't uploaded any GPG keys.
 
 
 =twTO
@@ -202,4 +224,27 @@ func testExportUserGPGKeys(t *testing.T, user, expected string) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	// t.Log(resp.Body.String())
 	assert.Equal(t, expected, resp.Body.String())
+}
+
+func TestListStopWatches(t *testing.T) {
+	defer prepareTestEnv(t)()
+
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+
+	session := loginUser(t, owner.Name)
+	req := NewRequestf(t, "GET", "/user/stopwatches")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	var apiWatches []*api.StopWatch
+	DecodeJSON(t, resp, &apiWatches)
+	stopwatch := unittest.AssertExistsAndLoadBean(t, &issues_model.Stopwatch{UserID: owner.ID})
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: stopwatch.IssueID})
+	if assert.Len(t, apiWatches, 1) {
+		assert.EqualValues(t, stopwatch.CreatedUnix.AsTime().Unix(), apiWatches[0].Created.Unix())
+		assert.EqualValues(t, issue.Index, apiWatches[0].IssueIndex)
+		assert.EqualValues(t, issue.Title, apiWatches[0].IssueTitle)
+		assert.EqualValues(t, repo.Name, apiWatches[0].RepoName)
+		assert.EqualValues(t, repo.OwnerName, apiWatches[0].RepoOwnerName)
+		assert.Greater(t, apiWatches[0].Seconds, int64(0))
+	}
 }

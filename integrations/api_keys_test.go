@@ -49,8 +49,8 @@ func TestDeleteDeployKeyNoLogin(t *testing.T) {
 
 func TestCreateReadOnlyDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -75,8 +75,8 @@ func TestCreateReadOnlyDeployKey(t *testing.T) {
 
 func TestCreateReadWriteDeployKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"}).(*repo_model.Repository)
-	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: "repo1"})
+	repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, repoOwner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -100,7 +100,7 @@ func TestCreateReadWriteDeployKey(t *testing.T) {
 
 func TestCreateUserKey(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
 	session := loginUser(t, "user1")
 	token := url.QueryEscape(getTokenForLoggedInUser(t, session))
@@ -116,12 +116,14 @@ func TestCreateUserKey(t *testing.T) {
 
 	var newPublicKey api.PublicKey
 	DecodeJSON(t, resp, &newPublicKey)
+	fingerprint, err := asymkey_model.CalcFingerprint(rawKeyBody.Key)
+	assert.NoError(t, err)
 	unittest.AssertExistsAndLoadBean(t, &asymkey_model.PublicKey{
-		ID:      newPublicKey.ID,
-		OwnerID: user.ID,
-		Name:    rawKeyBody.Title,
-		Content: rawKeyBody.Key,
-		Mode:    perm.AccessModeWrite,
+		ID:          newPublicKey.ID,
+		OwnerID:     user.ID,
+		Name:        rawKeyBody.Title,
+		Fingerprint: fingerprint,
+		Mode:        perm.AccessModeWrite,
 	})
 
 	// Search by fingerprint

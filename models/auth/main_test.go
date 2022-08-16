@@ -12,11 +12,14 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."),
-		"login_source.yml",
-		"oauth2_application.yml",
-		"oauth2_authorization_code.yml",
-		"oauth2_grant.yml",
-		"webauthn_credential.yml",
-	)
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+		FixtureFiles: []string{
+			"login_source.yml",
+			"oauth2_application.yml",
+			"oauth2_authorization_code.yml",
+			"oauth2_grant.yml",
+			"webauthn_credential.yml",
+		},
+	})
 }

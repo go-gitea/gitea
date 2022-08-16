@@ -22,7 +22,7 @@ func TestGetManager(t *testing.T) {
 }
 
 func TestManager_AddContext(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -41,7 +41,7 @@ func TestManager_AddContext(t *testing.T) {
 }
 
 func TestManager_Cancel(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, _, finished := pm.AddContext(context.Background(), "foo")
 	defer finished()
@@ -69,7 +69,7 @@ func TestManager_Cancel(t *testing.T) {
 }
 
 func TestManager_Remove(t *testing.T) {
-	pm := Manager{processes: make(map[IDType]*Process), next: 1}
+	pm := Manager{processMap: make(map[IDType]*process), next: 1}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -85,7 +85,7 @@ func TestManager_Remove(t *testing.T) {
 
 	pm.Remove(GetPID(p2Ctx))
 
-	_, exists := pm.processes[GetPID(p2Ctx)]
+	_, exists := pm.processMap[GetPID(p2Ctx)]
 	assert.False(t, exists, "PID %d is in the list but shouldn't", GetPID(p2Ctx))
 }
 

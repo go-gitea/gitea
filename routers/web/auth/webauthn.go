@@ -5,7 +5,6 @@
 package auth
 
 import (
-	"encoding/base32"
 	"errors"
 	"net/http"
 
@@ -39,7 +38,7 @@ func WebAuthn(ctx *context.Context) {
 		return
 	}
 
-	ctx.HTML(200, tplWebAuthn)
+	ctx.HTML(http.StatusOK, tplWebAuthn)
 }
 
 // WebAuthnLoginAssertion submits a WebAuthn challenge to the browser
@@ -67,10 +66,7 @@ func WebAuthnLoginAssertion(ctx *context.Context) {
 		return
 	}
 
-	// FIXME: DEPRECATED appid is deprecated and is planned to be removed in v1.18.0
-	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user), webauthn.WithAssertionExtensions(protocol.AuthenticationExtensions{
-		"appid": setting.U2F.AppID,
-	}))
+	assertion, sessionData, err := wa.WebAuthn.BeginLogin((*wa.User)(user))
 	if err != nil {
 		ctx.ServerError("webauthn.BeginLogin", err)
 		return
@@ -132,7 +128,7 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 
 	// Success! Get the credential and update the sign count with the new value we received.
-	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, base32.HexEncoding.EncodeToString(cred.ID))
+	dbCred, err := auth.GetWebAuthnCredentialByCredID(user.ID, cred.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByCredID", err)
 		return
@@ -159,12 +155,5 @@ func WebAuthnLoginAssertionPost(ctx *context.Context) {
 	}
 	_ = ctx.Session.Delete("twofaUid")
 
-	// Finally check if the appid extension was used:
-	if value, ok := parsedResponse.ClientExtensionResults["appid"]; ok {
-		if appid, ok := value.(bool); ok && appid {
-			ctx.Flash.Error(ctx.Tr("webauthn_u2f_deprecated", dbCred.Name))
-		}
-	}
-
-	ctx.JSON(200, map[string]string{"redirect": redirect})
+	ctx.JSON(http.StatusOK, map[string]string{"redirect": redirect})
 }

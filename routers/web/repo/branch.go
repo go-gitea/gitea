@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
@@ -40,10 +42,10 @@ type Branch struct {
 	IsProtected       bool
 	IsDeleted         bool
 	IsIncluded        bool
-	DeletedBranch     *models.DeletedBranch
+	DeletedBranch     *git_model.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
-	LatestPullRequest *models.PullRequest
+	LatestPullRequest *issues_model.PullRequest
 	MergeMovedOn      bool
 }
 
@@ -56,7 +58,7 @@ func Branches(ctx *context.Context) {
 	ctx.Data["IsWriter"] = ctx.Repo.CanWrite(unit.TypeCode)
 	ctx.Data["IsMirror"] = ctx.Repo.Repository.IsMirror
 	ctx.Data["CanPull"] = ctx.Repo.CanWrite(unit.TypeCode) ||
-		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.User.ID, ctx.Repo.Repository.ID))
+		(ctx.IsSigned && repo_model.HasForkedRepo(ctx.Doer.ID, ctx.Repo.Repository.ID))
 	ctx.Data["PageIsViewCode"] = true
 	ctx.Data["PageIsBranches"] = true
 
@@ -78,7 +80,7 @@ func Branches(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -90,7 +92,7 @@ func DeleteBranchPost(ctx *context.Context) {
 	defer redirect(ctx)
 	branchName := ctx.FormString("name")
 
-	if err := repo_service.DeleteBranch(ctx.User, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
+	if err := repo_service.DeleteBranch(ctx.Doer, ctx.Repo.Repository, ctx.Repo.GitRepo, branchName); err != nil {
 		switch {
 		case git.IsErrBranchNotExist(err):
 			log.Debug("DeleteBranch: Can't delete non existing branch '%s'", branchName)
@@ -119,7 +121,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	branchID := ctx.FormInt64("branch_id")
 	branchName := ctx.FormString("name")
 
-	deletedBranch, err := models.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
+	deletedBranch, err := git_model.GetDeletedBranchByID(ctx.Repo.Repository.ID, branchID)
 	if err != nil {
 		log.Error("GetDeletedBranchByID: %v", err)
 		ctx.Flash.Error(ctx.Tr("repo.branch.restore_failed", branchName))
@@ -129,7 +131,7 @@ func RestoreBranchPost(ctx *context.Context) {
 	if err := git.Push(ctx, ctx.Repo.Repository.RepoPath(), git.PushOptions{
 		Remote: ctx.Repo.Repository.RepoPath(),
 		Branch: fmt.Sprintf("%s:%s%s", deletedBranch.Commit, git.BranchPrefix, deletedBranch.Name),
-		Env:    models.PushingEnvironment(ctx.User, ctx.Repo.Repository),
+		Env:    repo_module.PushingEnvironment(ctx.Doer, ctx.Repo.Repository),
 	}); err != nil {
 		if strings.Contains(err.Error(), "already exists") {
 			log.Debug("RestoreBranch: Can't restore branch '%s', since one with same name already exist", deletedBranch.Name)
@@ -147,8 +149,8 @@ func RestoreBranchPost(ctx *context.Context) {
 			RefFullName:  git.BranchPrefix + deletedBranch.Name,
 			OldCommitID:  git.EmptySHA,
 			NewCommitID:  deletedBranch.Commit,
-			PusherID:     ctx.User.ID,
-			PusherName:   ctx.User.Name,
+			PusherID:     ctx.Doer.ID,
+			PusherName:   ctx.Doer.Name,
 			RepoUserName: ctx.Repo.Owner.Name,
 			RepoName:     ctx.Repo.Repository.Name,
 		}); err != nil {
@@ -184,7 +186,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 		return nil, nil, 0
 	}
 
-	protectedBranches, err := models.GetProtectedBranches(ctx.Repo.Repository.ID)
+	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("GetProtectedBranches", err)
 		return nil, nil, 0
@@ -231,9 +233,10 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	return defaultBranchBranch, branches, totalNumOfBranches
 }
 
-func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*models.ProtectedBranch,
+func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, protectedBranches []*git_model.ProtectedBranch,
 	repoIDToRepo map[int64]*repo_model.Repository,
-	repoIDToGitRepo map[int64]*git.Repository) *Branch {
+	repoIDToGitRepo map[int64]*git.Repository,
+) *Branch {
 	log.Trace("loadOneBranch: '%s'", rawBranch.Name)
 
 	commit, err := rawBranch.GetCommit()
@@ -262,7 +265,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		}
 	}
 
-	pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
+	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 		return nil
@@ -278,7 +281,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		}
 		if repo, ok := repoIDToRepo[pr.BaseRepoID]; ok {
 			pr.BaseRepo = repo
-		} else if err := pr.LoadBaseRepo(); err != nil {
+		} else if err := pr.LoadBaseRepoCtx(ctx); err != nil {
 			ctx.ServerError("pr.LoadBaseRepo", err)
 			return nil
 		} else {
@@ -289,7 +292,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		if pr.HasMerged {
 			baseGitRepo, ok := repoIDToGitRepo[pr.BaseRepoID]
 			if !ok {
-				baseGitRepo, err = git.OpenRepositoryCtx(ctx, pr.BaseRepo.RepoPath())
+				baseGitRepo, err = git.OpenRepository(ctx, pr.BaseRepo.RepoPath())
 				if err != nil {
 					ctx.ServerError("OpenRepository", err)
 					return nil
@@ -325,7 +328,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 func getDeletedBranches(ctx *context.Context) ([]*Branch, error) {
 	branches := []*Branch{}
 
-	deletedBranches, err := models.GetDeletedBranches(ctx.Repo.Repository.ID)
+	deletedBranches, err := git_model.GetDeletedBranches(ctx.Repo.Repository.ID)
 	if err != nil {
 		return branches, err
 	}
@@ -363,13 +366,19 @@ func CreateBranch(ctx *context.Context) {
 		if ctx.Repo.IsViewBranch {
 			target = ctx.Repo.BranchName
 		}
-		err = release_service.CreateNewTag(ctx, ctx.User, ctx.Repo.Repository, target, form.NewBranchName, "")
+		err = release_service.CreateNewTag(ctx, ctx.Doer, ctx.Repo.Repository, target, form.NewBranchName, "")
 	} else if ctx.Repo.IsViewBranch {
-		err = repo_service.CreateNewBranch(ctx, ctx.User, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
+		err = repo_service.CreateNewBranch(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.BranchName, form.NewBranchName)
 	} else {
-		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.User, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
+		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+
 		if models.IsErrTagAlreadyExists(err) {
 			e := err.(models.ErrTagAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))

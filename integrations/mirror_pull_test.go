@@ -24,8 +24,8 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
@@ -46,13 +46,14 @@ func TestMirrorPull(t *testing.T) {
 		Status:      repo_model.RepositoryBeingMigrated,
 	})
 	assert.NoError(t, err)
+	assert.True(t, mirrorRepo.IsMirror, "expected pull-mirror repo to be marked as a mirror immediately after its creation")
 
 	ctx := context.Background()
 
 	mirror, err := repository.MigrateRepositoryGitData(ctx, user, mirrorRepo, opts, nil)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(repoPath)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repoPath)
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
@@ -74,7 +75,7 @@ func TestMirrorPull(t *testing.T) {
 		IsTag:        true,
 	}, nil, ""))
 
-	_, err = repo_model.GetMirrorByRepoID(mirror.ID)
+	_, err = repo_model.GetMirrorByRepoID(ctx, mirror.ID)
 	assert.NoError(t, err)
 
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)

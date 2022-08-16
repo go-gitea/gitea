@@ -28,7 +28,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	cred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, form.Name)
+	cred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, form.Name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -44,7 +44,7 @@ func WebAuthnRegister(ctx *context.Context) {
 		return
 	}
 
-	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.User))
+	credentialOptions, sessionData, err := wa.WebAuthn.BeginRegistration((*wa.User)(ctx.Doer))
 	if err != nil {
 		ctx.ServerError("Unable to BeginRegistration", err)
 		return
@@ -78,7 +78,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}()
 
 	// Verify that the challenge succeeded
-	cred, err := wa.WebAuthn.FinishRegistration((*wa.User)(ctx.User), *sessionData, ctx.Req)
+	cred, err := wa.WebAuthn.FinishRegistration((*wa.User)(ctx.Doer), *sessionData, ctx.Req)
 	if err != nil {
 		if pErr, ok := err.(*protocol.Error); ok {
 			log.Error("Unable to finish registration due to error: %v\nDevInfo: %s", pErr, pErr.DevInfo)
@@ -87,7 +87,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 		return
 	}
 
-	dbCred, err := auth.GetWebAuthnCredentialByName(ctx.User.ID, name)
+	dbCred, err := auth.GetWebAuthnCredentialByName(ctx.Doer.ID, name)
 	if err != nil && !auth.IsErrWebAuthnCredentialNotExist(err) {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
@@ -98,7 +98,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 	}
 
 	// Create the credential
-	_, err = auth.CreateCredential(ctx.User.ID, name, cred)
+	_, err = auth.CreateCredential(ctx.Doer.ID, name, cred)
 	if err != nil {
 		ctx.ServerError("CreateCredential", err)
 		return
@@ -111,7 +111,7 @@ func WebauthnRegisterPost(ctx *context.Context) {
 // WebauthnDelete deletes an security key by id
 func WebauthnDelete(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.WebauthnDeleteForm)
-	if _, err := auth.DeleteCredential(form.ID, ctx.User.ID); err != nil {
+	if _, err := auth.DeleteCredential(form.ID, ctx.Doer.ID); err != nil {
 		ctx.ServerError("GetWebAuthnCredentialByID", err)
 		return
 	}

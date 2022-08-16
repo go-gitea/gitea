@@ -37,8 +37,7 @@ type Token struct {
 	GrantID int64     `json:"gnt"`
 	Type    TokenType `json:"tt"`
 	Counter int64     `json:"cnt,omitempty"`
-	// FIXME: Migrate to registered claims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 // ParseToken parses a signed jwt string
@@ -62,7 +61,7 @@ func ParseToken(jwtToken string, signingKey JWTSigningKey) (*Token, error) {
 
 // SignToken signs the token with the JWT secret
 func (token *Token) SignToken(signingKey JWTSigningKey) (string, error) {
-	token.IssuedAt = time.Now().Unix()
+	token.IssuedAt = jwt.NewNumericDate(time.Now())
 	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
 	signingKey.PreProcessToken(jwtToken)
 	return jwtToken.SignedString(signingKey.SignKey())
@@ -70,8 +69,7 @@ func (token *Token) SignToken(signingKey JWTSigningKey) (string, error) {
 
 // OIDCToken represents an OpenID Connect id_token
 type OIDCToken struct {
-	// FIXME: Migrate to RegisteredClaims
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 	Nonce string `json:"nonce,omitempty"`
 
 	// Scope profile
@@ -93,7 +91,7 @@ type OIDCToken struct {
 
 // SignToken signs an id_token with the (symmetric) client secret key
 func (token *OIDCToken) SignToken(signingKey JWTSigningKey) (string, error) {
-	token.IssuedAt = time.Now().Unix()
+	token.IssuedAt = jwt.NewNumericDate(time.Now())
 	jwtToken := jwt.NewWithClaims(signingKey.SigningMethod(), token)
 	signingKey.PreProcessToken(jwtToken)
 	return jwtToken.SignedString(signingKey.SignKey())

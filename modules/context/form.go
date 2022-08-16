@@ -46,9 +46,11 @@ func (ctx *Context) FormInt64(key string) int64 {
 	return v
 }
 
-// FormBool returns true if the value for the provided key in the form is "1" or "true"
+// FormBool returns true if the value for the provided key in the form is "1", "true" or "on"
 func (ctx *Context) FormBool(key string) bool {
-	v, _ := strconv.ParseBool(ctx.Req.FormValue(key))
+	s := ctx.Req.FormValue(key)
+	v, _ := strconv.ParseBool(s)
+	v = v || strings.EqualFold(s, "on")
 	return v
 }
 
@@ -59,6 +61,8 @@ func (ctx *Context) FormOptionalBool(key string) util.OptionalBool {
 	if len(value) == 0 {
 		return util.OptionalBoolNone
 	}
-	v, _ := strconv.ParseBool(ctx.Req.FormValue(key))
+	s := ctx.Req.FormValue(key)
+	v, _ := strconv.ParseBool(s)
+	v = v || strings.EqualFold(s, "on")
 	return util.OptionalBoolOf(v)
 }

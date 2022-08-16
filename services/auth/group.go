@@ -6,6 +6,8 @@ package auth
 
 import (
 	"net/http"
+	"reflect"
+	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
@@ -28,6 +30,24 @@ func NewGroup(methods ...Method) *Group {
 	return &Group{
 		methods: methods,
 	}
+}
+
+// Add adds a new method to group
+func (b *Group) Add(method Method) {
+	b.methods = append(b.methods, method)
+}
+
+// Name returns group's methods name
+func (b *Group) Name() string {
+	names := make([]string, 0, len(b.methods))
+	for _, m := range b.methods {
+		if n, ok := m.(Named); ok {
+			names = append(names, n.Name())
+		} else {
+			names = append(names, reflect.TypeOf(m).Elem().Name())
+		}
+	}
+	return strings.Join(names, ",")
 }
 
 // Init does nothing as the Basic implementation does not need to allocate any resources

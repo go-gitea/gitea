@@ -20,7 +20,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", ".."),
+	})
 }
 
 func TestWikiNameToSubURL(t *testing.T) {
@@ -114,11 +116,11 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 func TestRepository_InitWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	// repo1 already has a wiki
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.NoError(t, InitWiki(git.DefaultContext, repo1))
 
 	// repo2 does not already have a wiki
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, InitWiki(git.DefaultContext, repo2))
 	assert.True(t, repo2.HasWiki())
 }
@@ -127,8 +129,8 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	for _, wikiName := range []string{
 		"Another page",
 		"Here's a <tag> and a/slash",
@@ -138,7 +140,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			t.Parallel()
 			assert.NoError(t, AddWikiPage(git.DefaultContext, doer, repo, wikiName, wikiContent, commitMsg))
 			// Now need to show that the page has been added:
-			gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
 			masterTree, err := gitRepo.GetTree("master")
@@ -172,8 +174,8 @@ func TestRepository_EditWikiPage(t *testing.T) {
 
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	for _, newWikiName := range []string{
 		"Home", // same name as before
 		"New home",
@@ -183,7 +185,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		assert.NoError(t, EditWikiPage(git.DefaultContext, doer, repo, "Home", newWikiName, newWikiContent, commitMsg))
 
 		// Now need to show that the page has been added:
-		gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
 		masterTree, err := gitRepo.GetTree("master")
 		assert.NoError(t, err)
@@ -202,12 +204,12 @@ func TestRepository_EditWikiPage(t *testing.T) {
 
 func TestRepository_DeleteWikiPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
-	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 	masterTree, err := gitRepo.GetTree("master")
@@ -219,8 +221,8 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	gitRepo, err := git.OpenRepositoryCtx(git.DefaultContext, repo.WikiPath())
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 
@@ -283,7 +285,7 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	err = git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
-	gitRepo, err := git.OpenRepository(tmpDir)
+	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
 	defer gitRepo.Close()
 	assert.NoError(t, err)
 

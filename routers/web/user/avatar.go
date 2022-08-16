@@ -30,7 +30,7 @@ func AvatarByUserName(ctx *context.Context) {
 	var user *user_model.User
 	if strings.ToLower(userName) != "ghost" {
 		var err error
-		if user, err = user_model.GetUserByName(userName); err != nil {
+		if user, err = user_model.GetUserByName(ctx, userName); err != nil {
 			ctx.ServerError("Invalid user: "+userName, err)
 			return
 		}

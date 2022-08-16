@@ -22,11 +22,11 @@ func TestLinksNoLogin(t *testing.T) {
 
 	links := []string{
 		"/explore/repos",
-		"/explore/repos?q=test&tab=",
+		"/explore/repos?q=test",
 		"/explore/users",
-		"/explore/users?q=test&tab=",
+		"/explore/users?q=test",
 		"/explore/organizations",
-		"/explore/organizations?q=test&tab=",
+		"/explore/organizations?q=test",
 		"/",
 		"/user/sign_up",
 		"/user/login",
@@ -59,7 +59,7 @@ func TestRedirectsNoLogin(t *testing.T) {
 	}
 	for link, redirectLink := range redirects {
 		req := NewRequest(t, "GET", link)
-		resp := MakeRequest(t, req, http.StatusFound)
+		resp := MakeRequest(t, req, http.StatusSeeOther)
 		assert.EqualValues(t, path.Join(setting.AppSubURL, redirectLink), test.RedirectURL(resp))
 	}
 }
@@ -81,11 +81,11 @@ func TestNoLoginNotExist(t *testing.T) {
 func testLinksAsUser(userName string, t *testing.T) {
 	links := []string{
 		"/explore/repos",
-		"/explore/repos?q=test&tab=",
+		"/explore/repos?q=test",
 		"/explore/users",
-		"/explore/users?q=test&tab=",
+		"/explore/users?q=test",
 		"/explore/organizations",
-		"/explore/organizations?q=test&tab=",
+		"/explore/organizations?q=test",
 		"/",
 		"/user/forgot_password",
 		"/api/swagger",

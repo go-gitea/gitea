@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 export function initSshKeyFormParser() {
 // Parse SSH Key
   $('#ssh-key-content').on('change paste keyup', function () {

@@ -20,9 +20,8 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		session := loginUser(t, "user1")
+		token := getUserToken(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
 			FullName:    "User1's organization",
@@ -32,7 +31,7 @@ func TestAPIOrgCreate(t *testing.T) {
 			Visibility:  "limited",
 		}
 		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &org)
-		resp := session.MakeRequest(t, req, http.StatusCreated)
+		resp := MakeRequest(t, req, http.StatusCreated)
 
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
@@ -50,13 +49,13 @@ func TestAPIOrgCreate(t *testing.T) {
 			FullName:  org.FullName,
 		})
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
+		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &apiOrg)
 		assert.EqualValues(t, org.UserName, apiOrg.UserName)
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", org.UserName, token)
+		resp = MakeRequest(t, req, http.StatusOK)
 
 		var repos []*api.Repository
 		DecodeJSON(t, resp, &repos)
@@ -64,8 +63,8 @@ func TestAPIOrgCreate(t *testing.T) {
 			assert.False(t, repo.Private)
 		}
 
-		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members", org.UserName)
-		resp = session.MakeRequest(t, req, http.StatusOK)
+		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/members?token=%s", org.UserName, token)
+		resp = MakeRequest(t, req, http.StatusOK)
 
 		// user1 on this org is public
 		var users []*api.User

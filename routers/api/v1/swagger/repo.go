@@ -344,3 +344,24 @@ type swaggerWikiCommitList struct {
 	// in:body
 	Body api.WikiCommitList `json:"body"`
 }
+
+// PushMirror
+// swagger:response PushMirror
+type swaggerPushMirror struct {
+	// in:body
+	Body api.PushMirror `json:"body"`
+}
+
+// PushMirrorList
+// swagger:response PushMirrorList
+type swaggerPushMirrorList struct {
+	// in:body
+	Body []api.PushMirror `json:"body"`
+}
+
+// RepoCollaboratorPermission
+// swagger:response RepoCollaboratorPermission
+type swaggerRepoCollaboratorPermission struct {
+	// in:body
+	Body api.RepoCollaboratorPermission `json:"body"`
+}

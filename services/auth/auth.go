@@ -8,7 +8,6 @@ package auth
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 	"regexp"
 	"strings"
 
@@ -21,78 +20,20 @@ import (
 	"code.gitea.io/gitea/modules/web/middleware"
 )
 
-// authMethods contains the list of authentication plugins in the order they are expected to be
-// executed.
-//
-// The OAuth2 plugin is expected to be executed first, as it must ignore the user id stored
-// in the session (if there is a user id stored in session other plugins might return the user
-// object for that id).
-//
-// The Session plugin is expected to be executed second, in order to skip authentication
-// for users that have already signed in.
-var authMethods = []Method{
-	&OAuth2{},
-	&Basic{},
-	&Session{},
-}
-
-// The purpose of the following three function variables is to let the linter know that
-// those functions are not dead code and are actually being used
-var (
-	_ = handleSignIn
-)
-
-// Methods returns the instances of all registered methods
-func Methods() []Method {
-	return authMethods
-}
-
-// Register adds the specified instance to the list of available methods
-func Register(method Method) {
-	authMethods = append(authMethods, method)
-}
-
 // Init should be called exactly once when the application starts to allow plugins
 // to allocate necessary resources
 func Init() {
-	if setting.Service.EnableReverseProxyAuth {
-		Register(&ReverseProxy{})
-	}
-	specialInit()
-	for _, method := range Methods() {
-		initializable, ok := method.(Initializable)
-		if !ok {
-			continue
-		}
-
-		err := initializable.Init()
-		if err != nil {
-			log.Error("Could not initialize '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
-		}
-	}
-
 	webauthn.Init()
-}
-
-// Free should be called exactly once when the application is terminating to allow Auth plugins
-// to release necessary resources
-func Free() {
-	for _, method := range Methods() {
-		freeable, ok := method.(Freeable)
-		if !ok {
-			continue
-		}
-
-		err := freeable.Free()
-		if err != nil {
-			log.Error("Could not free '%s' auth method, error: %s", reflect.TypeOf(method).String(), err)
-		}
-	}
 }
 
 // isAttachmentDownload check if request is a file download (GET) with URL to an attachment
 func isAttachmentDownload(req *http.Request) bool {
 	return strings.HasPrefix(req.URL.Path, "/attachments/") && req.Method == "GET"
+}
+
+// isContainerPath checks if the request targets the container endpoint
+func isContainerPath(req *http.Request) bool {
+	return strings.HasPrefix(req.URL.Path, "/v2/")
 }
 
 var (
