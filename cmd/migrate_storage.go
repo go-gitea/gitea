@@ -201,7 +201,7 @@ func runMigrateStorage(ctx *cli.Context) error {
 		if err := m(stdCtx, dstStorage); err != nil {
 			return err
 		}
-		log.Warn("All files have been copied to the new placement but old files are still on the original placement.")
+		log.Info("%s files have successfully been copied to the new storage.", tp)
 		return nil
 	}
 
