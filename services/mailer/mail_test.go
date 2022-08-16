@@ -56,11 +56,11 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 	setting.MailService = &mailService
 	setting.Domain = "localhost"
 
-	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
-	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer}).(*issues_model.Issue)
+	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer})
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue}).(*issues_model.Comment)
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue})
 	return doer, repo, issue, comment
 }
 
@@ -159,8 +159,8 @@ func TestTemplateSelection(t *testing.T) {
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
-	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer}).(*issues_model.Issue)
-	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull}).(*issues_model.Comment)
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer})
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull})
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
 		Issue:   pull, Doer: doer, ActionType: models.ActionCommentPull,
