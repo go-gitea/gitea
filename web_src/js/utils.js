@@ -100,5 +100,5 @@ export function prettyNumber(num, locale = 'en-US') {
 
 // parse a URL, either relative '/path' or absolute 'https://localhost/path'
 export function parseUrl(str) {
-  return new URL(`${!str.startsWith('http') ? 'https://localhost' : ''}${str}`);
+  return new URL(`${str.startsWith('http') ? '' : window.location.origin}${str}`);
 }

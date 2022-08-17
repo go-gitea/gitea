@@ -1,5 +1,6 @@
 export default {
   rootDir: 'web_src',
+  setupFiles: ['<rootDir>/js/testUtils/setup.js'],
   setupFilesAfterEnv: ['jest-extended/all'],
   testEnvironment: '@happy-dom/jest-environment',
   testMatch: ['<rootDir>/**/*.test.js'],
