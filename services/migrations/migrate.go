@@ -474,5 +474,10 @@ func Init() error {
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinPrivate)
 		allowList.AppendBuiltin(hostmatcher.MatchBuiltinLoopback)
 	}
+
+	if setting.Proxy.Enabled && setting.Proxy.ProxyURLFixed != nil {
+		allowList.AppendPattern(setting.Proxy.ProxyURLFixed.Host)
+	}
+
 	return nil
 }
