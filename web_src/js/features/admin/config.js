@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import {showTemporaryTooltip} from '../../modules/tippy.js';
 
 const {appSubUrl, csrfToken, pageData} = window.config;
 
@@ -23,6 +24,9 @@ export function initAdminConfigs() {
           window.location.href = resp.redirect;
         } else if (resp.version) {
           $this.attr('version', resp.version);
+        } else if (resp.err) {
+          showTemporaryTooltip(e.currentTarget, resp.err);
+          $this.prop('checked', !$this.is(':checked'));
         }
       }
     });
