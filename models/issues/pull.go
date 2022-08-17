@@ -150,14 +150,13 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID   int64                  `xorm:"INDEX"`
-	HeadRepo     *repo_model.Repository `xorm:"-"`
-	BaseRepoID   int64                  `xorm:"INDEX"`
-	BaseRepo     *repo_model.Repository `xorm:"-"`
-	HeadBranch   string
-	HeadCommitID string `xorm:"-"`
-	BaseBranch   string
-	// ProtectedBranch     *git_model.ProtectedBranch `xorm:"-"`
+	HeadRepoID          int64                  `xorm:"INDEX"`
+	HeadRepo            *repo_model.Repository `xorm:"-"`
+	BaseRepoID          int64                  `xorm:"INDEX"`
+	BaseRepo            *repo_model.Repository `xorm:"-"`
+	HeadBranch          string
+	HeadCommitID        string `xorm:"-"`
+	BaseBranch          string
 	MergeBase           string `xorm:"VARCHAR(40)"`
 	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
@@ -304,23 +303,6 @@ func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 	}
 	return err
 }
-
-// LoadProtectedBranchRules loads the protected branch of the base branch
-/*func (pr *PullRequest) LoadProtectedBranchRules(ctx context.Context) (err error) {
-	if pr.ProtectedBranch == nil {
-		if pr.BaseRepo == nil {
-			if pr.BaseRepoID == 0 {
-				return nil
-			}
-			pr.BaseRepo, err = repo_model.GetRepositoryByIDCtx(ctx, pr.BaseRepoID)
-			if err != nil {
-				return
-			}
-		}
-		pr.ProtectedBranch, err = git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepo.ID, pr.BaseBranch)
-	}
-	return err
-}*/
 
 // ReviewCount represents a count of Reviews
 type ReviewCount struct {
