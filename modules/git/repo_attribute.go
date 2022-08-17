@@ -190,24 +190,18 @@ func (c *CheckAttributeReader) Run() error {
 
 // CheckPath check attr for given path
 func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
-	defer func() {
-		if err != nil {
-			log.Error("CheckPath returns error: %v", err)
-		}
-	}()
+	rs = make(map[string]string)
 
 	select {
 	case <-c.ctx.Done():
-		return nil, c.ctx.Err()
+		return
 	default:
 	}
 
 	if _, err = c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
-		defer c.Close()
 		return nil, err
 	}
 
-	rs = make(map[string]string)
 	for range c.Attributes {
 		select {
 		case attr, ok := <-c.stdOut.ReadAttribute():
@@ -216,7 +210,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 			}
 			rs[attr.Attribute] = attr.Value
 		case <-c.ctx.Done():
-			return nil, c.ctx.Err()
+			return rs, nil
 		}
 	}
 	return rs, nil
@@ -394,10 +388,10 @@ func (wr *lineSeparatedAttributeWriter) Close() error {
 }
 
 // Create a check attribute reader for the current repository and provided commit ID
-func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc, error) {
 	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
 	if err != nil {
-		return nil, func() {}
+		return nil, func() {}, err
 	}
 
 	checker := &CheckAttributeReader{
@@ -408,21 +402,23 @@ func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeRe
 	}
 	ctx, cancel := context.WithCancel(repo.Ctx)
 	if err := checker.Init(ctx); err != nil {
-		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-	} else {
-		go func() {
-			err := checker.Run()
-			if err != nil && err != ctx.Err() {
-				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
-			}
-			cancel()
-		}()
+		cancel()
+		return nil, nil, fmt.Errorf("unable to open checker for %s. Error: %v", commitID, err)
 	}
+
+	go func() {
+		err := checker.Run()
+		if err != nil && err != ctx.Err() {
+			log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+		}
+		cancel()
+	}()
+
 	deferable := func() {
 		_ = checker.Close()
 		cancel()
 		deleteTemporaryFile()
 	}
 
-	return checker, deferable
+	return checker, deferable, nil
 }

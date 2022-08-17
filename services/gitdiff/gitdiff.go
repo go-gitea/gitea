@@ -1147,16 +1147,20 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 	}
 	diff.Start = opts.SkipTo
 
-	checker, deferable := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	checker, deferable, err := gitRepo.CheckAttributeReader(opts.AfterCommitID)
+	if err != nil {
+		return nil, err
+	}
 	defer deferable()
 
 	for _, diffFile := range diff.Files {
-
 		gotVendor := false
 		gotGenerated := false
 		if checker != nil {
 			attrs, err := checker.CheckPath(diffFile.Name)
-			if err == nil {
+			if err != nil {
+				log.Error("CheckPath returns error: %v", err)
+			} else {
 				if vendored, has := attrs["linguist-vendored"]; has {
 					if vendored == "set" || vendored == "true" {
 						diffFile.IsVendored = true
@@ -1178,8 +1182,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					diffFile.Language = language
 				}
-			} else {
-				log.Error("Unexpected error: %v", err)
 			}
 		}
 

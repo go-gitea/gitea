@@ -62,7 +62,10 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
-	checker, deferable := repo.CheckAttributeReader(commitID)
+	checker, deferable, err := repo.CheckAttributeReader(commitID)
+	if err != nil {
+		return nil, err
+	}
 	defer deferable()
 
 	contentBuf := bytes.Buffer{}
@@ -87,7 +90,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 		if checker != nil {
 			attrs, err := checker.CheckPath(f.Name())
-			if err == nil {
+			if err != nil {
+				log.Error("CheckPath returns error: %v", err)
+			} else {
 				if vendored, has := attrs["linguist-vendored"]; has {
 					if vendored == "set" || vendored == "true" {
 						continue
@@ -125,7 +130,6 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						continue
 					}
 				}
-
 			}
 		}
 
