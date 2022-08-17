@@ -8,9 +8,7 @@ package issues
 import (
 	"context"
 	"fmt"
-	"regexp"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/models/db"
@@ -22,8 +20,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/references"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -687,31 +683,6 @@ func (c *Comment) LoadReview() error {
 	return c.loadReview(db.DefaultContext)
 }
 
-var notEnoughLines = regexp.MustCompile(`fatal: file .* has only \d+ lines?`)
-
-func (c *Comment) checkInvalidation(doer *user_model.User, repo *git.Repository, branch string) error {
-	// FIXME differentiate between previous and proposed line
-	commit, err := repo.LineBlame(branch, repo.Path, c.TreePath, uint(c.UnsignedLine()))
-	if err != nil && (strings.Contains(err.Error(), "fatal: no such path") || notEnoughLines.MatchString(err.Error())) {
-		c.Invalidated = true
-		return UpdateComment(c, doer)
-	}
-	if err != nil {
-		return err
-	}
-	if c.CommitSHA != "" && c.CommitSHA != commit.ID.String() {
-		c.Invalidated = true
-		return UpdateComment(c, doer)
-	}
-	return nil
-}
-
-// CheckInvalidation checks if the line of code comment got changed by another commit.
-// If the line got changed the comment is going to be invalidated.
-func (c *Comment) CheckInvalidation(repo *git.Repository, doer *user_model.User, branch string) error {
-	return c.checkInvalidation(doer, repo, branch)
-}
-
 // DiffSide returns "previous" if Comment.Line is a LOC of the previous changes and "proposed" if it is a LOC of the proposed changes.
 func (c *Comment) DiffSide() string {
 	if c.Line < 0 {
@@ -1008,23 +979,28 @@ func GetCommentByID(ctx context.Context, id int64) (*Comment, error) {
 // FindCommentsOptions describes the conditions to Find comments
 type FindCommentsOptions struct {
 	db.ListOptions
-	RepoID   int64
-	IssueID  int64
-	ReviewID int64
-	Since    int64
-	Before   int64
-	Line     int64
-	TreePath string
-	Type     CommentType
+	RepoID      int64
+	IssueID     int64
+	ReviewID    int64
+	Since       int64
+	Before      int64
+	Line        int64
+	TreePath    string
+	Type        CommentType
+	IssueIDs    []int64
+	Invalidated util.OptionalBool
 }
 
-func (opts *FindCommentsOptions) toConds() builder.Cond {
+// ToConds implements FindOptions interface
+func (opts *FindCommentsOptions) ToConds() builder.Cond {
 	cond := builder.NewCond()
 	if opts.RepoID > 0 {
 		cond = cond.And(builder.Eq{"issue.repo_id": opts.RepoID})
 	}
 	if opts.IssueID > 0 {
 		cond = cond.And(builder.Eq{"comment.issue_id": opts.IssueID})
+	} else if len(opts.IssueIDs) > 0 {
+		cond = cond.And(builder.In("comment.issue_id", opts.IssueIDs))
 	}
 	if opts.ReviewID > 0 {
 		cond = cond.And(builder.Eq{"comment.review_id": opts.ReviewID})
@@ -1044,13 +1020,16 @@ func (opts *FindCommentsOptions) toConds() builder.Cond {
 	if len(opts.TreePath) > 0 {
 		cond = cond.And(builder.Eq{"comment.tree_path": opts.TreePath})
 	}
+	if !opts.Invalidated.IsNone() {
+		cond = cond.And(builder.Eq{"comment.invalidated": opts.Invalidated.IsTrue()})
+	}
 	return cond
 }
 
 // FindComments returns all comments according options
 func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, error) {
 	comments := make([]*Comment, 0, 10)
-	sess := db.GetEngine(ctx).Where(opts.toConds())
+	sess := db.GetEngine(ctx).Where(opts.ToConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
@@ -1069,11 +1048,17 @@ func FindComments(ctx context.Context, opts *FindCommentsOptions) ([]*Comment, e
 
 // CountComments count all comments according options by ignoring pagination
 func CountComments(opts *FindCommentsOptions) (int64, error) {
-	sess := db.GetEngine(db.DefaultContext).Where(opts.toConds())
+	sess := db.GetEngine(db.DefaultContext).Where(opts.ToConds())
 	if opts.RepoID > 0 {
 		sess.Join("INNER", "issue", "issue.id = comment.issue_id")
 	}
 	return sess.Count(&Comment{})
+}
+
+// UpdateCommentInvalidate updates comment invalidated column
+func UpdateCommentInvalidate(ctx context.Context, c *Comment) error {
+	_, err := db.GetEngine(ctx).ID(c.ID).Cols("invalidated").Update(c)
+	return err
 }
 
 // UpdateComment updates information of comment.
@@ -1132,120 +1117,6 @@ func DeleteComment(ctx context.Context, comment *Comment) error {
 	}
 
 	return DeleteReaction(ctx, &ReactionOptions{CommentID: comment.ID})
-}
-
-// CodeComments represents comments on code by using this structure: FILENAME -> LINE (+ == proposed; - == previous) -> COMMENTS
-type CodeComments map[string]map[int64][]*Comment
-
-// FetchCodeComments will return a 2d-map: ["Path"]["Line"] = Comments at line
-func FetchCodeComments(ctx context.Context, issue *Issue, currentUser *user_model.User) (CodeComments, error) {
-	return fetchCodeCommentsByReview(ctx, issue, currentUser, nil)
-}
-
-func fetchCodeCommentsByReview(ctx context.Context, issue *Issue, currentUser *user_model.User, review *Review) (CodeComments, error) {
-	pathToLineToComment := make(CodeComments)
-	if review == nil {
-		review = &Review{ID: 0}
-	}
-	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  issue.ID,
-		ReviewID: review.ID,
-	}
-
-	comments, err := findCodeComments(ctx, opts, issue, currentUser, review)
-	if err != nil {
-		return nil, err
-	}
-
-	for _, comment := range comments {
-		if pathToLineToComment[comment.TreePath] == nil {
-			pathToLineToComment[comment.TreePath] = make(map[int64][]*Comment)
-		}
-		pathToLineToComment[comment.TreePath][comment.Line] = append(pathToLineToComment[comment.TreePath][comment.Line], comment)
-	}
-	return pathToLineToComment, nil
-}
-
-func findCodeComments(ctx context.Context, opts FindCommentsOptions, issue *Issue, currentUser *user_model.User, review *Review) ([]*Comment, error) {
-	var comments []*Comment
-	if review == nil {
-		review = &Review{ID: 0}
-	}
-	conds := opts.toConds()
-	if review.ID == 0 {
-		conds = conds.And(builder.Eq{"invalidated": false})
-	}
-	e := db.GetEngine(ctx)
-	if err := e.Where(conds).
-		Asc("comment.created_unix").
-		Asc("comment.id").
-		Find(&comments); err != nil {
-		return nil, err
-	}
-
-	if err := issue.LoadRepo(ctx); err != nil {
-		return nil, err
-	}
-
-	if err := CommentList(comments).LoadPosters(ctx); err != nil {
-		return nil, err
-	}
-
-	// Find all reviews by ReviewID
-	reviews := make(map[int64]*Review)
-	ids := make([]int64, 0, len(comments))
-	for _, comment := range comments {
-		if comment.ReviewID != 0 {
-			ids = append(ids, comment.ReviewID)
-		}
-	}
-	if err := e.In("id", ids).Find(&reviews); err != nil {
-		return nil, err
-	}
-
-	n := 0
-	for _, comment := range comments {
-		if re, ok := reviews[comment.ReviewID]; ok && re != nil {
-			// If the review is pending only the author can see the comments (except if the review is set)
-			if review.ID == 0 && re.Type == ReviewTypePending &&
-				(currentUser == nil || currentUser.ID != re.ReviewerID) {
-				continue
-			}
-			comment.Review = re
-		}
-		comments[n] = comment
-		n++
-
-		if err := comment.LoadResolveDoer(); err != nil {
-			return nil, err
-		}
-
-		if err := comment.LoadReactions(issue.Repo); err != nil {
-			return nil, err
-		}
-
-		var err error
-		if comment.RenderedContent, err = markdown.RenderString(&markup.RenderContext{
-			Ctx:       ctx,
-			URLPrefix: issue.Repo.Link(),
-			Metas:     issue.Repo.ComposeMetas(),
-		}, comment.Content); err != nil {
-			return nil, err
-		}
-	}
-	return comments[:n], nil
-}
-
-// FetchCodeCommentsByLine fetches the code comments for a given treePath and line number
-func FetchCodeCommentsByLine(ctx context.Context, issue *Issue, currentUser *user_model.User, treePath string, line int64) ([]*Comment, error) {
-	opts := FindCommentsOptions{
-		Type:     CommentTypeCode,
-		IssueID:  issue.ID,
-		TreePath: treePath,
-		Line:     line,
-	}
-	return findCodeComments(ctx, opts, issue, currentUser, nil)
 }
 
 // UpdateCommentsMigrationsByType updates comments' migrations information via given git service type and original id and poster id
