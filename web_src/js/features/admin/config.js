@@ -1,10 +1,10 @@
 import $ from 'jquery';
 
-export function initAdminConfigs() {
-  const isAdminConfigPage = window.config.pageData.adminConfigPage;
-  if (!isAdminConfigPage) return;
+const {appSubUrl, csrfToken, pageData} = window.config;
 
-  const {appSubUrl, csrfToken} = window.config;
+export function initAdminConfigs() {
+  const isAdminConfigPage = pageData?.adminConfigPage;
+  if (!isAdminConfigPage) return;
 
   $("input[type='checkbox']").on('change', (e) => {
     const $this = $(e.currentTarget);
