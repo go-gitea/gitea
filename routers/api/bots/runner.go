@@ -9,8 +9,8 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/web"
-	v1 "gitea.com/gitea/proto/gen/proto/v1"
-	"gitea.com/gitea/proto/gen/proto/v1/v1connect"
+	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
 	"github.com/bufbuild/connect-go"
 	grpchealth "github.com/bufbuild/connect-grpchealth-go"
@@ -21,25 +21,28 @@ type RunnerService struct{}
 
 func (s *RunnerService) Connect(
 	ctx context.Context,
-	req *connect.Request[v1.ConnectRequest],
-) (*connect.Response[v1.ConnectResponse], error) {
+	req *connect.Request[runnerv1.ConnectRequest],
+) (*connect.Response[runnerv1.ConnectResponse], error) {
 	log.Info("Request headers: %v", req.Header())
-	res := connect.NewResponse(&v1.ConnectResponse{
-		JobId: 100,
+	res := connect.NewResponse(&runnerv1.ConnectResponse{
+		Stage: &runnerv1.Stage{
+			RunnerUuid: "foobar",
+			BuildUuid:  "foobar",
+		},
 	})
-	res.Header().Set("Gitea-Version", "v1")
+	res.Header().Set("Gitea-Version", "runnerv1")
 	return res, nil
 }
 
 func (s *RunnerService) Accept(
 	ctx context.Context,
-	req *connect.Request[v1.AcceptRequest],
-) (*connect.Response[v1.AcceptResponse], error) {
+	req *connect.Request[runnerv1.AcceptRequest],
+) (*connect.Response[runnerv1.AcceptResponse], error) {
 	log.Info("Request headers: %v", req.Header())
-	res := connect.NewResponse(&v1.AcceptResponse{
+	res := connect.NewResponse(&runnerv1.AcceptResponse{
 		JobId: 100,
 	})
-	res.Header().Set("Gitea-Version", "v1")
+	res.Header().Set("Gitea-Version", "runnerv1")
 	return res, nil
 }
 
@@ -47,26 +50,26 @@ func runnerServiceRoute(r *web.Route) {
 	compress1KB := connect.WithCompressMinBytes(1024)
 
 	runnerService := &RunnerService{}
-	connectPath, connecthandler := v1connect.NewRunnerServiceHandler(
+	connectPath, connecthandler := runnerv1connect.NewRunnerServiceHandler(
 		runnerService,
 		compress1KB,
 	)
 
 	// grpcV1
 	grpcPath, gHandler := grpcreflect.NewHandlerV1(
-		grpcreflect.NewStaticReflector(v1connect.RunnerServiceName),
+		grpcreflect.NewStaticReflector(runnerv1connect.RunnerServiceName),
 		compress1KB,
 	)
 
 	// grpcV1Alpha
 	grpcAlphaPath, gAlphaHandler := grpcreflect.NewHandlerV1Alpha(
-		grpcreflect.NewStaticReflector(v1connect.RunnerServiceName),
+		grpcreflect.NewStaticReflector(runnerv1connect.RunnerServiceName),
 		compress1KB,
 	)
 
 	// grpcHealthCheck
 	grpcHealthPath, gHealthHandler := grpchealth.NewHandler(
-		grpchealth.NewStaticChecker(v1connect.RunnerServiceName),
+		grpchealth.NewStaticChecker(runnerv1connect.RunnerServiceName),
 		compress1KB,
 	)
 

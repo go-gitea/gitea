@@ -5,9 +5,8 @@ go 1.18
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
-	gitea.com/gitea/proto v0.0.0-20220813120843-ce4b5dd68c1f
-	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	codeberg.org/gusted/mcaptcha v0.0.0-20220723083913-4f3072e1d570
+	gitea.com/gitea/proto-go v0.0.0-20220817054638-17fb0016dd41
 	gitea.com/go-chi/binding v0.0.0-20221013104517-b29891619681
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
@@ -19,6 +18,9 @@ require (
 	github.com/PuerkitoBio/goquery v1.8.0
 	github.com/alecthomas/chroma/v2 v2.3.0
 	github.com/blevesearch/bleve/v2 v2.3.4
+	github.com/bufbuild/connect-go v1.0.0
+	github.com/bufbuild/connect-grpchealth-go v1.0.0
+	github.com/bufbuild/connect-grpcreflect-go v1.0.0
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
 	github.com/caddyserver/certmagic v0.17.2
 	github.com/chi-middleware/proxy v1.1.1
@@ -175,6 +177,7 @@ require (
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
+	github.com/go-ini/ini v1.62.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
 	github.com/go-openapi/errors v0.20.3 // indirect
 	github.com/go-openapi/inflect v0.19.0 // indirect
