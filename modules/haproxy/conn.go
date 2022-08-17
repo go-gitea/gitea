@@ -172,7 +172,7 @@ func (p *Conn) readProxyHeaderOnce() (err error) {
 			p.bufReader = bufio.NewReader(p.conn)
 		}
 	})
-	return
+	return err
 }
 
 func (p *Conn) readProxyHeader() error {
