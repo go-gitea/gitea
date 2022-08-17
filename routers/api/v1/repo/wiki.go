@@ -427,9 +427,9 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRangeNoFollow", err)
+		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 		return
 	}
 

@@ -40,6 +40,8 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
+
+
 func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
 	for i := 0; i < len(fields); i++ {

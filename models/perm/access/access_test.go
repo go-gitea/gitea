@@ -23,21 +23,21 @@ import (
 func TestAccessLevel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 	// A public repository owned by User 2
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.True(t, repo3.IsPrivate)
 
 	// Another public repository
-	repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	repo4 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.False(t, repo4.IsPrivate)
 	// org. owned private repo
-	repo24 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24}).(*repo_model.Repository)
+	repo24 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
 
 	level, err := access_model.AccessLevel(user2, repo1)
 	assert.NoError(t, err)
@@ -74,13 +74,13 @@ func TestAccessLevel(t *testing.T) {
 func TestHasAccess(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	// A public repository owned by User 2
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.False(t, repo1.IsPrivate)
 	// A private repository owned by Org 3
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.True(t, repo2.IsPrivate)
 
 	has, err := access_model.HasAccess(db.DefaultContext, user1.ID, repo1)
@@ -100,7 +100,7 @@ func TestHasAccess(t *testing.T) {
 func TestRepository_RecalculateAccesses(t *testing.T) {
 	// test with organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 2, RepoID: 3})
@@ -117,7 +117,7 @@ func TestRepository_RecalculateAccesses(t *testing.T) {
 func TestRepository_RecalculateAccesses2(t *testing.T) {
 	// test with non-organization repo
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.NoError(t, repo1.GetOwner(db.DefaultContext))
 
 	_, err := db.GetEngine(db.DefaultContext).Delete(&repo_model.Collaboration{UserID: 4, RepoID: 4})
@@ -133,11 +133,11 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public non-organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 4})
 	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	perm, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -155,7 +155,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// collaborator
-	collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
+	collaborator := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, collaborator)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -164,7 +164,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// owner
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -173,7 +173,7 @@ func TestRepoPermissionPublicNonOrgRepo(t *testing.T) {
 	}
 
 	// admin
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -186,11 +186,11 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private non-organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	perm, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -216,7 +216,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// owner
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -225,7 +225,7 @@ func TestRepoPermissionPrivateNonOrgRepo(t *testing.T) {
 	}
 
 	// admin
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -238,11 +238,11 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// public organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 32})
 	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	perm, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -268,7 +268,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// org member team owner
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -277,7 +277,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	}
 
 	// org member team tester
-	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
+	member := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, member)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -287,7 +287,7 @@ func TestRepoPermissionPublicOrgRepo(t *testing.T) {
 	assert.False(t, perm.CanWrite(unit.TypeCode))
 
 	// admin
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -300,11 +300,11 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// private organization repo
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 24})
 	assert.NoError(t, repo.LoadUnits(db.DefaultContext))
 
 	// plain user
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	perm, err := access_model.GetUserRepoPermission(db.DefaultContext, repo, user)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -330,7 +330,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// org member team owner
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, owner)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
@@ -339,7 +339,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// update team information and then check permission
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5}).(*organization.Team)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 5})
 	err = organization.UpdateTeamUnits(team, nil)
 	assert.NoError(t, err)
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, owner)
@@ -350,7 +350,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	}
 
 	// org member team tester
-	tester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	tester := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, tester)
 	assert.NoError(t, err)
 	assert.True(t, perm.CanWrite(unit.TypeIssues))
@@ -358,7 +358,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.False(t, perm.CanRead(unit.TypeCode))
 
 	// org member team reviewer
-	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}).(*user_model.User)
+	reviewer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, reviewer)
 	assert.NoError(t, err)
 	assert.False(t, perm.CanRead(unit.TypeIssues))
@@ -366,7 +366,7 @@ func TestRepoPermissionPrivateOrgRepo(t *testing.T) {
 	assert.True(t, perm.CanRead(unit.TypeCode))
 
 	// admin
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	perm, err = access_model.GetUserRepoPermission(db.DefaultContext, repo, admin)
 	assert.NoError(t, err)
 	for _, unit := range repo.Units {
