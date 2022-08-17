@@ -275,11 +275,23 @@ func TestPackageContainer(t *testing.T) {
 							}
 						}
 
-						// Overwrite existing tag
+						req = NewRequest(t, "GET", fmt.Sprintf("%s/manifests/%s", url, tag))
+						addTokenAuthHeader(req, userToken)
+						MakeRequest(t, req, http.StatusOK)
+
+						pv, err = packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, tag)
+						assert.NoError(t, err)
+						assert.EqualValues(t, 1, pv.DownloadCount)
+
+						// Overwrite existing tag should keep the download count
 						req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/manifests/%s", url, tag), strings.NewReader(manifestContent))
 						addTokenAuthHeader(req, userToken)
 						req.Header.Set("Content-Type", oci.MediaTypeDockerManifest)
 						MakeRequest(t, req, http.StatusCreated)
+
+						pv, err = packages_model.GetVersionByNameAndVersion(db.DefaultContext, user.ID, packages_model.TypeContainer, image, tag)
+						assert.NoError(t, err)
+						assert.EqualValues(t, 1, pv.DownloadCount)
 					})
 
 					t.Run("HeadManifest", func(t *testing.T) {
