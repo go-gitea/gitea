@@ -11,10 +11,10 @@ import (
 	"net"
 	"net/http"
 
-	"code.gitea.io/gitea/modules/haproxy"
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxyprotocol"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -56,7 +56,7 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 					return conn, err
 				}
 				if setting.LocalUseProxyProtocol {
-					if err = haproxy.WriteLocalProxyHeader(conn); err != nil {
+					if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
 						_ = conn.Close()
 						return nil, err
 					}
@@ -72,7 +72,7 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 				if err != nil {
 					return conn, err
 				}
-				if err = haproxy.WriteLocalProxyHeader(conn); err != nil {
+				if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
 					_ = conn.Close()
 					return nil, err
 				}

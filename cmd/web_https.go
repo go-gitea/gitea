@@ -136,7 +136,7 @@ var (
 // be provided. If the certificate is signed by a certificate authority, the
 // certFile should be the concatenation of the server's certificate followed by the
 // CA's certificate.
-func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler, haProxy, haProxyTLSBridging bool) error {
+func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handler, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	tlsConfig := &tls.Config{}
 	if tlsConfig.NextProtos == nil {
 		tlsConfig.NextProtos = []string{"h2", "http/1.1"}
@@ -184,9 +184,9 @@ func runHTTPS(network, listenAddr, name, certFile, keyFile string, m http.Handle
 		return err
 	}
 
-	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, haProxy, haProxyTLSBridging)
+	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, useProxyProtocol, proxyProtocolTLSBridging)
 }
 
-func runHTTPSWithTLSConfig(network, listenAddr, name string, tlsConfig *tls.Config, m http.Handler, haProxy, haProxyTLSBridging bool) error {
-	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, haProxy, haProxyTLSBridging)
+func runHTTPSWithTLSConfig(network, listenAddr, name string, tlsConfig *tls.Config, m http.Handler, useProxyProtocol, proxyProtocolTLSBridging bool) error {
+	return graceful.HTTPListenAndServeTLSConfig(network, listenAddr, name, tlsConfig, m, useProxyProtocol, proxyProtocolTLSBridging)
 }

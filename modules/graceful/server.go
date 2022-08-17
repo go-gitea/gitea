@@ -15,8 +15,8 @@ import (
 	"syscall"
 	"time"
 
-	"code.gitea.io/gitea/modules/haproxy"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxyprotocol"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -80,7 +80,7 @@ func NewServer(network, address, name string) *Server {
 
 // ListenAndServe listens on the provided network address and then calls Serve
 // to handle requests on incoming connections.
-func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
+func (srv *Server) ListenAndServe(serve ServeFunction, useProxyProtocol bool) error {
 	go srv.awaitShutdown()
 
 	listener, err := GetListener(srv.network, srv.address)
@@ -92,9 +92,9 @@ func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
 	// we need to wrap the listener to take account of our lifecycle
 	listener = newWrappedListener(listener, srv)
 
-	// Now we need to take account of HAProxy settings...
-	if haProxy {
-		listener = &haproxy.Listener{
+	// Now we need to take account of ProxyProtocol settings...
+	if useProxyProtocol {
+		listener = &proxyprotocol.Listener{
 			Listener:           listener,
 			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
 			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
@@ -109,7 +109,7 @@ func (srv *Server) ListenAndServe(serve ServeFunction, haProxy bool) error {
 
 // ListenAndServeTLSConfig listens on the provided network address and then calls
 // Serve to handle requests on incoming TLS connections.
-func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, haProxy, haProxyTLSBridging bool) error {
+func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFunction, useProxyProtocol, proxyProtocolTLSBridging bool) error {
 	go srv.awaitShutdown()
 
 	if tlsConfig.MinVersion == 0 {
@@ -125,9 +125,9 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	// we need to wrap the listener to take account of our lifecycle
 	listener = newWrappedListener(listener, srv)
 
-	// Now we need to take account of HAProxy settings... If we're not bridging then we expect that the proxy will forward the connection to us
-	if haProxy && !haProxyTLSBridging {
-		listener = &haproxy.Listener{
+	// Now we need to take account of ProxyProtocol settings... If we're not bridging then we expect that the proxy will forward the connection to us
+	if useProxyProtocol && !proxyProtocolTLSBridging {
+		listener = &proxyprotocol.Listener{
 			Listener:           listener,
 			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
 			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,
@@ -138,8 +138,8 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	listener = tls.NewListener(listener, tlsConfig)
 
 	// Now if we're bridging then we need the proxy to tell us who we're bridging for...
-	if haProxy && haProxyTLSBridging {
-		listener = &haproxy.Listener{
+	if useProxyProtocol && proxyProtocolTLSBridging {
+		listener = &proxyprotocol.Listener{
 			Listener:           listener,
 			ProxyHeaderTimeout: setting.ProxyProtocolHeaderTimeout,
 			AcceptUnknown:      setting.ProxyProtocolAcceptUnknown,

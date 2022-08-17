@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package haproxy
+package proxyprotocol
 
 import (
 	"bufio"
@@ -41,7 +41,7 @@ type Conn struct {
 }
 
 // NewConn is used to wrap a net.Conn speaking the proxy protocol into
-// a haproxy.Conn
+// a proxyprotocol.Conn
 func NewConn(conn net.Conn, timeout time.Duration) *Conn {
 	pConn := &Conn{
 		bufReader:          bufio.NewReader(conn),
