@@ -264,15 +264,17 @@ func IsOfficialReviewer(ctx context.Context, issue *Issue, reviewers ...*user_mo
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+
+	rule, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if rule == nil {
 		return false, nil
 	}
 
 	for _, reviewer := range reviewers {
-		official, err := git_model.IsUserOfficialReviewerCtx(ctx, pr.ProtectedBranch, reviewer)
+		official, err := git_model.IsUserOfficialReviewer(ctx, rule, reviewer)
 		if official || err != nil {
 			return official, err
 		}
@@ -287,18 +289,19 @@ func IsOfficialReviewerTeam(ctx context.Context, issue *Issue, team *organizatio
 	if err != nil {
 		return false, err
 	}
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		return false, nil
 	}
 
-	if !pr.ProtectedBranch.EnableApprovalsWhitelist {
+	if !pb.EnableApprovalsWhitelist {
 		return team.UnitAccessModeCtx(ctx, unit.TypeCode) >= perm.AccessModeWrite, nil
 	}
 
-	return base.Int64sContains(pr.ProtectedBranch.ApprovalsWhitelistTeamIDs, team.ID), nil
+	return base.Int64sContains(pb.ApprovalsWhitelistTeamIDs, team.ID), nil
 }
 
 // CreateReview creates a new review based on opts

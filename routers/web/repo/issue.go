@@ -1630,22 +1630,23 @@ func ViewIssue(ctx *context.Context) {
 		}
 		ctx.Data["DefaultSquashMergeMessage"] = defaultSquashMergeMessage
 
-		if err = pull.LoadProtectedBranch(); err != nil {
+		pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
+		if err != nil {
 			ctx.ServerError("LoadProtectedBranch", err)
 			return
 		}
 		ctx.Data["ShowMergeInstructions"] = true
-		if pull.ProtectedBranch != nil {
+		if pb != nil {
 			var showMergeInstructions bool
 			if ctx.Doer != nil {
-				showMergeInstructions = pull.ProtectedBranch.CanUserPush(ctx.Doer.ID)
+				showMergeInstructions = pb.CanUserPush(ctx.Doer.ID)
 			}
-			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pull.ProtectedBranch, pull)
-			ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pull.ProtectedBranch, pull)
-			ctx.Data["RequireSigned"] = pull.ProtectedBranch.RequireSignedCommits
+			ctx.Data["IsBlockedByApprovals"] = !issues_model.HasEnoughApprovals(ctx, pb, pull)
+			ctx.Data["IsBlockedByRejection"] = issues_model.MergeBlockedByRejectedReview(ctx, pb, pull)
+			ctx.Data["IsBlockedByOfficialReviewRequests"] = issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pull)
+			ctx.Data["IsBlockedByOutdatedBranch"] = issues_model.MergeBlockedByOutdatedBranch(pb, pull)
+			ctx.Data["GrantedApprovals"] = issues_model.GetGrantedApprovalsCount(ctx, pb, pull)
+			ctx.Data["RequireSigned"] = pb.RequireSignedCommits
 			ctx.Data["ChangedProtectedFiles"] = pull.ChangedProtectedFiles
 			ctx.Data["IsBlockedByChangedProtectedFiles"] = len(pull.ChangedProtectedFiles) != 0
 			ctx.Data["ChangedProtectedFilesNum"] = len(pull.ChangedProtectedFiles)

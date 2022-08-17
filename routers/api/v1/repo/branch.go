@@ -71,7 +71,7 @@ func GetBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branchName)
+	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -207,7 +207,7 @@ func CreateBranch(ctx *context.APIContext) {
 		return
 	}
 
-	branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branch.Name)
+	branchProtection, err := git_model.GetFirstMatchProtectedBranchRule(ctx, ctx.Repo.Repository.ID, branch.Name)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
 		return
@@ -260,6 +260,12 @@ func ListBranches(ctx *context.APIContext) {
 		return
 	}
 
+	rules, err := git_model.FindMatchedProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "FindMatchedProtectedBranchRules", err)
+		return
+	}
+
 	apiBranches := make([]*api.Branch, 0, len(branches))
 	for i := range branches {
 		c, err := branches[i].GetCommit()
@@ -272,11 +278,7 @@ func ListBranches(ctx *context.APIContext) {
 			ctx.Error(http.StatusInternalServerError, "GetCommit", err)
 			return
 		}
-		branchProtection, err := git_model.GetProtectedBranchBy(ctx, ctx.Repo.Repository.ID, branches[i].Name)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetBranchProtection", err)
-			return
-		}
+		branchProtection := rules.GetFirstMatched(branches[i].Name)
 		apiBranch, err := convert.ToBranch(ctx.Repo.Repository, branches[i], c, branchProtection, ctx.Doer, ctx.Repo.IsAdmin())
 		if err != nil {
 			ctx.Error(http.StatusInternalServerError, "convert.ToBranch", err)

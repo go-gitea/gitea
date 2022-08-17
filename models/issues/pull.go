@@ -150,16 +150,16 @@ type PullRequest struct {
 	Issue   *Issue `xorm:"-"`
 	Index   int64
 
-	HeadRepoID          int64                  `xorm:"INDEX"`
-	HeadRepo            *repo_model.Repository `xorm:"-"`
-	BaseRepoID          int64                  `xorm:"INDEX"`
-	BaseRepo            *repo_model.Repository `xorm:"-"`
-	HeadBranch          string
-	HeadCommitID        string `xorm:"-"`
-	BaseBranch          string
-	ProtectedBranch     *git_model.ProtectedBranch `xorm:"-"`
-	MergeBase           string                     `xorm:"VARCHAR(40)"`
-	AllowMaintainerEdit bool                       `xorm:"NOT NULL DEFAULT false"`
+	HeadRepoID   int64                  `xorm:"INDEX"`
+	HeadRepo     *repo_model.Repository `xorm:"-"`
+	BaseRepoID   int64                  `xorm:"INDEX"`
+	BaseRepo     *repo_model.Repository `xorm:"-"`
+	HeadBranch   string
+	HeadCommitID string `xorm:"-"`
+	BaseBranch   string
+	// ProtectedBranch     *git_model.ProtectedBranch `xorm:"-"`
+	MergeBase           string `xorm:"VARCHAR(40)"`
+	AllowMaintainerEdit bool   `xorm:"NOT NULL DEFAULT false"`
 
 	HasMerged      bool               `xorm:"INDEX"`
 	MergedCommitID string             `xorm:"VARCHAR(40)"`
@@ -305,13 +305,8 @@ func (pr *PullRequest) LoadIssueCtx(ctx context.Context) (err error) {
 	return err
 }
 
-// LoadProtectedBranch loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranch() (err error) {
-	return pr.LoadProtectedBranchCtx(db.DefaultContext)
-}
-
-// LoadProtectedBranchCtx loads the protected branch of the base branch
-func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
+// LoadProtectedBranchRules loads the protected branch of the base branch
+/*func (pr *PullRequest) LoadProtectedBranchRules(ctx context.Context) (err error) {
 	if pr.ProtectedBranch == nil {
 		if pr.BaseRepo == nil {
 			if pr.BaseRepoID == 0 {
@@ -322,10 +317,10 @@ func (pr *PullRequest) LoadProtectedBranchCtx(ctx context.Context) (err error) {
 				return
 			}
 		}
-		pr.ProtectedBranch, err = git_model.GetProtectedBranchBy(ctx, pr.BaseRepo.ID, pr.BaseBranch)
+		pr.ProtectedBranch, err = git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepo.ID, pr.BaseBranch)
 	}
 	return err
-}
+}*/
 
 // ReviewCount represents a count of Reviews
 type ReviewCount struct {

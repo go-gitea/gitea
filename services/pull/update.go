@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -97,13 +98,13 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 		BaseBranch: pull.HeadBranch,
 	}
 
-	err = pr.LoadProtectedBranch()
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pull.BaseRepoID, pull.BaseBranch)
 	if err != nil {
 		return false, false, err
 	}
 
 	// can't do rebase on protected branch because need force push
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		prUnit, err := pr.BaseRepo.GetUnit(unit.TypePullRequests)
 		if err != nil {
 			log.Error("pr.BaseRepo.GetUnit(unit.TypePullRequests): %v", err)
@@ -113,7 +114,7 @@ func IsUserAllowedToUpdate(ctx context.Context, pull *issues_model.PullRequest, 
 	}
 
 	// Update function need push permission
-	if pr.ProtectedBranch != nil && !pr.ProtectedBranch.CanUserPush(user.ID) {
+	if pb != nil && !pb.CanUserPush(user.ID) {
 		return false, false, nil
 	}
 

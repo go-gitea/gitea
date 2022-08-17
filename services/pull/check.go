@@ -15,6 +15,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -127,11 +128,12 @@ func CheckPullMergable(stdCtx context.Context, doer *user_model.User, perm *acce
 
 // isSignedIfRequired check if merge will be signed if required
 func isSignedIfRequired(ctx context.Context, pr *issues_model.PullRequest, doer *user_model.User) (bool, error) {
-	if err := pr.LoadProtectedBranchCtx(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return false, err
 	}
 
-	if pr.ProtectedBranch == nil || !pr.ProtectedBranch.RequireSignedCommits {
+	if pb == nil || !pb.RequireSignedCommits {
 		return true, nil
 	}
 

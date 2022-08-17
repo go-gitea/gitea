@@ -744,12 +744,12 @@ func IsUserAllowedToMerge(ctx context.Context, pr *issues_model.PullRequest, p a
 		return false, nil
 	}
 
-	err := pr.LoadProtectedBranchCtx(ctx)
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
 	if err != nil {
 		return false, err
 	}
 
-	if (p.CanWrite(unit.TypeCode) && pr.ProtectedBranch == nil) || (pr.ProtectedBranch != nil && git_model.IsUserMergeWhitelisted(ctx, pr.ProtectedBranch, user.ID, p)) {
+	if (p.CanWrite(unit.TypeCode) && pb == nil) || (pb != nil && git_model.IsUserMergeWhitelisted(ctx, pb, user.ID, p)) {
 		return true, nil
 	}
 
@@ -762,10 +762,11 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return fmt.Errorf("LoadBaseRepo: %v", err)
 	}
 
-	if err = pr.LoadProtectedBranchCtx(ctx); err != nil {
+	pb, err := git_model.GetFirstMatchProtectedBranchRule(ctx, pr.BaseRepoID, pr.BaseBranch)
+	if err != nil {
 		return fmt.Errorf("LoadProtectedBranch: %v", err)
 	}
-	if pr.ProtectedBranch == nil {
+	if pb == nil {
 		return nil
 	}
 
@@ -779,23 +780,23 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		}
 	}
 
-	if !issues_model.HasEnoughApprovals(ctx, pr.ProtectedBranch, pr) {
+	if !issues_model.HasEnoughApprovals(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Does not have enough approvals",
 		}
 	}
-	if issues_model.MergeBlockedByRejectedReview(ctx, pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByRejectedReview(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are requested changes",
 		}
 	}
-	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByOfficialReviewRequests(ctx, pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "There are official review requests",
 		}
 	}
 
-	if issues_model.MergeBlockedByOutdatedBranch(pr.ProtectedBranch, pr) {
+	if issues_model.MergeBlockedByOutdatedBranch(pb, pr) {
 		return models.ErrDisallowedToMerge{
 			Reason: "The head branch is behind the base branch",
 		}
@@ -805,7 +806,7 @@ func CheckPullBranchProtections(ctx context.Context, pr *issues_model.PullReques
 		return nil
 	}
 
-	if pr.ProtectedBranch.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
+	if pb.MergeBlockedByProtectedFiles(pr.ChangedProtectedFiles) {
 		return models.ErrDisallowedToMerge{
 			Reason: "Changed protected files",
 		}
