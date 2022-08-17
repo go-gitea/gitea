@@ -13,6 +13,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 * ENHANCEMENTS
   * Display project in issue list (#20583)
   * Add disable download source configuration (#20548) (#20579)
+  * Add username check to doctor (#20140) (#20671)
+  * Enable Wire 2 for Internal SSH Server (#20616) (#20617)
 * BUGFIXES
   * Use the total issue count for UI (#20785) (#20827)
   * Add proxy host into allow list (#20798) (#20819)
@@ -36,8 +38,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Add repository condition for issue count (#20454) (#20496)
   * Make branch icon stand out more (#20726) (#20774)
   * Fix loading button with invalid form (#20754) (#20759)
-  * Add username check to doctor (#20140) (#20671)
-  * Enable Wire 2 for Internal SSH Server (#20616) (#20617)
   * Fix SecToTime edge-cases (#20610) (#20611)
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
