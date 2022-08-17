@@ -607,10 +607,8 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 	var shownIssues int
 	if !isShowClosed {
 		shownIssues = int(issueStats.OpenCount)
-		ctx.Data["TotalIssueCount"] = shownIssues
 	} else {
 		shownIssues = int(issueStats.ClosedCount)
-		ctx.Data["TotalIssueCount"] = shownIssues
 	}
 	if len(repoIDs) != 0 {
 		shownIssues = 0
@@ -618,6 +616,13 @@ func buildIssueOverview(ctx *context.Context, unitType unit.Type) {
 			shownIssues += int(issueCountByRepo[repoID])
 		}
 	}
+
+	var allIssueCount int64
+	for _, issueCount := range issueCountByRepo {
+		allIssueCount += issueCount
+	}
+	ctx.Data["TotalIssueCount"] = allIssueCount
+
 	if len(repoIDs) == 1 {
 		repo := showReposMap[repoIDs[0]]
 		if repo != nil {
