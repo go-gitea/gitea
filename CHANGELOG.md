@@ -39,6 +39,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Make branch icon stand out more (#20726) (#20774)
   * Fix loading button with invalid form (#20754) (#20759)
   * Fix SecToTime edge-cases (#20610) (#20611)
+  * Executable check always returns true for windows (#20637) (#20835)
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
