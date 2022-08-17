@@ -395,7 +395,7 @@
 										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
 										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
 										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
+										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultMergeMessage,
 										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
