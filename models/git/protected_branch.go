@@ -252,7 +252,6 @@ func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) 
 	return rel, nil
 }
 
-
 // WhitelistOptions represent all sorts of whitelists used for protected branches
 type WhitelistOptions struct {
 	UserIDs []int64
