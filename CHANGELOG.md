@@ -34,12 +34,11 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Clean up and fix clone button script (#20415 & #20600) (#20599)
   * Fix default merge style (#20564) (#20565)
   * Add repository condition for issue count (#20454) (#20496)
-* MISC
   * Make branch icon stand out more (#20726) (#20774)
   * Fix loading button with invalid form (#20754) (#20759)
   * Add username check to doctor (#20140) (#20671)
   * Enable Wire 2 for Internal SSH Server (#20616) (#20617)
-  *  Fix SecToTime edge-cases (#20610) (#20611)
+  * Fix SecToTime edge-cases (#20610) (#20611)
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
