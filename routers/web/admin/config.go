@@ -40,8 +40,6 @@ func SendTestMail(ctx *context.Context) {
 	ctx.Redirect(setting.AppSubURL + "/admin/config")
 }
 
-
-
 func shadowPasswordKV(cfgItem, splitter string) string {
 	fields := strings.Split(cfgItem, splitter)
 	for i := 0; i < len(fields); i++ {
@@ -113,9 +111,7 @@ func Config(ctx *context.Context) {
 
 	// All editable settings from UI
 	ctx.Data["SystemSettings"] = systemSettings
-	ctx.PageData["adminConfigPage"] = map[string]string{
-		"abc": "",
-	}
+	ctx.PageData["adminConfigPage"] = true
 
 	ctx.Data["CustomConf"] = setting.CustomConf
 	ctx.Data["AppUrl"] = setting.AppURL
