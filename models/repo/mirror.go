@@ -153,7 +153,9 @@ func (repos MirrorRepositoryList) loadAttributes(ctx context.Context) error {
 	}
 	for i := range repos {
 		repos[i].Mirror = set[repos[i].ID]
-		repos[i].Mirror.Repo = repos[i]
+		if repos[i].Mirror != nil {
+			repos[i].Mirror.Repo = repos[i]
+		}
 	}
 	return nil
 }
