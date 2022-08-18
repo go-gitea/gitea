@@ -168,7 +168,7 @@
 						<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</div>
 					{{end}}
 					<!-- Labels -->
-					<div class="ui {{if not .Labels}}dis<<<<<<< add-issue-filter-search-inputabled{{end}} dropdown jump item">
+					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_label"}}
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
@@ -192,7 +192,7 @@
 							<div class="item issue-action" data-element-id="0" data-url="{{$.Link}}/milestone">
 							{{.locale.Tr "repo.issues.action_milestone_no_select"}}
 							</div>
-							{{range .Milestones}}<<<<<<< add-issue-filter-search-input
+							{{range .Milestones}}
 								<div class="item issue-action" data-element-id="{{.ID}}" data-url="{{$.RepoLink}}/issues/milestone">
 									{{.Name}}
 								</div>
