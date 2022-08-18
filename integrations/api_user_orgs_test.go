@@ -93,7 +93,7 @@ func TestMyOrgs(t *testing.T) {
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
 	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
-	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user172"})
+	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
 
 	assert.Equal(t, []*api.Organization{
 		{
