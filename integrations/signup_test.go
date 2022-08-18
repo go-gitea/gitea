@@ -54,7 +54,7 @@ func TestSignupAsRestricted(t *testing.T) {
 	req = NewRequest(t, "GET", "/restrictedUser")
 	MakeRequest(t, req, http.StatusOK)
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "restrictedUser"}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "restrictedUser"})
 	assert.True(t, user2.IsRestricted)
 }
 

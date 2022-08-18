@@ -59,6 +59,7 @@ const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
 )
 
 // settings
@@ -185,6 +186,7 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
@@ -262,8 +264,8 @@ var (
 	}{
 		ExplorePagingNum:    20,
 		SitemapPagingNum:    20,
-		IssuePagingNum:      10,
-		RepoSearchPagingNum: 10,
+		IssuePagingNum:      20,
+		RepoSearchPagingNum: 20,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
@@ -908,6 +910,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
