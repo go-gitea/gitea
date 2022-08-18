@@ -262,7 +262,11 @@ func EditTeam(ctx *context.APIContext) {
 	}
 
 	if form.CanCreateOrgRepo != nil {
-		team.CanCreateOrgRepo = *form.CanCreateOrgRepo
+		if team.IsOwnerTeam() {
+			team.CanCreateOrgRepo = true
+		} else {
+			team.CanCreateOrgRepo = *form.CanCreateOrgRepo
+		}
 	}
 
 	if len(form.Name) > 0 {
