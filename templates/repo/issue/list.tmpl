@@ -118,7 +118,7 @@
 									<a class="{{if eq .ViewType "review_requested"}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type=review_requested&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_type.review_requested"}}</a>
 								{{end}}
 							</div>
-						</div><<<<<<< 3407_add_nolables_nomilestones_noassignees_filters
+						</div>
 					{{end}}
 
 					<!-- Sort -->
@@ -162,7 +162,7 @@
 					<div class="ui {{if not .Labels}}disabled{{end}} dropdown jump item">
 						<span class="text">
 							{{.locale.Tr "repo.issues.action_label"}}
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}<<<<<<< 3407_add_nolables_nomilestones_noassignees_filters
+							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
 							{{range .Labels}}
