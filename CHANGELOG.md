@@ -40,6 +40,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix SecToTime edge-cases (#20610) (#20611)
   * Executable check always returns true for windows (#20637) (#20835)
   * Check issue labels slice length before calling xorm Insert (#20655) (#20836)
+  * Fix owners cannot create organization repos bug (#20841) (#20854) 
 
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
