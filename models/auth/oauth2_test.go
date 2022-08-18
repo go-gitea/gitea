@@ -17,7 +17,7 @@ import (
 
 func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1})
 	secret, err := app.GenerateClientSecret()
 	assert.NoError(t, err)
 	assert.True(t, len(secret) > 0)
@@ -26,7 +26,7 @@ func TestOAuth2Application_GenerateClientSecret(t *testing.T) {
 
 func BenchmarkOAuth2Application_GenerateClientSecret(b *testing.B) {
 	assert.NoError(b, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(b, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(b, &OAuth2Application{ID: 1})
 	for i := 0; i < b.N; i++ {
 		_, _ = app.GenerateClientSecret()
 	}
@@ -44,7 +44,7 @@ func TestOAuth2Application_ContainsRedirectURI(t *testing.T) {
 
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1})
 	secret, err := app.GenerateClientSecret()
 	assert.NoError(t, err)
 	assert.True(t, app.ValidateClientSecret([]byte(secret)))
@@ -77,7 +77,7 @@ func TestOAuth2Application_TableName(t *testing.T) {
 
 func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1})
 	grant, err := app.GetGrantByUserID(db.DefaultContext, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), grant.UserID)
@@ -89,7 +89,7 @@ func TestOAuth2Application_GetGrantByUserID(t *testing.T) {
 
 func TestOAuth2Application_CreateGrant(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1})
 	grant, err := app.CreateGrant(db.DefaultContext, 2, "")
 	assert.NoError(t, err)
 	assert.NotNil(t, grant)
@@ -113,7 +113,7 @@ func TestGetOAuth2GrantByID(t *testing.T) {
 
 func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 1}).(*OAuth2Grant)
+	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 1})
 	assert.NoError(t, grant.IncreaseCounter(db.DefaultContext))
 	assert.Equal(t, int64(2), grant.Counter)
 	unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Counter: 2})
@@ -121,7 +121,7 @@ func TestOAuth2Grant_IncreaseCounter(t *testing.T) {
 
 func TestOAuth2Grant_ScopeContains(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Scope: "openid profile"}).(*OAuth2Grant)
+	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1, Scope: "openid profile"})
 	assert.True(t, grant.ScopeContains("openid"))
 	assert.True(t, grant.ScopeContains("profile"))
 	assert.False(t, grant.ScopeContains("profil"))
@@ -130,7 +130,7 @@ func TestOAuth2Grant_ScopeContains(t *testing.T) {
 
 func TestOAuth2Grant_GenerateNewAuthorizationCode(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1}).(*OAuth2Grant)
+	grant := unittest.AssertExistsAndLoadBean(t, &OAuth2Grant{ID: 1})
 	code, err := grant.GenerateNewAuthorizationCode(db.DefaultContext, "https://example2.com/callback", "CjvyTLSdR47G5zYenDA-eDWW4lRrO8yvjcWwbD_deOg", "S256")
 	assert.NoError(t, err)
 	assert.NotNil(t, code)
@@ -224,7 +224,7 @@ func TestOAuth2AuthorizationCode_GenerateRedirectURI(t *testing.T) {
 
 func TestOAuth2AuthorizationCode_Invalidate(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	code := unittest.AssertExistsAndLoadBean(t, &OAuth2AuthorizationCode{Code: "authcode"}).(*OAuth2AuthorizationCode)
+	code := unittest.AssertExistsAndLoadBean(t, &OAuth2AuthorizationCode{Code: "authcode"})
 	assert.NoError(t, code.Invalidate(db.DefaultContext))
 	unittest.AssertNotExistsBean(t, &OAuth2AuthorizationCode{Code: "authcode"})
 }

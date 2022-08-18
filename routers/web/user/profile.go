@@ -105,6 +105,13 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
 
+	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetUserBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = badges
+
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
 
@@ -157,7 +164,7 @@ func Profile(ctx *context.Context) {
 
 	switch tab {
 	case "followers":
-		items, err := user_model.GetUserFollowers(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowers(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -167,9 +174,9 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowers
+		total = int(count)
 	case "following":
-		items, err := user_model.GetUserFollowing(ctx.ContextUser, db.ListOptions{
+		items, count, err := user_model.GetUserFollowing(ctx, ctx.ContextUser, ctx.Doer, db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,
 		})
@@ -179,7 +186,7 @@ func Profile(ctx *context.Context) {
 		}
 		ctx.Data["Cards"] = items
 
-		total = ctx.ContextUser.NumFollowing
+		total = int(count)
 	case "activity":
 		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,

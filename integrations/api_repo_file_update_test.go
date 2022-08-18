@@ -48,7 +48,7 @@ func getUpdateFileOptions() *api.UpdateFileOptions {
 	}
 }
 
-func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileResponse {
+func getExpectedFileResponseForUpdate(commitID, treePath, lastCommitSHA string) *api.FileResponse {
 	sha := "08bd14b2e2852529157324de9c226b3364e76136"
 	encoding := "base64"
 	content := "VGhpcyBpcyB1cGRhdGVkIHRleHQ="
@@ -58,17 +58,18 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 	downloadURL := setting.AppURL + "user2/repo1/raw/branch/master/" + treePath
 	return &api.FileResponse{
 		Content: &api.ContentsResponse{
-			Name:        filepath.Base(treePath),
-			Path:        treePath,
-			SHA:         sha,
-			Type:        "file",
-			Size:        20,
-			Encoding:    &encoding,
-			Content:     &content,
-			URL:         &selfURL,
-			HTMLURL:     &htmlURL,
-			GitURL:      &gitURL,
-			DownloadURL: &downloadURL,
+			Name:          filepath.Base(treePath),
+			Path:          treePath,
+			SHA:           sha,
+			LastCommitSHA: lastCommitSHA,
+			Type:          "file",
+			Size:          20,
+			Encoding:      &encoding,
+			Content:       &content,
+			URL:           &selfURL,
+			HTMLURL:       &htmlURL,
+			GitURL:        &gitURL,
+			DownloadURL:   &downloadURL,
 			Links: &api.FileLinksResponse{
 				Self:    &selfURL,
 				GitURL:  &gitURL,
@@ -106,12 +107,12 @@ func getExpectedFileResponseForUpdate(commitID, treePath string) *api.FileRespon
 
 func TestAPIUpdateFile(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)               // owner of the repo1 & repo16
-		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)               // owner of the repo3, is an org
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)               // owner of neither repos
-		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)   // public repo
-		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)   // public repo
-		repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository) // private repo
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})         // owner of the repo1 & repo16
+		user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})         // owner of the repo3, is an org
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})         // owner of neither repos
+		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})   // public repo
+		repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})   // public repo
+		repo16 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}) // private repo
 		fileID := 0
 
 		// Get user2's token
@@ -137,7 +138,8 @@ func TestAPIUpdateFile(t *testing.T) {
 			resp := session.MakeRequest(t, req, http.StatusOK)
 			gitRepo, _ := git.OpenRepository(stdCtx.Background(), repo1.RepoPath())
 			commitID, _ := gitRepo.GetBranchCommitID(updateFileOptions.NewBranchName)
-			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath)
+			lasCommit, _ := gitRepo.GetCommitByPath(treePath)
+			expectedFileResponse := getExpectedFileResponseForUpdate(commitID, treePath, lasCommit.ID.String())
 			var fileResponse api.FileResponse
 			DecodeJSON(t, resp, &fileResponse)
 			assert.EqualValues(t, expectedFileResponse.Content, fileResponse.Content)

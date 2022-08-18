@@ -55,7 +55,7 @@ func doTestRepoCommitWithStatus(t *testing.T, state string, classes ...string) {
 
 	doc = NewHTMLParser(t, resp.Body)
 	// Check if commit status is displayed in message column
-	sel := doc.doc.Find("#commits-table tbody tr td.message a.commit-statuses-trigger i.commit-status")
+	sel := doc.doc.Find("#commits-table tbody tr td.message a.commit-statuses-trigger .commit-status")
 	assert.Equal(t, 1, sel.Length())
 	for _, class := range classes {
 		assert.True(t, sel.HasClass(class))
@@ -96,21 +96,21 @@ func testRepoCommitsWithStatus(t *testing.T, resp, respOne *httptest.ResponseRec
 }
 
 func TestRepoCommitsWithStatusPending(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "pending", "circle", "yellow")
+	doTestRepoCommitWithStatus(t, "pending", "octicon-dot-fill", "yellow")
 }
 
 func TestRepoCommitsWithStatusSuccess(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "success", "check", "green")
+	doTestRepoCommitWithStatus(t, "success", "octicon-check", "green")
 }
 
 func TestRepoCommitsWithStatusError(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "error", "warning", "red")
+	doTestRepoCommitWithStatus(t, "error", "gitea-exclamation", "red")
 }
 
 func TestRepoCommitsWithStatusFailure(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "failure", "remove", "red")
+	doTestRepoCommitWithStatus(t, "failure", "octicon-x", "red")
 }
 
 func TestRepoCommitsWithStatusWarning(t *testing.T) {
-	doTestRepoCommitWithStatus(t, "warning", "warning", "sign", "yellow")
+	doTestRepoCommitWithStatus(t, "warning", "gitea-exclamation", "yellow")
 }

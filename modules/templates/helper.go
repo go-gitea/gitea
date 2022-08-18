@@ -628,7 +628,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -972,11 +972,11 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
 	a := remoteAddress{}
 
 	remoteURL := m.OriginalURL
-	if remoteURL == "" {
+	if ignoreOriginalURL || remoteURL == "" {
 		var err error
 		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
 		if err != nil {

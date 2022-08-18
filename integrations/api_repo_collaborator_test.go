@@ -20,13 +20,13 @@ import (
 
 func TestAPIRepoCollaboratorPermission(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
-		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
-		repo2Owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID}).(*user_model.User)
+		repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+		repo2Owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo2.OwnerID})
 
-		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
-		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
-		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10}).(*user_model.User)
-		user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11}).(*user_model.User)
+		user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
+		user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+		user10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 10})
+		user11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 11})
 
 		session := loginUser(t, repo2Owner.Name)
 		testCtx := NewAPITestContext(t, repo2Owner.Name, repo2.Name)

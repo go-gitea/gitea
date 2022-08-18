@@ -27,7 +27,7 @@ import (
 )
 
 // DeleteUser deletes models associated to an user.
-func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
@@ -85,6 +85,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&organization.TeamUser{UID: u.ID},
 		&issues_model.Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
+		&user_model.UserBadge{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
@@ -95,8 +96,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		return err
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
-		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
 
 		// Delete Comments
 		const batchSize = 50

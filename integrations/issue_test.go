@@ -41,7 +41,7 @@ func getIssue(t *testing.T, repoID int64, issueSelection *goquery.Selection) *is
 	indexStr := href[strings.LastIndexByte(href, '/')+1:]
 	index, err := strconv.Atoi(indexStr)
 	assert.NoError(t, err, "Invalid issue href: %s", href)
-	return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repoID, Index: int64(index)}).(*issues_model.Issue)
+	return unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{RepoID: repoID, Index: int64(index)})
 }
 
 func assertMatch(t testing.TB, issue *issues_model.Issue, keyword string) {
@@ -66,8 +66,8 @@ func TestNoLoginViewIssues(t *testing.T) {
 func TestViewIssuesSortByType(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	session := loginUser(t, user.Name)
 	req := NewRequest(t, "GET", repo.Link()+"/issues?type=created_by")
@@ -94,11 +94,11 @@ func TestViewIssuesSortByType(t *testing.T) {
 func TestViewIssuesKeyword(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{
 		RepoID: repo.ID,
 		Index:  1,
-	}).(*issues_model.Issue)
+	})
 	issues.UpdateIssueIndexer(issue)
 	time.Sleep(time.Second * 1)
 	const keyword = "first"
@@ -356,17 +356,17 @@ func TestSearchIssues(t *testing.T) {
 
 	session := loginUser(t, "user2")
 
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
+	}
+
 	link, _ := url.Parse("/issues/search")
 	req := NewRequest(t, "GET", link.String())
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var apiIssues []*api.Issue
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
-
-	req = NewRequest(t, "GET", link.String())
-	resp = session.MakeRequest(t, req, http.StatusOK)
-	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	since := "2000-01-01T00%3A50%3A01%2B00%3A00" // 946687801
 	before := time.Unix(999307200, 0).Format(time.RFC3339)
@@ -394,14 +394,15 @@ func TestSearchIssues(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
-	assert.Len(t, apiIssues, 10) // there are more but 10 is page item limit
+	assert.Len(t, apiIssues, 17)
 
-	query.Add("limit", "20")
+	query.Add("limit", "5")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
 	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 17)
+	assert.EqualValues(t, "17", resp.Header().Get("X-Total-Count"))
+	assert.Len(t, apiIssues, 5)
 
 	query = url.Values{"assigned": {"true"}, "state": {"all"}}
 	link.RawQuery = query.Encode()
@@ -449,29 +450,26 @@ func TestSearchIssues(t *testing.T) {
 func TestSearchIssuesWithLabels(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	token := getUserToken(t, "user1")
-
-	link, _ := url.Parse("/api/v1/repos/issues/search?token=" + token)
-	req := NewRequest(t, "GET", link.String())
-	resp := MakeRequest(t, req, http.StatusOK)
-	var apiIssues []*api.Issue
-	DecodeJSON(t, resp, &apiIssues)
-
-	assert.Len(t, apiIssues, 10)
-
-	query := url.Values{
-		"token": []string{token},
+	expectedIssueCount := 15 // from the fixtures
+	if expectedIssueCount > setting.UI.IssuePagingNum {
+		expectedIssueCount = setting.UI.IssuePagingNum
 	}
+
+	session := loginUser(t, "user1")
+	link, _ := url.Parse("/issues/search")
+	query := url.Values{}
+	var apiIssues []*api.Issue
+
 	link.RawQuery = query.Encode()
-	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	req := NewRequest(t, "GET", link.String())
+	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
-	assert.Len(t, apiIssues, 10)
+	assert.Len(t, apiIssues, expectedIssueCount)
 
 	query.Add("labels", "label1")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -479,7 +477,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,label2")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -487,7 +485,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 1)
 
@@ -496,7 +494,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Add("state", "all")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 
@@ -504,7 +502,7 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 	query.Set("labels", "label1,orglabel4")
 	link.RawQuery = query.Encode()
 	req = NewRequest(t, "GET", link.String())
-	resp = MakeRequest(t, req, http.StatusOK)
+	resp = session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &apiIssues)
 	assert.Len(t, apiIssues, 2)
 }
@@ -512,9 +510,9 @@ func TestSearchIssuesWithLabels(t *testing.T) {
 func TestGetIssueInfo(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issue.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	assert.NoError(t, issue.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, int64(1019307200), int64(issue.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issue.State())
@@ -533,9 +531,9 @@ func TestGetIssueInfo(t *testing.T) {
 func TestUpdateIssueDeadline(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10}).(*issues_model.Issue)
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
+	issueBefore := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 10})
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: issueBefore.RepoID})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 	assert.NoError(t, issueBefore.LoadAttributes(db.DefaultContext))
 	assert.Equal(t, int64(1019307200), int64(issueBefore.DeadlineUnix))
 	assert.Equal(t, api.StateOpen, issueBefore.State())
