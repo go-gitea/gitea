@@ -125,7 +125,7 @@ func runRecreateTable(ctx *cli.Context) error {
 }
 
 func setDoctorLogger(ctx *cli.Context) {
-	// Now setup our own
+	// Now setup our own logger
 	logFile := ctx.String("log-file")
 	if !ctx.IsSet("log-file") {
 		logFile = "doctor.log"
