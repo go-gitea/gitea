@@ -569,7 +569,10 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	if err := migrateRepository(downloader, uploader, opts, nil); err != nil {
+	ghost := user_model.NewGhostUser()
+	ghost.IsAdmin = true
+
+	if err := migrateRepository(ghost, downloader, uploader, opts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -641,7 +644,10 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 		return err
 	}
 
-	if err = migrateRepository(downloader, uploader, migrateOpts, nil); err != nil {
+	ghost := user_model.NewGhostUser()
+	ghost.IsAdmin = true
+
+	if err = migrateRepository(ghost, downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
