@@ -167,7 +167,7 @@ func preReceiveBranch(ctx *preReceiveContext, oldCommitID, newCommitID, refFullN
 	}
 
 	// Allow pushes to non-protected branches
-	if protectBranch == nil || !protectBranch.IsProtected() {
+	if protectBranch == nil {
 		return
 	}
 

@@ -47,16 +47,8 @@
 
 			<div class="ui attached table segment">
 				<div class="ui grid padded">
-					<div class="eight wide column">
-						<div class="ui fluid dropdown selection" tabindex="0">
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-							<div class="default text">{{.locale.Tr "repo.settings.choose_branch"}}</div>
-							<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
-								{{range .LeftBranches}}
-									<a class="item" href="{{$.Repository.Link}}/settings/branches/{{. | PathEscapeSegments}}">{{.}}</a>
-								{{end}}
-							</div>
-						</div>
+					<div class="eight wide column right">
+						<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/new">{{$.locale.Tr "repo.settings.branches.add_new_rule"}}</a>
 					</div>
 				</div>
 
@@ -67,7 +59,7 @@
 								{{range .ProtectedBranches}}
 									<tr>
 										<td><div class="ui basic primary label">{{.BranchName}}</div></td>
-										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.BranchName | PathEscapeSegments}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a></td>
+										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.ID}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a></td>
 									</tr>
 								{{else}}
 									<tr class="center aligned"><td>{{.locale.Tr "repo.settings.no_protected_branch"}}</td></tr>

@@ -59,11 +59,6 @@ func init() {
 	db.RegisterModel(new(ProtectedBranch))
 }
 
-// IsProtected returns if the branch is protected
-func (protectBranch *ProtectedBranch) IsProtected() bool {
-	return protectBranch.ID > 0
-}
-
 // Match tests if branchName matches the rule
 func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	if strings.EqualFold(protectBranch.BranchName, branchName) {
@@ -252,6 +247,19 @@ func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) 
 	return rel, nil
 }
 
+// GetProtectedBranchRuleByID getting protected branch by ID/Name
+func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{ID: ruleID, RepoID: repoID}
+	has, err := db.GetByBean(ctx, rel)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, nil
+	}
+	return rel, nil
+}
+
 // WhitelistOptions represent all sorts of whitelists used for protected branches
 type WhitelistOptions struct {
 	UserIDs []int64
@@ -323,12 +331,6 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 
 	return nil
-}
-
-// GetProtectedBranches get all protected branches
-func GetProtectedBranches(repoID int64) ([]*ProtectedBranch, error) {
-	protectedBranches := make([]*ProtectedBranch, 0)
-	return protectedBranches, db.GetEngine(db.DefaultContext).Find(&protectedBranches, &ProtectedBranch{RepoID: repoID})
 }
 
 // IsProtectedBranch checks if branch is protected

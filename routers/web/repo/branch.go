@@ -186,9 +186,9 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 		return nil, nil, 0
 	}
 
-	protectedBranches, err := git_model.GetProtectedBranches(ctx.Repo.Repository.ID)
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
-		ctx.ServerError("GetProtectedBranches", err)
+		ctx.ServerError("FindRepoProtectedBranchRules", err)
 		return nil, nil, 0
 	}
 
@@ -205,7 +205,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 			continue
 		}
 
-		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
+		branch := loadOneBranch(ctx, rawBranches[i], defaultBranch, rules, repoIDToRepo, repoIDToGitRepo)
 		if branch == nil {
 			return nil, nil, 0
 		}
@@ -217,7 +217,7 @@ func loadBranches(ctx *context.Context, skip, limit int) (*Branch, []*Branch, in
 	if defaultBranch != nil {
 		// Always add the default branch
 		log.Debug("loadOneBranch: load default: '%s'", defaultBranch.Name)
-		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, protectedBranches, repoIDToRepo, repoIDToGitRepo)
+		defaultBranchBranch = loadOneBranch(ctx, defaultBranch, defaultBranch, rules, repoIDToRepo, repoIDToGitRepo)
 		branches = append(branches, defaultBranchBranch)
 	}
 

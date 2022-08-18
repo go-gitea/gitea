@@ -260,7 +260,7 @@ func ListBranches(ctx *context.APIContext) {
 		return
 	}
 
-	rules, err := git_model.FindMatchedProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
+	rules, err := git_model.FindRepoProtectedBranchRules(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "FindMatchedProtectedBranchRules", err)
 		return
@@ -359,7 +359,7 @@ func ListBranchProtections(ctx *context.APIContext) {
 	//     "$ref": "#/responses/BranchProtectionList"
 
 	repo := ctx.Repo.Repository
-	bps, err := git_model.GetProtectedBranches(repo.ID)
+	bps, err := git_model.FindRepoProtectedBranchRules(ctx, repo.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetProtectedBranches", err)
 		return
