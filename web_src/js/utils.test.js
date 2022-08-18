@@ -111,6 +111,7 @@ test('prettyNumber', () => {
 });
 
 test('parseUrl', () => {
+  expect(parseUrl('').pathname).toEqual('/');
   expect(parseUrl('/path').pathname).toEqual('/path');
   expect(parseUrl('/path?search').pathname).toEqual('/path');
   expect(parseUrl('/path?search').search).toEqual('?search');
