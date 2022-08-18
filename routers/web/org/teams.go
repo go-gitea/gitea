@@ -339,7 +339,6 @@ func SearchTeam(ctx *context.Context) {
 	}
 
 	opts := &organization.SearchTeamOptions{
-		UserID:      ctx.Doer.ID,
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
