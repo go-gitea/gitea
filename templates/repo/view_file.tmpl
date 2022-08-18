@@ -122,7 +122,7 @@
 				</table>
 				<div class="code-line-menu ui vertical pointing menu tippy-target">
 					{{if $.Permission.CanRead $.UnitTypeIssues}}
-						<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/" }}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
+						<a class="item ref-in-new-issue" href="{{.RepoLink}}/issues/new?body={{.Repository.HTMLURL}}{{printf "/src/commit/"}}{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}" rel="nofollow noindex">{{.locale.Tr "repo.issues.context.reference_issue"}}</a>
 					{{end}}
 					<a class="item view_git_blame" href="{{.Repository.HTMLURL}}/blame/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.view_git_blame"}}</a>
 					<a class="item copy-line-permalink" data-url="{{.Repository.HTMLURL}}/src/commit/{{PathEscape .CommitID}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.file_copy_permalink"}}</a>
