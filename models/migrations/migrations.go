@@ -406,8 +406,7 @@ var migrations = []Migration{
 	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
 	// v223 -> v224
 	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
-
-	// v999
+	// v224 -> v225
 	NewMigration("Add badges to users", creatUserBadgesTable),
 }
 
