@@ -8,9 +8,8 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 * SECURITY
   * Correctly escape within tribute.js (#20831) (#20832)
-* FEATURES
-  * Add support for NuGet API keys (#20721) (#20734)
 * ENHANCEMENTS
+  * Add support for NuGet API keys (#20721) (#20734)
   * Display project in issue list (#20583)
   * Add disable download source configuration (#20548) (#20579)
   * Add username check to doctor (#20140) (#20671)
