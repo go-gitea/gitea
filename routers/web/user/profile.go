@@ -105,6 +105,13 @@ func Profile(ctx *context.Context) {
 	ctx.Data["Orgs"] = orgs
 	ctx.Data["HasOrgsVisible"] = organization.HasOrgsVisible(orgs, ctx.Doer)
 
+	badges, _, err := user_model.GetUserBadges(ctx, ctx.ContextUser)
+	if err != nil {
+		ctx.ServerError("GetUserBadges", err)
+		return
+	}
+	ctx.Data["Badges"] = badges
+
 	tab := ctx.FormString("tab")
 	ctx.Data["TabName"] = tab
 
