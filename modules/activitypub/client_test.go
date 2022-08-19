@@ -23,7 +23,7 @@ import (
 
 func TestActivityPubSignedPost(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	pubID := "https://example.com/pubID"
 	c, err := NewClient(user, pubID)
 	assert.NoError(t, err)

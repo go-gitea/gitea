@@ -129,10 +129,12 @@ func GetPushMirrorsSyncedOnCommit(repoID int64) ([]*PushMirror, error) {
 
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(ctx).
+	sess := db.GetEngine(ctx).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
-		OrderBy("last_update ASC").
-		Limit(limit).
-		Iterate(new(PushMirror), f)
+		OrderBy("last_update ASC")
+	if limit > 0 {
+		sess = sess.Limit(limit)
+	}
+	return sess.Iterate(new(PushMirror), f)
 }

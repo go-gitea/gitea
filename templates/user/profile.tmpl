@@ -69,6 +69,17 @@
 								</ul>
 							</li>
 							{{end}}
+							{{if .Badges}}
+							<li>
+								<ul class="user-badges">
+								{{range .Badges}}
+									<li>
+										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-content="{{.Description}}" class="tooltip"/>
+									</li>
+								{{end}}
+								</ul>
+							</li>
+							{{end}}
 							{{if and .IsSigned (ne .SignedUserName .Owner.Name)}}
 							<li class="follow">
 								{{if $.IsFollowing}}

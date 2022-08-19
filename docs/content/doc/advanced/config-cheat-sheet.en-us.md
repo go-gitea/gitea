@@ -492,6 +492,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
+- `REVERSE_PROXY_AUTHENTICATION_FULL_NAME`: **X-WEBAUTH-FULLNAME**: Header name for reverse proxy
+   authentication provided full name.
 - `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
    Number of trusted proxy count. Set to zero to not use these headers.
 - `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.0/8,::1/128**: List of IP addresses and networks separated by comma of trusted proxy servers. Use `*` to trust all.
@@ -577,6 +579,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    for reverse authentication.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
    provided email rather than a generated email.
+- `ENABLE_REVERSE_PROXY_FULL_NAME`: **false**: Enable this to allow to auto-registration with a
+   provided full name for the user.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
    even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.

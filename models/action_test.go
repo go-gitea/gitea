@@ -19,16 +19,16 @@ import (
 
 func TestAction_GetRepoPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &Action{RepoID: repo.ID}
 	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
 }
 
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &Action{RepoID: repo.ID}
 	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
@@ -38,7 +38,7 @@ func TestAction_GetRepoLink(t *testing.T) {
 func TestGetFeeds(t *testing.T) {
 	// test with an individual user
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   user,
@@ -65,9 +65,9 @@ func TestGetFeeds(t *testing.T) {
 
 func TestGetFeedsForRepos(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
-	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	privRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	pubRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 8})
 
 	// private repo & no login
 	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
@@ -107,8 +107,8 @@ func TestGetFeedsForRepos(t *testing.T) {
 func TestGetFeeds2(t *testing.T) {
 	// test with an organization user
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
 		RequestedUser:   org,
@@ -214,7 +214,7 @@ func TestNotifyWatchers(t *testing.T) {
 
 func TestGetFeedsCorrupted(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	unittest.AssertExistsAndLoadBean(t, &Action{
 		ID:     8,
 		RepoID: 1700,
