@@ -116,7 +116,7 @@ func (opts *FindReactionsOptions) toConds() builder.Cond {
 	// If it is -1 it explicit search of Issue Reactions where CommentID = 0
 	if opts.CommentID > 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": opts.CommentID})
-	} else if opts.CommentID == -1 {
+	} else if opts.CommentID <= 0 {
 		cond = cond.And(builder.Eq{"reaction.comment_id": 0})
 	}
 	if opts.UserID > 0 {
