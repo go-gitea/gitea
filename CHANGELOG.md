@@ -4,6 +4,45 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
+
+* SECURITY
+  * Correctly escape within tribute.js (#20831) (#20832)
+* ENHANCEMENTS
+  * Add support for NuGet API keys (#20721) (#20734)
+  * Display project in issue list (#20583)
+  * Add disable download source configuration (#20548) (#20579)
+  * Add username check to doctor (#20140) (#20671)
+  * Enable Wire 2 for Internal SSH Server (#20616) (#20617)
+* BUGFIXES
+  * Use the total issue count for UI (#20785) (#20827)
+  * Add proxy host into allow list (#20798) (#20819)
+  * Add missing translation for queue flush workers (#20791) (#20792)
+  * Improve comment header for mobile (#20781) (#20789)
+  * Fix git.Init for doctor sub-command (#20782) (#20783)
+  * Check webhooks slice length before calling xorm (#20642) (#20768)
+  * Remove manual rollback for failed generated repositories (#20639) (#20762)
+  * Use correct field name in npm template (#20675) (#20760)
+  * Keep download count on Container tag overwrite (#20728) (#20735)
+  * Fix v220 migration to be compatible for MSSQL 2008 r2 (#20702) (#20707)
+  * Use request timeout for git service rpc (#20689) (#20693)
+  * Send correct NuGet status codes (#20647) (#20677)
+  * Use correct context to get package content (#20673) (#20676)
+  * Fix the JS error "EventSource is not defined" caused by some non-standard browsers (#20584) (#20663)
+  * Add default commit messages to PR for squash merge (#20618) (#20645)
+  * Fix package upload for files >32mb (#20622) (#20635)
+  * Fix the new-line copy-paste for rendered code (#20612)
+  * Clean up and fix clone button script (#20415 & #20600) (#20599)
+  * Fix default merge style (#20564) (#20565)
+  * Add repository condition for issue count (#20454) (#20496)
+  * Make branch icon stand out more (#20726) (#20774)
+  * Fix loading button with invalid form (#20754) (#20759)
+  * Fix SecToTime edge-cases (#20610) (#20611)
+  * Executable check always returns true for windows (#20637) (#20835)
+  * Check issue labels slice length before calling xorm Insert (#20655) (#20836)
+  * Fix owners cannot create organization repos bug (#20841) (#20854)
+  * Prevent 500 is head repo does not have PullRequest unit in IsUserAllowedToUpdate (#20839) (#20848)
+
 ## [1.17.0](https://github.com/go-gitea/gitea/releases/tag/v1.17.0) - 2022-07-30
 
 * BREAKING
