@@ -983,8 +983,9 @@ Default templates for project boards:
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
 - `LARGE_OBJECT_THRESHOLD`: **1048576**: (Go-Git only), don't cache objects greater than this in memory. (Set to 0 to disable.)
-- `DISABLE_CORE_PROTECT_NTFS`: **false** Set to true to forcibly set `core.protectNTFS` to false.
-- `DISABLE_PARTIAL_CLONE`: **false** Disable the usage of using partial clones for git.
+- `DISABLE_CORE_PROTECT_NTFS`: **false**: Set to true to forcibly set `core.protectNTFS` to false.
+- `DISABLE_PARTIAL_CLONE`: **false**: Disable the usage of using partial clones for git.
+- `HTTP_FOLLOW_REDIRECTS`: **false**: Whether git should follow HTTP redirects.
 
 ## Git - Timeout settings (`git.timeout`)
 

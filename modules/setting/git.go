@@ -29,6 +29,7 @@ var Git = struct {
 	LargeObjectThreshold      int64
 	DisableCoreProtectNTFS    bool
 	DisablePartialClone       bool
+	HTTPFollowRedirects       string `ini:"HTTP_FOLLOW_REDIRECTS"`
 	Timeout                   struct {
 		Default int
 		Migrate int
@@ -51,6 +52,7 @@ var Git = struct {
 	PullRequestPushMessage:    true,
 	LargeObjectThreshold:      1024 * 1024,
 	DisablePartialClone:       false,
+	HTTPFollowRedirects:       "false",
 	Timeout: struct {
 		Default int
 		Migrate int

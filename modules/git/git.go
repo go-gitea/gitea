@@ -286,6 +286,15 @@ func syncGitConfig() (err error) {
 		}
 	}
 
+	if setting.Git.HTTPFollowRedirects == "" {
+		setting.Git.HTTPFollowRedirects = "false"
+	}
+
+	// http.followRedirects defaults to initial however this could still be abused by migration endpoints -- therefore disable this
+	if err := configSet("http.followRedirects", setting.Git.HTTPFollowRedirects); err != nil {
+		return err
+	}
+
 	return nil
 }
 
