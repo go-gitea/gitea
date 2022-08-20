@@ -198,15 +198,18 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 		return err
 	}
 
-	// Now the clone URL can be rewritten by the downloader so we must recheck
-	if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {
-		return err
-	}
-
-	// And so can the original URL too so again we must recheck
-	if repo.OriginalURL != "" {
-		if err := IsMigrateURLAllowed(repo.OriginalURL, doer); err != nil {
+	// If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
+	if _, ok := downloader.(*RepositoryRestorer); !ok {
+		// Now the clone URL can be rewritten by the downloader so we must recheck
+		if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {
 			return err
+		}
+
+		// And so can the original URL too so again we must recheck
+		if repo.OriginalURL != "" {
+			if err := IsMigrateURLAllowed(repo.OriginalURL, doer); err != nil {
+				return err
+			}
 		}
 	}
 
