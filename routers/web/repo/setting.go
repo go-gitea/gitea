@@ -91,7 +91,7 @@ func SettingsCtxData(ctx *context.Context) {
 		}
 		ctx.Data["StatsIndexerStatus"] = status
 	}
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
@@ -285,7 +285,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
@@ -306,7 +306,7 @@ func SettingsPost(ctx *context.Context) {
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
@@ -317,7 +317,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = repo_model.DeletePushMirrorByID(m.ID); err != nil {
+		if err = repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -371,6 +371,7 @@ func SettingsPost(ctx *context.Context) {
 			SyncOnCommit: form.PushMirrorSyncOnCommit,
 			Interval:     interval,
 		}
+
 		if form.PushMirrorUsePublicKey {
 			publicKey, privateKey, err := crypto.GenerateEd25519Keypair()
 			if err != nil {
@@ -381,14 +382,14 @@ func SettingsPost(ctx *context.Context) {
 			m.PublicKey = string(publicKey)
 		}
 
-		if err := repo_model.InsertPushMirror(m); err != nil {
+		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
 
 		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-			if err := repo_model.DeletePushMirrorByID(m.ID); err != nil {
-				log.Error("DeletePushMirrorByID %v", err)
+			if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+				log.Error("DeletePushMirrors %v", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
@@ -1239,13 +1240,13 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
+func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
 	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}

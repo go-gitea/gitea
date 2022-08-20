@@ -40,24 +40,57 @@ func TestMisc_IsReadmeFile(t *testing.T) {
 		assert.False(t, IsReadmeFile(testCase))
 	}
 
-	trueTestCasesStrict := [][]string{
-		{"readme", ""},
-		{"readme.md", ".md"},
-		{"readme.txt", ".txt"},
-	}
-	falseTestCasesStrict := [][]string{
-		{"readme", ".md"},
-		{"readme.md", ""},
-		{"readme.md", ".txt"},
-		{"readme.md", "md"},
-		{"readmee.md", ".md"},
-		{"readme.i18n.md", ".md"},
+	type extensionTestcase struct {
+		name     string
+		expected bool
+		idx      int
 	}
 
-	for _, testCase := range trueTestCasesStrict {
-		assert.True(t, IsReadmeFile(testCase[0], testCase[1]))
+	exts := []string{".md", ".txt", ""}
+	testCasesExtensions := []extensionTestcase{
+		{
+			name:     "readme",
+			expected: true,
+			idx:      2,
+		},
+		{
+			name:     "readme.md",
+			expected: true,
+			idx:      0,
+		},
+		{
+			name:     "README.md",
+			expected: true,
+			idx:      0,
+		},
+		{
+			name:     "ReAdMe.Md",
+			expected: true,
+			idx:      0,
+		},
+		{
+			name:     "readme.txt",
+			expected: true,
+			idx:      1,
+		},
+		{
+			name:     "readme.doc",
+			expected: true,
+			idx:      3,
+		},
+		{
+			name: "readmee.md",
+		},
+		{
+			name:     "readme..",
+			expected: true,
+			idx:      3,
+		},
 	}
-	for _, testCase := range falseTestCasesStrict {
-		assert.False(t, IsReadmeFile(testCase[0], testCase[1]))
+
+	for _, testCase := range testCasesExtensions {
+		idx, ok := IsReadmeFileExtension(testCase.name, exts...)
+		assert.Equal(t, testCase.expected, ok)
+		assert.Equal(t, testCase.idx, idx)
 	}
 }
