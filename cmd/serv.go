@@ -326,6 +326,11 @@ func runServ(c *cli.Context) error {
 	// it could be re-considered whether to use the same git.CommonGitCmdEnvs() as "git" command later.
 	gitcmd.Env = append(gitcmd.Env, git.CommonCmdServEnvs()...)
 
+	// By default partial clones are disabled, enable them from git v2.22
+	if !setting.Git.DisablePartialClone && git.CheckGitVersionAtLeast("2.22") == nil {
+		gitcmd.Env = append(gitcmd.Env, "-c", "uploadpack.allowfilter=true", "-c", "uploadpack.allowAnySHA1InWant=true")
+	}
+
 	if err = gitcmd.Run(); err != nil {
 		return fail("Internal error", "Failed to execute git command: %v", err)
 	}
