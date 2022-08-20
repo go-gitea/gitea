@@ -15,4 +15,8 @@ func Routes(r *web.Route) {
 	runnerServiceRoute(r)
 	// ping service
 	pingServiceRoute(r)
+	// health service
+	healthServiceRoute(r)
+	// grpcv1 and v1alpha service
+	grpcServiceRoute(r)
 }
