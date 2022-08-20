@@ -31,7 +31,7 @@ func TestAPITeamUser(t *testing.T) {
 	var user2 *api.User
 	DecodeJSON(t, resp, &user2)
 	user2.Created = user2.Created.In(time.Local)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
 	expectedUser := convert.ToUser(user, user)
 

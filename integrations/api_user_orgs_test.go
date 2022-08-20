@@ -25,7 +25,7 @@ func TestUserOrgs(t *testing.T) {
 
 	orgs := getUserOrgs(t, adminUsername, normalUsername)
 
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
 
 	assert.Equal(t, []*api.Organization{
 		{
@@ -81,7 +81,7 @@ func TestMyOrgs(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
 
 	assert.Equal(t, []*api.Organization{
 		{

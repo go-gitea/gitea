@@ -453,6 +453,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return items
 		},
+		"HasPrefix": strings.HasPrefix,
 	}}
 }
 
@@ -972,11 +973,11 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
 	a := remoteAddress{}
 
 	remoteURL := m.OriginalURL
-	if remoteURL == "" {
+	if ignoreOriginalURL || remoteURL == "" {
 		var err error
 		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
 		if err != nil {
