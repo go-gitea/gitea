@@ -55,7 +55,7 @@
 					</div>
 				{{end}}
 				{{if and .EnableCaptcha (eq .CaptchaType "mcaptcha")}}
-					<div class="inline field df ac db-small">
+					<div class="inline field df ac db-small captcha-field">
 						<span>{{.locale.Tr "captcha"}}</span>
 						<div class="border-secondary w-100-small" id="mcaptcha__widget-container" style="width: 50%; height: 5em"></div>
 						<div class="m-captcha" data-sitekey="{{ .McaptchaSitekey }}" data-instance-url="{{ .McaptchaURL }}"></div>
