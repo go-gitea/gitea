@@ -179,8 +179,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 func TestTeamSearch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17}).(*user_model.User)
 
 	var results TeamSearchResults
 
@@ -190,9 +190,9 @@ func TestTeamSearch(t *testing.T) {
 	req.Header.Add("X-Csrf-Token", csrf)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
-	assert.NotEmpty(t, results.Data)
-	assert.Len(t, results.Data, 1)
-	assert.Equal(t, "test_team", results.Data[0].Name)
+	assert.Len(t, results.Data, 2)
+	assert.Equal(t, "review_team", results.Data[0].Name)
+	assert.Equal(t, "test_team", results.Data[1].Name)
 
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
