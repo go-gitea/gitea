@@ -560,6 +560,10 @@ func (g *RepositoryDumper) Finish() error {
 
 // DumpRepository dump repository according MigrateOptions to a local directory
 func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.MigrateOptions) error {
+	doer, err := user_model.GetAdminUser()
+	if err != nil {
+		return err
+	}
 	downloader, err := newDownloader(ctx, ownerName, opts)
 	if err != nil {
 		return err
@@ -569,10 +573,7 @@ func DumpRepository(ctx context.Context, baseDir, ownerName string, opts base.Mi
 		return err
 	}
 
-	ghost := user_model.NewGhostUser()
-	ghost.IsAdmin = true
-
-	if err := migrateRepository(ghost, downloader, uploader, opts, nil); err != nil {
+	if err := migrateRepository(doer, downloader, uploader, opts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -644,10 +645,7 @@ func RestoreRepository(ctx context.Context, baseDir, ownerName, repoName string,
 		return err
 	}
 
-	ghost := user_model.NewGhostUser()
-	ghost.IsAdmin = true
-
-	if err = migrateRepository(ghost, downloader, uploader, migrateOpts, nil); err != nil {
+	if err = migrateRepository(doer, downloader, uploader, migrateOpts, nil); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
