@@ -1077,25 +1077,39 @@ func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, erro
 			}
 
 			// Format the value into Markdown
-			switch field.Type {
-			case "markdown":
+			if field.Type == "markdown" {
 				// Markdown blocks do not appear in output
-			case "input", "textarea", "dropdown":
+			} else if field.Type == "checkboxes" || (field.Type == "dropdown" && field.Attributes["multiple"] == true) {
+				result += fmt.Sprintf("### %s\n", label)
+				for i, option := range field.Attributes["options"].([]interface{}) {
+					// Get "checked" value
+					checkedStr := " "
+					isChecked := form.Get(fmt.Sprintf("form-field-%s-%d", field.ID, i)) == "on"
+					if isChecked {
+						checkedStr = "x"
+					} else if field.Type == "checkboxes" && (option.(map[interface{}]interface{})["required"] == true && !isChecked) {
+						return "", fmt.Errorf("checkbox #%d in field '%s' is required, but not checked", i, field.ID)
+					}
+
+					// Get label
+					var label string
+					if field.Type == "checkboxes" {
+						label = option.(map[interface{}]interface{})["label"].(string)
+					} else {
+						label = option.(string)
+					}
+					result += fmt.Sprintf("- [%s] %s\n", checkedStr, label)
+				}
+				result += "\n"
+			} else if field.Type == "input" || field.Type == "textarea" || field.Type == "dropdown" {
 				if renderType, ok := field.Attributes["render"]; ok {
 					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.ID))
 				} else {
 					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.ID))
 				}
-			case "checkboxes":
-				result += fmt.Sprintf("### %s\n", label)
-				for i, option := range field.Attributes["options"].([]interface{}) {
-					checked := " "
-					if form.Get(fmt.Sprintf("form-field-%s-%d", field.ID, i)) == "on" {
-						checked = "x"
-					}
-					result += fmt.Sprintf("- [%s] %s\n", checked, option.(map[interface{}]interface{})["label"])
-				}
-				result += "\n"
+			} else {
+				// Template should have been validated at this point
+				panic(fmt.Errorf("Invalid field type: '%s'", field.Type))
 			}
 		}
 	}
@@ -1141,6 +1155,9 @@ func NewIssuePost(ctx *context.Context) {
 	// If the issue submitted is a form, render it to Markdown
 	issueContents, err := renderIssueFormValues(ctx, &ctx.Req.Form)
 	if err != nil {
+		ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
+		ctx.Data["Flash"] = ctx.Flash
+		NewIssue(ctx)
 		return
 	}
 	if issueContents == "" {

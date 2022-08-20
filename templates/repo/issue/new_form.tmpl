@@ -4,7 +4,7 @@
 	<br>
 	<br>
 {{end}}
-<form class="ui comment form stackable grid" id="new-issue" action="{{.Link}}" method="post">
+<form class="ui comment form stackable grid" id="new-issue" action="{{.Data.CurrentURL}}" method="post">
 	{{.CsrfTokenHtml}}
 	{{if .Flash}}
 		<div class="sixteen wide column">

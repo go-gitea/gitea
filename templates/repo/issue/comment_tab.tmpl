@@ -1,7 +1,7 @@
 {{- if .IssueFormTemplate}}
 	<input type="hidden" name="form-type" value="{{.IssueFormTemplate.FileName}}">
 	{{range $field_idx, $field := .IssueFormTemplate.Fields}}
-		{{- if $field.Attributes.label}}<h3 id="form-label-{{$field_idx}}">{{$field.Attributes.label}}</h3>{{end}}
+		{{- if $field.Attributes.label}}<h3 id="form-label-{{$field_idx}}">{{$field.Attributes.label}} {{if $field.Validations.required}} <span style="color: orangered;">*</span>{{end}}</h3>{{end}}
 		{{- if $field.Attributes.description}}<div>{{RenderMarkdownToHtml $field.Attributes.description}}</div>{{end}}
 
 		{{- if eq .Type "markdown"}}
@@ -12,6 +12,7 @@
 						name="form-field-{{$field.ID}}"
 						id="form-field-{{$field.ID}}"
 						placeholder="{{$field.Attributes.placeholder}}"
+						tabindex="3"
 						value="{{$field.Attributes.value}}"
 						{{- if .Validations.required}}required{{end}} />
 		{{else if eq .Type "textarea"}}
@@ -22,29 +23,41 @@
 								name="form-field-{{$field.ID}}"
 								id="form-field-{{$field.ID}}"
 								placeholder="{{$field.Attributes.placeholder}}"
+								tabindex="3"
 								{{- if .Attributes.render}}class="no-easymde"{{end}}
 								{{- if .Validations.required}}required{{end}}>{{$field.Attributes.value}}</textarea>
+		{{else if eq .Type "checkboxes"}}
+				{{range $chk_id, $chk := $field.Attributes.options}}
+					<label>
+						<input type="checkbox"
+									name="form-field-{{$field.ID}}-{{$chk_id}}"
+									id="form-field-{{$field.ID}}-{{$chk_id}}"
+									tabindex="3"
+									{{if $chk.checked}}checked{{end}}
+									{{if $chk.required}}fixme-required{{end}} />
+							{{$chk.label}}{{if $chk.required}} <span style="color: orangered;">*</span>{{end}}
+					</label><br>
+				{{end}}
+		{{else if and (eq .Type "dropdown") $field.Attributes.multiple}}
+				{{range $chk_id, $chk := $field.Attributes.options}}
+					<label>
+						<input type="checkbox"
+									name="form-field-{{$field.ID}}-{{$chk_id}}"
+									tabindex="3"
+									id="form-field-{{$field.ID}}-{{$chk_id}}" />
+							{{$chk}}
+					</label><br>
+				{{end}}
 		{{else if eq .Type "dropdown"}}
-			{{/* TODO: work with .Attribtes.multiple */}}
 			<select aria-labelledby="form-label-{{$field_idx}}"
 							name="form-field-{{$field.ID}}"
 							id="form-field-{{$field.ID}}"
+							tabindex="3"
 							{{- if .Validations.required}}required{{end}}>
 				{{range $field.Attributes.options}}
 					<option value="{{.}}">{{.}}</option>
 				{{end}}
 			</select>
-		{{else if eq .Type "checkboxes"}}
-			{{range $chk_id, $chk := $field.Attributes.options}}
-				<label>
-					<input type="checkbox"
-								name="form-field-{{$field.ID}}-{{$chk_id}}"
-								id="form-field-{{$field.ID}}-{{$chk_id}}"
-								{{if .checked}}checked{{end}}
-								{{if .required}}required{{end}} />
-					{{.label}}{{if .required}} <span style="color: orangered;">*</span>{{end}}
-				</label><br>
-			{{end}}
 		{{end}}
 
 	{{end}}
