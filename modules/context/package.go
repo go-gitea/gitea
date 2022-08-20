@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -79,7 +80,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			}
 		}
 		// 2. If authorize level is none, check if org is visible to user
-		if ctx.Package.AccessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) {
+		if ctx.Package.AccessMode == perm.AccessModeNone && organization.HasOrgOrUserVisible(ctx, ctx.Package.Owner, ctx.Doer) && !setting.Service.RequireSignInView {
 			ctx.Package.AccessMode = perm.AccessModeRead
 		}
 	} else {
@@ -90,7 +91,7 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 			} else if ctx.Package.Owner.Visibility == structs.VisibleTypePublic || ctx.Package.Owner.Visibility == structs.VisibleTypeLimited { // 2. Check if package owner is public or limited
 				ctx.Package.AccessMode = perm.AccessModeRead
 			}
-		} else if ctx.Package.Owner.Visibility == structs.VisibleTypePublic { // 3. Check if package owner is public
+		} else if ctx.Package.Owner.Visibility == structs.VisibleTypePublic && !setting.Service.RequireSignInView { // 3. Check if package owner is public
 			ctx.Package.AccessMode = perm.AccessModeRead
 		}
 	}
