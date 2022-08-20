@@ -228,18 +228,18 @@ func TestCantMergeConflict(t *testing.T) {
 		// Now this PR will be marked conflict - or at least a race will do - so drop down to pure code at this point...
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*user_model.User)
+		})
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
-		}).(*repo_model.Repository)
+		})
 
 		pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 			HeadRepoID: repo1.ID,
 			BaseRepoID: repo1.ID,
 			HeadBranch: "conflict",
 			BaseBranch: "base",
-		}).(*issues_model.PullRequest)
+		})
 
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo_model.RepoPath(user1.Name, repo1.Name))
 		assert.NoError(t, err)
@@ -265,11 +265,11 @@ func TestCantMergeUnrelated(t *testing.T) {
 		// Drop down to pure code at this point
 		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: "user1",
-		}).(*user_model.User)
+		})
 		repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{
 			OwnerID: user1.ID,
 			Name:    "repo1",
-		}).(*repo_model.Repository)
+		})
 		path := repo_model.RepoPath(user1.Name, repo1.Name)
 
 		err := git.NewCommand(git.DefaultContext, "read-tree", "--empty").Run(&git.RunOpts{Dir: path})
@@ -341,7 +341,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 			BaseRepoID: repo1.ID,
 			HeadBranch: "unrelated",
 			BaseBranch: "base",
-		}).(*issues_model.PullRequest)
+		})
 
 		err = pull.Merge(context.Background(), pr, user1, gitRepo, repo_model.MergeStyleMerge, "", "UNRELATED")
 		assert.Error(t, err, "Merge should return an error due to unrelated")
@@ -352,7 +352,7 @@ func TestCantMergeUnrelated(t *testing.T) {
 
 func TestConflictChecking(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, giteaURL *url.URL) {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// Create new clean repo to test conflict checking.
 		baseRepo, err := repo_service.CreateRepository(user, user, models.CreateRepoOptions{
@@ -408,7 +408,7 @@ func TestConflictChecking(t *testing.T) {
 		err = pull.NewPullRequest(git.DefaultContext, baseRepo, pullIssue, nil, nil, pullRequest, nil)
 		assert.NoError(t, err)
 
-		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"}).(*issues_model.Issue)
+		issue := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{Title: "PR with conflict!"})
 		conflictingPR, err := issues_model.GetPullRequestByIssueID(db.DefaultContext, issue.ID)
 		assert.NoError(t, err)
 

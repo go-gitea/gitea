@@ -28,7 +28,7 @@ import (
 func TestPackageContainer(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {

@@ -18,9 +18,9 @@ import (
 
 func TestAPIPullCommits(t *testing.T) {
 	defer prepareTestEnv(t)()
-	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	pullIssue := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 	assert.NoError(t, pullIssue.LoadIssue())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.HeadRepoID}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: pullIssue.HeadRepoID})
 
 	session := loginUser(t, "user2")
 	req := NewRequestf(t, http.MethodGet, "/api/v1/repos/%s/%s/pulls/%d/commits", repo.OwnerName, repo.Name, pullIssue.Index)
