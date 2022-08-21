@@ -5,7 +5,9 @@
 package forgefed
 
 import (
+	"reflect"
 	"time"
+	"unsafe"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/valyala/fastjson"
@@ -48,26 +50,40 @@ func (t Ticket) MarshalJSON() ([]byte, error) {
 
 	b = b[:len(b)-1]
 	if t.Dependants != nil {
-		ap.WriteItemCollectionJSONProp(&b, "dependants", t.Dependants)
+		ap.JSONWriteItemCollectionJSONProp(&b, "dependants", t.Dependants)
 	}
 	if t.Dependencies != nil {
-		ap.WriteItemCollectionJSONProp(&b, "dependencies", t.Dependencies)
+		ap.JSONWriteItemCollectionJSONProp(&b, "dependencies", t.Dependencies)
 	}
-	ap.WriteBoolJSONProp(&b, "isResolved", t.IsResolved)
+	ap.JSONWriteBoolJSONProp(&b, "isResolved", t.IsResolved)
 	if t.ResolvedBy != nil {
-		ap.WriteItemJSONProp(&b, "resolvedBy", t.ResolvedBy)
+		ap.JSONWriteItemJSONProp(&b, "resolvedBy", t.ResolvedBy)
 	}
 	if !t.Resolved.IsZero() {
-		ap.WriteTimeJSONProp(&b, "resolved", t.Resolved)
+		ap.JSONWriteTimeJSONProp(&b, "resolved", t.Resolved)
 	}
 	if t.Origin != nil {
-		ap.WriteItemJSONProp(&b, "origin", t.Origin)
+		ap.JSONWriteItemJSONProp(&b, "origin", t.Origin)
 	}
 	if t.Target != nil {
-		ap.WriteItemJSONProp(&b, "target", t.Target)
+		ap.JSONWriteItemJSONProp(&b, "target", t.Target)
 	}
-	ap.Write(&b, '}')
+	ap.JSONWrite(&b, '}')
 	return b, nil
+}
+
+func JSONLoadTicket(val *fastjson.Value, t *Ticket) error {
+	ap.OnObject(&t.Object, func(o *ap.Object) error {
+		return ap.JSONLoadObject(val, o)
+	})
+	t.Dependants = ap.JSONGetItems(val, "dependants")
+	t.Dependencies = ap.JSONGetItems(val, "dependencies")
+	t.IsResolved = ap.JSONGetBoolean(val, "isResolved")
+	t.ResolvedBy = ap.JSONGetItem(val, "resolvedBy")
+	t.Resolved = ap.JSONGetTime(val, "resolved")
+	t.Origin = ap.JSONGetItem(val, "origin")
+	t.Target = ap.JSONGetItem(val, "target")
+	return nil
 }
 
 func (t *Ticket) UnmarshalJSON(data []byte) error {
@@ -76,16 +92,40 @@ func (t *Ticket) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	return JSONLoadTicket(val, t)
+}
 
-	t.Dependants = ap.JSONGetItems(val, "dependants")
-	t.Dependencies = ap.JSONGetItems(val, "dependencies")
-	t.IsResolved = ap.JSONGetBoolean(val, "isResolved")
-	t.ResolvedBy = ap.JSONGetItem(val, "resolvedBy")
-	t.Resolved = ap.JSONGetTime(val, "resolved")
-	t.Origin = ap.JSONGetItem(val, "origin")
-	t.Target = ap.JSONGetItem(val, "target")
+// ToTicket tries to convert the it Item to a Ticket object.
+func ToTicket(it ap.Item) (*Ticket, error) {
+	switch i := it.(type) {
+	case *Ticket:
+		return i, nil
+	case Ticket:
+		return &i, nil
+	case *ap.Object:
+		return (*Ticket)(unsafe.Pointer(i)), nil
+	case ap.Object:
+		return (*Ticket)(unsafe.Pointer(&i)), nil
+	default:
+		// NOTE(marius): this is an ugly way of dealing with the interface conversion error: types from different scopes
+		typ := reflect.TypeOf(new(Ticket))
+		if i, ok := reflect.ValueOf(it).Convert(typ).Interface().(*Ticket); ok {
+			return i, nil
+		}
+	}
+	return nil, ap.ErrorInvalidType[ap.Object](it)
+}
 
-	return ap.OnObject(&t.Object, func(a *ap.Object) error {
-		return ap.LoadObject(val, a)
-	})
+type withTicketFn func(*Ticket) error
+
+// OnTicket calls function fn on it Item if it can be asserted to type *Ticket
+func OnTicket(it ap.Item, fn withTicketFn) error {
+	if it == nil {
+		return nil
+	}
+	ob, err := ToTicket(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
 }

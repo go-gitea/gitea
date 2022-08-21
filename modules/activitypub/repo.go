@@ -8,12 +8,12 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
-	repo_model "code.gitea.io/gitea/models/repo"
+	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/modules/forgefed"
 )
 
 // Create a new federated repo from a Repository object
-func FederatedRepoNew(ctx context.Context, repository forgefed.Repository) error {
+func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) error {
 	ownerIRI, err := repositoryIRIToOwnerIRI(repository.GetLink())
 	if err != nil {
 		return err
@@ -23,9 +23,14 @@ func FederatedRepoNew(ctx context.Context, repository forgefed.Repository) error
 		return err
 	}
 
-	repo := repo_model.Repository{
+	// TODO: Check if repo already exists
+	repo, err := repo_service.CreateRepository(user, user, models.CreateRepoOptions{
 		Name: repository.Name.String(),
+	})
+	if err != nil {
+		return err
 	}
+
 	if repository.ForkedFrom != nil {
 		repo.IsFork = true
 		forkedFrom, err := repositoryIRIToRepository(ctx, repository.ForkedFrom.GetLink())
@@ -34,7 +39,5 @@ func FederatedRepoNew(ctx context.Context, repository forgefed.Repository) error
 		}
 		repo.ForkID = forkedFrom.ID
 	}
-
-	// TODO: Check if repo already exists
-	return models.CreateRepository(ctx, user, user, &repo, false)
+	return nil
 }

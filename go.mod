@@ -299,7 +299,7 @@ replace github.com/shurcooL/vfsgen => github.com/lunny/vfsgen v0.0.0-20220105142
 
 replace github.com/satori/go.uuid v1.2.0 => github.com/gofrs/uuid v4.2.0+incompatible
 
-replace github.com/go-ap/activitypub => gitea.com/Ta180m/activitypub v0.0.0-20220711172827-b05423b54985
+replace github.com/go-ap/activitypub => gitea.com/Ta180m/activitypub v0.0.0-20220821033718-79a43a998240
 
 exclude github.com/gofrs/uuid v3.2.0+incompatible
 

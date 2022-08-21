@@ -5,7 +5,9 @@
 package forgefed
 
 import (
+	"reflect"
 	"time"
+	"unsafe"
 
 	ap "github.com/go-ap/activitypub"
 	"github.com/valyala/fastjson"
@@ -38,13 +40,22 @@ func (c Commit) MarshalJSON() ([]byte, error) {
 
 	b = b[:len(b)-1]
 	if !c.Created.IsZero() {
-		ap.WriteTimeJSONProp(&b, "created", c.Created)
+		ap.JSONWriteTimeJSONProp(&b, "created", c.Created)
 	}
 	if !c.Committed.IsZero() {
-		ap.WriteTimeJSONProp(&b, "committed", c.Committed)
+		ap.JSONWriteTimeJSONProp(&b, "committed", c.Committed)
 	}
-	ap.Write(&b, '}')
+	ap.JSONWrite(&b, '}')
 	return b, nil
+}
+
+func JSONLoadCommit(val *fastjson.Value, c *Commit) error {
+	ap.OnObject(&c.Object, func(o *ap.Object) error {
+		return ap.JSONLoadObject(val, o)
+	})
+	c.Created = ap.JSONGetTime(val, "created")
+	c.Committed = ap.JSONGetTime(val, "committed")
+	return nil
 }
 
 func (c *Commit) UnmarshalJSON(data []byte) error {
@@ -53,11 +64,40 @@ func (c *Commit) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	return JSONLoadCommit(val, c)
+}
 
-	c.Created = ap.JSONGetTime(val, "created")
-	c.Committed = ap.JSONGetTime(val, "committed")
+// ToCommit tries to convert the it Item to a Commit object.
+func ToCommit(it ap.Item) (*Commit, error) {
+	switch i := it.(type) {
+	case *Commit:
+		return i, nil
+	case Commit:
+		return &i, nil
+	case *ap.Object:
+		return (*Commit)(unsafe.Pointer(i)), nil
+	case ap.Object:
+		return (*Commit)(unsafe.Pointer(&i)), nil
+	default:
+		// NOTE(marius): this is an ugly way of dealing with the interface conversion error: types from different scopes
+		typ := reflect.TypeOf(new(Commit))
+		if i, ok := reflect.ValueOf(it).Convert(typ).Interface().(*Commit); ok {
+			return i, nil
+		}
+	}
+	return nil, ap.ErrorInvalidType[ap.Object](it)
+}
 
-	return ap.OnObject(&c.Object, func(a *ap.Object) error {
-		return ap.LoadObject(val, a)
-	})
+type withCommitFn func(*Commit) error
+
+// OnCommit calls function fn on it Item if it can be asserted to type *Commit
+func OnCommit(it ap.Item, fn withCommitFn) error {
+	if it == nil {
+		return nil
+	}
+	ob, err := ToCommit(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
 }

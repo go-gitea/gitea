@@ -27,6 +27,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 	}
 
 	ap.ItemTyperFunc = forgefed.GetItemByType
+	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
 	object, err := ap.UnmarshalJSON(resp)
 	if err != nil {
 		ctx.ServerError("UnmarshalJSON", err)
@@ -51,11 +52,19 @@ func AuthorizeInteraction(ctx *context.Context) {
 		}
 		ctx.Redirect(name)
 	case forgefed.RepositoryType:
-		err = FederatedRepoNew(ctx, object.(forgefed.Repository))
+		err = forgefed.OnRepository(object, func(r *forgefed.Repository) error {
+			return FederatedRepoNew(ctx, r)
+		})
 		if err != nil {
 			ctx.ServerError("FederatedRepoNew", err)
 			return
 		}
+		username, reponame, err := repositoryIRIToName(object.GetLink())
+		if err != nil {
+			ctx.ServerError("repositoryIRIToName", err)
+			return
+		}
+		ctx.Redirect(username+"/"+reponame)
 	}
 
 	ctx.Status(http.StatusOK)

@@ -5,6 +5,9 @@
 package forgefed
 
 import (
+	"reflect"
+	"unsafe"
+
 	ap "github.com/go-ap/activitypub"
 	"github.com/valyala/fastjson"
 )
@@ -39,16 +42,26 @@ func (r Repository) MarshalJSON() ([]byte, error) {
 
 	b = b[:len(b)-1]
 	if r.Team != nil {
-		ap.WriteItemJSONProp(&b, "team", r.Team)
+		ap.JSONWriteItemJSONProp(&b, "team", r.Team)
 	}
 	if r.Forks != nil {
-		ap.WriteItemJSONProp(&b, "forks", r.Forks)
+		ap.JSONWriteItemJSONProp(&b, "forks", r.Forks)
 	}
 	if r.ForkedFrom != nil {
-		ap.WriteItemJSONProp(&b, "forkedFrom", r.ForkedFrom)
+		ap.JSONWriteItemJSONProp(&b, "forkedFrom", r.ForkedFrom)
 	}
-	ap.Write(&b, '}')
+	ap.JSONWrite(&b, '}')
 	return b, nil
+}
+
+func JSONLoadRepository(val *fastjson.Value, r *Repository) error {
+	ap.OnActor(&r.Actor, func(a *ap.Actor) error {
+		return ap.JSONLoadActor(val, a)
+	})
+	r.Team = ap.JSONGetItem(val, "team")
+	r.Forks = ap.JSONGetItem(val, "forks")
+	r.ForkedFrom = ap.JSONGetItem(val, "forkedFrom")
+	return nil
 }
 
 func (r *Repository) UnmarshalJSON(data []byte) error {
@@ -57,12 +70,40 @@ func (r *Repository) UnmarshalJSON(data []byte) error {
 	if err != nil {
 		return err
 	}
+	return JSONLoadRepository(val, r)
+}
 
-	r.Team = ap.JSONGetItem(val, "team")
-	r.Forks = ap.JSONGetItem(val, "forks")
-	r.ForkedFrom = ap.JSONGetItem(val, "forkedFrom")
+// ToRepository tries to convert the it Item to a Repository Actor.
+func ToRepository(it ap.Item) (*Repository, error) {
+	switch i := it.(type) {
+	case *Repository:
+		return i, nil
+	case Repository:
+		return &i, nil
+	case *ap.Actor:
+		return (*Repository)(unsafe.Pointer(i)), nil
+	case ap.Actor:
+		return (*Repository)(unsafe.Pointer(&i)), nil
+	default:
+		// NOTE(marius): this is an ugly way of dealing with the interface conversion error: types from different scopes
+		typ := reflect.TypeOf(new(Repository))
+		if i, ok := reflect.ValueOf(it).Convert(typ).Interface().(*Repository); ok {
+			return i, nil
+		}
+	}
+	return nil, ap.ErrorInvalidType[ap.Actor](it)
+}
 
-	return ap.OnActor(&r.Actor, func(a *ap.Actor) error {
-		return ap.LoadActor(val, a)
-	})
+type withRepositoryFn func(*Repository) error
+
+// OnRepository calls function fn on it Item if it can be asserted to type *Repository
+func OnRepository(it ap.Item, fn withRepositoryFn) error {
+	if it == nil {
+		return nil
+	}
+	ob, err := ToRepository(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
 }

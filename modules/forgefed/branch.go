@@ -5,6 +5,9 @@
 package forgefed
 
 import (
+	"reflect"
+	"unsafe"
+
 	ap "github.com/go-ap/activitypub"
 	"github.com/valyala/fastjson"
 )
@@ -26,30 +29,68 @@ func BranchNew() *Branch {
 	return &o
 }
 
-func (br Branch) MarshalJSON() ([]byte, error) {
-	b, err := br.Object.MarshalJSON()
-	if len(b) == 0 || err != nil {
+func (b Branch) MarshalJSON() ([]byte, error) {
+	bin, err := b.Object.MarshalJSON()
+	if len(bin) == 0 || err != nil {
 		return nil, err
 	}
 
-	b = b[:len(b)-1]
-	if br.Ref != nil {
-		ap.WriteItemJSONProp(&b, "ref", br.Ref)
+	bin = bin[:len(bin)-1]
+	if b.Ref != nil {
+		ap.JSONWriteItemJSONProp(&bin, "ref", b.Ref)
 	}
-	ap.Write(&b, '}')
-	return b, nil
+	ap.JSONWrite(&bin, '}')
+	return bin, nil
 }
 
-func (br *Branch) UnmarshalJSON(data []byte) error {
+func JSONLoadBranch(val *fastjson.Value, b *Branch) error {
+	ap.OnObject(&b.Object, func(o *ap.Object) error {
+		return ap.JSONLoadObject(val, o)
+	})
+	b.Ref = ap.JSONGetItem(val, "ref")
+	return nil
+}
+
+func (b *Branch) UnmarshalJSON(data []byte) error {
 	p := fastjson.Parser{}
 	val, err := p.ParseBytes(data)
 	if err != nil {
 		return err
 	}
+	return JSONLoadBranch(val, b)
+}
 
-	br.Ref = ap.JSONGetItem(val, "ref")
+// ToBranch tries to convert the it Item to a Branch object.
+func ToBranch(it ap.Item) (*Branch, error) {
+	switch i := it.(type) {
+	case *Branch:
+		return i, nil
+	case Branch:
+		return &i, nil
+	case *ap.Object:
+		return (*Branch)(unsafe.Pointer(i)), nil
+	case ap.Object:
+		return (*Branch)(unsafe.Pointer(&i)), nil
+	default:
+		// NOTE(marius): this is an ugly way of dealing with the interface conversion error: types from different scopes
+		typ := reflect.TypeOf(new(Branch))
+		if i, ok := reflect.ValueOf(it).Convert(typ).Interface().(*Branch); ok {
+			return i, nil
+		}
+	}
+	return nil, ap.ErrorInvalidType[ap.Object](it)
+}
 
-	return ap.OnObject(&br.Object, func(a *ap.Object) error {
-		return ap.LoadObject(val, a)
-	})
+type withBranchFn func(*Branch) error
+
+// OnBranch calls function fn on it Item if it can be asserted to type *Branch
+func OnBranch(it ap.Item, fn withBranchFn) error {
+	if it == nil {
+		return nil
+	}
+	ob, err := ToBranch(it)
+	if err != nil {
+		return err
+	}
+	return fn(ob)
 }
