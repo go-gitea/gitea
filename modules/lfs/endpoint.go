@@ -61,6 +61,10 @@ func endpointFromURL(rawurl string) *url.URL {
 	case "git":
 		u.Scheme = "https"
 		return u
+	case "ssh":
+		u.Scheme = "https"
+		u.User = nil
+		return u
 	case "file":
 		return u
 	default:
