@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"io/fs"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
@@ -199,6 +200,10 @@ type ErrIssueContentHistoryNotExist struct {
 // Error error string
 func (err ErrIssueContentHistoryNotExist) Error() string {
 	return fmt.Sprintf("issue content history does not exist [id: %d]", err.ID)
+}
+
+func (err ErrIssueContentHistoryNotExist) Unwrap() error {
+	return fs.ErrPermission
 }
 
 // GetIssueContentHistoryByID get issue content history

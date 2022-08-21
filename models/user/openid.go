@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 )
@@ -63,6 +64,10 @@ func IsErrOpenIDAlreadyUsed(err error) bool {
 
 func (err ErrOpenIDAlreadyUsed) Error() string {
 	return fmt.Sprintf("OpenID already in use [oid: %s]", err.OpenID)
+}
+
+func (err ErrOpenIDAlreadyUsed) Unwrap() error {
+	return fs.ErrExist
 }
 
 // AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.

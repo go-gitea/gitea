@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
+	"io/fs"
 	"net"
 	"net/url"
 	"path/filepath"
@@ -39,6 +40,10 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
+	return fs.ErrPermission
 }
 
 var (
@@ -639,6 +644,11 @@ func IsErrRepoNotExist(err error) bool {
 func (err ErrRepoNotExist) Error() string {
 	return fmt.Sprintf("repository does not exist [id: %d, uid: %d, owner_name: %s, name: %s]",
 		err.ID, err.UID, err.OwnerName, err.Name)
+}
+
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name

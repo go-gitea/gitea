@@ -6,6 +6,7 @@ package git
 
 import (
 	"fmt"
+	"io/fs"
 	"strings"
 	"time"
 )
@@ -39,6 +40,10 @@ func IsErrNotExist(err error) bool {
 
 func (err ErrNotExist) Error() string {
 	return fmt.Sprintf("object does not exist [id: %s, rel_path: %s]", err.ID, err.RelPath)
+}
+
+func (err ErrNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // ErrBadLink entry.FollowLink error
@@ -85,6 +90,10 @@ func IsErrBranchNotExist(err error) bool {
 
 func (err ErrBranchNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.Name)
+}
+
+func (err ErrBranchNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // ErrPushOutOfDate represents an error if merging fails due to unrelated histories

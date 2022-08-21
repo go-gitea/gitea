@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"regexp"
 	"strings"
 
@@ -52,6 +53,10 @@ func IsErrTopicNotExist(err error) bool {
 // Error implements error interface
 func (err ErrTopicNotExist) Error() string {
 	return fmt.Sprintf("topic is not exist [name: %s]", err.Name)
+}
+
+func (err ErrTopicNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // ValidateTopic checks a topic by length and match pattern rules

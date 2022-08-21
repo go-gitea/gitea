@@ -7,6 +7,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -27,6 +28,11 @@ func (err ErrWebAuthnCredentialNotExist) Error() string {
 		return fmt.Sprintf("WebAuthn credential does not exist [id: %d]", err.ID)
 	}
 	return fmt.Sprintf("WebAuthn credential does not exist [credential_id: %x]", err.CredentialID)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrWebAuthnCredentialNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.

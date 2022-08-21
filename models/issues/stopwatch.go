@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -25,6 +26,10 @@ func (err ErrIssueStopwatchNotExist) Error() string {
 	return fmt.Sprintf("issue stopwatch doesn't exist[uid: %d, issue_id: %d", err.UserID, err.IssueID)
 }
 
+func (err ErrIssueStopwatchNotExist) Unwrap() error {
+	return fs.ErrNotExist
+}
+
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
 type ErrIssueStopwatchAlreadyExist struct {
 	UserID  int64
@@ -33,6 +38,10 @@ type ErrIssueStopwatchAlreadyExist struct {
 
 func (err ErrIssueStopwatchAlreadyExist) Error() string {
 	return fmt.Sprintf("issue stopwatch already exists[uid: %d, issue_id: %d", err.UserID, err.IssueID)
+}
+
+func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
+	return fs.ErrExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.

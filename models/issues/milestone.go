@@ -7,6 +7,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"strings"
 	"time"
 
@@ -37,6 +38,10 @@ func (err ErrMilestoneNotExist) Error() string {
 		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
 	}
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
+
+func (err ErrMilestoneNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // Milestone represents a milestone of repository.

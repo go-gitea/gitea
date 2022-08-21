@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -34,6 +35,10 @@ func (err ErrForbiddenIssueReaction) Error() string {
 	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
 }
 
+func (err ErrForbiddenIssueReaction) Unwrap() error {
+	return fs.ErrPermission
+}
+
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
 type ErrReactionAlreadyExist struct {
 	Reaction string
@@ -47,6 +52,10 @@ func IsErrReactionAlreadyExist(err error) bool {
 
 func (err ErrReactionAlreadyExist) Error() string {
 	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
+}
+
+func (err ErrReactionAlreadyExist) Unwrap() error {
+	return fs.ErrExist
 }
 
 // Reaction represents a reactions on issues and comments.

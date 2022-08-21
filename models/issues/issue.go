@@ -8,6 +8,7 @@ package issues
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"regexp"
 	"sort"
 	"strconv"
@@ -50,6 +51,10 @@ func IsErrIssueNotExist(err error) bool {
 
 func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
+}
+
+func (err ErrIssueNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.

@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
@@ -31,6 +32,10 @@ func IsErrUnitTypeNotExist(err error) bool {
 
 func (err ErrUnitTypeNotExist) Error() string {
 	return fmt.Sprintf("Unit type does not exist: %s", err.UT.String())
+}
+
+func (err ErrUnitTypeNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // RepoUnit describes all units of a repository

@@ -90,7 +90,7 @@ func DeleteScheduledAutoMerge(ctx context.Context, pullID int64) error {
 	if err != nil {
 		return err
 	} else if !exist {
-		return db.ErrNotExist{ID: pullID}
+		return db.ErrNotExist{Resource: "auto_merge", ID: pullID}
 	}
 
 	_, err = db.GetEngine(ctx).ID(scheduledPRM.ID).Delete(&AutoMerge{})

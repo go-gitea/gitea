@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net/url"
 	"path"
 
@@ -81,6 +82,10 @@ func IsErrAttachmentNotExist(err error) bool {
 
 func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
+
+func (err ErrAttachmentNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // GetAttachmentByID returns attachment by given id

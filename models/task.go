@@ -7,6 +7,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -165,6 +166,10 @@ func IsErrTaskDoesNotExist(err error) bool {
 func (err ErrTaskDoesNotExist) Error() string {
 	return fmt.Sprintf("task does not exist [id: %d, repo_id: %d, type: %d]",
 		err.ID, err.RepoID, err.Type)
+}
+
+func (err ErrTaskDoesNotExist) Unwrap() error {
+	return fs.ErrNotExist
 }
 
 // GetMigratingTask returns the migrating task by repo's id

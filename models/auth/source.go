@@ -7,6 +7,7 @@ package auth
 
 import (
 	"fmt"
+	"io/fs"
 	"reflect"
 
 	"code.gitea.io/gitea/models/db"
@@ -366,6 +367,11 @@ func (err ErrSourceNotExist) Error() string {
 	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
 }
 
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrSourceNotExist) Unwrap() error {
+	return fs.ErrNotExist
+}
+
 // ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
 type ErrSourceAlreadyExist struct {
 	Name string
@@ -379,6 +385,11 @@ func IsErrSourceAlreadyExist(err error) bool {
 
 func (err ErrSourceAlreadyExist) Error() string {
 	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
+}
+
+// Unwrap unwraps this as a ErrExist err
+func (err ErrSourceAlreadyExist) Unwrap() error {
+	return fs.ErrExist
 }
 
 // ErrSourceInUse represents a "SourceInUse" kind of error.

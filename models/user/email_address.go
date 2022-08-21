@@ -9,6 +9,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -40,6 +41,10 @@ func (err ErrEmailCharIsNotSupported) Error() string {
 	return fmt.Sprintf("e-mail address contains unsupported character [email: %s]", err.Email)
 }
 
+func (err ErrEmailCharIsNotSupported) Unwrap() error {
+	return fs.ErrInvalid
+}
+
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
 type ErrEmailInvalid struct {
 	Email string
@@ -53,6 +58,10 @@ func IsErrEmailInvalid(err error) bool {
 
 func (err ErrEmailInvalid) Error() string {
 	return fmt.Sprintf("e-mail invalid [email: %s]", err.Email)
+}
+
+func (err ErrEmailInvalid) Unwrap() error {
+	return fs.ErrInvalid
 }
 
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
@@ -70,6 +79,10 @@ func (err ErrEmailAlreadyUsed) Error() string {
 	return fmt.Sprintf("e-mail already in use [email: %s]", err.Email)
 }
 
+func (err ErrEmailAlreadyUsed) Unwrap() error {
+	return fs.ErrExist
+}
+
 // ErrEmailAddressNotExist email address not exist
 type ErrEmailAddressNotExist struct {
 	Email string
@@ -85,6 +98,10 @@ func (err ErrEmailAddressNotExist) Error() string {
 	return fmt.Sprintf("Email address does not exist [email: %s]", err.Email)
 }
 
+func (err ErrEmailAddressNotExist) Unwrap() error {
+	return fs.ErrNotExist
+}
+
 // ErrPrimaryEmailCannotDelete primary email address cannot be deleted
 type ErrPrimaryEmailCannotDelete struct {
 	Email string
@@ -98,6 +115,10 @@ func IsErrPrimaryEmailCannotDelete(err error) bool {
 
 func (err ErrPrimaryEmailCannotDelete) Error() string {
 	return fmt.Sprintf("Primary email address cannot be deleted [email: %s]", err.Email)
+}
+
+func (err ErrPrimaryEmailCannotDelete) Unwrap() error {
+	return fs.ErrInvalid
 }
 
 // EmailAddress is the list of all email addresses of a user. It also contains the

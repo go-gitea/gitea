@@ -8,6 +8,7 @@ package organization
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -45,6 +46,10 @@ func (err ErrOrgNotExist) Error() string {
 	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
 }
 
+func (err ErrOrgNotExist) Unwrap() error {
+	return fs.ErrNotExist
+}
+
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
 type ErrLastOrgOwner struct {
 	UID int64
@@ -71,6 +76,10 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
+}
+
+func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
+	return fs.ErrPermission
 }
 
 // Organization represents an organization
