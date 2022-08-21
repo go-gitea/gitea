@@ -96,16 +96,7 @@ type SearchTeamOptions struct {
 	IncludeDesc bool
 }
 
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize == 0 {
-		// Default limit
-		opts.PageSize = 10
-	}
-
+func (opts *SearchTeamOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -117,15 +108,37 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
+	}
 
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+	}
+
+	return cond
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
+
+	opts.SetDefaultValues()
+	cond := opts.toCond()
+
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
+	}
 
 	count, err := sess.
 		Where(cond).
 		Count(new(Team))
 	if err != nil {
 		return nil, 0, err
+	}
+
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
 
 	sess = sess.Where(cond)
@@ -137,6 +150,7 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 
 	teams := make([]*Team, 0, opts.PageSize)
 	if err = sess.
+		Where(cond).
 		OrderBy("lower_name").
 		Find(&teams); err != nil {
 		return nil, 0, err
