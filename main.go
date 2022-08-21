@@ -8,6 +8,7 @@ package main // import "code.gitea.io/gitea"
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -43,6 +44,7 @@ func init() {
 	setting.AppVer = Version
 	setting.AppBuiltWith = formatBuiltWith()
 	setting.AppStartTime = time.Now().UTC()
+	setting.AssetVersion = url.QueryEscape(Version)
 
 	// Grab the original help templates
 	originalAppHelpTemplate = cli.AppHelpTemplate

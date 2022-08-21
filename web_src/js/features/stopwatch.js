@@ -2,7 +2,7 @@ import $ from 'jquery';
 import prettyMilliseconds from 'pretty-ms';
 import {createTippy} from '../modules/tippy.js';
 
-const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking, appVerMd5} = window.config;
+const {appSubUrl, csrfToken, notificationSettings, enableTimeTracking, assetVersion} = window.config;
 
 export function initStopwatch() {
   if (!enableTimeTracking) {
@@ -42,7 +42,7 @@ export function initStopwatch() {
   // if the browser supports EventSource and SharedWorker, use it instead of the periodic poller
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${appVerMd5}`, 'notification-worker');
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersion}`, 'notification-worker');
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
     });

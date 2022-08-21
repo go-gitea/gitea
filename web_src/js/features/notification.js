@@ -1,6 +1,6 @@
 import $ from 'jquery';
 
-const {appSubUrl, csrfToken, notificationSettings, appVerMd5} = window.config;
+const {appSubUrl, csrfToken, notificationSettings, assetVersion} = window.config;
 let notificationSequenceNumber = 0;
 
 export function initNotificationsTable() {
@@ -57,7 +57,7 @@ export function initNotificationCount() {
 
   if (notificationSettings.EventSourceUpdateTime > 0 && window.EventSource && window.SharedWorker) {
     // Try to connect to the event source via the shared worker first
-    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${appVerMd5}`, 'notification-worker');
+    const worker = new SharedWorker(`${__webpack_public_path__}js/eventsource.sharedworker.js?v=${assetVersion}`, 'notification-worker');
     worker.addEventListener('error', (event) => {
       console.error('worker error', event);
     });

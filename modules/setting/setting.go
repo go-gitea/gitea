@@ -92,6 +92,8 @@ var (
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL"
 	LocalURL string
+	// AssetVersion Holds a opaque value that is used for cache-busting assets
+	AssetVersion string
 
 	// Server settings
 	Protocol             Scheme

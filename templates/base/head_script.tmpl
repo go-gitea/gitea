@@ -7,9 +7,9 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 	window.addEventListener('error', function(e) {window._globalHandlerErrors=window._globalHandlerErrors||[]; window._globalHandlerErrors.push(e);});
 	window.config = {
 		appVer: '{{AppVer}}',
-		appVerMd5: '{{MD5 AppVer}}',
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
+		assetVersion: '{{AssetVersion}}',
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
 		customEmojis: {{CustomEmojis}},
