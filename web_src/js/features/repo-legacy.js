@@ -27,7 +27,7 @@ import attachTribute from './tribute.js';
 import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
-import { initRepoSettingBranches, initRepoSettingMirror } from './repo-settings.js';
+import {initRepoSettingBranches, initRepoSettingMirror} from './repo-settings.js';
 import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
