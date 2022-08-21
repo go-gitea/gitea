@@ -223,7 +223,7 @@ func TestAPITeamSearch(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17}).(*user_model.User)
 
 	var results TeamSearchResults
 
