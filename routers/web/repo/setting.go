@@ -342,8 +342,8 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if form.PushMirrorUsePublicKey && (form.PushMirrorUsername != "" || form.PushMirrorPassword != "") {
-			ctx.Data["Err_PushMirrorUsePublicKey"] = true
+		if form.PushMirrorUseSSH && (form.PushMirrorUsername != "" || form.PushMirrorPassword != "") {
+			ctx.Data["Err_PushMirrorUseSSH"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_denied_combination"), tplSettingsOptions, &form)
 			return
 		}
@@ -372,7 +372,7 @@ func SettingsPost(ctx *context.Context) {
 			Interval:     interval,
 		}
 
-		if form.PushMirrorUsePublicKey {
+		if form.PushMirrorUseSSH {
 			publicKey, privateKey, err := crypto.GenerateEd25519Keypair()
 			if err != nil {
 				ctx.ServerError("GenerateEd25519Keypair", err)

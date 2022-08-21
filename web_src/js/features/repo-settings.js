@@ -90,3 +90,12 @@ export function initRepoSettingBranches() {
     });
   }
 }
+
+export function initRepoSettingMirror() {
+  if ($('#push_mirror_use_ssh').length === 0) return;
+
+  $('#push_mirror_use_ssh').on('change', function () {
+    $('#push_mirror_password').parent().toggleClass('disabled', this.checked);
+    $('#push_mirror_username').parent().toggleClass('disabled', this.checked);
+  });
+}

@@ -27,7 +27,7 @@ import attachTribute from './tribute.js';
 import createDropzone from './dropzone.js';
 import {initCommentContent, initMarkupContent} from '../markup/content.js';
 import {initCompReactionSelector} from './comp/ReactionSelector.js';
-import {initRepoSettingBranches} from './repo-settings.js';
+import { initRepoSettingBranches, initRepoSettingMirror } from './repo-settings.js';
 import initRepoPullRequestMergeForm from './repo-issue-pr-form.js';
 
 const {csrfToken} = window.config;
@@ -88,7 +88,7 @@ export function initRepoCommentForm() {
       hasUpdateAction = $listMenu.data('action') === 'update'; // Update the var
       if (hasUpdateAction) {
         // TODO: Add batch functionality and make this 1 network request.
-        (async function() {
+        (async function () {
           for (const [elementId, item] of Object.entries(items)) {
             await updateIssuesMeta(
               item['update-url'],
@@ -502,6 +502,7 @@ export function initRepository() {
   initRepoCloneLink();
   initRepoCommonLanguageStats();
   initRepoSettingBranches();
+  initRepoSettingMirror();
 
   // Issues
   if ($('.repository.view.issue').length > 0) {

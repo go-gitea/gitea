@@ -142,7 +142,7 @@ type RepoSettingForm struct {
 	PushMirrorUsername     string
 	PushMirrorPassword     string
 	PushMirrorInterval     string
-	PushMirrorUsePublicKey bool
+	PushMirrorUseSSH       bool
 	PushMirrorSyncOnCommit bool
 	Private                bool
 	Template               bool
