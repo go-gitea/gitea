@@ -3,8 +3,8 @@
 	{{template "repo/header" .}}
 	{{ $title := .title}}
 	<div class="ui container">
-		<div class="ui stackable secondary menu mobile--margin-between-items mobile--no-negative-margins no-vertical-tabs">
-			<div class="fitted item">
+		<div class="repo-button-row df ac sb fw">
+			<div class="df ac">
 				<div class="choose page">
 					<div class="ui floating filter dropdown" data-no-results="{{.i18n.Tr "repo.pulls.no_results"}}">
 						<div class="ui basic small button">
@@ -28,7 +28,7 @@
 					</div>
 				</div>
 			</div>
-			<div class="right fitted item">
+			<div class="df ac">
 				<div class="ui action small input" id="clone-panel">
 					{{template "repo/clone_buttons" .}}
 					{{template "repo/clone_script" .}}
