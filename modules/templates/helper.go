@@ -453,6 +453,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return items
 		},
+		"HasPrefix": strings.HasPrefix,
 	}}
 }
 
