@@ -16,7 +16,7 @@ import (
 
 func TestXSSUserFullName(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	const fullName = `name & <script class="evil">alert('Oh no!');</script>`
 
 	session := loginUser(t, user.Name)

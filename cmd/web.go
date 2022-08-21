@@ -76,7 +76,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	err := runHTTP("tcp", source, "HTTP Redirector", handler)
+	err := runHTTP("tcp", source, "HTTP Redirector", handler, setting.RedirectorUseProxyProtocol)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
@@ -231,40 +231,38 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, "Web", m)
+		err = runHTTP("tcp", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.HTTPS:
 		if setting.EnableAcme {
 			err = runACME(listenAddr, m)
 			break
-		} else {
-			if handleRedirector {
-				if setting.RedirectOtherPort {
-					go runHTTPRedirector()
-				} else {
-					NoHTTPRedirector()
-				}
-			}
-			err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 		}
+		if handleRedirector {
+			if setting.RedirectOtherPort {
+				go runHTTPRedirector()
+			} else {
+				NoHTTPRedirector()
+			}
+		}
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
+		err = runFCGI("tcp", listenAddr, "FCGI Web", m, setting.UseProxyProtocol)
 	case setting.HTTPUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, "Web", m)
+		err = runHTTP("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, "Web", m)
+		err = runFCGI("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
-
 	if err != nil {
 		log.Critical("Failed to start server: %v", err)
 	}

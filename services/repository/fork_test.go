@@ -20,8 +20,8 @@ func TestForkRepository(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	// user 13 has already forked repo10
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 13})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 
 	fork, err := ForkRepository(git.DefaultContext, user, user, ForkRepoOptions{
 		BaseRepo:    repo,
