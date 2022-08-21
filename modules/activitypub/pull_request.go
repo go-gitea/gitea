@@ -6,7 +6,6 @@ package activitypub
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -16,7 +15,7 @@ import (
 	pull_service "code.gitea.io/gitea/services/pull"
 )
 
-func PullRequest(ctx context.Context, ticket forgefed.Ticket) {
+func PullRequest(ctx context.Context, ticket *forgefed.Ticket) error {
 	// TODO: Clean this up
 
 	actorUser, err := personIRIToUser(ctx, ticket.AttributedTo.GetLink())
@@ -62,6 +61,5 @@ func PullRequest(ctx context.Context, ticket forgefed.Ticket) {
 		Type:       issues_model.PullRequestGitea,
 	}
 
-	err = pull_service.NewPullRequest(ctx, targetRepo, prIssue, []int64{}, []string{}, pr, []int64{})
-	fmt.Println(err)
+	return pull_service.NewPullRequest(ctx, targetRepo, prIssue, []int64{}, []string{}, pr, []int64{})
 }

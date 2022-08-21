@@ -96,6 +96,7 @@ func RepoInbox(ctx *context.APIContext) {
 	}
 
 	ap.ItemTyperFunc = forgefed.GetItemByType
+	ap.JSONItemUnmarshal = forgefed.JSONUnmarshalerFn
 	var activity ap.Activity
 	err = activity.UnmarshalJSON(body)
 	if err != nil {
@@ -122,30 +123,37 @@ func RepoInbox(ctx *context.APIContext) {
 	// Process activity
 	switch activity.Type {
 	case ap.CreateType:
-		switch activity.Object.(ap.Object).Type {
-		case forgefed.RepositoryType:
-			// Fork created by remote instance
-			activitypub.ReceiveFork(ctx, activity)
-		case forgefed.TicketType:
-			// New issue or pull request
-			ticket := activity.Object.(forgefed.Ticket)
-			if ticket.Origin != nil {
-				// New pull request
-				activitypub.PullRequest(ctx, ticket)
-			} else {
-				// New issue
-				activitypub.Issue(ctx, ticket)
+		err = ap.OnObject(activity.Object, func(o *ap.Object) error {
+			switch o.Type {
+			case forgefed.RepositoryType:
+				// Fork created by remote instance
+				return activitypub.ReceiveFork(ctx, activity)
+			case forgefed.TicketType:
+				// New issue or pull request
+				return forgefed.OnTicket(o, func(t *forgefed.Ticket) error {
+					if t.Origin != nil {
+						// New pull request
+						return activitypub.PullRequest(ctx, t)
+					} else {
+						// New issue
+						return activitypub.Issue(ctx, t)
+					}
+				})
+			case ap.NoteType:
+				// New comment
+				return activitypub.Comment(ctx, o)
 			}
-		case ap.NoteType:
-			// New comment
-			activitypub.Comment(ctx, activity.Object.(ap.Note))
-		}
+			return nil
+		})
 	case ap.LikeType:
-		activitypub.ReceiveStar(ctx, activity)
+		err = activitypub.ReceiveStar(ctx, activity)
 	default:
 		log.Info("Incoming unsupported ActivityStreams type: %s", activity.Type)
 		ctx.PlainText(http.StatusNotImplemented, "ActivityStreams type not supported")
 		return
+	}
+	if err != nil {
+		ctx.ServerError("Error when processing: %s", err)
 	}
 
 	ctx.Status(http.StatusNoContent)
