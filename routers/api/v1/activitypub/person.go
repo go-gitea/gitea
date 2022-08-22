@@ -208,6 +208,8 @@ func PersonOutbox(ctx *context.APIContext) {
 		}
 	}
 
+	// TODO: Remove this code and implement an ActionStarRepo type, so `GetFeeds`
+	// can handle this with correct pagination and ordering.
 	stars, err := repo_model.GetStarredRepos(ctx.ContextUser.ID, false, db.ListOptions{Page: 1, PageSize: 1000000})
 	if err != nil {
 		ctx.ServerError("Couldn't fetch stars", err)
