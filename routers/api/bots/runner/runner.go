@@ -2,22 +2,20 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package bots
+package runner
 
 import (
 	"context"
 
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/web"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
-	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
 	"github.com/bufbuild/connect-go"
 )
 
-type RunnerService struct{}
+type Service struct{}
 
-func (s *RunnerService) Connect(
+func (s *Service) Connect(
 	ctx context.Context,
 	req *connect.Request[runnerv1.ConnectRequest],
 ) (*connect.Response[runnerv1.ConnectResponse], error) {
@@ -32,7 +30,7 @@ func (s *RunnerService) Connect(
 	return res, nil
 }
 
-func (s *RunnerService) Accept(
+func (s *Service) Accept(
 	ctx context.Context,
 	req *connect.Request[runnerv1.AcceptRequest],
 ) (*connect.Response[runnerv1.AcceptResponse], error) {
@@ -42,16 +40,4 @@ func (s *RunnerService) Accept(
 	})
 	res.Header().Set("Gitea-Version", "runnerv1")
 	return res, nil
-}
-
-func runnerServiceRoute(r *web.Route) {
-	compress1KB := connect.WithCompressMinBytes(1024)
-
-	runnerService := &RunnerService{}
-	connectPath, connecthandler := runnerv1connect.NewRunnerServiceHandler(
-		runnerService,
-		compress1KB,
-	)
-
-	r.Post(connectPath+"{name}", grpcHandler(connecthandler))
 }
