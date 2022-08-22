@@ -40,7 +40,7 @@ func TestWebAuthnCredential_TableName(t *testing.T) {
 
 func TestWebAuthnCredential_UpdateSignCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	cred := unittest.AssertExistsAndLoadBean(t, &WebAuthnCredential{ID: 1}).(*WebAuthnCredential)
+	cred := unittest.AssertExistsAndLoadBean(t, &WebAuthnCredential{ID: 1})
 	cred.SignCount = 1
 	assert.NoError(t, cred.UpdateSignCount())
 	unittest.AssertExistsIf(t, true, &WebAuthnCredential{ID: 1, SignCount: 1})
@@ -48,7 +48,7 @@ func TestWebAuthnCredential_UpdateSignCount(t *testing.T) {
 
 func TestWebAuthnCredential_UpdateLargeCounter(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	cred := unittest.AssertExistsAndLoadBean(t, &WebAuthnCredential{ID: 1}).(*WebAuthnCredential)
+	cred := unittest.AssertExistsAndLoadBean(t, &WebAuthnCredential{ID: 1})
 	cred.SignCount = 0xffffffff
 	assert.NoError(t, cred.UpdateSignCount())
 	unittest.AssertExistsIf(t, true, &WebAuthnCredential{ID: 1, SignCount: 0xffffffff})

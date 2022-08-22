@@ -754,7 +754,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 			pr1 = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{
 				HeadRepoID: repo.ID,
 				Flow:       issues_model.PullRequestFlowAGit,
-			}).(*issues_model.PullRequest)
+			})
 			if !assert.NotEmpty(t, pr1) {
 				return
 			}
@@ -776,7 +776,7 @@ func doCreateAgitFlowPull(dstPath string, ctx *APITestContext, baseBranch, headB
 				HeadRepoID: repo.ID,
 				Index:      pr1.Index + 1,
 				Flow:       issues_model.PullRequestFlowAGit,
-			}).(*issues_model.PullRequest)
+			})
 			if !assert.NotEmpty(t, pr2) {
 				return
 			}
