@@ -76,8 +76,11 @@ func Test_RepositoryMarshalJSON(t *testing.T) {
 		"with Team as IRI": {
 			item: Repository{
 				Team: ap.IRI("https://example.com/1"),
+				Actor: ap.Actor{
+					ID: "https://example.com/1",
+				},
 			},
-			want: []byte(`{"team":"https://example.com/1"}`),
+			want: []byte(`{"id":"https://example.com/1","team":"https://example.com/1"}`),
 		},
 		"with Team as IRIs": {
 			item: Repository{
@@ -85,14 +88,20 @@ func Test_RepositoryMarshalJSON(t *testing.T) {
 					ap.IRI("https://example.com/1"),
 					ap.IRI("https://example.com/2"),
 				},
+				Actor: ap.Actor{
+					ID: "https://example.com/1",
+				},
 			},
-			want: []byte(`{"team":["https://example.com/1","https://example.com/2"]}`),
+			want: []byte(`{"id":"https://example.com/1","team":["https://example.com/1","https://example.com/2"]}`),
 		},
 		"with Team as Object": {
 			item: Repository{
 				Team: ap.Object{ID: "https://example.com/1"},
+				Actor: ap.Actor{
+					ID: "https://example.com/1",
+				},
 			},
-			want: []byte(`{"team":{"id":"https://example.com/1"}}`),
+			want: []byte(`{"id":"https://example.com/1","team":{"id":"https://example.com/1"}}`),
 		},
 		"with Team as slice of Objects": {
 			item: Repository{
@@ -100,8 +109,11 @@ func Test_RepositoryMarshalJSON(t *testing.T) {
 					ap.Object{ID: "https://example.com/1"},
 					ap.Object{ID: "https://example.com/2"},
 				},
+				Actor: ap.Actor{
+					ID: "https://example.com/1",
+				},
 			},
-			want: []byte(`{"team":[{"id":"https://example.com/1"},{"id":"https://example.com/2"}]}`),
+			want: []byte(`{"id":"https://example.com/1","team":[{"id":"https://example.com/1"},{"id":"https://example.com/2"}]}`),
 		},
 	}
 
