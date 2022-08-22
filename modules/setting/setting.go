@@ -6,8 +6,6 @@
 package setting
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/base64"
 	"fmt"
 	"math"
@@ -763,8 +761,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
-	versionHash := sha256.Sum256([]byte(AppVer))
-	AssetVersion = hex.EncodeToString(versionHash[:])[0:8]
+	AssetVersion = url.QueryEscape(AppVer)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
