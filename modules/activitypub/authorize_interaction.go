@@ -65,6 +65,15 @@ func AuthorizeInteraction(ctx *context.Context) {
 			return
 		}
 		ctx.Redirect(username + "/" + reponame)
+	case forgefed.TicketType:
+		err = forgefed.OnTicket(object, func(t *forgefed.Ticket) error {
+			return ReceiveIssue(ctx, t)
+		})
+		if err != nil {
+			ctx.ServerError("ReceiveIssue", err)
+			return
+		}
+		// TODO: Implement ticketIRIToName and redirect to ticket
 	}
 
 	ctx.Status(http.StatusOK)

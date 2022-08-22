@@ -11,7 +11,7 @@ import (
 )
 
 // Create an issue
-func Issue(ctx context.Context, ticket *forgefed.Ticket) error {
+func ReceiveIssue(ctx context.Context, ticket *forgefed.Ticket) error {
 	// TODO
 	return nil
 }

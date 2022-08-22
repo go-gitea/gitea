@@ -136,7 +136,7 @@ func RepoInbox(ctx *context.APIContext) {
 						return activitypub.PullRequest(ctx, t)
 					}
 					// New issue
-					return activitypub.Issue(ctx, t)
+					return activitypub.ReceiveIssue(ctx, t)
 				})
 			case ap.NoteType:
 				// New comment
