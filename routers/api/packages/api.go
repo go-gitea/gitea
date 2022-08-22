@@ -24,6 +24,7 @@ import (
 	"code.gitea.io/gitea/routers/api/packages/pub"
 	"code.gitea.io/gitea/routers/api/packages/pypi"
 	"code.gitea.io/gitea/routers/api/packages/rubygems"
+	"code.gitea.io/gitea/routers/api/packages/vagrant"
 	"code.gitea.io/gitea/services/auth"
 	context_service "code.gitea.io/gitea/services/context"
 )
@@ -264,6 +265,16 @@ func Routes() *web.Route {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
+		})
+		r.Group("/vagrant", func() {
+			r.Group("/{name}", func() {
+				r.Head("", vagrant.CheckBoxAvailable)
+				r.Get("", vagrant.EnumeratePackageVersions)
+				r.Group("/{version}/{provider}", func() {
+					r.Get("", vagrant.DownloadPackageFile)
+					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
+				})
+			})
 		})
 	}, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 

@@ -30,6 +30,7 @@
 					{{template "package/content/pub" .}}
 					{{template "package/content/pypi" .}}
 					{{template "package/content/rubygems" .}}
+					{{template "package/content/vagrant" .}}
 				</div>
 				<div class="four wide column">
 					<div class="ui segment metas">
@@ -52,6 +53,7 @@
 							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
 							{{template "package/metadata/rubygems" .}}
+							{{template "package/metadata/vagrant" .}}
 						</div>
 						{{if not (eq .PackageDescriptor.Package.Type "container")}}
 							<div class="ui divider"></div>
