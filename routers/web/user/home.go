@@ -100,39 +100,6 @@ func Dashboard(ctx *context.Context) {
 	}
 
 	var err error
-	var mirrors []*repo_model.Repository
-	if ctxUser.IsOrganization() {
-		var env organization.AccessibleReposEnvironment
-		if ctx.Org.Team != nil {
-			env = organization.OrgFromUser(ctxUser).AccessibleTeamReposEnv(ctx.Org.Team)
-		} else {
-			env, err = organization.AccessibleReposEnv(ctx, organization.OrgFromUser(ctxUser), ctx.Doer.ID)
-			if err != nil {
-				ctx.ServerError("AccessibleReposEnv", err)
-				return
-			}
-		}
-		mirrors, err = env.MirrorRepos()
-		if err != nil {
-			ctx.ServerError("env.MirrorRepos", err)
-			return
-		}
-	} else {
-		mirrors, err = repo_model.GetUserMirrorRepositories(ctxUser.ID)
-		if err != nil {
-			ctx.ServerError("GetUserMirrorRepositories", err)
-			return
-		}
-	}
-	ctx.Data["MaxShowRepoNum"] = setting.UI.User.RepoPagingNum
-
-	if err := repo_model.MirrorRepositoryList(mirrors).LoadAttributes(); err != nil {
-		ctx.ServerError("MirrorRepositoryList.LoadAttributes", err)
-		return
-	}
-	ctx.Data["MirrorCount"] = len(mirrors)
-	ctx.Data["Mirrors"] = mirrors
-
 	ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
 		RequestedUser:   ctxUser,
 		RequestedTeam:   ctx.Org.Team,

@@ -22,7 +22,7 @@
 					<input readonly="" value="{{.TokenToSign}}">
 					<div class="help">
 						<p>{{.i18n.Tr "settings.gpg_token_help"}}</p>
-						<p><code>{{$.i18n.Tr "settings.gpg_token_code" .TokenToSign .KeyID}}</code></p>
+						<p><code>{{$.i18n.Tr "settings.gpg_token_code" .TokenToSign .PaddedKeyID}}</code></p>
 					</div>
 				</div>
 				<div class="field">
@@ -64,8 +64,8 @@
 						<span class="tooltip" data-content="{{$.i18n.Tr "settings.gpg_key_matched_identities_long"}}">{{svg "octicon-mail"}} {{$.i18n.Tr "settings.gpg_key_matched_identities"}} {{range .Emails}}<strong>{{.Email}} </strong>{{end}}</span>
 					{{end}}
 					<div class="print meta">
-						<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.KeyID}}
-						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.KeyID}} {{end}}
+						<b>{{$.i18n.Tr "settings.key_id"}}:</b> {{.PaddedKeyID}}
+						<b>{{$.i18n.Tr "settings.subkeys"}}:</b> {{range .SubsKey}} {{.PaddedKeyID}} {{end}}
 					</div>
 					<div class="activity meta">
 						<i>{{$.i18n.Tr "settings.add_on"}} <span>{{.AddedUnix.FormatShort}}</span></i>
@@ -87,7 +87,7 @@
 							<input readonly="" value="{{$.TokenToSign}}">
 							<div class="help">
 								<p>{{$.i18n.Tr "settings.gpg_token_help"}}</p>
-								<p><code>{{$.i18n.Tr "settings.gpg_token_code" $.TokenToSign .KeyID}}</code></p>
+								<p><code>{{$.i18n.Tr "settings.gpg_token_code" $.TokenToSign .PaddedKeyID}}</code></p>
 							</div>
 							<br>
 						</div>
