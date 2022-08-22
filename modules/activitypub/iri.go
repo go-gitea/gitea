@@ -83,9 +83,11 @@ func repositoryIRIToOwnerIRI(repoIRI ap.IRI) (ap.IRI, error) {
 	r := repoIRI.String()
 	rSplit := strings.Split(r, "/")
 	if len(rSplit) < 5 {
-		return "", errors.New("Not a Repository actor IRI")
+		return "", errors.New("not a Repository actor IRI")
 	}
+
 	username := rSplit[len(rSplit)-2]
 	reponame := rSplit[len(rSplit)-1]
-	return ap.IRI(strings.TrimSuffix(r, "repo/"+username+"/"+reponame)+"user/"+username), nil
+	ownerIRI := ap.IRI(strings.TrimSuffix(r, "repo/"+username+"/"+reponame) + "user/" + username)
+	return ownerIRI, nil
 }

@@ -8,8 +8,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models"
-	repo_service "code.gitea.io/gitea/services/repository"
 	"code.gitea.io/gitea/modules/forgefed"
+	repo_service "code.gitea.io/gitea/services/repository"
 )
 
 // Create a new federated repo from a Repository object

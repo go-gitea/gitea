@@ -64,7 +64,7 @@ func AuthorizeInteraction(ctx *context.Context) {
 			ctx.ServerError("repositoryIRIToName", err)
 			return
 		}
-		ctx.Redirect(username+"/"+reponame)
+		ctx.Redirect(username + "/" + reponame)
 	}
 
 	ctx.Status(http.StatusOK)
