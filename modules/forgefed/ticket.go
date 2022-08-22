@@ -73,9 +73,12 @@ func (t Ticket) MarshalJSON() ([]byte, error) {
 }
 
 func JSONLoadTicket(val *fastjson.Value, t *Ticket) error {
-	ap.OnObject(&t.Object, func(o *ap.Object) error {
+	if err := ap.OnObject(&t.Object, func(o *ap.Object) error {
 		return ap.JSONLoadObject(val, o)
-	})
+	}); err != nil {
+		return err
+	}
+
 	t.Dependants = ap.JSONGetItems(val, "dependants")
 	t.Dependencies = ap.JSONGetItems(val, "dependencies")
 	t.IsResolved = ap.JSONGetBoolean(val, "isResolved")
