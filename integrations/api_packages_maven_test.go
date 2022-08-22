@@ -21,7 +21,7 @@ import (
 
 func TestPackageMaven(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	groupID := "com.gitea"
 	artifactID := "test-project"

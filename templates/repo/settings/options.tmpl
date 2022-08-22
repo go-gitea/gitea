@@ -91,7 +91,7 @@
 					{{if .Repository.IsMirror}}
 					<tbody>
 						<tr>
-							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName).Address}}</td>
+							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
 							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
 							<td class="right aligned">
@@ -119,7 +119,7 @@
 										<label for="interval">{{.locale.Tr "repo.mirror_interval" .MinimumMirrorInterval}}</label>
 										<input id="interval" name="interval" value="{{.MirrorInterval}}">
 									</div>
-									{{$address := MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName}}
+									{{$address := MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false}}
 									<div class="field {{if .Err_MirrorAddress}}error{{end}}">
 										<label for="mirror_address">{{.locale.Tr "repo.mirror_address"}}</label>
 										<input id="mirror_address" name="mirror_address" value="{{$address.Address}}" required>
@@ -168,7 +168,7 @@
 					<tbody>
 						{{range .PushMirrors}}
 						<tr>
-							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName}}
+							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>

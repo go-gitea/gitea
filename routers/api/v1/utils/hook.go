@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -141,14 +140,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
 			return nil, false
 		}
+		channel = strings.TrimSpace(channel)
 
-		if !utils.IsValidSlackChannel(channel) {
+		if !webhook_service.IsValidSlackChannel(channel) {
 			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
 			return nil, false
 		}
 
 		meta, err := json.Marshal(&webhook_service.SlackMeta{
-			Channel:  strings.TrimSpace(channel),
+			Channel:  channel,
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
 			Color:    form.Config["color"],
