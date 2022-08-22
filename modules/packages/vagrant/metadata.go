@@ -69,20 +69,25 @@ func ParseInfoFile(r io.Reader) (*Metadata, error) {
 	for k, v := range values {
 		switch strings.ToLower(k) {
 		case "description":
+			fallthrough
 		case "short_description":
 			m.Description = v
 		case "website":
+			fallthrough
 		case "homepage":
+			fallthrough
 		case "url":
 			if validation.IsValidURL(v) {
 				m.ProjectURL = v
 			}
 		case "repository":
+			fallthrough
 		case "source":
 			if validation.IsValidURL(v) {
 				m.RepositoryURL = v
 			}
 		case "author":
+			fallthrough
 		case "authors":
 			m.Author = v
 		}

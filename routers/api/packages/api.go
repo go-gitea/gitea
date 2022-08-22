@@ -268,7 +268,7 @@ func Routes() *web.Route {
 		})
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
-				//r.Post("", vagrant.Authenticate)
+				// r.Post("", vagrant.Authenticate)
 				r.Get("", vagrant.CheckAuthenticate)
 			})
 			r.Group("/{name}", func() {
