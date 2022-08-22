@@ -44,9 +44,12 @@ func (b Branch) MarshalJSON() ([]byte, error) {
 }
 
 func JSONLoadBranch(val *fastjson.Value, b *Branch) error {
-	ap.OnObject(&b.Object, func(o *ap.Object) error {
+	if err := ap.OnObject(&b.Object, func(o *ap.Object) error {
 		return ap.JSONLoadObject(val, o)
-	})
+	}); err != nil {
+		return err
+	}
+
 	b.Ref = ap.JSONGetItem(val, "ref")
 	return nil
 }

@@ -55,9 +55,12 @@ func (r Repository) MarshalJSON() ([]byte, error) {
 }
 
 func JSONLoadRepository(val *fastjson.Value, r *Repository) error {
-	ap.OnActor(&r.Actor, func(a *ap.Actor) error {
+	if err := ap.OnActor(&r.Actor, func(a *ap.Actor) error {
 		return ap.JSONLoadActor(val, a)
-	})
+	}); err != nil {
+		return err
+	}
+
 	r.Team = ap.JSONGetItem(val, "team")
 	r.Forks = ap.JSONGetItem(val, "forks")
 	r.ForkedFrom = ap.JSONGetItem(val, "forkedFrom")

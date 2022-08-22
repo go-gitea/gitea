@@ -54,9 +54,12 @@ func (p Push) MarshalJSON() ([]byte, error) {
 }
 
 func JSONLoadPush(val *fastjson.Value, p *Push) error {
-	ap.OnObject(&p.Object, func(o *ap.Object) error {
+	if err := ap.OnObject(&p.Object, func(o *ap.Object) error {
 		return ap.JSONLoadObject(val, o)
-	})
+	}); err != nil {
+		return err
+	}
+
 	p.Target = ap.JSONGetItem(val, "target")
 	p.HashBefore = ap.JSONGetItem(val, "hashBefore")
 	p.HashAfter = ap.JSONGetItem(val, "hashAfter")

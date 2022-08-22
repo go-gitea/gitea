@@ -50,9 +50,12 @@ func (c Commit) MarshalJSON() ([]byte, error) {
 }
 
 func JSONLoadCommit(val *fastjson.Value, c *Commit) error {
-	ap.OnObject(&c.Object, func(o *ap.Object) error {
+	if err := ap.OnObject(&c.Object, func(o *ap.Object) error {
 		return ap.JSONLoadObject(val, o)
-	})
+	}); err != nil {
+		return err
+	}
+
 	c.Created = ap.JSONGetTime(val, "created")
 	c.Committed = ap.JSONGetTime(val, "committed")
 	return nil

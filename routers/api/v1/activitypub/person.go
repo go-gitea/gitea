@@ -182,7 +182,7 @@ func PersonOutbox(ctx *context.APIContext) {
 		if action.OpType == models.ActionCreateRepo {
 			// Created a repo
 			object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
-			object.Content.Set("en", ap.Content(action.GetRepoName()))
+			_ = object.Content.Set("en", ap.Content(action.GetRepoName()))
 			create := ap.Create{Type: ap.CreateType, Object: object}
 			err := outbox.OrderedItems.Append(create)
 			if err != nil {
@@ -200,7 +200,7 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	for _, star := range stars {
 		object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
-		object.Content.Set("en", ap.Content("Starred "+star.Name))
+		_ = object.Content.Set("en", ap.Content("Starred "+star.Name))
 		create := ap.Create{Type: ap.CreateType, Object: object}
 		err := outbox.OrderedItems.Append(create)
 		if err != nil {
