@@ -5,6 +5,7 @@
 package activitypub
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -15,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/activitypub"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -164,31 +166,45 @@ func PersonOutbox(ctx *context.APIContext) {
 
 	link := setting.AppURL + "api/v1/activitypub/user/" + ctx.ContextUser.Name
 
-	outbox := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
+	orderedCollection := ap.OrderedCollectionNew(ap.IRI(link + "/outbox"))
+	orderedCollection.First = ap.IRI(link + "/outbox?page=1")
+
+	outbox := ap.OrderedCollectionPageNew(orderedCollection)
+	outbox.First = ap.IRI(link + "/outbox?page=1")
 
 	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
-		RequestedUser:  ctx.ContextUser,
-		Actor:          ctx.ContextUser,
-		IncludePrivate: false,
-		IncludeDeleted: false,
-		ListOptions:    db.ListOptions{Page: 1, PageSize: 1000000},
+		RequestedUser:       ctx.ContextUser,
+		RequestedActionType: models.ActionCreateRepo,
+		Actor:               ctx.Doer,
+		IncludePrivate:      false,
+		IncludeDeleted:      false,
+		ListOptions:         utils.GetListOptions(ctx),
 	})
+
+	// Only specify next if this amount of feed corresponds to the calculated limit.
+	if len(feed) == convert.ToCorrectPageSize(ctx.FormInt("limit")) {
+		outbox.Next = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", link, ctx.FormInt("page")+1))
+	}
+
+	// Only specify previous page when there is one.
+	if ctx.FormInt("page") > 1 {
+		outbox.Prev = ap.IRI(fmt.Sprintf("%s/outbox?page=%d", link, ctx.FormInt("page")-1))
+	}
+
 	if err != nil {
 		ctx.ServerError("Couldn't fetch feed", err)
 		return
 	}
 
 	for _, action := range feed {
-		if action.OpType == models.ActionCreateRepo {
-			// Created a repo
-			object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
-			_ = object.Content.Set("en", ap.Content(action.GetRepoName()))
-			create := ap.Create{Type: ap.CreateType, Object: object}
-			err := outbox.OrderedItems.Append(create)
-			if err != nil {
-				ctx.ServerError("OrderedItems.Append", err)
-				return
-			}
+		// Created a repo
+		object := ap.Note{Type: ap.NoteType, Content: ap.NaturalLanguageValuesNew()}
+		_ = object.Content.Set("en", ap.Content(action.GetRepoName()))
+		create := ap.Create{Type: ap.CreateType, Object: object}
+		err := outbox.OrderedItems.Append(create)
+		if err != nil {
+			ctx.ServerError("OrderedItems.Append", err)
+			return
 		}
 	}
 
