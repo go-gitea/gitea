@@ -91,11 +91,16 @@ export function initRepoSettingBranches() {
   }
 }
 
+function togglePushMirrorUsernameAndPassword(disable) {
+  $('#push_mirror_password').parent().toggleClass('disabled', disable);
+  $('#push_mirror_username').parent().toggleClass('disabled', disable);
+}
 export function initRepoSettingMirror() {
-  if ($('#push_mirror_use_ssh').length === 0) return;
+  const $SSHForPushMirror = $('#push_mirror_use_ssh');
+  if ($SSHForPushMirror.length === 0) return;
 
-  $('#push_mirror_use_ssh').on('change', function () {
-    $('#push_mirror_password').parent().toggleClass('disabled', this.checked);
-    $('#push_mirror_username').parent().toggleClass('disabled', this.checked);
+  togglePushMirrorUsernameAndPassword($SSHForPushMirror.prop('checked'));
+  $SSHForPushMirror.on('change', function () {
+    togglePushMirrorUsernameAndPassword(this.checked);
   });
 }
