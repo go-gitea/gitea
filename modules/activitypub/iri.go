@@ -77,17 +77,3 @@ func repositoryIRIToRepository(ctx context.Context, repoIRI ap.IRI) (*repo_model
 	// TODO: create remote repo if not exists
 	return repo_model.GetRepositoryByOwnerAndName(username, reponame)
 }
-
-// Returns the IRI of the owner of a Repository actor IRI
-func repositoryIRIToOwnerIRI(repoIRI ap.IRI) (ap.IRI, error) {
-	r := repoIRI.String()
-	rSplit := strings.Split(r, "/")
-	if len(rSplit) < 5 {
-		return "", errors.New("not a Repository actor IRI")
-	}
-
-	username := rSplit[len(rSplit)-2]
-	reponame := rSplit[len(rSplit)-1]
-	ownerIRI := ap.IRI(strings.TrimSuffix(r, "repo/"+username+"/"+reponame) + "user/" + username)
-	return ownerIRI, nil
-}
