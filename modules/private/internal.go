@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/httplib"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/proxyprotocol"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -50,7 +51,32 @@ func newInternalRequest(ctx context.Context, url, method string) *httplib.Reques
 		req.SetTransport(&http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
 				var d net.Dialer
-				return d.DialContext(ctx, "unix", setting.HTTPAddr)
+				conn, err := d.DialContext(ctx, "unix", setting.HTTPAddr)
+				if err != nil {
+					return conn, err
+				}
+				if setting.LocalUseProxyProtocol {
+					if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
+						_ = conn.Close()
+						return nil, err
+					}
+				}
+				return conn, err
+			},
+		})
+	} else if setting.LocalUseProxyProtocol {
+		req.SetTransport(&http.Transport{
+			DialContext: func(ctx context.Context, network, address string) (net.Conn, error) {
+				var d net.Dialer
+				conn, err := d.DialContext(ctx, network, address)
+				if err != nil {
+					return conn, err
+				}
+				if err = proxyprotocol.WriteLocalHeader(conn); err != nil {
+					_ = conn.Close()
+					return nil, err
+				}
+				return conn, err
 			},
 		})
 	}
