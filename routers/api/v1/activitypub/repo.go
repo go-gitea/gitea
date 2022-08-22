@@ -134,10 +134,9 @@ func RepoInbox(ctx *context.APIContext) {
 					if t.Origin != nil {
 						// New pull request
 						return activitypub.PullRequest(ctx, t)
-					} else {
-						// New issue
-						return activitypub.Issue(ctx, t)
 					}
+					// New issue
+					return activitypub.Issue(ctx, t)
 				})
 			case ap.NoteType:
 				// New comment
