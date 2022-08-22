@@ -56,7 +56,7 @@
 								</button>
 							</div>
 							<div class="left floated content">
-								<i class="{{if .HasRecentActivity}}green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}" data-variation="inverted"{{end}}>{{svg "octicon-key" 32}}</i>
+								<i class="tooltip{{if .HasRecentActivity}} green{{end}}" {{if .HasRecentActivity}}data-content="{{$.locale.Tr "settings.key_state_desc"}}"{{end}}>{{svg "octicon-key" 32}}</i>
 							</div>
 							<div class="content">
 								<strong>{{.Name}}</strong>

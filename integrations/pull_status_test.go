@@ -56,11 +56,11 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 		}
 
 		statesIcons := map[api.CommitStatusState]string{
-			api.CommitStatusPending: "circle icon yellow",
-			api.CommitStatusSuccess: "check icon green",
-			api.CommitStatusError:   "warning icon red",
-			api.CommitStatusFailure: "remove icon red",
-			api.CommitStatusWarning: "warning sign icon yellow",
+			api.CommitStatusPending: "octicon-dot-fill",
+			api.CommitStatusSuccess: "octicon-check",
+			api.CommitStatusError:   "gitea-exclamation",
+			api.CommitStatusFailure: "octicon-x",
+			api.CommitStatusWarning: "gitea-exclamation",
 		}
 
 		testCtx := NewAPITestContext(t, "user1", "repo1")
@@ -80,9 +80,9 @@ func TestPullCreate_CommitStatus(t *testing.T) {
 			assert.NotEmpty(t, commitURL)
 			assert.EqualValues(t, commitID, path.Base(commitURL))
 
-			cls, ok := doc.doc.Find("#commits-table tbody tr td.message i.commit-status").Last().Attr("class")
+			cls, ok := doc.doc.Find("#commits-table tbody tr td.message .commit-status").Last().Attr("class")
 			assert.True(t, ok)
-			assert.EqualValues(t, "commit-status "+statesIcons[status], cls)
+			assert.Contains(t, cls, statesIcons[status])
 		}
 	})
 }

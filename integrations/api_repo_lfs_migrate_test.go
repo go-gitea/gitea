@@ -28,7 +28,7 @@ func TestAPIRepoLFSMigrateLocal(t *testing.T) {
 	setting.Migrations.AllowLocalNetworks = true
 	assert.NoError(t, migrations.Init())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
