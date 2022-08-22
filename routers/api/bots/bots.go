@@ -24,7 +24,7 @@ func gRPCRouter(r *web.Route, fn grpc.RouteFn) {
 	r.Post(p+"{name}", grpcHandler(h))
 }
 
-func Routes(r *web.Route) {
+func Routes(r *web.Route) *web.Route {
 	// socket connection
 	r.Get("/socket", socketServe)
 
@@ -33,4 +33,6 @@ func Routes(r *web.Route) {
 	gRPCRouter(r, grpc.HealthRoute)
 	gRPCRouter(r, grpc.PingRoute)
 	gRPCRouter(r, grpc.RunnerRoute)
+
+	return r
 }

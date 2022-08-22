@@ -198,6 +198,6 @@ func NormalRoutes(ctx context.Context) *web.Route {
 		// This implements the OCI API (Note this is not preceded by /api but is instead /v2)
 		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
-	bots_router.Routes(r)
+	_ = bots_router.Routes(r)
 	return r
 }
