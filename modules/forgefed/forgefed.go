@@ -29,7 +29,7 @@ func GetItemByType(typ ap.ActivityVocabularyType) (ap.Item, error) {
 	return ap.GetItemByType(typ)
 }
 
-// JSONUnmarshalerFn is the type of the function that will load the data from a fastjson.Value into an Item
+// JSONUnmarshalerFn is the function that will load the data from a fastjson.Value into an Item
 // that the go-ap/activitypub package doesn't know about.
 func JSONUnmarshalerFn(typ ap.ActivityVocabularyType, val *fastjson.Value, i ap.Item) error {
 	switch typ {
