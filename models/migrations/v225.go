@@ -5,30 +5,25 @@
 package migrations
 
 import (
-	"time"
+	"code.gitea.io/gitea/modules/setting"
 
-	"code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
 
-func addKeypairToPushMirror(x *xorm.Engine) error {
-	type PushMirror struct {
-		ID         int64            `xorm:"pk autoincr"`
-		RepoID     int64            `xorm:"INDEX"`
-		Repo       *repo.Repository `xorm:"-"`
-		RemoteName string
-
-		// A keypair formatted in OpenSSH format.
-		PublicKey  string
-		PrivateKey string `xorm:"VARCHAR(400)"`
-
-		SyncOnCommit   bool `xorm:"NOT NULL DEFAULT true"`
-		Interval       time.Duration
-		CreatedUnix    timeutil.TimeStamp `xorm:"created"`
-		LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
-		LastError      string             `xorm:"text"`
+func alterPublicGPGKeyContentFieldsToMediumText(x *xorm.Engine) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
 	}
 
-	return x.Sync2(new(PushMirror))
+	if setting.Database.UseMySQL {
+		if _, err := sess.Exec("ALTER TABLE `gpg_key` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
+			return err
+		}
+		if _, err := sess.Exec("ALTER TABLE `public_key` CHANGE `content` `content` MEDIUMTEXT"); err != nil {
+			return err
+		}
+	}
+	return sess.Commit()
 }
