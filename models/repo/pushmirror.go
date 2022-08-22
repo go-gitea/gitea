@@ -7,6 +7,7 @@ package repo
 import (
 	"context"
 	"errors"
+	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -76,6 +77,12 @@ func (m *PushMirror) GetRepository() *Repository {
 // GetRemoteName returns the name of the remote.
 func (m *PushMirror) GetRemoteName() string {
 	return m.RemoteName
+}
+
+// GetPublicKey returns a sanitized version of the public key.
+// This should only be used when displaying the public key to the user, not for actual code.
+func (m *PushMirror) GetPublicKey() string {
+	return strings.TrimSuffix(m.PublicKey, "\n")
 }
 
 // InsertPushMirror inserts a push-mirror to database

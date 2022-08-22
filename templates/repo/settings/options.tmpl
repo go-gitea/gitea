@@ -173,7 +173,7 @@
 							<td>{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
 							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
-							<td><a data-clipboard-text="{{.PublicKey}}">{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.copy_public_key"}}</a></td>
+							<td><a data-clipboard-text="{{.GetPublicKey}}">{{$.locale.Tr "repo.settings.mirror_settings.push_mirror.copy_public_key"}}</a></td>
 							<td class="right aligned df">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
