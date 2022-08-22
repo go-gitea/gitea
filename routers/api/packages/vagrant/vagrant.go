@@ -130,8 +130,9 @@ func EnumeratePackageVersions(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, &packageMetadata{
-		Name:     pds[0].Package.Name,
-		Versions: versions,
+		Name:        pds[0].Package.Name,
+		Description: pds[len(pds)-1].Metadata.(*vagrant_module.Metadata).Description,
+		Versions:    versions,
 	})
 }
 
@@ -200,8 +201,8 @@ func UploadPackageFile(ctx *context.Context) {
 		},
 	)
 	if err != nil {
-		if err == packages_model.ErrDuplicatePackageVersion {
-			apiError(ctx, http.StatusBadRequest, err)
+		if err == packages_model.ErrDuplicatePackageFile {
+			apiError(ctx, http.StatusConflict, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
