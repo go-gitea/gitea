@@ -63,6 +63,15 @@ func (key *GPGKey) AfterLoad(session *xorm.Session) {
 	}
 }
 
+// PaddedKeyID show KeyID padded to 16 characters
+func (key *GPGKey) PaddedKeyID() string {
+	if len(key.KeyID) > 15 {
+		return key.KeyID
+	}
+	zeros := "0000000000000000"
+	return zeros[0:16-len(key.KeyID)] + key.KeyID
+}
+
 // ListGPGKeys returns a list of public keys belongs to given user.
 func ListGPGKeys(ctx context.Context, uid int64, listOptions db.ListOptions) ([]*GPGKey, error) {
 	sess := db.GetEngine(ctx).Table(&GPGKey{}).Where("owner_id=? AND primary_key_id=''", uid)

@@ -18,10 +18,22 @@ import (
 // 45677465s	-> 1 year 6 months
 func SecToTime(duration int64) string {
 	formattedTime := ""
-	years := duration / (3600 * 24 * 7 * 4 * 12)
-	months := (duration / (3600 * 24 * 30)) % 12
-	weeks := (duration / (3600 * 24 * 7)) % 4
-	days := (duration / (3600 * 24)) % 7
+
+	// The following four variables are calculated by taking
+	// into account the previously calculated variables, this avoids
+	// pitfalls when using remainders. As that could lead to incorrect
+	// results when the calculated number equals the quotient number.
+	remainingDays := duration / (60 * 60 * 24)
+	years := remainingDays / 365
+	remainingDays -= years * 365
+	months := remainingDays * 12 / 365
+	remainingDays -= months * 365 / 12
+	weeks := remainingDays / 7
+	remainingDays -= weeks * 7
+	days := remainingDays
+
+	// The following three variables are calculated without depending
+	// on the previous calculated variables.
 	hours := (duration / 3600) % 24
 	minutes := (duration / 60) % 60
 	seconds := duration % 60

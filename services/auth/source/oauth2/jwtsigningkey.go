@@ -31,11 +31,11 @@ import (
 
 // ErrInvalidAlgorithmType represents an invalid algorithm error.
 type ErrInvalidAlgorithmType struct {
-	Algorightm string
+	Algorithm string
 }
 
 func (err ErrInvalidAlgorithmType) Error() string {
-	return fmt.Sprintf("JWT signing algorithm is not supported: %s", err.Algorightm)
+	return fmt.Sprintf("JWT signing algorithm is not supported: %s", err.Algorithm)
 }
 
 // JWTSigningKey represents a algorithm/key pair to sign JWTs

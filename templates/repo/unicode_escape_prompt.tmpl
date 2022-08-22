@@ -1,19 +1,22 @@
 {{if .EscapeStatus}}
-	{{if .EscapeStatus.BadBIDI}}
+	{{if .EscapeStatus.HasInvisible}}
 		<div class="ui error message unicode-escape-prompt tl">
 			<span class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</span>
 			<div class="header">
-				{{$.root.locale.Tr "repo.bidi_bad_header"}}
+				{{$.root.locale.Tr "repo.invisible_runes_header"}}
 			</div>
-			<p>{{$.root.locale.Tr "repo.bidi_bad_description" | Str2html}}</p>
+			<p>{{$.root.locale.Tr "repo.invisible_runes_description" | Str2html}}</p>
+			{{if .EscapeStatus.HasAmbiguous}}
+				<p>{{$.root.locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
+			{{end}}
 		</div>
-	{{else if .EscapeStatus.HasBIDI}}
+	{{else if .EscapeStatus.HasAmbiguous}}
 		<div class="ui warning message unicode-escape-prompt tl">
 			<span class="close icon hide-panel button" data-panel-closest=".message">{{svg "octicon-x" 16 "close inside"}}</span>
 			<div class="header">
-				{{$.root.locale.Tr "repo.unicode_header"}}
+				{{$.root.locale.Tr "repo.ambiguous_runes_header"}}
 			</div>
-			<p>{{$.root.locale.Tr "repo.unicode_description" | Str2html}}</p>
+			<p>{{$.root.locale.Tr "repo.ambiguous_runes_description" | Str2html}}</p>
 		</div>
 	{{end}}
 {{end}}

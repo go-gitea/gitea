@@ -26,7 +26,7 @@ func TestMain(m *testing.M) {
 func TestUploadAttachment(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	fPath := "./attachment_test.go"
 	f, err := os.Open(fPath)

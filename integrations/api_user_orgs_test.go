@@ -25,9 +25,20 @@ func TestUserOrgs(t *testing.T) {
 
 	orgs := getUserOrgs(t, adminUsername, normalUsername)
 
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
+	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
 
 	assert.Equal(t, []*api.Organization{
+		{
+			ID:          17,
+			UserName:    user17.Name,
+			FullName:    user17.FullName,
+			AvatarURL:   user17.AvatarLink(),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "public",
+		},
 		{
 			ID:          3,
 			UserName:    user3.Name,
@@ -81,9 +92,20 @@ func TestMyOrgs(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	var orgs []*api.Organization
 	DecodeJSON(t, resp, &orgs)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"}).(*user_model.User)
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user3"})
+	user17 := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user17"})
 
 	assert.Equal(t, []*api.Organization{
+		{
+			ID:          17,
+			UserName:    user17.Name,
+			FullName:    user17.FullName,
+			AvatarURL:   user17.AvatarLink(),
+			Description: "",
+			Website:     "",
+			Location:    "",
+			Visibility:  "public",
+		},
 		{
 			ID:          3,
 			UserName:    user3.Name,
