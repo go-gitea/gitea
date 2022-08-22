@@ -340,7 +340,7 @@ func SearchTeam(ctx *context.Context) {
 	}
 
 	opts := &organization.SearchTeamOptions{
-		UserID:      ctx.Doer.ID,
+		// UserID is not set because the router already requires the doer to be an org admin. Thus, we don't need to restrict to teams that the user belongs in
 		Keyword:     ctx.FormTrim("q"),
 		OrgID:       ctx.Org.Organization.ID,
 		IncludeDesc: ctx.FormString("include_desc") == "" || ctx.FormBool("include_desc"),
@@ -417,7 +417,11 @@ func EditTeamPost(ctx *context.Context) {
 			isIncludeAllChanged = true
 			t.IncludesAllRepositories = includesAllRepositories
 		}
+		t.CanCreateOrgRepo = form.CanCreateOrgRepo
+	} else {
+		t.CanCreateOrgRepo = true
 	}
+
 	t.Description = form.Description
 	if t.AccessMode < perm.AccessModeAdmin {
 		units := make([]organization.TeamUnit, 0, len(unitPerms))
@@ -434,7 +438,6 @@ func EditTeamPost(ctx *context.Context) {
 			return
 		}
 	}
-	t.CanCreateOrgRepo = form.CanCreateOrgRepo
 
 	if ctx.HasError() {
 		ctx.HTML(http.StatusOK, tplTeamNew)
