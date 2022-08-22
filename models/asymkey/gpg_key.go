@@ -33,7 +33,7 @@ type GPGKey struct {
 	OwnerID           int64              `xorm:"INDEX NOT NULL"`
 	KeyID             string             `xorm:"INDEX CHAR(16) NOT NULL"`
 	PrimaryKeyID      string             `xorm:"CHAR(16)"`
-	Content           string             `xorm:"TEXT NOT NULL"`
+	Content           string             `xorm:"MEDIUMTEXT NOT NULL"`
 	CreatedUnix       timeutil.TimeStamp `xorm:"created"`
 	ExpiredUnix       timeutil.TimeStamp
 	AddedUnix         timeutil.TimeStamp
