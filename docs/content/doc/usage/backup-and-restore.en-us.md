@@ -62,7 +62,7 @@ The SQL dump created by `gitea dump` uses XORM and Gitea admins may prefer to us
 # mysql
 mysqldump -u$USER -p$PASS --database $DATABASE > gitea-db.sql
 # postgres
-pgdump -U $USER $DATABASE > gitea-db.sql
+pg_dump -U $USER $DATABASE > gitea-db.sql
 ```
 
 ### Using Docker (`dump`)
