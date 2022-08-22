@@ -25,8 +25,23 @@ import (
 
 func apiError(ctx *context.Context, status int, obj interface{}) {
 	helper.LogAndProcessError(ctx, status, obj, func(message string) {
-		ctx.Status(status)
+		ctx.JSON(status, struct {
+			Errors []string `json:"errors"`
+		}{
+			Errors: []string{
+				message,
+			},
+		})
 	})
+}
+
+func CheckAuthenticate(ctx *context.Context) {
+	if ctx.Doer == nil {
+		apiError(ctx, http.StatusUnauthorized, "Invalid access token")
+		return
+	}
+
+	ctx.Status(http.StatusOK)
 }
 
 func CheckBoxAvailable(ctx *context.Context) {
