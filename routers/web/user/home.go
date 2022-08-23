@@ -301,6 +301,7 @@ func Pulls(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("pull_requests")
 	ctx.Data["PageIsPulls"] = true
+	ctx.Data["SingleRepoAction"] = "pull"
 	buildIssueOverview(ctx, unit.TypePullRequests)
 }
 
@@ -314,6 +315,7 @@ func Issues(ctx *context.Context) {
 
 	ctx.Data["Title"] = ctx.Tr("issues")
 	ctx.Data["PageIsIssues"] = true
+	ctx.Data["SingleRepoAction"] = "issue"
 	buildIssueOverview(ctx, unit.TypeIssues)
 }
 
