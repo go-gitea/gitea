@@ -92,6 +92,8 @@ var (
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL"
 	LocalURL string
+	// AssetVersion holds a opaque value that is used for cache-busting assets
+	AssetVersion string
 
 	// Server settings
 	Protocol                   Scheme
@@ -759,6 +761,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
