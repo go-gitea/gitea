@@ -761,7 +761,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
-	AssetVersion = url.QueryEscape(AppVer)
+	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)

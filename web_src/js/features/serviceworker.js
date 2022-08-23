@@ -1,8 +1,8 @@
 import {joinPaths, parseUrl} from '../utils.js';
 
-const {useServiceWorker, assetUrlPrefix, appVer, assetVersion} = window.config;
+const {useServiceWorker, assetUrlPrefix, appVer, assetVersionEncoded} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
-const workerUrl = `${joinPaths(assetUrlPrefix, 'serviceworker.js')}?v=${assetVersion}`;
+const workerUrl = `${joinPaths(assetUrlPrefix, 'serviceworker.js')}?v=${assetVersionEncoded}`;
 
 async function unregisterAll() {
   for (const registration of await navigator.serviceWorker.getRegistrations()) {
