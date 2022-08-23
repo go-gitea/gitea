@@ -95,10 +95,12 @@ func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
 
 // PushMirrorsIterate iterates all push-mirror repositories.
 func PushMirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(db.DefaultContext).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
-		OrderBy("last_update ASC").
-		Limit(limit).
-		Iterate(new(PushMirror), f)
+		OrderBy("last_update ASC")
+	if limit > 0 {
+		sess = sess.Limit(limit)
+	}
+	return sess.Iterate(new(PushMirror), f)
 }
