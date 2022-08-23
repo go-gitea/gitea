@@ -68,7 +68,7 @@
 							<div class="branch">
 								<a class="bold dif" href="{{.PullRequest.BaseRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.BaseBranch}}">
 									{{/* inline to remove the spaces between spans */}}
-									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name dib vb">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name dib vb">{{.PullRequest.BaseBranch}}</span>
+									{{if ne .RepoID .PullRequest.BaseRepoID}}<span class="truncated-name dib">{{.PullRequest.BaseRepo.OwnerName}}</span>:{{end}}<span class="truncated-name dib">{{.PullRequest.BaseBranch}}</span>
 								</a>
 							</div>
 							{{svg "gitea-double-chevron-left" 12 "mx-1"}}
@@ -76,7 +76,7 @@
 							<div class="branch">
 								<a class="bold dif" href="{{.PullRequest.HeadRepo.HTMLURL}}/src/branch/{{PathEscapeSegments .PullRequest.HeadBranch}}">
 									{{/* inline to remove the spaces between spans */}}
-									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name dib vb">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name dib vb">{{.PullRequest.HeadBranch}}</span>
+									{{if ne .RepoID .PullRequest.HeadRepoID}}<span class="truncated-name dib">{{.PullRequest.HeadRepo.OwnerName}}</span>:{{end}}<span class="truncated-name dib">{{.PullRequest.HeadBranch}}</span>
 								</a>
 							</div>
 							{{end}}
