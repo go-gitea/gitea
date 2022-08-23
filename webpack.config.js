@@ -75,7 +75,7 @@ export default {
     },
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
-      return language ? `js/monaco-language-${language.toLowerCase()}.js` : `js/[name].js`;
+      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
   optimization: {
@@ -174,14 +174,14 @@ export default {
         test: /\.(ttf|woff2?)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'fonts/[name][ext]',
+          filename: 'fonts/[name].[contenthash:8][ext]',
         }
       },
       {
         test: /\.png$/i,
         type: 'asset/resource',
         generator: {
-          filename: 'img/webpack/[name][ext]',
+          filename: 'img/webpack/[name].[contenthash:8][ext]',
         }
       },
     ],
@@ -190,17 +190,17 @@ export default {
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
-      chunkFilename: 'css/[name].css',
+      chunkFilename: 'css/[name].[contenthash:8].css',
     }),
     new SourceMapDevToolPlugin({
-      filename: '[file].map',
+      filename: '[file].[contenthash:8].map',
       include: [
         'js/index.js',
         'css/index.css',
       ],
     }),
     new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].worker.js',
+      filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'js/licenses.txt',

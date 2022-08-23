@@ -21,7 +21,7 @@
 {{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{AssetVersion}}">
 	{{template "base/head_script" .}}
 	<noscript>
 		<style>
@@ -67,10 +67,10 @@
 <meta property="og:site_name" content="{{AppName}}">
 {{if .IsSigned }}
 	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{AssetVersion}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{AssetVersion}}">
 {{end}}
 {{template "custom/header" .}}
 </head>
