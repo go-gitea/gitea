@@ -23,8 +23,8 @@ import (
 
 func TestAPIViewPulls(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, "user2")
 	token := getTokenForLoggedInUser(t, session)
@@ -40,9 +40,9 @@ func TestAPIViewPulls(t *testing.T) {
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
 func TestAPIMergePullWIP(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false)).(*issues_model.PullRequest)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{Status: issues_model.PullRequestStatusMergeable}, unittest.Cond("has_merged = ?", false))
 	pr.LoadIssue()
 	issue_service.ChangeTitle(pr.Issue, owner, setting.Repository.PullRequest.WorkInProgressPrefixes[0]+" "+pr.Issue.Title)
 
@@ -63,12 +63,12 @@ func TestAPIMergePullWIP(t *testing.T) {
 
 func TestAPICreatePullSuccess(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
 	// repo10 have code, pulls units.
-	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11}).(*repo_model.Repository)
+	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
 	// repo11 only have code unit but should still create pulls
-	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
-	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID}).(*user_model.User)
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
+	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -84,11 +84,11 @@ func TestAPICreatePullSuccess(t *testing.T) {
 func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// repo10 have code, pulls units.
-	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
 	// repo11 only have code unit but should still create pulls
-	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11}).(*repo_model.Repository)
-	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID}).(*user_model.User)
+	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -121,11 +121,11 @@ func TestAPICreatePullWithFieldsSuccess(t *testing.T) {
 func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 	defer prepareTestEnv(t)()
 	// repo10 have code, pulls units.
-	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
 	// repo11 only have code unit but should still create pulls
-	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11}).(*repo_model.Repository)
-	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID}).(*user_model.User)
+	repo11 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 11})
+	owner11 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo11.OwnerID})
 
 	session := loginUser(t, owner11.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -154,8 +154,8 @@ func TestAPICreatePullWithFieldsFailure(t *testing.T) {
 
 func TestAPIEditPull(t *testing.T) {
 	defer prepareTestEnv(t)()
-	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10}).(*repo_model.Repository)
-	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID}).(*user_model.User)
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
 
 	session := loginUser(t, owner10.Name)
 	token := getTokenForLoggedInUser(t, session)

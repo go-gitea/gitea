@@ -18,10 +18,10 @@ import (
 func TestTeamInvite(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
 	t.Run("MailExistsInTeam", func(t *testing.T) {
-		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+		user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 		// user 2 already added to team 2, should result in error
 		_, err := organization.CreateTeamInvite(db.DefaultContext, user2, team, user2.Email)
@@ -29,7 +29,7 @@ func TestTeamInvite(t *testing.T) {
 	})
 
 	t.Run("CreateAndRemove", func(t *testing.T) {
-		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+		user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 		invite, err := organization.CreateTeamInvite(db.DefaultContext, user1, team, "user3@example.com")
 		assert.NotNil(t, invite)

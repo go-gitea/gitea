@@ -5,21 +5,24 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
 	"xorm.io/xorm"
 )
 
-func addTeamInviteTable(x *xorm.Engine) error {
-	type TeamInvite struct {
-		ID          int64              `xorm:"pk autoincr"`
-		Token       string             `xorm:"UNIQUE(token) INDEX"`
-		InviterID   int64              `xorm:"NOT NULL"`
-		TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
-		Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
-		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+func createUserBadgesTable(x *xorm.Engine) error {
+	type Badge struct {
+		ID          int64 `xorm:"pk autoincr"`
+		Description string
+		ImageURL    string
 	}
 
-	return x.Sync2(new(TeamInvite))
+	type userBadge struct {
+		ID      int64 `xorm:"pk autoincr"`
+		BadgeID int64
+		UserID  int64 `xorm:"INDEX"`
+	}
+
+	if err := x.Sync2(new(Badge)); err != nil {
+		return err
+	}
+	return x.Sync2(new(userBadge))
 }

@@ -26,8 +26,8 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 
 	defer prepareTestEnv(t)()
 
-	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3}).(*organization.Organization)
-	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2}).(*organization.Team)
+	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
+	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
 
 	session := loginUser(t, "user1")
 
