@@ -44,78 +44,79 @@ const openSSHMagic = "openssh-key-v1\x00"
 // OpenSSH format.
 // Adopted from: https://go-review.googlesource.com/c/crypto/+/218620/
 func marshalPrivateKey(key ed25519.PrivateKey) (*pem.Block, error) {
-	// Head struct of the OpenSSH format.
-	var w struct {
-		CipherName   string
-		KdfName      string
-		KdfOpts      string
-		NumKeys      uint32
-		PubKey       []byte
-		PrivKeyBlock []byte
+	// The ed25519.PrivateKey is a []byte (Seed, Public)
+
+	// Split the provided key in to a public key and private key bytes.
+	publicKeyBytes := make([]byte, ed25519.PublicKeySize)
+	privateKeyBytes := make([]byte, ed25519.PrivateKeySize)
+	copy(publicKeyBytes, key[ed25519.SeedSize:])
+	copy(privateKeyBytes, key)
+
+	// Now we want to eventually marshal the sshPrivateKeyStruct below but ssh.Marshal doesn't allow submarshalling
+	// So we need to create a number of structs in order to marshal them and build the struct we need.
+	//
+	// 1. Create a struct that holds the public key for this private key
+	pubKeyStruct := struct {
+		KeyType string
+		Pub     []byte
+	}{
+		KeyType: ssh.KeyAlgoED25519,
+		Pub:     publicKeyBytes,
 	}
 
-	// Struct to represent keypair
-	var keyPair struct {
-		Check1  uint32
-		Check2  uint32
-		Keytype string
-		Rest    []byte `ssh:"rest"`
+	// 2. Create a struct to contain the privateKeyBlock
+	// 2a. Marshal keypair as the rest struct
+	restStruct := struct {
+		Pub     []byte
+		Priv    []byte
+		Comment string
+	}{
+		publicKeyBytes, privateKeyBytes, "",
 	}
-
-	// Generate a random uint32 number.
+	// 2b. Generate a random uint32 number.
+	// These can be random bytes or anything else, as long it's the same.
+	// See: https://github.com/openssh/openssh-portable/blob/f7fc6a43f1173e8b2c38770bf6cee485a562d03b/sshkey.c#L4228-L4235
 	var check uint32
 	if err := binary.Read(rand.Reader, binary.BigEndian, &check); err != nil {
 		return nil, err
 	}
 
-	// These can be random bytes or anything else, as long it's the same.
-	// See: https://github.com/openssh/openssh-portable/blob/f7fc6a43f1173e8b2c38770bf6cee485a562d03b/sshkey.c#L4228-L4235
-	keyPair.Check1 = check
-	keyPair.Check2 = check
-
-	// Specify the amount of keys it contains.
-	w.NumKeys = 1
-
-	// Get the public key from the private key.
-	pub := make([]byte, ed25519.PublicKeySize)
-	priv := make([]byte, ed25519.PrivateKeySize)
-	copy(pub, key[ed25519.PublicKeySize:])
-	copy(priv, key)
-
-	// Marshal public key.
-	pubKey := struct {
-		KeyType string
-		Pub     []byte
+	// 2c. Create the privateKeyBlock struct
+	privateKeyBlockStruct := struct {
+		Check1  uint32
+		Check2  uint32
+		Keytype string
+		Rest    []byte `ssh:"rest"`
 	}{
-		ssh.KeyAlgoED25519, pub,
+		Check1:  check,
+		Check2:  check,
+		Keytype: ssh.KeyAlgoED25519,
+		Rest:    ssh.Marshal(restStruct),
 	}
-	w.PubKey = ssh.Marshal(pubKey)
 
-	// Marshal keypair.
-	privKey := struct {
-		Pub     []byte
-		Priv    []byte
-		Comment string
+	// 3. Now we're finally ready to create the OpenSSH sshPrivateKey
+	// Head struct of the OpenSSH format.
+	sshPrivateKeyStruct := struct {
+		CipherName   string
+		KdfName      string
+		KdfOpts      string
+		NumKeys      uint32
+		PubKey       []byte // See pubKey
+		PrivKeyBlock []byte // See KeyPair
 	}{
-		pub, priv, "",
+		CipherName:   "none", // This is not a password protected key
+		KdfName:      "none", // so these fields are left as none and empty
+		KdfOpts:      "",     //
+		NumKeys:      1,
+		PubKey:       ssh.Marshal(pubKeyStruct),
+		PrivKeyBlock: generateOpenSSHPadding(ssh.Marshal(privateKeyBlockStruct)),
 	}
-	keyPair.Keytype = ssh.KeyAlgoED25519
-	keyPair.Rest = ssh.Marshal(privKey)
 
-	// Interesting part, marshal the keypair and add padding.
-	w.PrivKeyBlock = generateOpenSSHPadding(ssh.Marshal(keyPair))
-
-	// We don't use a password protected key,
-	// so we don't need to set this to a specific value.
-	w.CipherName = "none"
-	w.KdfName = "none"
-	w.KdfOpts = ""
-
-	// Marshal the head struct.
-	b := ssh.Marshal(w)
+	// 4. Finally marshal the sshPrivateKeyStruct struct.
+	bs := ssh.Marshal(sshPrivateKeyStruct)
 	block := &pem.Block{
 		Type:  "OPENSSH PRIVATE KEY",
-		Bytes: append([]byte(openSSHMagic), b...),
+		Bytes: append([]byte(openSSHMagic), bs...),
 	}
 
 	return block, nil
@@ -124,8 +125,12 @@ func marshalPrivateKey(key ed25519.PrivateKey) (*pem.Block, error) {
 // generateOpenSSHPaddins converts the block to
 // accomplish a block size of 8 bytes.
 func generateOpenSSHPadding(block []byte) []byte {
-	for i, len := 0, len(block); (len+i)%8 != 0; i++ {
-		block = append(block, byte(i+1))
+	padding := []byte{1, 2, 3, 4, 5, 6, 7}
+
+	mod8 := len(block) % 8
+	if mod8 > 0 {
+		block = append(block, padding[:8-mod8]...)
 	}
+
 	return block
 }
