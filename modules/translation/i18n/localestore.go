@@ -98,27 +98,26 @@ func (store *localeStore) SetDefaultLang(lang string) {
 func (store *localeStore) Tr(lang, trKey string, trArgs ...interface{}) string {
 	l, _ := store.Locale(lang)
 
-	if l != nil {
-		return l.Tr(trKey, trArgs...)
-	}
-	return trKey
+	return l.Tr(trKey, trArgs...)
 }
 
 // Has returns whether the given language has a translation for the provided key
 func (store *localeStore) Has(lang, trKey string) bool {
 	l, _ := store.Locale(lang)
 
-	if l != nil {
-		return false
-	}
 	return l.Has(trKey)
 }
 
 // Locale returns the locale for the lang or the default language
-func (store *localeStore) Locale(lang string) (l Locale, found bool) {
-	l, found = store.localeMap[lang]
+func (store *localeStore) Locale(lang string) (Locale, bool) {
+	l, found := store.localeMap[lang]
 	if !found {
-		l = store.localeMap[store.defaultLang]
+		var ok bool
+		l, ok = store.localeMap[store.defaultLang]
+		if !ok {
+			// no default - return an empty locale
+			l = &locale{store: store, idxToMsgMap: make(map[int]string)}
+		}
 	}
 	return l, found
 }
