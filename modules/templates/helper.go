@@ -81,6 +81,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppDomain": func() string {
 			return setting.Domain
 		},
+		"AssetVersion": func() string {
+			return setting.AssetVersion
+		},
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
@@ -150,7 +153,6 @@ func NewFuncMap() []template.FuncMap {
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"ShortSha":                       base.ShortSha,
-		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
 		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
