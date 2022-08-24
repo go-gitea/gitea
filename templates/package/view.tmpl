@@ -52,6 +52,7 @@
 							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
 							{{template "package/metadata/rubygems" .}}
+							<div class="item">{{svg "octicon-database" 16 "mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
 						</div>
 						{{if not (eq .PackageDescriptor.Package.Type "container")}}
 							<div class="ui divider"></div>
