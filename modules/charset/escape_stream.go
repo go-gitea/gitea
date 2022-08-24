@@ -50,6 +50,7 @@ func (e *escapeStreamer) Text(data string) error {
 		_, _ = sb.WriteString(data[:len(UTF8BOM)])
 		pos = len(UTF8BOM)
 	}
+	dataBytes := []byte(data)
 	for pos < len(data) {
 		nextIdxs := defaultWordRegexp.FindStringIndex(data[pos:])
 		if nextIdxs == nil {
@@ -64,18 +65,18 @@ func (e *escapeStreamer) Text(data string) error {
 		positions := make([]int, 0, next-until+1)
 
 		for pos < until {
-			r, sz := utf8.DecodeRune([]byte(data)[pos:])
+			r, sz := utf8.DecodeRune(dataBytes[pos:])
 			positions = positions[:0]
 			positions = append(positions, pos, pos+sz)
 			types, confusables, _ := e.runeTypes(r)
-			if err := e.handleRunes(data, []rune{r}, positions, types, confusables, sb); err != nil {
+			if err := e.handleRunes(dataBytes, []rune{r}, positions, types, confusables, sb); err != nil {
 				return err
 			}
 			pos += sz
 		}
 
 		for i := pos; i < next; {
-			r, sz := utf8.DecodeRune([]byte(data)[i:])
+			r, sz := utf8.DecodeRune(dataBytes[i:])
 			runes = append(runes, r)
 			positions = append(positions, i)
 			i += sz
@@ -83,11 +84,11 @@ func (e *escapeStreamer) Text(data string) error {
 		positions = append(positions, next)
 		types, confusables, runeCounts := e.runeTypes(runes...)
 		if runeCounts.needsEscape() {
-			if err := e.handleRunes(data, runes, positions, types, confusables, sb); err != nil {
+			if err := e.handleRunes(dataBytes, runes, positions, types, confusables, sb); err != nil {
 				return err
 			}
 		} else {
-			_, _ = sb.Write([]byte(data)[pos:next])
+			_, _ = sb.Write(dataBytes[pos:next])
 		}
 		pos = next
 	}
@@ -99,7 +100,7 @@ func (e *escapeStreamer) Text(data string) error {
 	return nil
 }
 
-func (e *escapeStreamer) handleRunes(data string, runes []rune, positions []int, types []runeType, confusables []rune, sb *strings.Builder) error {
+func (e *escapeStreamer) handleRunes(data []byte, runes []rune, positions []int, types []runeType, confusables []rune, sb *strings.Builder) error {
 	for i, r := range runes {
 		switch types[i] {
 		case brokenRuneType:
@@ -111,7 +112,7 @@ func (e *escapeStreamer) handleRunes(data string, runes []rune, positions []int,
 			}
 			end := positions[i+1]
 			start := positions[i]
-			if err := e.brokenRune([]byte(data)[start:end]); err != nil {
+			if err := e.brokenRune(data[start:end]); err != nil {
 				return err
 			}
 		case ambiguousRuneType:
