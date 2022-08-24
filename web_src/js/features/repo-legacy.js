@@ -19,7 +19,6 @@ import {
   initRepoCloneLink,
   initRepoCommonBranchOrTagDropdown,
   initRepoCommonFilterSearchDropdown,
-  initRepoCommonLanguageStats,
 } from './repo-common.js';
 import {initCompLabelEdit} from './comp/LabelEdit.js';
 import {initRepoDiffConversationNav} from './repo-diff.js';
@@ -500,7 +499,6 @@ export function initRepository() {
   }
 
   initRepoCloneLink();
-  initRepoCommonLanguageStats();
   initRepoSettingBranches();
 
   // Issues

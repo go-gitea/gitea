@@ -20,7 +20,12 @@
 		</div>
 	</div>
 	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats }}
-	<div class="ui segment sub-menu language-stats-details" style="display: none">
+	<div class="ui segment language-stats">
+		{{range .LanguageStats}}
+		<div class="bar" style="width: {{ .Percentage }}%; background-color: {{ .Color }}">&nbsp;</div>
+		{{end}}
+	</div>
+	<div class="ui segment sub-menu language-stats-details">
 		<div class="ui horizontal center link list">
 			{{range .LanguageStats}}
 			<div class="item df ac jc">
@@ -37,10 +42,5 @@
 			{{end}}
 		</div>
 	</div>
-	<a class="ui segment language-stats">
-		{{range .LanguageStats}}
-		<div class="bar" style="width: {{ .Percentage }}%; background-color: {{ .Color }}">&nbsp;</div>
-		{{end}}
-	</a>
 	{{end}}
 </div>

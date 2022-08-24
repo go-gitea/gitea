@@ -96,13 +96,3 @@ export function initRepoCommonFilterSearchDropdown(selector) {
     message: {noResults: $dropdown.attr('data-no-results')},
   });
 }
-
-export function initRepoCommonLanguageStats() {
-  // Language stats
-  if ($('.language-stats').length > 0) {
-    $('.language-stats').on('click', (e) => {
-      e.preventDefault();
-      $('.language-stats-details, .repository-menu').slideToggle();
-    });
-  }
-}
