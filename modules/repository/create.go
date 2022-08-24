@@ -101,11 +101,11 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	// Remember visibility preference.
 	u.LastRepoVisibility = repo.IsPrivate
 	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
-		return fmt.Errorf("updateUser: %v", err)
+		return fmt.Errorf("UpdateUserCols: %v", err)
 	}
 
 	if err = user_model.IncrUserRepoNum(ctx, u.ID); err != nil {
-		return fmt.Errorf("increment user total_repos: %v", err)
+		return fmt.Errorf("IncrUserRepoNum: %v", err)
 	}
 	u.NumRepos++
 
@@ -113,40 +113,40 @@ func CreateRepositoryByExample(ctx context.Context, doer, u *user_model.User, re
 	if u.IsOrganization() {
 		teams, err := organization.FindOrgTeams(ctx, u.ID)
 		if err != nil {
-			return fmt.Errorf("loadTeams: %v", err)
+			return fmt.Errorf("FindOrgTeams: %v", err)
 		}
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := models.AddRepository(ctx, t, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
+					return fmt.Errorf("AddRepository: %v", err)
 				}
 			}
 		}
 
 		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
+			return fmt.Errorf("IsUserRepoAdmin: %v", err)
 		} else if !isAdmin {
 			// Make creator repo admin if it wasn't assigned automatically
 			if err = addCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("AddCollaborator: %v", err)
+				return fmt.Errorf("addCollaborator: %v", err)
 			}
 			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
-				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
+				return fmt.Errorf("ChangeCollaborationAccessModeCtx: %v", err)
 			}
 		}
 	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
-		// Organization automatically called this in addRepository method.
-		return fmt.Errorf("recalculateAccesses: %v", err)
+		// Organization automatically called this in AddRepository method.
+		return fmt.Errorf("RecalculateAccesses: %v", err)
 	}
 
 	if setting.Service.AutoWatchNewRepos {
 		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
-			return fmt.Errorf("watchRepo: %v", err)
+			return fmt.Errorf("WatchRepo: %v", err)
 		}
 	}
 
 	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
-		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
+		return fmt.Errorf("CopyDefaultWebhooksToRepo: %v", err)
 	}
 
 	return nil

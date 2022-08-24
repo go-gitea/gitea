@@ -438,7 +438,7 @@ func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *u
 	}
 	perm, err := GetUserRepoPermission(ctx, repo, user)
 	if err != nil {
-		log.Error("GetUserRepoPermission(): %v", err)
+		log.Error("GetUserRepoPermission: %w", err)
 		return false
 	}
 

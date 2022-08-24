@@ -5,6 +5,7 @@
 package org
 
 import (
+	"context"
 	"errors"
 
 	"code.gitea.io/gitea/models"
@@ -16,20 +17,12 @@ import (
 // TeamAddRepository adds new repository to team of organization.
 func TeamAddRepository(t *organization.Team, repo *repo_model.Repository) (err error) {
 	if repo.OwnerID != t.OrgID {
-		return errors.New("Repository does not belong to organization")
+		return errors.New("repository does not belong to organization")
 	} else if models.HasRepository(t, repo.ID) {
 		return nil
 	}
 
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = models.AddRepository(ctx, t, repo); err != nil {
-		return err
-	}
-
-	return committer.Commit()
+	return db.WithTx(func(ctx context.Context) error {
+		return models.AddRepository(ctx, t, repo)
+	})
 }

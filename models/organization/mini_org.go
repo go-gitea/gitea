@@ -16,10 +16,10 @@ import (
 	"xorm.io/builder"
 )
 
-// MinimalOrg represents a simple orgnization with only needed columns
+// MinimalOrg represents a simple organization with only the needed columns
 type MinimalOrg = Organization
 
-// GetUserOrgsList returns one user's all orgs list
+// GetUserOrgsList returns all organizations the given user has access to
 func GetUserOrgsList(user *user_model.User) ([]*MinimalOrg, error) {
 	schema, err := db.TableInfo(new(user_model.User))
 	if err != nil {

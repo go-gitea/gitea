@@ -66,7 +66,7 @@ func addAllRepositories(ctx context.Context, t *organization.Team) error {
 	for _, repo := range orgRepos {
 		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
 			if err := AddRepository(ctx, t, repo); err != nil {
-				return fmt.Errorf("addRepository: %v", err)
+				return fmt.Errorf("AddRepository: %v", err)
 			}
 		}
 	}

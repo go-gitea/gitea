@@ -328,7 +328,7 @@ func TransferOwnership(doer *user_model.User, newOwnerName string, repo *repo_mo
 		for _, t := range teams {
 			if t.IncludesAllRepositories {
 				if err := AddRepository(ctx, t, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
+					return fmt.Errorf("AddRepository: %v", err)
 				}
 			}
 		}

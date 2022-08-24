@@ -658,7 +658,7 @@ func AddTeamRepository(ctx *context.APIContext) {
 		return
 	}
 	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddRepository", err)
+		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
