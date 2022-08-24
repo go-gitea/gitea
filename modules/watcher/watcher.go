@@ -23,7 +23,7 @@ type CreateWatcherOpts struct {
 	// BeforeCallback is called before any files are watched
 	BeforeCallback func()
 
-	// Between Callback is called between after a watched event has occured
+	// Between Callback is called between after a watched event has occurred
 	BetweenCallback func()
 
 	// AfterCallback is called as this watcher ends
