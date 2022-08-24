@@ -111,7 +111,7 @@ func walkAssetDir(root string, skipMail bool, callback func(path, name string, d
 		if skipMail && path == mailRoot && d.IsDir() {
 			return fs.SkipDir
 		}
-		if d.Name() == ".DS_Store" && d.IsDir() { // Because Macs...
+		if d.IsDir() && util.CommonSkipDir(d.Name()) { // Because Macs...
 			return fs.SkipDir
 		}
 		if strings.HasSuffix(d.Name(), ".tmpl") || d.IsDir() {

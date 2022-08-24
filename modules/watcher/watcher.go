@@ -15,13 +15,23 @@ import (
 	"github.com/fsnotify/fsnotify"
 )
 
+// CreateWatcherOpts are options to configure the watcher
 type CreateWatcherOpts struct {
-	PathsCallback   func(func(path, name string, d fs.DirEntry, err error) error) error
-	BeforeCallback  func()
+	// PathsCallback is used to set the required paths to watch
+	PathsCallback func(func(path, name string, d fs.DirEntry, err error) error) error
+
+	// BeforeCallback is called before any files are watched
+	BeforeCallback func()
+
+	// Between Callback is called between after a watched event has occured
 	BetweenCallback func()
-	AfterCallback   func()
+
+	// AfterCallback is called as this watcher ends
+	AfterCallback func()
 }
 
+// CreateWatcher creates a watcher labelled with the provided description and running with the provided options.
+// The created watcher will create a subcontext from the provided ctx and register it with the process manager.
 func CreateWatcher(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 	go run(ctx, desc, opts)
 }
@@ -44,7 +54,7 @@ func run(ctx context.Context, desc string, opts *CreateWatcherOpts) {
 		log.Error("Unable to create watcher for %s: %v", desc, err)
 		return
 	}
-	if err := opts.PathsCallback(func(path, _ string, _ fs.DirEntry, err error) error {
+	if err := opts.PathsCallback(func(path, _ string, d fs.DirEntry, err error) error {
 		if err != nil && !os.IsNotExist(err) {
 			return err
 		}

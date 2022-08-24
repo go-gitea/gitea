@@ -42,13 +42,7 @@ func Mailer(ctx context.Context) (*texttmpl.Template, *template.Template) {
 				continue
 			}
 
-			assetName := strings.TrimPrefix(
-				strings.TrimSuffix(
-					assetPath,
-					".tmpl",
-				),
-				"mail/",
-			)
+			assetName := strings.TrimPrefix(strings.TrimSuffix(assetPath, ".tmpl"), "mail/")
 
 			log.Trace("Adding built-in mailer template for %s", assetName)
 			buildSubjectBodyTemplate(subjectTemplates,

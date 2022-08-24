@@ -9,10 +9,13 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		// name is the path relative to the root
 		name := path[len(root):]
 		if len(name) > 0 && name[0] == '/' {
 			name = name[1:]
@@ -23,7 +26,7 @@ func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, e
 			}
 			return err
 		}
-		if d.Name() == ".DS_Store" && d.IsDir() { // Because Macs...
+		if d.IsDir() && util.CommonSkipDir(d.Name()) {
 			return fs.SkipDir
 		}
 		return callback(path, name, d, err)

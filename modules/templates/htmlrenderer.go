@@ -21,7 +21,7 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	rendererInterface := ctx.Value(rendererKey)
 	if rendererInterface != nil {
 		renderer, ok := rendererInterface.(*render.Render)
-		if ok && renderer != nil {
+		if ok {
 			return ctx, renderer
 		}
 	}

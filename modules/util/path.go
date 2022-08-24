@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -91,7 +90,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 
 	statList := make([]string, 0)
 	for _, fi := range fis {
-		if strings.Contains(fi.Name(), ".DS_Store") {
+		if fi.IsDir() && CommonSkipDir(fi.Name()) {
 			continue
 		}
 
@@ -198,4 +197,10 @@ func HomeDir() (home string, err error) {
 	}
 
 	return home, nil
+}
+
+// CommonSkipDir will check a provided name to see if it represents directory that should not be watched
+func CommonSkipDir(name string) bool {
+	// Check for Mac's .DS_Store entries
+	return name == ".DS_Store"
 }
