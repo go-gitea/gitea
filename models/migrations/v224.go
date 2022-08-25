@@ -8,7 +8,7 @@ import (
 	"xorm.io/xorm"
 )
 
-func creatUserBadgesTable(x *xorm.Engine) error {
+func createUserBadgesTable(x *xorm.Engine) error {
 	type Badge struct {
 		ID          int64 `xorm:"pk autoincr"`
 		Description string
