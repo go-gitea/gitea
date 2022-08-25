@@ -13,7 +13,7 @@ import (
 	"testing"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -73,7 +73,7 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, "en-US", recipients, false, "issue comment")
 	assert.NoError(t, err)
@@ -102,7 +102,7 @@ func TestComposeIssueMessage(t *testing.T) {
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, "en-US", recipients, false, "issue create")
 	assert.NoError(t, err)
@@ -147,14 +147,14 @@ func TestTemplateSelection(t *testing.T) {
 
 	msg := testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
@@ -163,14 +163,14 @@ func TestTemplateSelection(t *testing.T) {
 	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull})
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   pull, Doer: doer, ActionType: models.ActionCommentPull,
+		Issue:   pull, Doer: doer, ActionType: activities_model.ActionCommentPull,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCloseIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "Re: [user2/repo1] issue1 (#1)", "issue/close/body")
@@ -181,7 +181,7 @@ func TestTemplateServices(t *testing.T) {
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 
 	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
-		actionType models.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
+		actionType activities_model.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
 	) {
 		subjectTemplates = texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
 		bodyTemplates = template.Must(template.New("issue/default").Parse(tplBody))
@@ -202,19 +202,19 @@ func TestTemplateServices(t *testing.T) {
 		assert.Contains(t, wholemsg, "\r\n"+expBody+"\r\n")
 	}
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, false,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, false,
 		"{{.SubjectPrefix}}[{{.Repo}}]: @{{.Doer.Name}} commented on #{{.Issue.Index}} - {{.Issue.Title}}",
 		"//{{.ActionType}},{{.ActionName}},{{if .IsMention}}norender{{end}}//",
 		"Re: [user2/repo1]: @user2 commented on #1 - issue1",
 		"//issue,comment,//")
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, true,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, true,
 		"{{if .IsMention}}must render{{end}}",
 		"//subject is: {{.Subject}}//",
 		"must render",
 		"//subject is: must render//")
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, true,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, true,
 		"{{.FallbackSubject}}",
 		"//{{.SubjectPrefix}}//",
 		"Re: [user2/repo1] issue1 (#1)",
@@ -266,7 +266,7 @@ func Test_createReference(t *testing.T) {
 	type args struct {
 		issue      *issues_model.Issue
 		comment    *issues_model.Comment
-		actionType models.ActionType
+		actionType activities_model.ActionType
 	}
 	tests := []struct {
 		name   string
@@ -278,7 +278,7 @@ func Test_createReference(t *testing.T) {
 			name: "Open Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionCreateIssue,
+				actionType: activities_model.ActionCreateIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
@@ -286,7 +286,7 @@ func Test_createReference(t *testing.T) {
 			name: "Open Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionCreatePullRequest,
+				actionType: activities_model.ActionCreatePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
@@ -295,7 +295,7 @@ func Test_createReference(t *testing.T) {
 			args: args{
 				issue:      issue,
 				comment:    comment,
-				actionType: models.ActionCommentIssue,
+				actionType: activities_model.ActionCommentIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
@@ -304,7 +304,7 @@ func Test_createReference(t *testing.T) {
 			args: args{
 				issue:      pullIssue,
 				comment:    comment,
-				actionType: models.ActionCommentPull,
+				actionType: activities_model.ActionCommentPull,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
@@ -312,7 +312,7 @@ func Test_createReference(t *testing.T) {
 			name: "Close Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionCloseIssue,
+				actionType: activities_model.ActionCloseIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
@@ -320,7 +320,7 @@ func Test_createReference(t *testing.T) {
 			name: "Close Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionClosePullRequest,
+				actionType: activities_model.ActionClosePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
@@ -328,7 +328,7 @@ func Test_createReference(t *testing.T) {
 			name: "Reopen Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionReopenIssue,
+				actionType: activities_model.ActionReopenIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
@@ -336,7 +336,7 @@ func Test_createReference(t *testing.T) {
 			name: "Reopen Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionReopenPullRequest,
+				actionType: activities_model.ActionReopenPullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
@@ -344,7 +344,7 @@ func Test_createReference(t *testing.T) {
 			name: "Merge Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionMergePullRequest,
+				actionType: activities_model.ActionMergePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
 		},
@@ -352,7 +352,7 @@ func Test_createReference(t *testing.T) {
 			name: "Ready Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionPullRequestReadyForReview,
+				actionType: activities_model.ActionPullRequestReadyForReview,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
 		},

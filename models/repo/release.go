@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"context"
@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -23,14 +22,45 @@ import (
 	"xorm.io/builder"
 )
 
+// ErrReleaseAlreadyExist represents a "ReleaseAlreadyExist" kind of error.
+type ErrReleaseAlreadyExist struct {
+	TagName string
+}
+
+// IsErrReleaseAlreadyExist checks if an error is a ErrReleaseAlreadyExist.
+func IsErrReleaseAlreadyExist(err error) bool {
+	_, ok := err.(ErrReleaseAlreadyExist)
+	return ok
+}
+
+func (err ErrReleaseAlreadyExist) Error() string {
+	return fmt.Sprintf("release tag already exist [tag_name: %s]", err.TagName)
+}
+
+// ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
+type ErrReleaseNotExist struct {
+	ID      int64
+	TagName string
+}
+
+// IsErrReleaseNotExist checks if an error is a ErrReleaseNotExist.
+func IsErrReleaseNotExist(err error) bool {
+	_, ok := err.(ErrReleaseNotExist)
+	return ok
+}
+
+func (err ErrReleaseNotExist) Error() string {
+	return fmt.Sprintf("release tag does not exist [id: %d, tag_name: %s]", err.ID, err.TagName)
+}
+
 // Release represents a release of repository.
 type Release struct {
-	ID               int64                  `xorm:"pk autoincr"`
-	RepoID           int64                  `xorm:"INDEX UNIQUE(n)"`
-	Repo             *repo_model.Repository `xorm:"-"`
-	PublisherID      int64                  `xorm:"INDEX"`
-	Publisher        *user_model.User       `xorm:"-"`
-	TagName          string                 `xorm:"INDEX UNIQUE(n)"`
+	ID               int64            `xorm:"pk autoincr"`
+	RepoID           int64            `xorm:"INDEX UNIQUE(n)"`
+	Repo             *Repository      `xorm:"-"`
+	PublisherID      int64            `xorm:"INDEX"`
+	Publisher        *user_model.User `xorm:"-"`
+	TagName          string           `xorm:"INDEX UNIQUE(n)"`
 	OriginalAuthor   string
 	OriginalAuthorID int64 `xorm:"index"`
 	LowerTagName     string
@@ -38,14 +68,14 @@ type Release struct {
 	Title            string
 	Sha1             string `xorm:"VARCHAR(40)"`
 	NumCommits       int64
-	NumCommitsBehind int64                    `xorm:"-"`
-	Note             string                   `xorm:"TEXT"`
-	RenderedNote     string                   `xorm:"-"`
-	IsDraft          bool                     `xorm:"NOT NULL DEFAULT false"`
-	IsPrerelease     bool                     `xorm:"NOT NULL DEFAULT false"`
-	IsTag            bool                     `xorm:"NOT NULL DEFAULT false"`
-	Attachments      []*repo_model.Attachment `xorm:"-"`
-	CreatedUnix      timeutil.TimeStamp       `xorm:"INDEX"`
+	NumCommitsBehind int64              `xorm:"-"`
+	Note             string             `xorm:"TEXT"`
+	RenderedNote     string             `xorm:"-"`
+	IsDraft          bool               `xorm:"NOT NULL DEFAULT false"`
+	IsPrerelease     bool               `xorm:"NOT NULL DEFAULT false"`
+	IsTag            bool               `xorm:"NOT NULL DEFAULT false"`
+	Attachments      []*Attachment      `xorm:"-"`
+	CreatedUnix      timeutil.TimeStamp `xorm:"INDEX"`
 }
 
 func init() {
@@ -55,7 +85,7 @@ func init() {
 func (r *Release) loadAttributes(ctx context.Context) error {
 	var err error
 	if r.Repo == nil {
-		r.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, r.RepoID)
+		r.Repo, err = GetRepositoryByIDCtx(ctx, r.RepoID)
 		if err != nil {
 			return err
 		}
@@ -116,7 +146,7 @@ func UpdateRelease(ctx context.Context, rel *Release) error {
 // AddReleaseAttachments adds a release attachments
 func AddReleaseAttachments(ctx context.Context, releaseID int64, attachmentUUIDs []string) (err error) {
 	// Check attachments
-	attachments, err := repo_model.GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
+	attachments, err := GetAttachmentsByUUIDs(ctx, attachmentUUIDs)
 	if err != nil {
 		return fmt.Errorf("GetAttachmentsByUUIDs [uuids: %v]: %v", attachmentUUIDs, err)
 	}
@@ -279,9 +309,9 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 
 	// Sort
 	sortedRels := releaseMetaSearch{ID: make([]int64, len(rels)), Rel: make([]*Release, len(rels))}
-	var attachments []*repo_model.Attachment
+	var attachments []*Attachment
 	for index, element := range rels {
-		element.Attachments = []*repo_model.Attachment{}
+		element.Attachments = []*Attachment{}
 		sortedRels.ID[index] = element.ID
 		sortedRels.Rel[index] = element
 	}
@@ -291,7 +321,7 @@ func GetReleaseAttachments(ctx context.Context, rels ...*Release) (err error) {
 	err = db.GetEngine(ctx).
 		Asc("release_id", "name").
 		In("release_id", sortedRels.ID).
-		Find(&attachments, repo_model.Attachment{})
+		Find(&attachments, Attachment{})
 	if err != nil {
 		return err
 	}
@@ -354,7 +384,7 @@ func UpdateReleasesMigrationsByType(gitServiceType structs.GitServiceType, origi
 }
 
 // PushUpdateDeleteTagsContext updates a number of delete tags with context
-func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repository, tags []string) error {
+func PushUpdateDeleteTagsContext(ctx context.Context, repo *Repository, tags []string) error {
 	if len(tags) == 0 {
 		return nil
 	}
@@ -384,7 +414,7 @@ func PushUpdateDeleteTagsContext(ctx context.Context, repo *repo_model.Repositor
 }
 
 // PushUpdateDeleteTag must be called for any push actions to delete tag
-func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
+func PushUpdateDeleteTag(repo *Repository, tagName string) error {
 	rel, err := GetRelease(repo.ID, tagName)
 	if err != nil {
 		if IsErrReleaseNotExist(err) {
@@ -409,7 +439,7 @@ func PushUpdateDeleteTag(repo *repo_model.Repository, tagName string) error {
 }
 
 // SaveOrUpdateTag must be called for any push actions to add tag
-func SaveOrUpdateTag(repo *repo_model.Repository, newRel *Release) error {
+func SaveOrUpdateTag(repo *Repository, newRel *Release) error {
 	rel, err := GetRelease(repo.ID, newRel.TagName)
 	if err != nil && !IsErrReleaseNotExist(err) {
 		return fmt.Errorf("GetRelease: %v", err)
