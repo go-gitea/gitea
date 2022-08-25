@@ -117,7 +117,8 @@ type Issue struct {
 	MilestoneID      int64                  `xorm:"INDEX"`
 	Milestone        *Milestone             `xorm:"-"`
 	Project          *project_model.Project `xorm:"-"`
-	Priority         int
+	PriorityID       int64
+	Priority         *Priority        `xorm:"-"`
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
 	IsClosed         bool             `xorm:"INDEX"`
@@ -231,6 +232,17 @@ func (issue *Issue) LoadLabels(ctx context.Context) (err error) {
 		issue.Labels, err = GetLabelsByIssueID(ctx, issue.ID)
 		if err != nil {
 			return fmt.Errorf("getLabelsByIssueID [%d]: %v", issue.ID, err)
+		}
+	}
+	return nil
+}
+
+// LoadPriorities loads labels
+func (issue *Issue) LoadPriorities(ctx context.Context) (err error) {
+	if issue.Priority == nil {
+		issue.Priority, err = GetPriorityByIssueID(ctx, issue.ID)
+		if err != nil {
+			return fmt.Errorf("getPriorityByIssueID [%d]: %v", issue.ID, err)
 		}
 	}
 	return nil
@@ -1192,6 +1204,7 @@ type IssuesOptions struct { //nolint
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
+	PriorityIDs        []int64
 	IncludedLabelNames []string
 	ExcludedLabelNames []string
 	IncludeMilestones  []string

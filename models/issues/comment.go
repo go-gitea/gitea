@@ -130,6 +130,8 @@ const (
 	CommentTypePRScheduledToAutoMerge
 	// 35 pr was un scheduled to auto merge when checks succeed
 	CommentTypePRUnScheduledToAutoMerge
+	// 35 Priority changed
+	CommentTypePriority
 )
 
 var commentStrings = []string{
@@ -225,6 +227,8 @@ type Comment struct {
 	Label            *Label   `xorm:"-"`
 	AddedLabels      []*Label `xorm:"-"`
 	RemovedLabels    []*Label `xorm:"-"`
+	PriorityID       int64
+	Priority         *Priority `xorm:"-"`
 	OldProjectID     int64
 	ProjectID        int64
 	OldProject       *project_model.Project `xorm:"-"`
@@ -960,11 +964,12 @@ func createIssueDependencyComment(ctx context.Context, doer *user_model.User, is
 
 // CreateCommentOptions defines options for creating comment
 type CreateCommentOptions struct {
-	Type  CommentType
-	Doer  *user_model.User
-	Repo  *repo_model.Repository
-	Issue *Issue
-	Label *Label
+	Type     CommentType
+	Doer     *user_model.User
+	Repo     *repo_model.Repository
+	Issue    *Issue
+	Label    *Label
+	Priority *Priority
 
 	DependentIssueID int64
 	OldMilestoneID   int64
