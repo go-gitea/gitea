@@ -97,3 +97,8 @@ export function prettyNumber(num, locale = 'en-US') {
   const {format} = new Intl.NumberFormat(locale);
   return format(num);
 }
+
+// parse a URL, either relative '/path' or absolute 'https://localhost/path'
+export function parseUrl(str) {
+  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
+}

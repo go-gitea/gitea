@@ -5,13 +5,12 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToRelease convert a models.Release to api.Release
-func ToRelease(r *models.Release) *api.Release {
+// ToRelease convert a repo_model.Release to api.Release
+func ToRelease(r *repo_model.Release) *api.Release {
 	assets := make([]*api.Attachment, 0)
 	for _, att := range r.Attachments {
 		assets = append(assets, ToReleaseAttachment(att))

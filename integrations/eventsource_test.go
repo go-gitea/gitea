@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -42,7 +42,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 				if !ok {
 					return false
 				}
-				data, ok := event.Data.(models.UserIDCount)
+				data, ok := event.Data.(activities_model.UserIDCount)
 				if !ok {
 					return false
 				}
@@ -55,7 +55,7 @@ func TestEventSourceManagerRun(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
+	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)

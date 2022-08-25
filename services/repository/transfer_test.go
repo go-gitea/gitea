@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -49,8 +49,8 @@ func TestTransferOwnership(t *testing.T) {
 	exist, err = util.IsExist(repo_model.RepoPath("user2", "repo3"))
 	assert.NoError(t, err)
 	assert.True(t, exist)
-	unittest.AssertExistsAndLoadBean(t, &models.Action{
-		OpType:    models.ActionTransferRepo,
+	unittest.AssertExistsAndLoadBean(t, &activities_model.Action{
+		OpType:    activities_model.ActionTransferRepo,
 		ActUserID: 2,
 		RepoID:    3,
 		Content:   "user3/repo3",
