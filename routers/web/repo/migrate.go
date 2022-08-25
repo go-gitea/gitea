@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/repo/common"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/migrations"
 	"code.gitea.io/gitea/services/task"
@@ -60,7 +61,7 @@ func Migrate(ctx *context.Context) {
 	ctx.Data["pull_requests"] = ctx.FormString("pull_requests") == "1"
 	ctx.Data["releases"] = ctx.FormString("releases") == "1"
 
-	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
+	ctxUser := common.CheckContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
@@ -162,7 +163,7 @@ func MigratePost(ctx *context.Context) {
 
 	setMigrationContextData(ctx, form.Service)
 
-	ctxUser := checkContextUser(ctx, form.UID)
+	ctxUser := common.CheckContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}

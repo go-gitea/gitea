@@ -35,6 +35,10 @@ import (
 	"code.gitea.io/gitea/routers/web/misc"
 	"code.gitea.io/gitea/routers/web/org"
 	"code.gitea.io/gitea/routers/web/repo"
+	code "code.gitea.io/gitea/routers/web/repo/code"
+	"code.gitea.io/gitea/routers/web/repo/issue"
+	"code.gitea.io/gitea/routers/web/repo/pull"
+	repo_setting "code.gitea.io/gitea/routers/web/repo/setting"
 	"code.gitea.io/gitea/routers/web/user"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"
 	"code.gitea.io/gitea/routers/web/user/setting/security"
@@ -212,7 +216,7 @@ func Routes() *web.Route {
 
 	// TODO: These really seem like things that could be folded into Contexter or as helper functions
 	common = append(common, user.GetNotificationCount)
-	common = append(common, repo.GetActiveStopwatch)
+	common = append(common, issue.GetActiveStopwatch)
 	common = append(common, goGet)
 
 	others := web.NewRoute()
@@ -324,7 +328,7 @@ func RegisterRoutes(m *web.Route) {
 	}, ignExploreSignIn)
 	m.Group("/issues", func() {
 		m.Get("", user.Issues)
-		m.Get("/search", repo.SearchIssues)
+		m.Get("/search", issue.SearchIssues)
 	}, reqSignIn)
 
 	m.Get("/pulls", reqSignIn, user.Pulls)
@@ -522,35 +526,35 @@ func RegisterRoutes(m *web.Route) {
 			m.Get("", admin.DefaultOrSystemWebhooks)
 			m.Post("/delete", admin.DeleteDefaultOrSystemWebhook)
 			m.Group("/{id}", func() {
-				m.Get("", repo.WebHooksEdit)
-				m.Post("/replay/{uuid}", repo.ReplayWebhook)
+				m.Get("", repo_setting.WebHooksEdit)
+				m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 			})
-			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-			m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-			m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-			m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-			m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-			m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-			m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-			m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-			m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksEditPost)
+			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksEditPost)
+			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksEditPost)
+			m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksEditPost)
+			m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksEditPost)
+			m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksEditPost)
+			m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksEditPost)
+			m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksEditPost)
+			m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksEditPost)
+			m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksEditPost)
+			m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
 		}, webhooksEnabled)
 
 		m.Group("/{configType:default-hooks|system-hooks}", func() {
-			m.Get("/{type}/new", repo.WebhooksNew)
-			m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-			m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-			m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-			m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-			m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-			m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-			m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-			m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+			m.Get("/{type}/new", repo_setting.WebhooksNew)
+			m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksNewPost)
+			m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksNewPost)
+			m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksNewPost)
+			m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksNewPost)
+			m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksNewPost)
+			m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksNewPost)
+			m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksNewPost)
+			m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksNewPost)
+			m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksNewPost)
+			m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksNewPost)
+			m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksNewPost)
 		})
 
 		m.Group("/auths", func() {
@@ -663,31 +667,31 @@ func RegisterRoutes(m *web.Route) {
 				m.Group("/hooks", func() {
 					m.Get("", org.Webhooks)
 					m.Post("/delete", org.DeleteWebhook)
-					m.Get("/{type}/new", repo.WebhooksNew)
-					m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-					m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-					m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-					m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-					m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-					m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-					m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
+					m.Get("/{type}/new", repo_setting.WebhooksNew)
+					m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksNewPost)
+					m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksNewPost)
+					m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksNewPost)
+					m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksNewPost)
+					m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksNewPost)
+					m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksNewPost)
+					m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksNewPost)
+					m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksNewPost)
+					m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksNewPost)
+					m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksNewPost)
 					m.Group("/{id}", func() {
-						m.Get("", repo.WebHooksEdit)
-						m.Post("/replay/{uuid}", repo.ReplayWebhook)
+						m.Get("", repo_setting.WebHooksEdit)
+						m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 					})
-					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-					m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-					m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-					m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-					m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-					m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-					m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-					m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-					m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
+					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksEditPost)
+					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksEditPost)
+					m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksEditPost)
+					m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksEditPost)
+					m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksEditPost)
+					m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksEditPost)
+					m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksEditPost)
+					m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksEditPost)
+					m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksEditPost)
+					m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksEditPost)
 				}, webhooksEnabled)
 
 				m.Group("/labels", func() {
@@ -743,93 +747,93 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/settings", func() {
 			m.Group("", func() {
-				m.Combo("").Get(repo.Settings).
-					Post(bindIgnErr(forms.RepoSettingForm{}), repo.SettingsPost)
-			}, repo.SettingsCtxData)
-			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo.SettingsAvatar)
-			m.Post("/avatar/delete", repo.SettingsDeleteAvatar)
+				m.Combo("").Get(repo_setting.Settings).
+					Post(bindIgnErr(forms.RepoSettingForm{}), repo_setting.SettingsPost)
+			}, repo_setting.SettingsCtxData)
+			m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), repo_setting.SettingsAvatar)
+			m.Post("/avatar/delete", repo_setting.SettingsDeleteAvatar)
 
 			m.Group("/collaboration", func() {
-				m.Combo("").Get(repo.Collaboration).Post(repo.CollaborationPost)
-				m.Post("/access_mode", repo.ChangeCollaborationAccessMode)
-				m.Post("/delete", repo.DeleteCollaboration)
+				m.Combo("").Get(repo_setting.Collaboration).Post(repo_setting.CollaborationPost)
+				m.Post("/access_mode", repo_setting.ChangeCollaborationAccessMode)
+				m.Post("/delete", repo_setting.DeleteCollaboration)
 				m.Group("/team", func() {
-					m.Post("", repo.AddTeamPost)
-					m.Post("/delete", repo.DeleteTeam)
+					m.Post("", repo_setting.AddTeamPost)
+					m.Post("/delete", repo_setting.DeleteTeam)
 				})
 			})
 
 			m.Group("/branches", func() {
-				m.Combo("").Get(repo.ProtectedBranch).Post(repo.ProtectedBranchPost)
-				m.Combo("/*").Get(repo.SettingsProtectedBranch).
-					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo.SettingsProtectedBranchPost)
+				m.Combo("").Get(repo_setting.ProtectedBranch).Post(repo_setting.ProtectedBranchPost)
+				m.Combo("/*").Get(repo_setting.SettingsProtectedBranch).
+					Post(bindIgnErr(forms.ProtectBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.SettingsProtectedBranchPost)
 			}, repo.MustBeNotEmpty)
-			m.Post("/rename_branch", bindIgnErr(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo.RenameBranchPost)
+			m.Post("/rename_branch", bindIgnErr(forms.RenameBranchForm{}), context.RepoMustNotBeArchived(), repo_setting.RenameBranchPost)
 
 			m.Group("/tags", func() {
-				m.Get("", repo.Tags)
-				m.Post("", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.NewProtectedTagPost)
-				m.Post("/delete", context.RepoMustNotBeArchived(), repo.DeleteProtectedTagPost)
-				m.Get("/{id}", repo.EditProtectedTag)
-				m.Post("/{id}", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo.EditProtectedTagPost)
+				m.Get("", repo_setting.Tags)
+				m.Post("", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.NewProtectedTagPost)
+				m.Post("/delete", context.RepoMustNotBeArchived(), repo_setting.DeleteProtectedTagPost)
+				m.Get("/{id}", repo_setting.EditProtectedTag)
+				m.Post("/{id}", bindIgnErr(forms.ProtectTagForm{}), context.RepoMustNotBeArchived(), repo_setting.EditProtectedTagPost)
 			})
 
 			m.Group("/hooks/git", func() {
-				m.Get("", repo.GitHooks)
-				m.Combo("/{name}").Get(repo.GitHooksEdit).
-					Post(repo.GitHooksEditPost)
+				m.Get("", repo_setting.GitHooks)
+				m.Combo("/{name}").Get(repo_setting.GitHooksEdit).
+					Post(repo_setting.GitHooksEditPost)
 			}, context.GitHookService())
 
 			m.Group("/hooks", func() {
-				m.Get("", repo.Webhooks)
-				m.Post("/delete", repo.DeleteWebhook)
-				m.Get("/{type}/new", repo.WebhooksNew)
-				m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksNewPost)
-				m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksNewPost)
-				m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksNewPost)
-				m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksNewPost)
-				m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksNewPost)
-				m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksNewPost)
-				m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksNewPost)
-				m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksNewPost)
-				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksNewPost)
-				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksNewPost)
-				m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksNewPost)
+				m.Get("", repo_setting.Webhooks)
+				m.Post("/delete", repo_setting.DeleteWebhook)
+				m.Get("/{type}/new", repo_setting.WebhooksNew)
+				m.Post("/gitea/new", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksNewPost)
+				m.Post("/gogs/new", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksNewPost)
+				m.Post("/slack/new", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksNewPost)
+				m.Post("/discord/new", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksNewPost)
+				m.Post("/dingtalk/new", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksNewPost)
+				m.Post("/telegram/new", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksNewPost)
+				m.Post("/matrix/new", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksNewPost)
+				m.Post("/msteams/new", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksNewPost)
+				m.Post("/feishu/new", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksNewPost)
+				m.Post("/wechatwork/new", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksNewPost)
+				m.Post("/packagist/new", bindIgnErr(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksNewPost)
 				m.Group("/{id}", func() {
-					m.Get("", repo.WebHooksEdit)
-					m.Post("/test", repo.TestWebhook)
-					m.Post("/replay/{uuid}", repo.ReplayWebhook)
+					m.Get("", repo_setting.WebHooksEdit)
+					m.Post("/test", repo_setting.TestWebhook)
+					m.Post("/replay/{uuid}", repo_setting.ReplayWebhook)
 				})
-				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
-				m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
-				m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
-				m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
-				m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo.DingtalkHooksEditPost)
-				m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo.TelegramHooksEditPost)
-				m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo.MatrixHooksEditPost)
-				m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo.MSTeamsHooksEditPost)
-				m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo.FeishuHooksEditPost)
-				m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo.WechatworkHooksEditPost)
-				m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo.PackagistHooksEditPost)
+				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo_setting.GiteaHooksEditPost)
+				m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo_setting.GogsHooksEditPost)
+				m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo_setting.SlackHooksEditPost)
+				m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo_setting.DiscordHooksEditPost)
+				m.Post("/dingtalk/{id}", bindIgnErr(forms.NewDingtalkHookForm{}), repo_setting.DingtalkHooksEditPost)
+				m.Post("/telegram/{id}", bindIgnErr(forms.NewTelegramHookForm{}), repo_setting.TelegramHooksEditPost)
+				m.Post("/matrix/{id}", bindIgnErr(forms.NewMatrixHookForm{}), repo_setting.MatrixHooksEditPost)
+				m.Post("/msteams/{id}", bindIgnErr(forms.NewMSTeamsHookForm{}), repo_setting.MSTeamsHooksEditPost)
+				m.Post("/feishu/{id}", bindIgnErr(forms.NewFeishuHookForm{}), repo_setting.FeishuHooksEditPost)
+				m.Post("/wechatwork/{id}", bindIgnErr(forms.NewWechatWorkHookForm{}), repo_setting.WechatworkHooksEditPost)
+				m.Post("/packagist/{id}", bindIgnErr(forms.NewPackagistHookForm{}), repo_setting.PackagistHooksEditPost)
 			}, webhooksEnabled)
 
 			m.Group("/keys", func() {
-				m.Combo("").Get(repo.DeployKeys).
-					Post(bindIgnErr(forms.AddKeyForm{}), repo.DeployKeysPost)
-				m.Post("/delete", repo.DeleteDeployKey)
+				m.Combo("").Get(repo_setting.DeployKeys).
+					Post(bindIgnErr(forms.AddKeyForm{}), repo_setting.DeployKeysPost)
+				m.Post("/delete", repo_setting.DeleteDeployKey)
 			})
 
 			m.Group("/lfs", func() {
-				m.Get("/", repo.LFSFiles)
-				m.Get("/show/{oid}", repo.LFSFileGet)
-				m.Post("/delete/{oid}", repo.LFSDelete)
-				m.Get("/pointers", repo.LFSPointerFiles)
-				m.Post("/pointers/associate", repo.LFSAutoAssociate)
-				m.Get("/find", repo.LFSFileFind)
+				m.Get("/", repo_setting.LFSFiles)
+				m.Get("/show/{oid}", repo_setting.LFSFileGet)
+				m.Post("/delete/{oid}", repo_setting.LFSDelete)
+				m.Get("/pointers", repo_setting.LFSPointerFiles)
+				m.Post("/pointers/associate", repo_setting.LFSAutoAssociate)
+				m.Get("/find", repo_setting.LFSFileFind)
 				m.Group("/locks", func() {
-					m.Get("/", repo.LFSLocks)
-					m.Post("/", repo.LFSLockFile)
-					m.Post("/{lid}/unlock", repo.LFSUnlock)
+					m.Get("/", repo_setting.LFSLocks)
+					m.Post("/", repo_setting.LFSLockFile)
+					m.Post("/{lid}/unlock", repo_setting.LFSUnlock)
 				})
 			})
 		}, func(ctx *context.Context) {
@@ -845,19 +849,19 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/milestone", func() {
 			m.Get("/{id}", repo.MilestoneIssuesAndPulls)
 		}, reqRepoIssuesOrPullsReader, context.RepoRef())
-		m.Get("/find/*", repo.FindFiles)
+		m.Get("/find/*", code.FindFiles)
 		m.Group("/tree-list", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.TreeList)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.TreeList)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.TreeList)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.TreeList)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.TreeList)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.TreeList)
 		})
-		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff)
+		m.Get("/compare", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists, ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, code.CompareDiff)
 		m.Combo("/compare/*", repo.MustBeNotEmpty, reqRepoCodeReader, repo.SetEditorconfigIfExists).
-			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.CompareDiff).
-			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, repo.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, repo.CompareAndPullRequestPost)
+			Get(ignSignIn, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, code.CompareDiff).
+			Post(reqSignIn, context.RepoMustNotBeArchived(), reqRepoPullsReader, issue.MustAllowPulls, bindIgnErr(forms.CreateIssueForm{}), repo.SetWhitespaceBehavior, pull.CompareAndPullRequestPost)
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Get("/info", repo.GetIssueInfo)
+				m.Get("/info", issue.GetIssueInfo)
 			})
 		})
 	}, context.RepoAssignment, context.UnitTypes())
@@ -866,73 +870,73 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("/issues", func() {
 			m.Group("/new", func() {
-				m.Combo("").Get(context.RepoRef(), repo.NewIssue).
-					Post(bindIgnErr(forms.CreateIssueForm{}), repo.NewIssuePost)
-				m.Get("/choose", context.RepoRef(), repo.NewIssueChooseTemplate)
+				m.Combo("").Get(context.RepoRef(), issue.NewIssue).
+					Post(bindIgnErr(forms.CreateIssueForm{}), issue.NewIssuePost)
+				m.Get("/choose", context.RepoRef(), issue.NewIssueChooseTemplate)
 			})
-			m.Get("/search", repo.ListIssues)
+			m.Get("/search", issue.ListIssues)
 		}, context.RepoMustNotBeArchived(), reqRepoIssueReader)
 		// FIXME: should use different URLs but mostly same logic for comments of issue and pull request.
 		// So they can apply their own enable/disable logic on routers.
 		m.Group("/{type:issues|pulls}", func() {
 			m.Group("/{index}", func() {
-				m.Post("/title", repo.UpdateIssueTitle)
-				m.Post("/content", repo.UpdateIssueContent)
-				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), repo.UpdateIssueDeadline)
-				m.Post("/watch", repo.IssueWatch)
-				m.Post("/ref", repo.UpdateIssueRef)
-				m.Post("/viewed-files", repo.UpdateViewedFiles)
+				m.Post("/title", issue.UpdateIssueTitle)
+				m.Post("/content", issue.UpdateIssueContent)
+				m.Post("/deadline", bindIgnErr(structs.EditDeadlineOption{}), issue.UpdateIssueDeadline)
+				m.Post("/watch", issue.Watch)
+				m.Post("/ref", issue.UpdateIssueRef)
+				m.Post("/viewed-files", pull.UpdateViewedFiles)
 				m.Group("/dependency", func() {
-					m.Post("/add", repo.AddDependency)
-					m.Post("/delete", repo.RemoveDependency)
+					m.Post("/add", issue.AddDependency)
+					m.Post("/delete", issue.RemoveDependency)
 				})
-				m.Combo("/comments").Post(repo.MustAllowUserComment, bindIgnErr(forms.CreateCommentForm{}), repo.NewComment)
+				m.Combo("/comments").Post(issue.MustAllowUserComment, bindIgnErr(forms.CreateCommentForm{}), issue.NewComment)
 				m.Group("/times", func() {
-					m.Post("/add", bindIgnErr(forms.AddTimeManuallyForm{}), repo.AddTimeManually)
-					m.Post("/{timeid}/delete", repo.DeleteTime)
+					m.Post("/add", bindIgnErr(forms.AddTimeManuallyForm{}), issue.AddTimeManually)
+					m.Post("/{timeid}/delete", issue.DeleteTime)
 					m.Group("/stopwatch", func() {
-						m.Post("/toggle", repo.IssueStopwatch)
-						m.Post("/cancel", repo.CancelStopwatch)
+						m.Post("/toggle", issue.Stopwatch)
+						m.Post("/cancel", issue.CancelStopwatch)
 					})
 				})
-				m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), repo.ChangeIssueReaction)
-				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(forms.IssueLockForm{}), repo.LockIssue)
-				m.Post("/unlock", reqRepoIssueWriter, repo.UnlockIssue)
-				m.Post("/delete", reqRepoAdmin, repo.DeleteIssue)
+				m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), issue.ChangeIssueReaction)
+				m.Post("/lock", reqRepoIssueWriter, bindIgnErr(forms.IssueLockForm{}), issue.LockIssue)
+				m.Post("/unlock", reqRepoIssueWriter, issue.UnlockIssue)
+				m.Post("/delete", reqRepoAdmin, issue.DeleteIssue)
 			}, context.RepoMustNotBeArchived())
 			m.Group("/{index}", func() {
-				m.Get("/attachments", repo.GetIssueAttachments)
+				m.Get("/attachments", issue.GetIssueAttachments)
 				m.Get("/attachments/{uuid}", repo.GetAttachment)
 			})
 			m.Group("/{index}", func() {
-				m.Post("/content-history/soft-delete", repo.SoftDeleteContentHistory)
+				m.Post("/content-history/soft-delete", issue.SoftDeleteContentHistory)
 			})
 
-			m.Post("/labels", reqRepoIssuesOrPullsWriter, repo.UpdateIssueLabel)
-			m.Post("/milestone", reqRepoIssuesOrPullsWriter, repo.UpdateIssueMilestone)
-			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, repo.UpdateIssueProject)
-			m.Post("/assignee", reqRepoIssuesOrPullsWriter, repo.UpdateIssueAssignee)
-			m.Post("/request_review", reqRepoIssuesOrPullsReader, repo.UpdatePullReviewRequest)
-			m.Post("/dismiss_review", reqRepoAdmin, bindIgnErr(forms.DismissReviewForm{}), repo.DismissReview)
-			m.Post("/status", reqRepoIssuesOrPullsWriter, repo.UpdateIssueStatus)
-			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, repo.UpdateResolveConversation)
+			m.Post("/labels", reqRepoIssuesOrPullsWriter, issue.UpdateIssueLabel)
+			m.Post("/milestone", reqRepoIssuesOrPullsWriter, issue.UpdateIssueMilestone)
+			m.Post("/projects", reqRepoIssuesOrPullsWriter, reqRepoProjectsReader, issue.UpdateIssueProject)
+			m.Post("/assignee", reqRepoIssuesOrPullsWriter, issue.UpdateIssueAssignee)
+			m.Post("/request_review", reqRepoIssuesOrPullsReader, issue.UpdatePullReviewRequest)
+			m.Post("/dismiss_review", reqRepoAdmin, bindIgnErr(forms.DismissReviewForm{}), pull.DismissReview)
+			m.Post("/status", reqRepoIssuesOrPullsWriter, issue.UpdateIssueStatus)
+			m.Post("/resolve_conversation", reqRepoIssuesOrPullsReader, pull.UpdateResolveConversation)
 			m.Post("/attachments", repo.UploadIssueAttachment)
 			m.Post("/attachments/remove", repo.DeleteAttachment)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
-			m.Post("", repo.UpdateCommentContent)
-			m.Post("/delete", repo.DeleteComment)
-			m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), repo.ChangeCommentReaction)
+			m.Post("", issue.UpdateCommentContent)
+			m.Post("/delete", issue.DeleteComment)
+			m.Post("/reactions/{action}", bindIgnErr(forms.ReactionForm{}), issue.ChangeCommentReaction)
 		}, context.RepoMustNotBeArchived())
 		m.Group("/comments/{id}", func() {
-			m.Get("/attachments", repo.GetCommentAttachments)
+			m.Get("/attachments", issue.GetCommentAttachments)
 		})
 		m.Post("/markdown", bindIgnErr(structs.MarkdownOption{}), misc.Markdown)
 		m.Group("/labels", func() {
-			m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), repo.NewLabel)
-			m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), repo.UpdateLabel)
-			m.Post("/delete", repo.DeleteLabel)
-			m.Post("/initialize", bindIgnErr(forms.InitializeLabelsForm{}), repo.InitializeLabels)
+			m.Post("/new", bindIgnErr(forms.CreateLabelForm{}), issue.NewLabel)
+			m.Post("/edit", bindIgnErr(forms.CreateLabelForm{}), issue.UpdateLabel)
+			m.Post("/delete", issue.DeleteLabel)
+			m.Post("/initialize", bindIgnErr(forms.InitializeLabelsForm{}), issue.InitializeLabels)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/milestones", func() {
 			m.Combo("/new").Get(repo.NewMilestone).
@@ -943,40 +947,40 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", repo.DeleteMilestone)
 		}, context.RepoMustNotBeArchived(), reqRepoIssuesOrPullsWriter, context.RepoRef())
 		m.Group("/pull", func() {
-			m.Post("/{index}/target_branch", repo.UpdatePullRequestTarget)
+			m.Post("/{index}/target_branch", pull.UpdatePullRequestTarget)
 		}, context.RepoMustNotBeArchived())
 
 		m.Group("", func() {
 			m.Group("", func() {
-				m.Combo("/_edit/*").Get(repo.EditFile).
-					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.EditFilePost)
-				m.Combo("/_new/*").Get(repo.NewFile).
-					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewFilePost)
-				m.Post("/_preview/*", bindIgnErr(forms.EditPreviewDiffForm{}), repo.DiffPreviewPost)
-				m.Combo("/_delete/*").Get(repo.DeleteFile).
-					Post(bindIgnErr(forms.DeleteRepoFileForm{}), repo.DeleteFilePost)
+				m.Combo("/_edit/*").Get(code.EditFile).
+					Post(bindIgnErr(forms.EditRepoFileForm{}), code.EditFilePost)
+				m.Combo("/_new/*").Get(code.NewFile).
+					Post(bindIgnErr(forms.EditRepoFileForm{}), code.NewFilePost)
+				m.Post("/_preview/*", bindIgnErr(forms.EditPreviewDiffForm{}), code.DiffPreviewPost)
+				m.Combo("/_delete/*").Get(code.DeleteFile).
+					Post(bindIgnErr(forms.DeleteRepoFileForm{}), code.DeleteFilePost)
 				m.Combo("/_upload/*", repo.MustBeAbleToUpload).
-					Get(repo.UploadFile).
-					Post(bindIgnErr(forms.UploadRepoFileForm{}), repo.UploadFilePost)
-				m.Combo("/_diffpatch/*").Get(repo.NewDiffPatch).
-					Post(bindIgnErr(forms.EditRepoFileForm{}), repo.NewDiffPatchPost)
-				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(repo.CherryPick).
-					Post(bindIgnErr(forms.CherryPickForm{}), repo.CherryPickPost)
+					Get(code.UploadFile).
+					Post(bindIgnErr(forms.UploadRepoFileForm{}), code.UploadFilePost)
+				m.Combo("/_diffpatch/*").Get(code.NewDiffPatch).
+					Post(bindIgnErr(forms.EditRepoFileForm{}), code.NewDiffPatchPost)
+				m.Combo("/_cherrypick/{sha:([a-f0-9]{7,40})}/*").Get(code.CherryPick).
+					Post(bindIgnErr(forms.CherryPickForm{}), code.CherryPickPost)
 			}, repo.MustBeEditable)
 			m.Group("", func() {
-				m.Post("/upload-file", repo.UploadFileToServer)
-				m.Post("/upload-remove", bindIgnErr(forms.RemoveUploadFileForm{}), repo.RemoveUploadFileFromServer)
+				m.Post("/upload-file", code.UploadFileToServer)
+				m.Post("/upload-remove", bindIgnErr(forms.RemoveUploadFileForm{}), code.RemoveUploadFileFromServer)
 			}, repo.MustBeEditable, repo.MustBeAbleToUpload)
 		}, context.RepoRef(), canEnableEditor, context.RepoMustNotBeArchived(), repo.MustBeNotEmpty)
 
 		m.Group("/branches", func() {
 			m.Group("/_new", func() {
-				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.CreateBranch)
-				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.CreateBranch)
-				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.CreateBranch)
+				m.Post("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.CreateBranch)
+				m.Post("/tag/*", context.RepoRefByType(context.RepoRefTag), code.CreateBranch)
+				m.Post("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.CreateBranch)
 			}, bindIgnErr(forms.NewBranchForm{}))
-			m.Post("/delete", repo.DeleteBranchPost)
-			m.Post("/restore", repo.RestoreBranchPost)
+			m.Post("/delete", code.DeleteBranchPost)
+			m.Post("/restore", code.RestoreBranchPost)
 		}, context.RepoMustNotBeArchived(), reqRepoCodeWriter, repo.MustBeNotEmpty)
 	}, reqSignIn, context.RepoAssignment, context.UnitTypes())
 
@@ -1030,14 +1034,14 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Group("", func() {
-			m.Get("/{type:issues|pulls}", repo.Issues)
-			m.Get("/{type:issues|pulls}/{index}", repo.ViewIssue)
+			m.Get("/{type:issues|pulls}", issue.Issues)
+			m.Get("/{type:issues|pulls}/{index}", issue.ViewIssue)
 			m.Group("/{type:issues|pulls}/{index}/content-history", func() {
-				m.Get("/overview", repo.GetContentHistoryOverview)
-				m.Get("/list", repo.GetContentHistoryList)
-				m.Get("/detail", repo.GetContentHistoryDetail)
+				m.Get("/overview", issue.GetContentHistoryOverview)
+				m.Get("/list", issue.GetContentHistoryList)
+				m.Get("/detail", issue.GetContentHistoryDetail)
 			})
-			m.Get("/labels", reqRepoIssuesOrPullsReader, repo.RetrieveLabels, repo.Labels)
+			m.Get("/labels", reqRepoIssuesOrPullsReader, issue.RetrieveLabels, issue.Labels)
 			m.Get("/milestones", reqRepoIssuesOrPullsReader, repo.Milestones)
 		}, context.RepoRef())
 
@@ -1085,8 +1089,8 @@ func RegisterRoutes(m *web.Route) {
 					reqRepoWikiWriter,
 					bindIgnErr(forms.NewWikiForm{}),
 					repo.WikiPost)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", repo.RawDiff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, code.Diff)
+			m.Get("/commit/{sha:[a-f0-9]{7,40}}.{ext:patch|diff}", code.RawDiff)
 		}, repo.MustEnableWiki, func(ctx *context.Context) {
 			ctx.Data["PageIsWiki"] = true
 			ctx.Data["CloneButtonOriginLink"] = ctx.Repo.Repository.WikiCloneLink()
@@ -1107,16 +1111,16 @@ func RegisterRoutes(m *web.Route) {
 		}, context.RepoRef(), repo.MustBeNotEmpty, context.RequireRepoReaderOr(unit.TypeCode))
 
 		m.Group("/archive", func() {
-			m.Get("/*", repo.Download)
-			m.Post("/*", repo.InitiateDownload)
+			m.Get("/*", code.Download)
+			m.Post("/*", code.InitiateDownload)
 		}, repo.MustBeNotEmpty, dlSourceEnabled, reqRepoCodeReader)
 
 		m.Group("/branches", func() {
-			m.Get("", repo.Branches)
+			m.Get("", code.Branches)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/blob_excerpt", func() {
-			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.ExcerptBlob)
+			m.Get("/{sha}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, code.ExcerptBlob)
 		}, func(ctx *context.Context) (cancel gocontext.CancelFunc) {
 			if ctx.FormBool("wiki") {
 				ctx.Data["PageIsWiki"] = true
@@ -1138,85 +1142,85 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/pulls/{index}", func() {
-			m.Get(".diff", repo.DownloadPullDiff)
-			m.Get(".patch", repo.DownloadPullPatch)
-			m.Get("/commits", context.RepoRef(), repo.ViewPullCommits)
-			m.Post("/merge", context.RepoMustNotBeArchived(), bindIgnErr(forms.MergePullRequestForm{}), repo.MergePullRequest)
-			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), repo.CancelAutoMergePullRequest)
-			m.Post("/update", repo.UpdatePullRequest)
-			m.Post("/set_allow_maintainer_edit", bindIgnErr(forms.UpdateAllowEditsForm{}), repo.SetAllowEdits)
-			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), repo.CleanUpPullRequest)
+			m.Get(".diff", pull.DownloadPullDiff)
+			m.Get(".patch", pull.DownloadPullPatch)
+			m.Get("/commits", context.RepoRef(), pull.ViewPullCommits)
+			m.Post("/merge", context.RepoMustNotBeArchived(), bindIgnErr(forms.MergePullRequestForm{}), pull.MergePullRequest)
+			m.Post("/cancel_auto_merge", context.RepoMustNotBeArchived(), pull.CancelAutoMergePullRequest)
+			m.Post("/update", pull.UpdatePullRequest)
+			m.Post("/set_allow_maintainer_edit", bindIgnErr(forms.UpdateAllowEditsForm{}), pull.SetAllowEdits)
+			m.Post("/cleanup", context.RepoMustNotBeArchived(), context.RepoRef(), pull.CleanUpPullRequest)
 			m.Group("/files", func() {
-				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.ViewPullFiles)
+				m.Get("", context.RepoRef(), repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, pull.ViewPullFiles)
 				m.Group("/reviews", func() {
-					m.Get("/new_comment", repo.RenderNewCodeCommentForm)
-					m.Post("/comments", bindIgnErr(forms.CodeCommentForm{}), repo.CreateCodeComment)
-					m.Post("/submit", bindIgnErr(forms.SubmitReviewForm{}), repo.SubmitReview)
+					m.Get("/new_comment", pull.RenderNewCodeCommentForm)
+					m.Post("/comments", bindIgnErr(forms.CodeCommentForm{}), pull.CreateCodeComment)
+					m.Post("/submit", bindIgnErr(forms.SubmitReviewForm{}), pull.SubmitReview)
 				}, context.RepoMustNotBeArchived())
 			})
-		}, repo.MustAllowPulls)
+		}, issue.MustAllowPulls)
 
 		m.Group("/media", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownloadOrLFS)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownloadOrLFS)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownloadOrLFS)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByIDOrLFS)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.SingleDownloadOrLFS)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.SingleDownloadOrLFS)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.SingleDownloadOrLFS)
+			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), code.DownloadByIDOrLFS)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownloadOrLFS)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), code.SingleDownloadOrLFS)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/raw", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.SingleDownload)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.SingleDownload)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.SingleDownload)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.DownloadByID)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.SingleDownload)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.SingleDownload)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.SingleDownload)
+			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), code.DownloadByID)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.SingleDownload)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), code.SingleDownload)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/render", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RenderFile)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RenderFile)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RenderFile)
-			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), repo.RenderFile)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.RenderFile)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.RenderFile)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.RenderFile)
+			m.Get("/blob/{sha}", context.RepoRefByType(context.RepoRefBlob), code.RenderFile)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/commits", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefCommits)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefCommits)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefCommits)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.RefCommits)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.RefCommits)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.RefCommits)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.RefCommits)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), code.RefCommits)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("/blame", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.RefBlame)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.RefBlame)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.RefBlame)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.RefBlame)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.RefBlame)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.RefBlame)
 		}, repo.MustBeNotEmpty, reqRepoCodeReader)
 
 		m.Group("", func() {
-			m.Get("/graph", repo.Graph)
-			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, repo.Diff)
-			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.CherryPick)
+			m.Get("/graph", code.Graph)
+			m.Get("/commit/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, repo.SetDiffViewStyle, repo.SetWhitespaceBehavior, code.Diff)
+			m.Get("/cherry-pick/{sha:([a-f0-9]{7,40})$}", repo.SetEditorconfigIfExists, code.CherryPick)
 		}, repo.MustBeNotEmpty, context.RepoRef(), reqRepoCodeReader)
 
 		m.Group("/src", func() {
-			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), repo.Home)
-			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), repo.Home)
-			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), repo.Home)
+			m.Get("/branch/*", context.RepoRefByType(context.RepoRefBranch), code.Home)
+			m.Get("/tag/*", context.RepoRefByType(context.RepoRefTag), code.Home)
+			m.Get("/commit/*", context.RepoRefByType(context.RepoRefCommit), code.Home)
 			// "/*" route is deprecated, and kept for backward compatibility
-			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), repo.Home)
+			m.Get("/*", context.RepoRefByType(context.RepoRefLegacy), code.Home)
 		}, repo.SetEditorconfigIfExists)
 
 		m.Group("", func() {
 			m.Get("/forks", repo.Forks)
 		}, context.RepoRef(), reqRepoCodeReader)
 		m.Get("/commit/{sha:([a-f0-9]{7,40})}.{ext:patch|diff}",
-			repo.MustBeNotEmpty, reqRepoCodeReader, repo.RawDiff)
+			repo.MustBeNotEmpty, reqRepoCodeReader, code.RawDiff)
 	}, ignSignIn, context.RepoAssignment, context.UnitTypes())
 
-	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, repo.LastCommit)
+	m.Post("/{username}/{reponame}/lastcommit/*", ignSignInAndCsrf, context.RepoAssignment, context.UnitTypes(), context.RepoRefByType(context.RepoRefCommit), reqRepoCodeReader, code.LastCommit)
 
 	m.Group("/{username}/{reponame}", func() {
 		m.Get("/stars", repo.Stars)
@@ -1226,7 +1230,7 @@ func RegisterRoutes(m *web.Route) {
 
 	m.Group("/{username}", func() {
 		m.Group("/{reponame}", func() {
-			m.Get("", repo.SetEditorconfigIfExists, repo.Home)
+			m.Get("", repo.SetEditorconfigIfExists, code.Home)
 		}, ignSignIn, context.RepoAssignment, context.RepoRef(), context.UnitTypes())
 
 		m.Group("/{reponame}", func() {
@@ -1248,17 +1252,17 @@ func RegisterRoutes(m *web.Route) {
 			}, ignSignInAndCsrf, lfsServerEnabled)
 
 			m.Group("", func() {
-				m.PostOptions("/git-upload-pack", repo.ServiceUploadPack)
-				m.PostOptions("/git-receive-pack", repo.ServiceReceivePack)
-				m.GetOptions("/info/refs", repo.GetInfoRefs)
-				m.GetOptions("/HEAD", repo.GetTextFile("HEAD"))
-				m.GetOptions("/objects/info/alternates", repo.GetTextFile("objects/info/alternates"))
-				m.GetOptions("/objects/info/http-alternates", repo.GetTextFile("objects/info/http-alternates"))
-				m.GetOptions("/objects/info/packs", repo.GetInfoPacks)
-				m.GetOptions("/objects/info/{file:[^/]*}", repo.GetTextFile(""))
-				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", repo.GetLooseObject)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", repo.GetPackFile)
-				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", repo.GetIdxFile)
+				m.PostOptions("/git-upload-pack", code.ServiceUploadPack)
+				m.PostOptions("/git-receive-pack", code.ServiceReceivePack)
+				m.GetOptions("/info/refs", code.GetInfoRefs)
+				m.GetOptions("/HEAD", code.GetTextFile("HEAD"))
+				m.GetOptions("/objects/info/alternates", code.GetTextFile("objects/info/alternates"))
+				m.GetOptions("/objects/info/http-alternates", code.GetTextFile("objects/info/http-alternates"))
+				m.GetOptions("/objects/info/packs", code.GetInfoPacks)
+				m.GetOptions("/objects/info/{file:[^/]*}", code.GetTextFile(""))
+				m.GetOptions("/objects/{head:[0-9a-f]{2}}/{hash:[0-9a-f]{38}}", code.GetLooseObject)
+				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.pack", code.GetPackFile)
+				m.GetOptions("/objects/pack/pack-{file:[0-9a-f]{40}}.idx", code.GetIdxFile)
 			}, ignSignInAndCsrf, context_service.UserAssignmentWeb())
 		})
 	})

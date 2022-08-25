@@ -10,34 +10,27 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
-	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/storage"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/repo/common"
 	"code.gitea.io/gitea/services/forms"
 	repo_service "code.gitea.io/gitea/services/repository"
-	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
 
 const (
-	tplCreate       base.TplName = "repo/create"
-	tplAlertDetails base.TplName = "base/alert_details"
+	tplCreate   base.TplName = "repo/create"
+	tplWatchers base.TplName = "repo/watchers"
 )
 
 // MustBeNotEmpty render when a repo is a empty git dir
@@ -60,60 +53,6 @@ func MustBeAbleToUpload(ctx *context.Context) {
 	if !setting.Repository.Upload.Enabled {
 		ctx.NotFound("", nil)
 	}
-}
-
-func checkContextUser(ctx *context.Context, uid int64) *user_model.User {
-	orgs, err := organization.GetOrgsCanCreateRepoByUserID(ctx.Doer.ID)
-	if err != nil {
-		ctx.ServerError("GetOrgsCanCreateRepoByUserID", err)
-		return nil
-	}
-
-	if !ctx.Doer.IsAdmin {
-		orgsAvailable := []*organization.Organization{}
-		for i := 0; i < len(orgs); i++ {
-			if orgs[i].CanCreateRepo() {
-				orgsAvailable = append(orgsAvailable, orgs[i])
-			}
-		}
-		ctx.Data["Orgs"] = orgsAvailable
-	} else {
-		ctx.Data["Orgs"] = orgs
-	}
-
-	// Not equal means current user is an organization.
-	if uid == ctx.Doer.ID || uid == 0 {
-		return ctx.Doer
-	}
-
-	org, err := user_model.GetUserByID(uid)
-	if user_model.IsErrUserNotExist(err) {
-		return ctx.Doer
-	}
-
-	if err != nil {
-		ctx.ServerError("GetUserByID", fmt.Errorf("[%d]: %v", uid, err))
-		return nil
-	}
-
-	// Check ownership of organization.
-	if !org.IsOrganization() {
-		ctx.Error(http.StatusForbidden)
-		return nil
-	}
-	if !ctx.Doer.IsAdmin {
-		canCreate, err := organization.OrgFromUser(org).CanCreateOrgRepo(ctx.Doer.ID)
-		if err != nil {
-			ctx.ServerError("CanCreateOrgRepo", err)
-			return nil
-		} else if !canCreate {
-			ctx.Error(http.StatusForbidden)
-			return nil
-		}
-	} else {
-		ctx.Data["Orgs"] = orgs
-	}
-	return org
 }
 
 func getRepoPrivate(ctx *context.Context) bool {
@@ -143,7 +82,7 @@ func Create(ctx *context.Context) {
 	ctx.Data["IsForcedPrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["default_branch"] = setting.Repository.DefaultBranch
 
-	ctxUser := checkContextUser(ctx, ctx.FormInt64("org"))
+	ctxUser := common.CheckContextUser(ctx, ctx.FormInt64("org"))
 	if ctx.Written() {
 		return
 	}
@@ -197,6 +136,36 @@ func handleCreateError(ctx *context.Context, owner *user_model.User, err error, 
 	}
 }
 
+func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
+	repo, err := repo_model.GetRepositoryByID(repoID)
+	if err != nil {
+		if repo_model.IsErrRepoNotExist(err) {
+			ctx.NotFound("GetRepositoryByID", nil)
+		} else {
+			ctx.ServerError("GetRepositoryByID", err)
+		}
+		return nil
+	}
+
+	perm, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("GetUserRepoPermission", err)
+		return nil
+	}
+
+	if !perm.CanRead(unit.TypeCode) {
+		log.Trace("Permission Denied: User %-v cannot read %-v of repo %-v\n"+
+			"User in repo has Permissions: %-+v",
+			ctx.Doer,
+			unit.TypeCode,
+			ctx.Repo,
+			perm)
+		ctx.NotFound("getRepository", nil)
+		return nil
+	}
+	return repo
+}
+
 // CreatePost response for creating repository
 func CreatePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateRepoForm)
@@ -210,7 +179,7 @@ func CreatePost(ctx *context.Context) {
 	ctx.Data["CanCreateRepo"] = ctx.Doer.CanCreateRepo()
 	ctx.Data["MaxCreationLimit"] = ctx.Doer.MaxCreationLimit()
 
-	ctxUser := checkContextUser(ctx, form.UID)
+	ctxUser := common.CheckContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}
@@ -383,238 +352,45 @@ func RedirectDownload(ctx *context.Context) {
 	ctx.Error(http.StatusNotFound)
 }
 
-// Download an archive of a repository
-func Download(ctx *context.Context) {
-	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
-	if err != nil {
-		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
-			ctx.Error(http.StatusBadRequest, err.Error())
-		} else {
-			ctx.ServerError("archiver_service.NewRequest", err)
-		}
-		return
+// RenderUserCards render a page show users according the input template
+func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOptions) ([]*user_model.User, error), tpl base.TplName) {
+	page := ctx.FormInt("page")
+	if page <= 0 {
+		page = 1
 	}
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
+	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
+	ctx.Data["Page"] = pager
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
-	if err != nil {
-		ctx.ServerError("models.GetRepoArchiver", err)
-		return
-	}
-	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-		download(ctx, aReq.GetArchiveName(), archiver)
-		return
-	}
-
-	if err := archiver_service.StartArchive(aReq); err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
-		return
-	}
-
-	var times int
-	t := time.NewTicker(time.Second * 1)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-graceful.GetManager().HammerContext().Done():
-			log.Warn("exit archive download because system stop")
-			return
-		case <-t.C:
-			if times > 20 {
-				ctx.ServerError("wait download timeout", nil)
-				return
-			}
-			times++
-			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
-			if err != nil {
-				ctx.ServerError("archiver_service.StartArchive", err)
-				return
-			}
-			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-				download(ctx, aReq.GetArchiveName(), archiver)
-				return
-			}
-		}
-	}
-}
-
-func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
-	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
-
-	rPath, err := archiver.RelativePath()
-	if err != nil {
-		ctx.ServerError("archiver.RelativePath", err)
-		return
-	}
-
-	if setting.RepoArchive.ServeDirect {
-		// If we have a signed url (S3, object storage), redirect to this directly.
-		u, err := storage.RepoArchives.URL(rPath, downloadName)
-		if u != nil && err == nil {
-			ctx.Redirect(u.String())
-			return
-		}
-	}
-
-	// If we have matched and access to release or issue
-	fr, err := storage.RepoArchives.Open(rPath)
-	if err != nil {
-		ctx.ServerError("Open", err)
-		return
-	}
-	defer fr.Close()
-	ctx.ServeStream(fr, downloadName)
-}
-
-// InitiateDownload will enqueue an archival request, as needed.  It may submit
-// a request that's already in-progress, but the archiver service will just
-// kind of drop it on the floor if this is the case.
-func InitiateDownload(ctx *context.Context) {
-	uri := ctx.Params("*")
-	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
-	if err != nil {
-		ctx.ServerError("archiver_service.NewRequest", err)
-		return
-	}
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
-
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
-	if err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
-		return
-	}
-	if archiver == nil || archiver.Status != repo_model.ArchiverReady {
-		if err := archiver_service.StartArchive(aReq); err != nil {
-			ctx.ServerError("archiver_service.StartArchive", err)
-			return
-		}
-	}
-
-	var completed bool
-	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-		completed = true
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"complete": completed,
+	items, err := getter(db.ListOptions{
+		Page:     pager.Paginater.Current(),
+		PageSize: setting.ItemsPerPage,
 	})
+	if err != nil {
+		ctx.ServerError("getter", err)
+		return
+	}
+	ctx.Data["Cards"] = items
+
+	ctx.HTML(http.StatusOK, tpl)
 }
 
-// SearchRepo repositories via options
-func SearchRepo(ctx *context.Context) {
-	opts := &repo_model.SearchRepoOptions{
-		ListOptions: db.ListOptions{
-			Page:     ctx.FormInt("page"),
-			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
-		},
-		Actor:              ctx.Doer,
-		Keyword:            ctx.FormTrim("q"),
-		OwnerID:            ctx.FormInt64("uid"),
-		PriorityOwnerID:    ctx.FormInt64("priority_owner_id"),
-		TeamID:             ctx.FormInt64("team_id"),
-		TopicOnly:          ctx.FormBool("topic"),
-		Collaborate:        util.OptionalBoolNone,
-		Private:            ctx.IsSigned && (ctx.FormString("private") == "" || ctx.FormBool("private")),
-		Template:           util.OptionalBoolNone,
-		StarredByID:        ctx.FormInt64("starredBy"),
-		IncludeDescription: ctx.FormBool("includeDesc"),
-	}
+// Watchers render repository's watch users
+func Watchers(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.watchers")
+	ctx.Data["CardsTitle"] = ctx.Tr("repo.watchers")
+	ctx.Data["PageIsWatchers"] = true
 
-	if ctx.FormString("template") != "" {
-		opts.Template = util.OptionalBoolOf(ctx.FormBool("template"))
-	}
+	RenderUserCards(ctx, ctx.Repo.Repository.NumWatches, func(opts db.ListOptions) ([]*user_model.User, error) {
+		return repo_model.GetRepoWatchers(ctx.Repo.Repository.ID, opts)
+	}, tplWatchers)
+}
 
-	if ctx.FormBool("exclusive") {
-		opts.Collaborate = util.OptionalBoolFalse
-	}
-
-	mode := ctx.FormString("mode")
-	switch mode {
-	case "source":
-		opts.Fork = util.OptionalBoolFalse
-		opts.Mirror = util.OptionalBoolFalse
-	case "fork":
-		opts.Fork = util.OptionalBoolTrue
-	case "mirror":
-		opts.Mirror = util.OptionalBoolTrue
-	case "collaborative":
-		opts.Mirror = util.OptionalBoolFalse
-		opts.Collaborate = util.OptionalBoolTrue
-	case "":
-	default:
-		ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid search mode: \"%s\"", mode))
-		return
-	}
-
-	if ctx.FormString("archived") != "" {
-		opts.Archived = util.OptionalBoolOf(ctx.FormBool("archived"))
-	}
-
-	if ctx.FormString("is_private") != "" {
-		opts.IsPrivate = util.OptionalBoolOf(ctx.FormBool("is_private"))
-	}
-
-	sortMode := ctx.FormString("sort")
-	if len(sortMode) > 0 {
-		sortOrder := ctx.FormString("order")
-		if len(sortOrder) == 0 {
-			sortOrder = "asc"
-		}
-		if searchModeMap, ok := context.SearchOrderByMap[sortOrder]; ok {
-			if orderBy, ok := searchModeMap[sortMode]; ok {
-				opts.OrderBy = orderBy
-			} else {
-				ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort mode: \"%s\"", sortMode))
-				return
-			}
-		} else {
-			ctx.Error(http.StatusUnprocessableEntity, fmt.Sprintf("Invalid sort order: \"%s\"", sortOrder))
-			return
-		}
-	}
-
-	var err error
-	repos, count, err := repo_model.SearchRepository(opts)
-	if err != nil {
-		ctx.JSON(http.StatusInternalServerError, api.SearchError{
-			OK:    false,
-			Error: err.Error(),
-		})
-		return
-	}
-
-	ctx.SetTotalCountHeader(count)
-
-	// To improve performance when only the count is requested
-	if ctx.FormBool("count_only") {
-		return
-	}
-
-	results := make([]*api.Repository, len(repos))
-	for i, repo := range repos {
-		results[i] = &api.Repository{
-			ID:       repo.ID,
-			FullName: repo.FullName(),
-			Fork:     repo.IsFork,
-			Private:  repo.IsPrivate,
-			Template: repo.IsTemplate,
-			Mirror:   repo.IsMirror,
-			Stars:    repo.NumStars,
-			HTMLURL:  repo.HTMLURL(),
-			Internal: !repo.IsPrivate && repo.Owner.Visibility == api.VisibleTypePrivate,
-		}
-	}
-
-	ctx.JSON(http.StatusOK, api.SearchResults{
-		OK:   true,
-		Data: results,
-	})
+// Stars render repository's starred users
+func Stars(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.stargazers")
+	ctx.Data["CardsTitle"] = ctx.Tr("repo.stargazers")
+	ctx.Data["PageIsStargazers"] = true
+	RenderUserCards(ctx, ctx.Repo.Repository.NumStars, func(opts db.ListOptions) ([]*user_model.User, error) {
+		return repo_model.GetStargazers(ctx.Repo.Repository, opts)
+	}, tplWatchers)
 }

@@ -23,6 +23,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/routers/web/repo/common"
 	"code.gitea.io/gitea/services/forms"
 )
 
@@ -345,31 +346,6 @@ func ViewProject(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplProjectsView)
 }
 
-// UpdateIssueProject change an issue's project
-func UpdateIssueProject(ctx *context.Context) {
-	issues := getActionIssues(ctx)
-	if ctx.Written() {
-		return
-	}
-
-	projectID := ctx.FormInt64("id")
-	for _, issue := range issues {
-		oldProjectID := issue.ProjectID()
-		if oldProjectID == projectID {
-			continue
-		}
-
-		if err := issues_model.ChangeProjectAssign(issue, ctx.Doer, projectID); err != nil {
-			ctx.ServerError("ChangeProjectAssign", err)
-			return
-		}
-	}
-
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"ok": true,
-	})
-}
-
 // DeleteProjectBoard allows for the deletion of a project board
 func DeleteProjectBoard(ctx *context.Context) {
 	if ctx.Doer == nil {
@@ -666,7 +642,7 @@ func CreateProject(ctx *context.Context) {
 
 // CreateProjectPost creates an individual and/or organization project
 func CreateProjectPost(ctx *context.Context, form forms.UserCreateProjectForm) {
-	user := checkContextUser(ctx, form.UID)
+	user := common.CheckContextUser(ctx, form.UID)
 	if ctx.Written() {
 		return
 	}

@@ -28,7 +28,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/repo"
+	"code.gitea.io/gitea/routers/web/repo/code"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
 
@@ -294,7 +294,7 @@ func GetArchive(ctx *context.APIContext) {
 		defer gitRepo.Close()
 	}
 
-	repo.Download(ctx.Context)
+	code.Download(ctx.Context)
 }
 
 // GetEditorconfig get editor config of a repository
