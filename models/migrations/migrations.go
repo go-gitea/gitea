@@ -414,7 +414,7 @@ var migrations = []Migration{
 	// v225 -> v226
 	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
 
-  // v999
+	// v999
 	NewMigration("Create issue priority tables", createIssuePriorityTables),
 }
 

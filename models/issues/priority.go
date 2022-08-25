@@ -5,18 +5,19 @@
 package issues
 
 import (
-	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/util"
 	"context"
 	"fmt"
 	"html/template"
 	"regexp"
 	"strconv"
 	"strings"
-	"xorm.io/builder"
 
 	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrRepoPriorityNotExist represents a "RepoPriorityNotExist" kind of error.
@@ -705,7 +706,6 @@ func DeleteIssuePriority(ctx context.Context, issue *Issue, priority *Priority, 
 
 // DeleteLabelsByRepoID  deletes labels of some repository
 func DeletePrioritiesByRepoID(ctx context.Context, repoID int64) error {
-
 	_, err := db.DeleteByBean(ctx, &Priority{RepoID: repoID})
 	return err
 }
