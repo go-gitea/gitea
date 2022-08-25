@@ -30,7 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	mirror_module "code.gitea.io/gitea/modules/mirror"
-	"code.gitea.io/gitea/modules/repository"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -43,6 +43,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -607,7 +608,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repository.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -916,7 +917,7 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
@@ -989,8 +990,8 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if err = models.AddRepository(team, ctx.Repo.Repository); err != nil {
-		ctx.ServerError("team.AddRepository", err)
+	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
 

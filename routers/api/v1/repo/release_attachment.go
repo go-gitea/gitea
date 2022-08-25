@@ -7,7 +7,6 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -102,9 +101,9 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AttachmentList"
 
 	releaseID := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(ctx, releaseID)
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -172,9 +171,9 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(ctx, releaseID)
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
