@@ -278,29 +278,6 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 	return committer.Commit()
 }
 
-// IterateLFS iterates lfs object
-func IterateLFS(f func(mo *LFSMetaObject) error) error {
-	var start int
-	const batchSize = 100
-	e := db.GetEngine(db.DefaultContext)
-	for {
-		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := e.Limit(batchSize, start).Find(&mos); err != nil {
-			return err
-		}
-		if len(mos) == 0 {
-			return nil
-		}
-		start += len(mos)
-
-		for _, mo := range mos {
-			if err := f(mo); err != nil {
-				return err
-			}
-		}
-	}
-}
-
 // CopyLFS copies LFS data from one repo to another
 func CopyLFS(ctx context.Context, newRepo, oldRepo *repo_model.Repository) error {
 	var lfsObjects []*LFSMetaObject
