@@ -103,7 +103,7 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	releaseID := ctx.ParamsInt64(":id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -173,7 +173,7 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 	releaseID := ctx.ParamsInt64(":id")
 	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
