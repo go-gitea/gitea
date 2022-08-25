@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.package models
 
-package models
+package activities_test
 
 import (
 	"fmt"
 	"testing"
 	"time"
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -73,7 +74,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		}
 
 		// get the action for comparison
-		actions, err := GetFeeds(db.DefaultContext, GetFeedsOptions{
+		actions, err := activities_model.GetFeeds(db.DefaultContext, activities_model.GetFeedsOptions{
 			RequestedUser:   user,
 			Actor:           doer,
 			IncludePrivate:  true,
@@ -83,7 +84,7 @@ func TestGetUserHeatmapDataByUser(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Get the heatmap and compare
-		heatmap, err := GetUserHeatmapDataByUser(user, doer)
+		heatmap, err := activities_model.GetUserHeatmapDataByUser(user, doer)
 		var contributions int
 		for _, hm := range heatmap {
 			contributions += int(hm.Contributions)

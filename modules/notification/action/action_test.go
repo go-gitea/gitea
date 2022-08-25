@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -35,8 +35,8 @@ func TestRenameRepoAction(t *testing.T) {
 	repo.Name = newRepoName
 	repo.LowerName = strings.ToLower(newRepoName)
 
-	actionBean := &models.Action{
-		OpType:    models.ActionRenameRepo,
+	actionBean := &activities_model.Action{
+		OpType:    activities_model.ActionRenameRepo,
 		ActUserID: user.ID,
 		ActUser:   user,
 		RepoID:    repo.ID,
@@ -49,5 +49,5 @@ func TestRenameRepoAction(t *testing.T) {
 	NewNotifier().NotifyRenameRepository(user, repo, oldRepoName)
 
 	unittest.AssertExistsAndLoadBean(t, actionBean)
-	unittest.CheckConsistencyFor(t, &models.Action{})
+	unittest.CheckConsistencyFor(t, &activities_model.Action{})
 }

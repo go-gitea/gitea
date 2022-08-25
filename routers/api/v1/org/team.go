@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/user"
 	"code.gitea.io/gitea/routers/api/v1/utils"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // ListTeams list all the teams of an organization
@@ -656,8 +657,8 @@ func AddTeamRepository(ctx *context.APIContext) {
 		ctx.Error(http.StatusForbidden, "", "Must have admin-level access to the repository")
 		return
 	}
-	if err := models.AddRepository(ctx.Org.Team, repo); err != nil {
-		ctx.Error(http.StatusInternalServerError, "AddRepository", err)
+	if err := org_service.TeamAddRepository(ctx.Org.Team, repo); err != nil {
+		ctx.Error(http.StatusInternalServerError, "TeamAddRepository", err)
 		return
 	}
 	ctx.Status(http.StatusNoContent)
