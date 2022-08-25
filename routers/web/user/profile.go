@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	project_model "code.gitea.io/gitea/models/project"
@@ -69,7 +69,7 @@ func Profile(ctx *context.Context) {
 	ctx.Data["IsFollowing"] = isFollowing
 
 	if setting.Service.EnableUserHeatmap {
-		data, err := models.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
+		data, err := activities_model.GetUserHeatmapDataByUser(ctx.ContextUser, ctx.Doer)
 		if err != nil {
 			ctx.ServerError("GetUserHeatmapDataByUser", err)
 			return
@@ -188,7 +188,7 @@ func Profile(ctx *context.Context) {
 
 		total = int(count)
 	case "activity":
-		ctx.Data["Feeds"], err = models.GetFeeds(ctx, models.GetFeedsOptions{
+		ctx.Data["Feeds"], err = activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 			RequestedUser:   ctx.ContextUser,
 			Actor:           ctx.Doer,
 			IncludePrivate:  showPrivate,
