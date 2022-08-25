@@ -665,7 +665,7 @@ func NewIssuePriorities(issue *Issue, priorities []*Priority, doer *user_model.U
 }
 
 func deleteIssuePriority(ctx context.Context, issue *Issue, priority *Priority, doer *user_model.User) (err error) {
-	issue.PriorityID = nil
+	issue.PriorityID = 0
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
