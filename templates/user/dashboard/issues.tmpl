@@ -100,7 +100,11 @@
 							</div>
 						</div>
 						{{if .SingleRepoLink}}
-							<a class="ui green button" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+							{{if eq .SingleRepoAction "issue"}}
+								<a class="ui green button" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+							{{else if eq .SingleRepoAction "pull"}}
+								<a class="ui green button" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
+							{{end}}
 						{{end}}
 					</div>
 				</div>

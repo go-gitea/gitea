@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -321,7 +320,7 @@ func GenerateRepository(ctx context.Context, doer, owner *user_model.User, templ
 		TrustModel:    templateRepo.TrustModel,
 	}
 
-	if err = models.CreateRepository(ctx, doer, owner, generateRepo, false); err != nil {
+	if err = CreateRepositoryByExample(ctx, doer, owner, generateRepo, false); err != nil {
 		return nil, err
 	}
 
