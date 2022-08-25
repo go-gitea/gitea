@@ -468,7 +468,8 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		return
 	}
 	defer fr.Close()
-	ctx.ServeStream(fr, downloadName)
+
+	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
