@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package activities
 
 import (
 	"context"
@@ -39,7 +39,7 @@ type ActivityStats struct {
 	ClosedIssues                issues_model.IssueList
 	ClosedIssueAuthorCount      int64
 	UnresolvedIssues            issues_model.IssueList
-	PublishedReleases           []*Release
+	PublishedReleases           []*repo_model.Release
 	PublishedReleaseAuthorCount int64
 	Code                        *git.CodeActivityStats
 }
@@ -344,7 +344,7 @@ func (stats *ActivityStats) FillReleases(repoID int64, fromTime time.Time) error
 	// Published releases list
 	sess := releasesForActivityStatement(repoID, fromTime)
 	sess.OrderBy("release.created_unix DESC")
-	stats.PublishedReleases = make([]*Release, 0)
+	stats.PublishedReleases = make([]*repo_model.Release, 0)
 	if err = sess.Find(&stats.PublishedReleases); err != nil {
 		return err
 	}
