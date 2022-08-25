@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package activities
 
 import (
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -101,7 +101,7 @@ func GetStatistic() (stats Statistic) {
 	stats.Counter.Oauth = 0
 	stats.Counter.Follow, _ = e.Count(new(user_model.Follow))
 	stats.Counter.Mirror, _ = e.Count(new(repo_model.Mirror))
-	stats.Counter.Release, _ = e.Count(new(Release))
+	stats.Counter.Release, _ = e.Count(new(repo_model.Release))
 	stats.Counter.AuthSource = auth.CountSources()
 	stats.Counter.Webhook, _ = e.Count(new(webhook.Webhook))
 	stats.Counter.Milestone, _ = e.Count(new(issues_model.Milestone))

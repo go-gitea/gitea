@@ -46,7 +46,6 @@
     "wrap-ansi": "8.0.1"
   },
   "devDependencies": {
-    "@happy-dom/jest-environment": "6.0.4",
     "@stoplight/spectral-cli": "6.5.0",
     "eslint": "8.21.0",
     "eslint-plugin-import": "2.26.0",
@@ -55,6 +54,7 @@
     "eslint-plugin-unicorn": "43.0.2",
     "eslint-plugin-vue": "9.3.0",
     "jest": "28.1.3",
+    "jest-environment-jsdom": "28.1.3",
     "jest-extended": "3.0.1",
     "markdownlint-cli": "0.32.1",
     "postcss-less": "6.0.0",

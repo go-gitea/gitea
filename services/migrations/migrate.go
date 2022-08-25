@@ -128,7 +128,7 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
-	if err := migrateRepository(downloader, uploader, opts, messenger); err != nil {
+	if err := migrateRepository(doer, downloader, uploader, opts, messenger); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
@@ -177,7 +177,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
+func migrateRepository(doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
 	}
@@ -196,6 +196,21 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	if repo.CloneURL, err = downloader.FormatCloneURL(opts, repo.CloneURL); err != nil {
 		return err
+	}
+
+	// If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
+	if _, ok := downloader.(*RepositoryRestorer); !ok {
+		// Now the clone URL can be rewritten by the downloader so we must recheck
+		if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {
+			return err
+		}
+
+		// And so can the original URL too so again we must recheck
+		if repo.OriginalURL != "" {
+			if err := IsMigrateURLAllowed(repo.OriginalURL, doer); err != nil {
+				return err
+			}
+		}
 	}
 
 	log.Trace("migrating git data from %s", repo.CloneURL)
