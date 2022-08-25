@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package repo
 
 import (
 	"fmt"
@@ -20,13 +20,21 @@ import (
 	gouuid "github.com/google/uuid"
 )
 
-//  ____ ___        .__                    .___ ___________.___.__
-// |    |   \______ |  |   _________     __| _/ \_   _____/|   |  |   ____   ______
-// |    |   /\____ \|  |  /  _ \__  \   / __ |   |    __)  |   |  | _/ __ \ /  ___/
-// |    |  / |  |_> >  |_(  <_> ) __ \_/ /_/ |   |     \   |   |  |_\  ___/ \___ \
-// |______/  |   __/|____/\____(____  /\____ |   \___  /   |___|____/\___  >____  >
-//           |__|                   \/      \/       \/                  \/     \/
-//
+// ErrUploadNotExist represents a "UploadNotExist" kind of error.
+type ErrUploadNotExist struct {
+	ID   int64
+	UUID string
+}
+
+// IsErrUploadNotExist checks if an error is a ErrUploadNotExist.
+func IsErrUploadNotExist(err error) bool {
+	_, ok := err.(ErrUploadNotExist)
+	return ok
+}
+
+func (err ErrUploadNotExist) Error() string {
+	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
 
 // Upload represent a uploaded file to a repo to be deleted when moved
 type Upload struct {

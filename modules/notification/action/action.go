@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -45,10 +45,10 @@ func (a *actionNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*u
 	}
 	repo := issue.Repo
 
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: issue.Poster.ID,
 		ActUser:   issue.Poster,
-		OpType:    models.ActionCreateIssue,
+		OpType:    activities_model.ActionCreateIssue,
 		Content:   fmt.Sprintf("%d|%s", issue.Index, issue.Title),
 		RepoID:    repo.ID,
 		Repo:      repo,
@@ -62,7 +62,7 @@ func (a *actionNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*u
 func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *issues_model.Issue, actionComment *issues_model.Comment, closeOrReopen bool) {
 	// Compose comment action, could be plain comment, close or reopen issue/pull request.
 	// This object will be used to notify watchers in the end of function.
-	act := &models.Action{
+	act := &activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		Content:   fmt.Sprintf("%d|%s", issue.Index, ""),
@@ -74,19 +74,19 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *i
 	}
 	// Check comment type.
 	if closeOrReopen {
-		act.OpType = models.ActionCloseIssue
+		act.OpType = activities_model.ActionCloseIssue
 		if issue.IsPull {
-			act.OpType = models.ActionClosePullRequest
+			act.OpType = activities_model.ActionClosePullRequest
 		}
 	} else {
-		act.OpType = models.ActionReopenIssue
+		act.OpType = activities_model.ActionReopenIssue
 		if issue.IsPull {
-			act.OpType = models.ActionReopenPullRequest
+			act.OpType = activities_model.ActionReopenPullRequest
 		}
 	}
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
-	if err := models.NotifyWatchers(act); err != nil {
+	if err := activities_model.NotifyWatchers(act); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
@@ -95,7 +95,7 @@ func (a *actionNotifier) NotifyIssueChangeStatus(doer *user_model.User, issue *i
 func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
 	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	act := &models.Action{
+	act := &activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		RepoID:    issue.Repo.ID,
@@ -116,13 +116,13 @@ func (a *actionNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *r
 	act.Content = fmt.Sprintf("%d|%s", issue.Index, truncatedContent)
 
 	if issue.IsPull {
-		act.OpType = models.ActionCommentPull
+		act.OpType = activities_model.ActionCommentPull
 	} else {
-		act.OpType = models.ActionCommentIssue
+		act.OpType = activities_model.ActionCommentIssue
 	}
 
 	// Notify watchers for whatever action comes in, ignore if no action type.
-	if err := models.NotifyWatchers(act); err != nil {
+	if err := activities_model.NotifyWatchers(act); err != nil {
 		log.Error("NotifyWatchers: %v", err)
 	}
 }
@@ -141,10 +141,10 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *issues_model.PullRequest, me
 		return
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: pull.Issue.Poster.ID,
 		ActUser:   pull.Issue.Poster,
-		OpType:    models.ActionCreatePullRequest,
+		OpType:    activities_model.ActionCreatePullRequest,
 		Content:   fmt.Sprintf("%d|%s", pull.Issue.Index, pull.Issue.Title),
 		RepoID:    pull.Issue.Repo.ID,
 		Repo:      pull.Issue.Repo,
@@ -155,10 +155,10 @@ func (a *actionNotifier) NotifyNewPullRequest(pull *issues_model.PullRequest, me
 }
 
 func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *repo_model.Repository, oldRepoName string) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionRenameRepo,
+		OpType:    activities_model.ActionRenameRepo,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -169,10 +169,10 @@ func (a *actionNotifier) NotifyRenameRepository(doer *user_model.User, repo *rep
 }
 
 func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *repo_model.Repository, oldOwnerName string) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionTransferRepo,
+		OpType:    activities_model.ActionTransferRepo,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -183,10 +183,10 @@ func (a *actionNotifier) NotifyTransferRepository(doer *user_model.User, repo *r
 }
 
 func (a *actionNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *repo_model.Repository) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionCreateRepo,
+		OpType:    activities_model.ActionCreateRepo,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -196,10 +196,10 @@ func (a *actionNotifier) NotifyCreateRepository(doer, u *user_model.User, repo *
 }
 
 func (a *actionNotifier) NotifyForkRepository(doer *user_model.User, oldRepo, repo *repo_model.Repository) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionCreateRepo,
+		OpType:    activities_model.ActionCreateRepo,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -221,15 +221,15 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r
 		return
 	}
 
-	actions := make([]*models.Action, 0, 10)
+	actions := make([]*activities_model.Action, 0, 10)
 	for _, lines := range review.CodeComments {
 		for _, comments := range lines {
 			for _, comm := range comments {
-				actions = append(actions, &models.Action{
+				actions = append(actions, &activities_model.Action{
 					ActUserID: review.Reviewer.ID,
 					ActUser:   review.Reviewer,
 					Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comm.Content, "\n")[0]),
-					OpType:    models.ActionCommentPull,
+					OpType:    activities_model.ActionCommentPull,
 					RepoID:    review.Issue.RepoID,
 					Repo:      review.Issue.Repo,
 					IsPrivate: review.Issue.Repo.IsPrivate,
@@ -241,7 +241,7 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r
 	}
 
 	if review.Type != issues_model.ReviewTypeComment || strings.TrimSpace(comment.Content) != "" {
-		action := &models.Action{
+		action := &activities_model.Action{
 			ActUserID: review.Reviewer.ID,
 			ActUser:   review.Reviewer,
 			Content:   fmt.Sprintf("%d|%s", review.Issue.Index, strings.Split(comment.Content, "\n")[0]),
@@ -254,26 +254,26 @@ func (a *actionNotifier) NotifyPullRequestReview(pr *issues_model.PullRequest, r
 
 		switch review.Type {
 		case issues_model.ReviewTypeApprove:
-			action.OpType = models.ActionApprovePullRequest
+			action.OpType = activities_model.ActionApprovePullRequest
 		case issues_model.ReviewTypeReject:
-			action.OpType = models.ActionRejectPullRequest
+			action.OpType = activities_model.ActionRejectPullRequest
 		default:
-			action.OpType = models.ActionCommentPull
+			action.OpType = activities_model.ActionCommentPull
 		}
 
 		actions = append(actions, action)
 	}
 
-	if err := models.NotifyWatchersActions(actions); err != nil {
+	if err := activities_model.NotifyWatchersActions(actions); err != nil {
 		log.Error("notify watchers '%d/%d': %v", review.Reviewer.ID, review.Issue.RepoID, err)
 	}
 }
 
 func (*actionNotifier) NotifyMergePullRequest(pr *issues_model.PullRequest, doer *user_model.User) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionMergePullRequest,
+		OpType:    activities_model.ActionMergePullRequest,
 		Content:   fmt.Sprintf("%d|%s", pr.Issue.Index, pr.Issue.Title),
 		RepoID:    pr.Issue.Repo.ID,
 		Repo:      pr.Issue.Repo,
@@ -288,10 +288,10 @@ func (*actionNotifier) NotifyPullRevieweDismiss(doer *user_model.User, review *i
 	if len(review.OriginalAuthor) > 0 {
 		reviewerName = review.OriginalAuthor
 	}
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
-		OpType:    models.ActionPullReviewDismissed,
+		OpType:    activities_model.ActionPullReviewDismissed,
 		Content:   fmt.Sprintf("%d|%s|%s", review.Issue.Index, reviewerName, comment.Content),
 		RepoID:    review.Issue.Repo.ID,
 		Repo:      review.Issue.Repo,
@@ -310,19 +310,19 @@ func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 		return
 	}
 
-	opType := models.ActionCommitRepo
+	opType := activities_model.ActionCommitRepo
 
 	// Check it's tag push or branch.
 	if opts.IsTag() {
-		opType = models.ActionPushTag
+		opType = activities_model.ActionPushTag
 		if opts.IsDelRef() {
-			opType = models.ActionDeleteTag
+			opType = activities_model.ActionDeleteTag
 		}
 	} else if opts.IsDelRef() {
-		opType = models.ActionDeleteBranch
+		opType = activities_model.ActionDeleteBranch
 	}
 
-	if err = models.NotifyWatchers(&models.Action{
+	if err = activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: pusher.ID,
 		ActUser:   pusher,
 		OpType:    opType,
@@ -337,12 +337,12 @@ func (a *actionNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_m
 }
 
 func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
-	opType := models.ActionCommitRepo
+	opType := activities_model.ActionCommitRepo
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
 		return
 	}
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    opType,
@@ -356,12 +356,12 @@ func (a *actionNotifier) NotifyCreateRef(doer *user_model.User, repo *repo_model
 }
 
 func (a *actionNotifier) NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
-	opType := models.ActionDeleteBranch
+	opType := activities_model.ActionDeleteBranch
 	if refType == "tag" {
 		// has sent same action in `NotifyPushCommits`, so skip it.
 		return
 	}
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: doer.ID,
 		ActUser:   doer,
 		OpType:    opType,
@@ -381,10 +381,10 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *re
 		return
 	}
 
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncPush,
+		OpType:    activities_model.ActionMirrorSyncPush,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -396,10 +396,10 @@ func (a *actionNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *re
 }
 
 func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncCreate,
+		OpType:    activities_model.ActionMirrorSyncCreate,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -410,10 +410,10 @@ func (a *actionNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_m
 }
 
 func (a *actionNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: repo.OwnerID,
 		ActUser:   repo.MustOwner(),
-		OpType:    models.ActionMirrorSyncDelete,
+		OpType:    activities_model.ActionMirrorSyncDelete,
 		RepoID:    repo.ID,
 		Repo:      repo,
 		IsPrivate: repo.IsPrivate,
@@ -423,15 +423,15 @@ func (a *actionNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_m
 	}
 }
 
-func (a *actionNotifier) NotifyNewRelease(rel *models.Release) {
+func (a *actionNotifier) NotifyNewRelease(rel *repo_model.Release) {
 	if err := rel.LoadAttributes(); err != nil {
 		log.Error("NotifyNewRelease: %v", err)
 		return
 	}
-	if err := models.NotifyWatchers(&models.Action{
+	if err := activities_model.NotifyWatchers(&activities_model.Action{
 		ActUserID: rel.PublisherID,
 		ActUser:   rel.Publisher,
-		OpType:    models.ActionPublishRelease,
+		OpType:    activities_model.ActionPublishRelease,
 		RepoID:    rel.RepoID,
 		Repo:      rel.Repo,
 		IsPrivate: rel.Repo.IsPrivate,
