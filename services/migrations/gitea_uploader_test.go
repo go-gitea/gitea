@@ -15,7 +15,6 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -85,7 +84,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, labels, 12)
 
-	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -95,7 +94,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, releases, 8)
 
-	releases, err = models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+	releases, err = repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
 		ListOptions: db.ListOptions{
 			PageSize: 10,
 			Page:     0,
@@ -146,7 +145,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	// The externalID does not match any existing user, everything
 	// belongs to the doer
 	//
-	target := models.Release{}
+	target := repo_model.Release{}
 	uploader.userMap = make(map[int64]int64)
 	err := uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
@@ -157,7 +156,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	// everything belongs to the doer
 	//
 	source.PublisherID = user.ID
-	target = models.Release{}
+	target = repo_model.Release{}
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
@@ -168,7 +167,7 @@ func TestGiteaUploadRemapLocalUser(t *testing.T) {
 	// belongs to the existing user
 	//
 	source.PublisherName = user.Name
-	target = models.Release{}
+	target = repo_model.Release{}
 	uploader.userMap = make(map[int64]int64)
 	err = uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
@@ -197,7 +196,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	// by the doer
 	//
 	uploader.userMap = make(map[int64]int64)
-	target := models.Release{}
+	target := repo_model.Release{}
 	err := uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
 	assert.EqualValues(t, doer.ID, target.GetUserID())
@@ -220,7 +219,7 @@ func TestGiteaUploadRemapExternalUser(t *testing.T) {
 	// the migrated data
 	//
 	uploader.userMap = make(map[int64]int64)
-	target = models.Release{}
+	target = repo_model.Release{}
 	err = uploader.remapUser(&source, &target)
 	assert.NoError(t, err)
 	assert.EqualValues(t, linkedUser.ID, target.GetUserID())

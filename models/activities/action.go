@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package activities
 
 import (
 	"context"
@@ -211,21 +211,6 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
-// GetRepositoryFromMatch returns a *repo_model.Repository from a username and repo strings
-func GetRepositoryFromMatch(ownerName, repoName string) (*repo_model.Repository, error) {
-	var err error
-	refRepo, err := repo_model.GetRepositoryByOwnerAndName(ownerName, repoName)
-	if err != nil {
-		if repo_model.IsErrRepoNotExist(err) {
-			log.Warn("Repository referenced in commit but does not exist: %v", err)
-			return nil, err
-		}
-		log.Error("repo_model.GetRepositoryByOwnerAndName: %v", err)
-		return nil, err
-	}
-	return refRepo, nil
-}
-
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
 	return a.getCommentLink(db.DefaultContext)
@@ -372,7 +357,8 @@ func GetFeeds(ctx context.Context, opts GetFeedsOptions) (ActionList, error) {
 	return actions, nil
 }
 
-func activityReadable(user, doer *user_model.User) bool {
+// ActivityReadable return whether doer can read activities of user
+func ActivityReadable(user, doer *user_model.User) bool {
 	return !user.KeepActivityPrivate ||
 		doer != nil && (doer.IsAdmin || user.ID == doer.ID)
 }
@@ -601,4 +587,24 @@ func DeleteIssueActions(ctx context.Context, repoID, issueID int64) error {
 		Where("content LIKE ?", strconv.FormatInt(issueID, 10)+"|%").
 		Delete(&Action{})
 	return err
+}
+
+// CountActionCreatedUnixString count actions where created_unix is an empty string
+func CountActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		return db.GetEngine(db.DefaultContext).Where(`created_unix = ""`).Count(new(Action))
+	}
+	return 0, nil
+}
+
+// FixActionCreatedUnixString set created_unix to zero if it is an empty string
+func FixActionCreatedUnixString() (int64, error) {
+	if setting.Database.UseSQLite3 {
+		res, err := db.GetEngine(db.DefaultContext).Exec(`UPDATE action SET created_unix = 0 WHERE created_unix = ""`)
+		if err != nil {
+			return 0, err
+		}
+		return res.RowsAffected()
+	}
+	return 0, nil
 }

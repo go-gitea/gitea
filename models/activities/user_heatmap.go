@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.package models
 
-package models
+package activities
 
 import (
 	"code.gitea.io/gitea/models/db"
@@ -31,7 +31,7 @@ func GetUserHeatmapDataByUserTeam(user *user_model.User, team *organization.Team
 func getUserHeatmapData(user *user_model.User, team *organization.Team, doer *user_model.User) ([]*UserHeatmapData, error) {
 	hdata := make([]*UserHeatmapData, 0)
 
-	if !activityReadable(user, doer) {
+	if !ActivityReadable(user, doer) {
 		return hdata, nil
 	}
 

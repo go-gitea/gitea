@@ -24,7 +24,7 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -655,7 +655,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
 	action.LoadActUser()
 	return Avatar(action.ActUser, others...)
 }
@@ -854,7 +854,7 @@ func IsMultilineCommitMessage(msg string) bool {
 
 // Actioner describes an action
 type Actioner interface {
-	GetOpType() models.ActionType
+	GetOpType() activities_model.ActionType
 	GetActUserName() string
 	GetRepoUserName() string
 	GetRepoName() string
@@ -867,33 +867,33 @@ type Actioner interface {
 }
 
 // ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType models.ActionType) string {
+func ActionIcon(opType activities_model.ActionType) string {
 	switch opType {
-	case models.ActionCreateRepo, models.ActionTransferRepo, models.ActionRenameRepo:
+	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
-	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
+	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
 		return "git-commit"
-	case models.ActionCreateIssue:
+	case activities_model.ActionCreateIssue:
 		return "issue-opened"
-	case models.ActionCreatePullRequest:
+	case activities_model.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue, models.ActionCommentPull:
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case models.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest:
 		return "git-merge"
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
+	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		return "issue-reopened"
-	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
 		return "mirror"
-	case models.ActionApprovePullRequest:
+	case activities_model.ActionApprovePullRequest:
 		return "check"
-	case models.ActionRejectPullRequest:
+	case activities_model.ActionRejectPullRequest:
 		return "diff"
-	case models.ActionPublishRelease:
+	case activities_model.ActionPublishRelease:
 		return "tag"
-	case models.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed:
 		return "x"
 	default:
 		return "question"

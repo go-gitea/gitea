@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -152,7 +153,7 @@ func Create(ctx *context.Context) {
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(templateID)
-		if err == nil && models.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
+		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -257,7 +258,7 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -358,7 +359,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
