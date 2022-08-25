@@ -35,6 +35,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v2"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -1099,4 +1100,51 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 		}
 	}
 	return issueTemplates
+}
+
+func ExtractIssueConfigFromYaml(configContent []byte) (api.IssueConfig, error) {
+	config := api.IssueConfig{
+		BlankIssuesEnabled: true,
+	}
+
+	err := yaml.Unmarshal(configContent, &config)
+	if err != nil {
+		return api.IssueConfig{}, err
+	}
+
+	return config, nil
+}
+
+func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
+	defaultIssueConfig := api.IssueConfig{
+		BlankIssuesEnabled: true,
+	}
+
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
+	if err != nil {
+		return defaultIssueConfig, nil
+	}
+
+	entry, err := commit.GetTreeEntryByPath(".gitea/issue_config.yaml")
+	if err != nil {
+		return defaultIssueConfig, nil
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return defaultIssueConfig, nil
+	}
+
+	configContent, err := io.ReadAll(r)
+	if err != nil {
+		return defaultIssueConfig, err
+	}
+
+	issueConfig, err := ExtractIssueConfigFromYaml(configContent)
+	if err != nil {
+		return defaultIssueConfig, err
+	}
+
+	return issueConfig, nil
 }

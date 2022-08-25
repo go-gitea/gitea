@@ -869,6 +869,10 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 		return
 	}
 
+	issueConfig, err := ctx.IssueConfigFromDefaultBranch()
+	ctx.Data["IssueConfig"] = issueConfig
+	ctx.Data["IssueConfigError"] = err
+
 	ctx.Data["milestone"] = ctx.FormInt64("milestone")
 	ctx.Data["project"] = ctx.FormInt64("project")
 

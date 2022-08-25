@@ -132,6 +132,10 @@ type IssueTemplate struct {
 	FileName string   `json:"file_name" yaml:"-"`
 }
 
+type IssueConfig struct {
+	BlankIssuesEnabled bool `json:"blank_issues_enabled" yaml:"blank_issues_enabled"`
+}
+
 // Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
 func (it IssueTemplate) Valid() bool {
 	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
