@@ -399,6 +399,10 @@ func CreateWebhook(ctx context.Context, w *Webhook) error {
 
 // CreateWebhooks creates multiple web hooks
 func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
+	// xorm returns err "no element on slice when insert" for empty slices.
+	if len(ws) == 0 {
+		return nil
+	}
 	for i := 0; i < len(ws); i++ {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}

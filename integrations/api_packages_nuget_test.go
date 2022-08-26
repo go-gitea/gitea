@@ -24,9 +24,16 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func addNuGetAPIKeyHeader(request *http.Request, token string) *http.Request {
+	request.Header.Set("X-NuGet-ApiKey", token)
+	return request
+}
+
 func TestPackageNuGet(t *testing.T) {
 	defer prepareTestEnv(t)()
+
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	token := getUserToken(t, user.Name)
 
 	packageName := "test.package"
 	packageVersion := "1.0.3"
@@ -60,6 +67,10 @@ func TestPackageNuGet(t *testing.T) {
 
 		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
 		req = AddBasicAuthHeader(req, user.Name)
+		MakeRequest(t, req, http.StatusOK)
+
+		req = NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
+		req = addNuGetAPIKeyHeader(req, token)
 		resp := MakeRequest(t, req, http.StatusOK)
 
 		var result nuget.ServiceIndexResponse
@@ -122,7 +133,7 @@ func TestPackageNuGet(t *testing.T) {
 
 			req = NewRequestWithBody(t, "PUT", url, bytes.NewReader(content))
 			req = AddBasicAuthHeader(req, user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
+			MakeRequest(t, req, http.StatusConflict)
 		})
 
 		t.Run("SymbolPackage", func(t *testing.T) {
@@ -208,7 +219,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
-			MakeRequest(t, req, http.StatusBadRequest)
+			MakeRequest(t, req, http.StatusConflict)
 		})
 	})
 
@@ -352,7 +363,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 		req := NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, packageVersion))
 		req = AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusOK)
+		MakeRequest(t, req, http.StatusNoContent)
 
 		pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNuGet)
 		assert.NoError(t, err)

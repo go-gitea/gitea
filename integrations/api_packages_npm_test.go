@@ -36,33 +36,36 @@ func TestPackageNpm(t *testing.T) {
 	packageDescription := "Test Description"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
-	upload := `{
-		"_id": "` + packageName + `",
-		"name": "` + packageName + `",
-		"description": "` + packageDescription + `",
-		"dist-tags": {
-		  "` + packageTag + `": "` + packageVersion + `"
-		},
-		"versions": {
-		  "` + packageVersion + `": {
+
+	buildUpload := func(version string) string {
+		return `{
+			"_id": "` + packageName + `",
 			"name": "` + packageName + `",
-			"version": "` + packageVersion + `",
 			"description": "` + packageDescription + `",
-			"author": {
-			  "name": "` + packageAuthor + `"
+			"dist-tags": {
+			  "` + packageTag + `": "` + version + `"
 			},
-			"dist": {
-			  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
-			  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+			"versions": {
+			  "` + version + `": {
+				"name": "` + packageName + `",
+				"version": "` + version + `",
+				"description": "` + packageDescription + `",
+				"author": {
+				  "name": "` + packageAuthor + `"
+				},
+				"dist": {
+				  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
+				  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
+				}
+			  }
+			},
+			"_attachments": {
+			  "` + packageName + `-` + version + `.tgz": {
+				"data": "` + data + `"
+			  }
 			}
-		  }
-		},
-		"_attachments": {
-		  "` + packageName + `-` + packageVersion + `.tgz": {
-			"data": "` + data + `"
-		  }
-		}
-	  }`
+		  }`
+	}
 
 	root := fmt.Sprintf("/api/packages/%s/npm/%s", user.Name, url.QueryEscape(packageName))
 	tagsRoot := fmt.Sprintf("/api/packages/%s/npm/-/package/%s/dist-tags", user.Name, url.QueryEscape(packageName))
@@ -71,7 +74,7 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("Upload", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
 		req = addTokenAuthHeader(req, token)
 		MakeRequest(t, req, http.StatusCreated)
 
@@ -103,7 +106,7 @@ func TestPackageNpm(t *testing.T) {
 	t.Run("UploadExists", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(upload))
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion)))
 		req = addTokenAuthHeader(req, token)
 		MakeRequest(t, req, http.StatusBadRequest)
 	})
@@ -218,5 +221,58 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		req := NewRequestWithBody(t, "PUT", root, strings.NewReader(buildUpload(packageVersion+"-dummy")))
+		req = addTokenAuthHeader(req, token)
+		MakeRequest(t, req, http.StatusCreated)
+
+		req = NewRequest(t, "PUT", root+"/-rev/dummy")
+		MakeRequest(t, req, http.StatusUnauthorized)
+
+		req = NewRequest(t, "PUT", root+"/-rev/dummy")
+		req = addTokenAuthHeader(req, token)
+		MakeRequest(t, req, http.StatusOK)
+
+		t.Run("Version", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 2)
+
+			req := NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/-/%s/%s/-rev/dummy", root, packageVersion, filename))
+			req = addTokenAuthHeader(req, token)
+			MakeRequest(t, req, http.StatusOK)
+
+			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+		})
+
+		t.Run("Full", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			pvs, err := packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 1)
+
+			req := NewRequest(t, "DELETE", root+"/-rev/dummy")
+			MakeRequest(t, req, http.StatusUnauthorized)
+
+			req = NewRequest(t, "DELETE", root+"/-rev/dummy")
+			req = addTokenAuthHeader(req, token)
+			MakeRequest(t, req, http.StatusOK)
+
+			pvs, err = packages.GetVersionsByPackageType(db.DefaultContext, user.ID, packages.TypeNpm)
+			assert.NoError(t, err)
+			assert.Len(t, pvs, 0)
+		})
 	})
 }
