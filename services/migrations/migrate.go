@@ -198,7 +198,7 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 		return err
 	}
 
-	// If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
+	// SECURITY: If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
 	if _, ok := downloader.(*RepositoryRestorer); !ok {
 		// Now the clone URL can be rewritten by the downloader so we must recheck
 		if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {

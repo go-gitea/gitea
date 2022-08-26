@@ -390,7 +390,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "AddRemote failed")
+				assert.Contains(t, content, "AddRemote")
 			},
 		},
 		{
