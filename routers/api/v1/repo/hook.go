@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -153,6 +154,17 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
+	ref := git.BranchPrefix + ctx.Repo.Repository.DefaultBranch
+	if refName := ctx.FormTrim("ref"); refName != "" {
+		if ctx.Repo.GitRepo.IsBranchExist(refName) {
+			ref = git.BranchPrefix + refName
+		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
+			ref = git.TagPrefix + refName
+		}
+		// If the ref is a commit id, it's not worth finding out all branches contain the commit
+		// and picking the most likely one, so just use the default branch for now.
+	}
+
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
@@ -161,10 +173,12 @@ func TestHook(ctx *context.APIContext) {
 
 	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
 
+	commitID := ctx.Repo.Commit.ID.String()
 	if err := webhook_service.PrepareWebhook(hook, ctx.Repo.Repository, webhook.HookEventPush, &api.PushPayload{
-		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before:     ctx.Repo.Commit.ID.String(),
-		After:      ctx.Repo.Commit.ID.String(),
+		Ref:        ref,
+		Before:     commitID,
+		After:      commitID,
+		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
 		Commits:    []*api.PayloadCommit{commit},
 		HeadCommit: commit,
 		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
