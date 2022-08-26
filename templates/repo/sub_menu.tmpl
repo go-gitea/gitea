@@ -1,4 +1,4 @@
-<div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats }} repository-summary-language-stats{{end}} mt-2 mb-0">
+<div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}} repository-summary-language-stats{{end}} mt-2 mb-0">
 	<div class="ui segment sub-menu repository-menu">
 		<div class="ui two horizontal center link list">
 			{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo)}}
@@ -19,27 +19,27 @@
 			{{end}}
 		</div>
 	</div>
-	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats }}
+	{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}}
 	<div class="ui segment sub-menu language-stats-details" style="display: none">
 		<div class="ui horizontal center link list">
 			{{range .LanguageStats}}
 			<div class="item df ac jc">
-				<i class="color-icon mr-3" style="background-color: {{ .Color }}"></i>
+				<i class="color-icon mr-3" style="background-color: {{.Color}}"></i>
 				<span class="bold mr-3">
-					{{if eq .Language "other" }}
-						{{ $.locale.Tr "repo.language_other" }}
+					{{if eq .Language "other"}}
+						{{$.locale.Tr "repo.language_other"}}
 					{{else}}
-						{{ .Language }}
+						{{.Language}}
 					{{end}}
 				</span>
-				{{ .Percentage }}%
+				{{.Percentage}}%
 			</div>
 			{{end}}
 		</div>
 	</div>
 	<a class="ui segment language-stats">
 		{{range .LanguageStats}}
-		<div class="bar" style="width: {{ .Percentage }}%; background-color: {{ .Color }}">&nbsp;</div>
+		<div class="bar" style="width: {{.Percentage}}%; background-color: {{.Color}}">&nbsp;</div>
 		{{end}}
 	</a>
 	{{end}}

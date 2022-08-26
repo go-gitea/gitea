@@ -2,13 +2,13 @@
 	<div class="df ac">
 		<div class="icon ml-3 mr-3">
 			{{if eq .Process.Type "request"}}
-				{{svg "octicon-globe" 16 }}
+				{{svg "octicon-globe" 16}}
 			{{else if eq .Process.Type "system"}}
-				{{svg "octicon-cpu" 16 }}
+				{{svg "octicon-cpu" 16}}
 			{{else if eq .Process.Type "normal"}}
-				{{svg "octicon-terminal" 16 }}
+				{{svg "octicon-terminal" 16}}
 			{{else}}
-				{{svg "octicon-code" 16 }}
+				{{svg "octicon-code" 16}}
 			{{end}}
 		</div>
 		<div class="content f1">
@@ -16,7 +16,7 @@
 			<div class="description">{{if ne .Process.Type "none"}}<span title="{{DateFmtLong .Process.Start}}">{{TimeSince .Process.Start .root.locale}}</span>{{end}}</div>
 		</div>
 		<div>
-			{{if or (eq .Process.Type "request") (eq .Process.Type "normal") }}
+			{{if or (eq .Process.Type "request") (eq .Process.Type "normal")}}
 				<a class="delete-button icon" href="" data-url="{{.root.Link}}/cancel/{{.Process.PID}}" data-id="{{.Process.PID}}" data-name="{{.Process.Description}}">{{svg "octicon-trash" 16 "text-red"}}</a>
 			{{end}}
 		</div>
@@ -29,7 +29,7 @@
 						<summary>
 							<div class="dif content">
 								<div class="header ml-3">
-									<span class="icon mr-3">{{svg "octicon-code" 16 }}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
+									<span class="icon mr-3">{{svg "octicon-code" 16}}</span>{{.Description}}{{if gt .Count 1}} * {{.Count}}{{end}}
 								</div>
 								<div class="description">
 									{{range .Labels}}
@@ -41,7 +41,7 @@
 						<div class="list">
 							{{range .Entry}}
 								<div class="item df ac">
-									<span class="icon mr-4">{{svg "octicon-dot-fill" 16 }}</span>
+									<span class="icon mr-4">{{svg "octicon-dot-fill" 16}}</span>
 									<div class="content f1">
 										<div class="header"><code>{{.Function}}</code></div>
 										<div class="description"><code>{{.File}}:{{.Line}}</code></div>
