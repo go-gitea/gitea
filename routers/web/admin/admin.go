@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -128,7 +128,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = activities_model.GetStatistic()
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
@@ -144,7 +144,7 @@ func DashboardPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = activities_model.GetStatistic()
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 

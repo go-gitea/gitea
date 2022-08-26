@@ -7,7 +7,6 @@ package webhook
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
@@ -797,7 +796,7 @@ func (m *webhookNotifier) NotifyDeleteRef(pusher *user_model.User, repo *repo_mo
 	}
 }
 
-func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.HookReleaseAction) {
+func sendReleaseHook(doer *user_model.User, rel *repo_model.Release, action api.HookReleaseAction) {
 	if err := rel.LoadAttributes(); err != nil {
 		log.Error("LoadAttributes: %v", err)
 		return
@@ -814,15 +813,15 @@ func sendReleaseHook(doer *user_model.User, rel *models.Release, action api.Hook
 	}
 }
 
-func (m *webhookNotifier) NotifyNewRelease(rel *models.Release) {
+func (m *webhookNotifier) NotifyNewRelease(rel *repo_model.Release) {
 	sendReleaseHook(rel.Publisher, rel, api.HookReleasePublished)
 }
 
-func (m *webhookNotifier) NotifyUpdateRelease(doer *user_model.User, rel *models.Release) {
+func (m *webhookNotifier) NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release) {
 	sendReleaseHook(doer, rel, api.HookReleaseUpdated)
 }
 
-func (m *webhookNotifier) NotifyDeleteRelease(doer *user_model.User, rel *models.Release) {
+func (m *webhookNotifier) NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release) {
 	sendReleaseHook(doer, rel, api.HookReleaseDeleted)
 }
 
