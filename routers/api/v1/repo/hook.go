@@ -141,7 +141,7 @@ func TestHook(ctx *context.APIContext) {
 	//   required: true
 	// - name: ref
 	//   in: query
-	//   description: "The name of the commit/branch/tag. Default the repository’s default branch (usually master)"
+	//   description: "The name of the commit/branch/tag, indicates which commit will be loaded to the webhook payload."
 	//   type: string
 	//   required: false
 	// responses:
