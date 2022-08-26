@@ -18,14 +18,14 @@
 							<strong>{{.LatestCommit.Author.Name}}</strong>
 						{{end}}
 					{{end}}
-					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified }} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
+					<a rel="nofollow" class="ui sha label {{if .LatestCommit.Signature}} isSigned {{if .LatestCommitVerification.Verified}} isVerified{{if eq .LatestCommitVerification.TrustStatus "trusted"}}{{else if eq .LatestCommitVerification.TrustStatus "untrusted"}}Untrusted{{else}}Unmatched{{end}}{{else if .LatestCommitVerification.Warning}} isWarning{{end}}{{end}}" href="{{.RepoLink}}/commit/{{PathEscape .LatestCommit.ID.String}}">
 						<span class="shortsha">{{ShortSha .LatestCommit.ID.String}}</span>
 						{{if .LatestCommit.Signature}}
 							{{template "repo/shabox_badge" dict "root" $ "verification" .LatestCommitVerification}}
 						{{end}}
 					</a>
 					{{template "repo/commit_statuses" dict "Status" .LatestCommitStatus "Statuses" .LatestCommitStatuses "root" $}}
-					{{ $commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String) }}
+					{{$commitLink:= printf "%s/commit/%s" .RepoLink (PathEscape .LatestCommit.ID.String)}}
 					<span class="grey commit-summary" title="{{.LatestCommit.Summary}}"><span class="message-wrapper">{{RenderCommitMessageLinkSubject $.Context .LatestCommit.Message $.RepoLink $commitLink $.Repository.ComposeMetas}}</span>
 						{{if IsMultilineCommitMessage .LatestCommit.Message}}
 							<button class="ui button ellipsis-button" aria-expanded="false">...</button>

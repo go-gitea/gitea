@@ -1,6 +1,6 @@
 <div class="item">
 	<div class="df ac">
-		<div class="icon ml-3 mr-3">{{if eq .Process.Type "request"}}{{svg "octicon-globe" 16 }}{{else if eq .Process.Type "system"}}{{svg "octicon-cpu" 16 }}{{else}}{{svg "octicon-terminal" 16 }}{{end}}</div>
+		<div class="icon ml-3 mr-3">{{if eq .Process.Type "request"}}{{svg "octicon-globe" 16}}{{else if eq .Process.Type "system"}}{{svg "octicon-cpu" 16}}{{else}}{{svg "octicon-terminal" 16}}{{end}}</div>
 		<div class="content f1">
 			<div class="header">{{.Process.Description}}</div>
 			<div class="description"><span title="{{DateFmtLong .Process.Start}}">{{TimeSince .Process.Start .root.locale}}</span></div>

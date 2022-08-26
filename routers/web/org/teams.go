@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/routers/utils"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/mailer"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 const (
@@ -237,7 +238,7 @@ func TeamsRepoAction(ctx *context.Context) {
 			ctx.ServerError("GetRepositoryByName", err)
 			return
 		}
-		err = models.AddRepository(ctx.Org.Team, repo)
+		err = org_service.TeamAddRepository(ctx.Org.Team, repo)
 	case "remove":
 		err = models.RemoveRepository(ctx.Org.Team, ctx.FormInt64("repoid"))
 	case "addall":
