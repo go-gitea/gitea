@@ -8,7 +8,6 @@ package organization
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -45,7 +45,7 @@ func (err ErrTeamAlreadyExist) Error() string {
 }
 
 func (err ErrTeamAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrTeamNotExist represents a "TeamNotExist" error
@@ -66,7 +66,7 @@ func (err ErrTeamNotExist) Error() string {
 }
 
 func (err ErrTeamNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // OwnerTeamName return the owner team name

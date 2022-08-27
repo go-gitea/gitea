@@ -6,9 +6,10 @@ package git
 
 import (
 	"fmt"
-	"io/fs"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrExecTimeout error when exec timed out
@@ -43,7 +44,7 @@ func (err ErrNotExist) Error() string {
 }
 
 func (err ErrNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrBadLink entry.FollowLink error
@@ -93,7 +94,7 @@ func (err ErrBranchNotExist) Error() string {
 }
 
 func (err ErrBranchNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrPushOutOfDate represents an error if merging fails due to unrelated histories

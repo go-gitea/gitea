@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"net/mail"
 	"regexp"
 	"strings"
@@ -42,7 +41,7 @@ func (err ErrEmailCharIsNotSupported) Error() string {
 }
 
 func (err ErrEmailCharIsNotSupported) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
@@ -61,7 +60,7 @@ func (err ErrEmailInvalid) Error() string {
 }
 
 func (err ErrEmailInvalid) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrEmailAlreadyUsed represents a "EmailAlreadyUsed" kind of error.
@@ -80,7 +79,7 @@ func (err ErrEmailAlreadyUsed) Error() string {
 }
 
 func (err ErrEmailAlreadyUsed) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrEmailAddressNotExist email address not exist
@@ -99,7 +98,7 @@ func (err ErrEmailAddressNotExist) Error() string {
 }
 
 func (err ErrEmailAddressNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrPrimaryEmailCannotDelete primary email address cannot be deleted
@@ -118,7 +117,7 @@ func (err ErrPrimaryEmailCannotDelete) Error() string {
 }
 
 func (err ErrPrimaryEmailCannotDelete) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // EmailAddress is the list of all email addresses of a user. It also contains the

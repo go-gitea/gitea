@@ -7,7 +7,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 	"time"
 
@@ -65,7 +64,7 @@ func (err ErrReachLimitOfRepo) Error() string {
 }
 
 func (err ErrReachLimitOfRepo) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
@@ -85,7 +84,7 @@ func (err ErrRepoAlreadyExist) Error() string {
 }
 
 func (err ErrRepoAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
@@ -105,7 +104,7 @@ func (err ErrRepoFilesAlreadyExist) Error() string {
 }
 
 func (err ErrRepoFilesAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // CheckCreateRepository check if could created a repository

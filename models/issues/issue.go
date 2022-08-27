@@ -8,7 +8,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"regexp"
 	"sort"
 	"strconv"
@@ -54,7 +53,7 @@ func (err ErrIssueNotExist) Error() string {
 }
 
 func (err ErrIssueNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.

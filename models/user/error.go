@@ -6,7 +6,8 @@ package user
 
 import (
 	"fmt"
-	"io/fs"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 //  ____ ___
@@ -33,7 +34,7 @@ func (err ErrUserAlreadyExist) Error() string {
 
 // Unwrap unwraps this error as a ErrExist error
 func (err ErrUserAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrUserNotExist represents a "UserNotExist" kind of error.
@@ -55,7 +56,7 @@ func (err ErrUserNotExist) Error() string {
 
 // Unwrap unwraps this error as a ErrNotExist error
 func (err ErrUserNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrUserProhibitLogin represents a "ErrUserProhibitLogin" kind of error.
@@ -76,7 +77,7 @@ func (err ErrUserProhibitLogin) Error() string {
 
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserProhibitLogin) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrUserInactive represents a "ErrUserInactive" kind of error.
@@ -97,5 +98,5 @@ func (err ErrUserInactive) Error() string {
 
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserInactive) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }

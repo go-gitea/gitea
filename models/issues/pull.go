@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -48,7 +47,7 @@ func (err ErrPullRequestNotExist) Error() string {
 }
 
 func (err ErrPullRequestNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error
@@ -74,7 +73,7 @@ func (err ErrPullRequestAlreadyExists) Error() string {
 }
 
 func (err ErrPullRequestAlreadyExists) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error

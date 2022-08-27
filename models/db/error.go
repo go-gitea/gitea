@@ -6,7 +6,8 @@ package db
 
 import (
 	"fmt"
-	"io/fs"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrCancelled represents an error due to context cancellation
@@ -70,5 +71,5 @@ func (err ErrNotExist) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }

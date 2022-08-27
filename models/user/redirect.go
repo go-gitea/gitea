@@ -7,10 +7,10 @@ package user
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrUserRedirectNotExist represents a "UserRedirectNotExist" kind of error.
@@ -29,7 +29,7 @@ func (err ErrUserRedirectNotExist) Error() string {
 }
 
 func (err ErrUserRedirectNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Redirect represents that a user name should be redirected to another

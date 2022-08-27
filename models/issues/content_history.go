@@ -7,12 +7,12 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/avatars"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -203,7 +203,7 @@ func (err ErrIssueContentHistoryNotExist) Error() string {
 }
 
 func (err ErrIssueContentHistoryNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // GetIssueContentHistoryByID get issue content history

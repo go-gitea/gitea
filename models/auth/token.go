@@ -8,7 +8,6 @@ package auth
 import (
 	"crypto/subtle"
 	"fmt"
-	"io/fs"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -37,7 +36,7 @@ func (err ErrAccessTokenNotExist) Error() string {
 }
 
 func (err ErrAccessTokenNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
@@ -54,7 +53,7 @@ func (err ErrAccessTokenEmpty) Error() string {
 }
 
 func (err ErrAccessTokenEmpty) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 var successfulAccessTokenCache *lru.Cache

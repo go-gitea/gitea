@@ -7,7 +7,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 	"time"
 
@@ -41,7 +40,7 @@ func (err ErrForkAlreadyExist) Error() string {
 }
 
 func (err ErrForkAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ForkRepoOptions contains the fork repository options

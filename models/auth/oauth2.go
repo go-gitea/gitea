@@ -10,7 +10,6 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	"io/fs"
 	"net/url"
 	"strings"
 
@@ -473,7 +472,7 @@ type ErrOAuthClientIDInvalid struct {
 	ClientID string
 }
 
-// IsErrOauthClientIDInvalid checks if an error is a ErrReviewNotExist.
+// IsErrOauthClientIDInvalid checks if an error is a ErrOAuthClientIDInvalid.
 func IsErrOauthClientIDInvalid(err error) bool {
 	_, ok := err.(ErrOAuthClientIDInvalid)
 	return ok
@@ -486,7 +485,7 @@ func (err ErrOAuthClientIDInvalid) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrOAuthClientIDInvalid) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrOAuthApplicationNotFound will be thrown if id cannot be found
@@ -507,7 +506,7 @@ func (err ErrOAuthApplicationNotFound) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrOAuthApplicationNotFound) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // GetActiveOAuth2ProviderSources returns all actived LoginOAuth2 sources

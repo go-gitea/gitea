@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrOpenIDNotExist openid is not known
@@ -67,7 +67,7 @@ func (err ErrOpenIDAlreadyUsed) Error() string {
 }
 
 func (err ErrOpenIDAlreadyUsed) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.

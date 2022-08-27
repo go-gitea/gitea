@@ -7,7 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 	"time"
 
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -41,7 +41,7 @@ func (err ErrMilestoneNotExist) Error() string {
 }
 
 func (err ErrMilestoneNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Milestone represents a milestone of repository.

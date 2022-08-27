@@ -7,10 +7,10 @@ package models
 
 import (
 	"fmt"
-	"io/fs"
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
@@ -76,7 +76,7 @@ func IsErrNoPendingTransfer(err error) bool {
 }
 
 func (err ErrNoPendingRepoTransfer) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrRepoTransferInProgress represents the state of a repository that has an
@@ -97,7 +97,7 @@ func (err ErrRepoTransferInProgress) Error() string {
 }
 
 func (err ErrRepoTransferInProgress) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
@@ -134,7 +134,7 @@ func (err *ErrInvalidCloneAddr) Error() string {
 }
 
 func (err *ErrInvalidCloneAddr) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrUpdateTaskNotExist represents a "UpdateTaskNotExist" kind of error.
@@ -153,7 +153,7 @@ func (err ErrUpdateTaskNotExist) Error() string {
 }
 
 func (err ErrUpdateTaskNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -172,7 +172,7 @@ func (err ErrInvalidTagName) Error() string {
 }
 
 func (err ErrInvalidTagName) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrProtectedTagName represents a "ProtectedTagName" kind of error.
@@ -191,7 +191,7 @@ func (err ErrProtectedTagName) Error() string {
 }
 
 func (err ErrProtectedTagName) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
@@ -210,7 +210,7 @@ func (err ErrRepoFileAlreadyExists) Error() string {
 }
 
 func (err ErrRepoFileAlreadyExists) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
@@ -230,7 +230,7 @@ func (err ErrRepoFileDoesNotExist) Error() string {
 }
 
 func (err ErrRepoFileDoesNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrFilenameInvalid represents a "FilenameInvalid" kind of error.
@@ -249,7 +249,7 @@ func (err ErrFilenameInvalid) Error() string {
 }
 
 func (err ErrFilenameInvalid) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrUserCannotCommit represents "UserCannotCommit" kind of error.
@@ -268,7 +268,7 @@ func (err ErrUserCannotCommit) Error() string {
 }
 
 func (err ErrUserCannotCommit) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrFilePathInvalid represents a "FilePathInvalid" kind of error.
@@ -293,7 +293,7 @@ func (err ErrFilePathInvalid) Error() string {
 }
 
 func (err ErrFilePathInvalid) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrFilePathProtected represents a "FilePathProtected" kind of error.
@@ -316,7 +316,7 @@ func (err ErrFilePathProtected) Error() string {
 }
 
 func (err ErrFilePathProtected) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // __________                             .__
@@ -342,7 +342,7 @@ func (err ErrBranchDoesNotExist) Error() string {
 }
 
 func (err ErrBranchDoesNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
@@ -361,7 +361,7 @@ func (err ErrBranchAlreadyExists) Error() string {
 }
 
 func (err ErrBranchAlreadyExists) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrBranchNameConflict represents an error that branch name conflicts with other branch.
@@ -380,7 +380,7 @@ func (err ErrBranchNameConflict) Error() string {
 }
 
 func (err ErrBranchNameConflict) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrBranchesEqual represents an error that branch name conflicts with other branch.
@@ -400,7 +400,7 @@ func (err ErrBranchesEqual) Error() string {
 }
 
 func (err ErrBranchesEqual) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
@@ -419,7 +419,7 @@ func (err ErrDisallowedToMerge) Error() string {
 }
 
 func (err ErrDisallowedToMerge) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrTagAlreadyExists represents an error that tag with such name already exists.
@@ -438,7 +438,7 @@ func (err ErrTagAlreadyExists) Error() string {
 }
 
 func (err ErrTagAlreadyExists) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
@@ -474,7 +474,7 @@ func (err ErrSHANotFound) Error() string {
 }
 
 func (err ErrSHANotFound) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrCommitIDDoesNotMatch represents a "CommitIDDoesNotMatch" kind of error.
@@ -524,7 +524,7 @@ func (err ErrInvalidMergeStyle) Error() string {
 }
 
 func (err ErrInvalidMergeStyle) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrMergeConflicts represents an error if merging fails with a conflict

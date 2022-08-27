@@ -8,7 +8,6 @@ package webhook
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -43,7 +42,7 @@ func (err ErrWebhookNotExist) Error() string {
 }
 
 func (err ErrWebhookNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
@@ -63,7 +62,7 @@ func (err ErrHookTaskNotExist) Error() string {
 }
 
 func (err ErrHookTaskNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // HookContentType is the content type of a web hook

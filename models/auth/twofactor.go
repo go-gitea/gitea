@@ -11,7 +11,6 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/secret"
@@ -44,7 +43,7 @@ func (err ErrTwoFactorNotEnrolled) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrTwoFactorNotEnrolled) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // TwoFactor represents a two-factor authentication token.

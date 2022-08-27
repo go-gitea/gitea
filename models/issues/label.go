@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"math"
 	"regexp"
 	"strconv"
@@ -40,7 +39,7 @@ func (err ErrRepoLabelNotExist) Error() string {
 }
 
 func (err ErrRepoLabelNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrOrgLabelNotExist represents a "OrgLabelNotExist" kind of error.
@@ -60,7 +59,7 @@ func (err ErrOrgLabelNotExist) Error() string {
 }
 
 func (err ErrOrgLabelNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrLabelNotExist represents a "LabelNotExist" kind of error.
@@ -79,7 +78,7 @@ func (err ErrLabelNotExist) Error() string {
 }
 
 func (err ErrLabelNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // LabelColorPattern is a regexp witch can validate LabelColor

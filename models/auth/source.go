@@ -7,12 +7,12 @@ package auth
 
 import (
 	"fmt"
-	"io/fs"
 	"reflect"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -369,7 +369,7 @@ func (err ErrSourceNotExist) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrSourceNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
@@ -389,7 +389,7 @@ func (err ErrSourceAlreadyExist) Error() string {
 
 // Unwrap unwraps this as a ErrExist err
 func (err ErrSourceAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrSourceInUse represents a "SourceInUse" kind of error.

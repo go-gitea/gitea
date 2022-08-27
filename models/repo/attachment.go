@@ -7,7 +7,6 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"net/url"
 	"path"
 
@@ -15,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -85,7 +85,7 @@ func (err ErrAttachmentNotExist) Error() string {
 }
 
 func (err ErrAttachmentNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // GetAttachmentByID returns attachment by given id

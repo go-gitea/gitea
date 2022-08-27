@@ -7,11 +7,11 @@ package auth
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"github.com/duo-labs/webauthn/webauthn"
 	"xorm.io/xorm"
@@ -32,7 +32,7 @@ func (err ErrWebAuthnCredentialNotExist) Error() string {
 
 // Unwrap unwraps this as a ErrNotExist err
 func (err ErrWebAuthnCredentialNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // IsErrWebAuthnCredentialNotExist checks if an error is a ErrWebAuthnCredentialNotExist.

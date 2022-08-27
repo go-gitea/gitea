@@ -8,7 +8,6 @@ package repo
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"mime/multipart"
 	"os"
 	"path"
@@ -38,7 +37,7 @@ func (err ErrUploadNotExist) Error() string {
 }
 
 func (err ErrUploadNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Upload represent a uploaded file to a repo to be deleted when moved

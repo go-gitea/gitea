@@ -7,12 +7,12 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"regexp"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -56,7 +56,7 @@ func (err ErrTopicNotExist) Error() string {
 }
 
 func (err ErrTopicNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ValidateTopic checks a topic by length and match pattern rules

@@ -7,7 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -27,7 +26,7 @@ func (err ErrIssueStopwatchNotExist) Error() string {
 }
 
 func (err ErrIssueStopwatchNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrIssueStopwatchAlreadyExist represents an error that stopwatch is already exist
@@ -41,7 +40,7 @@ func (err ErrIssueStopwatchAlreadyExist) Error() string {
 }
 
 func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.

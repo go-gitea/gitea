@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"io/fs"
 	"path/filepath"
 	"strings"
 
@@ -32,7 +31,7 @@ func (err ErrWikiAlreadyExist) Error() string {
 }
 
 func (err ErrWikiAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrWikiReservedName represents a reserved name error.
@@ -51,7 +50,7 @@ func (err ErrWikiReservedName) Error() string {
 }
 
 func (err ErrWikiReservedName) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrWikiInvalidFileName represents an invalid wiki file name.
@@ -70,7 +69,7 @@ func (err ErrWikiInvalidFileName) Error() string {
 }
 
 func (err ErrWikiInvalidFileName) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.

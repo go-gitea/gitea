@@ -7,7 +7,6 @@ package admin
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -169,7 +168,7 @@ func (err ErrTaskDoesNotExist) Error() string {
 }
 
 func (err ErrTaskDoesNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // GetMigratingTask returns the migrating task by repo's id

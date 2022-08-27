@@ -7,10 +7,10 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrRedirectNotExist represents a "RedirectNotExist" kind of error.
@@ -30,7 +30,7 @@ func (err ErrRedirectNotExist) Error() string {
 }
 
 func (err ErrRedirectNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Redirect represents that a repo name should be redirected to another

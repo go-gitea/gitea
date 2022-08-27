@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -16,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,7 +36,7 @@ func (err ErrForbiddenIssueReaction) Error() string {
 }
 
 func (err ErrForbiddenIssueReaction) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
@@ -55,7 +55,7 @@ func (err ErrReactionAlreadyExist) Error() string {
 }
 
 func (err ErrReactionAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // Reaction represents a reactions on issues and comments.

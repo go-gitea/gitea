@@ -9,7 +9,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 	"sort"
 	"strconv"
 	"strings"
@@ -39,7 +38,7 @@ func (err ErrReleaseAlreadyExist) Error() string {
 }
 
 func (err ErrReleaseAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
@@ -59,7 +58,7 @@ func (err ErrReleaseNotExist) Error() string {
 }
 
 func (err ErrReleaseNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Release represents a release of repository.

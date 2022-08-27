@@ -7,7 +7,6 @@ package git
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -39,7 +39,7 @@ func (err ErrLFSLockNotExist) Error() string {
 }
 
 func (err ErrLFSLockNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
@@ -63,7 +63,7 @@ func (err ErrLFSUnauthorizedAction) Error() string {
 }
 
 func (err ErrLFSUnauthorizedAction) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
@@ -83,7 +83,7 @@ func (err ErrLFSLockAlreadyExist) Error() string {
 }
 
 func (err ErrLFSLockAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
@@ -104,7 +104,7 @@ func (err ErrLFSFileLocked) Error() string {
 }
 
 func (err ErrLFSFileLocked) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // LFSMetaObject stores metadata for LFS tracked files.

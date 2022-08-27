@@ -7,10 +7,10 @@ package user
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -33,7 +33,7 @@ func (err ErrExternalLoginUserAlreadyExist) Error() string {
 }
 
 func (err ErrExternalLoginUserAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
@@ -53,7 +53,7 @@ func (err ErrExternalLoginUserNotExist) Error() string {
 }
 
 func (err ErrExternalLoginUserNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ExternalLoginUser makes the connecting between some existing user and additional external login sources

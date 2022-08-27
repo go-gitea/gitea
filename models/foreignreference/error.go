@@ -6,7 +6,8 @@ package foreignreference
 
 import (
 	"fmt"
-	"io/fs"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrLocalIndexNotExist represents a "LocalIndexNotExist" kind of error.
@@ -27,7 +28,7 @@ func (err ErrLocalIndexNotExist) Error() string {
 }
 
 func (err ErrLocalIndexNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrForeignIndexNotExist represents a "ForeignIndexNotExist" kind of error.
@@ -48,5 +49,5 @@ func (err ErrForeignIndexNotExist) Error() string {
 }
 
 func (err ErrForeignIndexNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }

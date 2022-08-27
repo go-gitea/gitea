@@ -8,7 +8,6 @@ package organization
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -19,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -47,7 +47,7 @@ func (err ErrOrgNotExist) Error() string {
 }
 
 func (err ErrOrgNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
@@ -79,7 +79,7 @@ func (err ErrUserNotAllowedCreateOrg) Error() string {
 }
 
 func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // Organization represents an organization

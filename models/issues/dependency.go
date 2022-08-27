@@ -7,11 +7,11 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrDependencyExists represents a "DependencyAlreadyExists" kind of error.
@@ -31,7 +31,7 @@ func (err ErrDependencyExists) Error() string {
 }
 
 func (err ErrDependencyExists) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
@@ -51,7 +51,7 @@ func (err ErrDependencyNotExists) Error() string {
 }
 
 func (err ErrDependencyNotExists) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrCircularDependency represents a "DependencyCircular" kind of error.
@@ -101,7 +101,7 @@ func (err ErrUnknownDependencyType) Error() string {
 }
 
 func (err ErrUnknownDependencyType) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // IssueDependency represents an issue dependency

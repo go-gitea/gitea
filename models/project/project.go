@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/setting"
@@ -57,7 +56,7 @@ func (err ErrProjectNotExist) Error() string {
 }
 
 func (err ErrProjectNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
@@ -76,7 +75,7 @@ func (err ErrProjectBoardNotExist) Error() string {
 }
 
 func (err ErrProjectBoardNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // Project represents a project board

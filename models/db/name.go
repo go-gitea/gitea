@@ -6,10 +6,11 @@ package db
 
 import (
 	"fmt"
-	"io/fs"
 	"regexp"
 	"strings"
 	"unicode/utf8"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -27,7 +28,7 @@ func (err errNameEmpty) Error() string {
 }
 
 func (err errNameEmpty) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrNameReserved represents a "reserved name" error.
@@ -47,7 +48,7 @@ func (err ErrNameReserved) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNameReserved) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrNamePatternNotAllowed represents a "pattern not allowed" error.
@@ -67,7 +68,7 @@ func (err ErrNamePatternNotAllowed) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNamePatternNotAllowed) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ErrNameCharsNotAllowed represents a "character not allowed in name" error.
@@ -87,7 +88,7 @@ func (err ErrNameCharsNotAllowed) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNameCharsNotAllowed) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // IsUsableName checks if name is reserved or pattern of name is not allowed

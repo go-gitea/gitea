@@ -7,7 +7,6 @@ package issues
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
@@ -41,7 +40,7 @@ func (err ErrReviewNotExist) Error() string {
 }
 
 func (err ErrReviewNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrNotValidReviewRequest an not allowed review request modify
@@ -65,7 +64,7 @@ func (err ErrNotValidReviewRequest) Error() string {
 }
 
 func (err ErrNotValidReviewRequest) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }
 
 // ReviewType defines the sort of feedback a review gives

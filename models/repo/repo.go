@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"net"
 	"net/url"
 	"path/filepath"
@@ -45,7 +44,7 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 var (
@@ -650,7 +649,7 @@ func (err ErrRepoNotExist) Error() string {
 
 // Unwrap unwraps this error as a ErrNotExist error
 func (err ErrRepoNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name

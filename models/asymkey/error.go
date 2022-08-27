@@ -6,7 +6,8 @@ package asymkey
 
 import (
 	"fmt"
-	"io/fs"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrKeyUnableVerify represents a "KeyUnableVerify" kind of error.
@@ -40,7 +41,7 @@ func (err ErrKeyNotExist) Error() string {
 }
 
 func (err ErrKeyNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrKeyAlreadyExist represents a "KeyAlreadyExist" kind of error.
@@ -62,7 +63,7 @@ func (err ErrKeyAlreadyExist) Error() string {
 }
 
 func (err ErrKeyAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrKeyNameAlreadyUsed represents a "KeyNameAlreadyUsed" kind of error.
@@ -82,7 +83,7 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 }
 
 func (err ErrKeyNameAlreadyUsed) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
@@ -148,7 +149,7 @@ func (err ErrGPGKeyNotExist) Error() string {
 }
 
 func (err ErrGPGKeyNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrGPGKeyImportNotExist represents a "GPGKeyImportNotExist" kind of error.
@@ -167,7 +168,7 @@ func (err ErrGPGKeyImportNotExist) Error() string {
 }
 
 func (err ErrGPGKeyImportNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrGPGKeyIDAlreadyUsed represents a "GPGKeyIDAlreadyUsed" kind of error.
@@ -186,7 +187,7 @@ func (err ErrGPGKeyIDAlreadyUsed) Error() string {
 }
 
 func (err ErrGPGKeyIDAlreadyUsed) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
@@ -208,7 +209,7 @@ func (err ErrGPGKeyAccessDenied) Error() string {
 }
 
 func (err ErrGPGKeyAccessDenied) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
@@ -230,7 +231,7 @@ func (err ErrKeyAccessDenied) Error() string {
 }
 
 func (err ErrKeyAccessDenied) Unwrap() error {
-	return fs.ErrPermission
+	return util.ErrPermission
 }
 
 // ErrDeployKeyNotExist represents a "DeployKeyNotExist" kind of error.
@@ -251,7 +252,7 @@ func (err ErrDeployKeyNotExist) Error() string {
 }
 
 func (err ErrDeployKeyNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrDeployKeyAlreadyExist represents a "DeployKeyAlreadyExist" kind of error.
@@ -271,7 +272,7 @@ func (err ErrDeployKeyAlreadyExist) Error() string {
 }
 
 func (err ErrDeployKeyAlreadyExist) Unwrap() error {
-	return fs.ErrExist
+	return util.ErrExist
 }
 
 // ErrDeployKeyNameAlreadyUsed represents a "DeployKeyNameAlreadyUsed" kind of error.
@@ -291,7 +292,7 @@ func (err ErrDeployKeyNameAlreadyUsed) Error() string {
 }
 
 func (err ErrDeployKeyNameAlreadyUsed) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // ErrSSHInvalidTokenSignature represents a "ErrSSHInvalidTokenSignature" kind of error.
@@ -311,5 +312,5 @@ func (err ErrSSHInvalidTokenSignature) Error() string {
 }
 
 func (err ErrSSHInvalidTokenSignature) Unwrap() error {
-	return fs.ErrInvalid
+	return util.ErrInvalid
 }

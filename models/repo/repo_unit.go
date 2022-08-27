@@ -7,13 +7,13 @@ package repo
 import (
 	"context"
 	"fmt"
-	"io/fs"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -35,7 +35,7 @@ func (err ErrUnitTypeNotExist) Error() string {
 }
 
 func (err ErrUnitTypeNotExist) Unwrap() error {
-	return fs.ErrNotExist
+	return util.ErrNotExist
 }
 
 // RepoUnit describes all units of a repository
