@@ -30,7 +30,7 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 	if !setting.IsProd {
 		rendererType = "auto-reloading"
 	}
-	log.Log(1, log.DEBUG, "Creating " + rendererType + " HTML Renderer")
+	log.Log(1, log.DEBUG, "Creating "+rendererType+" HTML Renderer")
 
 	renderer := render.New(render.Options{
 		Extensions:                []string{".tmpl"},
