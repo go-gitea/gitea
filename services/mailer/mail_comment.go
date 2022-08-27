@@ -7,7 +7,7 @@ package mailer
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
@@ -15,7 +15,7 @@ import (
 )
 
 // MailParticipantsComment sends new comment emails to repository watchers and mentioned people.
-func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opType models.ActionType, issue *issues_model.Issue, mentions []*user_model.User) error {
+func MailParticipantsComment(ctx context.Context, c *issues_model.Comment, opType activities_model.ActionType, issue *issues_model.Issue, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
@@ -53,7 +53,7 @@ func MailMentionsComment(ctx context.Context, pr *issues_model.PullRequest, c *i
 			Context:    ctx,
 			Issue:      pr.Issue,
 			Doer:       c.Poster,
-			ActionType: models.ActionCommentPull,
+			ActionType: activities_model.ActionCommentPull,
 			Content:    c.Content,
 			Comment:    c,
 		}, mentions, visited, true); err != nil {

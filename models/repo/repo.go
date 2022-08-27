@@ -23,6 +23,8 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
 // ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
@@ -783,4 +785,16 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 		}
 	}
 	return nil
+}
+
+// CountNullArchivedRepository counts the number of repositories with is_archived is null
+func CountNullArchivedRepository() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+}
+
+// FixNullArchivedRepository sets is_archived to false where it is null
+func FixNullArchivedRepository() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+		IsArchived: false,
+	})
 }

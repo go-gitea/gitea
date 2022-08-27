@@ -15,35 +15,11 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
-
-// IterateRepository iterate repositories
-func IterateRepository(f func(repo *Repository) error) error {
-	var start int
-	batchSize := setting.Database.IterateBufferSize
-	sess := db.GetEngine(db.DefaultContext)
-	for {
-		repos := make([]*Repository, 0, batchSize)
-		if err := sess.Limit(batchSize, start).Find(&repos); err != nil {
-			return err
-		}
-		if len(repos) == 0 {
-			return nil
-		}
-		start += len(repos)
-
-		for _, repo := range repos {
-			if err := f(repo); err != nil {
-				return err
-			}
-		}
-	}
-}
 
 // FindReposMapByIDs find repos as map
 func FindReposMapByIDs(repoIDs []int64, res map[int64]*Repository) error {
@@ -187,6 +163,10 @@ type SearchRepoOptions struct {
 	HasMilestones util.OptionalBool
 	// LowerNames represents valid lower names to restrict to
 	LowerNames []string
+	// When specified true, apply some filters over the conditions:
+	// - Don't show forks, when opts.Fork is OptionalBoolNone.
+	// - Do not display repositories that don't have a description, an icon and topics.
+	OnlyShowRelevant bool
 }
 
 // SearchOrderBy is used to sort the result
@@ -487,8 +467,12 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 			Where(builder.Eq{"language": opts.Language}).And(builder.Eq{"is_primary": true})))
 	}
 
-	if opts.Fork != util.OptionalBoolNone {
-		cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+	if opts.Fork != util.OptionalBoolNone || opts.OnlyShowRelevant {
+		if opts.OnlyShowRelevant && opts.Fork == util.OptionalBoolNone {
+			cond = cond.And(builder.Eq{"is_fork": false})
+		} else {
+			cond = cond.And(builder.Eq{"is_fork": opts.Fork == util.OptionalBoolTrue})
+		}
 	}
 
 	if opts.Mirror != util.OptionalBoolNone {
@@ -508,6 +492,25 @@ func SearchRepositoryCondition(opts *SearchRepoOptions) builder.Cond {
 		cond = cond.And(builder.Gt{"num_milestones": 0})
 	case util.OptionalBoolFalse:
 		cond = cond.And(builder.Eq{"num_milestones": 0}.Or(builder.IsNull{"num_milestones"}))
+	}
+
+	if opts.OnlyShowRelevant {
+		// Only show a repo that either has a topic or description.
+		subQueryCond := builder.NewCond()
+
+		// Topic checking. Topics is non-null.
+		subQueryCond = subQueryCond.Or(builder.And(builder.Neq{"topics": "null"}, builder.Neq{"topics": "[]"}))
+
+		// Description checking. Description not empty.
+		subQueryCond = subQueryCond.Or(builder.Neq{"description": ""})
+
+		// Repo has a avatar.
+		subQueryCond = subQueryCond.Or(builder.Neq{"avatar": ""})
+
+		// Always hide repo's that are empty.
+		subQueryCond = subQueryCond.And(builder.Eq{"is_empty": false})
+
+		cond = cond.And(subQueryCond)
 	}
 
 	return cond

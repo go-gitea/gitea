@@ -190,10 +190,6 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 }
 
 func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := git.InitOnceWithSync(ctx); err != nil {
-		return err
-	}
-
 	numRepos := 0
 	numNeedUpdate := 0
 	numWritten := 0

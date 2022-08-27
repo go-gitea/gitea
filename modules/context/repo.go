@@ -118,7 +118,8 @@ type CanCommitToBranchResults struct {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected for push
+//
+// and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
@@ -523,14 +524,14 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
+	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
 		IncludeTags: true,
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
-	ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -986,6 +987,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		}
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
+		ctx.Data["RefName"] = ctx.Repo.RefName
 		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID

@@ -99,6 +99,13 @@
 								<a class="{{if eq .SortType "farduedate"}}active{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&repos=[{{range $.RepoIDs}}{{.}}%2C{{end}}]&sort=farduedate&state={{$.State}}&q={{$.Keyword}}">{{.locale.Tr "repo.issues.filter_sort.farduedate"}}</a>
 							</div>
 						</div>
+						{{if .SingleRepoLink}}
+							{{if eq .SingleRepoAction "issue"}}
+								<a class="ui green button" href="{{.SingleRepoLink}}/issues/new/choose">{{.locale.Tr "repo.issues.new"}}</a>
+							{{else if eq .SingleRepoAction "pull"}}
+								<a class="ui green button" href="{{.SingleRepoLink}}/compare">{{.locale.Tr "repo.pulls.new"}}</a>
+							{{end}}
+						{{end}}
 					</div>
 				</div>
 				{{template "shared/issuelist" mergeinto . "listType" "dashboard"}}

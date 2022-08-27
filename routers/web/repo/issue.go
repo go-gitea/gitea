@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -133,7 +133,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 
 	var (
 		assigneeID        = ctx.FormInt64("assignee")
-		posterID          int64
+		posterID          = ctx.FormInt64("poster")
 		mentionedID       int64
 		reviewRequestedID int64
 		forceEmpty        bool
@@ -291,6 +291,12 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 		return
 	}
 
+	ctx.Data["Posters"], err = repo_model.GetIssuePosters(ctx, repo, isPullOption.IsTrue())
+	if err != nil {
+		ctx.ServerError("GetIssuePosters", err)
+		return
+	}
+
 	handleTeamMentions(ctx)
 	if ctx.Written() {
 		return
@@ -364,6 +370,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	ctx.Data["SortType"] = sortType
 	ctx.Data["MilestoneID"] = milestoneID
 	ctx.Data["AssigneeID"] = assigneeID
+	ctx.Data["PosterID"] = posterID
 	ctx.Data["IsShowClosed"] = isShowClosed
 	ctx.Data["Keyword"] = keyword
 	if isShowClosed {
@@ -379,6 +386,7 @@ func issues(ctx *context.Context, milestoneID, projectID int64, isPullOption uti
 	pager.AddParam(ctx, "labels", "SelectLabels")
 	pager.AddParam(ctx, "milestone", "MilestoneID")
 	pager.AddParam(ctx, "assignee", "AssigneeID")
+	pager.AddParam(ctx, "poster", "PosterID")
 	ctx.Data["Page"] = pager
 }
 
@@ -1305,7 +1313,7 @@ func ViewIssue(ctx *context.Context) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = models.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return
 		}

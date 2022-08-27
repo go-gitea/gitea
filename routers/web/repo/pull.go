@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -295,7 +296,7 @@ func checkPullInfo(ctx *context.Context) *issues_model.Issue {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = models.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
+		if err = activities_model.SetIssueReadBy(ctx, issue.ID, ctx.Doer.ID); err != nil {
 			ctx.ServerError("ReadBy", err)
 			return nil
 		}
@@ -510,6 +511,8 @@ func PrepareViewPullInfo(ctx *context.Context, issue *issues_model.Issue) *git.C
 			return nil
 		}
 		ctx.Data["GetCommitMessages"] = pull_service.GetSquashMergeCommitMessages(ctx, pull)
+	} else {
+		ctx.Data["GetCommitMessages"] = ""
 	}
 
 	sha, err := baseGitRepo.GetRefCommitID(pull.GetGitRefName())

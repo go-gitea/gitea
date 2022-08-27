@@ -52,11 +52,11 @@ func TestAPITopicSearch(t *testing.T) {
 
 func TestAPIRepoTopic(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User) // owner of repo2
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User) // owner of repo3
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User) // write access to repo 3
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
-	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3}).(*repo_model.Repository)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}) // owner of repo2
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}) // owner of repo3
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}) // write access to repo 3
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
+	repo3 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 3})
 
 	// Get user2's token
 	token2 := getUserToken(t, user2.Name)

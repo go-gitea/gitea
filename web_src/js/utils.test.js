@@ -1,5 +1,6 @@
 import {
-  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch, prettyNumber,
+  basename, extname, isObject, uniq, stripTags, joinPaths, parseIssueHref, strSubMatch,
+  prettyNumber, parseUrl,
 } from './utils.js';
 
 test('basename', () => {
@@ -107,4 +108,16 @@ test('prettyNumber', () => {
   expect(prettyNumber(12345678, 'de-DE')).toEqual('12.345.678');
   expect(prettyNumber(12345678, 'be-BE')).toEqual('12 345 678');
   expect(prettyNumber(12345678, 'hi-IN')).toEqual('1,23,45,678');
+});
+
+test('parseUrl', () => {
+  expect(parseUrl('').pathname).toEqual('/');
+  expect(parseUrl('/path').pathname).toEqual('/path');
+  expect(parseUrl('/path?search').pathname).toEqual('/path');
+  expect(parseUrl('/path?search').search).toEqual('?search');
+  expect(parseUrl('/path?search#hash').hash).toEqual('#hash');
+  expect(parseUrl('https://localhost/path').pathname).toEqual('/path');
+  expect(parseUrl('https://localhost/path?search').pathname).toEqual('/path');
+  expect(parseUrl('https://localhost/path?search').search).toEqual('?search');
+  expect(parseUrl('https://localhost/path?search#hash').hash).toEqual('#hash');
 });

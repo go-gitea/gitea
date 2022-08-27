@@ -102,7 +102,7 @@ func RegistrationLeaf(ctx *context.Context) {
 	packageName := ctx.Params("id")
 	packageVersion := strings.TrimSuffix(ctx.Params("version"), ".json")
 
-	pv, err := packages_model.GetVersionByNameAndVersion(db.DefaultContext, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
+	pv, err := packages_model.GetVersionByNameAndVersion(ctx, ctx.Package.Owner.ID, packages_model.TypeNuGet, packageName, packageVersion)
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -179,7 +179,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // UploadPackage creates a new package with the metadata contained in the uploaded nupgk file
@@ -217,7 +217,7 @@ func UploadPackage(ctx *context.Context) {
 	)
 	if err != nil {
 		if err == packages_model.ErrDuplicatePackageVersion {
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 			return
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -274,7 +274,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		case packages_model.ErrPackageNotExist:
 			apiError(ctx, http.StatusNotFound, err)
 		case packages_model.ErrDuplicatePackageFile:
-			apiError(ctx, http.StatusBadRequest, err)
+			apiError(ctx, http.StatusConflict, err)
 		default:
 			apiError(ctx, http.StatusInternalServerError, err)
 		}
@@ -299,7 +299,7 @@ func UploadSymbolPackage(ctx *context.Context) {
 		if err != nil {
 			switch err {
 			case packages_model.ErrDuplicatePackageFile:
-				apiError(ctx, http.StatusBadRequest, err)
+				apiError(ctx, http.StatusConflict, err)
 			default:
 				apiError(ctx, http.StatusInternalServerError, err)
 			}
@@ -378,7 +378,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 		return
 	}
 
-	s, _, err := packages_service.GetPackageFileStream(ctx, pfs[0])
+	s, pf, err := packages_service.GetPackageFileStream(ctx, pfs[0])
 	if err != nil {
 		if err == packages_model.ErrPackageNotExist || err == packages_model.ErrPackageFileNotExist {
 			apiError(ctx, http.StatusNotFound, err)
@@ -389,7 +389,7 @@ func DownloadSymbolFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pfs[0].Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // DeletePackage hard deletes the package
@@ -414,4 +414,6 @@ func DeletePackage(ctx *context.Context) {
 		}
 		apiError(ctx, http.StatusInternalServerError, err)
 	}
+
+	ctx.Status(http.StatusNoContent)
 }
