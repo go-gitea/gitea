@@ -91,6 +91,11 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 	if err := ctx.Session.Set("uname", u.Name); err != nil {
 		return false, err
 	}
+	if twofa, _ := auth.GetTwoFactorByUID(u.ID); twofa != nil {
+		if err := ctx.Session.Set(auth_service.SessionKeyTwofaAuthed, true); err != nil {
+			return false, err
+		}
+	}
 	if err := ctx.Session.Release(); err != nil {
 		return false, err
 	}
@@ -311,6 +316,8 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 		return setting.AppSubURL + "/"
 	}
 
+	isTwofaAuthed := ctx.Session.Get("twofaUid") != nil
+
 	// Delete the openid, 2fa and linkaccount data
 	_ = ctx.Session.Delete("openid_verified_uri")
 	_ = ctx.Session.Delete("openid_signin_remember")
@@ -324,6 +331,11 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	}
 	if err := ctx.Session.Set("uname", u.Name); err != nil {
 		log.Error("Error setting uname %s session: %v", u.Name, err)
+	}
+	if isTwofaAuthed {
+		if err := ctx.Session.Set(auth_service.SessionKeyTwofaAuthed, true); err != nil {
+			log.Error("Error setting %s session: %v", auth_service.SessionKeyTwofaAuthed, err)
+		}
 	}
 	if err := ctx.Session.Release(); err != nil {
 		log.Error("Unable to store session: %v", err)

@@ -207,6 +207,7 @@ var (
 	PasswordHashAlgo                   string
 	PasswordCheckPwn                   bool
 	SuccessfulTokensCacheSize          int
+	EnforceTwoFactorAuth               bool
 
 	Camo = struct {
 		Enabled   bool
@@ -945,6 +946,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	CSRFCookieHTTPOnly = sec.Key("CSRF_COOKIE_HTTP_ONLY").MustBool(true)
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
+	EnforceTwoFactorAuth = sec.Key("ENFORCE_TWO_FACTOR_AUTH").MustBool(false)
 
 	InternalToken = loadInternalToken(sec)
 	if InstallLock && InternalToken == "" {

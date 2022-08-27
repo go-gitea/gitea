@@ -9,11 +9,13 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 )
 
 // Access represents the highest access level of a user to the repository. The only access type
@@ -36,6 +38,11 @@ func accessLevel(ctx context.Context, user *user_model.User, repo *repo_model.Re
 	restricted := false
 
 	if user != nil {
+		if setting.EnforceTwoFactorAuth {
+			if twoFactor, _ := auth.GetTwoFactorByUID(user.ID); twoFactor == nil {
+				return perm.AccessModeNone, nil
+			}
+		}
 		userID = user.ID
 		restricted = user.IsRestricted
 	}

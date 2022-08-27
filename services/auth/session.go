@@ -11,6 +11,13 @@ import (
 	"code.gitea.io/gitea/modules/log"
 )
 
+// The session keys used by different packages (in the future ...)
+const (
+	SessionKeyUID         = "uid"
+	SessionKeyUname       = "uname"
+	SessionKeyTwofaAuthed = "twofaAuthed"
+)
+
 // Ensure the struct implements the interface.
 var (
 	_ Method = &Session{}

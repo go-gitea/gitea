@@ -13,6 +13,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -22,6 +23,7 @@ func TestAccessLevel(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	user24 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
 	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
@@ -66,6 +68,19 @@ func TestAccessLevel(t *testing.T) {
 	level, err = access_model.AccessLevel(user29, repo24)
 	assert.NoError(t, err)
 	assert.Equal(t, perm_model.AccessModeRead, level)
+
+	// test enforced two-factor authentication
+	setting.EnforceTwoFactorAuth = true
+	{
+		level, err = access_model.AccessLevel(user2, repo1)
+		assert.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeNone, level)
+
+		level, err = access_model.AccessLevel(user24, repo1)
+		assert.NoError(t, err)
+		assert.Equal(t, perm_model.AccessModeRead, level)
+	}
+	setting.EnforceTwoFactorAuth = false
 }
 
 func TestHasAccess(t *testing.T) {
@@ -73,6 +88,7 @@ func TestHasAccess(t *testing.T) {
 
 	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+	user24 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 24})
 	// A public repository owned by User 2
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.False(t, repo1.IsPrivate)
@@ -92,6 +108,19 @@ func TestHasAccess(t *testing.T) {
 
 	_, err = access_model.HasAccess(db.DefaultContext, user2.ID, repo2)
 	assert.NoError(t, err)
+
+	// test enforced two-factor authentication
+	setting.EnforceTwoFactorAuth = true
+	{
+		has, err = access_model.HasAccess(db.DefaultContext, user1.ID, repo1)
+		assert.NoError(t, err)
+		assert.False(t, has)
+
+		has, err = access_model.HasAccess(db.DefaultContext, user24.ID, repo1)
+		assert.NoError(t, err)
+		assert.True(t, has)
+	}
+	setting.EnforceTwoFactorAuth = false
 }
 
 func TestRepository_RecalculateAccesses(t *testing.T) {

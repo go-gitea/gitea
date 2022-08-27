@@ -768,6 +768,10 @@ func Contexter() func(next http.Handler) http.Handler {
 			ctx.Data["ShowFooterBranding"] = setting.ShowFooterBranding
 			ctx.Data["ShowFooterVersion"] = setting.ShowFooterVersion
 
+			ctx.Data["ShowTwoFactorRequiredMessage"] = setting.EnforceTwoFactorAuth &&
+				ctx.Session.Get(auth.SessionKeyUID) != nil &&
+				ctx.Session.Get(auth.SessionKeyTwofaAuthed) == nil
+
 			ctx.Data["EnableSwagger"] = setting.API.EnableSwagger
 			ctx.Data["EnableOpenIDSignIn"] = setting.Service.EnableOpenIDSignIn
 			ctx.Data["DisableMigrations"] = setting.Repository.DisableMigrations

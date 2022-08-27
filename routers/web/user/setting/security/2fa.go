@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/web"
+	auth_service "code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/forms"
 
 	"github.com/pquerna/otp"
@@ -145,12 +146,21 @@ func twofaGenerateSecretAndQr(ctx *context.Context) bool {
 func EnrollTwoFactor(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
 	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if t != nil {
 		// already enrolled - we should redirect back!
 		log.Warn("Trying to re-enroll %-v in twofa when already enrolled", ctx.Doer)
 		ctx.Flash.Error(ctx.Tr("settings.twofa_is_enrolled"))
+
+		if ctx.Session.Get(auth_service.SessionKeyTwofaAuthed) == nil {
+			// in case a 2FA user is using an old session (the session doesn't know 2FA authed),
+			// he will be navigated to this page, we should update the session status
+			_ = ctx.Session.Set(auth_service.SessionKeyTwofaAuthed, true)
+			_ = ctx.Session.Release()
+		}
+
 		ctx.Redirect(setting.AppSubURL + "/user/settings/security")
 		return
 	}
@@ -171,6 +181,7 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.TwoFactorAuthForm)
 	ctx.Data["Title"] = ctx.Tr("settings")
 	ctx.Data["PageIsSettingsSecurity"] = true
+	ctx.Data["ShowTwoFactorRequiredMessage"] = false
 
 	t, err := auth.GetTwoFactorByUID(ctx.Doer.ID)
 	if t != nil {
@@ -232,6 +243,9 @@ func EnrollTwoFactorPost(ctx *context.Context) {
 	if err := ctx.Session.Delete("twofaUri"); err != nil {
 		// tolerate this failure - it's more important to continue
 		log.Error("Unable to delete twofaUri from the session: Error: %v", err)
+	}
+	if err := ctx.Session.Set(auth_service.SessionKeyTwofaAuthed, true); err != nil {
+		log.Error("Unable to set %s to session: Error: %v", auth_service.SessionKeyTwofaAuthed, err)
 	}
 	if err := ctx.Session.Release(); err != nil {
 		// tolerate this failure - it's more important to continue
