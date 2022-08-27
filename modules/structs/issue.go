@@ -7,6 +7,7 @@ package structs
 import (
 	"fmt"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -261,6 +262,11 @@ func (it *IssueTemplate) Fill(content []byte) error {
 			}{}
 			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
 				it.About = compatibleTemplate.About
+			}
+		}
+		for i, v := range it.Body {
+			if v.ID == "" {
+				v.ID = strconv.Itoa(i)
 			}
 		}
 	}

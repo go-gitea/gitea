@@ -775,7 +775,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 		ctx.Data[issueTemplateTitleKey] = template.Title
 		ctx.Data[ctxDataKey] = template.Content
 		if template.Type() == "yaml" {
-			ctx.Data[ctxDataKey+"Form"] = template // TODO use template.Body
+			ctx.Data[ctxDataKey+"Form"] = template // TODO: maybe use template.Body
 		}
 		labelIDs := make([]string, 0, len(template.Labels))
 		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
@@ -1037,6 +1037,19 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if form := ctx.Req.Form; form.Has("template-file") {
+		// If the issue submitted is a form, render it to Markdown
+		if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
+			ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
+			ctx.Data["Flash"] = ctx.Flash
+			NewIssue(ctx)
+			return
+		} else {
+			content = c
+		}
+	}
+
 	issue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1044,7 +1057,7 @@ func NewIssuePost(ctx *context.Context) {
 		PosterID:    ctx.Doer.ID,
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
-		Content:     form.Content,
+		Content:     content,
 		Ref:         form.Ref,
 	}
 
@@ -1075,6 +1088,72 @@ func NewIssuePost(ctx *context.Context) {
 	} else {
 		ctx.Redirect(issue.Link())
 	}
+}
+
+// TODO: new design
+// Renders the given form values to Markdown
+// Returns an empty string if user submitted a non-form issue
+func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, error) {
+	filename := form.Get("template-file")
+	template := api.IssueTemplate{
+		FileName: filename,
+	}
+	if templateContent, found := getFileContentFromDefaultBranch(ctx, form.Get("template-file")); !found {
+		return "", fmt.Errorf("template file %q not found", filename)
+	} else if err := template.Fill([]byte(templateContent)); err != nil {
+		return "", fmt.Errorf("fill template with %q: %w", filename, err)
+	}
+
+	// Render values
+	result := ""
+	for _, field := range template.Body {
+		if field.ID != "" {
+			// Get field label
+			label := field.Attributes["label"]
+			if label == "" {
+				label = field.ID
+			}
+
+			// Format the value into Markdown
+			if field.Type == "markdown" {
+				// Markdown blocks do not appear in output
+			} else if field.Type == "checkboxes" || (field.Type == "dropdown" && field.Attributes["multiple"] == true) {
+				result += fmt.Sprintf("### %s\n", label)
+				for i, option := range field.Attributes["options"].([]interface{}) {
+					// Get "checked" value
+					checkedStr := " "
+					isChecked := form.Get(fmt.Sprintf("form-field-%s-%d", field.ID, i)) == "on"
+					if isChecked {
+						checkedStr = "x"
+					} else if field.Type == "checkboxes" && (option.(map[interface{}]interface{})["required"] == true && !isChecked) {
+						return "", fmt.Errorf("checkbox #%d in field '%s' is required, but not checked", i, field.ID)
+					}
+
+					// Get label
+					var label string
+					if field.Type == "checkboxes" {
+						label = option.(map[interface{}]interface{})["label"].(string)
+					} else {
+						label = option.(string)
+					}
+					result += fmt.Sprintf("- [%s] %s\n", checkedStr, label)
+				}
+				result += "\n"
+			} else if field.Type == "input" || field.Type == "textarea" || field.Type == "dropdown" {
+				if renderType, ok := field.Attributes["render"]; ok {
+					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.ID))
+				} else {
+					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.ID))
+				}
+			} else {
+				// Template should have been validated at this point
+				// TODO: should be better implemented
+				panic(fmt.Errorf("Invalid field type: '%s'", field.Type))
+			}
+		}
+	}
+
+	return result, nil
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
