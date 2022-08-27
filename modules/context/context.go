@@ -358,14 +358,7 @@ func (ctx *Context) SetServeHeaders(filename string) {
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
-	modTime := time.Now()
-	for _, p := range params {
-		switch v := p.(type) {
-		case time.Time:
-			modTime = v
-		}
-	}
+func (ctx *Context) ServeContent(name string, r io.ReadSeeker, modTime time.Time) {
 	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
 }
@@ -380,15 +373,6 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	}
 	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
-}
-
-// ServeStream serves file via io stream
-func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.SetServeHeaders(name)
-	_, err := io.Copy(ctx.Resp, rd)
-	if err != nil {
-		ctx.ServerError("Download file failed", err)
-	}
 }
 
 // UploadStream returns the request body or the first form file

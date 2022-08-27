@@ -65,8 +65,8 @@
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 <meta property="og:site_name" content="{{AppName}}">
-{{if .IsSigned }}
-	{{ if ne .SignedUser.Theme "gitea" }}
+{{if .IsSigned}}
+	{{if ne .SignedUser.Theme "gitea"}}
 		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{AssetVersion}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}

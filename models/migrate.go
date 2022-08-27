@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -154,7 +155,7 @@ func InsertPullRequests(prs ...*issues_model.PullRequest) error {
 }
 
 // InsertReleases migrates release
-func InsertReleases(rels ...*Release) error {
+func InsertReleases(rels ...*repo_model.Release) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -191,7 +192,7 @@ func UpdateMigrationsByType(tp structs.GitServiceType, externalUserID string, us
 		return err
 	}
 
-	if err := UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
+	if err := repo_model.UpdateReleasesMigrationsByType(tp, externalUserID, userID); err != nil {
 		return err
 	}
 
