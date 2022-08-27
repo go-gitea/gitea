@@ -7,10 +7,10 @@ package repository
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -22,6 +22,27 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 )
+
+// ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
+type ErrForkAlreadyExist struct {
+	Uname    string
+	RepoName string
+	ForkName string
+}
+
+// IsErrForkAlreadyExist checks if an error is an ErrForkAlreadyExist.
+func IsErrForkAlreadyExist(err error) bool {
+	_, ok := err.(ErrForkAlreadyExist)
+	return ok
+}
+
+func (err ErrForkAlreadyExist) Error() string {
+	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
+}
+
+func (err ErrForkAlreadyExist) Unwrap() error {
+	return fs.ErrExist
+}
 
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
@@ -37,7 +58,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 		return nil, err
 	}
 	if forkedRepo != nil {
-		return nil, models.ErrForkAlreadyExist{
+		return nil, ErrForkAlreadyExist{
 			Uname:    owner.Name,
 			RepoName: opts.BaseRepo.FullName(),
 			ForkName: forkedRepo.FullName(),
@@ -93,7 +114,7 @@ func ForkRepository(ctx context.Context, doer, owner *user_model.User, opts Fork
 	}()
 
 	err = db.WithTx(func(txCtx context.Context) error {
-		if err = models.CreateRepository(txCtx, doer, owner, repo, false); err != nil {
+		if err = repo_module.CreateRepositoryByExample(txCtx, doer, owner, repo, false); err != nil {
 			return err
 		}
 

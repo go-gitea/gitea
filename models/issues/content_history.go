@@ -203,7 +203,7 @@ func (err ErrIssueContentHistoryNotExist) Error() string {
 }
 
 func (err ErrIssueContentHistoryNotExist) Unwrap() error {
-	return fs.ErrPermission
+	return fs.ErrNotExist
 }
 
 // GetIssueContentHistoryByID get issue content history

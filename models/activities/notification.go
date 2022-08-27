@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package models
+package activities
 
 import (
 	"context"
@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -267,10 +268,10 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 
 			return err
 		}
-		if issue.IsPull && !CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
+		if issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypePullRequests) {
 			continue
 		}
-		if !issue.IsPull && !CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
+		if !issue.IsPull && !access_model.CheckRepoUnitUser(ctx, issue.Repo, user, unit.TypeIssues) {
 			continue
 		}
 
