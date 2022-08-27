@@ -5,6 +5,8 @@
 package structs
 
 import (
+	"fmt"
+	"path/filepath"
 	"strings"
 	"time"
 )
@@ -123,16 +125,103 @@ type IssueDeadline struct {
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string   `json:"name" yaml:"name"`
-	Title    string   `json:"title" yaml:"title"`
-	About    string   `json:"about" yaml:"about"`
-	Labels   []string `json:"labels" yaml:"labels"`
-	Ref      string   `json:"ref" yaml:"ref"`
-	Content  string   `json:"content" yaml:"-"`
-	FileName string   `json:"file_name" yaml:"-"`
+	Name     string                `json:"name" yaml:"name"`
+	Title    string                `json:"title" yaml:"title"`
+	About    string                `json:"about" yaml:"about"` // TODO: compatible with description
+	Labels   []string              `json:"labels" yaml:"labels"`
+	Ref      string                `json:"ref" yaml:"ref"`
+	Content  string                `json:"content" yaml:"-"` // for markdown only
+	Body     []*IssueTemplateField `json:"body" yaml:"body"` // for yaml only
+	FileName string                `json:"file_name" yaml:"-"`
+}
+
+type IssueTemplateField struct {
+	Type        string                 `json:"type" yaml:"type"`
+	ID          string                 `json:"id" yaml:"id"`
+	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
+	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+}
+
+// Validate checks whether an IssueTemplate is considered valid, and returns the first error
+func (it IssueTemplate) Validate() error {
+	// TODO check the format of id, and more
+
+	errMissField := func(f string) error {
+		return fmt.Errorf("field '%s' is required", f)
+	}
+
+	if strings.TrimSpace(it.Name) != "" {
+		return errMissField("name")
+	}
+	if strings.TrimSpace(it.About) != "" {
+		return errMissField("about")
+	}
+
+	for idx, field := range it.Body {
+		checkStringAttr := func(name string) error {
+			attr := field.Attributes[name]
+			if s, ok := attr.(string); !ok || s == "" {
+				return fmt.Errorf(
+					"body[%d]: the '%s' attribute is required and should be string with type %s",
+					idx, name, field.Type,
+				)
+			}
+			return nil
+		}
+		switch field.Type {
+		case "markdown":
+			if err := checkStringAttr("value"); err != nil {
+				return err
+			}
+		case "textarea", "input", "dropdown":
+			if err := checkStringAttr("label"); err != nil {
+				return err
+			}
+		case "checkboxes":
+			if err := checkStringAttr("label"); err != nil {
+			}
+			if err := checkStringAttr("label"); err != nil {
+				return err
+			}
+			attr := field.Attributes["options"]
+			if options, ok := attr.([]map[string]any); !ok {
+				return fmt.Errorf(
+					"body[%d]: the '%s' attribute is required and should be array with type %s",
+					idx, "options", field.Type,
+				)
+			} else {
+				for optIdx, option := range options {
+					label := option["label"]
+					if s, ok := label.(string); !ok || s == "" {
+						return fmt.Errorf(
+							"body[%d], option[%d]: the '%s' is required and should be string with type %s",
+							idx, optIdx, "label", field.Type,
+						)
+					}
+				}
+			}
+
+		default:
+			return fmt.Errorf(
+				"(field #%d '%s'): unknown type '%s'",
+				idx+1, field.ID, field.Type,
+			)
+		}
+	}
+	return nil
 }
 
 // Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
 func (it IssueTemplate) Valid() bool {
-	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
+	return it.Validate() == nil
+}
+
+// Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
+func (it IssueTemplate) Type() string {
+	if ext := filepath.Ext(it.FileName); ext == ".md" {
+		return "md"
+	} else if ext == ".yaml" || ext == ".yml" {
+		return "yaml"
+	}
+	return ""
 }

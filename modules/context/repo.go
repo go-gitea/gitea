@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -35,6 +36,7 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
+	"gopkg.in/yaml.v2"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -1060,44 +1062,61 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 			return issueTemplates
 		}
 		for _, entry := range entries {
-			if strings.HasSuffix(entry.Name(), ".md") {
-				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-					log.Debug("Issue template is too large: %s", entry.Name())
-					continue
-				}
-				r, err := entry.Blob().DataAsync()
-				if err != nil {
-					log.Debug("DataAsync: %v", err)
-					continue
-				}
-				closed := false
-				defer func() {
-					if !closed {
-						_ = r.Close()
-					}
-				}()
-				data, err := io.ReadAll(r)
-				if err != nil {
-					log.Debug("ReadAll: %v", err)
-					continue
-				}
-				_ = r.Close()
-				var it api.IssueTemplate
-				content, err := markdown.ExtractMetadata(string(data), &it)
-				if err != nil {
-					log.Debug("ExtractMetadata: %v", err)
-					continue
-				}
-				it.Content = content
-				it.FileName = entry.Name()
-				if it.Valid() {
-					issueTemplates = append(issueTemplates, it)
-				}
+			if t := ctx.extractIssueTemplate(entry); t != nil {
+				issueTemplates = append(issueTemplates, *t)
 			}
-		}
-		if len(issueTemplates) > 0 {
-			return issueTemplates
 		}
 	}
 	return issueTemplates
+}
+
+func (ctx *Context) extractIssueTemplate(entry *git.TreeEntry) *api.IssueTemplate {
+	it := &api.IssueTemplate{
+		FileName: entry.Name(),
+	}
+	if it.Type() == "" {
+		return nil
+	}
+
+	if name := filepath.Base(it.FileName); name == "config.yaml" || name == "config.yml" {
+		// ignore config.yaml which is a special configuration file
+		return nil
+	}
+
+	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
+		log.Debug("Issue template is too large: %s", entry.Name())
+		return nil
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		log.Debug("DataAsync: %v", err)
+		return nil
+	}
+	defer r.Close()
+
+	data, err := io.ReadAll(r)
+	if err != nil {
+		log.Debug("ReadAll: %v", err)
+		return nil
+	}
+
+	if it.Type() == "md" {
+		content, err := markdown.ExtractMetadata(string(data), it)
+		if err != nil {
+			log.Debug("ExtractMetadata: %v", err)
+			return nil
+		}
+		it.Content = content
+	} else if it.Type() == "yaml" {
+		if err := yaml.Unmarshal(data, it); err != nil {
+			log.Debug("Unmarshal: %v", err)
+			return nil
+		}
+	}
+
+	if !it.Valid() {
+		return nil
+	}
+	return it
 }
