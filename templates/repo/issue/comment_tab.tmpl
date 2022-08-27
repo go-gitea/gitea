@@ -1,6 +1,6 @@
-{{- if .IssueTemplateForm}}
-	<input type="hidden" name="template-file" value="{{.IssueTemplateForm.FileName}}">
-	{{range $field_idx, $field := .IssueTemplateForm.Body}}
+{{- if .TemplateForm}}
+	<input type="hidden" name="template-file" value="{{.TemplateForm.FileName}}">
+	{{range $field_idx, $field := .TemplateForm.Body}}
 		{{- if $field.Attributes.label}}<h3 id="form-label-{{$field_idx}}">{{$field.Attributes.label}} {{if $field.Validations.required}} <span style="color: orangered;">*</span>{{end}}</h3>{{end}}
 		{{- if $field.Attributes.description}}<div>{{RenderMarkdownToHtml $field.Attributes.description}}</div>{{end}}
 

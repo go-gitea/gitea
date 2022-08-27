@@ -70,11 +70,23 @@ const (
 // IssueTemplateCandidates issue templates
 var IssueTemplateCandidates = []string{
 	"ISSUE_TEMPLATE.md",
+	"ISSUE_TEMPLATE.yaml",
+	"ISSUE_TEMPLATE.yml",
 	"issue_template.md",
+	"issue_template.yaml",
+	"issue_template.yml",
 	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/ISSUE_TEMPLATE.yaml",
+	".gitea/ISSUE_TEMPLATE.yml",
+	".gitea/issue_template.md",
+	".gitea/issue_template.yaml",
 	".gitea/issue_template.md",
 	".github/ISSUE_TEMPLATE.md",
+	".github/ISSUE_TEMPLATE.yml",
+	".github/ISSUE_TEMPLATE.md",
 	".github/issue_template.md",
+	".github/issue_template.yaml",
+	".github/issue_template.yml",
 }
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -775,7 +787,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 		ctx.Data[issueTemplateTitleKey] = template.Title
 		ctx.Data[ctxDataKey] = template.Content
 		if template.Type() == "yaml" {
-			ctx.Data[ctxDataKey+"Form"] = template // TODO: maybe use template.Body
+			ctx.Data["TemplateForm"] = template // TODO: maybe use template.Body
 		}
 		labelIDs := make([]string, 0, len(template.Labels))
 		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {

@@ -145,14 +145,6 @@ type IssueTemplateField struct {
 	Validations map[string]interface{} `json:"validations" yaml:"validations"`
 }
 
-func NewIssueTemplate(filename string, content []byte) (*IssueTemplate, error) {
-	ret := &IssueTemplate{
-		FileName: filename,
-	}
-
-	return ret, nil
-}
-
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
 func (it *IssueTemplate) Validate() error {
 	// TODO check the format of id, and more

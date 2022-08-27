@@ -58,11 +58,20 @@ const (
 
 var pullRequestTemplateCandidates = []string{
 	"PULL_REQUEST_TEMPLATE.md",
+	"PULL_REQUEST_TEMPLATE.yaml",
+	"PULL_REQUEST_TEMPLATE.yml",
 	"pull_request_template.md",
+	"pull_request_template.yaml",
+	"pull_request_template.yml",
 	".gitea/PULL_REQUEST_TEMPLATE.md",
+	".gitea/PULL_REQUEST_TEMPLATE.yaml",
+	".gitea/PULL_REQUEST_TEMPLATE.yml",
 	".gitea/pull_request_template.md",
+	".gitea/pull_request_template.yaml",
+	".gitea/pull_request_template.yml",
 	".github/PULL_REQUEST_TEMPLATE.md",
-	".github/pull_request_template.md",
+	".github/PULL_REQUEST_TEMPLATE.yaml",
+	".github/PULL_REQUEST_TEMPLATE.yml",
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
@@ -1171,11 +1180,24 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			return
 		}
 
+		content := form.Content
+		if form := ctx.Req.Form; form.Has("template-file") {
+			// If the issue submitted is a form, render it to Markdown
+			if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
+				ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
+				ctx.Data["Flash"] = ctx.Flash
+				NewIssue(ctx)
+				return
+			} else {
+				content = c
+			}
+		}
+
 		if len(form.Title) > 255 {
 			var trailer string
 			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
 
-			form.Content = trailer + "\n\n" + form.Content
+			content = trailer + "\n\n" + content
 		}
 		middleware.AssignForm(form, ctx.Data)
 
@@ -1194,6 +1216,19 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if form := ctx.Req.Form; form.Has("template-file") {
+		// If the issue submitted is a form, render it to Markdown
+		if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
+			ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
+			ctx.Data["Flash"] = ctx.Flash
+			NewIssue(ctx)
+			return
+		} else {
+			content = c
+		}
+	}
+
 	pullIssue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -1202,7 +1237,7 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
 		IsPull:      true,
-		Content:     form.Content,
+		Content:     content,
 	}
 	pullRequest := &issues_model.PullRequest{
 		HeadRepoID:          ci.HeadRepo.ID,
