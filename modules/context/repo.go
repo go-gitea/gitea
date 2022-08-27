@@ -28,7 +28,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -36,7 +35,6 @@ import (
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
-	"gopkg.in/yaml.v2"
 )
 
 // IssueTemplateDirCandidates issue templates directory
@@ -1101,18 +1099,9 @@ func (ctx *Context) extractIssueTemplate(entry *git.TreeEntry) *api.IssueTemplat
 		return nil
 	}
 
-	if it.Type() == "md" {
-		content, err := markdown.ExtractMetadata(string(data), it)
-		if err != nil {
-			log.Debug("ExtractMetadata: %v", err)
-			return nil
-		}
-		it.Content = content
-	} else if it.Type() == "yaml" {
-		if err := yaml.Unmarshal(data, it); err != nil {
-			log.Debug("Unmarshal: %v", err)
-			return nil
-		}
+	if err := it.Fill(data); err != nil {
+		log.Debug("fill template: %v", err)
+		return nil
 	}
 
 	if !it.Valid() {

@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
 // StateType issue state type
@@ -127,7 +129,7 @@ type IssueDeadline struct {
 type IssueTemplate struct {
 	Name     string                `json:"name" yaml:"name"`
 	Title    string                `json:"title" yaml:"title"`
-	About    string                `json:"about" yaml:"about"` // TODO: compatible with description
+	About    string                `json:"about" yaml:"about"`
 	Labels   []string              `json:"labels" yaml:"labels"`
 	Ref      string                `json:"ref" yaml:"ref"`
 	Content  string                `json:"content" yaml:"-"` // for markdown only
@@ -142,18 +144,26 @@ type IssueTemplateField struct {
 	Validations map[string]interface{} `json:"validations" yaml:"validations"`
 }
 
+func NewIssueTemplate(filename string, content []byte) (*IssueTemplate, error) {
+	ret := &IssueTemplate{
+		FileName: filename,
+	}
+
+	return ret, nil
+}
+
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
-func (it IssueTemplate) Validate() error {
+func (it *IssueTemplate) Validate() error {
 	// TODO check the format of id, and more
 
 	errMissField := func(f string) error {
 		return fmt.Errorf("field '%s' is required", f)
 	}
 
-	if strings.TrimSpace(it.Name) != "" {
+	if strings.TrimSpace(it.Name) == "" {
 		return errMissField("name")
 	}
-	if strings.TrimSpace(it.About) != "" {
+	if strings.TrimSpace(it.About) == "" {
 		return errMissField("about")
 	}
 
@@ -184,19 +194,26 @@ func (it IssueTemplate) Validate() error {
 				return err
 			}
 			attr := field.Attributes["options"]
-			if options, ok := attr.([]map[string]any); !ok {
+			if options, ok := attr.([]any); !ok {
 				return fmt.Errorf(
 					"body[%d]: the '%s' attribute is required and should be array with type %s",
 					idx, "options", field.Type,
 				)
 			} else {
 				for optIdx, option := range options {
-					label := option["label"]
-					if s, ok := label.(string); !ok || s == "" {
+					if opt, ok := option.(map[any]any); !ok {
 						return fmt.Errorf(
-							"body[%d], option[%d]: the '%s' is required and should be string with type %s",
-							idx, optIdx, "label", field.Type,
+							"body[%d], option[%d]: should be dictionary with type %s",
+							idx, optIdx, field.Type,
 						)
+					} else {
+						label := opt["label"]
+						if s, ok := label.(string); !ok || s == "" {
+							return fmt.Errorf(
+								"body[%d], option[%d]: the '%s' is required and should be string with type %s",
+								idx, optIdx, "label", field.Type,
+							)
+						}
 					}
 				}
 			}
@@ -212,16 +229,80 @@ func (it IssueTemplate) Validate() error {
 }
 
 // Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
-func (it IssueTemplate) Valid() bool {
+func (it *IssueTemplate) Valid() bool {
 	return it.Validate() == nil
 }
 
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
-func (it IssueTemplate) Type() string {
+func (it *IssueTemplate) Type() string {
 	if ext := filepath.Ext(it.FileName); ext == ".md" {
 		return "md"
 	} else if ext == ".yaml" || ext == ".yml" {
 		return "yaml"
 	}
 	return ""
+}
+
+func (it *IssueTemplate) Fill(content []byte) error {
+	if typ := it.Type(); typ == "md" {
+		templateBody, err := it.extractMetadata(string(content), it)
+		if err != nil {
+			return fmt.Errorf("extract metadata: %w", err)
+		}
+		it.Content = templateBody
+	} else if typ == "yaml" {
+		if err := yaml.Unmarshal(content, it); err != nil {
+			return fmt.Errorf("yaml unmarshal: %w", err)
+		}
+		if it.About == "" {
+			// Compatible with treating description as about
+			compatibleTemplate := &struct {
+				About string `yaml:"description"`
+			}{}
+			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+				it.About = compatibleTemplate.About
+			}
+		}
+	}
+	return nil
+}
+
+// extractMetadata consumes a markdown file, parses YAML frontmatter,
+// and returns the frontmatter metadata separated from the markdown content.
+// Copy from markdown.ExtractMetadata to avoid import cycle.
+func (*IssueTemplate) extractMetadata(contents string, out interface{}) (string, error) {
+	isYAMLSeparator := func(line string) bool {
+		line = strings.TrimSpace(line)
+		for i := 0; i < len(line); i++ {
+			if line[i] != '-' {
+				return false
+			}
+		}
+		return len(line) > 2
+	}
+
+	var front, body []string
+	lines := strings.Split(contents, "\n")
+	for idx, line := range lines {
+		if idx == 0 {
+			// First line has to be a separator
+			if !isYAMLSeparator(line) {
+				return "", fmt.Errorf("frontmatter must start with a separator line")
+			}
+			continue
+		}
+		if isYAMLSeparator(line) {
+			front, body = lines[1:idx], lines[idx+1:]
+			break
+		}
+	}
+
+	if len(front) == 0 {
+		return "", fmt.Errorf("could not determine metadata")
+	}
+
+	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), out); err != nil {
+		return "", err
+	}
+	return strings.Join(body, "\n"), nil
 }
