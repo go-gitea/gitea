@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
@@ -72,9 +72,9 @@ func NewWikiPage(ctx *context.APIContext) {
 	form.ContentBase64 = string(content)
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
-		if models.IsErrWikiReservedName(err) {
+		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Error(http.StatusBadRequest, "IsErrWikiReservedName", err)
-		} else if models.IsErrWikiAlreadyExist(err) {
+		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Error(http.StatusBadRequest, "IsErrWikiAlreadyExists", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "AddWikiPage", err)
@@ -314,7 +314,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)

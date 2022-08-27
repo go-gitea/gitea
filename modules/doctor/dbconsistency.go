@@ -7,7 +7,7 @@ package doctor
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/migrations"
@@ -121,8 +121,8 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		// find null archived repositories
 		{
 			Name:         "Repositories with is_archived IS NULL",
-			Counter:      models.CountNullArchivedRepository,
-			Fixer:        models.FixNullArchivedRepository,
+			Counter:      repo_model.CountNullArchivedRepository,
+			Fixer:        repo_model.FixNullArchivedRepository,
 			FixedMessage: "Fixed",
 		},
 		// find label comments with empty labels
@@ -148,8 +148,8 @@ func checkDBConsistency(ctx context.Context, logger log.Logger, autofix bool) er
 		},
 		{
 			Name:         "Action with created_unix set as an empty string",
-			Counter:      models.CountActionCreatedUnixString,
-			Fixer:        models.FixActionCreatedUnixString,
+			Counter:      activities_model.CountActionCreatedUnixString,
+			Fixer:        activities_model.FixActionCreatedUnixString,
 			FixedMessage: "Set to zero",
 		},
 	}

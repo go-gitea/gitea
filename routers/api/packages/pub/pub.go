@@ -69,7 +69,7 @@ func packageDescriptorToMetadata(baseURL string, pd *packages_model.PackageDescr
 	return &versionMetadata{
 		Version:    pd.Version.Version,
 		ArchiveURL: fmt.Sprintf("%s/files/%s.tar.gz", baseURL, url.PathEscape(pd.Version.Version)),
-		Published:  time.Unix(int64(pd.Version.CreatedUnix), 0),
+		Published:  pd.Version.CreatedUnix.AsLocalTime(),
 		Pubspec:    pd.Metadata.(*pub_module.Metadata).Pubspec,
 	}
 }
@@ -271,5 +271,5 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }

@@ -176,7 +176,7 @@ func createRegistrationLeafResponse(l *linkBuilder, pd *packages_model.PackageDe
 	return &RegistrationLeafResponse{
 		Type:                 []string{"Package", "http://schema.nuget.org/catalog#Permalink"},
 		Listed:               true,
-		Published:            time.Unix(int64(pd.Version.CreatedUnix), 0),
+		Published:            pd.Version.CreatedUnix.AsLocalTime(),
 		RegistrationLeafURL:  l.GetRegistrationLeafURL(pd.Package.Name, pd.Version.Version),
 		PackageContentURL:    l.GetPackageDownloadURL(pd.Package.Name, pd.Version.Version),
 		RegistrationIndexURL: l.GetRegistrationIndexURL(pd.Package.Name),

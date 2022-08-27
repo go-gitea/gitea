@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -23,7 +23,7 @@ func TestAPINotification(t *testing.T) {
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
+	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -126,9 +126,9 @@ func TestAPINotification(t *testing.T) {
 	req = NewRequest(t, "PATCH", fmt.Sprintf("/api/v1/notifications/threads/%d?token=%s", thread5.ID, token))
 	session.MakeRequest(t, req, http.StatusResetContent)
 
-	assert.Equal(t, models.NotificationStatusUnread, thread5.Status)
-	thread5 = unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
-	assert.Equal(t, models.NotificationStatusRead, thread5.Status)
+	assert.Equal(t, activities_model.NotificationStatusUnread, thread5.Status)
+	thread5 = unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
+	assert.Equal(t, activities_model.NotificationStatusRead, thread5.Status)
 
 	// -- check notifications --
 	req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/notifications/new?token=%s", token))
@@ -141,7 +141,7 @@ func TestAPINotificationPUT(t *testing.T) {
 	defer prepareTestEnv(t)()
 
 	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
-	thread5 := unittest.AssertExistsAndLoadBean(t, &models.Notification{ID: 5})
+	thread5 := unittest.AssertExistsAndLoadBean(t, &activities_model.Notification{ID: 5})
 	assert.NoError(t, thread5.LoadAttributes())
 	session := loginUser(t, user2.Name)
 	token := getTokenForLoggedInUser(t, session)
