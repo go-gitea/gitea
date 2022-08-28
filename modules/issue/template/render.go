@@ -13,6 +13,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 )
 
+// RenderToMarkdown renders template to markdown with specified values
 func RenderToMarkdown(template *api.IssueTemplate, values url.Values) string {
 	builder := &strings.Builder{}
 

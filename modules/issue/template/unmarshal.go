@@ -18,7 +18,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// TODO
+// Unmarshal parses out a template from the content
 func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	it := &api.IssueTemplate{
 		FileName: filename,
@@ -53,12 +53,12 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	return it, nil
 }
 
-// TODO
+// UnmarshalFromEntry parses out a template from the blob in entry
 func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
 	return unmarshalFromEntry(entry, filepath.Join(dir, entry.Name()))
 }
 
-// TODO
+// UnmarshalFromCommit parses out a template from the commit
 func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
 	entry, err := commit.GetTreeEntryByPath(filename)
 	if err != nil {
@@ -67,7 +67,7 @@ func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplat
 	return unmarshalFromEntry(entry, filename)
 }
 
-// TODO
+// UnmarshalFromRepo parses out a template from the head commit of the branch
 func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.IssueTemplate, error) {
 	commit, err := repo.GetBranchCommit(branch)
 	if err != nil {
@@ -96,6 +96,8 @@ func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTempla
 	return Unmarshal(filename, content)
 }
 
+// CouldBe indicates a file with the filename could be a template,
+// it is a low cost check before further processing.
 func CouldBe(filename string) bool {
 	it := &api.IssueTemplate{
 		FileName: filename,
