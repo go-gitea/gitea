@@ -5,6 +5,7 @@
 package bots
 
 import (
+	"context"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,11 +18,16 @@ import (
 
 // ErrRunnerNotExist represents an error for bot runner not exist
 type ErrRunnerNotExist struct {
-	UUID string
+	UUID  string
+	Token string
 }
 
 func (err ErrRunnerNotExist) Error() string {
-	return fmt.Sprintf("Bot runner [%s] is not exist", err.UUID)
+	if err.UUID != "" {
+		return fmt.Sprintf("Bot runner ID [%s] is not exist", err.UUID)
+	}
+
+	return fmt.Sprintf("Bot runner token [%s] is not exist", err.Token)
 }
 
 // Runner represents runner machines
@@ -40,6 +46,7 @@ type Runner struct {
 	Base        int                    // 0 native 1 docker 2 virtual machine
 	RepoRange   string                 // glob match which repositories could use this runner
 	Token       string
+	Capacity    int64
 	LastOnline  timeutil.TimeStamp `xorm:"index"`
 	Created     timeutil.TimeStamp `xorm:"created"`
 }
@@ -126,6 +133,32 @@ func GetRunnerByUUID(uuid string) (*Runner, error) {
 		}
 	}
 	return &runner, nil
+}
+
+// GetRunnerByToken returns a bot runner via token
+func GetRunnerByToken(token string) (*Runner, error) {
+	var runner Runner
+	has, err := db.GetEngine(db.DefaultContext).Where("token=?", token).Get(&runner)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRunnerNotExist{
+			UUID: "",
+		}
+	}
+	return &runner, nil
+}
+
+// UpdateRunner updates runner's information.
+func UpdateRunner(ctx context.Context, r *Runner, cols ...string) (err error) {
+	e := db.GetEngine(ctx)
+
+	if len(cols) == 0 {
+		_, err = e.ID(r.ID).AllCols().Update(r)
+	} else {
+		_, err = e.ID(r.ID).Cols(cols...).Update(r)
+	}
+	return err
 }
 
 // FindRunnersByRepoID returns all workers for the repository
