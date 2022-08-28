@@ -30,6 +30,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
@@ -72,6 +73,9 @@ var pullRequestTemplateCandidates = []string{
 	".github/PULL_REQUEST_TEMPLATE.md",
 	".github/PULL_REQUEST_TEMPLATE.yaml",
 	".github/PULL_REQUEST_TEMPLATE.yml",
+	".github/pull_request_template.md",
+	".github/pull_request_template.yaml",
+	".github/pull_request_template.yml",
 }
 
 func getRepository(ctx *context.Context, repoID int64) *repo_model.Repository {
@@ -1180,24 +1184,11 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 			return
 		}
 
-		content := form.Content
-		if form := ctx.Req.Form; form.Has("template-file") {
-			// If the issue submitted is a form, render it to Markdown
-			if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
-				ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
-				ctx.Data["Flash"] = ctx.Flash
-				NewIssue(ctx)
-				return
-			} else {
-				content = c
-			}
-		}
-
 		if len(form.Title) > 255 {
 			var trailer string
 			form.Title, trailer = util.SplitStringAtByteN(form.Title, 255)
 
-			content = trailer + "\n\n" + content
+			form.Content = trailer + "\n\n" + form.Content
 		}
 		middleware.AssignForm(form, ctx.Data)
 
@@ -1217,15 +1208,9 @@ func CompareAndPullRequestPost(ctx *context.Context) {
 	}
 
 	content := form.Content
-	if form := ctx.Req.Form; form.Has("template-file") {
-		// If the issue submitted is a form, render it to Markdown
-		if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
-			ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
-			ctx.Data["Flash"] = ctx.Flash
-			NewIssue(ctx)
-			return
-		} else {
-			content = c
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}
 

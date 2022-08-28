@@ -1018,15 +1018,9 @@ func NewIssuePost(ctx *context.Context) {
 	}
 
 	content := form.Content
-	if form := ctx.Req.Form; form.Has("template-file") {
-		// If the issue submitted is a form, render it to Markdown
-		if c, err := renderIssueFormValues(ctx, &ctx.Req.Form); err != nil {
-			ctx.Flash.ErrorMsg = ctx.Tr("repo.issues.new.invalid_form_values")
-			ctx.Data["Flash"] = ctx.Flash
-			NewIssue(ctx)
-			return
-		} else {
-			content = c
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
 		}
 	}
 
@@ -1068,70 +1062,6 @@ func NewIssuePost(ctx *context.Context) {
 	} else {
 		ctx.Redirect(issue.Link())
 	}
-}
-
-// TODO: new design
-// Renders the given form values to Markdown
-// Returns an empty string if user submitted a non-form issue
-func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, error) {
-	filename := form.Get("template-file")
-	template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, form.Get("template-file"))
-	if err != nil {
-		return "", fmt.Errorf("unmarshal template %q: %w", filename, err)
-	} else if !template.Valid() {
-		return "", fmt.Errorf("invalid template %q", filename)
-	}
-
-	// Render values
-	result := ""
-	for _, field := range template.Fields {
-		if field.ID != "" {
-			// Get field label
-			label := field.Attributes["label"]
-			if label == "" {
-				label = field.ID
-			}
-
-			// Format the value into Markdown
-			if field.Type == "markdown" {
-				// Markdown blocks do not appear in output
-			} else if field.Type == "checkboxes" || (field.Type == "dropdown" && field.Attributes["multiple"] == true) {
-				result += fmt.Sprintf("### %s\n", label)
-				for i, option := range field.Attributes["options"].([]interface{}) {
-					// Get "checked" value
-					checkedStr := " "
-					isChecked := form.Get(fmt.Sprintf("form-field-%s-%d", field.ID, i)) == "on"
-					if isChecked {
-						checkedStr = "x"
-					} else if field.Type == "checkboxes" && (option.(map[interface{}]interface{})["required"] == true && !isChecked) {
-						return "", fmt.Errorf("checkbox #%d in field '%s' is required, but not checked", i, field.ID)
-					}
-
-					// Get label
-					var label string
-					if field.Type == "checkboxes" {
-						label = option.(map[interface{}]interface{})["label"].(string)
-					} else {
-						label = option.(string)
-					}
-					result += fmt.Sprintf("- [%s] %s\n", checkedStr, label)
-				}
-				result += "\n"
-			} else if field.Type == "input" || field.Type == "textarea" || field.Type == "dropdown" {
-				if renderType, ok := field.Attributes["render"]; ok {
-					result += fmt.Sprintf("### %s\n```%s\n%s\n```\n\n", label, renderType, form.Get("form-field-"+field.ID))
-				} else {
-					result += fmt.Sprintf("### %s\n%s\n\n", label, form.Get("form-field-"+field.ID))
-				}
-			} else {
-				// Template should have been validated at this point
-				// TODO: should be better implemented
-				panic(fmt.Errorf("Invalid field type: '%s'", field.Type))
-			}
-		}
-	}
-
-	return result, nil
 }
 
 // roleDescriptor returns the Role Descriptor for a comment in/with the given repo, poster and issue
