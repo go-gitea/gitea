@@ -1,8 +1,8 @@
-{{ $index := 0}}
+{{$index := 0}}
 <div class="timeline-item commits-list">
 {{range .comment.Commits}}
-	{{ $tag := printf "%s-%d" $.comment.HashTag $index }}
-	{{ $index = Add $index 1}}
+	{{$tag := printf "%s-%d" $.comment.HashTag $index}}
+	{{$index = Add $index 1}}
 	<div class="singular-commit" id="{{$tag}}">
 		<span class="badge badge-commit">{{svg "octicon-git-commit"}}</span>
 		{{if .User}}
@@ -46,7 +46,7 @@
 			{{end}}
 		</span>
 
-		{{ $commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String) }}
+		{{$commitLink:= printf "%s/commit/%s" $.comment.Issue.PullRequest.BaseRepo.Link (PathEscape .ID.String)}}
 		<span class="mono commit-summary {{if gt .ParentCount 1}} grey text{{end}}" title="{{.Summary}}">{{RenderCommitMessageLinkSubject $.root.Context .Message ($.comment.Issue.PullRequest.BaseRepo.Link|Escape) $commitLink $.comment.Issue.PullRequest.BaseRepo.ComposeMetas}}</span>
 		{{if IsMultilineCommitMessage .Message}}
 			<button class="ui button ellipsis-button" aria-expanded="false">...</button>

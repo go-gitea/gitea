@@ -242,8 +242,10 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running gitea-fmt (with gofumpt)..."
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	$(eval TEMPLATES := $(wildcard templates/**/*.tmpl))
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
 .PHONY: vet
 vet:
@@ -288,11 +290,17 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
-	# get all go files and run gitea-fmt (with gofmt) on them
+	@# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
+		exit 1; \
+	fi
+	@diff2=$$(git diff templates); \
+	if [ -n "$$diff2" ]; then \
+		echo "Please run 'make fmt' and commit the result:"; \
+		echo "$${diff2}"; \
 		exit 1; \
 	fi
 

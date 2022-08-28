@@ -5,6 +5,7 @@
 package timeutil
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"testing"
@@ -31,7 +32,7 @@ func TestMain(m *testing.M) {
 	setting.Names = []string{"english"}
 	setting.Langs = []string{"en-US"}
 	// setup
-	translation.InitLocales()
+	translation.InitLocales(context.Background())
 	BaseDate = time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
 
 	// run the tests
