@@ -42,24 +42,19 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	}
 
 	// write label
-	_, _ = fmt.Fprintf(builder, "### %s\n", f.Label())
+	_, _ = fmt.Fprintf(builder, "### %s\n\n", f.Label())
 
 	blankPlaceholder := "_No response_\n"
 
 	// write body
 	switch f.Type {
 	case "checkboxes":
-		empty := true
 		for _, option := range f.Options() {
 			checked := " "
 			if option.IsChecked() {
 				checked = "x"
-				empty = true
 			}
 			_, _ = fmt.Fprintf(builder, "- [%s] %s\n", checked, option.Label())
-		}
-		if empty {
-			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
 	case "dropdown":
 		var checkeds []string
@@ -144,12 +139,18 @@ func (o *valuedOption) Label() string {
 }
 
 func (o *valuedOption) IsChecked() bool {
-	checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
-	idx := strconv.Itoa(o.index)
-	for _, v := range checks {
-		if v == idx {
-			return true
+	switch o.field.Type {
+	case "dropdown":
+		checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
+		idx := strconv.Itoa(o.index)
+		for _, v := range checks {
+			if v == idx {
+				return true
+			}
 		}
+		return false
+	case "checkboxes":
+		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}
 	return false
 }

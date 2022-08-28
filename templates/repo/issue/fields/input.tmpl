@@ -1,9 +1,2 @@
 {{template "repo/issue/fields/header" .}}
-<input type="text"
-			aria-labelledby="form-label-{{.ID}}"
-			name="form-field-{{.ID}}"
-			id="form-field-{{.ID}}"
-			placeholder="{{.Attributes.placeholder}}"
-			tabindex="3"
-			value="{{.Attributes.value}}"
-			{{- if .Validations.required}}required{{end}} />
+<input type="text" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{- if .Validations.required}}required{{end}}>
