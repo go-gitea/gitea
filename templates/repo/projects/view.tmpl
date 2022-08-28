@@ -9,23 +9,23 @@
 			<div class="column right aligned">
 				{{if and .CanWriteProjects (not .Repository.IsArchived)}}
 					<a class="ui green button show-modal item" href="{{$.RepoLink}}/issues/new/choose?project={{$.Project.ID}}">{{.locale.Tr "repo.issues.new"}}</a>
-					<a class="ui green button show-modal item" data-modal="#new-board-item">{{.locale.Tr "new_project_board"}}</a>
+					<a class="ui green button show-modal item" data-modal="#new-column-item">{{.locale.Tr "new_project_column"}}</a>
 				{{end}}
-				<div class="ui small modal new-board-modal" id="new-board-item">
+				<div class="ui small modal new-column-modal" id="new-column-item">
 					<div class="header">
-						{{$.locale.Tr "repo.projects.board.new"}}
+						{{$.locale.Tr "repo.projects.column.new"}}
 					</div>
 					<div class="content">
 						<form class="ui form">
 							<div class="required field">
-								<label for="new_board">{{$.locale.Tr "repo.projects.board.new_title"}}</label>
-								<input class="new-board" id="new_board" name="title" required>
+								<label for="new_column">{{$.locale.Tr "repo.projects.column.new_title"}}</label>
+								<input class="new-column" id="new_column" name="title" required>
 							</div>
 
 							<div class="field color-field">
-								<label for="new_board_color">{{$.locale.Tr "repo.projects.board.color"}}</label>
+								<label for="new_column_color">{{$.locale.Tr "repo.projects.column.color"}}</label>
 								<div class="color picker column">
-									<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color_picker" name="color">
+									<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_column_color_picker" name="color">
 									<div class="column precolors">
 										{{template "repo/issue/label_precolors"}}
 									</div>
@@ -34,7 +34,7 @@
 
 							<div class="text right actions">
 								<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui green button" id="new_board_submit">{{$.locale.Tr "repo.projects.board.new_submit"}}</button>
+								<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}" class="ui green button" id="new_column_submit">{{$.locale.Tr "repo.projects.column.new_submit"}}</button>
 							</div>
 						</form>
 					</div>
@@ -77,13 +77,13 @@
 	</div>
 	<div class="ui container fluid padded" id="project-board">
 
-		<div class="board">
-			{{ range $board := .Boards }}
+		<div class="project-column">
+			{{ range $column := .Columns }}
 
-			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
-				<div class="board-column-header df ac sb">
-					<div class="ui large label board-label py-2">
-						<div class="ui small circular grey label board-card-cnt">
+			<div class="ui segment project-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
+				<div class="project-column-header df ac sb">
+					<div class="ui large label column-label py-2">
+						<div class="ui small circular grey label column-card-cnt">
 							{{.NumIssues}}
 						</div>
 						{{.Title}}
@@ -94,36 +94,36 @@
 								{{svg "octicon-kebab-horizontal"}}
 							</div>
 							<div class="menu user-menu" tabindex="-1">
-								<a class="item show-modal button" data-modal="#edit-project-board-modal-{{.ID}}">
+								<a class="item show-modal button" data-modal="#edit-project-column-modal-{{.ID}}">
 									{{svg "octicon-pencil"}}
-									{{$.locale.Tr "repo.projects.board.edit"}}
+									{{$.locale.Tr "repo.projects.column.edit"}}
 								</a>
 								{{if not .Default}}
-									<a class="item show-modal button" data-modal="#set-default-project-board-modal-{{.ID}}">
+									<a class="item show-modal button" data-modal="#set-default-project-column-modal-{{.ID}}">
 										{{svg "octicon-pin"}}
-										{{$.locale.Tr "repo.projects.board.set_default"}}
+										{{$.locale.Tr "repo.projects.column.set_default"}}
 									</a>
 								{{end}}
-								<a class="item show-modal button" data-modal="#delete-board-modal-{{.ID}}">
+								<a class="item show-modal button" data-modal="#delete-column-modal-{{.ID}}">
 									{{svg "octicon-trash"}}
-									{{$.locale.Tr "repo.projects.board.delete"}}
+									{{$.locale.Tr "repo.projects.column.delete"}}
 								</a>
 
-								<div class="ui small modal edit-project-board" id="edit-project-board-modal-{{.ID}}">
+								<div class="ui small modal edit-project-column" id="edit-project-column-modal-{{.ID}}">
 									<div class="header">
-										{{$.locale.Tr "repo.projects.board.edit"}}
+										{{$.locale.Tr "repo.projects.column.edit"}}
 									</div>
 									<div class="content">
 										<form class="ui form">
 											<div class="required field">
-												<label for="new_board_title">{{$.locale.Tr "repo.projects.board.edit_title"}}</label>
-												<input class="project-board-title" id="new_board_title" name="title" value="{{.Title}}" required>
+												<label for="new_column_title">{{$.locale.Tr "repo.projects.column.edit_title"}}</label>
+												<input class="project-column-title" id="new_column_title" name="title" value="{{.Title}}" required>
 											</div>
 
 											<div class="field color-field">
-												<label for="new_board_color">{{$.locale.Tr "repo.projects.board.color"}}</label>
+												<label for="new_column_color">{{$.locale.Tr "repo.projects.column.color"}}</label>
 												<div class="color picker column">
-													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_board_color" name="color" value="{{.Color}}">
+													<input class="color-picker" maxlength="7" placeholder="#c320f6" id="new_column_color" name="color" value="{{.Color}}">
 													<div class="column precolors">
 														{{template "repo/issue/label_precolors"}}
 													</div>
@@ -132,39 +132,39 @@
 
 											<div class="text right actions">
 												<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui red button">{{$.locale.Tr "repo.projects.board.edit"}}</button>
+												<button data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" class="ui red button">{{$.locale.Tr "repo.projects.column.edit"}}</button>
 											</div>
 										</form>
 									</div>
 								</div>
 
-								<div class="ui basic modal" id="set-default-project-board-modal-{{.ID}}">
+								<div class="ui basic modal" id="set-default-project-column-modal-{{.ID}}">
 									<div class="ui icon header">
-										{{$.locale.Tr "repo.projects.board.set_default"}}
+										{{$.locale.Tr "repo.projects.column.set_default"}}
 									</div>
 									<div class="content center">
 										<label>
-											{{$.locale.Tr "repo.projects.board.set_default_desc"}}
+											{{$.locale.Tr "repo.projects.column.set_default_desc"}}
 										</label>
 									</div>
 									<div class="text right actions">
 										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-										<button class="ui red button set-default-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.board.set_default"}}</button>
+										<button class="ui red button set-default-project-column" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}/default">{{$.locale.Tr "repo.projects.board.set_default"}}</button>
 									</div>
 								</div>
 
-								<div class="ui basic modal" id="delete-board-modal-{{.ID}}">
+								<div class="ui basic modal" id="delete-column-modal-{{.ID}}">
 									<div class="ui icon header">
-										{{$.locale.Tr "repo.projects.board.delete"}}
+										{{$.locale.Tr "repo.projects.column.delete"}}
 									</div>
 									<div class="content center">
 										<label>
-											{{$.locale.Tr "repo.projects.board.deletion_desc"}}
+											{{$.locale.Tr "repo.projects.column.deletion_desc"}}
 										</label>
 									</div>
 									<div class="text right actions">
 										<div class="ui cancel button">{{$.locale.Tr "settings.cancel"}}</div>
-										<button class="ui red button delete-project-board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.locale.Tr "repo.projects.board.delete"}}</button>
+										<button class="ui red button delete-project-column" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">{{$.locale.Tr "repo.projects.column.delete"}}</button>
 									</div>
 								</div>
 							</div>
@@ -173,12 +173,12 @@
 				</div>
 				<div class="ui divider"></div>
 
-				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
+				<div class="ui cards column" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-column="{{.ID}}" id="column_{{.ID}}">
 
 					{{ range (index $.IssuesMap .ID) }}
 
 					<!-- start issue card -->
-					<div class="card board-card" data-issue="{{.ID}}">
+					<div class="card column-card" data-issue="{{.ID}}">
 						<div class="content p-0">
 							<div class="header">
 								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
@@ -200,7 +200,7 @@
 										{{end}}
 									{{end}}
 								</span>
-								<a class="project-board-title vm" href="{{.Link}}">
+								<a class="project-column-title vm" href="{{.Link}}">
 									{{.Title}}
 								</a>
 							</div>
@@ -242,7 +242,7 @@
 							{{ end }}
 							<div class="right floated">
 								{{ range .Assignees }}
-									<a class="tooltip" target="_blank" href="{{.HTMLURL}}" data-content="{{$.locale.Tr "repo.projects.board.assigned_to"}} {{.Name}}">{{avatar . 28 "mini mr-3"}}</a>
+									<a class="tooltip" target="_blank" href="{{.HTMLURL}}" data-content="{{$.locale.Tr "repo.projects.column.assigned_to"}} {{.Name}}">{{avatar . 28 "mini mr-3"}}</a>
 								{{ end }}
 							</div>
 						</div>

@@ -520,8 +520,8 @@ type UserCreateProjectForm struct {
 	UID       int64 `binding:"Required"`
 }
 
-// EditProjectBoardForm is a form for editing a project board
-type EditProjectBoardForm struct {
+// EditProjectColumnForm is a form for editing a project column
+type EditProjectColumnForm struct {
 	Title   string `binding:"Required;MaxSize(100)"`
 	Sorting int8
 	Color   string `binding:"MaxSize(7)"`

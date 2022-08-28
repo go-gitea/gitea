@@ -46,27 +46,27 @@ func (issue *Issue) projectID(ctx context.Context) int64 {
 	return ip.ProjectID
 }
 
-// ProjectBoardID return project board id if issue was assigned to one
-func (issue *Issue) ProjectBoardID() int64 {
-	return issue.projectBoardID(db.DefaultContext)
+// ProjectColumnID returns project column id if issue was assigned to one
+func (issue *Issue) ProjectColumnID() int64 {
+	return issue.projectColumnID(db.DefaultContext)
 }
 
-func (issue *Issue) projectBoardID(ctx context.Context) int64 {
+func (issue *Issue) projectColumnID(ctx context.Context) int64 {
 	var ip project_model.ProjectIssue
 	has, err := db.GetEngine(ctx).Where("issue_id=?", issue.ID).Get(&ip)
 	if err != nil || !has {
 		return 0
 	}
-	return ip.ProjectBoardID
+	return ip.ProjectColumnID
 }
 
-// LoadIssuesFromBoard load issues assigned to this board
-func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
+// LoadIssuesFromColumn loads issues assigned to this column
+func LoadIssuesFromColumn(b *project_model.Column) (IssueList, error) {
 	issueList := make([]*Issue, 0, 10)
 
 	if b.ID != 0 {
 		issues, err := Issues(&IssuesOptions{
-			ProjectBoardID: b.ID,
+			ProjectColumnID: b.ID,
 			ProjectID:      b.ProjectID,
 		})
 		if err != nil {
@@ -77,7 +77,7 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 
 	if b.Default {
 		issues, err := Issues(&IssuesOptions{
-			ProjectBoardID: -1, // Issues without ProjectBoardID
+			ProjectColumnID: -1, // Issues without ProjectColumnID
 			ProjectID:      b.ProjectID,
 		})
 		if err != nil {
@@ -93,11 +93,11 @@ func LoadIssuesFromBoard(b *project_model.Board) (IssueList, error) {
 	return issueList, nil
 }
 
-// LoadIssuesFromBoardList load issues assigned to the boards
-func LoadIssuesFromBoardList(bs project_model.BoardList) (map[int64]IssueList, error) {
+// LoadIssuesFromColumnList load issues assigned to the columns
+func LoadIssuesFromColumnList(bs project_model.Columns) (map[int64]IssueList, error) {
 	issuesMap := make(map[int64]IssueList, len(bs))
 	for i := range bs {
-		il, err := LoadIssuesFromBoard(bs[i])
+		il, err := LoadIssuesFromColumn(bs[i])
 		if err != nil {
 			return nil, err
 		}
@@ -162,8 +162,8 @@ func addUpdateIssueProject(ctx context.Context, issue *Issue, doer *user_model.U
 	})
 }
 
-// MoveIssueAcrossProjectBoards move a card from one board to another
-func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) error {
+// MoveIssueAcrossProjectColumn move a card from one column to another
+func MoveIssueAcrossProjectColumns(issue *Issue, column *project_model.Column) error {
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
@@ -181,8 +181,8 @@ func MoveIssueAcrossProjectBoards(issue *Issue, board *project_model.Board) erro
 		return fmt.Errorf("issue has to be added to a project first")
 	}
 
-	pis.ProjectBoardID = board.ID
-	if _, err := sess.ID(pis.ID).Cols("project_board_id").Update(&pis); err != nil {
+	pis.ProjectColumnID = column.ID
+	if _, err := sess.ID(pis.ID).Cols("project_column_id").Update(&pis); err != nil {
 		return err
 	}
 

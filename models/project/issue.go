@@ -18,10 +18,10 @@ type ProjectIssue struct { //revive:disable-line:exported
 	IssueID   int64 `xorm:"INDEX"`
 	ProjectID int64 `xorm:"INDEX"`
 
-	// If 0, then it has not been added to a specific board in the project
-	ProjectBoardID int64 `xorm:"INDEX"`
+	// If 0, then it has not been added to a specific column on the project
+	ProjectColumnID int64 `xorm:"INDEX"`
 
-	// the sorting order on the board
+	// the sorting order in the column
 	Sorting int64 `xorm:"NOT NULL DEFAULT 0"`
 }
 
@@ -76,8 +76,8 @@ func (p *Project) NumOpenIssues() int {
 	return int(c)
 }
 
-// MoveIssuesOnProjectBoard moves or keeps issues in a column and sorts them inside that column
-func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) error {
+// MoveIssuesOnProjectColumn moves or keeps issues in a column and sorts them inside that column
+func MoveIssuesOnProjectColumn(column *Column, sortedIssueIDs map[int64]int64) error {
 	return db.WithTx(func(ctx context.Context) error {
 		sess := db.GetEngine(ctx)
 
@@ -85,7 +85,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 		for _, issueID := range sortedIssueIDs {
 			issueIDs = append(issueIDs, issueID)
 		}
-		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", board.ProjectID).In("issue_id", issueIDs).Count()
+		count, err := sess.Table(new(ProjectIssue)).Where("project_id=?", column.ProjectID).In("issue_id", issueIDs).Count()
 		if err != nil {
 			return err
 		}
@@ -94,7 +94,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 		}
 
 		for sorting, issueID := range sortedIssueIDs {
-			_, err = sess.Exec("UPDATE `project_issue` SET project_board_id=?, sorting=? WHERE issue_id=?", board.ID, sorting, issueID)
+			_, err = sess.Exec("UPDATE `project_issue` SET project_column_id=?, sorting=? WHERE issue_id=?", column.ID, sorting, issueID)
 			if err != nil {
 				return err
 			}
@@ -103,7 +103,7 @@ func MoveIssuesOnProjectBoard(board *Board, sortedIssueIDs map[int64]int64) erro
 	})
 }
 
-func (b *Board) removeIssues(ctx context.Context) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_board_id = 0 WHERE project_board_id = ? ", b.ID)
+func (b *Column) removeIssues(ctx context.Context) error {
+	_, err := db.GetEngine(ctx).Exec("UPDATE `project_issue` SET project_column_id = 0 WHERE project_column_id = ? ", b.ID)
 	return err
 }

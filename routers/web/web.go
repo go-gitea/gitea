@@ -1055,17 +1055,17 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("/new", repo.NewProject)
 				m.Post("/new", bindIgnErr(forms.CreateProjectForm{}), repo.NewProjectPost)
 				m.Group("/{id}", func() {
-					m.Post("", bindIgnErr(forms.EditProjectBoardForm{}), repo.AddBoardToProjectPost)
+					m.Post("", bindIgnErr(forms.EditProjectColumnForm{}), repo.AddColumnToProjectPost)
 					m.Post("/delete", repo.DeleteProject)
 
 					m.Get("/edit", repo.EditProject)
 					m.Post("/edit", bindIgnErr(forms.CreateProjectForm{}), repo.EditProjectPost)
 					m.Post("/{action:open|close}", repo.ChangeProjectStatus)
 
-					m.Group("/{boardID}", func() {
-						m.Put("", bindIgnErr(forms.EditProjectBoardForm{}), repo.EditProjectBoard)
-						m.Delete("", repo.DeleteProjectBoard)
-						m.Post("/default", repo.SetDefaultProjectBoard)
+					m.Group("/{columnID}", func() {
+						m.Put("", bindIgnErr(forms.EditProjectColumnForm{}), repo.EditProjectColumn)
+						m.Delete("", repo.DeleteProjectColumn)
+						m.Post("/default", repo.SetDefaultProjectColumn)
 
 						m.Post("/move", repo.MoveIssues)
 					})

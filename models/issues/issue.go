@@ -1188,7 +1188,7 @@ type IssuesOptions struct { //nolint
 	ReviewRequestedID  int64
 	MilestoneIDs       []int64
 	ProjectID          int64
-	ProjectBoardID     int64
+	ProjectColumnID    int64
 	IsClosed           util.OptionalBool
 	IsPull             util.OptionalBool
 	LabelIDs           []int64
@@ -1315,11 +1315,11 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 			And("project_issue.project_id=?", opts.ProjectID)
 	}
 
-	if opts.ProjectBoardID != 0 {
-		if opts.ProjectBoardID > 0 {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": opts.ProjectBoardID}))
+	if opts.ProjectColumnID != 0 {
+		if opts.ProjectColumnID > 0 {
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_column_id": opts.ProjectColumnID}))
 		} else {
-			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_board_id": 0}))
+			sess.In("issue.id", builder.Select("issue_id").From("project_issue").Where(builder.Eq{"project_column_id": 0}))
 		}
 	}
 

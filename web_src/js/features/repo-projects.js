@@ -91,9 +91,9 @@ export default function initRepoProject() {
     const projectHeader = $(this).closest('.board-column-header');
     const projectTitleLabel = projectHeader.find('.board-label');
     const projectTitleInput = $(this).find(
-      '.content > .form > .field > .project-board-title',
+      '.content > .form > .field > .project-column-title',
     );
-    const projectColorInput = $(this).find('.content > .form > .field  #new_board_color');
+    const projectColorInput = $(this).find('.content > .form > .field  #new_column_color');
     const boardColumn = $(this).closest('.board-column');
 
     if (boardColumn.css('backgroundColor')) {
@@ -140,7 +140,7 @@ export default function initRepoProject() {
     window.location.reload();
   });
 
-  $('.delete-project-board').each(function () {
+  $('.delete-project-column').each(function () {
     $(this).click(function (e) {
       e.preventDefault();
 
@@ -157,22 +157,22 @@ export default function initRepoProject() {
     });
   });
 
-  $('#new_board_submit').click(function (e) {
+  $('#new_column_submit').click(function (e) {
     e.preventDefault();
 
-    const boardTitle = $('#new_board');
-    const projectColorInput = $('#new_board_color_picker');
+    const columnTitle = $('#new_column');
+    const projectColorInput = $('#new_column_color_picker');
 
     $.ajax({
       url: $(this).data('url'),
-      data: JSON.stringify({title: boardTitle.val(), color: projectColorInput.val()}),
+      data: JSON.stringify({title: columnTitle.val(), color: projectColorInput.val()}),
       headers: {
         'X-Csrf-Token': csrfToken,
       },
       contentType: 'application/json',
       method: 'POST',
     }).done(() => {
-      boardTitle.closest('form').removeClass('dirty');
+      columnTitle.closest('form').removeClass('dirty');
       window.location.reload();
     });
   });

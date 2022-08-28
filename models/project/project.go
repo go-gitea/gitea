@@ -55,19 +55,19 @@ func (err ErrProjectNotExist) Error() string {
 	return fmt.Sprintf("projects does not exist [id: %d]", err.ID)
 }
 
-// ErrProjectBoardNotExist represents a "ProjectBoardNotExist" kind of error.
-type ErrProjectBoardNotExist struct {
-	BoardID int64
+// ErrProjectColumnNotExist represents a "ErrProjectColumnNotExist" kind of error.
+type ErrProjectColumnNotExist struct {
+	ColumnID int64
 }
 
-// IsErrProjectBoardNotExist checks if an error is a ErrProjectBoardNotExist
-func IsErrProjectBoardNotExist(err error) bool {
-	_, ok := err.(ErrProjectBoardNotExist)
+// IsErrProjectColumnNotExist checks if an error is a ErrProjectColumnNotExist
+func IsErrProjectColumnNotExist(err error) bool {
+	_, ok := err.(ErrProjectColumnNotExist)
 	return ok
 }
 
-func (err ErrProjectBoardNotExist) Error() string {
-	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
+func (err ErrProjectColumnNotExist) Error() string {
+	return fmt.Sprintf("project column does not exist [id: %d]", err.ColumnID)
 }
 
 // Project represents a project board
@@ -186,7 +186,7 @@ func NewProject(p *Project) error {
 		return err
 	}
 
-	if err := createBoardsForProjectsType(ctx, p); err != nil {
+	if err := createColumnsForProjectsType(ctx, p); err != nil {
 		return err
 	}
 
@@ -320,7 +320,7 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 		return err
 	}
 
-	if err := deleteBoardByProjectID(ctx, id); err != nil {
+	if err := deleteColumnByProjectID(ctx, id); err != nil {
 		return err
 	}
 
@@ -337,7 +337,7 @@ func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue WHERE project_issue.id IN (SELECT project_issue.id FROM project_issue INNER JOIN project WHERE project.id = project_issue.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board WHERE project_board.id IN (SELECT project_board.id FROM project_board INNER JOIN project WHERE project.id = project_board.project_id AND project.repo_id = ?)", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_column WHERE project_column.id IN (SELECT project_column.id FROM project_column INNER JOIN project WHERE project.id = project_column.project_id AND project.repo_id = ?)", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
@@ -347,7 +347,7 @@ func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_issue USING project WHERE project.id = project_issue.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_board USING project WHERE project.id = project_board.project_id AND project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE FROM project_column USING project WHERE project.id = project_column.project_id AND project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
@@ -357,7 +357,7 @@ func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
 		if _, err := db.GetEngine(ctx).Exec("DELETE project_issue FROM project_issue INNER JOIN project ON project.id = project_issue.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
-		if _, err := db.GetEngine(ctx).Exec("DELETE project_board FROM project_board INNER JOIN project ON project.id = project_board.project_id WHERE project.repo_id = ? ", repoID); err != nil {
+		if _, err := db.GetEngine(ctx).Exec("DELETE project_column FROM project_column INNER JOIN project ON project.id = project_column.project_id WHERE project.repo_id = ? ", repoID); err != nil {
 			return err
 		}
 		if _, err := db.GetEngine(ctx).Table("project").Where("repo_id = ? ", repoID).Delete(&Project{}); err != nil {
