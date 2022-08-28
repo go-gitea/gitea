@@ -1059,13 +1059,10 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
 			return issueTemplates
 		}
 		for _, entry := range entries {
-			it := &api.IssueTemplate{
-				FileName: entry.Name(),
-			}
-			if it.Type() == "" {
+			if !template.CouldBe(entry.Name()) {
 				continue
 			}
-			it, err := template.UnmarshalFromEntry(entry)
+			it, err := template.UnmarshalFromEntry(entry, dirName)
 			if err != nil {
 				log.Debug("unmarshal template from %s: %v", entry.Name(), err)
 			} else if it.Valid() {

@@ -1,4 +1,5 @@
 {{if .Fields}}
+	<input type="hidden" name="template-file" value="{{.TemplateFile}}">
 	{{range .Fields}}
 		{{if eq .Type "input"}}
 			{{template "repo/issue/fields/input" .}}

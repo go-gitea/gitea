@@ -13,7 +13,6 @@ import (
 	"math/big"
 	"net/http"
 	"net/url"
-	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -734,12 +733,10 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
-	templateCandidates := make([]string, 0, len(possibleDirs)+len(possibleFiles))
+func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles []string) {
+	templateCandidates := make([]string, 0, 1+len(possibleFiles))
 	if t := ctx.FormString("template"); t != "" {
-		for _, dirName := range possibleDirs {
-			templateCandidates = append(templateCandidates, path.Join(dirName, t))
-		}
+		templateCandidates = append(templateCandidates, t)
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
 	for _, filename := range templateCandidates {
@@ -756,6 +753,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 
 		if template.Type() == "yaml" {
 			ctx.Data["Fields"] = template.Fields
+			ctx.Data["TemplateFile"] = template.FileName
 		}
 		labelIDs := make([]string, 0, len(template.Labels))
 		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
@@ -831,7 +829,7 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
-	setTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
+	setTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates)
 	if ctx.Written() {
 		return
 	}

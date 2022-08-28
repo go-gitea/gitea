@@ -56,7 +56,7 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	case "input":
 		_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
 	case "textarea":
-		_, _ = fmt.Fprintf(builder, "```%s\n%s```", f.Render(), f.Value())
+		_, _ = fmt.Fprintf(builder, "```%s\n%s\n```\n", f.Render(), f.Value())
 	}
 	_, _ = fmt.Fprintln(builder)
 }

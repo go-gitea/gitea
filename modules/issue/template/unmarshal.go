@@ -7,6 +7,7 @@ package template
 import (
 	"fmt"
 	"io"
+	"path/filepath"
 	"strconv"
 
 	"code.gitea.io/gitea/modules/git"
@@ -53,7 +54,30 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 }
 
 // TODO
-func UnmarshalFromEntry(entry *git.TreeEntry) (*api.IssueTemplate, error) {
+func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
+	return unmarshalFromEntry(entry, filepath.Join(dir, entry.Name()))
+}
+
+// TODO
+func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
+	entry, err := commit.GetTreeEntryByPath(filename)
+	if err != nil {
+		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
+	}
+	return unmarshalFromEntry(entry, filename)
+}
+
+// TODO
+func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.IssueTemplate, error) {
+	commit, err := repo.GetBranchCommit(branch)
+	if err != nil {
+		return nil, fmt.Errorf("get commit on branch %q: %w", branch, err)
+	}
+
+	return UnmarshalFromCommit(commit, filename)
+}
+
+func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTemplate, error) {
 	if size := entry.Blob().Size(); size > setting.UI.MaxDisplayFileSize {
 		return nil, fmt.Errorf("too large: %v > MaxDisplayFileSize", size)
 	}
@@ -69,24 +93,12 @@ func UnmarshalFromEntry(entry *git.TreeEntry) (*api.IssueTemplate, error) {
 		return nil, fmt.Errorf("read all: %w", err)
 	}
 
-	return Unmarshal(entry.Name(), content)
+	return Unmarshal(filename, content)
 }
 
-// TODO
-func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
-	entry, err := commit.GetTreeEntryByPath(filename)
-	if err != nil {
-		return nil, fmt.Errorf("get entry for %q: %w", filename, err)
+func CouldBe(filename string) bool {
+	it := &api.IssueTemplate{
+		FileName: filename,
 	}
-	return UnmarshalFromEntry(entry)
-}
-
-// TODO
-func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.IssueTemplate, error) {
-	commit, err := repo.GetBranchCommit(branch)
-	if err != nil {
-		return nil, fmt.Errorf("get commit on branch %q: %w", branch, err)
-	}
-
-	return UnmarshalFromCommit(commit, filename)
+	return it.Type() != ""
 }
