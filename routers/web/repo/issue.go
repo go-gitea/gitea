@@ -1118,7 +1118,7 @@ func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, erro
 
 	// Render values
 	result := ""
-	for _, field := range template.Body {
+	for _, field := range template.Fields {
 		if field.ID != "" {
 			// Get field label
 			label := field.Attributes["label"]

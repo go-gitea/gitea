@@ -125,24 +125,25 @@ type IssueDeadline struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
-// IssueTemplate represents an issue template for a repository
-// swagger:model
-type IssueTemplate struct {
-	Name     string                `json:"name" yaml:"name"`
-	Title    string                `json:"title" yaml:"title"`
-	About    string                `json:"about" yaml:"about"`
-	Labels   []string              `json:"labels" yaml:"labels"`
-	Ref      string                `json:"ref" yaml:"ref"`
-	Content  string                `json:"content" yaml:"-"` // for markdown only
-	Body     []*IssueTemplateField `json:"body" yaml:"body"` // for yaml only
-	FileName string                `json:"file_name" yaml:"-"`
-}
-
-type IssueTemplateField struct {
+// IssueFormField represents a form field
+type IssueFormField struct {
 	Type        string                 `json:"type" yaml:"type"`
 	ID          string                 `json:"id" yaml:"id"`
 	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
 	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+}
+
+// IssueTemplate represents an issue template for a repository
+// swagger:model
+type IssueTemplate struct {
+	Name     string            `json:"name" yaml:"name"`
+	Title    string            `json:"title" yaml:"title"`
+	About    string            `json:"about" yaml:"about"`
+	Labels   []string          `json:"labels" yaml:"labels"`
+	Ref      string            `json:"ref" yaml:"ref"`
+	Content  string            `json:"content" yaml:"-"` // for markdown only
+	Fields   []*IssueFormField `json:"body" yaml:"body"` // for yaml only
+	FileName string            `json:"file_name" yaml:"-"`
 }
 
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
@@ -160,7 +161,7 @@ func (it *IssueTemplate) Validate() error {
 		return errMissField("about")
 	}
 
-	for idx, field := range it.Body {
+	for idx, field := range it.Fields {
 		checkStringAttr := func(name string) error {
 			attr := field.Attributes[name]
 			if s, ok := attr.(string); !ok || s == "" {
@@ -256,7 +257,7 @@ func (it *IssueTemplate) Fill(content []byte) error {
 				it.About = compatibleTemplate.About
 			}
 		}
-		for i, v := range it.Body {
+		for i, v := range it.Fields {
 			if v.ID == "" {
 				v.ID = strconv.Itoa(i)
 			}
