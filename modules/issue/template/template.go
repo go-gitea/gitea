@@ -7,6 +7,7 @@ package template
 import "html/template"
 
 // Field represents a field interface which could be a component in the issue create UI
+// TODO: Do we need it?
 type Field interface {
 	Name() string
 	Description() string

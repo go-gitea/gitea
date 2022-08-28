@@ -1,66 +1,16 @@
-{{- if .TemplateForm}}
-	<input type="hidden" name="template-file" value="{{.TemplateForm.FileName}}">
-	{{range $field_idx, $field := .TemplateForm.Body}}
-		{{- if $field.Attributes.label}}<h3 id="form-label-{{$field_idx}}">{{$field.Attributes.label}} {{if $field.Validations.required}} <span style="color: orangered;">*</span>{{end}}</h3>{{end}}
-		{{- if $field.Attributes.description}}<div>{{RenderMarkdownToHtml $field.Attributes.description}}</div>{{end}}
-
-		{{- if eq .Type "markdown"}}
-			<div>{{RenderMarkdownToHtml $field.Attributes.value}}</div>
-		{{else if eq .Type "input"}}
-			<input type="text"
-						aria-labelledby="form-label-{{$field_idx}}"
-						name="form-field-{{$field.ID}}"
-						id="form-field-{{$field.ID}}"
-						placeholder="{{$field.Attributes.placeholder}}"
-						tabindex="3"
-						value="{{$field.Attributes.value}}"
-						{{- if .Validations.required}}required{{end}} />
+{{if .Fields}}
+	{{range .Fields}}
+		{{if eq .Type "input"}}
+			{{template "repo/issue/fields/input" .}}
+		{{else if eq .Type "markdown"}}
+			{{template "repo/issue/fields/markdown" .}}
 		{{else if eq .Type "textarea"}}
-			{{- if .Attributes.render}}
-				<input type="hidden" name="attrs-form-field-{{$field.ID}}" value="{&quot;render&quot;: &quot;{{.Attributes.render}}&quot;}">
-			{{end}}
-			<textarea aria-labelledby="form-label-{{$field_idx}}"
-								name="form-field-{{$field.ID}}"
-								id="form-field-{{$field.ID}}"
-								placeholder="{{$field.Attributes.placeholder}}"
-								tabindex="3"
-								{{- if .Attributes.render}}class="no-easymde"{{end}}
-								{{- if .Validations.required}}required{{end}}>{{$field.Attributes.value}}</textarea>
-		{{else if eq .Type "checkboxes"}}
-				{{range $chk_id, $chk := $field.Attributes.options}}
-					<label>
-						<input type="checkbox"
-									name="form-field-{{$field.ID}}-{{$chk_id}}"
-									id="form-field-{{$field.ID}}-{{$chk_id}}"
-									tabindex="3"
-									{{if $chk.checked}}checked{{end}}
-									{{if $chk.required}}fixme-required{{end}} />
-{{/*							TODO: many fixs    */}}
-							{{$chk.label}}{{if $chk.required}} <span style="color: orangered;">*</span>{{end}}
-					</label><br>
-				{{end}}
-		{{else if and (eq .Type "dropdown") $field.Attributes.multiple}}
-				{{range $chk_id, $chk := $field.Attributes.options}}
-					<label>
-						<input type="checkbox"
-									name="form-field-{{$field.ID}}-{{$chk_id}}"
-									tabindex="3"
-									id="form-field-{{$field.ID}}-{{$chk_id}}" />
-							{{$chk}}
-					</label><br>
-				{{end}}
+			{{template "repo/issue/fields/textarea" .}}
 		{{else if eq .Type "dropdown"}}
-			<select aria-labelledby="form-label-{{$field_idx}}"
-							name="form-field-{{$field.ID}}"
-							id="form-field-{{$field.ID}}"
-							tabindex="3"
-							{{- if .Validations.required}}required{{end}}>
-				{{range $field.Attributes.options}}
-					<option value="{{.}}">{{.}}</option>
-				{{end}}
-			</select>
+			{{template "repo/issue/fields/dropdown" .}}
+		{{else if eq .Type "checkboxes"}}
+			{{template "repo/issue/fields/checkboxes" .}}
 		{{end}}
-
 	{{end}}
 {{else}}
 	<div class="ui top tabular menu" data-write="write" data-preview="preview">
@@ -69,17 +19,17 @@
 	</div>
 	<div class="field">
 		<div class="ui bottom active tab" data-tab="write">
-			<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.Repo.RepoLink}}">
-				{{- if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end -}}
-			</textarea>
+		<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.Repo.RepoLink}}">
+			{{- if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end -}}
+		</textarea>
 		</div>
 		<div class="ui bottom tab markup" data-tab="preview">
-			{{.locale.Tr "loading"}}
+        {{.locale.Tr "loading"}}
 		</div>
 	</div>
-	{{if .IsAttachmentEnabled}}
+  {{if .IsAttachmentEnabled}}
 		<div class="field">
-			{{template "repo/upload" .}}
+        {{template "repo/upload" .}}
 		</div>
-	{{end}}
+  {{end}}
 {{end}}

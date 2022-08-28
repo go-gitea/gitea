@@ -1,0 +1,13 @@
+{{template "repo/issue/fields/header" .}}
+{{$field := .}}
+{{range $i, $opt := .Attributes.options}}
+	<label>
+		<input type="checkbox"
+					name="form-field-{{$field}}-{{$i}}"
+					id="form-field-{{$field.ID}}-{{$i}}"
+					tabindex="3"
+					{{if $opt.checked}}checked{{end}}
+					{{if $opt.required}}fixme-required{{end}} />
+			{{$opt.label}}{{if $opt.required}} <span style="color: orangered;">*</span>{{end}}
+	</label><br>
+{{end}}

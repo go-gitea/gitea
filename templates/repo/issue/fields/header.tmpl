@@ -1,0 +1,10 @@
+{{- if .Attributes.label}}
+	<h3 id="form-label-{{.ID}}">{{.Attributes.label}}
+			{{if .Validations.required}}
+				<span style="color: orangered;">*</span>
+			{{end}}
+	</h3>
+{{end}}
+{{- if .Attributes.description}}
+	<div>{{RenderMarkdownToHtml .Attributes.description}}</div>
+{{end}}

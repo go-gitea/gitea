@@ -138,13 +138,13 @@ type IssueTemplate struct {
 	About    string            `json:"about" yaml:"about"`
 	Labels   []string          `json:"labels" yaml:"labels"`
 	Ref      string            `json:"ref" yaml:"ref"`
-	Content  string            `json:"content" yaml:"-"` // for markdown only
-	Fields   []*IssueFormField `json:"body" yaml:"body"` // for yaml only
+	Content  string            `json:"content" yaml:"-"`
+	Fields   []*IssueFormField `json:"body" yaml:"body"`
 	FileName string            `json:"file_name" yaml:"-"`
 }
 
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
-func (it *IssueTemplate) Validate() error {
+func (it IssueTemplate) Validate() error {
 	// TODO check the format of id, and more
 
 	errMissField := func(f string) error {
@@ -220,12 +220,12 @@ func (it *IssueTemplate) Validate() error {
 }
 
 // Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
-func (it *IssueTemplate) Valid() bool {
+func (it IssueTemplate) Valid() bool {
 	return it.Validate() == nil
 }
 
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
-func (it *IssueTemplate) Type() string {
+func (it IssueTemplate) Type() string {
 	if it.Name == "config.yaml" || it.Name == "config.yml" {
 		// TODO: should it be?
 		// ignore config.yaml which is a special configuration file

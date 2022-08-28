@@ -744,7 +744,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
 	for _, filename := range templateCandidates {
 		template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename)
-		if err == nil {
+		if err != nil {
 			continue
 		}
 		if !template.Valid() {

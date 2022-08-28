@@ -1,0 +1,8 @@
+{{template "repo/issue/fields/header" .}}
+<textarea aria-labelledby="form-label-{{.ID}}"
+					name="form-field-{{.ID}}"
+					id="form-field-{{.ID}}"
+					placeholder="{{.Attributes.placeholder}}"
+					tabindex="3"
+					{{- if .Attributes.render}}class="no-easymde"{{end}}
+					{{- if .Validations.required}}required{{end}}>{{.Attributes.value}}</textarea>
