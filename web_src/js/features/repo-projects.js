@@ -4,12 +4,12 @@ const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('board-card').length;
-  parent.getElementsByClassName('board-card-cnt')[0].innerText = cnt;
+  const cnt = parent.getElementsByClassName('column-card').length;
+  parent.getElementsByClassName('column-card-cnt')[0].innerText = cnt;
 }
 
 function moveIssue({item, from, to, oldIndex}) {
-  const columnCards = to.getElementsByClassName('board-card');
+  const columnCards = to.getElementsByClassName('column-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
@@ -35,22 +35,22 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .board');
+  const els = document.querySelectorAll('#project-board > .column');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
 
-  // the HTML layout is: #project-board > .board > .board-column .board.cards > .board-card.card .content
+  // the HTML layout is: #project-board > .column .column.cards > .column-card.card .content
   const mainBoard = els[0];
-  let boardColumns = mainBoard.getElementsByClassName('board-column');
+  let boardColumns = mainBoard.getElementsByClassName('column');
   new Sortable(mainBoard, {
-    group: 'board-column',
-    draggable: '.board-column',
+    group: 'column',
+    draggable: '.column',
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
     onSort: () => {
-      boardColumns = mainBoard.getElementsByClassName('board-column');
+      boardColumns = mainBoard.getElementsByClassName('column');
       for (let i = 0; i < boardColumns.length; i++) {
         const column = boardColumns[i];
         if (parseInt($(column).data('sorting')) !== i) {
@@ -69,7 +69,7 @@ async function initRepoProjectSortable() {
   });
 
   for (const boardColumn of boardColumns) {
-    const boardCardList = boardColumn.getElementsByClassName('board')[0];
+    const boardCardList = boardColumn.getElementsByClassName('column')[0];
     new Sortable(boardCardList, {
       group: 'shared',
       animation: 150,
@@ -87,14 +87,14 @@ export default function initRepoProject() {
 
   const _promise = initRepoProjectSortable();
 
-  $('.edit-project-board').each(function () {
-    const projectHeader = $(this).closest('.board-column-header');
-    const projectTitleLabel = projectHeader.find('.board-label');
+  $('.edit-project-column').each(function () {
+    const projectHeader = $(this).closest('.column-header');
+    const projectTitleLabel = projectHeader.find('.column-label');
     const projectTitleInput = $(this).find(
       '.content > .form > .field > .project-column-title',
     );
     const projectColorInput = $(this).find('.content > .form > .field  #new_column_color');
-    const boardColumn = $(this).closest('.board-column');
+    const boardColumn = $(this).closest('.column');
 
     if (boardColumn.css('backgroundColor')) {
       setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
@@ -125,7 +125,7 @@ export default function initRepoProject() {
       });
   });
 
-  $(document).on('click', '.set-default-project-board', async function (e) {
+  $(document).on('click', '.set-default-project-column', async function (e) {
     e.preventDefault();
 
     await $.ajax({

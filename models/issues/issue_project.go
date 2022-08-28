@@ -78,7 +78,7 @@ func LoadIssuesFromColumn(b *project_model.Column) (IssueList, error) {
 	if b.Default {
 		issues, err := Issues(&IssuesOptions{
 			ProjectColumnID: -1, // Issues without ProjectColumnID
-			ProjectID:      b.ProjectID,
+			ProjectID:       b.ProjectID,
 		})
 		if err != nil {
 			return nil, err
