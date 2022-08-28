@@ -10,7 +10,6 @@ import (
 	stdCtx "context"
 	"errors"
 	"fmt"
-	"io"
 	"math/big"
 	"net/http"
 	"net/url"
@@ -35,6 +34,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -734,34 +734,6 @@ func RetrieveRepoMetas(ctx *context.Context, repo *repo_model.Repository, isPull
 	return labels
 }
 
-func getFileContentFromDefaultBranch(ctx *context.Context, filename string) (string, bool) {
-	if ctx.Repo.Commit == nil {
-		var err error
-		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
-		if err != nil {
-			return "", false
-		}
-	}
-
-	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(filename)
-	if err != nil {
-		return "", false
-	}
-	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		return "", false
-	}
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		return "", false
-	}
-	defer r.Close()
-	bytes, err := io.ReadAll(r)
-	if err != nil {
-		return "", false
-	}
-	return string(bytes), true
-}
-
 func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, possibleFiles []string) {
 	templateCandidates := make([]string, 0, len(possibleDirs)+len(possibleFiles))
 	if t := ctx.FormString("template"); t != "" {
@@ -771,23 +743,19 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleDirs, 
 	}
 	templateCandidates = append(templateCandidates, possibleFiles...) // Append files to the end because they should be fallback
 	for _, filename := range templateCandidates {
-		templateContent, found := getFileContentFromDefaultBranch(ctx, filename)
-		if !found {
+		template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename)
+		if err == nil {
 			continue
 		}
-		template := api.IssueTemplate{
-			FileName: filename,
-		}
-		if err := template.Fill([]byte(templateContent)); err != nil {
-			log.Debug("could fill template from %s [%s]: %v", filename, ctx.Repo.Repository.FullName(), err)
-			ctx.Data[ctxDataKey] = templateContent
-			return
+		if !template.Valid() {
+			continue
 		}
 
 		ctx.Data[issueTemplateTitleKey] = template.Title
 		ctx.Data[ctxDataKey] = template.Content
+
 		if template.Type() == "yaml" {
-			ctx.Data["TemplateForm"] = template // TODO: maybe use template.Body
+			ctx.Data["Fields"] = template.Fields
 		}
 		labelIDs := make([]string, 0, len(template.Labels))
 		if repoLabels, err := issues_model.GetLabelsByRepoID(ctx, ctx.Repo.Repository.ID, "", db.ListOptions{}); err == nil {
@@ -1107,13 +1075,11 @@ func NewIssuePost(ctx *context.Context) {
 // Returns an empty string if user submitted a non-form issue
 func renderIssueFormValues(ctx *context.Context, form *url.Values) (string, error) {
 	filename := form.Get("template-file")
-	template := api.IssueTemplate{
-		FileName: filename,
-	}
-	if templateContent, found := getFileContentFromDefaultBranch(ctx, form.Get("template-file")); !found {
-		return "", fmt.Errorf("template file %q not found", filename)
-	} else if err := template.Fill([]byte(templateContent)); err != nil {
-		return "", fmt.Errorf("fill template with %q: %w", filename, err)
+	template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, form.Get("template-file"))
+	if err != nil {
+		return "", fmt.Errorf("unmarshal template %q: %w", filename, err)
+	} else if !template.Valid() {
+		return "", fmt.Errorf("invalid template %q", filename)
 	}
 
 	// Render values

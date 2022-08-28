@@ -9,11 +9,9 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"code.gitea.io/gitea/models"
@@ -27,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -1035,8 +1034,8 @@ func UnitTypes() func(ctx *Context) {
 }
 
 // IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
-	var issueTemplates []api.IssueTemplate
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
+	var issueTemplates []*api.IssueTemplate
 
 	if ctx.Repo.Repository.IsEmpty {
 		return issueTemplates
@@ -1060,52 +1059,19 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
 			return issueTemplates
 		}
 		for _, entry := range entries {
-			if t := ctx.extractIssueTemplate(entry); t != nil {
-				issueTemplates = append(issueTemplates, *t)
+			it := &api.IssueTemplate{
+				FileName: entry.Name(),
+			}
+			if it.Type() == "" {
+				continue
+			}
+			it, err := template.UnmarshalFromEntry(entry)
+			if err != nil {
+				log.Debug("unmarshal template from %s: %v", entry.Name(), err)
+			} else if it.Valid() {
+				issueTemplates = append(issueTemplates, it)
 			}
 		}
 	}
 	return issueTemplates
-}
-
-func (ctx *Context) extractIssueTemplate(entry *git.TreeEntry) *api.IssueTemplate {
-	it := &api.IssueTemplate{
-		FileName: entry.Name(),
-	}
-	if it.Type() == "" {
-		return nil
-	}
-
-	if name := filepath.Base(it.FileName); name == "config.yaml" || name == "config.yml" {
-		// ignore config.yaml which is a special configuration file
-		return nil
-	}
-
-	if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-		log.Debug("Issue template is too large: %s", entry.Name())
-		return nil
-	}
-
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		log.Debug("DataAsync: %v", err)
-		return nil
-	}
-	defer r.Close()
-
-	data, err := io.ReadAll(r)
-	if err != nil {
-		log.Debug("ReadAll: %v", err)
-		return nil
-	}
-
-	if err := it.Fill(data); err != nil {
-		log.Debug("fill template: %v", err)
-		return nil
-	}
-
-	if !it.Valid() {
-		return nil
-	}
-	return it
 }

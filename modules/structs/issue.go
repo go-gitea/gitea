@@ -7,11 +7,8 @@ package structs
 import (
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"time"
-
-	"gopkg.in/yaml.v2"
 )
 
 // StateType issue state type
@@ -229,79 +226,15 @@ func (it *IssueTemplate) Valid() bool {
 
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
 func (it *IssueTemplate) Type() string {
+	if it.Name == "config.yaml" || it.Name == "config.yml" {
+		// TODO: should it be?
+		// ignore config.yaml which is a special configuration file
+		return ""
+	}
 	if ext := filepath.Ext(it.FileName); ext == ".md" {
 		return "md"
 	} else if ext == ".yaml" || ext == ".yml" {
 		return "yaml"
 	}
 	return ""
-}
-
-func (it *IssueTemplate) Fill(content []byte) error {
-	if typ := it.Type(); typ == "md" {
-		templateBody, err := it.extractMetadata(string(content), it)
-		if err != nil {
-			return fmt.Errorf("extract metadata: %w", err)
-		}
-		it.Content = templateBody
-	} else if typ == "yaml" {
-		if err := yaml.Unmarshal(content, it); err != nil {
-			return fmt.Errorf("yaml unmarshal: %w", err)
-		}
-		if it.About == "" {
-			// Compatible with treating description as about
-			compatibleTemplate := &struct {
-				About string `yaml:"description"`
-			}{}
-			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
-				it.About = compatibleTemplate.About
-			}
-		}
-		for i, v := range it.Fields {
-			if v.ID == "" {
-				v.ID = strconv.Itoa(i)
-			}
-		}
-	}
-	return nil
-}
-
-// extractMetadata consumes a markdown file, parses YAML frontmatter,
-// and returns the frontmatter metadata separated from the markdown content.
-// Copy from markdown.ExtractMetadata to avoid import cycle.
-func (*IssueTemplate) extractMetadata(contents string, out interface{}) (string, error) {
-	isYAMLSeparator := func(line string) bool {
-		line = strings.TrimSpace(line)
-		for i := 0; i < len(line); i++ {
-			if line[i] != '-' {
-				return false
-			}
-		}
-		return len(line) > 2
-	}
-
-	var front, body []string
-	lines := strings.Split(contents, "\n")
-	for idx, line := range lines {
-		if idx == 0 {
-			// First line has to be a separator
-			if !isYAMLSeparator(line) {
-				return "", fmt.Errorf("frontmatter must start with a separator line")
-			}
-			continue
-		}
-		if isYAMLSeparator(line) {
-			front, body = lines[1:idx], lines[idx+1:]
-			break
-		}
-	}
-
-	if len(front) == 0 {
-		return "", fmt.Errorf("could not determine metadata")
-	}
-
-	if err := yaml.Unmarshal([]byte(strings.Join(front, "\n")), out); err != nil {
-		return "", err
-	}
-	return strings.Join(body, "\n"), nil
 }
