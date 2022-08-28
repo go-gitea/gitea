@@ -7,6 +7,7 @@ package template
 import (
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 
 	api "code.gitea.io/gitea/modules/structs"
@@ -43,20 +44,46 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	// write label
 	_, _ = fmt.Fprintf(builder, "### %s\n", f.Label())
 
+	blankPlaceholder := "_No response_\n"
+
 	// write body
 	switch f.Type {
-	case "checkboxes", "dropdown":
+	case "checkboxes":
+		empty := true
 		for _, option := range f.Options() {
 			checked := " "
 			if option.IsChecked() {
 				checked = "x"
+				empty = true
 			}
 			_, _ = fmt.Fprintf(builder, "- [%s] %s\n", checked, option.Label())
 		}
+		if empty {
+			_, _ = fmt.Fprint(builder, blankPlaceholder)
+		}
+	case "dropdown":
+		var checkeds []string
+		for _, option := range f.Options() {
+			if option.IsChecked() {
+				checkeds = append(checkeds, option.Label())
+			}
+		}
+		if len(checkeds) > 0 {
+			_, _ = fmt.Fprintf(builder, "%s\n", strings.Join(checkeds, ", "))
+		} else {
+			_, _ = fmt.Fprint(builder, blankPlaceholder)
+		}
 	case "input":
+		if v := f.Value(); v == "" {
+			_, _ = fmt.Fprint(builder, blankPlaceholder)
+		}
 		_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
 	case "textarea":
-		_, _ = fmt.Fprintf(builder, "```%s\n%s\n```\n", f.Render(), f.Value())
+		if v := f.Value(); v == "" {
+			_, _ = fmt.Fprint(builder, blankPlaceholder)
+		} else {
+			_, _ = fmt.Fprintf(builder, "```%s\n%s\n```\n", f.Render(), f.Value())
+		}
 	}
 	_, _ = fmt.Fprintln(builder)
 }
@@ -76,7 +103,7 @@ func (f *valuedField) Render() string {
 }
 
 func (f *valuedField) Value() string {
-	return f.Get(fmt.Sprintf("form-field-" + f.ID))
+	return strings.TrimSpace(f.Get(fmt.Sprintf("form-field-" + f.ID)))
 }
 
 func (f *valuedField) Options() []*valuedOption {
@@ -117,5 +144,12 @@ func (o *valuedOption) Label() string {
 }
 
 func (o *valuedOption) IsChecked() bool {
-	return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
+	checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
+	idx := strconv.Itoa(o.index)
+	for _, v := range checks {
+		if v == idx {
+			return true
+		}
+	}
+	return false
 }

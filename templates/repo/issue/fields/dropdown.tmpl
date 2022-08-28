@@ -1,23 +1,12 @@
 {{template "repo/issue/fields/header" .}}
-{{$field := .}}
-{{if .Attributes.multiple}}
-				{{range $i, $opt := .Attributes.options}}
-					<label>
-						<input type="checkbox"
-									name="form-field-{{$field.ID}}-{{$i}}"
-									tabindex="3"
-									id="form-field-{{$field.ID}}-{{$i}}" />
-							{{$opt}}
-					</label><br>
-				{{end}}
-{{else}}
-<select aria-labelledby="form-label-{{.ID}}"
-							name="form-field-{{.ID}}"
-							id="form-field-{{.ID}}"
-							tabindex="3"
-							{{- if .Validations.required}}required{{end}}>
-				{{range .Attributes.options}}
-					<option value="{{.}}">{{.}}</option>
-				{{end}}
-			</select>
-{{end}}
+<div class="ui selection dropdown {{if .Attributes.multiple}}multiple clearable{{end}}">
+	<input type="hidden" {{if .Validations.required}}required{{end}} name="form-field-{{.ID}}" value="0">
+	<i class="dropdown icon"></i>
+	<div class="default text"></div>
+	<div class="menu">
+		{{range $i, $opt := .Attributes.options}}
+			<div class="item" data-value="{{$i}}">{{$opt}}</div>
+		{{end}}
+	</div>
+</div>
+
