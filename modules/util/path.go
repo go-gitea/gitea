@@ -90,7 +90,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 
 	statList := make([]string, 0)
 	for _, fi := range fis {
-		if fi.IsDir() && CommonSkipDir(fi.Name()) {
+		if CommonSkip(fi.Name()) {
 			continue
 		}
 
@@ -199,8 +199,20 @@ func HomeDir() (home string, err error) {
 	return home, nil
 }
 
-// CommonSkipDir will check a provided name to see if it represents directory that should not be watched
-func CommonSkipDir(name string) bool {
-	// Check for Mac's .DS_Store entries
-	return name == ".DS_Store"
+// CommonSkip will check a provided name to see if it represents file or directory that should not be watched
+func CommonSkip(name string) bool {
+	if name == "" {
+		return true
+	}
+
+	switch name[0] {
+	case '.':
+		return true
+	case 't', 'T':
+		return name[1:] == "humbs.db"
+	case 'd', 'D':
+		return name[1:] == "esktop.ini"
+	}
+
+	return false
 }

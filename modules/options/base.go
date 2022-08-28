@@ -26,8 +26,11 @@ func walkAssetDir(root string, callback func(path, name string, d fs.DirEntry, e
 			}
 			return err
 		}
-		if d.IsDir() && util.CommonSkipDir(d.Name()) {
-			return fs.SkipDir
+		if util.CommonSkip(d.Name()) {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
 		}
 		return callback(path, name, d, err)
 	}); err != nil && !os.IsNotExist(err) {
