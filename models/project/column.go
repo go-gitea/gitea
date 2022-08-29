@@ -55,7 +55,7 @@ type Column struct {
 
 // TableName return the real table name
 func (Column) TableName() string {
-	return "project_column" // TODO
+	return "project_column"
 }
 
 // NumIssues return counter of all issues assigned to the column
