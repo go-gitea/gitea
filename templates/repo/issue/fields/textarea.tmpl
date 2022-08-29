@@ -1,2 +1,3 @@
 {{template "repo/issue/fields/header" .}}
+{{/*FIXME: preview markdown */}}
 <textarea name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" {{- if .Attributes.render}}class="no-easymde"{{end}} {{- if .Validations.required}}required{{end}}>{{.Attributes.value}}</textarea>

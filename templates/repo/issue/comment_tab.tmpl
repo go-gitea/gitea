@@ -25,12 +25,12 @@
 		</textarea>
 		</div>
 		<div class="ui bottom tab markup" data-tab="preview">
-        {{.locale.Tr "loading"}}
+			{{.locale.Tr "loading"}}
 		</div>
 	</div>
-  {{if .IsAttachmentEnabled}}
-		<div class="field">
-        {{template "repo/upload" .}}
-		</div>
-  {{end}}
+{{end}}
+{{if .IsAttachmentEnabled}}
+	<div class="field">
+		{{template "repo/upload" .}}
+	</div>
 {{end}}

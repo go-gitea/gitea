@@ -77,8 +77,10 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 	case "textarea":
 		if v := f.Value(); v == "" {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
-		} else {
+		} else if render := f.Render(); render != "" {
 			_, _ = fmt.Fprintf(builder, "```%s\n%s\n```\n", f.Render(), f.Value())
+		} else {
+			_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
 		}
 	}
 	_, _ = fmt.Fprintln(builder)
