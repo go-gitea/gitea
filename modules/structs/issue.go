@@ -123,6 +123,7 @@ type IssueDeadline struct {
 }
 
 // IssueFormField represents a form field
+// swagger:model
 type IssueFormField struct {
 	Type        string                 `json:"type" yaml:"type"`
 	ID          string                 `json:"id" yaml:"id"`

@@ -16584,6 +16584,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueFormField": {
+      "description": "IssueFormField represents a form field",
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Attributes"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "type": "string",
+          "x-go-name": "Type"
+        },
+        "validations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object"
+          },
+          "x-go-name": "Validations"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueLabelsOption": {
       "description": "IssueLabelsOption a collection of labels",
       "type": "object",
@@ -16607,6 +16636,13 @@
         "about": {
           "type": "string",
           "x-go-name": "About"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormField"
+          },
+          "x-go-name": "Fields"
         },
         "content": {
           "type": "string",
