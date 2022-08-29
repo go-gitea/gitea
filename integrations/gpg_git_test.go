@@ -61,7 +61,7 @@ func TestGPGGit(t *testing.T) {
 	setting.Repository.Signing.SigningKey = rootKeyID
 	setting.Repository.Signing.SigningName = "gitea"
 	setting.Repository.Signing.SigningEmail = "gitea@fake.local"
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: username})
 
 	setting.Repository.Signing.InitialCommit = []string{"never"}
 	setting.Repository.Signing.CRUDActions = []string{"never"}

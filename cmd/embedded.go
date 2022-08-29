@@ -123,7 +123,7 @@ func initEmbeddedExtractor(c *cli.Context) error {
 
 	sections["public"] = &section{Path: "public", Names: public.AssetNames, IsDir: public.AssetIsDir, Asset: public.Asset}
 	sections["options"] = &section{Path: "options", Names: options.AssetNames, IsDir: options.AssetIsDir, Asset: options.Asset}
-	sections["templates"] = &section{Path: "templates", Names: templates.AssetNames, IsDir: templates.AssetIsDir, Asset: templates.Asset}
+	sections["templates"] = &section{Path: "templates", Names: templates.BuiltinAssetNames, IsDir: templates.BuiltinAssetIsDir, Asset: templates.BuiltinAsset}
 
 	for _, sec := range sections {
 		assets = append(assets, buildAssetList(sec, pats, c)...)

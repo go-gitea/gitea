@@ -25,7 +25,7 @@ func TestWebfinger(t *testing.T) {
 		setting.Federation.Enabled = false
 	}()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	appURL, _ := url.Parse(setting.AppURL)
 

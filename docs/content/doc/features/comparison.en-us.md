@@ -35,24 +35,24 @@ _Symbols used in table:_
 
 | Feature                             | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |
 | ----------------------------------- | ---------------------------------------------------| ---- | --------- | --------- | --------- | -------------- | ------------ |
-| Open source and free                | ✓                                                 | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
-| Low resource usage (RAM/CPU)        | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
-| Multiple database support           | ✓                                                 | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
-| Multiple OS support                 | ✓                                                 | ✓    | ✘         | ✘         | ✘         | ✘              | ✓            |
-| Easy upgrade process                | ✓                                                 | ✓    | ✘         | ✓         | ✓         | ✘              | ✓            |
-| Markdown support                    | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Orgmode support                     | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
-| CSV support                         | ✓                                                 | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
-| Third-party render tool support     | ✓                                                 | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
-| Static Git-powered pages            | [✘](https://github.com/go-gitea/gitea/issues/302) | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Integrated Git-powered wiki         | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
-| Deploy Tokens                       | ✓                                                 | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Repository Tokens with write rights | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Built-in Package/Container Registry | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| External git mirroring              | ✓                                                 | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| WebAuthn (2FA)                      | ✓                                                 | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
-| Built-in CI/CD                      | ✘                                                 | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Subgroups: groups within groups     | ✘                                                 | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Open source and free                | ✓                                                  | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
+| Low resource usage (RAM/CPU)        | ✓                                                  | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
+| Multiple database support           | ✓                                                  | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
+| Multiple OS support                 | ✓                                                  | ✓    | ✘         | ✘         | ✘         | ✘              | ✓            |
+| Easy upgrade process                | ✓                                                  | ✓    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Markdown support                    | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Orgmode support                     | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✘              | ?            |
+| CSV support                         | ✓                                                  | ✘    | ✓         | ✘         | ✘         | ✓              | ?            |
+| Third-party render tool support     | ✓                                                  | ✘    | ✘         | ✘         | ✘         | ✓              | ?            |
+| Static Git-powered pages            | [✘](https://github.com/go-gitea/gitea/issues/302)  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Integrated Git-powered wiki         | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
+| Deploy Tokens                       | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Repository Tokens with write rights | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
+| Built-in Package/Container Registry | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
+| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
+| Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Subgroups: groups within groups     | [✘](https://github.com/go-gitea/gitea/issues/1872) | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
 
 ## Code management
 
@@ -122,6 +122,7 @@ _Symbols used in table:_
 | AD / LDAP integration                          | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Multiple LDAP / AD server support              | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | LDAP user synchronization                      | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | OpenId Connect support                         | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | OAuth 2.0 integration (external authorization) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | Act as OAuth 2.0 provider                      | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |

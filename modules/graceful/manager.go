@@ -24,11 +24,12 @@ const (
 	stateTerminate
 )
 
-// There are three places that could inherit sockets:
+// There are some places that could inherit sockets:
 //
 // * HTTP or HTTPS main listener
+// * HTTP or HTTPS install listener
 // * HTTP redirection fallback
-// * SSH
+// * Builtin SSH listener
 //
 // If you add an additional place you must increment this number
 // and add a function to call manager.InformCleanup if it's not going to be used
@@ -305,8 +306,9 @@ func (g *Manager) setState(st state) {
 	g.state = st
 }
 
-// InformCleanup tells the cleanup wait group that we have either taken a listener
-// or will not be taking a listener
+// InformCleanup tells the cleanup wait group that we have either taken a listener or will not be taking a listener.
+// At the moment the total number of servers (numberOfServersToCreate) are pre-defined as a const before global init,
+// so this function MUST be called if a server is not used.
 func (g *Manager) InformCleanup() {
 	g.createServerWaitGroup.Done()
 }
