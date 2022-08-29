@@ -160,8 +160,7 @@ func (it IssueTemplate) Validate() error {
 
 	for idx, field := range it.Fields {
 		checkStringAttr := func(name string) error {
-			attr := field.Attributes[name]
-			if s, ok := attr.(string); !ok || s == "" {
+			if attr, ok := field.Attributes[name].(string); !ok || attr == "" {
 				return fmt.Errorf(
 					"body[%d]: the '%s' attribute is required and should be string with type %s",
 					idx, name, field.Type,
@@ -180,32 +179,28 @@ func (it IssueTemplate) Validate() error {
 			}
 		case "checkboxes":
 			if err := checkStringAttr("label"); err != nil {
-			}
-			if err := checkStringAttr("label"); err != nil {
 				return err
 			}
-			attr := field.Attributes["options"]
-			if options, ok := attr.([]any); !ok {
+			options, ok := field.Attributes["options"].([]interface{})
+			if !ok {
 				return fmt.Errorf(
 					"body[%d]: the '%s' attribute is required and should be array with type %s",
 					idx, "options", field.Type,
 				)
-			} else {
-				for optIdx, option := range options {
-					if opt, ok := option.(map[any]any); !ok {
-						return fmt.Errorf(
-							"body[%d], option[%d]: should be dictionary with type %s",
-							idx, optIdx, field.Type,
-						)
-					} else {
-						label := opt["label"]
-						if s, ok := label.(string); !ok || s == "" {
-							return fmt.Errorf(
-								"body[%d], option[%d]: the '%s' is required and should be string with type %s",
-								idx, optIdx, "label", field.Type,
-							)
-						}
-					}
+			}
+			for optIdx, option := range options {
+				opt, ok := option.(map[interface{}]interface{})
+				if !ok {
+					return fmt.Errorf(
+						"body[%d], option[%d]: should be dictionary with type %s",
+						idx, optIdx, field.Type,
+					)
+				}
+				if label, ok := opt["label"].(string); !ok || label == "" {
+					return fmt.Errorf(
+						"body[%d], option[%d]: the '%s' is required and should be string with type %s",
+						idx, optIdx, "label", field.Type,
+					)
 				}
 			}
 
@@ -227,7 +222,6 @@ func (it IssueTemplate) Valid() bool {
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
 func (it IssueTemplate) Type() string {
 	if it.Name == "config.yaml" || it.Name == "config.yml" {
-		// TODO: should it be?
 		// ignore config.yaml which is a special configuration file
 		return ""
 	}
