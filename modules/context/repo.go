@@ -50,6 +50,21 @@ var IssueTemplateDirCandidates = []string{
 	".gitlab/issue_template",
 }
 
+var IssueConfigCanidates = []string{
+	".gitea/config.yaml",
+	".gitea/config.yml",
+	".gitea/ISSUE_TEMPLATE/config.yaml",
+	".gitea/ISSUE_TEMPLATE/config.yml",
+	".gitea/issue_template/config.yaml",
+	".gitea/issue_template/config.yml",
+	".github/config.yaml",
+	".github/config.yml",
+	".github/ISSUE_TEMPLATE/config.yaml",
+	".github/ISSUE_TEMPLATE/config.yml",
+	".github/issue_template/config.yaml",
+	".github/issue_template/config.yml",
+}
+
 // PullRequest contains information to make a pull request
 type PullRequest struct {
 	BaseRepo       *repo_model.Repository
@@ -1125,26 +1140,30 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 		return defaultIssueConfig, nil
 	}
 
-	entry, err := commit.GetTreeEntryByPath(".gitea/issue_config.yaml")
-	if err != nil {
-		return defaultIssueConfig, nil
+	for _, configName := range IssueConfigCanidates {
+		entry, err := commit.GetTreeEntryByPath(configName)
+		if err != nil {
+			continue
+		}
+
+		r, err := entry.Blob().DataAsync()
+		if err != nil {
+			log.Debug("DataAsync: %v", err)
+			return defaultIssueConfig, nil
+		}
+
+		configContent, err := io.ReadAll(r)
+		if err != nil {
+			return defaultIssueConfig, err
+		}
+
+		issueConfig, err := ExtractIssueConfigFromYaml(configContent)
+		if err != nil {
+			return defaultIssueConfig, err
+		}
+
+		return issueConfig, nil
 	}
 
-	r, err := entry.Blob().DataAsync()
-	if err != nil {
-		log.Debug("DataAsync: %v", err)
-		return defaultIssueConfig, nil
-	}
-
-	configContent, err := io.ReadAll(r)
-	if err != nil {
-		return defaultIssueConfig, err
-	}
-
-	issueConfig, err := ExtractIssueConfigFromYaml(configContent)
-	if err != nil {
-		return defaultIssueConfig, err
-	}
-
-	return issueConfig, nil
+	return defaultIssueConfig, nil
 }
