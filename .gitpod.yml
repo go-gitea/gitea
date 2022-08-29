@@ -4,7 +4,7 @@ tasks:
   - name: Setup
     init: |
       make deps
-      echo -e "[server]\nROOT_URL = https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/" >> ./custom/conf/app.ini
+      export GITEA__server__ROOT_URL="https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/"
     command: |
       gp sync-done setup
       exit 0
