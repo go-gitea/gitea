@@ -17,6 +17,7 @@
 				<option value="pub" {{if eq .PackageType "pub"}}selected="selected"{{end}}>Pub</option>
 				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+				<option value="vagrant" {{if eq .PackageType "vagrant"}}selected="selected"{{end}}>Vagrant</option>
 			</select>
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
