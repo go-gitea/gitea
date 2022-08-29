@@ -42,7 +42,7 @@ async function initRepoProjectSortable() {
 
   // the HTML layout is: #project-board > .column .column.cards > .column-card.card .content
   const mainBoard = els[0];
-  let boardColumns = mainBoard.getElementsByClassName('column');
+  let columns = mainBoard.getElementsByClassName('column');
   new Sortable(mainBoard, {
     group: 'column',
     draggable: '.column',
@@ -50,9 +50,9 @@ async function initRepoProjectSortable() {
     animation: 150,
     ghostClass: 'card-ghost',
     onSort: () => {
-      boardColumns = mainBoard.getElementsByClassName('column');
-      for (let i = 0; i < boardColumns.length; i++) {
-        const column = boardColumns[i];
+      columns = mainBoard.getElementsByClassName('column');
+      for (let i = 0; i < columns.length; i++) {
+        const column = columns[i];
         if (parseInt($(column).data('sorting')) !== i) {
           $.ajax({
             url: $(column).data('url'),
@@ -68,7 +68,7 @@ async function initRepoProjectSortable() {
     },
   });
 
-  for (const boardColumn of boardColumns) {
+  for (const boardColumn of columns) {
     const boardCardList = boardColumn.getElementsByClassName('column')[0];
     new Sortable(boardCardList, {
       group: 'shared',
