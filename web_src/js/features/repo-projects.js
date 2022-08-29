@@ -35,22 +35,22 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .column');
+  const els = document.querySelectorAll('#project-board > .project-column');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
 
   // the HTML layout is: #project-board > .column .column.cards > .column-card.card .content
   const mainBoard = els[0];
-  let columns = mainBoard.getElementsByClassName('column');
+  let columns = mainBoard.getElementsByClassName('project-column');
   new Sortable(mainBoard, {
-    group: 'column',
-    draggable: '.column',
+    group: 'project-column',
+    draggable: '.project-column',
     filter: '[data-id="0"]',
     animation: 150,
     ghostClass: 'card-ghost',
     onSort: () => {
-      columns = mainBoard.getElementsByClassName('column');
+      columns = mainBoard.getElementsByClassName('project-column');
       for (let i = 0; i < columns.length; i++) {
         const column = columns[i];
         if (parseInt($(column).data('sorting')) !== i) {
@@ -68,9 +68,9 @@ async function initRepoProjectSortable() {
     },
   });
 
-  for (const boardColumn of columns) {
-    const boardCardList = boardColumn.getElementsByClassName('column')[0];
-    new Sortable(boardCardList, {
+  for (const column of columns) {
+    const cardList = column.getElementsByClassName('project-column')[0];
+    new Sortable(cardList, {
       group: 'shared',
       animation: 150,
       ghostClass: 'card-ghost',
@@ -94,10 +94,10 @@ export default function initRepoProject() {
       '.content > .form > .field > .project-column-title',
     );
     const projectColorInput = $(this).find('.content > .form > .field  #new_column_color');
-    const boardColumn = $(this).closest('.column');
+    const column = $(this).closest('.project-column');
 
-    if (boardColumn.css('backgroundColor')) {
-      setLabelColor(projectHeader, rgbToHex(boardColumn.css('backgroundColor')));
+    if (column.css('backgroundColor')) {
+      setLabelColor(projectHeader, rgbToHex(column.css('backgroundColor')));
     }
 
     $(this)
@@ -119,7 +119,7 @@ export default function initRepoProject() {
           if (projectColorInput.val()) {
             setLabelColor(projectHeader, projectColorInput.val());
           }
-          boardColumn.attr('style', `background: ${projectColorInput.val()}!important`);
+          column.attr('style', `background: ${projectColorInput.val()}!important`);
           $('.ui.modal').modal('hide');
         });
       });
