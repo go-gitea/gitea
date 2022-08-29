@@ -5,9 +5,7 @@
 package structs
 
 import (
-	"fmt"
 	"path/filepath"
-	"strings"
 	"time"
 )
 
@@ -136,88 +134,12 @@ type IssueFormField struct {
 type IssueTemplate struct {
 	Name     string            `json:"name" yaml:"name"`
 	Title    string            `json:"title" yaml:"title"`
-	About    string            `json:"about" yaml:"about"`
+	About    string            `json:"about" yaml:"about"` // Using "description" in a template file is compatible
 	Labels   []string          `json:"labels" yaml:"labels"`
 	Ref      string            `json:"ref" yaml:"ref"`
 	Content  string            `json:"content" yaml:"-"`
 	Fields   []*IssueFormField `json:"body" yaml:"body"`
 	FileName string            `json:"file_name" yaml:"-"`
-}
-
-// Validate checks whether an IssueTemplate is considered valid, and returns the first error
-func (it IssueTemplate) Validate() error {
-	// TODO check the format of id, and more
-
-	errMissField := func(f string) error {
-		return fmt.Errorf("field '%s' is required", f)
-	}
-
-	if strings.TrimSpace(it.Name) == "" {
-		return errMissField("name")
-	}
-	if strings.TrimSpace(it.About) == "" {
-		return errMissField("about")
-	}
-
-	for idx, field := range it.Fields {
-		checkStringAttr := func(name string) error {
-			if attr, ok := field.Attributes[name].(string); !ok || attr == "" {
-				return fmt.Errorf(
-					"body[%d]: the '%s' attribute is required and should be string with type %s",
-					idx, name, field.Type,
-				)
-			}
-			return nil
-		}
-		switch field.Type {
-		case "markdown":
-			if err := checkStringAttr("value"); err != nil {
-				return err
-			}
-		case "textarea", "input", "dropdown":
-			if err := checkStringAttr("label"); err != nil {
-				return err
-			}
-		case "checkboxes":
-			if err := checkStringAttr("label"); err != nil {
-				return err
-			}
-			options, ok := field.Attributes["options"].([]interface{})
-			if !ok {
-				return fmt.Errorf(
-					"body[%d]: the '%s' attribute is required and should be array with type %s",
-					idx, "options", field.Type,
-				)
-			}
-			for optIdx, option := range options {
-				opt, ok := option.(map[interface{}]interface{})
-				if !ok {
-					return fmt.Errorf(
-						"body[%d], option[%d]: should be dictionary with type %s",
-						idx, optIdx, field.Type,
-					)
-				}
-				if label, ok := opt["label"].(string); !ok || label == "" {
-					return fmt.Errorf(
-						"body[%d], option[%d]: the '%s' is required and should be string with type %s",
-						idx, optIdx, "label", field.Type,
-					)
-				}
-			}
-
-		default:
-			return fmt.Errorf(
-				"(field #%d '%s'): unknown type '%s'",
-				idx+1, field.ID, field.Type,
-			)
-		}
-	}
-	return nil
-}
-
-// Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
-func (it IssueTemplate) Valid() bool {
-	return it.Validate() == nil
 }
 
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known

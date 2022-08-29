@@ -1065,7 +1065,9 @@ func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
 			it, err := template.UnmarshalFromEntry(entry, dirName)
 			if err != nil {
 				log.Debug("unmarshal template from %s: %v", entry.Name(), err)
-			} else if it.Valid() {
+			} else if err := template.Validate(it); err != nil {
+				log.Debug("invalid template file %s: %v", entry.Name(), err)
+			} else {
 				issueTemplates = append(issueTemplates, it)
 			}
 		}

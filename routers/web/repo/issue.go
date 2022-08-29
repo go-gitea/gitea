@@ -744,7 +744,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		if err != nil {
 			continue
 		}
-		if !template.Valid() {
+		if issue_template.Validate(template) != nil {
 			continue
 		}
 
