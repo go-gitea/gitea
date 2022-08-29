@@ -4,7 +4,6 @@ tasks:
   - name: Setup
     init: |
       make deps
-      export GITEA__server__ROOT_URL="https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/"
     command: |
       gp sync-done setup
       exit 0
@@ -15,7 +14,8 @@ tasks:
   - name: Run backend
     command: |
       gp sync-await setup
-      export TAGS="bindata sqlite sqlite_unlock_notify"
+      export GITEA__server__ROOT_URL="https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/"
+      export TAGS="sqlite sqlite_unlock_notify"
       make watch-backend
 
 vscode:
