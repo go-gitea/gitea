@@ -40,7 +40,6 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 				it.About = compatibleTemplate.About
 			}
 		}
-		
 	} else if typ == "yaml" {
 		if err := yaml.Unmarshal(content, it); err != nil {
 			return nil, fmt.Errorf("yaml unmarshal: %w", err)

@@ -1,2 +1,4 @@
-{{template "repo/issue/fields/header" .}}
-<input type="text" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{- if .Validations.required}}required{{end}}>
+<div class="field">
+	{{template "repo/issue/fields/header" .}}
+	<input type="text" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{- if .Validations.required}}required{{end}}>
+</div>
