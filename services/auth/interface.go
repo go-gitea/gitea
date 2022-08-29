@@ -34,7 +34,7 @@ type Method interface {
 type Initializable interface {
 	// Init should be called exactly once before using any of the other methods,
 	// in order to allow the plugin to allocate necessary resources
-	Init() error
+	Init(ctx context.Context) error
 }
 
 // Named represents a named thing
