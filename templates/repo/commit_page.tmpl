@@ -222,7 +222,7 @@
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
 								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{else}}
 							{{svg "octicon-shield-lock" 16 "mr-3"}}
@@ -231,7 +231,7 @@
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
 								<span class="ui text mr-3 tooltip" data-content="{{.i18n.Tr "gpg.default_key"}}">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 					{{else if .Verification.Warning}}
@@ -241,14 +241,14 @@
 							{{.Verification.SigningSSHKey.Fingerprint}}
 						{{else}}
 							<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
-							{{.Verification.SigningKey.KeyID}}
+							{{.Verification.SigningKey.PaddedKeyID}}
 						{{end}}
 					{{else}}
 						{{if .Verification.SigningKey}}
 							{{if ne .Verification.SigningKey.KeyID ""}}
 								{{svg "octicon-shield" 16 "mr-3"}}
 								<span class="ui text mr-3">{{.i18n.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 						{{if .Verification.SigningSSHKey}}
