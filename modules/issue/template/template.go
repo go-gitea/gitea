@@ -69,6 +69,12 @@ func Validate(template *api.IssueTemplate) error {
 			); err != nil {
 				return err
 			}
+			if err := validateBoolItem(position, field.Validations, "is_number"); err != nil {
+				return err
+			}
+			if err := validateStringItem(position, field.Validations, false, "regex"); err != nil {
+				return err
+			}
 		case TypeDropdown:
 			if err := validateStringItem(position, field.Attributes, false, "description"); err != nil {
 				return err

@@ -151,6 +151,36 @@ body:
 			wantErr: "body[0](input): 'description' should be a string",
 		},
 		{
+			name: "input invalid is_number",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "input"
+    id: "1"
+    attributes:
+      label: "a"
+    validations:
+      is_number: "yes"
+`,
+			wantErr: "body[0](input): 'is_number' should be a bool",
+		},
+		{
+			name: "input invalid regex",
+			content: `
+name: "test"
+about: "this is about"
+body:
+  - type: "input"
+    id: "1"
+    attributes:
+      label: "a"
+    validations:
+      regex: true
+`,
+			wantErr: "body[0](input): 'regex' should be a string",
+		},
+		{
 			name: "dropdown invalid description",
 			content: `
 name: "test"
