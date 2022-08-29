@@ -18,7 +18,7 @@ func TestMain(m *testing.M) {
 		GiteaRootPath: filepath.Join("..", ".."),
 		FixtureFiles: []string{
 			"project.yml",
-			"project_board.yml",
+			"project_column.yml",
 			"project_issue.yml",
 			"repository.yml",
 		},
