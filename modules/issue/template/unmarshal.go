@@ -24,21 +24,28 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 		FileName: filename,
 	}
 
+	// Compatible with treating description as about
+	compatibleTemplate := &struct {
+		About string `yaml:"description"`
+	}{}
+
 	if typ := it.Type(); typ == "md" {
 		templateBody, err := markdown.ExtractMetadata(string(content), it)
 		if err != nil {
 			return nil, fmt.Errorf("extract metadata: %w", err)
 		}
 		it.Content = templateBody
+		if it.About == "" {
+			if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+				it.About = compatibleTemplate.About
+			}
+		}
+		
 	} else if typ == "yaml" {
 		if err := yaml.Unmarshal(content, it); err != nil {
 			return nil, fmt.Errorf("yaml unmarshal: %w", err)
 		}
 		if it.About == "" {
-			// Compatible with treating description as about
-			compatibleTemplate := &struct {
-				About string `yaml:"description"`
-			}{}
 			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
 				it.About = compatibleTemplate.About
 			}
