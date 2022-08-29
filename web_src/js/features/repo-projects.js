@@ -4,12 +4,12 @@ const {csrfToken} = window.config;
 
 function updateIssueCount(cards) {
   const parent = cards.parentElement;
-  const cnt = parent.getElementsByClassName('column-card').length;
+  const cnt = parent.getElementsByClassName('project-column-card').length;
   parent.getElementsByClassName('column-card-cnt')[0].innerText = cnt;
 }
 
 function moveIssue({item, from, to, oldIndex}) {
-  const columnCards = to.getElementsByClassName('column-card');
+  const columnCards = to.getElementsByClassName('project-column-card');
   updateIssueCount(from);
   updateIssueCount(to);
 
@@ -35,12 +35,12 @@ function moveIssue({item, from, to, oldIndex}) {
 }
 
 async function initRepoProjectSortable() {
-  const els = document.querySelectorAll('#project-board > .project-column');
+  const els = document.querySelectorAll('#project-board > .project-board');
   if (!els.length) return;
 
   const {Sortable} = await import(/* webpackChunkName: "sortable" */'sortablejs');
 
-  // the HTML layout is: #project-board > .column .column.cards > .column-card.card .content
+  // the HTML layout is: #project-board > .project-board > .project-column .project-column-cards > .project-column-card .content
   const mainBoard = els[0];
   let columns = mainBoard.getElementsByClassName('project-column');
   new Sortable(mainBoard, {
@@ -69,11 +69,11 @@ async function initRepoProjectSortable() {
   });
 
   for (const column of columns) {
-    const cardList = column.getElementsByClassName('project-column')[0];
+    const cardList = column.getElementsByClassName('project-column-cards')[0];
     new Sortable(cardList, {
       group: 'shared',
       animation: 150,
-      ghostClass: 'card-ghost',
+      ghostClass: 'project-column-card-ghost',
       onAdd: moveIssue,
       onUpdate: moveIssue,
     });
