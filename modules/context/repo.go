@@ -51,14 +51,10 @@ var IssueTemplateDirCandidates = []string{
 }
 
 var IssueConfigCanidates = []string{
-	".gitea/config.yaml",
-	".gitea/config.yml",
 	".gitea/ISSUE_TEMPLATE/config.yaml",
 	".gitea/ISSUE_TEMPLATE/config.yml",
 	".gitea/issue_template/config.yaml",
 	".gitea/issue_template/config.yml",
-	".github/config.yaml",
-	".github/config.yml",
 	".github/ISSUE_TEMPLATE/config.yaml",
 	".github/ISSUE_TEMPLATE/config.yml",
 	".github/issue_template/config.yaml",
