@@ -13,6 +13,7 @@
 			{{template "repo/issue/fields/checkboxes" .}}
 		{{end}}
 	{{end}}
+	<div class="field"></div> {{/* the upload dropzone expects a field above and closes to it, see dropzone.less:9 */}}
 {{else}}
 	<div class="ui top tabular menu" data-write="write" data-preview="preview">
 		<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>

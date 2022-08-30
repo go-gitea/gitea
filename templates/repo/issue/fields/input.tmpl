@@ -1,5 +1,5 @@
 <div class="field">
 	{{template "repo/issue/fields/header" .}}
-{{/*	TODO: support is_number and regex */}}
-	<input type="text" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{- if .Validations.required}}required{{end}}>
+{{/*	TODO: support regex */}}
+	<input type="{{if .Validations.is_number}}number{{else}}text{{end}}" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{- if .Validations.required}}required{{end}}>
 </div>
