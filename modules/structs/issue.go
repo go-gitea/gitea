@@ -120,7 +120,7 @@ type IssueDeadline struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
-// IssueFormFieldType defines issue form field type
+// IssueFormFieldType defines issue form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"
 type IssueFormFieldType string
 
 const (
@@ -161,7 +161,7 @@ const (
 	IssueTemplateTypeYaml     IssueTemplateType = "yaml"
 )
 
-// Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
+// Type returns the type of IssueTemplate, can be "md", "yaml" or empty for known
 func (it IssueTemplate) Type() IssueTemplateType {
 	if it.Name == "config.yaml" || it.Name == "config.yml" {
 		// ignore config.yaml which is a special configuration file

@@ -16600,8 +16600,7 @@
           "x-go-name": "ID"
         },
         "type": {
-          "type": "string",
-          "x-go-name": "Type"
+          "$ref": "#/definitions/IssueFormFieldType"
         },
         "validations": {
           "type": "object",
@@ -16611,6 +16610,11 @@
           "x-go-name": "Validations"
         }
       },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldType": {
+      "type": "string",
+      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
     "IssueLabelsOption": {
