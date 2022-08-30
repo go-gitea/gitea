@@ -68,9 +68,14 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
-    const $textarea = $commentForm.find('textarea:not(.review-textarea)');
-    const easyMDE = await createCommentEasyMDE($textarea);
-    initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+    for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
+      // Don't initialize EasyMDE for the dormant #edit-content-form
+      if (textarea.closest('#edit-content-form')) {
+        continue;
+      }
+      const easyMDE = await createCommentEasyMDE(textarea);
+      initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+    }
   })();
 
   initBranchSelector();
