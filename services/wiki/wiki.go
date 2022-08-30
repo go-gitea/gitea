@@ -12,7 +12,6 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -33,7 +32,7 @@ var (
 
 func nameAllowed(name string) error {
 	if util.IsStringInSlice(name, reservedWikiNames) {
-		return models.ErrWikiReservedName{
+		return repo_model.ErrWikiReservedName{
 			Title: name,
 		}
 	}
@@ -59,7 +58,7 @@ func NameToFilename(name string) string {
 // FilenameToName converts a wiki filename to its corresponding page name.
 func FilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", models.ErrWikiInvalidFileName{
+		return "", repo_model.ErrWikiInvalidFileName{
 			FileName: filename,
 		}
 	}
@@ -178,7 +177,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	if isNew {
 		if isWikiExist {
-			return models.ErrWikiAlreadyExist{
+			return repo_model.ErrWikiAlreadyExist{
 				Title: newWikiPath,
 			}
 		}

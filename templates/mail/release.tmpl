@@ -11,7 +11,7 @@
 
 </head>
 
-{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape) }}
+{{$release_url := printf "<a href='%s'>%s</a>" (.Release.HTMLURL | Escape) (.Release.TagName | Escape)}}
 {{$repo_url := printf "<a href='%s'>%s</a>" (.Release.Repo.HTMLURL | Escape) (.Release.Repo.FullName | Escape)}}
 <body>
 	<p>

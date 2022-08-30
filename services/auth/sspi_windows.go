@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -52,21 +53,14 @@ type SSPI struct {
 }
 
 // Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init() error {
+func (s *SSPI) Init(ctx context.Context) error {
 	config := websspi.NewConfig()
 	var err error
 	sspiAuth, err = websspi.New(config)
 	if err != nil {
 		return err
 	}
-	s.rnd = render.New(render.Options{
-		Extensions:    []string{".tmpl"},
-		Directory:     "templates",
-		Funcs:         templates.NewFuncMap(),
-		Asset:         templates.GetAsset,
-		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd,
-	})
+	_, s.rnd = templates.HTMLRenderer(ctx)
 	return nil
 }
 

@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -49,12 +50,12 @@ func GetRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	id := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(ctx, id)
-	if err != nil && !models.IsErrReleaseNotExist(err) {
+	release, err := repo_model.GetReleaseByID(ctx, id)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if err != nil && models.IsErrReleaseNotExist(err) ||
+	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
 		release.IsTag || release.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
@@ -114,7 +115,7 @@ func ListReleases(ctx *context.APIContext) {
 		listOptions.PageSize = ctx.FormInt("per_page")
 	}
 
-	opts := models.FindReleasesOptions{
+	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
 		IncludeDrafts: ctx.Repo.AccessMode >= perm.AccessModeWrite || ctx.Repo.UnitAccessMode(unit.TypeReleases) >= perm.AccessModeWrite,
 		IncludeTags:   false,
@@ -122,7 +123,7 @@ func ListReleases(ctx *context.APIContext) {
 		IsPreRelease:  ctx.FormOptionalBool("pre-release"),
 	}
 
-	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleasesByRepoID", err)
 		return
@@ -136,7 +137,7 @@ func ListReleases(ctx *context.APIContext) {
 		rels[i] = convert.ToRelease(release)
 	}
 
-	filteredCount, err := models.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
+	filteredCount, err := repo_model.CountReleasesByRepoID(ctx.Repo.Repository.ID, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -179,9 +180,9 @@ func CreateRelease(ctx *context.APIContext) {
 	//   "409":
 	//     "$ref": "#/responses/error"
 	form := web.GetForm(ctx).(*api.CreateReleaseOption)
-	rel, err := models.GetRelease(ctx.Repo.Repository.ID, form.TagName)
+	rel, err := repo_model.GetRelease(ctx.Repo.Repository.ID, form.TagName)
 	if err != nil {
-		if !models.IsErrReleaseNotExist(err) {
+		if !repo_model.IsErrReleaseNotExist(err) {
 			ctx.Error(http.StatusInternalServerError, "GetRelease", err)
 			return
 		}
@@ -189,7 +190,7 @@ func CreateRelease(ctx *context.APIContext) {
 		if len(form.Target) == 0 {
 			form.Target = ctx.Repo.Repository.DefaultBranch
 		}
-		rel = &models.Release{
+		rel = &repo_model.Release{
 			RepoID:       ctx.Repo.Repository.ID,
 			PublisherID:  ctx.Doer.ID,
 			Publisher:    ctx.Doer,
@@ -203,7 +204,7 @@ func CreateRelease(ctx *context.APIContext) {
 			Repo:         ctx.Repo.Repository,
 		}
 		if err := release_service.CreateRelease(ctx.Repo.GitRepo, rel, nil, ""); err != nil {
-			if models.IsErrReleaseAlreadyExist(err) {
+			if repo_model.IsErrReleaseAlreadyExist(err) {
 				ctx.Error(http.StatusConflict, "ReleaseAlreadyExist", err)
 			} else {
 				ctx.Error(http.StatusInternalServerError, "CreateRelease", err)
@@ -272,12 +273,12 @@ func EditRelease(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.EditReleaseOption)
 	id := ctx.ParamsInt64(":id")
-	rel, err := models.GetReleaseByID(ctx, id)
-	if err != nil && !models.IsErrReleaseNotExist(err) {
+	rel, err := repo_model.GetReleaseByID(ctx, id)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if err != nil && models.IsErrReleaseNotExist(err) ||
+	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
@@ -307,7 +308,7 @@ func EditRelease(ctx *context.APIContext) {
 	}
 
 	// reload data from database
-	rel, err = models.GetReleaseByID(ctx, id)
+	rel, err = repo_model.GetReleaseByID(ctx, id)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
@@ -350,12 +351,12 @@ func DeleteRelease(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 
 	id := ctx.ParamsInt64(":id")
-	rel, err := models.GetReleaseByID(ctx, id)
-	if err != nil && !models.IsErrReleaseNotExist(err) {
+	rel, err := repo_model.GetReleaseByID(ctx, id)
+	if err != nil && !repo_model.IsErrReleaseNotExist(err) {
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
-	if err != nil && models.IsErrReleaseNotExist(err) ||
+	if err != nil && repo_model.IsErrReleaseNotExist(err) ||
 		rel.IsTag || rel.RepoID != ctx.Repo.Repository.ID {
 		ctx.NotFound()
 		return
