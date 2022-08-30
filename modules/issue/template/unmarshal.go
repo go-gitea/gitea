@@ -29,7 +29,7 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 		About string `yaml:"description"`
 	}{}
 
-	if typ := it.Type(); typ == "md" {
+	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
 		templateBody, err := markdown.ExtractMetadata(string(content), it)
 		if err != nil {
 			return nil, fmt.Errorf("extract metadata: %w", err)
@@ -40,7 +40,7 @@ func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 				it.About = compatibleTemplate.About
 			}
 		}
-	} else if typ == "yaml" {
+	} else if typ == api.IssueTemplateTypeYaml {
 		if err := yaml.Unmarshal(content, it); err != nil {
 			return nil, fmt.Errorf("yaml unmarshal: %w", err)
 		}

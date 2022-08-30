@@ -751,7 +751,7 @@ func setTemplateIfExists(ctx *context.Context, ctxDataKey string, possibleFiles 
 		ctx.Data[issueTemplateTitleKey] = template.Title
 		ctx.Data[ctxDataKey] = template.Content
 
-		if template.Type() == "yaml" {
+		if template.Type() == api.IssueTemplateTypeYaml {
 			ctx.Data["Fields"] = template.Fields
 			ctx.Data["TemplateFile"] = template.FileName
 		}

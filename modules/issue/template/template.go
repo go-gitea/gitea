@@ -15,27 +15,32 @@ import (
 	"gitea.com/go-chi/binding"
 )
 
-const (
-	TypeMarkdown   = "markdown"
-	TypeTextarea   = "textarea"
-	TypeInput      = "input"
-	TypeDropdown   = "dropdown"
-	TypeCheckboxes = "checkboxes"
-)
-
 // Validate checks whether an IssueTemplate is considered valid, and returns the first error
 func Validate(template *api.IssueTemplate) error {
-	errRequired := func(name string) error {
-		return fmt.Errorf("'%s' is required", name)
+	if err := validateMetadata(template); err != nil {
+		return err
 	}
+	if template.Type() == api.IssueTemplateTypeYaml {
+		if err := validateYaml(template); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateMetadata(template *api.IssueTemplate) error {
 	if strings.TrimSpace(template.Name) == "" {
-		return errRequired("name")
+		return fmt.Errorf("'name' is required")
 	}
 	if strings.TrimSpace(template.About) == "" {
-		return errRequired("about")
+		return fmt.Errorf("'about' is required")
 	}
+	return nil
+}
+
+func validateYaml(template *api.IssueTemplate) error {
 	if len(template.Fields) == 0 {
-		return errRequired("body")
+		return fmt.Errorf("'body' is required")
 	}
 	ids := map[string]struct{}{}
 	for idx, field := range template.Fields {
@@ -48,11 +53,11 @@ func Validate(template *api.IssueTemplate) error {
 
 		position := newErrorPosition(idx, field.Type)
 		switch field.Type {
-		case TypeMarkdown:
+		case api.IssueFormFieldTypeMarkdown:
 			if err := validateStringItem(position, field.Attributes, true, "value"); err != nil {
 				return err
 			}
-		case TypeTextarea:
+		case api.IssueFormFieldTypeTextarea:
 			if err := validateStringItem(position, field.Attributes, false,
 				"description",
 				"placeholder",
@@ -61,7 +66,7 @@ func Validate(template *api.IssueTemplate) error {
 			); err != nil {
 				return err
 			}
-		case TypeInput:
+		case api.IssueFormFieldTypeInput:
 			if err := validateStringItem(position, field.Attributes, false,
 				"description",
 				"placeholder",
@@ -75,7 +80,7 @@ func Validate(template *api.IssueTemplate) error {
 			if err := validateStringItem(position, field.Validations, false, "regex"); err != nil {
 				return err
 			}
-		case TypeDropdown:
+		case api.IssueFormFieldTypeDropdown:
 			if err := validateStringItem(position, field.Attributes, false, "description"); err != nil {
 				return err
 			}
@@ -85,7 +90,7 @@ func Validate(template *api.IssueTemplate) error {
 			if err := validateOptions(field, idx); err != nil {
 				return err
 			}
-		case TypeCheckboxes:
+		case api.IssueFormFieldTypeCheckboxes:
 			if err := validateStringItem(position, field.Attributes, false, "description"); err != nil {
 				return err
 			}
@@ -104,7 +109,7 @@ func Validate(template *api.IssueTemplate) error {
 }
 
 func validateLabel(field *api.IssueFormField, idx int) error {
-	if field.Type == TypeMarkdown {
+	if field.Type == api.IssueFormFieldTypeMarkdown {
 		// The label is not required for a markdown field
 		return nil
 	}
@@ -112,7 +117,7 @@ func validateLabel(field *api.IssueFormField, idx int) error {
 }
 
 func validateRequired(field *api.IssueFormField, idx int) error {
-	if field.Type == TypeMarkdown || field.Type == TypeCheckboxes {
+	if field.Type == api.IssueFormFieldTypeMarkdown || field.Type == api.IssueFormFieldTypeCheckboxes {
 		// The label is not required for a markdown or checkboxes field
 		return nil
 	}
@@ -120,7 +125,7 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 }
 
 func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) error {
-	if field.Type == TypeMarkdown {
+	if field.Type == api.IssueFormFieldTypeMarkdown {
 		// The ID is not required for a markdown field
 		return nil
 	}
@@ -141,7 +146,7 @@ func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) err
 }
 
 func validateOptions(field *api.IssueFormField, idx int) error {
-	if field.Type != TypeDropdown && field.Type != TypeCheckboxes {
+	if field.Type != api.IssueFormFieldTypeDropdown && field.Type != api.IssueFormFieldTypeCheckboxes {
 		return nil
 	}
 	position := newErrorPosition(idx, field.Type)
@@ -154,11 +159,11 @@ func validateOptions(field *api.IssueFormField, idx int) error {
 	for optIdx, option := range options {
 		position := newErrorPosition(idx, field.Type, optIdx)
 		switch field.Type {
-		case TypeDropdown:
+		case api.IssueFormFieldTypeDropdown:
 			if _, ok := option.(string); !ok {
 				return position.Errorf("should be a string")
 			}
-		case TypeCheckboxes:
+		case api.IssueFormFieldTypeCheckboxes:
 			opt, ok := option.(map[interface{}]interface{})
 			if !ok {
 				return position.Errorf("should be a dictionary")
@@ -216,7 +221,7 @@ func (p errorPosition) Errorf(format string, a ...interface{}) error {
 	return fmt.Errorf(string(p)+": "+format, a...)
 }
 
-func newErrorPosition(fieldIdx int, fieldType string, optionIndex ...int) errorPosition {
+func newErrorPosition(fieldIdx int, fieldType api.IssueFormFieldType, optionIndex ...int) errorPosition {
 	ret := fmt.Sprintf("body[%d](%s)", fieldIdx, fieldType)
 	if len(optionIndex) > 0 {
 		ret += fmt.Sprintf(", option[%d]", optionIndex[0])
@@ -248,7 +253,7 @@ type valuedField struct {
 }
 
 func (f *valuedField) WriteTo(builder *strings.Builder) {
-	if f.Type == TypeMarkdown {
+	if f.Type == api.IssueFormFieldTypeMarkdown {
 		// markdown blocks do not appear in output
 		return
 	}
@@ -260,7 +265,7 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 
 	// write body
 	switch f.Type {
-	case TypeCheckboxes:
+	case api.IssueFormFieldTypeCheckboxes:
 		for _, option := range f.Options() {
 			checked := " "
 			if option.IsChecked() {
@@ -268,7 +273,7 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 			}
 			_, _ = fmt.Fprintf(builder, "- [%s] %s\n", checked, option.Label())
 		}
-	case TypeDropdown:
+	case api.IssueFormFieldTypeDropdown:
 		var checkeds []string
 		for _, option := range f.Options() {
 			if option.IsChecked() {
@@ -280,12 +285,12 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 		} else {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
-	case TypeInput:
+	case api.IssueFormFieldTypeInput:
 		if v := f.Value(); v == "" {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
 		_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
-	case TypeTextarea:
+	case api.IssueFormFieldTypeTextarea:
 		if v := f.Value(); v == "" {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		} else if render := f.Render(); render != "" {
@@ -338,11 +343,11 @@ type valuedOption struct {
 
 func (o *valuedOption) Label() string {
 	switch o.field.Type {
-	case TypeDropdown:
+	case api.IssueFormFieldTypeDropdown:
 		if label, ok := o.data.(string); ok {
 			return label
 		}
-	case TypeCheckboxes:
+	case api.IssueFormFieldTypeCheckboxes:
 		if vs, ok := o.data.(map[interface{}]interface{}); ok {
 			if v, ok := vs["label"].(string); ok {
 				return v
@@ -354,7 +359,7 @@ func (o *valuedOption) Label() string {
 
 func (o *valuedOption) IsChecked() bool {
 	switch o.field.Type {
-	case TypeDropdown:
+	case api.IssueFormFieldTypeDropdown:
 		checks := strings.Split(o.field.Get(fmt.Sprintf("form-field-%s", o.field.ID)), ",")
 		idx := strconv.Itoa(o.index)
 		for _, v := range checks {
@@ -363,7 +368,7 @@ func (o *valuedOption) IsChecked() bool {
 			}
 		}
 		return false
-	case TypeCheckboxes:
+	case api.IssueFormFieldTypeCheckboxes:
 		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}
 	return false

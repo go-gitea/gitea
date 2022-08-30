@@ -120,10 +120,21 @@ type IssueDeadline struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
+// IssueFormFieldType defines issue form field type
+type IssueFormFieldType string
+
+const (
+	IssueFormFieldTypeMarkdown   IssueFormFieldType = "markdown"
+	IssueFormFieldTypeTextarea   IssueFormFieldType = "textarea"
+	IssueFormFieldTypeInput      IssueFormFieldType = "input"
+	IssueFormFieldTypeDropdown   IssueFormFieldType = "dropdown"
+	IssueFormFieldTypeCheckboxes IssueFormFieldType = "checkboxes"
+)
+
 // IssueFormField represents a form field
 // swagger:model
 type IssueFormField struct {
-	Type        string                 `json:"type" yaml:"type"`
+	Type        IssueFormFieldType     `json:"type" yaml:"type"`
 	ID          string                 `json:"id" yaml:"id"`
 	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
 	Validations map[string]interface{} `json:"validations" yaml:"validations"`
@@ -142,16 +153,24 @@ type IssueTemplate struct {
 	FileName string            `json:"file_name" yaml:"-"`
 }
 
+// IssueTemplateType defines issue template type
+type IssueTemplateType string
+
+const (
+	IssueTemplateTypeMarkdown IssueTemplateType = "md"
+	IssueTemplateTypeYaml     IssueTemplateType = "yaml"
+)
+
 // Type returns the type of IssueTemplate, it could be "md", "yaml" or empty for known
-func (it IssueTemplate) Type() string {
+func (it IssueTemplate) Type() IssueTemplateType {
 	if it.Name == "config.yaml" || it.Name == "config.yml" {
 		// ignore config.yaml which is a special configuration file
 		return ""
 	}
 	if ext := filepath.Ext(it.FileName); ext == ".md" {
-		return "md"
+		return IssueTemplateTypeMarkdown
 	} else if ext == ".yaml" || ext == ".yml" {
 		return "yaml"
 	}
-	return ""
+	return IssueTemplateTypeYaml
 }
