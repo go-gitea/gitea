@@ -542,7 +542,9 @@ export function initRepository() {
       const $form = $repoComparePull.find('.pullrequest-form');
       const easyMDE = getAttachedEasyMDE($form.find('textarea.edit_area'));
       $form.show();
-      easyMDE.codemirror.refresh();
+      if (easyMDE) {
+        easyMDE.codemirror.refresh();
+      }
     });
   }
 
