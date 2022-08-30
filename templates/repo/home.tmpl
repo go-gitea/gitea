@@ -117,19 +117,17 @@
 					<div class="ui action tiny input" id="clone-panel">
 					{{template "repo/clone_buttons" .}}
 					{{template "repo/clone_script" .}}
-					{{if not .DisableDownloadSourceArchives}}
-						<button id="download-btn" class="ui basic small compact jump dropdown icon button tooltip" data-content="{{.i18n.Tr "repo.download_archive"}}" data-position="top right">
-							{{svg "octicon-download"}}
-							<div class="menu">
-								{{if not $.DisableDownloadSourceArchives}}
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_zip"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_tar"}}</a>
-									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.i18n.Tr "repo.download_bundle"}}</a>
-								{{end}}
-								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
-							</div>
-						</button>
-					{{end}}
+					<button id="download-btn" class="ui basic small compact jump dropdown icon button tooltip" data-content="{{.i18n.Tr "repo.download_archive"}}" data-position="top right">
+						{{svg "octicon-download"}}
+						<div class="menu">
+							{{if not $.DisableDownloadSourceArchives}}
+								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.zip" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_zip"}}</a>
+								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.i18n.Tr "repo.download_tar"}}</a>
+								<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.i18n.Tr "repo.download_bundle"}}</a>
+							{{end}}
+							<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.i18n.Tr "repo.clone_in_vsc"}}</a>
+						</div>
+					</button>
 					</div>
 				{{end}}
 				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame) }}
