@@ -1,7 +1,8 @@
 <div class="field">
 	{{template "repo/issue/fields/header" .}}
+	{{/* FIXME: required validation */}}
 	<div class="ui fluid selection dropdown {{if .Attributes.multiple}}multiple clearable{{end}}">
-		<input type="hidden" {{if .Validations.required}}required{{end}} name="form-field-{{.ID}}" value="0">
+		<input type="hidden" name="form-field-{{.ID}}" value="0">
 		<i class="dropdown icon"></i>
 		<div class="default text"></div>
 		<div class="menu">
