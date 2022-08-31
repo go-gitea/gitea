@@ -23,6 +23,8 @@ vscode:
     - editorconfig.editorconfig
     - dbaeumer.vscode-eslint
     - golang.go
+    - stylelint.vscode-stylelint
+    - DavidAnson.vscode-markdownlint
 
 ports:
   - name: Gitea
