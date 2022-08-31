@@ -473,15 +473,6 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		return err
 	}
 
-	// Set head information if pr.Head.SHA is available
-	if pr.Head.SHA != "" {
-		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
-		if err != nil {
-			log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
-			return err
-		}
-	}
-
 	isFork := pr.IsForkPullRequest()
 
 	// Even if it's a forked repo PR, we have to change head info as the same as the base info
@@ -497,6 +488,13 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	// 1. Is there a head clone URL available?
 	// 2. Is there a head ref available?
 	if pr.Head.CloneURL == "" || pr.Head.Ref == "" {
+		// Set head information if pr.Head.SHA is available
+		if pr.Head.SHA != "" {
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			if err != nil {
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+			}
+		}
 		return nil
 	}
 
@@ -520,6 +518,14 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		}
 	}
 	if !ok {
+		// Set head information if pr.Head.SHA is available
+		if pr.Head.SHA != "" {
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+			if err != nil {
+				log.Error("PR #%d in %s/%s unable to update-ref for pr HEAD: %v", pr.Number, g.repoOwner, g.repoName, err)
+			}
+		}
+
 		return nil
 	}
 
@@ -566,11 +572,11 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 			log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 			return nil
 		}
-		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), headSha).RunStdString(&git.RunOpts{Dir: g.gitPath()})
-		if err != nil {
-			return err
-		}
 		pr.Head.SHA = headSha
+	}
+	_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+	if err != nil {
+		return err
 	}
 
 	return nil

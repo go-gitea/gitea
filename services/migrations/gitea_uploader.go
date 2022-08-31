@@ -563,14 +563,6 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		return "", err
 	}
 
-	// set head information
-	if pr.Head.SHA != "" {
-		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-		if err != nil {
-			return "", err
-		}
-	}
-
 	head = "unknown repository"
 	if pr.IsForkPullRequest() && pr.State != "closed" {
 		// OK we want to fetch the current head as a branch from its CloneURL
@@ -645,11 +637,12 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 				log.Error("unable to get head SHA of local head for PR #%d from %s in %s/%s. Error: %v", pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 				return head, nil
 			}
-			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), headSha).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
-			if err != nil {
-				return "", err
-			}
 			pr.Head.SHA = headSha
+		}
+
+		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
+		if err != nil {
+			return "", err
 		}
 
 		return head, nil
@@ -668,9 +661,11 @@ func (g *GiteaLocalUploader) updateGitForPullRequest(pr *base.PullRequest) (head
 		if err != nil {
 			// Git update-ref remove bad references with a relative path
 			log.Warn("Deprecated local head %s for PR #%d in %s/%s, removing  %s", pr.Head.SHA, pr.Number, g.repoOwner, g.repoName, pr.GetGitRefName())
-			err = g.gitRepo.RemoveReference(pr.GetGitRefName())
+		} else {
+			// set head information
+			_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.repo.RepoPath()})
 			if err != nil {
-				log.Error("Cannot remove local head ref for PR #%d in %s/%s, %v", pr.Number, g.repoOwner, g.repoName, err)
+				return "", err
 			}
 		}
 	}

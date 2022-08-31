@@ -390,7 +390,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "AddRemote")
+				assert.Contains(t, content, "AddRemote failed")
 			},
 		},
 		{
@@ -503,6 +503,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 			assert.True(t, ok)
 			logger.SetLogger("buffer", "buffer", "{}")
 			defer logger.DelLogger("buffer")
+
+			testCase.pr.EnsuredSafe = true
 
 			head, err := uploader.updateGitForPullRequest(&testCase.pr)
 			assert.NoError(t, err)
