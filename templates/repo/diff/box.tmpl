@@ -58,11 +58,11 @@
 		</ol>
 		<div id="diff-container" class="ui grid">
 			<div class="row">
-				<div id="div-file-tree" class="five wide column diff-detail-box sticky">
+				<div id="div-file-tree" class="large screen only five wide column diff-detail-box sticky">
 					{{range .Diff.Files}}
 						<li>
 							<span class="status {{DiffTypeToStr .GetType}} tooltip" data-content="{{DiffTypeToStr .GetType}}" data-position="right center">&nbsp;</span>
-							<a class="file mono" href="#diff-{{.NameHash}}"
+							<a class="file mono tooltip" data-content="{{.Name}}" href="#diff-{{.NameHash}}"
 							>{{.Name}}</a>
 						</li>
 					{{end}}
@@ -74,7 +74,7 @@
 						</li>
 					{{end}}
 				</div>
-				<div id="diff-file-boxes" class="eleven wide column">
+				<div id="diff-file-boxes" class="sixteen wide mobile tablet eleven wide large screen column">
 					{{range $i, $file := .Diff.Files}}
 						{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
 						{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
