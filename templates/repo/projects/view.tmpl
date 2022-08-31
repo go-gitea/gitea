@@ -78,7 +78,7 @@
 	<div class="ui container fluid padded" id="project-board">
 
 		<div class="board">
-			{{ range $board := .Boards }}
+			{{range $board := .Boards}}
 
 			<div class="ui segment board-column" style="background: {{.Color}} !important;" data-id="{{.ID}}" data-sorting="{{.Sorting}}" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}">
 				<div class="board-column-header df ac sb">
@@ -169,13 +169,13 @@
 								</div>
 							</div>
 						</div>
-					{{ end }}
+					{{end}}
 				</div>
 				<div class="ui divider"></div>
 
 				<div class="ui cards board" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-board="{{.ID}}" id="board_{{.ID}}">
 
-					{{ range (index $.IssuesMap .ID) }}
+					{{range (index $.IssuesMap .ID)}}
 
 					<!-- start issue card -->
 					<div class="card board-card" data-issue="{{.ID}}">
@@ -207,8 +207,8 @@
 							<div class="meta my-2">
 								<span class="text light grey">
 									#{{.Index}}
-									{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale }}
-									{{if .OriginalAuthor }}
+									{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+									{{if .OriginalAuthor}}
 										{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 									{{else if gt .Poster.ID 0}}
 										{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}
@@ -217,43 +217,43 @@
 									{{end}}
 								</span>
 							</div>
-							{{- if .MilestoneID }}
+							{{- if .MilestoneID}}
 							<div class="meta my-2">
-								<a class="milestone" href="{{$.RepoLink}}/milestone/{{ .MilestoneID}}">
+								<a class="milestone" href="{{$.RepoLink}}/milestone/{{.MilestoneID}}">
 									{{svg "octicon-milestone" 16 "mr-2 vm"}}
-									<span class="vm">{{ .Milestone.Name }}</span>
+									<span class="vm">{{.Milestone.Name}}</span>
 								</a>
 							</div>
-							{{- end }}
-							{{- range index $.LinkedPRs .ID }}
+							{{- end}}
+							{{- range index $.LinkedPRs .ID}}
 							<div class="meta my-2">
-								<a href="{{$.RepoLink}}/pulls/{{ .Index }}">
+								<a href="{{$.RepoLink}}/pulls/{{.Index}}">
 									<span class="m-0 {{if .PullRequest.HasMerged}}purple{{else if .IsClosed}}red{{else}}green{{end}}">{{svg "octicon-git-merge" 16 "mr-2 vm"}}</span>
-									<span class="vm">{{ .Title}} <span class="text light grey">#{{.Index}}</span></span>
+									<span class="vm">{{.Title}} <span class="text light grey">#{{.Index}}</span></span>
 								</a>
 							</div>
-							{{- end }}
+							{{- end}}
 						</div>
 
-						{{ if or .Labels .Assignees }}
+						{{if or .Labels .Assignees}}
 						<div class="extra content labels-list p-0 pt-2">
-							{{ range .Labels }}
+							{{range .Labels}}
 								<a class="ui label" target="_blank" href="{{$.RepoLink}}/issues?labels={{.ID}}" style="color: {{.ForegroundColor}}; background-color: {{.Color}};" title="{{.Description | RenderEmojiPlain}}">{{.Name | RenderEmoji}}</a>
-							{{ end }}
+							{{end}}
 							<div class="right floated">
-								{{ range .Assignees }}
+								{{range .Assignees}}
 									<a class="tooltip" target="_blank" href="{{.HTMLURL}}" data-content="{{$.locale.Tr "repo.projects.board.assigned_to"}} {{.Name}}">{{avatar . 28 "mini mr-3"}}</a>
-								{{ end }}
+								{{end}}
 							</div>
 						</div>
-						{{ end }}
+						{{end}}
 					</div>
 					<!-- stop issue card -->
 
-					{{ end }}
+					{{end}}
 				</div>
 			</div>
-			{{ end }}
+			{{end}}
 		</div>
 
 	</div>
