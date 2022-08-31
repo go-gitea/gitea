@@ -5,7 +5,6 @@
 package notification
 
 import (
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -14,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/notification/base"
 	"code.gitea.io/gitea/modules/notification/indexer"
 	"code.gitea.io/gitea/modules/notification/mail"
+	"code.gitea.io/gitea/modules/notification/mirror"
 	"code.gitea.io/gitea/modules/notification/ui"
 	"code.gitea.io/gitea/modules/notification/webhook"
 	"code.gitea.io/gitea/modules/repository"
@@ -37,6 +37,7 @@ func NewContext() {
 	RegisterNotifier(indexer.NewNotifier())
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
+	RegisterNotifier(mirror.NewNotifier())
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -140,21 +141,21 @@ func NotifyDeleteComment(doer *user_model.User, c *issues_model.Comment) {
 }
 
 // NotifyNewRelease notifies new release to notifiers
-func NotifyNewRelease(rel *models.Release) {
+func NotifyNewRelease(rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyNewRelease(rel)
 	}
 }
 
 // NotifyUpdateRelease notifies update release to notifiers
-func NotifyUpdateRelease(doer *user_model.User, rel *models.Release) {
+func NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyUpdateRelease(doer, rel)
 	}
 }
 
 // NotifyDeleteRelease notifies delete release to notifiers
-func NotifyDeleteRelease(doer *user_model.User, rel *models.Release) {
+func NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteRelease(doer, rel)
 	}

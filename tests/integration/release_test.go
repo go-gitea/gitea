@@ -135,7 +135,7 @@ func TestCreateReleasePaging(t *testing.T) {
 func TestViewReleaseListNoLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	link := repo.Link() + "/releases"
 
@@ -161,7 +161,7 @@ func TestViewReleaseListNoLogin(t *testing.T) {
 func TestViewReleaseListLogin(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	link := repo.Link() + "/releases"
 
@@ -192,7 +192,7 @@ func TestViewReleaseListLogin(t *testing.T) {
 func TestViewTagsList(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	link := repo.Link() + "/tags"
 

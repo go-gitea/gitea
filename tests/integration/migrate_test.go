@@ -24,7 +24,7 @@ import (
 func TestMigrateLocalPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"}).(*user_model.User)
+	adminUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user1"})
 
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true
@@ -62,7 +62,7 @@ func TestMigrateGiteaForm(t *testing.T) {
 
 		ownerName := "user2"
 		repoName := "repo1"
-		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName}).(*user_model.User)
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: ownerName})
 		session := loginUser(t, ownerName)
 		token := getTokenForLoggedInUser(t, session)
 

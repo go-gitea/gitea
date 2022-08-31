@@ -115,7 +115,7 @@ func doCheckOrgCounts(username string, orgCounts map[string]int, strict bool, ca
 	return func(t *testing.T) {
 		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 			Name: username,
-		}).(*user_model.User)
+		})
 
 		orgs, err := organization.FindOrgs(organization.FindOrgOptions{
 			UserID:         user.ID,

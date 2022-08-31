@@ -26,7 +26,7 @@ func compareCommitFiles(t *testing.T, expect []string, files []*api.CommitAffect
 
 func TestAPIReposGitCommits(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -54,7 +54,7 @@ func TestAPIReposGitCommits(t *testing.T) {
 
 func TestAPIReposGitCommitList(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -77,7 +77,7 @@ func TestAPIReposGitCommitList(t *testing.T) {
 
 func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -94,7 +94,7 @@ func TestAPIReposGitCommitListPage2Empty(t *testing.T) {
 
 func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -113,7 +113,7 @@ func TestAPIReposGitCommitListDifferentBranch(t *testing.T) {
 
 func TestDownloadCommitDiffOrPatch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -135,7 +135,7 @@ func TestDownloadCommitDiffOrPatch(t *testing.T) {
 
 func TestGetFileHistory(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)

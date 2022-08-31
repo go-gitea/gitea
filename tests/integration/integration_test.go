@@ -82,7 +82,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	tests.InitTest(true)
-	c = routers.NormalRoutes()
+	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -405,3 +405,4 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
 }
+

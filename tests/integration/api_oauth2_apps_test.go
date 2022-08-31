@@ -28,7 +28,7 @@ func TestOAuth2Application(t *testing.T) {
 }
 
 func testAPICreateOAuth2Application(t *testing.T) {
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "test-app-1",
 		RedirectURIs: []string{
@@ -52,7 +52,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 }
 
 func testAPIListOAuth2Applications(t *testing.T) {
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -62,7 +62,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*auth.OAuth2Application)
+	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2?token=%s", token)
 	req := NewRequest(t, "GET", urlStr)
@@ -81,14 +81,14 @@ func testAPIListOAuth2Applications(t *testing.T) {
 }
 
 func testAPIDeleteOAuth2Application(t *testing.T) {
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
 	oldApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
 		Name: "test-app-1",
-	}).(*auth.OAuth2Application)
+	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", oldApp.ID, token)
 	req := NewRequest(t, "DELETE", urlStr)
@@ -102,7 +102,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 }
 
 func testAPIGetOAuth2Application(t *testing.T) {
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
 
@@ -112,7 +112,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*auth.OAuth2Application)
+	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", existApp.ID, token)
 	req := NewRequest(t, "GET", urlStr)
@@ -132,7 +132,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 }
 
 func testAPIUpdateOAuth2Application(t *testing.T) {
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
@@ -140,7 +140,7 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-	}).(*auth.OAuth2Application)
+	})
 
 	appBody := api.CreateOAuth2ApplicationOptions{
 		Name: "test-app-1",

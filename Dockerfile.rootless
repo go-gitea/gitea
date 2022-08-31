@@ -1,5 +1,5 @@
 #Build stage
-FROM golang:1.18-alpine3.16 AS build-env
+FROM golang:1.19-alpine3.16 AS build-env
 
 ARG GOPROXY
 ENV GOPROXY ${GOPROXY:-direct}
@@ -62,7 +62,7 @@ ENV GITEA_CUSTOM /var/lib/gitea/custom
 ENV GITEA_TEMP /tmp/gitea
 ENV TMPDIR /tmp/gitea
 
-#TODO add to docs the ability to define the ini to load (usefull to test and revert a config)
+#TODO add to docs the ability to define the ini to load (useful to test and revert a config)
 ENV GITEA_APP_INI /etc/gitea/app.ini
 ENV HOME "/var/lib/gitea/git"
 VOLUME ["/var/lib/gitea", "/etc/gitea"]

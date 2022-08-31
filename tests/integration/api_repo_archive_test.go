@@ -22,8 +22,8 @@ import (
 func TestAPIDownloadArchive(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user2.LowerName)
 	token := getTokenForLoggedInUser(t, session)
 

@@ -17,8 +17,8 @@ import (
 
 func TestChangeDefaultBranch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	branchesURL := fmt.Sprintf("/%s/%s/settings/branches", owner.Name, repo.Name)

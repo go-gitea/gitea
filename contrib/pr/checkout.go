@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 	gitea_git "code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/external"
 	repo_module "code.gitea.io/gitea/modules/repository"
@@ -80,7 +81,6 @@ func runPR() {
 	setting.RunUser = curUser.Username
 
 	log.Printf("[PR] Loading fixtures data ...\n")
-	gitea_git.CheckLFSVersion()
 	//models.LoadConfigs()
 	/*
 		setting.Database.Type = "sqlite3"
@@ -118,7 +118,7 @@ func runPR() {
 	// routers.GlobalInit()
 	external.RegisterRenderers()
 	markup.Init()
-	c := routers.NormalRoutes()
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 
 	log.Printf("[PR] Ready for testing !\n")
 	log.Printf("[PR] Login with user1, user2, user3, ... with pass: password\n")

@@ -5,11 +5,12 @@ go 1.18
 require (
 	code.gitea.io/gitea-vet v0.2.2-0.20220122151748-48ebc902541b
 	code.gitea.io/sdk/gitea v0.15.1
+	codeberg.org/gusted/mcaptcha v0.0.0-20220722211632-55c1ffff1222
 	gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb
 	gitea.com/go-chi/cache v0.2.0
 	gitea.com/go-chi/captcha v0.0.0-20211013065431-70641c1a35d5
 	gitea.com/go-chi/session v0.0.0-20211218221615-e3605d8b28b8
-	gitea.com/lunny/levelqueue v0.4.1
+	gitea.com/lunny/levelqueue v0.4.2-0.20220729054728-f020868cc2f7
 	github.com/42wim/sshsig v0.0.0-20211121163825-841cf5bbc121
 	github.com/NYTimes/gziphandler v1.1.1
 	github.com/PuerkitoBio/goquery v1.8.0
@@ -27,6 +28,7 @@ require (
 	github.com/emirpasic/gods v1.18.1
 	github.com/ethantkoenig/rupture v1.0.1
 	github.com/felixge/fgprof v0.9.2
+	github.com/fsnotify/fsnotify v1.5.4
 	github.com/gliderlabs/ssh v0.3.4
 	github.com/go-ap/activitypub v0.0.0-20220615144428-48208c70483b
 	github.com/go-ap/jsonld v0.0.0-20220615144122-1d862b15410d
@@ -87,7 +89,7 @@ require (
 	github.com/urfave/cli v1.22.9
 	github.com/xanzy/go-gitlab v0.64.0
 	github.com/yohcop/openid-go v1.0.0
-	github.com/yuin/goldmark v1.4.12
+	github.com/yuin/goldmark v1.4.13
 	github.com/yuin/goldmark-highlighting v0.0.0-20220208100518-594be1970594
 	github.com/yuin/goldmark-meta v1.1.0
 	go.jolheiser.com/hcaptcha v0.0.4
@@ -104,7 +106,7 @@ require (
 	mvdan.cc/xurls/v2 v2.4.0
 	strk.kbt.io/projects/go/libravatar v0.0.0-20191008002943-06d1c002b251
 	xorm.io/builder v0.3.11
-	xorm.io/xorm v1.3.1
+	xorm.io/xorm v1.3.2-0.20220714055524-c3bce556200f
 )
 
 require (
@@ -160,7 +162,6 @@ require (
 	github.com/envoyproxy/protoc-gen-validate v0.6.2 // indirect
 	github.com/felixge/httpsnoop v1.0.2 // indirect
 	github.com/form3tech-oss/jwt-go v3.2.3+incompatible // indirect
-	github.com/fsnotify/fsnotify v1.5.4 // indirect
 	github.com/fullstorydev/grpcurl v1.8.1 // indirect
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-ap/errors v0.0.0-20220615144307-e8bc4a40ae9f // indirect

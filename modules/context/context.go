@@ -28,6 +28,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	mc "code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -223,7 +224,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
-	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return
@@ -357,14 +358,7 @@ func (ctx *Context) SetServeHeaders(filename string) {
 }
 
 // ServeContent serves content to http request
-func (ctx *Context) ServeContent(name string, r io.ReadSeeker, params ...interface{}) {
-	modTime := time.Now()
-	for _, p := range params {
-		switch v := p.(type) {
-		case time.Time:
-			modTime = v
-		}
-	}
+func (ctx *Context) ServeContent(name string, r io.ReadSeeker, modTime time.Time) {
 	ctx.SetServeHeaders(name)
 	http.ServeContent(ctx.Resp, ctx.Req, name, modTime, r)
 }
@@ -379,15 +373,6 @@ func (ctx *Context) ServeFile(file string, names ...string) {
 	}
 	ctx.SetServeHeaders(name)
 	http.ServeFile(ctx.Resp, ctx.Req, file)
-}
-
-// ServeStream serves file via io stream
-func (ctx *Context) ServeStream(rd io.Reader, name string) {
-	ctx.SetServeHeaders(name)
-	_, err := io.Copy(ctx.Resp, rd)
-	if err != nil {
-		ctx.ServerError("Download file failed", err)
-	}
 }
 
 // UploadStream returns the request body or the first form file
@@ -673,8 +658,8 @@ func Auth(authMethod auth.Method) func(*Context) {
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
@@ -767,6 +752,7 @@ func Contexter() func(next http.Handler) http.Handler {
 				}
 			}
 
+			httpcache.AddCacheControlToHeader(ctx.Resp.Header(), 0, "no-transform")
 			ctx.Resp.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 			ctx.Data["CsrfToken"] = ctx.csrf.GetToken()

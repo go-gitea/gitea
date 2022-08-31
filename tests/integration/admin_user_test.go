@@ -62,7 +62,7 @@ func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: formData.ID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: formData.ID})
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)
@@ -77,7 +77,7 @@ func TestAdminDeleteUser(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", "/admin/users/8/delete", map[string]string{
 		"_csrf": csrf,
 	})
-	session.MakeRequest(t, req, http.StatusOK)
+	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	assertUserDeleted(t, 8)
 	unittest.CheckConsistencyFor(t, &user_model.User{})

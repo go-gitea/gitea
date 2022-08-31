@@ -206,7 +206,7 @@ func uploadConanPackageV2(t *testing.T, baseURL, token, name, version, user, cha
 
 func TestPackageConan(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	name := "ConanPackage"
 	version1 := "1.2"

@@ -117,6 +117,24 @@ func TestPrivateOrg(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusOK)
 }
 
+func TestOrgMembers(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	// not logged in user
+	req := NewRequest(t, "GET", "/org/org25/members")
+	MakeRequest(t, req, http.StatusOK)
+
+	// org member
+	session := loginUser(t, "user24")
+	req = NewRequest(t, "GET", "/org/org25/members")
+	session.MakeRequest(t, req, http.StatusOK)
+
+	// site admin
+	session = loginUser(t, "user1")
+	req = NewRequest(t, "GET", "/org/org25/members")
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
 func TestOrgRestrictedUser(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
@@ -180,8 +198,8 @@ func TestOrgRestrictedUser(t *testing.T) {
 func TestTeamSearch(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 15})
+	org := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 17})
 
 	var results TeamSearchResults
 
@@ -192,11 +210,12 @@ func TestTeamSearch(t *testing.T) {
 	resp := session.MakeRequest(t, req, http.StatusOK)
 	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
-	assert.Len(t, results.Data, 1)
-	assert.Equal(t, "test_team", results.Data[0].Name)
+	assert.Len(t, results.Data, 2)
+	assert.Equal(t, "review_team", results.Data[0].Name)
+	assert.Equal(t, "test_team", results.Data[1].Name)
 
 	// no access if not organization member
-	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5}).(*user_model.User)
+	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	session = loginUser(t, user5.Name)
 	csrf = GetCSRF(t, session, "/"+org.Name)
 	req = NewRequestf(t, "GET", "/org/%s/teams/-/search?q=%s", org.Name, "team")

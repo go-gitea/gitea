@@ -68,8 +68,7 @@ func NewParser(r io.Reader, format Format) *Parser {
 //
 // It could, for example return something like:
 //
-//  { "objecttype": "tag", "refname:short": "v1.16.4", "object": "f460b7543ed500e49c133c2cd85c8c55ee9dbe27" }
-//
+//	{ "objecttype": "tag", "refname:short": "v1.16.4", "object": "f460b7543ed500e49c133c2cd85c8c55ee9dbe27" }
 func (p *Parser) Next() map[string]string {
 	if !p.scanner.Scan() {
 		return nil
@@ -89,8 +88,7 @@ func (p *Parser) Err() error {
 
 // parseRef parses out all key-value pairs from a single reference block, such as
 //
-//   "objecttype tag\0refname:short v1.16.4\0object f460b7543ed500e49c133c2cd85c8c55ee9dbe27"
-//
+//	"objecttype tag\0refname:short v1.16.4\0object f460b7543ed500e49c133c2cd85c8c55ee9dbe27"
 func (p *Parser) parseRef(refBlock string) (map[string]string, error) {
 	if refBlock == "" {
 		// must be at EOF

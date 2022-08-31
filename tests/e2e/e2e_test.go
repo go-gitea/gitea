@@ -9,6 +9,7 @@ package e2e
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -30,8 +32,12 @@ var c *web.Route
 func TestMain(m *testing.M) {
 	defer log.Close()
 
+	managerCtx, cancel := context.WithCancel(context.Background())
+	graceful.InitManager(managerCtx)
+	defer cancel()
+
 	tests.InitTest(false)
-	c = routers.NormalRoutes()
+	c = routers.NormalRoutes(context.TODO())
 
 	os.Unsetenv("GIT_AUTHOR_NAME")
 	os.Unsetenv("GIT_AUTHOR_EMAIL")

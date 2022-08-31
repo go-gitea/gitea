@@ -48,8 +48,8 @@ func TestDumpRestore(t *testing.T) {
 		assert.NoError(t, err)
 		defer util.RemoveAll(basePath)
 
-		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame}).(*repo_model.Repository)
-		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+		repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: reponame})
+		repoOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 		session := loginUser(t, repoOwner.Name)
 		token := getTokenForLoggedInUser(t, session)
 
@@ -90,7 +90,7 @@ func TestDumpRestore(t *testing.T) {
 		}, false)
 		assert.NoError(t, err)
 
-		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame}).(*repo_model.Repository)
+		newrepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{Name: newreponame})
 
 		//
 		// Phase 3: dump restored from the Gitea instance to the filesystem
@@ -201,7 +201,7 @@ func (c *compareDump) assertEquals(repoBefore, repoAfter *repo_model.Repository)
 		"Assignees": {ignore: true}, // not implemented yet
 		"Head":      {nested: comparePullRequestBranch},
 		"Base":      {nested: comparePullRequestBranch},
-		"Labels":    {ignore: true}, // because org labels are not handled propery
+		"Labels":    {ignore: true}, // because org labels are not handled properly
 	}).([]*base.PullRequest)
 	assert.True(c.t, ok)
 	assert.GreaterOrEqual(c.t, len(prs), 1)

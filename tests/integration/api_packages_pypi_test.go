@@ -26,7 +26,7 @@ import (
 
 func TestPackagePyPI(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	packageName := "test-package"
 	packageVersion := "1.0.1"

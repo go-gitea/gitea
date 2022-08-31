@@ -23,7 +23,7 @@ func TestAPIAdminCreateAndDeleteSSHKey(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	// user1 is an admin user
 	session := loginUser(t, "user1")
-	keyOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"}).(*user_model.User)
+	keyOwner := unittest.AssertExistsAndLoadBean(t, &user_model.User{Name: "user2"})
 
 	token := getTokenForLoggedInUser(t, session)
 	urlStr := fmt.Sprintf("/api/v1/admin/users/%s/keys?token=%s", keyOwner.Name, token)
@@ -195,7 +195,7 @@ func TestAPIEditUser(t *testing.T) {
 	json.Unmarshal(resp.Body.Bytes(), &errMap)
 	assert.EqualValues(t, "email is not allowed to be empty string", errMap["message"].(string))
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.False(t, user2.IsRestricted)
 	bTrue := true
 	req = NewRequestWithJSON(t, "PATCH", urlStr, api.EditUserOption{
@@ -206,6 +206,6 @@ func TestAPIEditUser(t *testing.T) {
 		Restricted: &bTrue,
 	})
 	session.MakeRequest(t, req, http.StatusOK)
-	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"}).(*user_model.User)
+	user2 = unittest.AssertExistsAndLoadBean(t, &user_model.User{LoginName: "user2"})
 	assert.True(t, user2.IsRestricted)
 }

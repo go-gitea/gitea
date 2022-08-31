@@ -65,7 +65,7 @@ func testViewRepo(t *testing.T) {
 			}
 		})
 
-		f.commitTime, _ = s.Find("span.time-since").Attr("title")
+		f.commitTime, _ = s.Find("span.time-since").Attr("data-content")
 		items = append(items, f)
 	})
 

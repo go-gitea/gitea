@@ -396,6 +396,23 @@ var migrations = []Migration{
 	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
 	// v218 -> v219
 	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	// v219 -> v220
+	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	// v221 -> v222
+	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	// v222 -> v223
+	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	// v223 -> v224
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+
+	// Gitea 1.17.0 ends at v224
+
+	// v224 -> v225
+	NewMigration("Add badges to users", createUserBadgesTable),
+	// v225 -> v226
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
 }
 
 // GetCurrentDBVersion returns the current db version
