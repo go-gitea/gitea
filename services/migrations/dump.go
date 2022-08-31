@@ -536,7 +536,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 			for g.gitRepo.IsBranchExist(localRef) {
 				if i > 5 {
 					// ... We tried, we really tried but this is just a seriously unfriendly repo
-					continue
+					return fmt.Errorf("unable to create unique local reference from %s", pr.Head.Ref)
 				}
 				// OK just try some uuids!
 				localRef = git.SanitizeRefPattern("head-pr-" + strconv.FormatInt(pr.Number, 10) + uuid.New().String())
@@ -555,6 +555,9 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		}
 		g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 	}
+
+	// Set the pr.Head.Ref to the localRef
+	pr.Head.Ref = localRef
 
 	// 5. Now if pr.Head.SHA == "" we should recover this to the head of this branch
 	if pr.Head.SHA == "" {
