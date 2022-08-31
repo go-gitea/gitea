@@ -78,8 +78,9 @@ type GiteaDownloader struct {
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
-//   Use either a username/password or personal token. token is preferred
-//   Note: Public access only allows very basic access
+//
+//	Use either a username/password or personal token. token is preferred
+//	Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
 	giteaClient, err := gitea_sdk.NewClient(
 		baseURL,
