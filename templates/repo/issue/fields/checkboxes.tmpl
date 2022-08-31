@@ -2,9 +2,11 @@
 	{{template "repo/issue/fields/header" .}}
 	{{$field := .}}
 	{{range $i, $opt := .Attributes.options}}
-		<div class="ui checkbox {{if $opt.required}}read-only{{end}}">
-			<input type="checkbox" name="form-field-{{$field.ID}}-{{$i}}" {{if $opt.required}}checked=""{{end}}>
-			<label>{{$opt.label}}</label>
+		<div class="field">
+			<div class="ui checkbox {{if $opt.required}}read-only{{end}}">
+				<input type="checkbox" name="form-field-{{$field.ID}}-{{$i}}" {{if $opt.required}}checked=""{{end}}>
+				<label>{{$opt.label}}</label>
+			</div>
 		</div>
 	{{end}}
 </div>
