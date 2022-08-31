@@ -34,7 +34,7 @@ var refNamePatternInvalid = regexp.MustCompile(
 
 // IsValidRefPattern ensures that the provided string could be a valid reference
 func IsValidRefPattern(name string) bool {
-	return refNamePatternInvalid.MatchString(name)
+	return !refNamePatternInvalid.MatchString(name)
 }
 
 func SanitizeRefPattern(name string) string {
