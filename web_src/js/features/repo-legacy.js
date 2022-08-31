@@ -540,11 +540,13 @@ export function initRepository() {
       $(this).parent().hide();
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      const easyMDE = getAttachedEasyMDE($form.find('textarea.edit_area'));
       $form.show();
-      if (easyMDE) {
-        easyMDE.codemirror.refresh();
-      }
+      $form.find('textarea.edit_area').each(function() {
+        const easyMDE = getAttachedEasyMDE($(this));
+        if (easyMDE) {
+          easyMDE.codemirror.refresh();
+        }
+      });
     });
   }
 
