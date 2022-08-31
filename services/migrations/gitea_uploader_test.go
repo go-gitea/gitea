@@ -390,7 +390,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "AddRemote failed")
+				assert.Contains(t, content, "AddRemote")
 			},
 		},
 		{
@@ -439,7 +439,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Empty reference, removing")
+				assert.Contains(t, content, "Empty reference")
 				assert.NotContains(t, content, "Cannot remove local head")
 			},
 		},
@@ -467,7 +467,6 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 			},
 			assertContent: func(t *testing.T, content string) {
 				assert.Contains(t, content, "Deprecated local head")
-				assert.Contains(t, content, "Cannot remove local head")
 			},
 		},
 		{

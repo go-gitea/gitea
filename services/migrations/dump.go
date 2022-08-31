@@ -576,7 +576,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 	}
 	_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 	if err != nil {
-		return err
+		log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
 	}
 
 	return nil
