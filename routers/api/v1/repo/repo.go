@@ -584,7 +584,6 @@ func Edit(ctx *context.APIContext) {
 	//   description: name of the repo to edit
 	//   type: string
 	//   required: true
-	//   required: true
 	// - name: body
 	//   in: body
 	//   description: "Properties of a repo that you can edit"

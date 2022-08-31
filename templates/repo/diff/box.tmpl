@@ -13,14 +13,14 @@
 	<h4>{{.locale.Tr "repo.diff.data_not_available"}}</h4>
 {{else}}
 	<div>
-		<div class="diff-detail-box diff-box sticky df sb ac">
+		<div class="diff-detail-box diff-box sticky df sb ac fw">
 			<div class="diff-detail-stats df ac">
 				{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
 			<div class="diff-detail-actions df ac">
 				{{if and .PageIsPullFiles $.SignedUserID (not .IsArchived)}}
 					<progress id="viewed-files-summary" class="mr-2" value="{{.Diff.NumViewedFiles}}" max="{{.Diff.NumFiles}}"></progress>
-					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-2" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
+					<label for="viewed-files-summary" id="viewed-files-summary-label" class="mr-3" data-text-changed-template="{{.locale.Tr "repo.pulls.viewed_files_label"}}">
 						{{.locale.Tr "repo.pulls.viewed_files_label" .Diff.NumViewedFiles .Diff.NumFiles}}
 					</label>
 				{{end}}
