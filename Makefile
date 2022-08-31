@@ -243,7 +243,7 @@ clean:
 .PHONY: fmt
 fmt:
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
-	$(eval TEMPLATES := $(wildcard templates/**/*.tmpl))
+	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
