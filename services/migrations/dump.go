@@ -598,18 +598,19 @@ func (g *RepositoryDumper) CreatePullRequests(prs ...*base.PullRequest) error {
 	encoder := yaml.NewEncoder(g.pullrequestFile)
 	defer encoder.Close()
 
-	for _, pr := range prs {
+	count := 0
+	for i := 0; i < len(prs); i++ {
+		pr := prs[i]
 		if err := g.handlePullRequest(pr); err != nil {
 			log.Error("PR #%d in %s/%s failed - skipping", pr.Number, g.repoOwner, g.repoName, err)
 			continue
 		}
-		if err := encoder.Encode(pr); err != nil {
-			_ = encoder.Close()
-			return fmt.Errorf("PR #%d in %s/%s unable to encode: %w", pr.Number, g.repoOwner, g.repoName, err)
-		}
+		prs[count] = pr
+		count++
 	}
+	prs = prs[:count]
 
-	return nil
+	return encoder.Encode(prs)
 }
 
 // CreateReviews create pull request reviews
