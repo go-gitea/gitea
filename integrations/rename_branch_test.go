@@ -40,6 +40,6 @@ func TestRenameBranch(t *testing.T) {
 	assert.Equal(t, "/user2/repo1/src/branch/main/README.md", location)
 
 	// check db
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.Equal(t, "main", repo1.DefaultBranch)
 }

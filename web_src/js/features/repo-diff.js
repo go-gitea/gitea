@@ -44,24 +44,28 @@ export function initRepoDiffConversationForm() {
   $(document).on('submit', '.conversation-holder form', async (e) => {
     e.preventDefault();
 
-    const form = $(e.target);
-    const $textArea = form.find('textarea');
+    const $form = $(e.target);
+    const $textArea = $form.find('textarea');
     if (!validateTextareaNonEmpty($textArea)) {
       return;
     }
 
-    const newConversationHolder = $(await $.post(form.attr('action'), form.serialize()));
-    const {path, side, idx} = newConversationHolder.data();
+    const formDataString = String(new URLSearchParams(new FormData($form[0])));
+    const $newConversationHolder = $(await $.post($form.attr('action'), formDataString));
+    const {path, side, idx} = $newConversationHolder.data();
 
-    initTooltip(newConversationHolder.find('.tooltip'));
-    form.closest('.conversation-holder').replaceWith(newConversationHolder);
-    if (form.closest('tr').data('line-type') === 'same') {
+    $newConversationHolder.find('.tooltip').each(function () {
+      initTooltip(this);
+    });
+
+    $form.closest('.conversation-holder').replaceWith($newConversationHolder);
+    if ($form.closest('tr').data('line-type') === 'same') {
       $(`[data-path="${path}"] a.add-code-comment[data-idx="${idx}"]`).addClass('invisible');
     } else {
       $(`[data-path="${path}"] a.add-code-comment[data-side="${side}"][data-idx="${idx}"]`).addClass('invisible');
     }
-    newConversationHolder.find('.dropdown').dropdown();
-    initCompReactionSelector(newConversationHolder);
+    $newConversationHolder.find('.dropdown').dropdown();
+    initCompReactionSelector($newConversationHolder);
   });
 
 

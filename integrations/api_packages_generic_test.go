@@ -20,7 +20,7 @@ import (
 
 func TestPackageGeneric(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	packageName := "te-st_pac.kage"
 	packageVersion := "1.0.3-te st"

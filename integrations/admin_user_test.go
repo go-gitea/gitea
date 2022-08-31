@@ -61,7 +61,7 @@ func makeRequest(t *testing.T, formData user_model.User, headerCode int) {
 	})
 
 	session.MakeRequest(t, req, headerCode)
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: formData.ID}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: formData.ID})
 	assert.Equal(t, formData.Name, user.Name)
 	assert.Equal(t, formData.LoginName, user.LoginName)
 	assert.Equal(t, formData.Email, user.Email)

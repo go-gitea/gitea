@@ -196,7 +196,7 @@ Unknown GPG key with good email
 func TestCheckGPGUserEmail(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	testEmailWithUpperCaseLetters := `-----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1

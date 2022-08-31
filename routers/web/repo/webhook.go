@@ -185,17 +185,19 @@ func ParseHookEvent(form forms.WebhookForm) *webhook.HookEvent {
 	}
 }
 
-type webhookCreationParams struct {
+type webhookParams struct {
+	// Type should be imported from webhook package (webhook.XXX)
+	Type string
+
 	URL         string
 	ContentType webhook.HookContentType
 	Secret      string
 	HTTPMethod  string
 	WebhookForm forms.WebhookForm
-	Type        string
 	Meta        interface{}
 }
 
-func createWebhook(ctx *context.Context, params webhookCreationParams) {
+func createWebhook(ctx *context.Context, params webhookParams) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings.add_webhook")
 	ctx.Data["PageIsSettingsHooks"] = true
 	ctx.Data["PageIsSettingsHooksNew"] = true
@@ -248,8 +250,63 @@ func createWebhook(ctx *context.Context, params webhookCreationParams) {
 	ctx.Redirect(orCtx.Link)
 }
 
+func editWebhook(ctx *context.Context, params webhookParams) {
+	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
+	ctx.Data["PageIsSettingsHooks"] = true
+	ctx.Data["PageIsSettingsHooksEdit"] = true
+
+	orCtx, w := checkWebhook(ctx)
+	if ctx.Written() {
+		return
+	}
+	ctx.Data["Webhook"] = w
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
+		return
+	}
+
+	var meta []byte
+	var err error
+	if params.Meta != nil {
+		meta, err = json.Marshal(params.Meta)
+		if err != nil {
+			ctx.ServerError("Marshal", err)
+			return
+		}
+	}
+
+	w.URL = params.URL
+	w.ContentType = params.ContentType
+	w.Secret = params.Secret
+	w.HookEvent = ParseHookEvent(params.WebhookForm)
+	w.IsActive = params.WebhookForm.Active
+	w.HTTPMethod = params.HTTPMethod
+	w.Meta = string(meta)
+
+	if err := w.UpdateEvent(); err != nil {
+		ctx.ServerError("UpdateEvent", err)
+		return
+	} else if err := webhook.UpdateWebhook(w); err != nil {
+		ctx.ServerError("UpdateWebhook", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
+	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
+}
+
 // GiteaHooksNewPost response for creating Gitea webhook
 func GiteaHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, giteaHookParams(ctx))
+}
+
+// GiteaHooksEditPost response for editing Gitea webhook
+func GiteaHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, giteaHookParams(ctx))
+}
+
+func giteaHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewWebhookForm)
 
 	contentType := webhook.ContentTypeJSON
@@ -257,18 +314,27 @@ func GiteaHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.GITEA,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		Secret:      form.Secret,
 		HTTPMethod:  form.HTTPMethod,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.GITEA,
-	})
+	}
 }
 
-// GogsHooksNewPost response for creating webhook
+// GogsHooksNewPost response for creating Gogs webhook
 func GogsHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, gogsHookParams(ctx))
+}
+
+// GogsHooksEditPost response for editing Gogs webhook
+func GogsHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, gogsHookParams(ctx))
+}
+
+func gogsHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewGogshookForm)
 
 	contentType := webhook.ContentTypeJSON
@@ -276,147 +342,228 @@ func GogsHooksNewPost(ctx *context.Context) {
 		contentType = webhook.ContentTypeForm
 	}
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.GOGS,
 		URL:         form.PayloadURL,
 		ContentType: contentType,
 		Secret:      form.Secret,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.GOGS,
-	})
+	}
 }
 
-// DiscordHooksNewPost response for creating discord hook
+// DiscordHooksNewPost response for creating Discord webhook
 func DiscordHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, discordHookParams(ctx))
+}
+
+// DiscordHooksEditPost response for editing Discord webhook
+func DiscordHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, discordHookParams(ctx))
+}
+
+func discordHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.DISCORD,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.DISCORD,
 		Meta: &webhook_service.DiscordMeta{
 			Username: form.Username,
 			IconURL:  form.IconURL,
 		},
-	})
+	}
 }
 
-// DingtalkHooksNewPost response for creating dingtalk hook
+// DingtalkHooksNewPost response for creating Dingtalk webhook
 func DingtalkHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, dingtalkHookParams(ctx))
+}
+
+// DingtalkHooksEditPost response for editing Dingtalk webhook
+func DingtalkHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, dingtalkHookParams(ctx))
+}
+
+func dingtalkHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.DINGTALK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.DINGTALK,
-	})
+	}
 }
 
-// TelegramHooksNewPost response for creating telegram hook
+// TelegramHooksNewPost response for creating Telegram webhook
 func TelegramHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, telegramHookParams(ctx))
+}
+
+// TelegramHooksEditPost response for editing Telegram webhook
+func TelegramHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, telegramHookParams(ctx))
+}
+
+func telegramHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.TELEGRAM,
 		URL:         fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.TELEGRAM,
 		Meta: &webhook_service.TelegramMeta{
 			BotToken: form.BotToken,
 			ChatID:   form.ChatID,
 		},
-	})
+	}
 }
 
-// MatrixHooksNewPost response for creating a Matrix hook
+// MatrixHooksNewPost response for creating Matrix webhook
 func MatrixHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, matrixHookParams(ctx))
+}
+
+// MatrixHooksEditPost response for editing Matrix webhook
+func MatrixHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, matrixHookParams(ctx))
+}
+
+func matrixHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.MATRIX,
 		URL:         fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID)),
 		ContentType: webhook.ContentTypeJSON,
 		HTTPMethod:  http.MethodPut,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.MATRIX,
 		Meta: &webhook_service.MatrixMeta{
 			HomeserverURL: form.HomeserverURL,
 			Room:          form.RoomID,
 			AccessToken:   form.AccessToken,
 			MessageType:   form.MessageType,
 		},
-	})
+	}
 }
 
-// MSTeamsHooksNewPost response for creating MS Teams hook
+// MSTeamsHooksNewPost response for creating MSTeams webhook
 func MSTeamsHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, mSTeamsHookParams(ctx))
+}
+
+// MSTeamsHooksEditPost response for editing MSTeams webhook
+func MSTeamsHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, mSTeamsHookParams(ctx))
+}
+
+func mSTeamsHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.MSTEAMS,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.MSTEAMS,
-	})
+	}
 }
 
-// SlackHooksNewPost response for creating slack hook
+// SlackHooksNewPost response for creating Slack webhook
 func SlackHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, slackHookParams(ctx))
+}
+
+// SlackHooksEditPost response for editing Slack webhook
+func SlackHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, slackHookParams(ctx))
+}
+
+func slackHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.SLACK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.SLACK,
 		Meta: &webhook_service.SlackMeta{
 			Channel:  strings.TrimSpace(form.Channel),
 			Username: form.Username,
 			IconURL:  form.IconURL,
 			Color:    form.Color,
 		},
-	})
+	}
 }
 
-// FeishuHooksNewPost response for creating feishu hook
+// FeishuHooksNewPost response for creating Feishu webhook
 func FeishuHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, feishuHookParams(ctx))
+}
+
+// FeishuHooksEditPost response for editing Feishu webhook
+func FeishuHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, feishuHookParams(ctx))
+}
+
+func feishuHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.FEISHU,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.FEISHU,
-	})
+	}
 }
 
-// WechatworkHooksNewPost response for creating wechatwork hook
+// WechatworkHooksNewPost response for creating Wechatwork webhook
 func WechatworkHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, wechatworkHookParams(ctx))
+}
+
+// WechatworkHooksEditPost response for editing Wechatwork webhook
+func WechatworkHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, wechatworkHookParams(ctx))
+}
+
+func wechatworkHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.WECHATWORK,
 		URL:         form.PayloadURL,
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.WECHATWORK,
-	})
+	}
 }
 
-// PackagistHooksNewPost response for creating packagist hook
+// PackagistHooksNewPost response for creating Packagist webhook
 func PackagistHooksNewPost(ctx *context.Context) {
+	createWebhook(ctx, packagistHookParams(ctx))
+}
+
+// PackagistHooksEditPost response for editing Packagist webhook
+func PackagistHooksEditPost(ctx *context.Context) {
+	editWebhook(ctx, packagistHookParams(ctx))
+}
+
+func packagistHookParams(ctx *context.Context) webhookParams {
 	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
 
-	createWebhook(ctx, webhookCreationParams{
+	return webhookParams{
+		Type:        webhook.PACKAGIST,
 		URL:         fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken)),
 		ContentType: webhook.ContentTypeJSON,
 		WebhookForm: form.WebhookForm,
-		Type:        webhook.PACKAGIST,
 		Meta: &webhook_service.PackagistMeta{
 			Username:   form.Username,
 			APIToken:   form.APIToken,
 			PackageURL: form.PackageURL,
 		},
-	})
+	}
 }
 
 func checkWebhook(ctx *context.Context) (*orgRepoCtx, *webhook.Webhook) {
@@ -478,438 +625,6 @@ func WebHooksEdit(ctx *context.Context) {
 	ctx.Data["Webhook"] = w
 
 	ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-}
-
-// WebHooksEditPost response for editing web hook
-func WebHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWebhookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	contentType := webhook.ContentTypeJSON
-	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
-		contentType = webhook.ContentTypeForm
-	}
-
-	w.URL = form.PayloadURL
-	w.ContentType = contentType
-	w.Secret = form.Secret
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	w.HTTPMethod = form.HTTPMethod
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("WebHooksEditPost", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// GogsHooksEditPost response for editing gogs hook
-func GogsHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewGogshookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings.update_webhook")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	contentType := webhook.ContentTypeJSON
-	if webhook.HookContentType(form.ContentType) == webhook.ContentTypeForm {
-		contentType = webhook.ContentTypeForm
-	}
-
-	w.URL = form.PayloadURL
-	w.ContentType = contentType
-	w.Secret = form.Secret
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("GogsHooksEditPost", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// SlackHooksEditPost response for editing slack hook
-func SlackHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewSlackHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.SlackMeta{
-		Channel:  strings.TrimSpace(form.Channel),
-		Username: form.Username,
-		IconURL:  form.IconURL,
-		Color:    form.Color,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.Meta = string(meta)
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// DiscordHooksEditPost response for editing discord hook
-func DiscordHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewDiscordHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.DiscordMeta{
-		Username: form.Username,
-		IconURL:  form.IconURL,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.Meta = string(meta)
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// DingtalkHooksEditPost response for editing discord hook
-func DingtalkHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewDingtalkHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// TelegramHooksEditPost response for editing discord hook
-func TelegramHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewTelegramHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.TelegramMeta{
-		BotToken: form.BotToken,
-		ChatID:   form.ChatID,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage?chat_id=%s", url.PathEscape(form.BotToken), url.QueryEscape(form.ChatID))
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// MatrixHooksEditPost response for editing a Matrix hook
-func MatrixHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewMatrixHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.MatrixMeta{
-		HomeserverURL: form.HomeserverURL,
-		Room:          form.RoomID,
-		AccessToken:   form.AccessToken,
-		MessageType:   form.MessageType,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("%s/_matrix/client/r0/rooms/%s/send/m.room.message", form.HomeserverURL, url.PathEscape(form.RoomID))
-
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// MSTeamsHooksEditPost response for editing MS Teams hook
-func MSTeamsHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewMSTeamsHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// FeishuHooksEditPost response for editing feishu hook
-func FeishuHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewFeishuHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// WechatworkHooksEditPost response for editing wechatwork hook
-func WechatworkHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewWechatWorkHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	w.URL = form.PayloadURL
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
-}
-
-// PackagistHooksEditPost response for editing packagist hook
-func PackagistHooksEditPost(ctx *context.Context) {
-	form := web.GetForm(ctx).(*forms.NewPackagistHookForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsHooks"] = true
-	ctx.Data["PageIsSettingsHooksEdit"] = true
-
-	orCtx, w := checkWebhook(ctx)
-	if ctx.Written() {
-		return
-	}
-	ctx.Data["Webhook"] = w
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, orCtx.NewTemplate)
-		return
-	}
-
-	meta, err := json.Marshal(&webhook_service.PackagistMeta{
-		Username:   form.Username,
-		APIToken:   form.APIToken,
-		PackageURL: form.PackageURL,
-	})
-	if err != nil {
-		ctx.ServerError("Marshal", err)
-		return
-	}
-
-	w.Meta = string(meta)
-	w.URL = fmt.Sprintf("https://packagist.org/api/update-package?username=%s&apiToken=%s", url.QueryEscape(form.Username), url.QueryEscape(form.APIToken))
-	w.HookEvent = ParseHookEvent(form.WebhookForm)
-	w.IsActive = form.Active
-	if err := w.UpdateEvent(); err != nil {
-		ctx.ServerError("UpdateEvent", err)
-		return
-	} else if err := webhook.UpdateWebhook(w); err != nil {
-		ctx.ServerError("UpdateWebhook", err)
-		return
-	}
-
-	ctx.Flash.Success(ctx.Tr("repo.settings.update_hook_success"))
-	ctx.Redirect(fmt.Sprintf("%s/%d", orCtx.Link, w.ID))
 }
 
 // TestWebhook test if web hook is work fine
