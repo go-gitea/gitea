@@ -60,7 +60,7 @@
 			<div class="row">
 				<div id="div-file-tree" class="large screen only five wide column diff-detail-box sticky">
 					{{range .Diff.Files}}
-						<li>
+						<li class="ellipsis">
 							<span class="status {{DiffTypeToStr .GetType}} tooltip" data-content="{{DiffTypeToStr .GetType}}" data-position="right center">&nbsp;</span>
 							<a class="file mono tooltip" data-content="{{.Name}}" href="#diff-{{.NameHash}}"
 							>{{.Name}}</a>

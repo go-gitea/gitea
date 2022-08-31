@@ -3071,18 +3071,12 @@ td.blob-excerpt {
   top: 47px;
   border-top: 1px solid var(--color-secondary);
   max-height: calc(100vh - 47px);
-  overflow-y: scroll;
-  overflow-x: scroll;
+  overflow-y: auto;
+  overflow-x: auto;
   border-right: 1px solid var(--color-secondary);
 
   li {
     list-style: none;
-
-    .file {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
   }
 }
 
