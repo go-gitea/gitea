@@ -32,7 +32,7 @@ GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -242,8 +242,10 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running gitea-fmt (with gofumpt)..."
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	$(eval TEMPLATES := $(wildcard templates/**/*.tmpl))
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
 .PHONY: vet
 vet:
@@ -288,11 +290,17 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
-	# get all go files and run gitea-fmt (with gofmt) on them
+	@# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
+		exit 1; \
+	fi
+	@diff2=$$(git diff templates); \
+	if [ -n "$$diff2" ]; then \
+		echo "Please run 'make fmt' and commit the result:"; \
+		echo "$${diff2}"; \
 		exit 1; \
 	fi
 

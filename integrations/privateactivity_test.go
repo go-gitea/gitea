@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"testing"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -29,8 +29,8 @@ const privateActivityTestOtherUser = "user4"
 // activity helpers
 
 func testPrivateActivityDoSomethingForActionEntries(t *testing.T) {
-	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID}).(*user_model.User)
+	repoBefore := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repoBefore.OwnerID})
 
 	session := loginUser(t, privateActivityTestUser)
 	token := getTokenForLoggedInUser(t, session)
@@ -117,7 +117,7 @@ func testPrivateActivityHelperHasHeatmapContentFromPublic(t *testing.T) bool {
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap", privateActivityTestUser)
 	resp := MakeRequest(t, req, http.StatusOK)
 
-	var items []*models.UserHeatmapData
+	var items []*activities_model.UserHeatmapData
 	DecodeJSON(t, resp, &items)
 
 	return len(items) != 0
@@ -129,7 +129,7 @@ func testPrivateActivityHelperHasHeatmapContentFromSession(t *testing.T, session
 	req := NewRequestf(t, "GET", "/api/v1/users/%s/heatmap?token=%s", privateActivityTestUser, token)
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
-	var items []*models.UserHeatmapData
+	var items []*activities_model.UserHeatmapData
 	DecodeJSON(t, resp, &items)
 
 	return len(items) != 0

@@ -24,8 +24,8 @@ import (
 func TestCreateNewTagProtected(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	t.Run("API", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
@@ -77,14 +77,14 @@ func TestCreateNewTagProtected(t *testing.T) {
 	})
 
 	// Cleanup
-	releases, err := models.GetReleasesByRepoID(repo.ID, models.FindReleasesOptions{
+	releases, err := repo_model.GetReleasesByRepoID(repo.ID, repo_model.FindReleasesOptions{
 		IncludeTags: true,
 		TagNames:    []string{"v-1", "v-1.1"},
 	})
 	assert.NoError(t, err)
 
 	for _, release := range releases {
-		err = models.DeleteReleaseByID(release.ID)
+		err = repo_model.DeleteReleaseByID(release.ID)
 		assert.NoError(t, err)
 	}
 

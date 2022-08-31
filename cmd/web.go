@@ -76,7 +76,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	err := runHTTP("tcp", source, "HTTP Redirector", handler)
+	err := runHTTP("tcp", source, "HTTP Redirector", handler, setting.RedirectorUseProxyProtocol)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
@@ -126,8 +126,10 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := install.Routes()
+		installCtx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
+		c := install.Routes(installCtx)
 		err := listen(c, false)
+		cancel()
 		if err != nil {
 			log.Critical("Unable to open listener for installer. Is Gitea already running?")
 			graceful.GetManager().DoGracefulShutdown()
@@ -175,7 +177,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
@@ -231,40 +233,38 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, "Web", m)
+		err = runHTTP("tcp", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.HTTPS:
 		if setting.EnableAcme {
 			err = runACME(listenAddr, m)
 			break
-		} else {
-			if handleRedirector {
-				if setting.RedirectOtherPort {
-					go runHTTPRedirector()
-				} else {
-					NoHTTPRedirector()
-				}
-			}
-			err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
 		}
+		if handleRedirector {
+			if setting.RedirectOtherPort {
+				go runHTTPRedirector()
+			} else {
+				NoHTTPRedirector()
+			}
+		}
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
+		err = runFCGI("tcp", listenAddr, "FCGI Web", m, setting.UseProxyProtocol)
 	case setting.HTTPUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, "Web", m)
+		err = runHTTP("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, "Web", m)
+		err = runFCGI("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
-
 	if err != nil {
 		log.Critical("Failed to start server: %v", err)
 	}
