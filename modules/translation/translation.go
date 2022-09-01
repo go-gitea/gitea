@@ -5,15 +5,16 @@
 package translation
 
 import (
-	"path"
+	"context"
 	"sort"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
-	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/modules/watcher"
 
 	"golang.org/x/text/language"
 )
@@ -33,6 +34,7 @@ type LangType struct {
 }
 
 var (
+	lock          *sync.RWMutex
 	matcher       language.Matcher
 	allLangs      []*LangType
 	allLangMap    map[string]*LangType
@@ -45,57 +47,52 @@ func AllLangs() []*LangType {
 }
 
 // InitLocales loads the locales
-func InitLocales() {
-	i18n.ResetDefaultLocales(setting.IsProd)
-	localeNames, err := options.Dir("locale")
-	if err != nil {
-		log.Fatal("Failed to list locale files: %v", err)
+func InitLocales(ctx context.Context) {
+	if lock != nil {
+		lock.Lock()
+		defer lock.Unlock()
+	} else if !setting.IsProd && lock == nil {
+		lock = &sync.RWMutex{}
 	}
 
-	localFiles := make(map[string]interface{}, len(localeNames))
-	for _, name := range localeNames {
-		if options.IsDynamic() {
-			// Try to check if CustomPath has the file, otherwise fallback to StaticRootPath
-			value := path.Join(setting.CustomPath, "options/locale", name)
+	refreshLocales := func() {
+		i18n.ResetDefaultLocales()
+		localeNames, err := options.Dir("locale")
+		if err != nil {
+			log.Fatal("Failed to list locale files: %v", err)
+		}
 
-			isFile, err := util.IsFile(value)
-			if err != nil {
-				log.Fatal("Failed to load %s locale file. %v", name, err)
-			}
-
-			if isFile {
-				localFiles[name] = value
-			} else {
-				localFiles[name] = path.Join(setting.StaticRootPath, "options/locale", name)
-			}
-		} else {
+		localFiles := make(map[string]interface{}, len(localeNames))
+		for _, name := range localeNames {
 			localFiles[name], err = options.Locale(name)
 			if err != nil {
 				log.Fatal("Failed to load %s locale file. %v", name, err)
 			}
 		}
-	}
 
-	supportedTags = make([]language.Tag, len(setting.Langs))
-	for i, lang := range setting.Langs {
-		supportedTags[i] = language.Raw.Make(lang)
-	}
+		supportedTags = make([]language.Tag, len(setting.Langs))
+		for i, lang := range setting.Langs {
+			supportedTags[i] = language.Raw.Make(lang)
+		}
 
-	matcher = language.NewMatcher(supportedTags)
-	for i := range setting.Names {
-		key := "locale_" + setting.Langs[i] + ".ini"
+		matcher = language.NewMatcher(supportedTags)
+		for i := range setting.Names {
+			key := "locale_" + setting.Langs[i] + ".ini"
 
-		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+			}
+		}
+		if len(setting.Langs) != 0 {
+			defaultLangName := setting.Langs[0]
+			if defaultLangName != "en-US" {
+				log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+			}
+			i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 		}
 	}
-	if len(setting.Langs) != 0 {
-		defaultLangName := setting.Langs[0]
-		if defaultLangName != "en-US" {
-			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
-		}
-		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
-	}
+
+	refreshLocales()
 
 	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
 	allLangs = make([]*LangType, 0, len(langs))
@@ -110,6 +107,17 @@ func InitLocales() {
 	sort.Slice(allLangs, func(i, j int) bool {
 		return strings.ToLower(allLangs[i].Name) < strings.ToLower(allLangs[j].Name)
 	})
+
+	if !setting.IsProd {
+		watcher.CreateWatcher(ctx, "Locales", &watcher.CreateWatcherOpts{
+			PathsCallback: options.WalkLocales,
+			BetweenCallback: func() {
+				lock.Lock()
+				defer lock.Unlock()
+				refreshLocales()
+			},
+		})
+	}
 }
 
 // Match matches accept languages
@@ -126,12 +134,18 @@ type locale struct {
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	if lock != nil {
+		lock.RLock()
+		defer lock.RUnlock()
+	}
+
 	langName := "unknown"
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
 	}
+	i18nLocale, _ := i18n.GetLocale(lang)
 	return &locale{
-		Locale:   i18n.GetLocale(langName),
+		Locale:   i18nLocale,
 		Lang:     lang,
 		LangName: langName,
 	}

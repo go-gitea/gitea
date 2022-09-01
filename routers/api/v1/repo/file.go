@@ -8,6 +8,7 @@ package repo
 import (
 	"bytes"
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/httpcache"
@@ -29,9 +29,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/common"
-	"code.gitea.io/gitea/routers/web/repo"
+	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 	files_service "code.gitea.io/gitea/services/repository/files"
 )
+
+const giteaObjectTypeHeader = "X-Gitea-Object-Type"
 
 // GetRawFile get a file by path on a repository
 func GetRawFile(ctx *context.APIContext) {
@@ -72,10 +74,12 @@ func GetRawFile(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	if err := common.ServeBlob(ctx.Context, blob, lastModified); err != nil {
 		ctx.Error(http.StatusInternalServerError, "ServeBlob", err)
@@ -119,10 +123,12 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 		return
 	}
 
-	blob, lastModified := getBlobForEntry(ctx)
+	blob, entry, lastModified := getBlobForEntry(ctx)
 	if ctx.Written() {
 		return
 	}
+
+	ctx.RespHeader().Set(giteaObjectTypeHeader, string(files_service.GetObjectTypeFromTreeEntry(entry)))
 
 	// LFS Pointer files are at most 1024 bytes - so any blob greater than 1024 bytes cannot be an LFS file
 	if blob.Size() > 1024 {
@@ -218,7 +224,7 @@ func GetRawFileOrLFS(ctx *context.APIContext) {
 	}
 }
 
-func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time.Time) {
+func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, entry *git.TreeEntry, lastModified time.Time) {
 	entry, err := ctx.Repo.Commit.GetTreeEntryByPath(ctx.Repo.TreePath)
 	if err != nil {
 		if git.IsErrNotExist(err) {
@@ -234,12 +240,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 		return
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:], c)
+	info, _, err := git.Entries([]*git.TreeEntry{entry}).GetCommitsInfo(ctx, ctx.Repo.Commit, path.Dir("/" + ctx.Repo.TreePath)[1:])
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetCommitsInfo", err)
 		return
@@ -251,7 +252,7 @@ func getBlobForEntry(ctx *context.APIContext) (blob *git.Blob, lastModified time
 	}
 	blob = entry.Blob()
 
-	return blob, lastModified
+	return blob, entry, lastModified
 }
 
 // GetArchive get archive of a repository
@@ -294,7 +295,53 @@ func GetArchive(ctx *context.APIContext) {
 		defer gitRepo.Close()
 	}
 
-	repo.Download(ctx.Context)
+	archiveDownload(ctx)
+}
+
+func archiveDownload(ctx *context.APIContext) {
+	uri := ctx.Params("*")
+	aReq, err := archiver_service.NewRequest(ctx.Repo.Repository.ID, ctx.Repo.GitRepo, uri)
+	if err != nil {
+		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
+			ctx.Error(http.StatusBadRequest, "unknown archive format", err)
+		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+			ctx.Error(http.StatusNotFound, "unrecognized reference", err)
+		} else {
+			ctx.ServerError("archiver_service.NewRequest", err)
+		}
+		return
+	}
+
+	archiver, err := aReq.Await(ctx)
+	if err != nil {
+		ctx.ServerError("archiver.Await", err)
+		return
+	}
+
+	download(ctx, aReq.GetArchiveName(), archiver)
+}
+
+func download(ctx *context.APIContext, archiveName string, archiver *repo_model.RepoArchiver) {
+	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
+
+	rPath := archiver.RelativePath()
+	if setting.RepoArchive.ServeDirect {
+		// If we have a signed url (S3, object storage), redirect to this directly.
+		u, err := storage.RepoArchives.URL(rPath, downloadName)
+		if u != nil && err == nil {
+			ctx.Redirect(u.String())
+			return
+		}
+	}
+
+	// If we have matched and access to release or issue
+	fr, err := storage.RepoArchives.Open(rPath)
+	if err != nil {
+		ctx.ServerError("Open", err)
+		return
+	}
+	defer fr.Close()
+	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
 }
 
 // GetEditorconfig get editor config of a repository

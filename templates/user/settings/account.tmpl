@@ -59,9 +59,10 @@
 								<div class="ui selection dropdown" tabindex="0">
 									<input name="preference" type="hidden" value="{{.EmailNotificationsPreference}}">
 									{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-									<div class="text">{{$.locale.Tr "settings.email_notifications"}}</div>
+									<div class="text"></div>
 									<div class="menu">
 										<div data-value="enabled" class="{{if eq .EmailNotificationsPreference "enabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.enable"}}</div>
+										<div data-value="andyourown" class="{{if eq .EmailNotificationsPreference "andyourown"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.andyourown"}}</div>
 										<div data-value="onmention" class="{{if eq .EmailNotificationsPreference "onmention"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.onmention"}}</div>
 										<div data-value="disabled" class="{{if eq .EmailNotificationsPreference "disabled"}}active selected {{end}}item">{{$.locale.Tr "settings.email_notifications.disable"}}</div>
 									</div>
@@ -138,9 +139,9 @@
 		<div class="ui attached error segment">
 			<div class="ui red message">
 				<p class="text left">{{svg "octicon-alert"}} {{.locale.Tr "settings.delete_prompt" | Str2html}}</p>
-				{{ if .UserDeleteWithComments }}
+				{{if .UserDeleteWithComments}}
 				<p class="text left" style="font-weight: bold;">{{.locale.Tr "settings.delete_with_all_comments" .UserDeleteWithCommentsMaxTime | Str2html}}</p>
-				{{ end }}
+				{{end}}
 			</div>
 			<form class="ui form ignore-dirty" id="delete-form" action="{{AppSubUrl}}/user/settings/account/delete" method="post">
 				{{template "base/disable_form_autofill"}}

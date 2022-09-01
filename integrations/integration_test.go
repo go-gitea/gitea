@@ -89,7 +89,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routers.NormalRoutes()
+	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
 	if setting.Cfg != nil {
@@ -175,10 +175,9 @@ func initIntegrationTest() {
 	setting.Repository.DefaultBranch = "master" // many test code still assume that default branch is called "master"
 	_ = util.RemoveAll(repo_module.LocalCopyPath())
 
-	if err := git.InitOnceWithSync(context.Background()); err != nil {
+	if err := git.InitFull(context.Background()); err != nil {
 		log.Fatal("git.InitOnceWithSync: %v", err)
 	}
-	git.CheckLFSVersion()
 
 	setting.InitDBConfig()
 	if err := storage.Init(); err != nil {
@@ -188,8 +187,13 @@ func initIntegrationTest() {
 
 	switch {
 	case setting.Database.UseMySQL:
-		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@tcp(%s)/",
-			setting.Database.User, setting.Database.Passwd, setting.Database.Host))
+		connType := "tcp"
+		if len(setting.Database.Host) > 0 && setting.Database.Host[0] == '/' { // looks like a unix socket
+			connType = "unix"
+		}
+
+		db, err := sql.Open("mysql", fmt.Sprintf("%s:%s@%s(%s)/",
+			setting.Database.User, setting.Database.Passwd, connType, setting.Database.Host))
 		defer db.Close()
 		if err != nil {
 			log.Fatal("sql.Open: %v", err)
@@ -280,7 +284,6 @@ func prepareTestEnv(t testing.TB, skip ...int) func() {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
@@ -581,7 +584,6 @@ func resetFixtures(t *testing.T) {
 	assert.NoError(t, unittest.LoadFixtures())
 	assert.NoError(t, util.RemoveAll(setting.RepoRootPath))
 	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)

@@ -8,8 +8,16 @@ import "fmt"
 
 // Locale represents an interface to translation
 type Locale interface {
+	// Has reports if a locale has a translation for a given key
+	Has(trKey string) bool
+
+	// Tr translates a given key and arguments for a language
 	Tr(key string, args ...interface{}) string
+
+	// TrPlural translates a given key and arguments for a language
 	TrPlural(cnt interface{}, key string, args ...interface{}) string
+
+	// TrOrdinal translates a given key and arguments for a language
 	TrOrdinal(cnt interface{}, key string, args ...interface{}) string
 }
 

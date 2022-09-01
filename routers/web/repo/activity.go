@@ -8,7 +8,7 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -52,7 +52,7 @@ func Activity(ctx *context.Context) {
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
-	if ctx.Data["Activity"], err = models.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
+	if ctx.Data["Activity"], err = activities_model.GetActivityStats(ctx, ctx.Repo.Repository, timeFrom,
 		ctx.Repo.CanRead(unit.TypeReleases),
 		ctx.Repo.CanRead(unit.TypeIssues),
 		ctx.Repo.CanRead(unit.TypePullRequests),
@@ -61,7 +61,7 @@ func Activity(ctx *context.Context) {
 		return
 	}
 
-	if ctx.PageData["repoActivityTopAuthors"], err = models.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
+	if ctx.PageData["repoActivityTopAuthors"], err = activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10); err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return
 	}
@@ -94,7 +94,7 @@ func ActivityAuthors(ctx *context.Context) {
 	}
 
 	var err error
-	authors, err := models.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
+	authors, err := activities_model.GetActivityStatsTopAuthors(ctx, ctx.Repo.Repository, timeFrom, 10)
 	if err != nil {
 		ctx.ServerError("GetActivityStatsTopAuthors", err)
 		return

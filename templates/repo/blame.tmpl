@@ -55,7 +55,11 @@
 								<span id="L{{$row.RowNumber}}" data-line-number="{{$row.RowNumber}}"></span>
 							</td>
 							{{if $.EscapeStatus.Escaped}}
-								<td class="lines-escape">{{if $row.EscapeStatus.Escaped}}<a href="" class="toggle-escape-button" title="{{$.locale.Tr "repo.line_unicode"}}"></a>{{end}}</td>
+								<td class="lines-escape">
+									{{if $row.EscapeStatus.Escaped}}
+										<a href="" class="toggle-escape-button" title="{{template "repo/diff/escape_title" dict "diff" $row "locale" $.locale}}"></a>
+									{{end}}
+								</td>
 							{{end}}
 							<td rel="L{{$row.RowNumber}}" rel="L{{$row.RowNumber}}" class="lines-code blame-code chroma">
 								<code class="code-inner pl-3">{{$row.Code}}</code>

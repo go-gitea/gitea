@@ -13,11 +13,13 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	packages_module "code.gitea.io/gitea/modules/packages"
+	"code.gitea.io/gitea/modules/util"
 	container_service "code.gitea.io/gitea/services/packages/container"
 )
 
@@ -32,10 +34,11 @@ type PackageInfo struct {
 // PackageCreationInfo describes a package to create
 type PackageCreationInfo struct {
 	PackageInfo
-	SemverCompatible bool
-	Creator          *user_model.User
-	Metadata         interface{}
-	Properties       map[string]string
+	SemverCompatible  bool
+	Creator           *user_model.User
+	Metadata          interface{}
+	PackageProperties map[string]string
+	VersionProperties map[string]string
 }
 
 // PackageFileInfo describes a package file
@@ -108,8 +111,9 @@ func createPackageAndAddFile(pvci *PackageCreationInfo, pfci *PackageFileCreatio
 }
 
 func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, allowDuplicate bool) (*packages_model.PackageVersion, bool, error) {
-	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %v", pvci.Creator.ID, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.Properties, allowDuplicate)
+	log.Trace("Creating package: %v, %v, %v, %s, %s, %+v, %+v, %v", pvci.Creator.ID, pvci.Owner.ID, pvci.PackageType, pvci.Name, pvci.Version, pvci.PackageProperties, pvci.VersionProperties, allowDuplicate)
 
+	packageCreated := true
 	p := &packages_model.Package{
 		OwnerID:          pvci.Owner.ID,
 		Type:             pvci.PackageType,
@@ -119,9 +123,20 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 	var err error
 	if p, err = packages_model.TryInsertPackage(ctx, p); err != nil {
-		if err != packages_model.ErrDuplicatePackage {
+		if err == packages_model.ErrDuplicatePackage {
+			packageCreated = false
+		} else {
 			log.Error("Error inserting package: %v", err)
 			return nil, false, err
+		}
+	}
+
+	if packageCreated {
+		for name, value := range pvci.PackageProperties {
+			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypePackage, p.ID, name, value); err != nil {
+				log.Error("Error setting package property: %v", err)
+				return nil, false, err
+			}
 		}
 	}
 
@@ -130,7 +145,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		return nil, false, err
 	}
 
-	created := true
+	versionCreated := true
 	pv := &packages_model.PackageVersion{
 		PackageID:    p.ID,
 		CreatorID:    pvci.Creator.ID,
@@ -140,7 +155,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 	}
 	if pv, err = packages_model.GetOrInsertVersion(ctx, pv); err != nil {
 		if err == packages_model.ErrDuplicatePackageVersion {
-			created = false
+			versionCreated = false
 		}
 		if err != packages_model.ErrDuplicatePackageVersion || !allowDuplicate {
 			log.Error("Error inserting package: %v", err)
@@ -148,8 +163,8 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	if created {
-		for name, value := range pvci.Properties {
+	if versionCreated {
+		for name, value := range pvci.VersionProperties {
 			if _, err := packages_model.InsertProperty(ctx, packages_model.PropertyTypeVersion, pv.ID, name, value); err != nil {
 				log.Error("Error setting package version property: %v", err)
 				return nil, false, err
@@ -157,7 +172,7 @@ func createPackageAndVersion(ctx context.Context, pvci *PackageCreationInfo, all
 		}
 	}
 
-	return pv, created, nil
+	return pv, versionCreated, nil
 }
 
 // AddFileToExistingPackage adds a file to an existing package. If the package does not exist, ErrPackageNotExist is returned
@@ -348,8 +363,17 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 		return err
 	}
 
-	if err := packages_model.DeletePackagesIfUnreferenced(ctx); err != nil {
+	ps, err := packages_model.FindUnreferencedPackages(ctx)
+	if err != nil {
 		return err
+	}
+	for _, p := range ps {
+		if err := packages_model.DeleteAllProperties(ctx, packages_model.PropertyTypePackage, p.ID); err != nil {
+			return err
+		}
+		if err := packages_model.DeletePackageByID(ctx, p.ID); err != nil {
+			return err
+		}
 	}
 
 	pbs, err := packages_model.FindExpiredUnreferencedBlobs(ctx, olderThan)
@@ -378,7 +402,7 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
@@ -394,7 +418,7 @@ func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo,
 }
 
 // GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
-func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
 
 	pv, err := packages_model.GetVersionByID(ctx, versionID)
@@ -425,8 +449,8 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 }
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
-func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
-	pf, err := packages_model.GetFileForVersionByName(db.DefaultContext, pv.ID, pfi.Filename, pfi.CompositeKey)
+func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -435,7 +459,7 @@ func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.Packa
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, err
@@ -450,4 +474,32 @@ func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (
 		}
 	}
 	return s, pf, err
+}
+
+// RemoveAllPackages for User
+func RemoveAllPackages(ctx context.Context, userID int64) (int, error) {
+	count := 0
+	for {
+		pkgVersions, _, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
+			Paginator: &db.ListOptions{
+				PageSize: repo_model.RepositoryListDefaultPageSize,
+				Page:     1,
+			},
+			OwnerID:    userID,
+			IsInternal: util.OptionalBoolNone,
+		})
+		if err != nil {
+			return count, fmt.Errorf("GetOwnedPackages[%d]: %w", userID, err)
+		}
+		if len(pkgVersions) == 0 {
+			break
+		}
+		for _, pv := range pkgVersions {
+			if err := DeletePackageVersionAndReferences(ctx, pv); err != nil {
+				return count, fmt.Errorf("unable to delete package %d:%s[%d]. Error: %w", pv.PackageID, pv.Version, pv.ID, err)
+			}
+			count++
+		}
+	}
+	return count, nil
 }

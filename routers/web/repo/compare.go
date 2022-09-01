@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -459,7 +458,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -484,7 +483,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -786,6 +785,19 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
 	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
+
+	// If a template content is set, prepend the "content". In this case that's only
+	// applicable if you have one commit to compare and that commit has a message.
+	// In that case the commit message will be prepend to the template body.
+	if templateContent, ok := ctx.Data[pullRequestTemplateKey].(string); ok && templateContent != "" {
+		if content, ok := ctx.Data["content"].(string); ok && content != "" {
+			// Re-use the same key as that's priortized over the "content" key.
+			// Add two new lines between the content to ensure there's always at least
+			// one empty line between them.
+			ctx.Data[pullRequestTemplateKey] = content + "\n\n" + templateContent
+		}
+	}
+
 	ctx.Data["IsAttachmentEnabled"] = setting.Attachment.Enabled
 	upload.AddUploadContext(ctx, "comment")
 

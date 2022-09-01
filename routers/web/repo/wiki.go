@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -164,7 +164,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			if wikiRepo != nil {
@@ -239,9 +239,28 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
 		IsWiki:    true,
 	}
+	buf := &strings.Builder{}
 
-	var buf strings.Builder
-	if err := markdown.Render(rctx, bytes.NewReader(data), &buf); err != nil {
+	renderFn := func(data []byte) (escaped *charset.EscapeStatus, output string, err error) {
+		markupRd, markupWr := io.Pipe()
+		defer markupWr.Close()
+		done := make(chan struct{})
+		go func() {
+			// We allow NBSP here this is rendered
+			escaped, _ = charset.EscapeControlReader(markupRd, buf, ctx.Locale, charset.RuneNBSP)
+			output = buf.String()
+			buf.Reset()
+			close(done)
+		}()
+
+		err = markdown.Render(rctx, bytes.NewReader(data), markupWr)
+		_ = markupWr.CloseWithError(err)
+		<-done
+		return escaped, output, err
+	}
+
+	ctx.Data["EscapeStatus"], ctx.Data["content"], err = renderFn(data)
+	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
@@ -249,11 +268,10 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		return nil, nil
 	}
 
-	ctx.Data["EscapeStatus"], ctx.Data["content"] = charset.EscapeControlString(buf.String())
-
 	if !isSideBar {
 		buf.Reset()
-		if err := markdown.Render(rctx, bytes.NewReader(sidebarContent), &buf); err != nil {
+		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"], err = renderFn(sidebarContent)
+		if err != nil {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
@@ -261,14 +279,14 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["sidebarPresent"] = sidebarContent != nil
-		ctx.Data["sidebarEscapeStatus"], ctx.Data["sidebarContent"] = charset.EscapeControlString(buf.String())
 	} else {
 		ctx.Data["sidebarPresent"] = false
 	}
 
 	if !isFooter {
 		buf.Reset()
-		if err := markdown.Render(rctx, bytes.NewReader(footerContent), &buf); err != nil {
+		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"], err = renderFn(footerContent)
+		if err != nil {
 			if wikiRepo != nil {
 				wikiRepo.Close()
 			}
@@ -276,7 +294,6 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 			return nil, nil
 		}
 		ctx.Data["footerPresent"] = footerContent != nil
-		ctx.Data["footerEscapeStatus"], ctx.Data["footerContent"] = charset.EscapeControlString(buf.String())
 	} else {
 		ctx.Data["footerPresent"] = false
 	}
@@ -343,12 +360,12 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
 		}
-		ctx.ServerError("CommitsByFileAndRangeNoFollow", err)
+		ctx.ServerError("CommitsByFileAndRange", err)
 		return nil, nil
 	}
 	ctx.Data["Commits"] = git_model.ConvertFromGitCommit(commitsHistory, ctx.Repo.Repository)
@@ -571,7 +588,7 @@ func WikiPages(ctx *context.Context) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			ctx.ServerError("WikiFilenameToName", err)
@@ -676,10 +693,10 @@ func NewWikiPost(ctx *context.Context) {
 	}
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
-		if models.IsErrWikiReservedName(err) {
+		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
-		} else if models.IsErrWikiAlreadyExist(err) {
+		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
 		} else {

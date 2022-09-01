@@ -64,7 +64,7 @@ export function parseIssueHref(href) {
 export function strSubMatch(full, sub) {
   const res = [''];
   let i = 0, j = 0;
-  for (; i < sub.length && j < full.length;) {
+  while (i < sub.length && j < full.length) {
     while (j < full.length) {
       if (sub[i] === full[j]) {
         if (res.length % 2 !== 0) res.push('');
@@ -96,4 +96,9 @@ export function prettyNumber(num, locale = 'en-US') {
   if (typeof num !== 'number') return '';
   const {format} = new Intl.NumberFormat(locale);
   return format(num);
+}
+
+// parse a URL, either relative '/path' or absolute 'https://localhost/path'
+export function parseUrl(str) {
+  return new URL(str, str.startsWith('http') ? undefined : window.location.origin);
 }

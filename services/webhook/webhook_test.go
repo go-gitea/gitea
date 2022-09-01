@@ -30,7 +30,7 @@ func TestWebhook_GetSlackHook(t *testing.T) {
 func TestPrepareWebhooks(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	hookTasks := []*webhook_model.HookTask{
 		{RepoID: repo.ID, HookID: 1, EventType: webhook_model.HookEventPush},
 	}
@@ -46,7 +46,7 @@ func TestPrepareWebhooks(t *testing.T) {
 func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	hookTasks := []*webhook_model.HookTask{
 		{RepoID: repo.ID, HookID: 4, EventType: webhook_model.HookEventPush},
 	}
@@ -63,7 +63,7 @@ func TestPrepareWebhooksBranchFilterMatch(t *testing.T) {
 func TestPrepareWebhooksBranchFilterNoMatch(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	hookTasks := []*webhook_model.HookTask{
 		{RepoID: repo.ID, HookID: 4, EventType: webhook_model.HookEventPush},
 	}

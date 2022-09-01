@@ -10,11 +10,13 @@ import (
 
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIReposRaw(t *testing.T) {
 	defer prepareTestEnv(t)()
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	// Login as User2.
 	session := loginUser(t, user.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -25,9 +27,11 @@ func TestAPIReposRaw(t *testing.T) {
 		"65f1bf27bc3bf70f64657658635e66094edbcb4d", // Commit
 	} {
 		req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/%s/README.md?token="+token, user.Name, ref)
-		session.MakeRequest(t, req, http.StatusOK)
+		resp := session.MakeRequest(t, req, http.StatusOK)
+		assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
 	}
 	// Test default branch
 	req := NewRequestf(t, "GET", "/api/v1/repos/%s/repo1/raw/README.md?token="+token, user.Name)
-	session.MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+	assert.EqualValues(t, "file", resp.Header().Get("x-gitea-object-type"))
 }

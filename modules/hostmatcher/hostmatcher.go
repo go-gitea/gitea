@@ -78,6 +78,11 @@ func (hl *HostMatchList) AppendBuiltin(builtin string) {
 	hl.builtins = append(hl.builtins, builtin)
 }
 
+// AppendPattern appends more pattern to match
+func (hl *HostMatchList) AppendPattern(pattern string) {
+	hl.patterns = append(hl.patterns, pattern)
+}
+
 // IsEmpty checks if the checklist is empty
 func (hl *HostMatchList) IsEmpty() bool {
 	return hl == nil || (len(hl.builtins) == 0 && len(hl.patterns) == 0 && len(hl.ipNets) == 0)
@@ -125,13 +130,13 @@ func (hl *HostMatchList) checkIP(ip net.IP) bool {
 
 // MatchHostName checks if the host matches an allow/deny(block) list
 func (hl *HostMatchList) MatchHostName(host string) bool {
+	if hl == nil {
+		return false
+	}
+
 	hostname, _, err := net.SplitHostPort(host)
 	if err != nil {
 		hostname = host
-	}
-
-	if hl == nil {
-		return false
 	}
 	if hl.checkPattern(hostname) {
 		return true

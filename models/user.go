@@ -12,6 +12,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -27,7 +28,7 @@ import (
 )
 
 // DeleteUser deletes models associated to an user.
-func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
+func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error) {
 	e := db.GetEngine(ctx)
 
 	// ***** START: Watch *****
@@ -70,14 +71,14 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** END: Follow *****
 
 	if err = db.DeleteBeans(ctx,
-		&AccessToken{UID: u.ID},
+		&auth_model.AccessToken{UID: u.ID},
 		&repo_model.Collaboration{UserID: u.ID},
 		&access_model.Access{UserID: u.ID},
 		&repo_model.Watch{UserID: u.ID},
 		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
-		&Action{UserID: u.ID},
+		&activities_model.Action{UserID: u.ID},
 		&issues_model.IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
@@ -85,6 +86,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		&organization.TeamUser{UID: u.ID},
 		&issues_model.Stopwatch{UserID: u.ID},
 		&user_model.Setting{UserID: u.ID},
+		&user_model.UserBadge{UserID: u.ID},
 		&pull_model.AutoMerge{DoerID: u.ID},
 		&pull_model.ReviewState{UserID: u.ID},
 	); err != nil {
@@ -95,8 +97,8 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		return err
 	}
 
-	if setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
-		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now()) {
+	if purge || (setting.Service.UserDeleteWithCommentsMaxTime != 0 &&
+		u.CreatedUnix.AsTime().Add(setting.Service.UserDeleteWithCommentsMaxTime).After(time.Now())) {
 
 		// Delete Comments
 		const batchSize = 50

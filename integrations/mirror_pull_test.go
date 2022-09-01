@@ -8,7 +8,6 @@ import (
 	"context"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -24,8 +23,8 @@ import (
 func TestMirrorPull(t *testing.T) {
 	defer prepareTestEnv(t)()
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	repoPath := repo_model.RepoPath(user.Name, repo.Name)
 
 	opts := migration.MigrateOptions{
@@ -38,7 +37,7 @@ func TestMirrorPull(t *testing.T) {
 		Releases:    false,
 	}
 
-	mirrorRepo, err := repository.CreateRepository(user, user, models.CreateRepoOptions{
+	mirrorRepo, err := repository.CreateRepository(user, user, repository.CreateRepoOptions{
 		Name:        opts.RepoName,
 		Description: opts.Description,
 		IsPrivate:   opts.Private,
@@ -57,11 +56,11 @@ func TestMirrorPull(t *testing.T) {
 	assert.NoError(t, err)
 	defer gitRepo.Close()
 
-	findOptions := models.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
-	initCount, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	findOptions := repo_model.FindReleasesOptions{IncludeDrafts: true, IncludeTags: true}
+	initCount, err := repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 
-	assert.NoError(t, release_service.CreateRelease(gitRepo, &models.Release{
+	assert.NoError(t, release_service.CreateRelease(gitRepo, &repo_model.Release{
 		RepoID:       repo.ID,
 		Repo:         repo,
 		PublisherID:  user.ID,
@@ -81,18 +80,18 @@ func TestMirrorPull(t *testing.T) {
 	ok := mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err := models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err := repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount+1, count)
 
-	release, err := models.GetRelease(repo.ID, "v0.2")
+	release, err := repo_model.GetRelease(repo.ID, "v0.2")
 	assert.NoError(t, err)
 	assert.NoError(t, release_service.DeleteReleaseByID(ctx, release.ID, user, true))
 
 	ok = mirror_service.SyncPullMirror(ctx, mirror.ID)
 	assert.True(t, ok)
 
-	count, err = models.GetReleaseCountByRepoID(mirror.ID, findOptions)
+	count, err = repo_model.GetReleaseCountByRepoID(mirror.ID, findOptions)
 	assert.NoError(t, err)
 	assert.EqualValues(t, initCount, count)
 }

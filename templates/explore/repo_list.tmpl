@@ -8,7 +8,7 @@
 						{{$avatar}}
 					{{end}}
 					<a class="name" href="{{.Link}}">
-						{{if or $.PageIsExplore $.PageIsProfileStarList }}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
+						{{if or $.PageIsExplore $.PageIsProfileStarList}}{{if .Owner}}{{.Owner.Name}} / {{end}}{{end}}{{.Name}}
 					</a>
 					<div class="labels df ac fw">
 						{{if .IsArchived}}
@@ -39,9 +39,9 @@
 					</div>
 				</div>
 				<div class="metas df ac">
-					{{if .PrimaryLanguage }}
+					{{if .PrimaryLanguage}}
 						<a href="{{$.Link}}?q={{$.Keyword}}&sort={{$.SortType}}&language={{.PrimaryLanguage.Language}}">
-							<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{ .PrimaryLanguage.Language }}</span>
+							<span class="text grey df ac mr-3"><i class="color-icon mr-3" style="background-color: {{.PrimaryLanguage.Color}}"></i>{{.PrimaryLanguage.Language}}</span>
 						</a>
 					{{end}}
 					{{if not $.DisableStars}}
@@ -51,12 +51,12 @@
 				</div>
 			</div>
 			<div class="description">
-				{{ $description := .DescriptionHTML $.Context}}
+				{{$description := .DescriptionHTML $.Context}}
 				{{if $description}}<p>{{$description}}</p>{{end}}
-				{{if .Topics }}
+				{{if .Topics}}
 					<div class="ui tags">
 					{{range .Topics}}
-						{{if ne . "" }}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
+						{{if ne . ""}}<a href="{{AppSubUrl}}/explore/repos?q={{.}}&topic=1"><div class="ui small label topic">{{.}}</div></a>{{end}}
 					{{end}}
 					</div>
 				{{end}}
