@@ -10,11 +10,14 @@ import (
 
 	"code.gitea.io/gitea/modules/log"
 	pingv1 "gitea.com/gitea/proto-go/ping/v1"
+	"gitea.com/gitea/proto-go/ping/v1/pingv1connect"
 
 	"github.com/bufbuild/connect-go"
 )
 
-type Service struct{}
+type Service struct {
+	pingv1connect.UnimplementedPingServiceHandler
+}
 
 func (s *Service) Ping(
 	ctx context.Context,
@@ -22,10 +25,9 @@ func (s *Service) Ping(
 ) (*connect.Response[pingv1.PingResponse], error) {
 	log.Info("Content-Type: %s", req.Header().Get("Content-Type"))
 	log.Info("User-Agent: %s", req.Header().Get("User-Agent"))
-	log.Info("X-Gitea-Token: %s", req.Header().Get("X-Gitea-Token"))
+	log.Info("X-Runner-Token: %s", req.Header().Get("X-Runner-Token"))
 	res := connect.NewResponse(&pingv1.PingResponse{
 		Data: fmt.Sprintf("Hello, %s!", req.Msg.Data),
 	})
-	res.Header().Set("Gitea-Version", "v1")
 	return res, nil
 }

@@ -13,11 +13,10 @@ import (
 
 // BuildLog represents a build's log, every build has a standalone table
 type BuildLog struct {
-	ID         int64
-	BuildJobID int64 `xorm:"index"`
-	LineNumber int
-	Content    string             `xorm:"LONGTEXT"`
-	Created    timeutil.TimeStamp `xorm:"created"`
+	ID      int64
+	StepID  int64              `xorm:"index"`
+	Content string             `xorm:"BINARY"`
+	Created timeutil.TimeStamp `xorm:"created"`
 }
 
 func init() {
@@ -37,7 +36,7 @@ func CreateBuildLog(buildID int64) error {
 
 func GetBuildLogs(buildID, jobID int64) (logs []BuildLog, err error) {
 	err = db.GetEngine(db.DefaultContext).Table(GetBuildLogTableName(buildID)).
-		Where("build_job_id=?", jobID).
+		Where("build_step_id=?", jobID).
 		Find(&logs)
 	return
 }

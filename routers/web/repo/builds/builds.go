@@ -118,14 +118,14 @@ func GetBuildJobLogs(ctx *context.Context) {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	var buildJob *bots_model.BuildJob
+	var buildJob *bots_model.BuildStage
 	wf := ctx.Params("workflow")
 	jobname := ctx.Params("jobname")
 LOOP_WORKFLOWS:
 	for workflow, jobs := range workflows {
 		if workflow == wf {
 			for _, job := range jobs {
-				if jobname == job.Jobname {
+				if jobname == job.Name {
 					buildJob = job
 					break LOOP_WORKFLOWS
 				}

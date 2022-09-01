@@ -85,7 +85,7 @@ func (Build) TableName() string {
 }
 
 func (t *Build) HTMLURL() string {
-	return fmt.Sprintf("")
+	return ""
 }
 
 func updateRepoBuildsNumbers(ctx context.Context, repo *repo_model.Repository) error {
@@ -132,18 +132,18 @@ func InsertBuild(t *Build, workflowsStatuses map[string]map[string]BuildStatus) 
 		return err
 	}
 
-	var buildJobs []BuildJob
+	var buildStages []BuildStage
 	for filename, workflow := range workflowsStatuses {
 		for job, status := range workflow {
-			buildJobs = append(buildJobs, BuildJob{
+			buildStages = append(buildStages, BuildStage{
 				BuildID:  t.ID,
 				Filename: filename,
-				Jobname:  job,
+				Name:     job,
 				Status:   status,
 			})
 		}
 	}
-	if err := db.Insert(ctx, buildJobs); err != nil {
+	if err := db.Insert(ctx, buildStages); err != nil {
 		return err
 	}
 
