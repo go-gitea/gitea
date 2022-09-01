@@ -15,7 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	dingtalk "github.com/lunny/dingtalk_webhook"
+	dingtalk "gitea.com/lunny/dingtalk_webhook"
 )
 
 type (
