@@ -27,33 +27,36 @@ func init() {
 }
 
 // BuildStatus represents a build status
-type BuildStatus int
+type BuildStatus string
 
 // enumerate all the statuses of bot build
 const (
-	BuildPending  BuildStatus = iota // wait for assign
-	BuildAssigned                    // assigned to a runner
-	BuildRunning                     // running
-	BuildFailed
-	BuildFinished
-	BuildCanceled
-	BuildTimeout
+	StatusSkipped  BuildStatus = "skipped"
+	StatusBlocked  BuildStatus = "blocked"
+	StatusDeclined BuildStatus = "declined"
+	StatusWaiting  BuildStatus = "waiting_on_dependencies"
+	StatusPending  BuildStatus = "pending"
+	StatusRunning  BuildStatus = "running"
+	StatusPassing  BuildStatus = "success"
+	StatusFailing  BuildStatus = "failure"
+	StatusKilled   BuildStatus = "killed"
+	StatusError    BuildStatus = "error"
 )
 
 func (status BuildStatus) IsPending() bool {
-	return status == BuildPending || status == BuildAssigned
+	return status == StatusPending
 }
 
 func (status BuildStatus) IsRunning() bool {
-	return status == BuildRunning
+	return status == StatusRunning
 }
 
 func (status BuildStatus) IsFailed() bool {
-	return status == BuildFailed || status == BuildCanceled || status == BuildTimeout
+	return status == StatusFailing || status == StatusKilled || status == StatusError
 }
 
 func (status BuildStatus) IsSuccess() bool {
-	return status == BuildFinished
+	return status == StatusPassing
 }
 
 // Build represnets bot build task
@@ -99,7 +102,7 @@ func updateRepoBuildsNumbers(ctx context.Context, repo *repo_model.Repository) e
 				Where(builder.Eq{
 					"repo_id": repo.ID,
 				}.And(
-					builder.In("status", BuildFailed, BuildCanceled, BuildTimeout, BuildFinished),
+					builder.In("status", StatusFailing, StatusKilled, StatusPassing),
 				),
 				),
 		).
@@ -193,7 +196,7 @@ func GetCurBuildByID(runnerID int64) (*Build, error) {
 	var builds []Build
 	err := db.GetEngine(db.DefaultContext).
 		Where("runner_id=?", runnerID).
-		And("status=?", BuildPending).
+		And("status=?", StatusPending).
 		Asc("created").
 		Find(&builds)
 	if err != nil {
@@ -260,9 +263,9 @@ func (opts FindBuildOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	if opts.IsClosed.IsTrue() {
-		cond = cond.And(builder.Expr("status IN (?,?,?,?)", BuildCanceled, BuildFailed, BuildTimeout, BuildFinished))
+		cond = cond.And(builder.Expr("status IN (?,?,?,?)", StatusError, StatusFailing, StatusPassing))
 	} else if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Expr("status IN (?,?,?)", BuildPending, BuildAssigned, BuildRunning))
+		cond = cond.And(builder.Expr("status IN (?,?,?)", StatusPending, StatusRunning))
 	}
 	return cond
 }

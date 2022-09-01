@@ -58,14 +58,12 @@ func (s *Service) Register(
 	return res, nil
 }
 
-func (s *Service) Accept(
+func (s *Service) Request(
 	ctx context.Context,
-	req *connect.Request[runnerv1.AcceptRequest],
-) (*connect.Response[runnerv1.AcceptResponse], error) {
-	log.Info("Request headers: %v", req.Header())
-	res := connect.NewResponse(&runnerv1.AcceptResponse{
-		JobId: 100,
+	req *connect.Request[runnerv1.RequestRequest],
+) (*connect.Response[runnerv1.RequestResponse], error) {
+	res := connect.NewResponse(&runnerv1.RequestResponse{
+		Stage: &runnerv1.Stage{},
 	})
-	res.Header().Set("Gitea-Version", "runnerv1")
 	return res, nil
 }
