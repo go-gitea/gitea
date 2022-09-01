@@ -1,13 +1,13 @@
 // @ts-check
 import {devices} from '@playwright/test';
 
-const BASE_URL = process.env.GITEA_URL ? process.env.GITEA_URL.replace(/\/$/g, '') : 'http://localhost:3000';
+const BASE_URL = process.env.GITEA_URL?.replace?.(/\/$/g, '') || 'http://localhost:3000';
 
 /**
  * @see https://playwright.dev/docs/test-configuration
  * @type {import('@playwright/test').PlaywrightTestConfig}
  */
-const config = {
+export default {
   testDir: './tests/e2e/',
   testMatch: /.*\.test\.e2e\.js/, // Match any .test.e2e.js files
 
@@ -28,9 +28,6 @@ const config = {
 
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-
-  /* Opt out of parallel tests on CI. */
-  // workers: process.env.CI ? 1 : undefined,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? 'list' : [['list'], ['html', {outputFolder: 'tests/e2e/reports/', open: 'never'}]],
@@ -94,32 +91,10 @@ const config = {
         ...devices['iPhone 12'],
       },
     },
-
-    /* Test against branded browsers. */
-    // {
-    //   name: 'Microsoft Edge',
-    //   use: {
-    //     channel: 'msedge',
-    //   },
-    // },
-    // {
-    //   name: 'Google Chrome',
-    //   use: {
-    //     channel: 'chrome',
-    //   },
-    // },
   ],
 
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   outputDir: 'tests/e2e/test-artifacts/',
   /* Folder for test artifacts such as screenshots, videos, traces, etc. */
   snapshotDir: 'tests/e2e/test-snapshots/',
-
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   port: 3000,
-  // },
 };
-
-export default config;
