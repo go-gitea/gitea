@@ -87,7 +87,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 	for i, entry := range matchedEntries {
 		taskStatuses := make(map[string]bots_model.BuildStatus)
 		for k := range jobs[i] {
-			taskStatuses[k] = bots_model.BuildPending
+			taskStatuses[k] = bots_model.StatusPending
 		}
 		workflowsStatuses[entry.Name()] = taskStatuses
 	}
@@ -98,7 +98,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 		TriggerUserID: doer.ID,
 		Event:         evt,
 		EventPayload:  payload,
-		Status:        bots_model.BuildPending,
+		Status:        bots_model.StatusPending,
 		Ref:           ref,
 		CommitSHA:     commit.ID.String(),
 	}

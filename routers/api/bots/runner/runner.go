@@ -20,6 +20,7 @@ type Service struct {
 	runnerv1connect.UnimplementedRunnerServiceHandler
 }
 
+// Register for new runner.
 func (s *Service) Register(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RegisterRequest],
@@ -58,6 +59,7 @@ func (s *Service) Register(
 	return res, nil
 }
 
+// Request requests the next available build stage for execution.
 func (s *Service) Request(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RequestRequest],
@@ -65,5 +67,23 @@ func (s *Service) Request(
 	res := connect.NewResponse(&runnerv1.RequestResponse{
 		Stage: &runnerv1.Stage{},
 	})
+	return res, nil
+}
+
+// Update updates the build stage.
+func (s *Service) Update(
+	ctx context.Context,
+	req *connect.Request[runnerv1.UpdateRequest],
+) (*connect.Response[runnerv1.UpdateResponse], error) {
+	res := connect.NewResponse(&runnerv1.UpdateResponse{})
+	return res, nil
+}
+
+// UpdateStep updates the build step.
+func (s *Service) UpdateStep(
+	ctx context.Context,
+	req *connect.Request[runnerv1.UpdateStepRequest],
+) (*connect.Response[runnerv1.UpdateStepResponse], error) {
+	res := connect.NewResponse(&runnerv1.UpdateStepResponse{})
 	return res, nil
 }
