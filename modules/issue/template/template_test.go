@@ -5,7 +5,11 @@
 package template
 
 import (
+	"reflect"
 	"testing"
+
+	"code.gitea.io/gitea/modules/json"
+	api "code.gitea.io/gitea/modules/structs"
 )
 
 func TestValidate(t *testing.T) {
@@ -323,4 +327,152 @@ body:
 			}
 		})
 	}
+
+	t.Run("valid", func(t *testing.T) {
+		content := `
+name: Name
+title: Title
+about: About
+labels: ["label1", "label2"]
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+  - type: textarea
+    id: id2
+    attributes:
+      label: Label of textarea
+      description: Description of textarea
+      placeholder: Placeholder of textarea
+      value: Value of textarea
+      render: bash
+    validations:
+      required: true
+  - type: input
+    id: id3
+    attributes:
+      label: Label of input
+      description: Description of input
+      placeholder: Placeholder of input
+      value: Value of input
+    validations:
+      required: true
+      is_number: true
+      regex: "[a-zA-Z0-9]+"
+  - type: dropdown
+    id: id4
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+  - type: checkboxes
+    id: id5
+    attributes:
+      label: Label of checkboxes
+      description: Description of checkboxes
+      options:
+        - label: Option 1 of checkboxes
+          required: true
+        - label: Option 2 of checkboxes
+          required: false
+        - label: Option 3 of checkboxes
+          required: true
+`
+		want := &api.IssueTemplate{
+			Name:   "Name",
+			Title:  "Title",
+			About:  "About",
+			Labels: []string{"label1", "label2"},
+			Ref:    "Ref",
+			Fields: []*api.IssueFormField{
+				{
+					Type: "markdown",
+					ID:   "id1",
+					Attributes: map[string]interface{}{
+						"value": "Value of the markdown",
+					},
+				},
+				{
+					Type: "textarea",
+					ID:   "id2",
+					Attributes: map[string]interface{}{
+						"label":       "Label of textarea",
+						"description": "Description of textarea",
+						"placeholder": "Placeholder of textarea",
+						"value":       "Value of textarea",
+						"render":      "bash",
+					},
+					Validations: map[string]interface{}{
+						"required": true,
+					},
+				},
+				{
+					Type: "input",
+					ID:   "id3",
+					Attributes: map[string]interface{}{
+						"label":       "Label of input",
+						"description": "Description of input",
+						"placeholder": "Placeholder of input",
+						"value":       "Value of input",
+					},
+					Validations: map[string]interface{}{
+						"required":  true,
+						"is_number": true,
+						"regex":     "[a-zA-Z0-9]+",
+					},
+				},
+				{
+					Type: "dropdown",
+					ID:   "id4",
+					Attributes: map[string]interface{}{
+						"label":       "Label of dropdown",
+						"description": "Description of dropdown",
+						"multiple":    true,
+						"options": []interface{}{
+							"Option 1 of dropdown",
+							"Option 2 of dropdown",
+							"Option 3 of dropdown",
+						},
+					},
+					Validations: map[string]interface{}{
+						"required": true,
+					},
+				},
+				{
+					Type: "checkboxes",
+					ID:   "id5",
+					Attributes: map[string]interface{}{
+						"label":       "Label of checkboxes",
+						"description": "Description of checkboxes",
+						"options": []interface{}{
+							map[interface{}]interface{}{"label": "Option 1 of checkboxes", "required": true},
+							map[interface{}]interface{}{"label": "Option 2 of checkboxes", "required": false},
+							map[interface{}]interface{}{"label": "Option 3 of checkboxes", "required": true},
+						},
+					},
+				},
+			},
+			FileName: "test.yaml",
+		}
+		got, err := unmarshal("test.yaml", []byte(content))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := Validate(got); err != nil {
+			t.Errorf("Validate() error = %v", err)
+		}
+		if !reflect.DeepEqual(want, got) {
+			jsonWant, _ := json.Marshal(want)
+			jsonGot, _ := json.Marshal(got)
+			t.Errorf("want:\n%s\ngot:\n%s", jsonWant, jsonGot)
+		}
+	})
 }
