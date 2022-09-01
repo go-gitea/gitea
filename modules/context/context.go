@@ -658,8 +658,8 @@ func Auth(authMethod auth.Method) func(*Context) {
 }
 
 // Contexter initializes a classic context for a request.
-func Contexter() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	csrfOpts := getCsrfOpts()
 	if !setting.IsProd {
 		CsrfTokenRegenerationInterval = 5 * time.Second // in dev, re-generate the tokens more aggressively for debug purpose
