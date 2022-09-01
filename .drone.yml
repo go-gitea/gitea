@@ -556,7 +556,6 @@ steps:
       GOPROXY: https://goproxy.io
       GOSUMDB: sum.golang.org
       USE_REPO_TEST_DIR: 1
-      NO_DEPS_PLAYWRIGHT: 1
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       DEBIAN_FRONTEND: noninteractive
     depends_on: [build-frontend, deps-backend]

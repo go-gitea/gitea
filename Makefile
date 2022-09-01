@@ -131,7 +131,8 @@ ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
 endif
 
-ifneq ($(NO_DEPS_PLAYWRIGHT),1)
+# Force installation of playwright dependencies by setting this flag
+ifdef DEPS_PLAYWRIGHT
 	PLAYWRIGHT_FLAGS += --with-deps
 endif
 
@@ -523,6 +524,13 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.mssql.test -test.failfast
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
+PLAYWRIGHT_PACKAGE := @playwright/test@1.25
+
+.PHONY: playwright
+playwright: $(PLAYWRIGHT_DIR)
+	npm install --no-save $(PLAYWRIGHT_PACKAGE)
+	npx playwright install $(PLAYWRIGHT_FLAGS)
+
 .PHONY: test-e2e%
 test-e2e%: TEST_TYPE ?= e2e
 	# Clear display env variable. Otherwise, chromium tests can fail.
@@ -532,53 +540,43 @@ test-e2e%: TEST_TYPE ?= e2e
 test-e2e: test-e2e-sqlite
 
 .PHONY: test-e2e-sqlite
-test-e2e-sqlite: e2e.sqlite.test generate-ini-sqlite
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-sqlite: playwright e2e.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test
 
 .PHONY: test-e2e-sqlite\#%
-test-e2e-sqlite\#%: e2e.sqlite.test generate-ini-sqlite
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-sqlite\#%: playwright e2e.sqlite.test generate-ini-sqlite
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/sqlite.ini ./e2e.sqlite.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mysql
-test-e2e-mysql: e2e.mysql.test generate-ini-mysql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mysql: playwright e2e.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test
 
 .PHONY: test-e2e-mysql\#%
-test-e2e-mysql\#%: e2e.mysql.test generate-ini-mysql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mysql\#%: playwright e2e.mysql.test generate-ini-mysql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql.ini ./e2e.mysql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mysql8
-test-e2e-mysql8: e2e.mysql8.test generate-ini-mysql8
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mysql8: playwright e2e.mysql8.test generate-ini-mysql8
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test
 
 .PHONY: test-e2e-mysql8\#%
-test-e2e-mysql8\#%: e2e.mysql8.test generate-ini-mysql8
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mysql8\#%: playwright e2e.mysql8.test generate-ini-mysql8
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mysql8.ini ./e2e.mysql8.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-pgsql
-test-e2e-pgsql: e2e.pgsql.test generate-ini-pgsql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-pgsql: playwright e2e.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test
 
 .PHONY: test-e2e-pgsql\#%
-test-e2e-pgsql\#%: e2e.pgsql.test generate-ini-pgsql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-pgsql\#%: playwright e2e.pgsql.test generate-ini-pgsql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/pgsql.ini ./e2e.pgsql.test -test.run TestE2e/$*
 
 .PHONY: test-e2e-mssql
-test-e2e-mssql: e2e.mssql.test generate-ini-mssql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mssql: playwright e2e.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test
 
 .PHONY: test-e2e-mssql\#%
-test-e2e-mssql\#%: e2e.mssql.test generate-ini-mssql
-	npx playwright install $(PLAYWRIGHT_FLAGS)
+test-e2e-mssql\#%: playwright e2e.mssql.test generate-ini-mssql
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./e2e.mssql.test -test.run TestE2e/$*
 
 .PHONY: bench-sqlite

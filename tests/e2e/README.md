@@ -30,7 +30,7 @@ drone exec --local --build-event "pull_request"
 ## Run sqlite e2e tests
 Start tests
 ```
-make NO_DEPS_PLAYWRIGHT=1 test-e2e-sqlite
+make test-e2e-sqlite
 ```
 
 ## Run MySQL e2e tests
@@ -41,7 +41,7 @@ docker run -p 9200:9200 -p 9300:9300 -e "discovery.type=single-node" --rm --name
 ```
 Start tests based on the database container
 ```
-TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' NO_DEPS_PLAYWRIGHT=1 make test-e2e-mysql
+TEST_MYSQL_HOST=localhost:3306 TEST_MYSQL_DBNAME=test TEST_MYSQL_USERNAME=root TEST_MYSQL_PASSWORD='' make test-e2e-mysql
 ```
 
 ## Run pgsql e2e tests
@@ -51,7 +51,7 @@ docker run -e "POSTGRES_DB=test" -p 5432:5432 --rm --name pgsql postgres:latest 
 ```
 Start tests based on the database container
 ```
-TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres NO_DEPS_PLAYWRIGHT=1 make test-e2e-pgsql
+TEST_PGSQL_HOST=localhost:5432 TEST_PGSQL_DBNAME=test TEST_PGSQL_USERNAME=postgres TEST_PGSQL_PASSWORD=postgres make test-e2e-pgsql
 ```
 
 ## Run mssql e2e tests
@@ -61,7 +61,7 @@ docker run -e "ACCEPT_EULA=Y" -e "MSSQL_PID=Standard" -e "SA_PASSWORD=MwantsaSec
 ```
 Start tests based on the database container
 ```
-TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 NO_DEPS_PLAYWRIGHT=1 make test-e2e-mssql
+TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=gitea_test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-e2e-mssql
 ```
 
 ## Running individual tests
@@ -79,7 +79,7 @@ make test-e2e-sqlite#example
 For other databases(replace `mssql` to `mysql`, `mysql8` or `pgsql`):
 
 ```
-TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 NO_DEPS_PLAYWRIGHT=1 make test-e2e-mssql#example
+TEST_MSSQL_HOST=localhost:1433 TEST_MSSQL_DBNAME=test TEST_MSSQL_USERNAME=sa TEST_MSSQL_PASSWORD=MwantsaSecurePassword1 make test-e2e-mssql#example
 ```
 
 ## Visual testing
