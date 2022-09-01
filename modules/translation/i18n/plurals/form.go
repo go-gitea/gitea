@@ -19,3 +19,33 @@ const (
 	Many    Form = "many"
 	Other   Form = "other"
 )
+
+// Zero returns if the form is Zero
+func (f Form) Zero() bool {
+	return f == Zero
+}
+
+// One returns if the form is One
+func (f Form) One() bool {
+	return f == One
+}
+
+// Two returns if the form is Two
+func (f Form) Two() bool {
+	return f == Two
+}
+
+// Few returns if the form is Few
+func (f Form) Few() bool {
+	return f == Few
+}
+
+// Many returns if the form is Many
+func (f Form) Many() bool {
+	return f == Many
+}
+
+// Other returns if the form is Other
+func (f Form) Other() bool {
+	return f == Other
+}

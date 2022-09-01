@@ -37,7 +37,7 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source inter
 	store.langNames = append(store.langNames, langName)
 	store.langDescs = append(store.langDescs, langDesc)
 
-	l := &locale{store: store, langName: langName, idxToMsgMap: make(map[int]string)}
+	l := newLocale(store, langName)
 	store.localeMap[l.langName] = l
 
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
@@ -106,7 +106,7 @@ func (store *localeStore) Locale(lang string) (Locale, bool) {
 		l, ok = store.localeMap[store.defaultLang]
 		if !ok {
 			// no default - return an empty locale
-			l = &locale{store: store, idxToMsgMap: make(map[int]string)}
+			l = newLocale(store, "")
 		}
 	}
 	return l, found
