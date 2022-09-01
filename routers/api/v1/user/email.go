@@ -48,11 +48,6 @@ func AddEmail(ctx *context.APIContext) {
 	// produces:
 	// - application/json
 	// parameters:
-	// - name: options
-	//   in: body
-	//   schema:
-	//     "$ref": "#/definitions/CreateEmailOption"
-	// parameters:
 	// - name: body
 	//   in: body
 	//   schema:

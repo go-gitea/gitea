@@ -70,8 +70,9 @@ type GitlabDownloader struct {
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
-//   Use either a username/password, personal token entered into the username field, or anonymous/public access
-//   Note: Public access only allows very basic access
+//
+//	Use either a username/password, personal token entered into the username field, or anonymous/public access
+//	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
 	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
 	// Only use basic auth if token is blank and password is NOT
@@ -353,7 +354,8 @@ type gitlabIssueContext struct {
 }
 
 // GetIssues returns issues according start and limit
-//   Note: issue label description and colors are not supported by the go-gitlab library at this time
+//
+//	Note: issue label description and colors are not supported by the go-gitlab library at this time
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	state := "all"
 	sort := "asc"

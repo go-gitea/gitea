@@ -336,7 +336,7 @@
 							</div>
 						</div>
 						<div class="ui checkbox">
-							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
+							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{if .Repository.CloseIssuesViaCommitInAnyBranch}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 						</div>
 					</div>
@@ -678,9 +678,9 @@
 							<input type="hidden" name="action" value="cancel_transfer">
 							<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
 						</form>
-					{{ else }}
+					{{else}}
 						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
-					{{ end }}
+					{{end}}
 				</div>
 				<div>
 					<h5>{{.locale.Tr "repo.settings.transfer"}}</h5>
