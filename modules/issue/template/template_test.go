@@ -314,7 +314,7 @@ body:
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tmpl, err := Unmarshal("test.yaml", []byte(tt.content))
+			tmpl, err := unmarshal("test.yaml", []byte(tt.content))
 			if err != nil {
 				t.Fatal(err)
 			}

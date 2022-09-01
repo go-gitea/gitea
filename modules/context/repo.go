@@ -1033,44 +1033,52 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
+// IssueTemplatesFromDefaultBranch checks for valid issue templates in the repo's default branch,
 func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
+	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	return ret
+}
+
+// IssueTemplatesErrorsFromDefaultBranch checks for issue templates in the repo's default branch,
+// returns valid templates and the errors of invalid template files.
+func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplate, map[string]error) {
 	var issueTemplates []*api.IssueTemplate
 
 	if ctx.Repo.Repository.IsEmpty {
-		return issueTemplates
+		return issueTemplates, nil
 	}
 
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			return issueTemplates
+			return issueTemplates, nil
 		}
 	}
 
+	invalidFiles := map[string]error{}
 	for _, dirName := range IssueTemplateDirCandidates {
 		tree, err := ctx.Repo.Commit.SubTree(dirName)
 		if err != nil {
+			log.Debug("get sub tree of %s: %v", dirName, err)
 			continue
 		}
 		entries, err := tree.ListEntries()
 		if err != nil {
-			return issueTemplates
+			log.Debug("list entries in %s: %v", dirName, err)
+			return issueTemplates, nil
 		}
 		for _, entry := range entries {
 			if !template.CouldBe(entry.Name()) {
 				continue
 			}
-			it, err := template.UnmarshalFromEntry(entry, dirName)
-			if err != nil {
-				log.Debug("unmarshal template from %s: %v", entry.Name(), err)
-			} else if err := template.Validate(it); err != nil {
-				log.Debug("invalid template file %s: %v", entry.Name(), err)
+			fullName := path.Join(dirName, entry.Name())
+			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
+				invalidFiles[fullName] = err
 			} else {
 				issueTemplates = append(issueTemplates, it)
 			}
 		}
 	}
-	return issueTemplates
+	return issueTemplates, invalidFiles
 }

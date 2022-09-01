@@ -18,53 +18,35 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Unmarshal parses out a template from the content
-func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
+// CouldBe indicates a file with the filename could be a template,
+// it is a low cost check before further processing.
+func CouldBe(filename string) bool {
 	it := &api.IssueTemplate{
 		FileName: filename,
 	}
+	return it.Type() != ""
+}
 
-	// Compatible with treating description as about
-	compatibleTemplate := &struct {
-		About string `yaml:"description"`
-	}{}
+// Unmarshal parses out a valid template from the content
+func Unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
+	it, err := unmarshal(filename, content)
+	if err != nil {
+		return nil, err
+	}
 
-	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
-		templateBody, err := markdown.ExtractMetadata(string(content), it)
-		if err != nil {
-			return nil, fmt.Errorf("extract metadata: %w", err)
-		}
-		it.Content = templateBody
-		if it.About == "" {
-			if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
-				it.About = compatibleTemplate.About
-			}
-		}
-	} else if typ == api.IssueTemplateTypeYaml {
-		if err := yaml.Unmarshal(content, it); err != nil {
-			return nil, fmt.Errorf("yaml unmarshal: %w", err)
-		}
-		if it.About == "" {
-			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
-				it.About = compatibleTemplate.About
-			}
-		}
-		for i, v := range it.Fields {
-			if v.ID == "" {
-				v.ID = strconv.Itoa(i)
-			}
-		}
+	if err := Validate(it); err != nil {
+		return nil, err
 	}
 
 	return it, nil
 }
 
-// UnmarshalFromEntry parses out a template from the blob in entry
+// UnmarshalFromEntry parses out a valid template from the blob in entry
 func UnmarshalFromEntry(entry *git.TreeEntry, dir string) (*api.IssueTemplate, error) {
 	return unmarshalFromEntry(entry, filepath.Join(dir, entry.Name()))
 }
 
-// UnmarshalFromCommit parses out a template from the commit
+// UnmarshalFromCommit parses out a valid template from the commit
 func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplate, error) {
 	entry, err := commit.GetTreeEntryByPath(filename)
 	if err != nil {
@@ -73,7 +55,7 @@ func UnmarshalFromCommit(commit *git.Commit, filename string) (*api.IssueTemplat
 	return unmarshalFromEntry(entry, filename)
 }
 
-// UnmarshalFromRepo parses out a template from the head commit of the branch
+// UnmarshalFromRepo parses out a valid template from the head commit of the branch
 func UnmarshalFromRepo(repo *git.Repository, branch, filename string) (*api.IssueTemplate, error) {
 	commit, err := repo.GetBranchCommit(branch)
 	if err != nil {
@@ -102,11 +84,42 @@ func unmarshalFromEntry(entry *git.TreeEntry, filename string) (*api.IssueTempla
 	return Unmarshal(filename, content)
 }
 
-// CouldBe indicates a file with the filename could be a template,
-// it is a low cost check before further processing.
-func CouldBe(filename string) bool {
+func unmarshal(filename string, content []byte) (*api.IssueTemplate, error) {
 	it := &api.IssueTemplate{
 		FileName: filename,
 	}
-	return it.Type() != ""
+
+	// Compatible with treating description as about
+	compatibleTemplate := &struct {
+		About string `yaml:"description"`
+	}{}
+
+	if typ := it.Type(); typ == api.IssueTemplateTypeMarkdown {
+		templateBody, err := markdown.ExtractMetadata(string(content), it)
+		if err != nil {
+			return nil, err
+		}
+		it.Content = templateBody
+		if it.About == "" {
+			if _, err := markdown.ExtractMetadata(string(content), compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+				it.About = compatibleTemplate.About
+			}
+		}
+	} else if typ == api.IssueTemplateTypeYaml {
+		if err := yaml.Unmarshal(content, it); err != nil {
+			return nil, fmt.Errorf("yaml unmarshal: %w", err)
+		}
+		if it.About == "" {
+			if err := yaml.Unmarshal(content, compatibleTemplate); err == nil && compatibleTemplate.About != "" {
+				it.About = compatibleTemplate.About
+			}
+		}
+		for i, v := range it.Fields {
+			if v.ID == "" {
+				v.ID = strconv.Itoa(i)
+			}
+		}
+	}
+
+	return it, nil
 }
