@@ -46,10 +46,9 @@
     "wrap-ansi": "8.0.1"
   },
   "devDependencies": {
-    "@happy-dom/jest-environment": "4.0.1",
-    "@playwright/test": "1.22.2",
-    "eslint": "8.15.0",
-    "eslint-plugin-html": "6.2.0",
+    "@stoplight/spectral-cli": "6.5.1",
+    "@playwright/test": "1.25.1",
+    "eslint": "8.22.0",
     "eslint-plugin-import": "2.26.0",
     "eslint-plugin-jquery": "1.5.1",
     "eslint-plugin-sonarjs": "0.15.0",

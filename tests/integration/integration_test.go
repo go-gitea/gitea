@@ -405,4 +405,3 @@ func GetCSRF(t testing.TB, session *TestSession, urlStr string) string {
 	doc := NewHTMLParser(t, resp.Body)
 	return doc.GetCSRF()
 }
-
