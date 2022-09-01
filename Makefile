@@ -524,11 +524,9 @@ test-mssql-migration: migrations.mssql.test migrations.individual.mssql.test gen
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.mssql.test -test.failfast
 	GITEA_ROOT="$(CURDIR)" GITEA_CONF=tests/mssql.ini ./migrations.individual.mssql.test -test.failfast
 
-PLAYWRIGHT_PACKAGE := @playwright/test@1.25
-
 .PHONY: playwright
 playwright: $(PLAYWRIGHT_DIR)
-	npm install --no-save $(PLAYWRIGHT_PACKAGE)
+	npm install --no-save @playwright/test
 	npx playwright install $(PLAYWRIGHT_FLAGS)
 
 .PHONY: test-e2e%

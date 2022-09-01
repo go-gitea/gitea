@@ -514,6 +514,10 @@ trigger:
   event:
     - pull_request
 
+volumes:
+  - name: deps
+    temp: {}
+
 services:
   - name: pgsql
     pull: default
@@ -541,6 +545,9 @@ steps:
     pull: always
     commands:
       - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
