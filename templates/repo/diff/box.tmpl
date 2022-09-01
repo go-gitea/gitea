@@ -58,23 +58,19 @@
 		</ol>
 		<div id="diff-container" class="ui grid">
 			<div class="row">
-				<div id="div-file-tree" class="large screen only five wide column diff-detail-box sticky">
-					{{range .Diff.Files}}
-						<li class="ellipsis">
-							<span class="status {{DiffTypeToStr .GetType}} tooltip" data-content="{{DiffTypeToStr .GetType}}" data-position="right center">&nbsp;</span>
-							<a class="file mono tooltip" data-content="{{.Name}}" href="#diff-{{.NameHash}}"
-							>{{.Name}}</a>
-						</li>
-					{{end}}
-					{{if .Diff.IsIncomplete}}
-						<li id="diff-too-many-files-stats" class="pt-2">
-							<span class="file df ac sb">{{$.locale.Tr "repo.diff.too_many_files"}}
-								<a class="ui basic tiny button" id="diff-show-more-files-stats" data-href="{{$.Link}}?skip-to={{.Diff.End}}&file-only=true">{{.locale.Tr "repo.diff.show_more"}}</a>
-							</span>
-						</li>
-					{{end}}
-				</div>
-				<div id="diff-file-boxes" class="sixteen wide mobile tablet eleven wide large screen column">
+				<script>
+					(() => {
+						window.config.pageData.pullRequestFileTree = {
+							files: {{.Diff.Files}},
+							isIncomplete: {{.Diff.IsIncomplete}},
+							visibilityInfo: {
+								isVisible: false
+							}
+						};
+					})();
+				</script>
+				<div id="diff-file-tree-container"></div>
+				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
 						{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
