@@ -399,6 +399,7 @@ func SubmitInstall(ctx *context.Context) {
 
 	cfg.Section("").Key("APP_NAME").SetValue(form.AppName)
 	cfg.Section("repository").Key("ROOT").SetValue(form.RepoRootPath)
+	cfg.Section("repository").Key("DEFAULT_BRANCH").SetValue(form.DefaultBranchName)
 	cfg.Section("").Key("RUN_USER").SetValue(form.RunUser)
 	cfg.Section("server").Key("SSH_DOMAIN").SetValue(form.Domain)
 	cfg.Section("server").Key("DOMAIN").SetValue(form.Domain)
