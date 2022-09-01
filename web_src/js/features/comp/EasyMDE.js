@@ -92,6 +92,12 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
       }
       cm.execCommand('delCharBefore');
     },
+    Down: (cm) => {
+      const tributeContainer = document.querySelector('.tribute-container');
+      if (!tributeContainer || tributeContainer.style.display === 'none') {
+        return cm.execCommand('goLineDown');
+      }
+    },
   });
   attachTribute(inputField, {mentions: true, emoji: true});
   attachEasyMDEToElements(easyMDE);
