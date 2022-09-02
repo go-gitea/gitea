@@ -19,9 +19,9 @@ function exit(err) {
 
 async function main() {
   const line = '-'.repeat(80);
-  const str = glob(['**/*']).sort().filter((path) => {
+  const str = glob(['**/*']).filter((path) => {
     return /\/((UN)?LICEN(S|C)E|COPYING|NOTICE)/i.test(path);
-  }).map((path) => {
+  }).sort().map((path) => {
     const body = wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80);
     const name = dirname(path);
     return `${line}\n${name}\n${line}\n${body}`;

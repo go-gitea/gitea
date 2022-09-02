@@ -207,7 +207,7 @@ export default {
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
         const go = readFileSync('assets/go-licenses.txt');
-        const js = dependencies.sort().map((module) => {
+        const js = dependencies.sort((module) => module.name).map((module) => {
           const {name, version, licenseName, licenseText} = module;
           const body = wrapAnsi(licenseText || '', 80);
           return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
