@@ -9,6 +9,7 @@ import (
 	"context"
 	"fmt"
 	"html"
+	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -1081,6 +1082,9 @@ func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplat
 			return issueTemplates, nil
 		}
 		for _, entry := range entries {
+			if entry.Name() == "config.yaml" || entry.Name() == "config.yml" {
+				continue
+			}
 			if !template.CouldBe(entry.Name()) {
 				continue
 			}
