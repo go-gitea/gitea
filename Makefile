@@ -115,7 +115,7 @@ SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
 
-GO_LICENSE_TMP_DIR := .licenses
+GO_LICENSE_TMP_DIR := .go-licenses
 GO_LICENSE_FILE := assets/go-licenses.txt
 
 TAGS ?=

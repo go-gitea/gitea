@@ -22,8 +22,8 @@ async function main() {
   const str = glob(['**/*']).filter((path) => {
     return /\/((UN)?LICEN(S|C)E|COPYING|NOTICE)/i.test(path);
   }).sort().map((path) => {
-    const body = wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80);
     const name = dirname(path);
+    const body = wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80);
     return `${line}\n${name}\n${line}\n${body}`;
   }).join('\n');
   writeFileSync(out, str);
