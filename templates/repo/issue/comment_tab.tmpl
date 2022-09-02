@@ -13,7 +13,11 @@
 			{{template "repo/issue/fields/checkboxes" .}}
 		{{end}}
 	{{end}}
-	<div class="field"></div> {{/* the upload dropzone expects a field above and closes to it, see dropzone.less:9 */}}
+	{{if .IsAttachmentEnabled}}
+		<div class="field not-under-easymde">
+			{{template "repo/upload" .}}
+		</div>
+	{{end}}
 {{else}}
 	<div class="ui top tabular menu" data-write="write" data-preview="preview">
 		<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
@@ -29,9 +33,10 @@
 			{{.locale.Tr "loading"}}
 		</div>
 	</div>
+	{{if .IsAttachmentEnabled}}
+		<div class="field">
+			{{template "repo/upload" .}}
+		</div>
+	{{end}}
 {{end}}
-{{if .IsAttachmentEnabled}}
-	<div class="field">
-		{{template "repo/upload" .}}
-	</div>
-{{end}}
+
