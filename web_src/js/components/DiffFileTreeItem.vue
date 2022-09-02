@@ -1,29 +1,36 @@
 <template>
   <div v-show="show">
-    <div class="item">
-      <div>
+    <div class="item" :class="[item.isFile ? 'filewrapper' : '']">
+      <!-- Files -->
+      <SvgIcon
+        v-if="item.isFile"
+        data-position="right center"
+        name="octicon-file"
+        class="svg-icon file"
+      />
+      <a
+        v-if="item.isFile"
+        class="file ellipsis"
+        :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
+      >{{ item.name }}</a>
+      <SvgIcon
+        v-if="item.isFile"
+        data-position="right center"
+        :name="getIconForDiffType(item.file.Type)"
+        :class="['svg-icon', getIconForDiffType(item.file.Type), 'status']"
+      />
+
+      <!-- Directories -->
+      <div v-if="!item.isFile" class="directory" @click.stop="handleClick(item.isFile)">
         <SvgIcon
-          v-if="item.isFile"
-          data-position="right center"
-          name="octicon-file"
-          :class="[
-            getDiffType(item.file.Type),
-            'tooltip',
-            'svg-icon'
-          ]"
+          class="svg-icon"
+          :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
         />
-        <a
-          v-if="item.isFile"
-          class="file"
-          :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
-        >{{ item.name }}</a>
-        <div v-if="!item.isFile" @click.stop="handleClick(item.isFile)">
-          <SvgIcon
-            class="svg-icon"
-            :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
-          />
-          {{ item.name }}
-        </div>
+        <SvgIcon
+          class="svg-icon directory"
+          name="octicon-file-directory-fill"
+        />
+        <span class="ellipsis">{{ item.name }}</span>
       </div>
       <div v-show="!collapsed">
         <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" />
@@ -63,13 +70,13 @@ export default {
       }
       this.$set(this, 'collapsed', !this.collapsed);
     },
-    getDiffType(pType) {
+    getIconForDiffType(pType) {
       const diffTypes = {
-        1: 'add',
-        2: 'modify',
-        3: 'del',
-        4: 'rename',
-        5: 'copy',
+        1: 'octicon-diff-added',
+        2: 'octicon-diff-modified',
+        3: 'octicon-diff-removed',
+        4: 'octicon-diff-renamed',
+        5: 'octicon-diff-modified', // there is no octicon for copied, so modified should be ok
       };
       return diffTypes[pType];
     },
@@ -78,23 +85,41 @@ export default {
 </script>
 
 <style scoped>
-span.svg-icon.modify {
+span.svg-icon.status {
+  float: right;
+}
+span.svg-icon.file {
+  color: var(--color-secondary-dark-7);
+}
+
+span.svg-icon.directory {
+  color: var(--color-primary);
+}
+
+span.svg-icon.octicon-diff-modified {
   color: var(--color-yellow);
 }
 
-span.svg-icon.add {
+span.svg-icon.octicon-diff-added {
   color: var(--color-green);
 }
 
-span.svg-icon.del {
+span.svg-icon.octicon-diff-removed {
   color: var(--color-red);
 }
 
-span.svg-icon.rename {
+span.svg-icon.octicon-diff-renamed {
   color: var(--color-teal);
 }
 
-span.svg-icon {
-  color: var(--color-primary)
+.item.filewrapper {
+  display: grid !important;
+  grid-template-columns: 20px 7fr 1fr;
+  padding-left: 18px !important;
+}
+
+div.directory {
+  display: grid;
+  grid-template-columns: 18px 20px auto;
 }
 </style>
