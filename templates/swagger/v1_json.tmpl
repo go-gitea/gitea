@@ -12700,6 +12700,18 @@
         "operationId": "userCurrentTrackedTimes",
         "parameters": [
           {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
@@ -15936,7 +15948,6 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "type": "object",
           "x-go-name": "Content"
         },
         "verification": {
@@ -18933,7 +18944,6 @@
           "x-go-name": "Ignored"
         },
         "reason": {
-          "type": "object",
           "x-go-name": "Reason"
         },
         "repository_url": {
