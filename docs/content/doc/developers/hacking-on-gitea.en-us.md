@@ -309,7 +309,7 @@ will run the integration tests in an SQLite environment. Integration tests
 require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
-Take a look at [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
+Take a look at [`tests/integration/README.md`](https://github.com/go-gitea/gitea/blob/main/tests/integration/README.md)
 for more information and how to run a single test.
 
 ### Testing for a PR
