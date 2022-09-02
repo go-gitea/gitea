@@ -14,6 +14,14 @@
 {{else}}
 	<div>
 		<div class="diff-detail-box diff-box sticky df sb ac fw">
+			<div class="diff-file-tree-visibility-buttons">
+				<div class="diff-show-file-tree-button">
+					{{svg "octicon-sidebar-collapse"}}
+				</div>
+				<div class="diff-hide-file-tree-button" style="display: none;">
+					{{svg "octicon-sidebar-expand"}}
+				</div>
+			</div>
 			<div class="diff-detail-stats df ac">
 				{{svg "octicon-diff" 16 "mr-2"}}{{.locale.Tr "repo.diff.stats_desc" .Diff.NumFiles .Diff.TotalAddition .Diff.TotalDeletion | Str2html}}
 			</div>
@@ -56,8 +64,7 @@
 				</li>
 			{{end}}
 		</ol>
-		<div id="diff-container" class="ui grid">
-			<div class="row">
+		<div id="diff-container">
 				<script>
 					(() => {
 						window.config.pageData.pullRequestFileTree = {
@@ -65,7 +72,8 @@
 							isIncomplete: {{.Diff.IsIncomplete}},
 							visibilityInfo: {
 								isVisible: false
-							}
+							},
+							tooManyFilesMessage: "{{$.locale.Tr "repo.diff.too_many_files"}}"
 						};
 					})();
 				</script>
@@ -185,7 +193,6 @@
 						</div>
 					{{end}}
 				</div>
-			</div>
 		</div>
 
 		{{if not $.Repository.IsArchived}}

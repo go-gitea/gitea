@@ -1,12 +1,14 @@
 <template>
-  <!-- eslint-disable -->
   <div
     v-show="visibilityInfo.isVisible"
     id="diff-file-tree"
-    class="large screen only five wide column diff-detail-box sticky"
+    class="mr-3 mt-3 diff-detail-box"
   >
     <div class="ui list">
-      <DiffFileTreeItem :children="this.fileTree"></DiffFileTreeItem>
+      <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
+    </div>
+    <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
+      <span>{{ tooManyFilesMessage }}</span>
     </div>
   </div>
 </template>
@@ -25,6 +27,7 @@ export default {
     files: pageData.pullRequestFileTree.files,
     isIncomplete: pageData.pullRequestFileTree.isIncomplete,
     visibilityInfo: pageData.pullRequestFileTree.visibilityInfo,
+    tooManyFilesMessage: pageData.pullRequestFileTree.tooManyFilesMessage
   }),
 
   computed: {
@@ -45,10 +48,12 @@ export default {
           let newParent = {
             name: split,
             children: [],
-            isFile,
-            level: index,
-            file,
+            isFile
           };
+
+          if (isFile === true) {
+            newParent.file = file;
+          }
 
           if (parent) {
             // check if the folder already exists
@@ -78,14 +83,10 @@ export default {
   watch: {
     visibilityInfo: {
       handler(val) {
-        const fileBoxesDiv = document.querySelector('#diff-file-boxes');
         if (val.isVisible === true) {
           localStorage.setItem(LOCAL_STORAGE_KEY, 'true');
-          fileBoxesDiv.classList.value =
-            'sixteen wide mobile tablet eleven wide large screen column';
         } else {
           localStorage.setItem(LOCAL_STORAGE_KEY, 'false');
-          fileBoxesDiv.classList.value = 'sixteen wide column';
         }
       },
       deep: true,
@@ -100,17 +101,32 @@ export default {
   },
 
   mounted() {
+    // ensure correct buttons when we are mounted to the dom
+    this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
+
+    // Add our eventlisteners to the show / hide buttons
     document
       .querySelector('.diff-show-file-tree-button')
       .addEventListener('click', (evt) => {
         evt.stopPropagation();
         this.visibilityInfo.isVisible = !this.visibilityInfo.isVisible;
+        this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
+      });
+    document
+      .querySelector('.diff-hide-file-tree-button')
+      .addEventListener('click', (evt) => {
+        evt.stopPropagation();
+        this.visibilityInfo.isVisible = !this.visibilityInfo.isVisible;
+        this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
       });
   },
 
-  unmounted() {},
-
-  methods: {},
+  methods: {
+    toggleExpandCollapseButtons(isCurrentlyVisible) {
+      document.querySelector('.diff-show-file-tree-button').style.display = isCurrentlyVisible ? 'none' : 'block';
+      document.querySelector('.diff-hide-file-tree-button').style.display = isCurrentlyVisible ? 'block' : 'none';
+    }
+  },
 };
 </script>
 

@@ -12,6 +12,5 @@
 			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.patch" download="{{ShortSha .Commit.ID.String}}.patch">{{.locale.Tr "repo.diff.download_patch"}}</a>
 			<a class="item" href="{{$.RepoLink}}/commit/{{PathEscape .Commit.ID.String}}.diff" download="{{ShortSha .Commit.ID.String}}.diff">{{.locale.Tr "repo.diff.download_diff"}}</a>
 		{{end}}
-		<a class="item diff-show-file-tree-button" data-target="#">Show file tree</a>
 	</div>
 </div>

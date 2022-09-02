@@ -3066,18 +3066,45 @@ td.blob-excerpt {
   padding-left: 8px;
 }
 
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  width: 80%;
+}
+
 #diff-file-tree {
+  width: 20%;
+  max-width: 20%;
   line-height: inherit;
   position: sticky;
+  padding-top: 0;
   top: 47px;
-  border-top: 1px solid var(--color-secondary);
-  max-height: calc(100vh - 47px);
+  max-height: calc(100vh - 50px);
+  height: calc(100vh - 50px);
   overflow-y: auto;
   overflow-x: auto;
-  border-right: 1px solid var(--color-secondary);
 
   .list {
     padding-top: inherit;
+  }
+}
+
+#diff-file-tree[style*='display: none'] ~ #diff-file-boxes {
+  width: 100%;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none;
+  }
+
+  #diff-file-boxes {
+    width: 100%;
+  }
+
+  .diff-file-tree-visibility-buttons {
+    display: none;
   }
 }
 

@@ -17,6 +17,8 @@ import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
+import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
+import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
 
 import Vue from 'vue';
 
@@ -40,6 +42,8 @@ export const svgs = {
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-file': octiconFile,
+  'octicon-sidebar-expand': octiconSidebarExpand,
+  'octicon-sidebar-collapse': octiconSidebarCollapse,
 };
 
 const parser = new DOMParser();

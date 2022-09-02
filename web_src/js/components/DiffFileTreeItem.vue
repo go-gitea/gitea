@@ -1,55 +1,66 @@
 <template>
-  <!-- eslint-disable -->
-  <div>
-    <div v-for="item in children" class="item">
+  <div v-show="show">
+    <div class="item">
       <div>
-        <i
+        <SvgIcon
           v-if="item.isFile"
-          :class="['icon', 'file', 'status', getDiffType(item.file.Type), 'tooltip']"
-          :data-content="getDiffType(item.file.Type)"
           data-position="right center"
-          ></i>
+          name="octicon-file"
+          :class="[
+            getDiffType(item.file.Type),
+            'tooltip',
+          ]"
+        />
         <a
           v-if="item.isFile"
-          class="file mono tooltip"
-          :data-content="item.Name"
+          class="file"
           :href="item.isFile ? '#diff-' + item.file.NameHash : ''"
-          >{{ item.name }}</a
-        >
-        <div v-if="!item.isFile">
-          <i class="folder icon"></i>{{ item.name }}
+        >{{ item.name }}</a>
+        <div v-if="!item.isFile" @click.stop="handleClick(item.isFile)">
+          <SvgIcon
+            :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
+          />
+          {{ item.name }}
         </div>
       </div>
-      <div v-if="item.children.length > 0" class="list">
-        <DiffFileTreeItem :children="item.children"> </DiffFileTreeItem>
+      <div v-show="!collapsed">
+        <DiffFileTreeItem v-for="childItem in item.children" :key="childItem.name" :item="childItem" class="list" />
       </div>
     </div>
   </div>
 </template>
 
 <script>
+import {SvgIcon} from '../svg.js';
+
 export default {
   name: 'DiffFileTreeItem',
-  components: {},
-
-  props: {
-    children: {
-      type: Array,
-      required: true,
-    },
+  components: {
+    SvgIcon,
   },
 
-  computed: {},
+  props: {
+    item: {
+      type: Object,
+      required: true
+    },
+    show: {
+      type: Boolean,
+      required: false,
+      default: true
+    }
+  },
 
-  watch: {},
-
-  created() {},
-
-  mounted() {},
-
-  unmounted() {},
-
+  data: () => ({
+    collapsed: false,
+  }),
   methods: {
+    handleClick(itemIsFile) {
+      if (itemIsFile) {
+        return;
+      }
+      this.$set(this, 'collapsed', !this.collapsed);
+    },
     getDiffType(pType) {
       const diffTypes = {
         1: 'add',
@@ -65,19 +76,19 @@ export default {
 </script>
 
 <style scoped>
-i.modify {
+span.modify {
   color: var(--color-yellow);
 }
 
-i.add {
+span.add {
   color: var(--color-green);
 }
 
-i.del {
+span.del {
   color: var(--color-red);
 }
 
-i.rename {
+span.rename {
   color: var(--color-teal);
 }
 </style>
