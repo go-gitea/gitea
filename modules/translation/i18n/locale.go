@@ -106,7 +106,7 @@ func (l *locale) trPlurals(cnt interface{}, rule *plurals.Rule, trKey string, ar
 		_, err := tmpl.Parse(msg)
 		if err != nil {
 			log.Error("Misformatted key %s in %s: %v", trKey, l.langName, err)
-			tmpl.Parse(trKey)
+			_, _ = tmpl.Parse(strings.ReplaceAll(trKey, "{{", "{{printf \"{{\"}}"))
 		}
 	}
 
