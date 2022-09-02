@@ -9,6 +9,7 @@ import EsBuildLoader from 'esbuild-loader';
 import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
+import {readFileSync} from 'fs';
 
 const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
@@ -205,11 +206,13 @@ export default {
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        return dependencies.map((module) => {
+        const go = readFileSync('assets/go-licenses.txt');
+        const js = dependencies.sort().map((module) => {
           const {name, version, licenseName, licenseText} = module;
           const body = wrapAnsi(licenseText || '', 80);
           return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
         }).join('\n');
+        return `${go}\n${js}`;
       },
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},
