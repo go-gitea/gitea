@@ -3,7 +3,7 @@ import tippy from 'tippy.js';
 export function createTippy(target, opts = {}) {
   const instance = tippy(target, {
     appendTo: document.body,
-    placement: 'top-start',
+    placement: target.getAttribute('data-placement') || 'top-start',
     animation: false,
     allowHTML: false,
     maxWidth: 500, // increase over default 350px
