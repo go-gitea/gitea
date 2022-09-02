@@ -19,7 +19,7 @@ function exit(err) {
 
 async function main() {
   const line = '-'.repeat(80);
-  const str = glob(['**/*']).filter((path) => {
+  const str = glob('**/*').filter((path) => {
     return /\/((UN)?LICEN(S|C)E|COPYING|NOTICE)/i.test(path);
   }).sort().map((path) => {
     const name = dirname(path);
