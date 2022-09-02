@@ -17,22 +17,19 @@ export async function renderMath() {
   const els = document.querySelectorAll('.markup code.language-math');
   if (!els.length) return;
 
-  const {default: katex} = await import(/* webpackChunkName: "katex" */'katex');
+  const [{default: katex}] = await Promise.all([
+    import(/* webpackChunkName: "katex" */'katex'),
+    import(/* webpackChunkName: "katex" */'katex/dist/katex.css'),
+  ]);
 
   for (const el of els) {
     const source = el.textContent;
 
-    const options = {};
-    options.display = el.classList.contains('display');
+    const options = {display: el.classList.contains('display')};
 
     try {
       const markup = katex.renderToString(source, options);
-      let target;
-      if (options.display) {
-        target = document.createElement('p');
-      } else {
-        target = document.createElement('span');
-      }
+      const target = document.createElement(options.display ? 'p' : 'span')
       target.innerHTML = markup;
       if (el.classList.contains('is-loading')) {
         el.replaceWith(target);
