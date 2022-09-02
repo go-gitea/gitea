@@ -500,6 +500,75 @@ steps:
 
 ---
 kind: pipeline
+type: docker
+name: testing-e2e
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - compliance
+
+trigger:
+  event:
+    - pull_request
+
+volumes:
+  - name: deps
+    temp: {}
+
+services:
+  - name: pgsql
+    pull: default
+    image: postgres:10
+    environment:
+      POSTGRES_DB: testgitea-e2e
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'
+
+steps:
+  - name: deps-frontend
+    image: node:16
+    pull: always
+    commands:
+      - make deps-frontend
+
+  - name: build-frontend
+    image: node:16
+    commands:
+      - make frontend
+    depends_on: [deps-frontend]
+
+  - name: deps-backend
+    image: golang:1.18
+    pull: always
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
+
+  # TODO: We should probably build all dependencies into a test image
+  - name: test-e2e
+    image: mcr.microsoft.com/playwright:v1.23.1-focal
+    commands:
+      - curl -sLO https://go.dev/dl/go1.18.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.18.linux-amd64.tar.gz
+      - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
+      - apt-get -qq update && apt-get -qqy install build-essential
+      - export TEST_PGSQL_SCHEMA=''
+      - ./build/test-env-prepare.sh
+      - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
+    environment:
+      GOPROXY: https://goproxy.io
+      GOSUMDB: sum.golang.org
+      USE_REPO_TEST_DIR: 1
+      TEST_PGSQL_DBNAME: 'testgitea-e2e'
+      DEBIAN_FRONTEND: noninteractive
+    depends_on: [build-frontend, deps-backend]
+
+---
+kind: pipeline
 name: update_translations
 
 platform:

@@ -1,0 +1,4 @@
+<div class="field">
+	{{template "repo/issue/fields/header" .}}
+	<input type="{{if .Validations.is_number}}number{{else}}text{{end}}" name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" value="{{.Attributes.value}}" {{if .Validations.required}}required{{end}} {{if .Validations.regex}}pattern="{{.Validations.regex}}" title="{{.Validations.regex}}"{{end}}>
+</div>
