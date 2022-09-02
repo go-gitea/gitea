@@ -3,8 +3,8 @@
 	{{$field := .}}
 	{{range $i, $opt := .Attributes.options}}
 		<div class="field">
-			<div class="ui checkbox {{if $opt.required}}read-only{{end}}">
-				<input type="checkbox" name="form-field-{{$field.ID}}-{{$i}}" {{if $opt.required}}checked=""{{end}}>
+			<div class="ui checkbox">
+				<input type="checkbox" name="form-field-{{$field.ID}}-{{$i}}" {{if $opt.required}}readonly checked{{end}}>
 				<label>{{$opt.label}}</label>
 			</div>
 		</div>
