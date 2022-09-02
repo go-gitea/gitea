@@ -311,7 +311,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: gomod-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -388,9 +388,9 @@ tidy:
 vendor: tidy
 	$(GO) mod vendor
 
-.PHONY: gomod-check
-gomod-check: tidy
-	@diff=$$(git diff go.sum); \
+.PHONY: tidy-check
+tidy-check: tidy
+	@diff=$$(git diff go.mod go.sum); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
