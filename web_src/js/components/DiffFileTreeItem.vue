@@ -1,6 +1,6 @@
 <template>
   <div v-show="show">
-    <div class="item" :class="[item.isFile ? 'filewrapper' : '']">
+    <div class="item" :class="item.isFile ? 'filewrapper p-1' : ''">
       <!-- Files -->
       <SvgIcon
         v-if="item.isFile"
@@ -21,7 +21,7 @@
       />
 
       <!-- Directories -->
-      <div v-if="!item.isFile" class="directory" @click.stop="handleClick(item.isFile)">
+      <div v-if="!item.isFile" class="directory p-1" @click.stop="handleClick(item.isFile)">
         <SvgIcon
           class="svg-icon"
           :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
@@ -118,8 +118,33 @@ span.svg-icon.octicon-diff-renamed {
   padding-left: 18px !important;
 }
 
+.item.filewrapper:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+  border-radius: 4px;
+}
+
 div.directory {
   display: grid;
   grid-template-columns: 18px 20px auto;
+}
+
+div.directory:hover {
+  color: var(--color-text);
+  background: var(--color-hover);
+  border-radius: 4px;
+}
+
+div.list {
+  padding-bottom: 0 !important;
+  padding-top: inherit !important;
+}
+
+a {
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: none;
 }
 </style>
