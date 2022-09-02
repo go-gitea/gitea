@@ -32,7 +32,7 @@ GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
-SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.29.0
+SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 
 DOCKER_IMAGE ?= gitea/gitea
@@ -242,8 +242,10 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@echo "Running gitea-fmt (with gofumpt)..."
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
 .PHONY: vet
 vet:
@@ -288,11 +290,17 @@ errcheck:
 
 .PHONY: fmt-check
 fmt-check:
-	# get all go files and run gitea-fmt (with gofmt) on them
+	@# get all go files and run gitea-fmt (with gofmt) on them
 	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make fmt' and commit the result:"; \
 		echo "$${diff}"; \
+		exit 1; \
+	fi
+	@diff2=$$(git diff templates); \
+	if [ -n "$$diff2" ]; then \
+		echo "Please run 'make fmt' and commit the result:"; \
+		echo "$${diff2}"; \
 		exit 1; \
 	fi
 
@@ -303,7 +311,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: gomod-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -380,9 +388,9 @@ tidy:
 vendor: tidy
 	$(GO) mod vendor
 
-.PHONY: gomod-check
-gomod-check: tidy
-	@diff=$$(git diff go.sum); \
+.PHONY: tidy-check
+tidy-check: tidy
+	@diff=$$(git diff go.mod go.sum); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \

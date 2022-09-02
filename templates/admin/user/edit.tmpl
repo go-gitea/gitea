@@ -12,7 +12,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.locale.Tr "username"}}</label>
-					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal}}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">

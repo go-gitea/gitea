@@ -89,7 +89,7 @@ func TestMain(m *testing.M) {
 	defer cancel()
 
 	initIntegrationTest()
-	c = routers.NormalRoutes()
+	c = routers.NormalRoutes(context.TODO())
 
 	// integration test settings...
 	if setting.Cfg != nil {

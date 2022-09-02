@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -110,12 +111,12 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 
 	// Setup i18n
-	translation.InitLocales()
+	translation.InitLocales(ctx)
 
 	setting.NewServices()
 	mustInit(storage.Init)
 
-	mailer.NewContext()
+	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
 	mustInit(archiver.Init)
@@ -163,18 +164,19 @@ func GlobalInitInstalled(ctx context.Context) {
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes(ctx context.Context) *web.Route {
+	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
-	r.Mount("/", web_routers.Routes())
-	r.Mount("/api/v1", apiv1.Routes())
+	r.Mount("/", web_routers.Routes(ctx))
+	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 	if setting.Packages.Enabled {
-		r.Mount("/api/packages", packages_router.Routes())
-		r.Mount("/v2", packages_router.ContainerRoutes())
+		r.Mount("/api/packages", packages_router.Routes(ctx))
+		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 	return r
 }
