@@ -17,42 +17,29 @@ menu:
 
 In Gitea `1.13`, support for [agit](https://git-repo.info/en/2020/03/agit-flow-and-git-repo/) was added.
 
-## Creating PR with Agit
+## Creating PRs with Agit
 
-Agit allows creating a PR while pushing code to the remote repo. This requires using a speacial command refspec.
-
-- `HEAD`
-
-  Target branch
-
-- `refs/<for|drafts|for-review>/`
-
-  Target PR Type.
-  - `for` - Normal PR
-  - `draft` - Draft PR
-  - `for-review` - Generate a PR ID for updating existing PR.
-
-- `<target-branch>/<session>`
-
-  Target remote branch to open a PR.
-
-- `-o <topic|title|description>`
-
-  Options for the PR
-  - `title` - Title of the PR.
-  - `topic` - Topic of the PR.
-  - `description` - Description of the PR. (Contents in Markdown format)
-
-## Examples
-
-Example of pushing a repo with a PR:
+Agit allows to create PRs while pushing code to the remote repo. \
+This can be done by pushing to the branch followed by a specific refspec (a location identifier known to git). \
+The following example illustrates this:
 
 ```shell
 git push origin HEAD:refs/for/master
 ```
 
-Example of pushing a repo with a PR `topic`, `title` and `description`:
+The command has the following structure:
+
+- `HEAD`: The target branch
+- `refs/<for|drafts|for-review>/<branch>`: The target PR type
+  - `for`: Create a normal PR with `<branch>` as the target branch
+- `<branch>/<session>`: The target branch to open the PR
+- `-o <topic|title|description>`: Options for the PR
+  - `title`: The PR title
+  - `topic`: The PR topic
+  - `description`: The PR description (in Markdown format)
+
+Here's another advanced example for creating a new PR targeting `master` with `topic`, `title`, and `description`:
 
 ```shell
-git push origin HEAD:refs/for/master -o topic="Topic of my PR" -o title="Title of the PR" -o description="# The PR Description\nThis can be markdown formatted.\n[x] Ok"
+git push origin HEAD:refs/for/master -o topic="Topic of my PR" -o title="Title of the PR" -o description="# The PR Description\nThis can be **any** markdown content.\n- [x] Ok"
 ```
