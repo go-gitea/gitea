@@ -377,11 +377,13 @@ func (o *valuedOption) IsChecked() bool {
 	return false
 }
 
+var minQuotesRegex = regexp.MustCompilePOSIX("^`{3,}")
+
 // minQuotes return 3 or more back-quotes.
 // If n back-quotes exists, use n+1 back-quotes to quote.
 func minQuotes(value string) string {
 	ret := "```"
-	for _, v := range regexp.MustCompilePOSIX("^`{3,}").FindAllString(value, -1) {
+	for _, v := range minQuotesRegex.FindAllString(value, -1) {
 		if len(v) >= len(ret) {
 			ret = v + "`"
 		}
