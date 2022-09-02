@@ -93,7 +93,7 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
       cm.execCommand('delCharBefore');
     },
   });
-  attachTribute(inputField, {mentions: true, emoji: true});
+  await attachTribute(inputField, {mentions: true, emoji: true});
   attachEasyMDEToElements(easyMDE);
   return easyMDE;
 }
