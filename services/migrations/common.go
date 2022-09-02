@@ -22,10 +22,18 @@ func WarnAndNotice(fmtStr string, args ...interface{}) {
 	}
 }
 
+func hasBaseURL(toCheck, baseURL string) bool {
+	if len(baseURL) > 0 && baseURL[len(baseURL)-1] != '/' {
+		baseURL += "/"
+	}
+	return strings.HasPrefix(toCheck, baseURL+"/")
+}
+
+// CheckAndEnsureSafePR will check that a give PR is safe
 func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g base.Downloader) bool {
 	valid := true
 	// SECURITY: the patchURL must be checked to have the same baseURL as the current to prevent open redirect
-	if pr.PatchURL != "" && !strings.HasPrefix(pr.PatchURL, commonCloneBaseURL+"/") {
+	if pr.PatchURL != "" && !hasBaseURL(pr.PatchURL, commonCloneBaseURL) {
 		// TODO: Should we check that this url has the expected format for a patch url?
 		WarnAndNotice("PR #%d in %s has invalid PatchURL: %s", pr.Number, g, pr.PatchURL)
 		pr.PatchURL = ""
@@ -33,7 +41,7 @@ func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g bas
 	}
 
 	// SECURITY: the headCloneURL must be checked to have the same baseURL as the current to prevent open redirect
-	if pr.Head.CloneURL != "" && !strings.HasPrefix(pr.Head.CloneURL, commonCloneBaseURL+"/") {
+	if pr.Head.CloneURL != "" && !hasBaseURL(pr.Head.CloneURL, commonCloneBaseURL) {
 		// TODO: Should we check that this url has the expected format for a patch url?
 		WarnAndNotice("PR #%d in %s has invalid HeadCloneURL: %s", pr.Number, g, pr.Head.CloneURL)
 		pr.Head.CloneURL = ""

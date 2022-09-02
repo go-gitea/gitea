@@ -355,8 +355,8 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 				}
 
 				// Prevent open redirect
-				if !strings.HasPrefix(redirectURL, g.baseURL+"/") &&
-					!strings.HasPrefix(redirectURL, "https://objects.githubusercontent.com/") {
+				if !hasBaseURL(redirectURL, g.baseURL) &&
+					!hasBaseURL(redirectURL, "https://objects.githubusercontent.com/") {
 					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.GetID(), g, redirectURL)
 
 					return io.NopCloser(strings.NewReader(redirectURL)), nil

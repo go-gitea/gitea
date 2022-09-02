@@ -300,7 +300,7 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 					return nil, err
 				}
 
-				if !strings.HasPrefix(asset.DownloadURL, g.baseURL+"/") {
+				if !hasBaseURL(asset.DownloadURL, g.baseURL) {
 					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, asset.DownloadURL)
 					return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
 				}
