@@ -18,6 +18,7 @@ menu:
 In Gitea `1.13`, support for [agit](https://git-repo.info/en/2020/03/agit-flow-and-git-repo/) was added.
 
 ## Creating PR with Agit
+
 Agit allows creating a PR while pushing code to the remote repo. This requires using a speacial command refspec.
 
 - `HEAD`
@@ -27,9 +28,9 @@ Agit allows creating a PR while pushing code to the remote repo. This requires u
 - `refs/<for|drafts|for-review>/`
 
   Target PR Type.
-  * `for` - Normal PR
-  * `draft` - Draft PR
-  * `for-review` - Generate a PR ID for updating existing PR.
+  - `for` - Normal PR
+  - `draft` - Draft PR
+  - `for-review` - Generate a PR ID for updating existing PR.
 
 - `<target-branch>/<session>`
 
@@ -38,9 +39,9 @@ Agit allows creating a PR while pushing code to the remote repo. This requires u
 - `-o <topic|title|description>`
 
   Options for the PR
-  * `title` - Title of the PR.
-  * `topic` - Topic of the PR.
-  * `description` - Description of the PR. (Contents in Markdown format)
+  - `title` - Title of the PR.
+  - `topic` - Topic of the PR.
+  - `description` - Description of the PR. (Contents in Markdown format)
 
 ## Examples
 
