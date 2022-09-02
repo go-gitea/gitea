@@ -415,7 +415,7 @@ tidy-check: tidy
 .PHONY: go-licenses
 go-licenses: assets/go-licenses.txt
 
-assets/go-licenses.txt: go.mod go.sum
+assets/go-licenses.txt: go.mod go.sum build/generate-go-licenses.js
 	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)"
 	node build/generate-go-licenses.js "$(GO_LICENSE_TMP_DIR)" "$(GO_LICENSE_FILE)"
 	rm -rf "$(GO_LICENSE_TMP_DIR)"

@@ -20,7 +20,7 @@ function exit(err) {
 async function main() {
   const line = '-'.repeat(80);
   const str = glob(['**/*']).sort().filter((path) => {
-    return /\/license/i.test(path);
+    return /\/((UN)?LICEN(S|C)E|COPYING|NOTICE)/i.test(path);
   }).map((path) => {
     const body = wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80);
     const name = dirname(path);
