@@ -30,13 +30,14 @@ git push origin HEAD:refs/for/master
 The command has the following structure:
 
 - `HEAD`: The target branch
-- `refs/<for|drafts|for-review>/<branch>`: The target PR type
+- `refs/<for|draft|for-review>/<branch>`: The target PR type
   - `for`: Create a normal PR with `<branch>` as the target branch
+  - `draft`/ `for-review`: Currently ignored silently
 - `<branch>/<session>`: The target branch to open the PR
 - `-o <topic|title|description>`: Options for the PR
   - `title`: The PR title
-  - `topic`: The PR topic
-  - `description`: The PR description (in Markdown format)
+  - `topic`: The branch name the PR should be opened for 
+  - `description`: The PR description
 
 Here's another advanced example for creating a new PR targeting `master` with `topic`, `title`, and `description`:
 
