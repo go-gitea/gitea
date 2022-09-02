@@ -6,12 +6,23 @@ package markdown
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/stretchr/testify/assert"
 )
+
+func validateMetadata(it structs.IssueTemplate) bool {
+	/*
+		A legacy to keep the unit tests working.
+		Copied from the method "func (it IssueTemplate) Valid() bool", the original method has been removed.
+		Because it becomes quite complicated to validate an issue template which is support yaml form now.
+		The new way to validate an issue template is to call the Validate in modules/issue/template,
+	*/
+	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
+}
 
 func TestExtractMetadata(t *testing.T) {
 	t.Run("ValidFrontAndBody", func(t *testing.T) {
@@ -20,7 +31,7 @@ func TestExtractMetadata(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, bodyTest, body)
 		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
+		assert.True(t, validateMetadata(meta))
 	})
 
 	t.Run("NoFirstSeparator", func(t *testing.T) {
@@ -41,7 +52,7 @@ func TestExtractMetadata(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "", body)
 		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
+		assert.True(t, validateMetadata(meta))
 	})
 }
 

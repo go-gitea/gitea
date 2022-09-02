@@ -68,9 +68,14 @@ export function initRepoCommentForm() {
   }
 
   (async () => {
-    const $textarea = $commentForm.find('textarea:not(.review-textarea)');
-    const easyMDE = await createCommentEasyMDE($textarea);
-    initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+    for (const textarea of $commentForm.find('textarea:not(.review-textarea, .no-easymde)')) {
+      // Don't initialize EasyMDE for the dormant #edit-content-form
+      if (textarea.closest('#edit-content-form')) {
+        continue;
+      }
+      const easyMDE = await createCommentEasyMDE(textarea);
+      initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+    }
   })();
 
   initBranchSelector();
@@ -535,9 +540,13 @@ export function initRepository() {
       $(this).parent().hide();
 
       const $form = $repoComparePull.find('.pullrequest-form');
-      const easyMDE = getAttachedEasyMDE($form.find('textarea.edit_area'));
       $form.show();
-      easyMDE.codemirror.refresh();
+      $form.find('textarea.edit_area').each(function() {
+        const easyMDE = getAttachedEasyMDE($(this));
+        if (easyMDE) {
+          easyMDE.codemirror.refresh();
+        }
+      });
     });
   }
 

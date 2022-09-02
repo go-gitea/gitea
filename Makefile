@@ -243,7 +243,7 @@ clean:
 .PHONY: fmt
 fmt:
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
-	$(eval TEMPLATES := $(wildcard templates/**/*.tmpl))
+	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
@@ -311,7 +311,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: gomod-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -388,9 +388,9 @@ tidy:
 vendor: tidy
 	$(GO) mod vendor
 
-.PHONY: gomod-check
-gomod-check: tidy
-	@diff=$$(git diff go.sum); \
+.PHONY: tidy-check
+tidy-check: tidy
+	@diff=$$(git diff go.mod go.sum); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
