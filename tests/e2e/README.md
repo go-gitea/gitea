@@ -16,9 +16,9 @@ Make sure to perform a clean front-end build before running tests:
 make clean frontend
 ```
 
-## Install playwright dependencies
+## Install playwright system dependencies
 ```
-npx install playwright --with-deps
+npx playwright install-deps
 ```
 
 
