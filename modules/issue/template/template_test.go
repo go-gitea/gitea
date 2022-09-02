@@ -5,6 +5,7 @@
 package template
 
 import (
+	"net/url"
 	"reflect"
 	"testing"
 
@@ -475,4 +476,170 @@ body:
 			t.Errorf("want:\n%s\ngot:\n%s", jsonWant, jsonGot)
 		}
 	})
+}
+
+func TestRenderToMarkdown(t *testing.T) {
+	type args struct {
+		template string
+		values   url.Values
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "normal",
+			args: args{
+				template: `
+name: Name
+title: Title
+about: About
+labels: ["label1", "label2"]
+ref: Ref
+body:
+  - type: markdown
+    id: id1
+    attributes:
+      value: Value of the markdown
+  - type: textarea
+    id: id2
+    attributes:
+      label: Label of textarea
+      description: Description of textarea
+      placeholder: Placeholder of textarea
+      value: Value of textarea
+      render: bash
+    validations:
+      required: true
+  - type: input
+    id: id3
+    attributes:
+      label: Label of input
+      description: Description of input
+      placeholder: Placeholder of input
+      value: Value of input
+    validations:
+      required: true
+      is_number: true
+      regex: "[a-zA-Z0-9]+"
+  - type: dropdown
+    id: id4
+    attributes:
+      label: Label of dropdown
+      description: Description of dropdown
+      multiple: true
+      options:
+        - Option 1 of dropdown
+        - Option 2 of dropdown
+        - Option 3 of dropdown
+    validations:
+      required: true
+  - type: checkboxes
+    id: id5
+    attributes:
+      label: Label of checkboxes
+      description: Description of checkboxes
+      options:
+        - label: Option 1 of checkboxes
+          required: true
+        - label: Option 2 of checkboxes
+          required: false
+        - label: Option 3 of checkboxes
+          required: true
+`,
+				values: map[string][]string{
+					"form-field-id2":   {"Value of id2"},
+					"form-field-id3":   {"Value of id3"},
+					"form-field-id4":   {"0,1"},
+					"form-field-id5-0": {"on"},
+					"form-field-id5-2": {"on"},
+				},
+			},
+			want: `### Label of textarea
+
+` + "```bash\nValue of id2\n```" + `
+
+### Label of input
+
+Value of id3
+
+### Label of dropdown
+
+Option 1 of dropdown, Option 2 of dropdown
+
+### Label of checkboxes
+
+- [x] Option 1 of checkboxes
+- [ ] Option 2 of checkboxes
+- [x] Option 3 of checkboxes
+
+`,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			template, err := Unmarshal("test.yaml", []byte(tt.args.template))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := RenderToMarkdown(template, tt.args.values); got != tt.want {
+				t.Errorf("RenderToMarkdown() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func Test_minQuotes(t *testing.T) {
+	type args struct {
+		value string
+	}
+	tests := []struct {
+		name string
+		args args
+		want string
+	}{
+		{
+			name: "without quote",
+			args: args{
+				value: "Hello\nWorld",
+			},
+			want: "```",
+		},
+		{
+			name: "with 1 quote",
+			args: args{
+				value: "Hello\nWorld\n`text`\n",
+			},
+			want: "```",
+		},
+		{
+			name: "with 3 quotes",
+			args: args{
+				value: "Hello\nWorld\n`text`\n```go\ntext\n```\n",
+			},
+			want: "````",
+		},
+		{
+			name: "with more quotes",
+			args: args{
+				value: "Hello\nWorld\n`text`\n```go\ntext\n```\n``````````bash\ntext\n``````````\n",
+			},
+			want: "```````````",
+		},
+		{
+			name: "not leading quotes",
+			args: args{
+				value: "Hello\nWorld`text````go\ntext`````````````bash\ntext``````````\n",
+			},
+			want: "```",
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := minQuotes(tt.args.value); got != tt.want {
+				t.Errorf("minQuotes() = %v, want %v", got, tt.want)
+			}
+		})
+	}
 }

@@ -7,6 +7,7 @@ package template
 import (
 	"fmt"
 	"net/url"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -286,17 +287,19 @@ func (f *valuedField) WriteTo(builder *strings.Builder) {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		}
 	case api.IssueFormFieldTypeInput:
-		if v := f.Value(); v == "" {
+		if value := f.Value(); value == "" {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
+		} else {
+			_, _ = fmt.Fprintf(builder, "%s\n", value)
 		}
-		_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
 	case api.IssueFormFieldTypeTextarea:
-		if v := f.Value(); v == "" {
+		if value := f.Value(); value == "" {
 			_, _ = fmt.Fprint(builder, blankPlaceholder)
 		} else if render := f.Render(); render != "" {
-			_, _ = fmt.Fprintf(builder, "```%s\n%s\n```\n", f.Render(), f.Value())
+			quotes := minQuotes(value)
+			_, _ = fmt.Fprintf(builder, "%s%s\n%s\n%s\n", quotes, f.Render(), value, quotes)
 		} else {
-			_, _ = fmt.Fprintf(builder, "%s\n", f.Value())
+			_, _ = fmt.Fprintf(builder, "%s\n", value)
 		}
 	}
 	_, _ = fmt.Fprintln(builder)
@@ -372,4 +375,16 @@ func (o *valuedOption) IsChecked() bool {
 		return o.field.Get(fmt.Sprintf("form-field-%s-%d", o.field.ID, o.index)) == "on"
 	}
 	return false
+}
+
+// minQuotes return 3 or more back-quotes.
+// If n back-quotes exists, use n+1 back-quotes to quote.
+func minQuotes(value string) string {
+	ret := "```"
+	for _, v := range regexp.MustCompilePOSIX("^`{3,}").FindAllString(value, -1) {
+		if len(v) >= len(ret) {
+			ret = v + "`"
+		}
+	}
+	return ret
 }
