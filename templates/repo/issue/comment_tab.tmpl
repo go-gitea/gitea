@@ -13,11 +13,6 @@
 			{{template "repo/issue/fields/checkboxes" .}}
 		{{end}}
 	{{end}}
-	{{if .IsAttachmentEnabled}}
-		<div class="field">
-			{{template "repo/upload" .}}
-		</div>
-	{{end}}
 {{else}}
 	<div class="ui top tabular menu" data-write="write" data-preview="preview">
 		<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
@@ -33,10 +28,9 @@
 			{{.locale.Tr "loading"}}
 		</div>
 	</div>
-	{{if .IsAttachmentEnabled}}
-		<div class="field">
-			{{template "repo/upload" .}}
-		</div>
-	{{end}}
 {{end}}
-
+{{if .IsAttachmentEnabled}}
+	<div class="field">
+		{{template "repo/upload" .}}
+	</div>
+{{end}}
