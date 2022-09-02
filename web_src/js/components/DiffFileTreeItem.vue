@@ -9,6 +9,7 @@
           :class="[
             getDiffType(item.file.Type),
             'tooltip',
+            'svg-icon'
           ]"
         />
         <a
@@ -18,6 +19,7 @@
         >{{ item.name }}</a>
         <div v-if="!item.isFile" @click.stop="handleClick(item.isFile)">
           <SvgIcon
+            class="svg-icon"
             :name="collapsed ? 'octicon-chevron-right' : 'octicon-chevron-down'"
           />
           {{ item.name }}
@@ -76,19 +78,23 @@ export default {
 </script>
 
 <style scoped>
-span.modify {
+span.svg-icon.modify {
   color: var(--color-yellow);
 }
 
-span.add {
+span.svg-icon.add {
   color: var(--color-green);
 }
 
-span.del {
+span.svg-icon.del {
   color: var(--color-red);
 }
 
-span.rename {
+span.svg-icon.rename {
   color: var(--color-teal);
+}
+
+span.svg-icon {
+  color: var(--color-primary)
 }
 </style>

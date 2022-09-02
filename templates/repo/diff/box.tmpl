@@ -68,7 +68,7 @@
 				<script>
 					(() => {
 						window.config.pageData.pullRequestFileTree = {
-							files: {{.Diff.Files}},
+							files: [{{range $i, $file := .Diff.Files}}{Name:"{{$file.Name}}",NameHash:"{{$file.NameHash}}",Type:{{$file.Type}}},{{end}}],
 							isIncomplete: {{.Diff.IsIncomplete}},
 							visibilityInfo: {
 								isVisible: false
