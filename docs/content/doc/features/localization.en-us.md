@@ -39,11 +39,26 @@ built in rules for managing plurals but is unable to properly all languages.
 
 From 1.18 we will migrate to use the CLDR formulation.
 
-Translation keys which handle plurals will be marked with a `_plural` suffix. The various forms will be handled using go templates, e.g.
+Translation keys which handle plurals should be marked with a `_plural` suffix. This
+will allow autogeneration of the various forms using go templates, e.g.
 
 ```ini
 form.reach_limit_of_creation_plural = You have already reached your limit of %d {{if .One}}repository{{else}}repositories{{end}}.
 ```
+
+Only the `form` is provided to this template - not the operand value itself. This is to allow autogeneration of the forms at time of loading.
+
+These will be compiled to various different keys based on the available formats in the
+language. e.g. assuming the above key is in the English locale it becomes:
+
+```ini
+form.reach_limit_of_creation_plural_one = You have already reached your limit of %d repository.
+form.reach_limit_of_creation_plural_other = You have already reached your limit of %d repositories.
+
+```
+
+If the template format is too cumbersome forms can be directly created and they will
+be used in preference to the template generated variants.
 
 These keys should be used with the `.TrPlural` function. (Ordinals can be handled with `.TrOrdinal`.)
 
@@ -73,3 +88,13 @@ Translators may want to review the CLDR information for their language or look a
 Ordinal forms, e.g. 1st, 2nd, 3rd and so on can be handled with `.TrOrdinal`. These
 have the same forms as the plural forms, and we will use `_ordinal` as a base suffix
 in future.
+
+If the provided key does not have the `_plural` suffix or its format template is invalid, the specific per plural forms must be provided explicitly. The plural key fallback hierarchy is as follows:
+
+1. `${key}_${form}` in the locale.
+2. `${key}_other` in the locale.
+3. `${key}` in the locale.
+4. `${key}_${form}` in the default locale.
+5. `${key}_other` in the default locale.
+6. `${key}` in the default locale.
+7. Use the `${key}_${form}` directly as the format.

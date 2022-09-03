@@ -6,7 +6,11 @@ package i18n
 
 import (
 	"fmt"
+	"strings"
+	"text/template"
 
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/translation/i18n/plurals"
 	"gopkg.in/ini.v1"
 )
 
@@ -51,18 +55,69 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source inter
 
 	for _, section := range iniFile.Sections() {
 		for _, key := range section.Keys() {
+
+			// Create a translation key for this section/key pair
 			var trKey string
 			if section.Name() == "" || section.Name() == "DEFAULT" {
 				trKey = key.Name()
 			} else {
 				trKey = section.Name() + "." + key.Name()
 			}
+
+			// Look-up an idx for the key in the "global" key to idx map
 			idx, ok := store.trKeyToIdxMap[trKey]
 			if !ok {
 				idx = len(store.trKeyToIdxMap)
 				store.trKeyToIdxMap[trKey] = idx
 			}
+
+			// Store this value
 			l.idxToMsgMap[idx] = key.Value()
+
+			// Now handle plurals & ordinals
+			ruletypes := []plurals.RuleType{plurals.Cardinal, plurals.Ordinal}
+			for i, suffix := range []string{"_plural", "_ordinal"} {
+				if !strings.HasSuffix(trKey, suffix) {
+					continue
+				}
+
+				tmpl := template.New("")
+				tmpl, err := tmpl.Parse(key.Value())
+				if err != nil {
+					log.Error("Misformatted key %s in %s: %v", trKey, l.langName, err)
+					continue
+				}
+
+				pluralRules := plurals.DefaultRules.RuleByType(ruletypes[i], l.langName)
+
+				for form := range pluralRules.PluralForms {
+					formKey := trKey + "_" + string(form)
+
+					// Get an idx for this new key
+					idx, ok := store.trKeyToIdxMap[formKey]
+					if !ok {
+						idx = len(store.trKeyToIdxMap)
+						store.trKeyToIdxMap[formKey] = idx
+					}
+
+					// Allow for already added explicit non-templated variants
+					// (Later keys may just override our generated keys and that's fine)
+					if _, ok := l.idxToMsgMap[idx]; ok {
+						continue
+					}
+
+					// Otherwise generate from the template with the form
+					sb := &strings.Builder{}
+					err = tmpl.Execute(sb, form)
+					if err != nil {
+						log.Error("Misformatted key %s in %s: %v", trKey, l.langName, err)
+						continue
+					}
+
+					l.idxToMsgMap[idx] = sb.String()
+				}
+			}
+
 		}
 	}
 	iniFile = nil

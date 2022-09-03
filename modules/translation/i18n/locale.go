@@ -5,7 +5,6 @@
 package i18n
 
 import (
-	"strings"
 	"text/template"
 
 	"code.gitea.io/gitea/modules/log"
@@ -39,7 +38,10 @@ func (l *locale) Tr(trKey string, trArgs ...interface{}) string {
 			}
 		}
 	}
+	return l.format(trKey, format, trArgs...)
+}
 
+func (l *locale) format(trKey, format string, trArgs ...interface{}) string {
 	msg, err := Format(l, format, trArgs...)
 	if err != nil {
 		log.Error("Error whilst formatting %q in %s: %v", trKey, l.langName, err)
@@ -81,40 +83,59 @@ func (l *locale) trPlurals(cnt interface{}, rule *plurals.Rule, trKey string, ar
 		return l.Tr(trKey, args...)
 	}
 
-	textIdx, ok := l.store.trKeyToIdxMap[trKey]
-	if !ok {
-		// if we fail to parse fall back to the standard
-		return l.Tr(trKey, args...)
-	}
-	msg, found := l.idxToMsgMap[textIdx]
-	if !found {
-		if def, ok := l.store.localeMap[l.store.defaultLang]; ok {
-			// try to use default locale's translation
-			msg, found = def.idxToMsgMap[textIdx]
-		}
-	}
-	if !found {
-		// if we fail to parse fall back to the standard
-		return l.Tr(trKey, args...)
-	}
-
 	form := rule.PluralFormFunc(operands)
 
-	tmpl := l.tmpl.Lookup(trKey)
-	if tmpl == nil {
-		tmpl = l.tmpl.New(trKey)
-		_, err := tmpl.Parse(msg)
-		if err != nil {
-			log.Error("Misformatted key %s in %s: %v", trKey, l.langName, err)
-			_, _ = tmpl.Parse(strings.ReplaceAll(trKey, "{{", "{{printf \"{{\"}}"))
+	// Now generate the pluralised key
+	formKey := trKey + "_" + string(form)
+	formIdx, formOk := l.store.trKeyToIdxMap[formKey]
+	if formOk { // there are at least some locales that have a format for this key...
+		msg, found := l.idxToMsgMap[formIdx]
+		if found { // and our locale has this key
+			return l.format(formKey, msg, args...)
 		}
 	}
 
-	sb := &strings.Builder{}
-	err = tmpl.Execute(sb, form)
-	if err != nil {
-		return l.Tr(trKey, args...) // fall back to the standard
+	// Try falling back to the other form
+	otherKey := trKey + "_" + string(plurals.Other)
+	otherIdx, otherOk := l.store.trKeyToIdxMap[otherKey]
+	if otherOk { // there are at least some locales that have a format for this key...
+		msg, found := l.idxToMsgMap[otherIdx]
+		if found { // and our locale has this key
+			return l.format(formKey, msg, args...)
+		}
 	}
 
-	return sb.String()
+	// Try falling back to the trkey
+	trIdx, trOk := l.store.trKeyToIdxMap[trKey]
+	if trOk { // there are at least some locales that have a format for this key...
+		msg, found := l.idxToMsgMap[trIdx]
+		if found { // and our locale has this key
+			return l.format(formKey, msg, args...)
+		}
+	}
+
+	// Try falling back to the default language
+	if def, ok := l.store.localeMap[l.store.defaultLang]; ok && def != l {
+		if formOk {
+			msg, found := def.idxToMsgMap[formIdx]
+			if found { // the default locale has this key
+				return def.format(formKey, msg, args...)
+			}
+		}
+		if otherOk {
+			msg, found := def.idxToMsgMap[otherIdx]
+			if found { // the default locale has this key
+				return def.format(formKey, msg, args...)
+			}
+		}
+		if trOk {
+			msg, found := def.idxToMsgMap[trIdx]
+			if found { // the default locale has this key
+				return def.format(formKey, msg, args...)
+			}
+		}
+	}
+
+	// OK we've tried really hard to handle this and we've got nowhere - just use the formKey string as the format
+	return l.format(trKey, formKey, args...)
 }
