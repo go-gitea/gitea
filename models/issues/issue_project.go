@@ -68,6 +68,7 @@ func LoadIssuesFromColumn(b *project_model.Column) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectColumnID: b.ID,
 			ProjectID:       b.ProjectID,
+			SortType:        "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
@@ -79,6 +80,7 @@ func LoadIssuesFromColumn(b *project_model.Column) (IssueList, error) {
 		issues, err := Issues(&IssuesOptions{
 			ProjectColumnID: -1, // Issues without ProjectColumnID
 			ProjectID:       b.ProjectID,
+			SortType:        "project-column-sorting",
 		})
 		if err != nil {
 			return nil, err
