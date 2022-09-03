@@ -90,6 +90,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
+      - curl -sL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -qqy nodejs
       - make checks-backend
     depends_on: [deps-backend]
     volumes:
@@ -722,7 +723,7 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -qqy nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
@@ -842,7 +843,7 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -qqy nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:

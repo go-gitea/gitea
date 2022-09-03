@@ -398,6 +398,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	@$(MAKE) --no-print-directory assets/go-licenses.json
 
 .PHONY: vendor
 vendor: tidy
@@ -413,10 +414,12 @@ tidy-check: tidy
 	fi
 
 .PHONY: go-licenses
-go-licenses:
-	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)"
+go-licenses: assets/go-licenses.json
+
+assets/go-licenses.json: go.mod go.sum build/generate-go-licenses.js
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)" 2>/dev/null
 	node build/generate-go-licenses.js "$(GO_LICENSE_TMP_DIR)" "$(GO_LICENSE_FILE)"
-	rm -rf "$(GO_LICENSE_TMP_DIR)"
+	@rm -rf "$(GO_LICENSE_TMP_DIR)"
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
