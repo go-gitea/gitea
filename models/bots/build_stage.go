@@ -5,8 +5,12 @@
 package bots
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
 type BuildStage struct {
@@ -16,6 +20,9 @@ type BuildStage struct {
 	Name      string
 	Kind      string
 	Type      string
+	Machine   string
+	OS        string
+	Arch      string
 	Filename  string
 	Status    BuildStatus
 	Started   timeutil.TimeStamp
@@ -30,6 +37,35 @@ func (bj BuildStage) TableName() string {
 
 func init() {
 	db.RegisterModel(new(BuildStage))
+}
+
+type FindStageOptions struct {
+	db.ListOptions
+	BuildID  int64
+	IsClosed util.OptionalBool
+}
+
+func (opts FindStageOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.BuildID > 0 {
+		cond = cond.And(builder.Eq{"build_id": opts.BuildID})
+	}
+	if opts.IsClosed.IsTrue() {
+		cond = cond.And(builder.Expr("status IN (?,?,?,?)", StatusError, StatusFailing, StatusPassing))
+	} else if opts.IsClosed.IsFalse() {
+		cond = cond.And(builder.Expr("status IN (?,?,?)", StatusPending, StatusRunning))
+	}
+	return cond
+}
+
+func FindStages(ctx context.Context, opts FindStageOptions) (BuildStageList, error) {
+	sess := db.GetEngine(ctx).Where(opts.toConds())
+	if opts.ListOptions.PageSize > 0 {
+		skip, take := opts.GetSkipTake()
+		sess.Limit(take, skip)
+	}
+	var rows []*BuildStage
+	return rows, sess.Find(&rows)
 }
 
 func GetBuildWorkflows(buildID int64) (map[string]map[string]*BuildStage, error) {

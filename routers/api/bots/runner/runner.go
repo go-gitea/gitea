@@ -10,6 +10,7 @@ import (
 
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/routers/api/bots/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -17,6 +18,8 @@ import (
 )
 
 type Service struct {
+	Scheduler core.Scheduler
+
 	runnerv1connect.UnimplementedRunnerServiceHandler
 }
 
@@ -64,8 +67,25 @@ func (s *Service) Request(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RequestRequest],
 ) (*connect.Response[runnerv1.RequestResponse], error) {
+	log.Debug("manager: request queue item")
+
+	stage, err := s.Scheduler.Request(ctx, core.Filter{
+		Kind: req.Msg.Kind,
+		Type: req.Msg.Type,
+		OS:   req.Msg.Os,
+		Arch: req.Msg.Arch,
+	})
+	if err != nil && ctx.Err() != nil {
+		log.Debug("manager: context canceled")
+		return nil, err
+	}
+	if err != nil {
+		log.Warn("manager: request queue item error")
+		return nil, err
+	}
+
 	res := connect.NewResponse(&runnerv1.RequestResponse{
-		Stage: &runnerv1.Stage{},
+		Stage: stage,
 	})
 	return res, nil
 }
