@@ -92,6 +92,8 @@ steps:
     commands:
       - curl -sL https://deb.nodesource.com/setup_18.x | bash - && apt-get install -qqy nodejs
       - make checks-backend
+    environment:
+      DEBIAN_FRONTEND: noninteractive
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -729,6 +731,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     volumes:
       - name: deps
         path: /go
@@ -849,6 +852,7 @@ steps:
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     depends_on: [fetch-tags]
     volumes:
       - name: deps
