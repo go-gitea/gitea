@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -174,7 +175,7 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_module.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}

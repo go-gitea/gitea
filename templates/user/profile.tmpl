@@ -28,7 +28,7 @@
 							{{if .Owner.Location}}
 								<li>{{svg "octicon-location"}} {{.Owner.Location}}</li>
 							{{end}}
-							{{if .ShowUserEmail }}
+							{{if .ShowUserEmail}}
 								<li>
 									{{svg "octicon-mail"}}
 									<a href="mailto:{{.Owner.Email}}" rel="nofollow">{{.Owner.Email}}</a>
@@ -65,6 +65,17 @@
 										</a>
 									</li>
 									{{end}}
+								{{end}}
+								</ul>
+							</li>
+							{{end}}
+							{{if .Badges}}
+							<li>
+								<ul class="user-badges">
+								{{range .Badges}}
+									<li>
+										<img width="64" height="64" src="{{.ImageURL}}" alt="{{.Description}}" data-content="{{.Description}}" class="tooltip"/>
+									</li>
 								{{end}}
 								</ul>
 							</li>

@@ -4,27 +4,27 @@
 	<div class="ui container">
 		<form class="ui form ignore-dirty" style="max-width: 100%">
 			<div class="ui fluid action input">
-				<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable }} disabled{{end}} placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
-				<div class="ui dropdown selection{{if .CodeIndexerUnavailable }} disabled{{end}}">
-					<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable }} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+				<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+				<div class="ui dropdown selection{{if .CodeIndexerUnavailable}} disabled{{end}}">
+					<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 					<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
 					<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
 						<div class="item" data-value="">{{.locale.Tr "explore.search.fuzzy"}}</div>
 						<div class="item" data-value="match">{{.locale.Tr "explore.search.match"}}</div>
 					</div>
 				</div>
-				<button class="ui primary button"{{if .CodeIndexerUnavailable }} disabled{{end}}>{{.locale.Tr "explore.search"}}</button>
+				<button class="ui primary button"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{.locale.Tr "explore.search"}}</button>
 			</div>
 		</form>
 		<div class="ui divider"></div>
 		<div class="ui user list">
-			{{if .CodeIndexerUnavailable }}
+			{{if .CodeIndexerUnavailable}}
 				<div class="ui error message">
 					<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
 				</div>
 			{{else if .SearchResults}}
 				<h3>
-					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
+					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
 				</h3>
 				<div class="df ac fw">
 					{{range $term := .SearchResultLanguages}}
