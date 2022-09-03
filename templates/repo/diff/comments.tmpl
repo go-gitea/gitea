@@ -5,9 +5,7 @@
 	{{if .OriginalAuthor }}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-			{{avatar .Poster}}
-		</a>
+		{{template "shared/user/avatarlink" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header df ac sb">
@@ -27,9 +25,7 @@
 					</span>
 				{{else}}
 					<span class="text grey">
-						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-							{{.Poster.GetDisplayName}}
-						</a>
+						{{template "shared/user/namelink" .Poster}}
 						{{$.root.i18n.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
