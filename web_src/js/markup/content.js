@@ -1,5 +1,5 @@
 import {renderMermaid} from './mermaid.js';
-import {renderMath} from './katex.js';
+import {renderMath} from './math.js';
 import {renderCodeCopy} from './codecopy.js';
 import {initMarkupTasklist} from './tasklist.js';
 

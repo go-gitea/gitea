@@ -28,7 +28,7 @@ export async function renderMath() {
 
     try {
       const markup = katex.renderToString(source, options);
-      const target = document.createElement(options.display ? 'p' : 'span')
+      const target = document.createElement(options.display ? 'p' : 'span');
       target.innerHTML = markup;
       if (el.classList.contains('is-loading')) {
         el.replaceWith(target);
