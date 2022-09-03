@@ -5,7 +5,6 @@
 package db_test
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -20,8 +19,7 @@ import (
 func TestDumpDatabase(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	dir, err := os.MkdirTemp(os.TempDir(), "dump")
-	assert.NoError(t, err)
+	dir := t.TempDir()
 
 	type Version struct {
 		ID      int64 `xorm:"pk autoincr"`

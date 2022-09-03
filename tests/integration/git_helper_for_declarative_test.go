@@ -27,11 +27,9 @@ import (
 )
 
 func withKeyFile(t *testing.T, keyname string, callback func(string)) {
-	tmpDir, err := os.MkdirTemp("", "key-file")
-	assert.NoError(t, err)
-	defer util.RemoveAll(tmpDir)
+	tmpDir := t.TempDir()
 
-	err = os.Chmod(tmpDir, 0o700)
+	err := os.Chmod(tmpDir, 0o700)
 	assert.NoError(t, err)
 
 	keyFile := filepath.Join(tmpDir, keyname)
@@ -120,9 +118,7 @@ func doPartialGitClone(dstLocalPath string, u *url.URL) func(*testing.T) {
 
 func doGitCloneFail(u *url.URL) func(*testing.T) {
 	return func(t *testing.T) {
-		tmpDir, err := os.MkdirTemp("", "doGitCloneFail")
-		assert.NoError(t, err)
-		defer util.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 		assert.Error(t, git.Clone(git.DefaultContext, u.String(), tmpDir, git.CloneRepoOptions{}))
 		exist, err := util.IsExist(filepath.Join(tmpDir, "README.md"))
 		assert.NoError(t, err)
