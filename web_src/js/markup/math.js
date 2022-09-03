@@ -24,7 +24,6 @@ export async function renderMath() {
 
   for (const el of els) {
     const source = el.textContent;
-
     const options = {display: el.classList.contains('display')};
 
     try {
