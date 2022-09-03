@@ -63,7 +63,7 @@ func TestExtractMetadataBytes(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, bodyTest, body)
 		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
+		assert.True(t, validateMetadata(meta))
 	})
 
 	t.Run("NoFirstSeparator", func(t *testing.T) {
@@ -84,7 +84,7 @@ func TestExtractMetadataBytes(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "", body)
 		assert.Equal(t, metaTest, meta)
-		assert.True(t, meta.Valid())
+		assert.True(t, validateMetadata(meta))
 	})
 }
 
