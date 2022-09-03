@@ -796,6 +796,7 @@ deps-backend:
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
