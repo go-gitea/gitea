@@ -5,10 +5,16 @@
 package common
 
 import (
+	"fmt"
+	"sort"
+	"strings"
+
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/routers/utils"
 )
 
 // GetActionIssue will return the issue which is used in the context.
@@ -46,4 +52,29 @@ func StopTimerIfAvailable(user *user_model.User, issue *issues_model.Issue) erro
 	}
 
 	return nil
+}
+
+// RenderErrorOfTemplates renders error of templates
+func RenderErrorOfTemplates(ctx *context.Context, errs map[string]error) string {
+	var files []string
+	for k := range errs {
+		files = append(files, k)
+	}
+	sort.Strings(files) // keep the output stable
+
+	var lines []string
+	for _, file := range files {
+		lines = append(lines, fmt.Sprintf("%s: %v", file, errs[file]))
+	}
+
+	flashError, err := ctx.RenderToString(TplAlertDetails, map[string]interface{}{
+		"Message": ctx.Tr("repo.issues.choose.ignore_invalid_templates"),
+		"Summary": ctx.Tr("repo.issues.choose.invalid_templates", len(errs)),
+		"Details": utils.SanitizeFlashErrorString(strings.Join(lines, "\n")),
+	})
+	if err != nil {
+		log.Debug("render flash error: %v", err)
+		flashError = ctx.Tr("repo.issues.choose.ignore_invalid_templates")
+	}
+	return flashError
 }

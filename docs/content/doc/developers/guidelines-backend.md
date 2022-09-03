@@ -33,7 +33,9 @@ To maintain understandable code and avoid circular dependencies it is important 
 
 - `build`: Scripts to help build Gitea.
 - `cmd`: All Gitea actual sub commands includes web, doctor, serv, hooks, admin and etc. `web` will start the web service. `serv` and `hooks` will be invoked by Git or OpenSSH. Other sub commands could help to maintain Gitea.
-- `integrations`: Integration tests
+- `tests`: Common test utility functions
+  - `tests/integration`: Integration tests, to test back-end regressions
+  - `tests/e2e`: E2e tests, to test test front-end <> back-end compatibility and visual regressions.
 - `models`: Contains the data structures used by xorm to construct database tables. It also contains functions to query and update the database. Dependencies to other Gitea code should be avoided. You can make exceptions in cases such as logging.
   - `models/db`: Basic database operations. All other `models/xxx` packages should depend on this package. The `GetEngine` function should only be invoked from `models/`.
   - `models/fixtures`: Sample data used in unit tests and integration tests. One `yml` file means one table which will be loaded into database when beginning the tests.

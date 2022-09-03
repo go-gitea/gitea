@@ -33,6 +33,7 @@ import (
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	issue_indexer "code.gitea.io/gitea/modules/indexer/issues"
+	issue_template "code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
@@ -70,11 +71,23 @@ const (
 // IssueTemplateCandidates issue templates
 var IssueTemplateCandidates = []string{
 	"ISSUE_TEMPLATE.md",
+	"ISSUE_TEMPLATE.yaml",
+	"ISSUE_TEMPLATE.yml",
 	"issue_template.md",
+	"issue_template.yaml",
+	"issue_template.yml",
 	".gitea/ISSUE_TEMPLATE.md",
+	".gitea/ISSUE_TEMPLATE.yaml",
+	".gitea/ISSUE_TEMPLATE.yml",
+	".gitea/issue_template.md",
+	".gitea/issue_template.yaml",
 	".gitea/issue_template.md",
 	".github/ISSUE_TEMPLATE.md",
+	".github/ISSUE_TEMPLATE.yaml",
+	".github/ISSUE_TEMPLATE.yml",
 	".github/issue_template.md",
+	".github/issue_template.yaml",
+	".github/issue_template.yml",
 }
 
 // MustAllowUserComment checks to make sure if an issue is locked.
@@ -669,9 +682,19 @@ func NewIssue(ctx *context.Context) {
 	}
 
 	common.RetrieveRepoMetas(ctx, ctx.Repo.Repository, false)
-	code.SetTemplateIfExists(ctx, issueTemplateKey, context.IssueTemplateDirCandidates, IssueTemplateCandidates)
+
+	_, templateErrs := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	if errs := code.SetTemplateIfExists(ctx, issueTemplateKey, IssueTemplateCandidates); len(errs) > 0 {
+		for k, v := range errs {
+			templateErrs[k] = v
+		}
+	}
 	if ctx.Written() {
 		return
+	}
+
+	if len(templateErrs) > 0 {
+		ctx.Flash.Warning(common.RenderErrorOfTemplates(ctx, templateErrs), true)
 	}
 
 	ctx.Data["HasIssuesOrPullsWritePermission"] = ctx.Repo.CanWrite(unit.TypeIssues)
@@ -684,8 +707,12 @@ func NewIssueChooseTemplate(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.issues.new")
 	ctx.Data["PageIsIssueList"] = true
 
-	issueTemplates := ctx.IssueTemplatesFromDefaultBranch()
+	issueTemplates, errs := ctx.IssueTemplatesErrorsFromDefaultBranch()
 	ctx.Data["IssueTemplates"] = issueTemplates
+
+	if len(errs) > 0 {
+		ctx.Flash.Warning(common.RenderErrorOfTemplates(ctx, errs), true)
+	}
 
 	if len(issueTemplates) == 0 {
 		// The "issues/new" and "issues/new/choose" share the same query parameters "project" and "milestone", if no template here, just redirect to the "issues/new" page with these parameters.
@@ -753,6 +780,13 @@ func NewIssuePost(ctx *context.Context) {
 		return
 	}
 
+	content := form.Content
+	if filename := ctx.Req.Form.Get("template-file"); filename != "" {
+		if template, err := issue_template.UnmarshalFromRepo(ctx.Repo.GitRepo, ctx.Repo.Repository.DefaultBranch, filename); err == nil {
+			content = issue_template.RenderToMarkdown(template, ctx.Req.Form)
+		}
+	}
+
 	issue := &issues_model.Issue{
 		RepoID:      repo.ID,
 		Repo:        repo,
@@ -760,7 +794,7 @@ func NewIssuePost(ctx *context.Context) {
 		PosterID:    ctx.Doer.ID,
 		Poster:      ctx.Doer,
 		MilestoneID: milestoneID,
-		Content:     form.Content,
+		Content:     content,
 		Ref:         form.Ref,
 	}
 

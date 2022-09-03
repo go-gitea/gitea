@@ -19,7 +19,7 @@
 	</div>
 </div>
 
-{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived) }}
+{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 {{template "repo/issue/labels/edit_delete_label" .}}
 {{end}}
 </div>
