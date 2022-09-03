@@ -38,6 +38,7 @@ The command has the following structure:
   - `title`: The PR title
   - `topic`: The branch name the PR should be opened for 
   - `description`: The PR description
+  - `force-push`: confirm force update the target branch
 
 Here's another advanced example for creating a new PR targeting `master` with `topic`, `title`, and `description`:
 
