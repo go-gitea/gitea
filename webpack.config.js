@@ -206,13 +206,17 @@ export default {
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        const go = readFileSync('assets/go-licenses.txt');
-        const js = dependencies.sort((module) => module.name).map((module) => {
-          const {name, version, licenseName, licenseText} = module;
+        const goModules = JSON.parse(readFileSync('assets/go-licenses.json', 'utf8'));
+        const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
           const body = wrapAnsi(licenseText || '', 80);
-          return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
+          return {name, version, licenseName, body};
+        });
+
+        const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
+        return modules.map(({name, version, licenseName, body}) => {
+          const title = licenseName ? `${name}@${version} - ${licenseName}` : name;
+          return `${line}\n${title}\n${line}\n${body}`;
         }).join('\n');
-        return `${go}\n${js}`;
       },
       override: {
         'jquery.are-you-sure@*': {licenseName: 'MIT'},

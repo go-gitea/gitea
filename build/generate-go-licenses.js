@@ -8,25 +8,23 @@ import {join, dirname} from 'path';
 const base = process.argv[2];
 const out = process.argv[3];
 
-const glob = (pattern) => fastGlob.sync(pattern, {
-  cwd: fileURLToPath(new URL(`../${base}`, import.meta.url)),
-});
-
 function exit(err) {
   if (err) console.error(err);
   process.exit(err ? 1 : 0);
 }
 
 async function main() {
-  const line = '-'.repeat(80);
-  const str = glob('**/*').filter((path) => {
+  const data = fastGlob.sync('**/*', {
+    cwd: fileURLToPath(new URL(`../${base}`, import.meta.url)),
+  }).filter((path) => {
     return /\/((UN)?LICEN(S|C)E|COPYING|NOTICE)/i.test(path);
   }).sort().map((path) => {
-    const name = dirname(path);
-    const body = wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80);
-    return `${line}\n${name}\n${line}\n${body}`;
-  }).join('\n');
-  writeFileSync(out, str);
+    return {
+      name: dirname(path),
+      body: wrapAnsi(readFileSync(join(base, path), 'utf8') || '', 80)
+    };
+  });
+  writeFileSync(out, JSON.stringify(data, null, 2));
 }
 
 main().then(exit).catch(exit);
