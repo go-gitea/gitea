@@ -90,7 +90,10 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
+      - curl -sL https://deb.nodesource.com/setup_18.x | bash - && apt-get -qqy install nodejs
       - make checks-backend
+    environment:
+      DEBIAN_FRONTEND: noninteractive
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -722,12 +725,13 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     volumes:
       - name: deps
         path: /go
@@ -842,12 +846,13 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     depends_on: [fetch-tags]
     volumes:
       - name: deps
