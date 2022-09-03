@@ -8,9 +8,9 @@ import (
 	"context"
 	"errors"
 
+	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/routers/api/bots/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 

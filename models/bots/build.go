@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -16,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/bots/core"
 
 	"github.com/google/uuid"
 	"xorm.io/builder"

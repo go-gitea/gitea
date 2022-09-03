@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
@@ -26,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/routers/api/bots/core"
 	bots_service "code.gitea.io/gitea/services/bots"
 )
 

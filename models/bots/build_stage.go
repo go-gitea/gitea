@@ -7,10 +7,10 @@ package bots
 import (
 	"context"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/api/bots/core"
 	"xorm.io/builder"
 )
 

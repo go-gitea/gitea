@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/routers/api/bots/core"
 
 	"github.com/gorilla/websocket"
 )

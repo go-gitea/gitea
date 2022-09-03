@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/bots"
-	"code.gitea.io/gitea/routers/api/bots/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 

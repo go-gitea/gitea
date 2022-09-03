@@ -8,7 +8,7 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/routers/api/bots/core"
+	"code.gitea.io/gitea/core"
 )
 
 type scheduler struct {
