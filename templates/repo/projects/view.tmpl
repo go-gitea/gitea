@@ -173,12 +173,12 @@
 				</div>
 				<div class="ui divider"></div>
 
-				<div class="ui project-column-cards" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-column="{{.ID}}" id="column_{{.ID}}">
+				<div class="ui project-column-cards cards" data-url="{{$.RepoLink}}/projects/{{$.Project.ID}}/{{.ID}}" data-project="{{$.Project.ID}}" data-column="{{.ID}}" id="column_{{.ID}}">
 
 					{{range (index $.IssuesMap .ID)}}
 
 					<!-- start issue card -->
-					<div class="project-column-card" data-issue="{{.ID}}">
+					<div class="project-column-card card" data-issue="{{.ID}}">
 						<div class="content p-0">
 							<div class="header">
 								<span class="dif ac vm {{if .IsClosed}}red{{else}}green{{end}}">
