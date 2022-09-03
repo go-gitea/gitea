@@ -36,7 +36,7 @@ The command has the following structure:
 - `<branch>/<session>`: The target branch to open the PR
 - `-o <topic|title|description>`: Options for the PR
   - `title`: The PR title
-  - `topic`: The branch name the PR should be opened for 
+  - `topic`: The branch name the PR should be opened for
   - `description`: The PR description
   - `force-push`: confirm force update the target branch
 
