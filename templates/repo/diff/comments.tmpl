@@ -1,35 +1,31 @@
 {{range .comments}}
 
-{{ $createdStr:= TimeSinceUnix .CreatedUnix $.root.locale }}
+{{$createdStr:= TimeSinceUnix .CreatedUnix $.root.locale}}
 <div class="comment" id="{{.HashTag}}">
-	{{if .OriginalAuthor }}
+	{{if .OriginalAuthor}}
 		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 	{{else}}
-		<a class="avatar" {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-			{{avatar .Poster}}
-		</a>
+		{{template "shared/user/avatarlink" .Poster}}
 	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header df ac sb">
 			<div class="comment-header-left df ac">
-				{{if .OriginalAuthor }}
+				{{if .OriginalAuthor}}
 					<span class="text black mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
-						{{ .OriginalAuthor }}
+						{{.OriginalAuthor}}
 					</span>
 					<span class="text grey">
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 					<span class="text migrate">
 						{{if $.root.Repository.OriginalURL}}
-							({{$.root.locale.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe }})
+							({{$.root.locale.Tr "repo.migrated_from" ($.root.Repository.OriginalURL | Escape) ($.root.Repository.GetOriginalURLHostname | Escape) | Safe}})
 						{{end}}
 					</span>
 				{{else}}
 					<span class="text grey">
-						<a {{if gt .Poster.ID 0}}href="{{.Poster.HomeLink}}"{{end}}>
-							{{.Poster.GetDisplayName}}
-						</a>
+						{{template "shared/user/namelink" .Poster}}
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
 					</span>
 				{{end}}
@@ -46,7 +42,7 @@
 						</div>
 					{{end}}
 				{{end}}
-				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID) }}
+				{{template "repo/issue/view_content/add_reaction" Dict "ctx" $.root "ActionURL" (Printf "%s/comments/%d/reactions" $.root.RepoLink .ID)}}
 				{{template "repo/issue/view_content/context_menu" Dict "ctx" $.root "item" . "delete" true "issue" false "diff" true "IsCommentPoster" (and $.root.IsSigned (eq $.root.SignedUserID .PosterID))}}
 			</div>
 		</div>

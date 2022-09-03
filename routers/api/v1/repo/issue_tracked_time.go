@@ -566,6 +566,8 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	// swagger:operation GET /user/times user userCurrentTrackedTimes
 	// ---
 	// summary: List the current user's tracked times
+	// produces:
+	// - application/json
 	// parameters:
 	// - name: page
 	//   in: query
@@ -575,9 +577,6 @@ func ListMyTrackedTimes(ctx *context.APIContext) {
 	//   in: query
 	//   description: page size of results
 	//   type: integer
-	// produces:
-	// - application/json
-	// parameters:
 	// - name: since
 	//   in: query
 	//   description: Only show times updated after the given time. This is a timestamp in RFC 3339 format
