@@ -16584,6 +16584,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueFormField": {
+      "description": "IssueFormField represents a form field",
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Attributes"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "$ref": "#/definitions/IssueFormFieldType"
+        },
+        "validations": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Validations"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldType": {
+      "type": "string",
+      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueLabelsOption": {
       "description": "IssueLabelsOption a collection of labels",
       "type": "object",
@@ -16607,6 +16636,13 @@
         "about": {
           "type": "string",
           "x-go-name": "About"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormField"
+          },
+          "x-go-name": "Fields"
         },
         "content": {
           "type": "string",
