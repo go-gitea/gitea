@@ -7,6 +7,7 @@ package bots
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/bots/core"
 )
 
 type BuildStep struct {
@@ -16,7 +17,7 @@ type BuildStep struct {
 	Name    string
 	Kind    string
 	Type    string
-	Status  BuildStatus
+	Status  core.BuildStatus
 	Started timeutil.TimeStamp
 	Stopped timeutil.TimeStamp
 	Created timeutil.TimeStamp `xorm:"created"`

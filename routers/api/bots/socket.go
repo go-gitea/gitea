@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/routers/api/bots/core"
 
 	"github.com/gorilla/websocket"
 )
@@ -116,9 +117,9 @@ func handleVersion1(r *http.Request, c *websocket.Conn, mt int, message []byte, 
 		}
 		cols := []string{"status", "end_time"}
 		if msg.ErrCode == 0 {
-			build.Status = bots_model.StatusPassing
+			build.Status = core.StatusPassing
 		} else {
-			build.Status = bots_model.StatusFailing
+			build.Status = core.StatusFailing
 		}
 		build.EndTime = timeutil.TimeStampNow()
 		if err := bots_model.UpdateBuild(build, cols...); err != nil {

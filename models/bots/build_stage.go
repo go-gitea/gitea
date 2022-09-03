@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/bots/core"
 	"xorm.io/builder"
 )
 
@@ -24,7 +25,7 @@ type BuildStage struct {
 	OS        string
 	Arch      string
 	Filename  string
-	Status    BuildStatus
+	Status    core.BuildStatus
 	Started   timeutil.TimeStamp
 	Stopped   timeutil.TimeStamp
 	LogToFile bool               // read log from database or from storage
@@ -51,9 +52,9 @@ func (opts FindStageOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"build_id": opts.BuildID})
 	}
 	if opts.IsClosed.IsTrue() {
-		cond = cond.And(builder.Expr("status IN (?,?,?,?)", StatusError, StatusFailing, StatusPassing))
+		cond = cond.And(builder.Expr("status IN (?,?,?,?)", core.StatusError, core.StatusFailing, core.StatusPassing))
 	} else if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Expr("status IN (?,?,?)", StatusPending, StatusRunning))
+		cond = cond.And(builder.Expr("status IN (?,?,?)", core.StatusPending, core.StatusRunning))
 	}
 	return cond
 }

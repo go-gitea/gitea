@@ -26,6 +26,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/routers/api/bots/core"
 	bots_service "code.gitea.io/gitea/services/bots"
 )
 
@@ -83,11 +84,11 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 		return
 	}
 
-	workflowsStatuses := make(map[string]map[string]bots_model.BuildStatus)
+	workflowsStatuses := make(map[string]map[string]core.BuildStatus)
 	for i, entry := range matchedEntries {
-		taskStatuses := make(map[string]bots_model.BuildStatus)
+		taskStatuses := make(map[string]core.BuildStatus)
 		for k := range jobs[i] {
-			taskStatuses[k] = bots_model.StatusPending
+			taskStatuses[k] = core.StatusPending
 		}
 		workflowsStatuses[entry.Name()] = taskStatuses
 	}
@@ -98,7 +99,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 		TriggerUserID: doer.ID,
 		Event:         evt,
 		EventPayload:  payload,
-		Status:        bots_model.StatusPending,
+		Status:        core.StatusPending,
 		Ref:           ref,
 		CommitSHA:     commit.ID.String(),
 	}

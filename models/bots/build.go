@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/routers/api/bots/core"
 
 	"github.com/google/uuid"
 	"xorm.io/builder"
@@ -24,39 +25,6 @@ import (
 func init() {
 	db.RegisterModel(new(Build))
 	db.RegisterModel(new(BuildIndex))
-}
-
-// BuildStatus represents a build status
-type BuildStatus string
-
-// enumerate all the statuses of bot build
-const (
-	StatusSkipped  BuildStatus = "skipped"
-	StatusBlocked  BuildStatus = "blocked"
-	StatusDeclined BuildStatus = "declined"
-	StatusWaiting  BuildStatus = "waiting_on_dependencies"
-	StatusPending  BuildStatus = "pending"
-	StatusRunning  BuildStatus = "running"
-	StatusPassing  BuildStatus = "success"
-	StatusFailing  BuildStatus = "failure"
-	StatusKilled   BuildStatus = "killed"
-	StatusError    BuildStatus = "error"
-)
-
-func (status BuildStatus) IsPending() bool {
-	return status == StatusPending
-}
-
-func (status BuildStatus) IsRunning() bool {
-	return status == StatusRunning
-}
-
-func (status BuildStatus) IsFailed() bool {
-	return status == StatusFailing || status == StatusKilled || status == StatusError
-}
-
-func (status BuildStatus) IsSuccess() bool {
-	return status == StatusPassing
 }
 
 // Build represnets bot build task
@@ -75,7 +43,7 @@ type Build struct {
 	Grant         string             // permissions for this task
 	EventPayload  string             `xorm:"LONGTEXT"`
 	RunnerID      int64              `xorm:"index"`
-	Status        BuildStatus        `xorm:"index"`
+	Status        core.BuildStatus   `xorm:"index"`
 	Created       timeutil.TimeStamp `xorm:"created"`
 	StartTime     timeutil.TimeStamp
 	EndTime       timeutil.TimeStamp
@@ -102,7 +70,7 @@ func updateRepoBuildsNumbers(ctx context.Context, repo *repo_model.Repository) e
 				Where(builder.Eq{
 					"repo_id": repo.ID,
 				}.And(
-					builder.In("status", StatusFailing, StatusKilled, StatusPassing),
+					builder.In("status", core.StatusFailing, core.StatusKilled, core.StatusPassing),
 				),
 				),
 		).
@@ -111,7 +79,7 @@ func updateRepoBuildsNumbers(ctx context.Context, repo *repo_model.Repository) e
 }
 
 // InsertBuild inserts a bot build task
-func InsertBuild(t *Build, workflowsStatuses map[string]map[string]BuildStatus) error {
+func InsertBuild(t *Build, workflowsStatuses map[string]map[string]core.BuildStatus) error {
 	if t.UUID == "" {
 		t.UUID = uuid.New().String()
 	}
@@ -196,7 +164,7 @@ func GetCurBuildByID(runnerID int64) (*Build, error) {
 	var builds []Build
 	err := db.GetEngine(db.DefaultContext).
 		Where("runner_id=?", runnerID).
-		And("status=?", StatusPending).
+		And("status=?", core.StatusPending).
 		Asc("created").
 		Find(&builds)
 	if err != nil {
@@ -263,9 +231,9 @@ func (opts FindBuildOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	if opts.IsClosed.IsTrue() {
-		cond = cond.And(builder.Expr("status IN (?,?,?,?)", StatusError, StatusFailing, StatusPassing))
+		cond = cond.And(builder.Expr("status IN (?,?,?,?)", core.StatusError, core.StatusFailing, core.StatusPassing))
 	} else if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Expr("status IN (?,?,?)", StatusPending, StatusRunning))
+		cond = cond.And(builder.Expr("status IN (?,?,?)", core.StatusPending, core.StatusRunning))
 	}
 	return cond
 }

@@ -100,7 +100,7 @@ func (q *queue) signal(ctx context.Context) error {
 	q.Lock()
 	defer q.Unlock()
 	for _, item := range items {
-		if item.Status == bots.StatusRunning {
+		if item.Status == core.StatusRunning {
 			continue
 		}
 		if item.Machine != "" {
