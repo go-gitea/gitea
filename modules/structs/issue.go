@@ -5,7 +5,7 @@
 package structs
 
 import (
-	"strings"
+	"path/filepath"
 	"time"
 )
 
@@ -120,19 +120,57 @@ type IssueDeadline struct {
 	Deadline *time.Time `json:"due_date"`
 }
 
+// IssueFormFieldType defines issue form field type, can be "markdown", "textarea", "input", "dropdown" or "checkboxes"
+type IssueFormFieldType string
+
+const (
+	IssueFormFieldTypeMarkdown   IssueFormFieldType = "markdown"
+	IssueFormFieldTypeTextarea   IssueFormFieldType = "textarea"
+	IssueFormFieldTypeInput      IssueFormFieldType = "input"
+	IssueFormFieldTypeDropdown   IssueFormFieldType = "dropdown"
+	IssueFormFieldTypeCheckboxes IssueFormFieldType = "checkboxes"
+)
+
+// IssueFormField represents a form field
+// swagger:model
+type IssueFormField struct {
+	Type        IssueFormFieldType     `json:"type" yaml:"type"`
+	ID          string                 `json:"id" yaml:"id"`
+	Attributes  map[string]interface{} `json:"attributes" yaml:"attributes"`
+	Validations map[string]interface{} `json:"validations" yaml:"validations"`
+}
+
 // IssueTemplate represents an issue template for a repository
 // swagger:model
 type IssueTemplate struct {
-	Name     string   `json:"name" yaml:"name"`
-	Title    string   `json:"title" yaml:"title"`
-	About    string   `json:"about" yaml:"about"`
-	Labels   []string `json:"labels" yaml:"labels"`
-	Ref      string   `json:"ref" yaml:"ref"`
-	Content  string   `json:"content" yaml:"-"`
-	FileName string   `json:"file_name" yaml:"-"`
+	Name     string            `json:"name" yaml:"name"`
+	Title    string            `json:"title" yaml:"title"`
+	About    string            `json:"about" yaml:"about"` // Using "description" in a template file is compatible
+	Labels   []string          `json:"labels" yaml:"labels"`
+	Ref      string            `json:"ref" yaml:"ref"`
+	Content  string            `json:"content" yaml:"-"`
+	Fields   []*IssueFormField `json:"body" yaml:"body"`
+	FileName string            `json:"file_name" yaml:"-"`
 }
 
-// Valid checks whether an IssueTemplate is considered valid, e.g. at least name and about
-func (it IssueTemplate) Valid() bool {
-	return strings.TrimSpace(it.Name) != "" && strings.TrimSpace(it.About) != ""
+// IssueTemplateType defines issue template type
+type IssueTemplateType string
+
+const (
+	IssueTemplateTypeMarkdown IssueTemplateType = "md"
+	IssueTemplateTypeYaml     IssueTemplateType = "yaml"
+)
+
+// Type returns the type of IssueTemplate, can be "md", "yaml" or empty for known
+func (it IssueTemplate) Type() IssueTemplateType {
+	if it.Name == "config.yaml" || it.Name == "config.yml" {
+		// ignore config.yaml which is a special configuration file
+		return ""
+	}
+	if ext := filepath.Ext(it.FileName); ext == ".md" {
+		return IssueTemplateTypeMarkdown
+	} else if ext == ".yaml" || ext == ".yml" {
+		return "yaml"
+	}
+	return IssueTemplateTypeYaml
 }

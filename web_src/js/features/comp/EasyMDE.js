@@ -105,7 +105,7 @@ export async function createCommentEasyMDE(textarea, easyMDEOptions = {}) {
       }
     },
   });
-  attachTribute(inputField, {mentions: true, emoji: true});
+  await attachTribute(inputField, {mentions: true, emoji: true});
   attachEasyMDEToElements(easyMDE);
   return easyMDE;
 }
