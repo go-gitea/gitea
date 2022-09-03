@@ -15,21 +15,11 @@ import (
 
 var (
 	// ErrNameEmpty name is empty error
-	ErrNameEmpty = errNameEmpty{}
+	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalid}
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
 )
-
-type errNameEmpty struct{}
-
-func (err errNameEmpty) Error() string {
-	return "name is empty"
-}
-
-func (err errNameEmpty) Unwrap() error {
-	return util.ErrInvalid
-}
 
 // ErrNameReserved represents a "reserved name" error.
 type ErrNameReserved struct {

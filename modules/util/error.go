@@ -18,3 +18,19 @@ var (
 	ErrExist      = fs.ErrExist      // "file already exists"
 	ErrNotExist   = fs.ErrNotExist   // "file does not exist"
 )
+
+// SilentWrap provides a simple wrapper for a wrapped error where the wrapped error message plays no part in the error message
+type SilentWrap struct {
+	Message string
+	Err     error
+}
+
+// Error returns the message
+func (w SilentWrap) Error() string {
+	return w.Message
+}
+
+// Unwrap returns the underlying error
+func (w SilentWrap) Unwrap() error {
+	return w.Err
+}
