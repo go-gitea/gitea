@@ -68,7 +68,7 @@ func runTemplate(t *template.Template, filename string, data interface{}) error 
 	if err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("failed to read old file %s because %w", filename, err)
 	} else if err == nil {
-		if res := bytes.Compare(bs, old); res == 0 {
+		if bytes.Compare(bs, old) == 0 {
 			// files are the same don't rewrite it.
 			return nil
 		}
