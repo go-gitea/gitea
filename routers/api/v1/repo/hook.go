@@ -155,14 +155,8 @@ func TestHook(ctx *context.APIContext) {
 	}
 
 	ref := git.BranchPrefix + ctx.Repo.Repository.DefaultBranch
-	if refName := ctx.FormTrim("ref"); refName != "" {
-		if ctx.Repo.GitRepo.IsBranchExist(refName) {
-			ref = git.BranchPrefix + refName
-		} else if ctx.Repo.GitRepo.IsTagExist(refName) {
-			ref = git.TagPrefix + refName
-		}
-		// If the ref is a commit id, it's not worth finding out all branches contain the commit
-		// and picking the most likely one, so just use the default branch for now.
+	if r := ctx.FormTrim("ref"); r != "" {
+		ref = r
 	}
 
 	hookID := ctx.ParamsInt64(":id")
