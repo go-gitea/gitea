@@ -128,14 +128,11 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		LowerName: p.LowerName,
 	}
 
-	has, err := e.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return key, ErrDuplicatePackage
-	}
-	if _, err = e.Insert(p); err != nil {
+	if _, err := e.Insert(p); err != nil {
+		// Try to get the key again
+		if has, _ := e.Get(key); has {
+			return key, ErrDuplicatePackage
+		}
 		return nil, err
 	}
 	return p, nil

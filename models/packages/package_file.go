@@ -53,14 +53,10 @@ func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
 		CompositeKey: pf.CompositeKey,
 	}
 
-	has, err := e.Get(key)
-	if err != nil {
-		return nil, err
-	}
-	if has {
-		return pf, ErrDuplicatePackageFile
-	}
-	if _, err = e.Insert(pf); err != nil {
+	if _, err := e.Insert(pf); err != nil {
+		if has, _ := e.Get(key); has {
+			return pf, ErrDuplicatePackageFile
+		}
 		return nil, err
 	}
 	return pf, nil
