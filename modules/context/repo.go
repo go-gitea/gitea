@@ -1119,7 +1119,7 @@ func (ctx *Context) IssueConfigFromDefaultBranch() (api.IssueConfig, error) {
 
 	commit, err := ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 	if err != nil {
-		return defaultIssueConfig, nil
+		return defaultIssueConfig, wee
 	}
 
 	for _, configName := range IssueConfigCanidates {
