@@ -133,6 +133,7 @@ GO_DIRS := cmd tests models modules routers build services tools
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
 GO_SOURCES += $(GENERATED_GO_DEST)
+GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
@@ -284,7 +285,7 @@ endif
 .PHONY: generate-swagger
 generate-swagger: $(SWAGGER_SPEC)
 
-$(SWAGGER_SPEC): $(GO_SOURCES)
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
