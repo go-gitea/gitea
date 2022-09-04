@@ -34,6 +34,7 @@ GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -114,13 +115,16 @@ SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
 
+GO_LICENSE_TMP_DIR := .go-licenses
+GO_LICENSE_FILE := assets/go-licenses.json
+
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
 TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
 
@@ -199,8 +203,9 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
+	@echo " - go-licenses                      regenerate go licenses"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - tidy                             run go mod tidy"
+	@echo " - tidy                             run go mod tidy and regenerate go licenses"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
@@ -393,6 +398,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	@$(MAKE) --no-print-directory assets/go-licenses.json
 
 .PHONY: vendor
 vendor: tidy
@@ -406,6 +412,14 @@ tidy-check: tidy
 		echo "$${diff}"; \
 		exit 1; \
 	fi
+
+.PHONY: go-licenses
+go-licenses: assets/go-licenses.json
+
+assets/go-licenses.json: go.mod go.sum build/generate-go-licenses.js
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)" 2>/dev/null
+	node build/generate-go-licenses.js "$(GO_LICENSE_TMP_DIR)" "$(GO_LICENSE_FILE)"
+	@rm -rf "$(GO_LICENSE_TMP_DIR)"
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -782,6 +796,7 @@ deps-backend:
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
