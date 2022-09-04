@@ -26,7 +26,6 @@ import (
 	"code.gitea.io/gitea/modules/structs"
 
 	"github.com/google/uuid"
-
 	"gopkg.in/yaml.v2"
 )
 
