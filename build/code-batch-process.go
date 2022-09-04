@@ -61,7 +61,7 @@ func newFileCollector(fileFilter string, batchSize int) (*fileCollector, error) 
 			"build",
 			"cmd",
 			"contrib",
-			"integrations",
+			"tests",
 			"models",
 			"modules",
 			"routers",
@@ -71,8 +71,8 @@ func newFileCollector(fileFilter string, batchSize int) (*fileCollector, error) 
 		co.includePatterns = append(co.includePatterns, regexp.MustCompile(`.*\.go$`))
 
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`.*\bbindata\.go$`))
-		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`integrations/gitea-repositories-meta`))
-		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`integrations/migration-test`))
+		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`tests/gitea-repositories-meta`))
+		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`tests/integration/migration-test`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`modules/git/tests`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`models/fixtures`))
 		co.excludePatterns = append(co.excludePatterns, regexp.MustCompile(`models/migrations/fixtures`))
