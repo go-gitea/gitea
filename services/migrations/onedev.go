@@ -110,6 +110,20 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 	return downloader
 }
 
+// String implements Stringer
+func (d *OneDevDownloader) String() string {
+	return fmt.Sprintf("migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
+}
+
+// ColorFormat provides a basic color format for a OneDevDownloader
+func (d *OneDevDownloader) ColorFormat(s fmt.State) {
+	if d == nil {
+		log.ColorFprintf(s, "<nil: OneDevDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
+}
+
 func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {
 	u, err := d.baseURL.Parse(endpoint)
 	if err != nil {
@@ -542,6 +556,9 @@ func (d *OneDevDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			ForeignIndex: pr.ID,
 			Context:      onedevIssueContext{IsPullRequest: true},
 		})
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(pullRequests[len(pullRequests)-1], d.baseURL.String(), d)
 	}
 
 	return pullRequests, len(pullRequests) == 0, nil
