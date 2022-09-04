@@ -92,7 +92,7 @@ func ViewBuild(ctx *context.Context) {
 		return
 	}
 
-	ctx.Data["Title"] = build.Title + " - " + ctx.Tr("repo.builds")
+	ctx.Data["Name"] = build.Name + " - " + ctx.Tr("repo.builds")
 	ctx.Data["PageIsBuildList"] = true
 	ctx.Data["Build"] = build
 	statuses, err := bots_model.GetBuildWorkflows(build.ID)

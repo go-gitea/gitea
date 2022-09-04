@@ -2,9 +2,12 @@ package core
 
 import (
 	"context"
+	"errors"
 
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
+
+var ErrDataLock = errors.New("Data Lock Error")
 
 type Filter struct {
 	Kind   string

@@ -94,7 +94,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 	}
 
 	build := bots_model.Build{
-		Title:         commit.Message(),
+		Name:          commit.Message(),
 		RepoID:        repo.ID,
 		TriggerUserID: doer.ID,
 		Event:         evt,

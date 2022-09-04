@@ -6,6 +6,7 @@ package bots
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
@@ -29,7 +30,9 @@ type BuildStage struct {
 	Started   timeutil.TimeStamp
 	Stopped   timeutil.TimeStamp
 	LogToFile bool               // read log from database or from storage
+	Version   int                `xorm:"version"`
 	Created   timeutil.TimeStamp `xorm:"created"`
+	Updated   timeutil.TimeStamp `xorm:"updated"`
 }
 
 func (bj BuildStage) TableName() string {
@@ -67,6 +70,34 @@ func FindStages(ctx context.Context, opts FindStageOptions) (BuildStageList, err
 	}
 	var rows []*BuildStage
 	return rows, sess.Find(&rows)
+}
+
+// GetStageByID gets build stage by id
+func GetStageByID(id int64) (*BuildStage, error) {
+	var build BuildStage
+	has, err := db.GetEngine(db.DefaultContext).Where("id=?", id).Get(&build)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrBuildStageNotExist{
+			ID: id,
+		}
+	}
+	return &build, nil
+}
+
+// ErrBuildNotExist represents an error for bot build not exist
+type ErrBuildStageNotExist struct {
+	ID int64
+}
+
+func (err ErrBuildStageNotExist) Error() string {
+	return fmt.Sprintf("build stage [%d] is not exist", err.ID)
+}
+
+// UpdateBuildStage updates build stage
+func UpdateBuildStage(t *BuildStage, cols ...string) (int64, error) {
+	return db.GetEngine(db.DefaultContext).ID(t.ID).Cols(cols...).Update(t)
 }
 
 func GetBuildWorkflows(buildID int64) (map[string]map[string]*BuildStage, error) {

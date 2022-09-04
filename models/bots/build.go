@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
@@ -30,7 +31,7 @@ func init() {
 // Build represnets bot build task
 type Build struct {
 	ID            int64
-	Title         string
+	Name          string
 	UUID          string `xorm:"CHAR(36)"`
 	Index         int64  `xorm:"index unique(repo_index)"`
 	RepoID        int64  `xorm:"index unique(repo_index)"`
@@ -138,11 +139,20 @@ func UpdateBuild(t *Build, cols ...string) error {
 type ErrBuildNotExist struct {
 	RepoID int64
 	Index  int64
+	ID     int64
 	UUID   string
 }
 
 func (err ErrBuildNotExist) Error() string {
-	return fmt.Sprintf("Bot build [%s] is not exist", err.UUID)
+	uuid := ""
+	if err.UUID != "" {
+		uuid = err.UUID
+	}
+
+	if err.ID != 0 {
+		uuid = strconv.FormatInt(err.ID, 10)
+	}
+	return fmt.Sprintf("build [%s] is not exist", uuid)
 }
 
 // GetBuildByUUID gets bot build by uuid
@@ -156,6 +166,20 @@ func GetBuildByUUID(buildUUID string) (*Build, error) {
 			UUID: buildUUID,
 		}
 	}
+	return &build, nil
+}
+
+func GetBuildByID(id int64) (*Build, error) {
+	var build Build
+	has, err := db.GetEngine(db.DefaultContext).Where("id=?", id).Get(&build)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrBuildNotExist{
+			ID: id,
+		}
+	}
+
 	return &build, nil
 }
 
