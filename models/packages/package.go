@@ -214,9 +214,16 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		Find(&ps)
 }
 
-// HasOwnerPackages tests if a user/org has packages
+// HasOwnerPackages tests if a user/org has accessible packages
 func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
-	return db.GetEngine(ctx).Where("owner_id = ?", ownerID).Exist(&Package{})
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+		}).
+		Exist(&PackageVersion{})
 }
 
 // HasRepositoryPackages tests if a repository has packages
