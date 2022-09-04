@@ -25,15 +25,12 @@ func str2url(raw string) *url.URL {
 func TestDetermineLocalEndpoint(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	root, _ := os.MkdirTemp("", "lfs_test")
-	defer os.RemoveAll(root)
+	root := t.TempDir()
 
-	rootdotgit, _ := os.MkdirTemp("", "lfs_test")
-	defer os.RemoveAll(rootdotgit)
+	rootdotgit := t.TempDir()
 	os.Mkdir(filepath.Join(rootdotgit, ".git"), 0o700)
 
-	lfsroot, _ := os.MkdirTemp("", "lfs_test")
-	defer os.RemoveAll(lfsroot)
+	lfsroot := t.TempDir()
 
 	// Test cases
 	cases := []struct {
