@@ -192,7 +192,7 @@ func (c *CheckAttributeReader) Run() error {
 func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
 	defer func() {
 		if err != nil && err != c.ctx.Err() {
-			log.Error("Unexpected error when checking path %s in %s returns error: %v", path, c.Repo.Path, err)
+			log.Error("Unexpected error when checking path %s in %s. Error: %v", path, c.Repo.Path, err)
 		}
 	}()
 
