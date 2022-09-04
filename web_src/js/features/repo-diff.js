@@ -118,32 +118,24 @@ function onShowMoreFiles() {
   countAndUpdateViewedFiles();
 }
 
-export function initRepoDiffShowMore() {
-  $('#diff-files, #diff-file-boxes').on('click', '#diff-show-more-files, #diff-show-more-files-stats', (e) => {
-    e.preventDefault();
-
-    if ($(e.target).hasClass('disabled')) {
+export function doLoadMoreFiles(link, diffEnd, callback) {
+  const url = `${link}?skip-to=${diffEnd}&file-only=true`;
+  $.ajax({
+    type: 'GET',
+    url,
+  }).done((resp) => {
+    if (!resp) {
+      callback(resp);
       return;
     }
-    $('#diff-show-more-files, #diff-show-more-files-stats').addClass('disabled');
-
-    const url = $('#diff-show-more-files, #diff-show-more-files-stats').data('href');
-    $.ajax({
-      type: 'GET',
-      url,
-    }).done((resp) => {
-      if (!resp) {
-        $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-        return;
-      }
-      $('#diff-too-many-files-stats').remove();
-      $('#diff-files').append($(resp).find('#diff-files li'));
-      $('#diff-incomplete').replaceWith($(resp).find('#diff-file-boxes').children());
-      onShowMoreFiles();
-    }).fail(() => {
-      $('#diff-show-more-files, #diff-show-more-files-stats').removeClass('disabled');
-    });
+    $('body').append($(resp).find('script#diff-data-script'));
+    callback(resp);
+  }).fail(() => {
+    callback();
   });
+}
+
+export function initRepoDiffShowMore() {
   $(document).on('click', 'a.diff-show-more-button', (e) => {
     e.preventDefault();
     const $target = $(e.target);

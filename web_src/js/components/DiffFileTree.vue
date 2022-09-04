@@ -1,34 +1,35 @@
 <template>
   <div
-    v-show="visibilityInfo.isVisible"
+    v-show="fileTreeIsVisible"
     id="diff-file-tree"
     class="mr-3 mt-3 diff-detail-box"
   >
-    <div class="ui list">
+    <!-- only render the tree if we're visible. in many cases this is something that doesn't change very often -->
+    <div class="ui list" v-if="fileTreeIsVisible">
       <DiffFileTreeItem v-for="item in fileTree" :key="item.name" :item="item" />
     </div>
     <div v-if="isIncomplete" id="diff-too-many-files-stats" class="pt-2">
-      <span>{{ tooManyFilesMessage }}</span>
+      <span>{{ tooManyFilesMessage }}</span><a :class="['ui', 'basic', 'tiny', 'button', isLoadingNewData === true ? 'disabled' : '']" id="diff-show-more-files-stats" @click.stop="loadMoreData">{{ showMoreMessage }}</a>
     </div>
   </div>
 </template>
 
 <script>
 import DiffFileTreeItem from './DiffFileTreeItem.vue';
+import {doLoadMoreFiles} from '../features/repo-diff.js';
 
 const {pageData} = window.config;
 const LOCAL_STORAGE_KEY = 'diff_file_tree_visible';
 
 export default {
-  name: 'PullRequestFileTree',
+  name: 'DiffFileTree',
   components: {DiffFileTreeItem},
 
-  data: () => ({
-    files: pageData.pullRequestFileTree.files,
-    isIncomplete: pageData.pullRequestFileTree.isIncomplete,
-    visibilityInfo: pageData.pullRequestFileTree.visibilityInfo,
-    tooManyFilesMessage: pageData.pullRequestFileTree.tooManyFilesMessage
-  }),
+  data: () => {
+    const fileTreeIsVisible = localStorage.getItem(LOCAL_STORAGE_KEY) === 'true';
+    pageData.diffFileInfo.fileTreeIsVisible = fileTreeIsVisible;
+    return pageData.diffFileInfo;
+  },
 
   computed: {
     fileTree() {
@@ -77,54 +78,43 @@ export default {
         }
       }
       return result;
-    },
-  },
-
-  watch: {
-    visibilityInfo: {
-      handler(val) {
-        if (val.isVisible === true) {
-          localStorage.setItem(LOCAL_STORAGE_KEY, 'true');
-        } else {
-          localStorage.setItem(LOCAL_STORAGE_KEY, 'false');
-        }
-      },
-      deep: true,
-    },
-  },
-
-  created() {
-    const savedVisibility = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (savedVisibility === 'true') {
-      this.visibilityInfo.isVisible = true;
     }
   },
 
   mounted() {
     // ensure correct buttons when we are mounted to the dom
-    this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
+    this.adjustShowHideButtons(this.fileTreeIsVisible);
 
     // Add our eventlisteners to the show / hide buttons
     document
       .querySelector('.diff-show-file-tree-button')
       .addEventListener('click', (evt) => {
         evt.stopPropagation();
-        this.visibilityInfo.isVisible = !this.visibilityInfo.isVisible;
-        this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
+        this.toggleVisibility(this.fileTreeIsVisible);
       });
     document
       .querySelector('.diff-hide-file-tree-button')
       .addEventListener('click', (evt) => {
         evt.stopPropagation();
-        this.visibilityInfo.isVisible = !this.visibilityInfo.isVisible;
-        this.toggleExpandCollapseButtons(this.visibilityInfo.isVisible);
+        this.toggleVisibility(this.fileTreeIsVisible);
       });
   },
 
   methods: {
-    toggleExpandCollapseButtons(isCurrentlyVisible) {
+    toggleVisibility(isCurrentlyVisible) {
+      this.fileTreeIsVisible = !isCurrentlyVisible; // toggle the visibility
+      localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
+      this.adjustShowHideButtons(this.fileTreeIsVisible);
+    },
+    adjustShowHideButtons(isCurrentlyVisible) {
       document.querySelector('.diff-show-file-tree-button').style.display = isCurrentlyVisible ? 'none' : 'block';
       document.querySelector('.diff-hide-file-tree-button').style.display = isCurrentlyVisible ? 'block' : 'none';
+    },
+    loadMoreData() {
+      this.isLoadingNewData = true;
+      doLoadMoreFiles(this.link, this.diffEnd, () => {
+        this.isLoadingNewData = false;
+      });
     }
   },
 };
