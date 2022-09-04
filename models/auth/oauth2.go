@@ -512,8 +512,12 @@ func GetActiveOAuth2ProviderSources() ([]*Source, error) {
 func GetActiveOAuth2SourceByName(name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
-	if !has || err != nil {
+	if err != nil {
 		return nil, err
+	}
+
+	if !has {
+		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

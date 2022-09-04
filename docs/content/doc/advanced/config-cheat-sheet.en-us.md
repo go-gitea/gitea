@@ -172,7 +172,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## UI (`ui`)
 
 - `EXPLORE_PAGING_NUM`: **20**: Number of repositories that are shown in one explore page.
-- `ISSUE_PAGING_NUM`: **10**: Number of issues that are shown in one page (for all pages that list issues).
+- `ISSUE_PAGING_NUM`: **20**: Number of issues that are shown in one page (for all pages that list issues, milestones, projects).
 - `MEMBERS_PAGING_NUM`: **20**: Number of members that are shown in organization members.
 - `FEED_MAX_COMMIT_NUM`: **5**: Number of maximum commits shown in one activity feed.
 - `FEED_PAGING_NUM`: **20**: Number of items that are displayed in home feed.
@@ -194,6 +194,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `DEFAULT_SHOW_FULL_NAME`: **false**: Whether the full name of the users should be shown where possible. If the full name isn't set, the username will be used.
 - `SEARCH_REPO_DESCRIPTION`: **true**: Whether to search within description at repository search on explore page.
 - `USE_SERVICE_WORKER`: **false**: Whether to enable a Service Worker to cache frontend assets.
+- `ONLY_SHOW_RELEVANT_REPOS`: **false** Whether to only show relevant repos on the explore page when no keyword is specified and default sorting is used.
+    A repo is considered irrelevant if it's a fork or if it has no metadata (no description, no icon, no topic).
 
 ### UI - Admin (`ui.admin`)
 
@@ -238,6 +240,10 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 ## Server (`server`)
 
 - `PROTOCOL`: **http**: \[http, https, fcgi, http+unix, fcgi+unix\]
+- `USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol headers on connections
+- `PROXY_PROTOCOL_TLS_BRIDGING`: **false**: When protocol is https, expect PROXY protocol headers after TLS negotiation.
+- `PROXY_PROTOCOL_HEADER_TIMEOUT`: **5s**: Timeout to wait for PROXY protocol header (set to 0 to have no timeout)
+- `PROXY_PROTOCOL_ACCEPT_UNKNOWN`: **false**: Accept PROXY protocol headers with Unknown type.
 - `DOMAIN`: **localhost**: Domain name of this server.
 - `ROOT_URL`: **%(PROTOCOL)s://%(DOMAIN)s:%(HTTP\_PORT)s/**:
    Overwrite the automatically generated public URL.
@@ -262,12 +268,15 @@ The following configuration set `Content-Type: application/vnd.android.package-a
    most cases you do not need to change the default value. Alter it only if
    your SSH server node is not the same as HTTP node. Do not set this variable
    if `PROTOCOL` is set to `http+unix`.
+- `LOCAL_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: When making local connections pass the PROXY protocol header.
+   This should be set to false if the local connection will go through the proxy.
 - `PER_WRITE_TIMEOUT`: **30s**: Timeout for any write to the connection. (Set to -1 to
    disable all timeouts.)
 - `PER_WRITE_PER_KB_TIMEOUT`: **10s**: Timeout per Kb written to connections.
 
 - `DISABLE_SSH`: **false**: Disable SSH feature when it's not available.
 - `START_SSH_SERVER`: **false**: When enabled, use the built-in SSH server.
+- `SSH_SERVER_USE_PROXY_PROTOCOL`: **false**: Expect PROXY protocol header on connections to the built-in SSH Server.
 - `BUILTIN_SSH_SERVER_USER`: **%(RUN_USER)s**: Username to use for the built-in SSH Server.
 - `SSH_USER`: **%(BUILTIN_SSH_SERVER_USER)**: SSH username displayed in clone URLs. This is only for people who configure the SSH server themselves; in most cases, you want to leave this blank and modify the `BUILTIN_SSH_SERVER_USER`.
 - `SSH_DOMAIN`: **%(DOMAIN)s**: Domain name of this server, used for displayed clone URL.
@@ -296,8 +305,8 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `MINIMUM_KEY_SIZE_CHECK`: **true**: Indicate whether to check minimum key size with corresponding type.
 
 - `OFFLINE_MODE`: **false**: Disables use of CDN for static files and Gravatar for profile pictures.
-- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
-- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. From 1.11 paths are relative to `CUSTOM_PATH`.
+- `CERT_FILE`: **https/cert.pem**: Cert file path used for HTTPS. When chaining, the server certificate must come first, then intermediate CA certificates (if any). This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
+- `KEY_FILE`: **https/key.pem**: Key file path used for HTTPS. This is ignored if `ENABLE_ACME=true`. Paths are relative to `CUSTOM_PATH`.
 - `STATIC_ROOT_PATH`: **./**: Upper level of template and static files path.
 - `APP_DATA_PATH`: **data** (**/data/gitea** on docker): Default path for application data.
 - `STATIC_CACHE_TIME`: **6h**: Web browser cache time for static resources on `custom/`, `public/` and all uploaded avatars. Note that this cache is disabled when `RUN_MODE` is "dev".
@@ -313,6 +322,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `LFS_LOCKS_PAGING_NUM`: **50**: Maximum number of LFS Locks returned per page.
 
 - `REDIRECT_OTHER_PORT`: **false**: If true and `PROTOCOL` is https, allows redirecting http requests on `PORT_TO_REDIRECT` to the https port Gitea listens on.
+- `REDIRECTOR_USE_PROXY_PROTOCOL`: **%(USE_PROXY_PROTOCOL)**: expect PROXY protocol header on connections to https redirector.
 - `PORT_TO_REDIRECT`: **80**: Port for the http redirection service to listen on. Used when `REDIRECT_OTHER_PORT` is true.
 - `SSL_MIN_VERSION`: **TLSv1.2**: Set the minimum version of ssl support.
 - `SSL_MAX_VERSION`: **\<empty\>**: Set the maximum version of ssl support.
@@ -438,11 +448,11 @@ Configuration at `[queue]` will set defaults for queues with overrides for indiv
 - `MAX_ATTEMPTS`: **10**: Maximum number of attempts to create the wrapped queue
 - `TIMEOUT`: **GRACEFUL_HAMMER_TIME + 30s**: Timeout the creation of the wrapped queue if it takes longer than this to create.
 - Queues by default come with a dynamically scaling worker pool. The following settings configure this:
-- `WORKERS`: **0** (v1.14 and before: **1**): Number of initial workers for the queue.
+- `WORKERS`: **0**: Number of initial workers for the queue.
 - `MAX_WORKERS`: **10**: Maximum number of worker go-routines for the queue.
 - `BLOCK_TIMEOUT`: **1s**: If the queue blocks for this time, boost the number of workers - the `BLOCK_TIMEOUT` will then be doubled before boosting again whilst the boost is ongoing.
 - `BOOST_TIMEOUT`: **5m**: Boost workers will timeout after this long.
-- `BOOST_WORKERS`: **1** (v1.14 and before: **5**): This many workers will be added to the worker pool if there is a boost.
+- `BOOST_WORKERS`: **1**: This many workers will be added to the worker pool if there is a boost.
 
 Gitea creates the following non-unique queues:
 
@@ -492,6 +502,8 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    authentication.
 - `REVERSE_PROXY_AUTHENTICATION_EMAIL`: **X-WEBAUTH-EMAIL**: Header name for reverse proxy
    authentication provided email.
+- `REVERSE_PROXY_AUTHENTICATION_FULL_NAME`: **X-WEBAUTH-FULLNAME**: Header name for reverse proxy
+   authentication provided full name.
 - `REVERSE_PROXY_LIMIT`: **1**: Interpret X-Forwarded-For header or the X-Real-IP header and set this as the remote IP for the request.
    Number of trusted proxy count. Set to zero to not use these headers.
 - `REVERSE_PROXY_TRUSTED_PROXIES`: **127.0.0.0/8,::1/128**: List of IP addresses and networks separated by comma of trusted proxy servers. Use `*` to trust all.
@@ -577,15 +589,20 @@ Certain queues have defaults that override the defaults set in `[queue]` (this o
    for reverse authentication.
 - `ENABLE_REVERSE_PROXY_EMAIL`: **false**: Enable this to allow to auto-registration with a
    provided email rather than a generated email.
+- `ENABLE_REVERSE_PROXY_FULL_NAME`: **false**: Enable this to allow to auto-registration with a
+   provided full name for the user.
 - `ENABLE_CAPTCHA`: **false**: Enable this to use captcha validation for registration.
 - `REQUIRE_EXTERNAL_REGISTRATION_CAPTCHA`: **false**: Enable this to force captcha validation
-   even for External Accounts (i.e. GitHub, OpenID Connect, etc). You must `ENABLE_CAPTCHA` also.
-- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha\]
+   even for External Accounts (i.e. GitHub, OpenID Connect, etc). You also must enable `ENABLE_CAPTCHA`.
+- `CAPTCHA_TYPE`: **image**: \[image, recaptcha, hcaptcha, mcaptcha\]
 - `RECAPTCHA_SECRET`: **""**: Go to https://www.google.com/recaptcha/admin to get a secret for recaptcha.
 - `RECAPTCHA_SITEKEY`: **""**: Go to https://www.google.com/recaptcha/admin to get a sitekey for recaptcha.
 - `RECAPTCHA_URL`: **https://www.google.com/recaptcha/**: Set the recaptcha url - allows the use of recaptcha net.
 - `HCAPTCHA_SECRET`: **""**: Sign up at https://www.hcaptcha.com/ to get a secret for hcaptcha.
 - `HCAPTCHA_SITEKEY`: **""**: Sign up at https://www.hcaptcha.com/ to get a sitekey for hcaptcha.
+- `MCAPTCHA_SECRET`: **""**: Go to your mCaptcha instance to get a secret for mCaptcha.
+- `MCAPTCHA_SITEKEY`: **""**: Go to your mCaptcha instance to get a sitekey for mCaptcha.
+- `MCAPTCHA_URL` **https://demo.mcaptcha.org/**: Set the mCaptcha URL.
 - `DEFAULT_KEEP_EMAIL_PRIVATE`: **false**: By default set users to keep their email address private.
 - `DEFAULT_ALLOW_CREATE_ORGANIZATION`: **true**: Allow new users to create organizations by default.
 - `DEFAULT_USER_IS_RESTRICTED`: **false**: Give new users restricted permissions by default
@@ -631,7 +648,7 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 - `QUEUE_LENGTH`: **1000**: Hook task queue length. Use caution when editing this value.
 - `DELIVER_TIMEOUT`: **5**: Delivery timeout (sec) for shooting webhooks.
-- `ALLOWED_HOST_LIST`: **external**: Since 1.15.7. Default to `*` for 1.15.x, `external` for 1.16 and later. Webhook can only call allowed hosts for security reasons. Comma separated list.
+- `ALLOWED_HOST_LIST`: **external**: Webhook can only call allowed hosts for security reasons. Comma separated list.
   - Built-in networks:
     - `loopback`: 127.0.0.0/8 for IPv4 and ::1/128 for IPv6, localhost is included.
     - `private`: RFC 1918 (10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16) and RFC 4193 (FC00::/7). Also called LAN/Intranet.
@@ -646,42 +663,42 @@ Define allowed algorithms and their minimum key length (use -1 to disable a type
 
 ## Mailer (`mailer`)
 
+⚠️ This section is for Gitea 1.18 and later. If you are using Gitea 1.17 or older,
+please refer to
+[Gitea 1.17 app.ini example](https://github.com/go-gitea/gitea/blob/release/v1.17/custom/conf/app.example.ini)
+and
+[Gitea 1.17 configuration document](https://github.com/go-gitea/gitea/blob/release/v1.17/docs/content/doc/advanced/config-cheat-sheet.en-us.md)
+
 - `ENABLED`: **false**: Enable to use a mail service.
-- `DISABLE_HELO`: **\<empty\>**: Disable HELO operation.
-- `HELO_HOSTNAME`: **\<empty\>**: Custom hostname for HELO operation.
-- `HOST`: **\<empty\>**: SMTP mail host address and port (example: smtp.gitea.io:587).
-  - As per RFC 8314, if supported, Implicit TLS/SMTPS on port 465 is recommended, otherwise opportunistic TLS via STARTTLS on port 587 should be used.
-- `IS_TLS_ENABLED` :  **false** : Forcibly use TLS to connect even if not on a default SMTPS port.
-  - Note, if the port ends with `465` Implicit TLS/SMTPS/SMTP over TLS will be used despite this setting.
-  - Otherwise if `IS_TLS_ENABLED=false` and the server supports `STARTTLS` this will be used. Thus if `STARTTLS` is preferred you should set `IS_TLS_ENABLED=false`.
-- `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or
-   the "Name" \<email@example.com\> format.
-- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
+- `PROTOCOL`: **\<empty\>**: Mail server protocol. One of "smtp", "smtps", "smtp+startls", "smtp+unix", "sendmail", "dummy". _Before 1.18, this was inferred from a combination of `MAILER_TYPE` and `IS_TLS_ENABLED`._
+  - SMTP family, if your provider does not explicitly say which protocol it uses but does provide a port, you can set SMTP_PORT instead and this will be inferred.
+  - **sendmail** Use the operating system's `sendmail` command instead of SMTP. This is common on Linux systems.
+  - **dummy** Send email messages to the log as a testing phase.
+  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`, `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
+  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
+- `SMTP_ADDR`: **\<empty\>**: Mail server address. e.g. smtp.gmail.com. For smtp+unix, this should be a path to a unix socket instead. _Before 1.18, this was combined with `SMTP_PORT` under the name `HOST`._
+- `SMTP_PORT`: **\<empty\>**: Mail server port. If no protocol is specified, it will be inferred by this setting. Common ports are listed below. _Before 1.18, this was combined with `SMTP_ADDR` under the name `HOST`._
+  - 25:  insecure SMTP
+  - 465: SMTP Secure
+  - 587: StartTLS
+- `USE_CLIENT_CERT`: **false**: Use client certificate for TLS/SSL.
+- `CLIENT_CERT_FILE`: **custom/mailer/cert.pem**: Client certificate file.
+- `CLIENT_KEY_FILE`: **custom/mailer/key.pem**: Client key file.
+- `FORCE_TRUST_SERVER_CERT`: **false**: If set to `true`, completely ignores server certificate validation errors. This option is unsafe. Consider adding the certificate to the system trust store instead.
 - `USER`: **\<empty\>**: Username of mailing user (usually the sender's e-mail address).
 - `PASSWD`: **\<empty\>**: Password of mailing user.  Use \`your password\` for quoting if you use special characters in the password.
-  - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or `HOST=localhost`. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
-- `SEND_AS_PLAIN_TEXT`: **false**: Send mails as plain text.
-- `SKIP_VERIFY`: **false**: Whether or not to skip verification of certificates; `true` to disable verification.
-  - **Warning:** This option is unsafe. Consider adding the certificate to the system trust store instead.
-  - **Note:** Gitea only supports SMTP with STARTTLS.
-- `USE_CERTIFICATE`: **false**: Use client certificate.
-- `CERT_FILE`: **custom/mailer/cert.pem**
-- `KEY_FILE`: **custom/mailer/key.pem**
+  - Please note: authentication is only supported when the SMTP server communication is encrypted with TLS (this can be via `STARTTLS`) or SMTP host is localhost. See [Email Setup]({{< relref "doc/usage/email-setup.en-us.md" >}}) for more information.
+- `ENABLE_HELO`: **true**: Enable HELO operation.
+- `HELO_HOSTNAME`: **(retrieved from system)**: HELO hostname.
+- `FROM`: **\<empty\>**: Mail from address, RFC 5322. This can be just an email address, or the "Name" \<email@example.com\> format.
+- `ENVELOPE_FROM`: **\<empty\>**: Address set as the From address on the SMTP mail envelope. Set to `<>` to send an empty address.
 - `SUBJECT_PREFIX`: **\<empty\>**: Prefix to be placed before e-mail subject lines.
-- `MAILER_TYPE`: **smtp**: \[smtp, sendmail, dummy\]
-  - **smtp** Use SMTP to send mail
-  - **sendmail** Use the operating system's `sendmail` command instead of SMTP.
-   This is common on Linux systems.
-  - **dummy** Send email messages to the log as a testing phase.
-  - Note that enabling sendmail will ignore all other `mailer` settings except `ENABLED`,
-     `FROM`, `SUBJECT_PREFIX` and `SENDMAIL_PATH`.
-  - Enabling dummy will ignore all settings except `ENABLED`, `SUBJECT_PREFIX` and `FROM`.
-- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be
-   command or full path).
-- `SENDMAIL_ARGS`: **_empty_**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
+- `SENDMAIL_PATH`: **sendmail**: The location of sendmail on the operating system (can be command or full path).
+- `SENDMAIL_ARGS`: **\<empty\>**: Specify any extra sendmail arguments. (NOTE: you should be aware that email addresses can look like options - if your `sendmail` command takes options you must set the option terminator `--`)
 - `SENDMAIL_TIMEOUT`: **5m**: default timeout for sending email through sendmail
 - `SENDMAIL_CONVERT_CRLF`: **true**: Most versions of sendmail prefer LF line endings rather than CRLF line endings. Set this to false if your version of sendmail requires CRLF line endings.
 - `SEND_BUFFER_LEN`: **100**: Buffer length of mailing queue. **DEPRECATED** use `LENGTH` in `[queue.mailer]`
+- `SEND_AS_PLAIN_TEXT`: **false**: Send mails only in plain text, without HTML alternative.
 
 ## Cache (`cache`)
 
@@ -970,7 +987,8 @@ Default templates for project boards:
 - `COMMITS_RANGE_SIZE`: **50**: Set the default commits range size
 - `BRANCHES_RANGE_SIZE`: **20**: Set the default branches range size
 - `GC_ARGS`: **\<empty\>**: Arguments for command `git gc`, e.g. `--aggressive --auto`. See more on http://git-scm.com/docs/git-gc/
-- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use Git wire protocol version 2 when Git version >= 2.18, default is true, set to false when you always want Git wire protocol version 1
+- `ENABLE_AUTO_GIT_WIRE_PROTOCOL`: **true**: If use Git wire protocol version 2 when Git version >= 2.18, default is true, set to false when you always want Git wire protocol version 1.
+  To enable this for Git over SSH when using a OpenSSH server, add `AcceptEnv GIT_PROTOCOL` to your sshd_config file.
 - `PULL_REQUEST_PUSH_MESSAGE`: **true**: Respond to pushes to a non-default branch with a URL for creating a Pull Request (if the repository has them enabled)
 - `VERBOSE_PUSH`: **true**: Print status information about pushes as they are being processed.
 - `VERBOSE_PUSH_DELAY`: **5s**: Only print verbose information if push takes longer than this delay.
