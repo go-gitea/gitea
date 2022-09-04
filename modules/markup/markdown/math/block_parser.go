@@ -5,6 +5,8 @@
 package math
 
 import (
+	"bytes"
+
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
@@ -15,13 +17,6 @@ type blockParser struct {
 	parseDollars bool
 }
 
-type blockData struct {
-	dollars bool
-	indent  int
-}
-
-var blockInfoKey = parser.NewContextKey()
-
 // NewBlockParser creates a new math BlockParser
 func NewBlockParser(parseDollarBlocks bool) parser.BlockParser {
 	return &blockParser{
@@ -31,7 +26,7 @@ func NewBlockParser(parseDollarBlocks bool) parser.BlockParser {
 
 // Open parses the current line and returns a result of parsing.
 func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Context) (ast.Node, parser.State) {
-	line, _ := reader.PeekLine()
+	line, segment := reader.PeekLine()
 	pos := pc.BlockOffset()
 	if pos == -1 || len(line[pos:]) < 2 {
 		return nil, parser.NoChildren
@@ -44,33 +39,57 @@ func (b *blockParser) Open(parent ast.Node, reader text.Reader, pc parser.Contex
 		return nil, parser.NoChildren
 	}
 
-	pc.Set(blockInfoKey, &blockData{dollars: dollars, indent: pos})
-	node := NewBlock()
+	node := NewBlock(dollars, pos)
+
+	// Now we need to check if the ending block is on the segment...
+	endBytes := []byte{'\\', ']'}
+	if dollars {
+		endBytes = []byte{'$', '$'}
+	}
+	idx := bytes.Index(line[pos+2:], endBytes)
+	if idx >= 0 {
+		segment.Stop = segment.Start + idx + 2
+		reader.Advance(segment.Len() - 1)
+		segment.Start += 2
+		node.Lines().Append(segment)
+		node.Closed = true
+		return node, parser.Close | parser.NoChildren
+	}
+
+	reader.Advance(segment.Len() - 1)
+	segment.Start += 2
+	node.Lines().Append(segment)
 	return node, parser.NoChildren
 }
 
 // Continue parses the current line and returns a result of parsing.
 func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Context) parser.State {
+	block := node.(*Block)
+	if block.Closed {
+		return parser.Close
+	}
+
 	line, segment := reader.PeekLine()
-	data := pc.Get(blockInfoKey).(*blockData)
 	w, pos := util.IndentWidth(line, 0)
 	if w < 4 {
-		if data.dollars {
+		if block.Dollars {
 			i := pos
 			for ; i < len(line) && line[i] == '$'; i++ {
 			}
 			length := i - pos
 			if length >= 2 && util.IsBlank(line[i:]) {
 				reader.Advance(segment.Stop - segment.Start - segment.Padding)
+				block.Closed = true
 				return parser.Close
 			}
 		} else if len(line[pos:]) > 1 && line[pos] == '\\' && line[pos+1] == ']' && util.IsBlank(line[pos+2:]) {
 			reader.Advance(segment.Stop - segment.Start - segment.Padding)
+			block.Closed = true
 			return parser.Close
 		}
 	}
 
-	pos, padding := util.IndentPosition(line, 0, data.indent)
+	pos, padding := util.IndentPosition(line, 0, block.Indent)
 	seg := text.NewSegmentPadding(segment.Start+pos, segment.Stop, padding)
 	node.Lines().Append(seg)
 	reader.AdvanceAndSetPadding(segment.Stop-segment.Start-pos-1, padding)
@@ -79,7 +98,7 @@ func (b *blockParser) Continue(node ast.Node, reader text.Reader, pc parser.Cont
 
 // Close will be called when the parser returns Close.
 func (b *blockParser) Close(node ast.Node, reader text.Reader, pc parser.Context) {
-	pc.Set(blockInfoKey, nil)
+	// noop
 }
 
 // CanInterruptParagraph returns true if the parser can interrupt paragraphs,

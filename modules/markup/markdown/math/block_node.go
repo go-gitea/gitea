@@ -9,14 +9,20 @@ import "github.com/yuin/goldmark/ast"
 // Block represents a math Block
 type Block struct {
 	ast.BaseBlock
+	Dollars bool
+	Indent  int
+	Closed  bool
 }
 
 // KindBlock is the node kind for math blocks
 var KindBlock = ast.NewNodeKind("MathBlock")
 
 // NewBlock creates a new math Block
-func NewBlock() *Block {
-	return &Block{}
+func NewBlock(dollars bool, indent int) *Block {
+	return &Block{
+		Dollars: dollars,
+		Indent:  indent,
+	}
 }
 
 // Dump dumps the block to a string
