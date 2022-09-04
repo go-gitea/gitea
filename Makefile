@@ -111,6 +111,8 @@ WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack pub
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
+GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
+
 SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
@@ -130,9 +132,11 @@ GO_DIRS := cmd tests models modules routers build services tools
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(GENERATED_GO_DEST)
 
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
+	GENERATED_GO_DEST += $(BINDATA_DEST)
 endif
 
 # Force installation of playwright dependencies by setting this flag
@@ -713,13 +717,14 @@ backend: go-check generate-backend $(EXECUTABLE)
 generate: generate-backend generate-frontend
 
 .PHONY: generate-backend
-generate-backend: $(TAGS_PREREQ)
+generate-backend: $(TAGS_PREREQ) generate-go generate-swagger
+
+generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
 
 .PHONY: generate-frontend
-generate-frontend: $(TAGS_PREREQ) generate-backend generate-swagger go-licenses
-
+generate-frontend: $(TAGS_PREREQ) go-licenses
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
