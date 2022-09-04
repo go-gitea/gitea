@@ -278,7 +278,9 @@ TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
 
 .PHONY: generate-swagger
-generate-swagger:
+generate-swagger: $(SWAGGER_SPEC)
+
+$(SWAGGER_SPEC): $(GO_SOURCES)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
@@ -701,16 +703,23 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST)
+frontend: generate-frontend $(WEBPACK_DEST)
 
 .PHONY: backend
-backend: go-check generate $(EXECUTABLE)
+backend: go-check generate-backend $(EXECUTABLE)
 
+# We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: $(TAGS_PREREQ)
-	@$(MAKE) --no-print-directory assets/go-licenses.json
+generate: generate-backend generate-frontend
+
+.PHONY: generate-backend
+generate-backend: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
+
+.PHONY: generate-frontend
+generate-frontend: $(TAGS_PREREQ) generate-backend generate-swagger go-licenses
+
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
