@@ -84,7 +84,7 @@
 									<a class="mono" href="{{$.RepoLink}}/src/commit/{{.Sha1}}" rel="nofollow">{{svg "octicon-git-commit" 16 "mr-2"}}{{ShortSha .Sha1}}</a>
 								</span>
 							{{end}}
-							{{if .Sha1 }}
+							{{if .Sha1}}
 								{{template "repo/branch_dropdown" dict "root" $ "release" .}}
 							{{end}}
 						{{end}}
@@ -95,12 +95,12 @@
 								<a href="{{$.RepoLink}}/src/tag/{{.TagName | PathEscapeSegments}}" rel="nofollow">{{svg "octicon-tag" 16 "mr-2"}}{{.TagName}}</a>
 							</h4>
 							<p class="text grey">
-								{{ if gt .Publisher.ID 0 }}
+								{{if gt .Publisher.ID 0}}
 								<span class="author">
 									{{avatar .Publisher 20}}
 									<a href="{{.Publisher.HomeLink}}">{{.Publisher.Name}}</a>
 								</span>
-								{{ end }}
+								{{end}}
 								<span class="ahead"><a href="{{$.RepoLink}}/compare/{{.TagName | PathEscapeSegments}}{{if .Target}}...{{.Target | PathEscapeSegments}}{{end}}">{{$.locale.Tr "repo.release.ahead.commits" .NumCommitsBehind | Str2html}}</a> {{$.locale.Tr "repo.release.ahead.target" $.DefaultBranch}}</span>
 							</p>
 							<div class="download">
