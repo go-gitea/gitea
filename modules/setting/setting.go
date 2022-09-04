@@ -351,7 +351,7 @@ var (
 		EnableHardLineBreakInDocuments: false,
 		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
 		EnableMath:                     true,
-		EnableInlineDollarMath:         false,
+		EnableInlineDollarMath:         true,
 	}
 
 	// Admin settings

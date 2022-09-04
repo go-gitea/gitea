@@ -237,7 +237,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
 - `ENABLE_MATH`: **true**: Enables detection of `\(...\)`, `\[...\]` and `$$...$$` blocks as math blocks.
-- `ENABLE_INLINE_DOLLAR_MATH`: **false**: In addition enables detection of `$...$` as inline math.
+- `ENABLE_INLINE_DOLLAR_MATH`: **true**: In addition enables detection of `$...$` as inline math.
 
 ## Server (`server`)
 
