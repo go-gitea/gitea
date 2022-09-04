@@ -46,6 +46,7 @@
     "wrap-ansi": "8.0.1"
   },
   "devDependencies": {
+    "@playwright/test": "1.25.1",
     "@stoplight/spectral-cli": "6.5.1",
     "eslint": "8.22.0",
     "eslint-plugin-import": "2.26.0",
