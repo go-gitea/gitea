@@ -119,9 +119,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-div.list {
-  padding-top: 0;
-}
-</style>
