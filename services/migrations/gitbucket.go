@@ -39,6 +39,7 @@ func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 	oldOwner := fields[1]
 	oldName := strings.TrimSuffix(fields[2], ".git")
 
+	log.Trace("Create GitBucket downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, oldOwner, oldName)
 	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
@@ -55,7 +56,7 @@ type GitBucketDownloader struct {
 
 // String implements Stringer
 func (g *GitBucketDownloader) String() string {
-	return fmt.Sprintf("migration from gitbucket server as %s/%s", g.repoOwner, g.repoName)
+	return fmt.Sprintf("migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // ColorFormat provides a basic color format for a GitBucketDownloader
@@ -64,7 +65,7 @@ func (g *GitBucketDownloader) ColorFormat(s fmt.State) {
 		log.ColorFprintf(s, "<nil: GitBucketDownloader>")
 		return
 	}
-	log.ColorFprintf(s, "migration from gitbucket server as %s/%s", g.repoOwner, g.repoName)
+	log.ColorFprintf(s, "migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // NewGitBucketDownloader creates a GitBucket downloader

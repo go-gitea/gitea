@@ -26,8 +26,8 @@ type ReleaseAsset struct {
 
 // Release represents a release
 type Release struct {
-	TagName         string `yaml:"tag_name"`         // SECURITY: This must pass git.IsValidGitReference
-	TargetCommitish string `yaml:"target_commitish"` // SECURITY: This must pass git.IsValidGitReference
+	TagName         string `yaml:"tag_name"`         // SECURITY: This must pass git.IsValidRefPattern
+	TargetCommitish string `yaml:"target_commitish"` // SECURITY: This must pass git.IsValidRefPattern
 	Name            string
 	Body            string
 	Draft           bool

@@ -75,7 +75,7 @@ type GogsDownloader struct {
 
 // String implements Stringer
 func (g *GogsDownloader) String() string {
-	return fmt.Sprintf("migration from gogs server as %s/%s", g.repoOwner, g.repoName)
+	return fmt.Sprintf("migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // ColorFormat provides a basic color format for a GogsDownloader
@@ -84,7 +84,7 @@ func (g *GogsDownloader) ColorFormat(s fmt.State) {
 		log.ColorFprintf(s, "<nil: GogsDownloader>")
 		return
 	}
-	log.ColorFprintf(s, "migration from gogs server as %s/%s", g.repoOwner, g.repoName)
+	log.ColorFprintf(s, "migration from gogs server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // SetContext set context

@@ -135,7 +135,7 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 
 // String implements Stringer
 func (g *GitlabDownloader) String() string {
-	return fmt.Sprintf("migration from gitlab server as [%d]/%s", g.repoID, g.repoName)
+	return fmt.Sprintf("migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
 }
 
 // ColorFormat provides a basic color format for a GitlabDownloader
@@ -144,7 +144,7 @@ func (g *GitlabDownloader) ColorFormat(s fmt.State) {
 		log.ColorFprintf(s, "<nil: GitlabDownloader>")
 		return
 	}
-	log.ColorFprintf(s, "migration from gitlab server as [%d]/%s", g.repoID, g.repoName)
+	log.ColorFprintf(s, "migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
 }
 
 // SetContext set context

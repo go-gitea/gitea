@@ -112,7 +112,7 @@ func NewOneDevDownloader(ctx context.Context, baseURL *url.URL, username, passwo
 
 // String implements Stringer
 func (d *OneDevDownloader) String() string {
-	return fmt.Sprintf("migration from oneDev server as [%d]/%s", d.repoID, d.repoName)
+	return fmt.Sprintf("migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
 }
 
 // ColorFormat provides a basic color format for a OneDevDownloader
@@ -121,7 +121,7 @@ func (d *OneDevDownloader) ColorFormat(s fmt.State) {
 		log.ColorFprintf(s, "<nil: OneDevDownloader>")
 		return
 	}
-	log.ColorFprintf(s, "migration from oneDev server as [%d]/%s", d.repoID, d.repoName)
+	log.ColorFprintf(s, "migration from oneDev server %s [%d]/%s", d.baseURL, d.repoID, d.repoName)
 }
 
 func (d *OneDevDownloader) callAPI(endpoint string, parameter map[string]string, result interface{}) error {

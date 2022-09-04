@@ -388,28 +388,29 @@ func (g *RepositoryDumper) createItems(dir string, itemFiles map[int64]*os.File,
 	}
 
 	for number, items := range itemsMap {
-		var err error
-		itemFile := itemFiles[number]
-		if itemFile == nil {
-			itemFile, err = os.Create(filepath.Join(dir, fmt.Sprintf("%d.yml", number)))
-			if err != nil {
-				return err
-			}
-			itemFiles[number] = itemFile
-		}
-
-		encoder := yaml.NewEncoder(itemFile)
-		if err := encoder.Encode(items); err != nil {
-			_ = encoder.Close()
-			return err
-		}
-
-		if err := encoder.Close(); err != nil {
+		if err := g.encodeItems(number, items, dir, itemFiles); err != nil {
 			return err
 		}
 	}
 
 	return nil
+}
+
+func (g *RepositoryDumper) encodeItems(number int64, items []interface{}, dir string, itemFiles map[int64]*os.File) error {
+	itemFile := itemFiles[number]
+	if itemFile == nil {
+		var err error
+		itemFile, err = os.Create(filepath.Join(dir, fmt.Sprintf("%d.yml", number)))
+		if err != nil {
+			return err
+		}
+		itemFiles[number] = itemFile
+	}
+
+	encoder := yaml.NewEncoder(itemFile)
+	defer encoder.Close()
+
+	return encoder.Encode(items)
 }
 
 // CreateComments creates comments of issues
@@ -445,7 +446,7 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 
 		// SECURITY: We will assume that the pr.PatchURL has been checked
 		// pr.PatchURL maybe a local file - but note EnsureSafe should be asserting that this safe
-		resp, err := http.Get(u)
+		resp, err := http.Get(u) // TODO: This probably needs to use the downloader as there may be rate limiting issues here
 		if err != nil {
 			return err
 		}
@@ -559,8 +560,12 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		_, _, err = git.NewCommand(g.ctx, "fetch", "--no-tags", "--", remote, fetchArg).RunStdString(&git.RunOpts{Dir: g.gitPath()})
 		if err != nil {
 			log.Error("Fetch branch from %s failed: %v", pr.Head.CloneURL, err)
+			// We need to continue here so that the Head.Ref is reset and we attempt to set the gitref for the PR
+			// (This last step will likely fail but we should try to do as much as we can.)
+		} else {
+			// Cache the localRef as the Head.Ref - if we've failed we can always try again.
+			g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 		}
-		g.prHeadCache[pr.Head.CloneURL+":"+pr.Head.Ref] = localRef
 	}
 
 	// Set the pr.Head.Ref to the localRef
@@ -575,9 +580,11 @@ func (g *RepositoryDumper) handlePullRequest(pr *base.PullRequest) error {
 		}
 		pr.Head.SHA = headSha
 	}
-	_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
-	if err != nil {
-		log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+	if pr.Head.SHA != "" {
+		_, _, err = git.NewCommand(g.ctx, "update-ref", "--no-deref", pr.GetGitRefName(), pr.Head.SHA).RunStdString(&git.RunOpts{Dir: g.gitPath()})
+		if err != nil {
+			log.Error("unable to set %s as the local head for PR #%d from %s in %s/%s. Error: %v", pr.Head.SHA, pr.Number, pr.Head.Ref, g.repoOwner, g.repoName, err)
+		}
 	}
 
 	return nil

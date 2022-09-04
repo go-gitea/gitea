@@ -29,7 +29,7 @@ func hasBaseURL(toCheck, baseURL string) bool {
 	return strings.HasPrefix(toCheck, baseURL)
 }
 
-// CheckAndEnsureSafePR will check that a give PR is safe
+// CheckAndEnsureSafePR will check that a given PR is safe to download
 func CheckAndEnsureSafePR(pr *base.PullRequest, commonCloneBaseURL string, g base.Downloader) bool {
 	valid := true
 	// SECURITY: the patchURL must be checked to have the same baseURL as the current to prevent open redirect

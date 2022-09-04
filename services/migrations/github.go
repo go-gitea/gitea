@@ -51,7 +51,7 @@ func (f *GithubDownloaderV3Factory) New(ctx context.Context, opts base.MigrateOp
 	oldOwner := fields[1]
 	oldName := strings.TrimSuffix(fields[2], ".git")
 
-	log.Trace("Create github downloader: %s/%s", oldOwner, oldName)
+	log.Trace("Create github downloader BaseURL: %s %s/%s", baseURL, oldOwner, oldName)
 
 	return NewGithubDownloaderV3(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
@@ -122,7 +122,7 @@ func NewGithubDownloaderV3(ctx context.Context, baseURL, userName, password, tok
 
 // String implements Stringer
 func (g *GithubDownloaderV3) String() string {
-	return fmt.Sprintf("migration from github server as %s/%s", g.repoOwner, g.repoName)
+	return fmt.Sprintf("migration from github server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // ColorFormat provides a basic color format for a GithubDownloader
@@ -131,7 +131,7 @@ func (g *GithubDownloaderV3) ColorFormat(s fmt.State) {
 		log.ColorFprintf(s, "<nil: GithubDownloaderV3>")
 		return
 	}
-	log.ColorFprintf(s, "migration from github server as %s/%s", g.repoOwner, g.repoName)
+	log.ColorFprintf(s, "migration from github server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 func (g *GithubDownloaderV3) addClient(client *http.Client, baseURL string) {
@@ -370,7 +370,7 @@ func (g *GithubDownloaderV3) convertGithubRelease(rel *github.RepositoryRelease)
 				resp, err := httpClient.Do(req)
 				err1 := g.RefreshRate()
 				if err1 != nil {
-					log.Error("g.getClient().RateLimits: %s", err1)
+					log.Error("g.RefreshRate(): %s", err1)
 				}
 				if err != nil {
 					return nil, err

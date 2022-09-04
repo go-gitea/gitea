@@ -107,7 +107,22 @@ func NewCodebaseDownloader(ctx context.Context, projectURL *url.URL, project, re
 		commitMap: make(map[string]string),
 	}
 
+	log.Trace("Create Codebase downloader. BaseURL: %s Project: %s RepoName: %s", baseURL, project, repoName)
 	return downloader
+}
+
+// String implements Stringer
+func (g *CodebaseDownloader) String() string {
+	return fmt.Sprintf("migration from codebase server %s %s/%s", g.baseURL, g.project, g.repoName)
+}
+
+// ColorFormat provides a basic color format for a GogsDownloader
+func (g *CodebaseDownloader) ColorFormat(s fmt.State) {
+	if g == nil {
+		log.ColorFprintf(s, "<nil: CodebaseDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from codebase server %s %s/%s", g.baseURL, g.project, g.repoName)
 }
 
 // FormatCloneURL add authentication into remote URLs
