@@ -171,19 +171,19 @@ func UploadPackage(ctx *context.Context) {
 
 	repo, err := repo_model.GetRepositoryByURL(npmPackage.Metadata.RepositoryURL)
 	if err == nil {
-		flag := repo.OwnerID == ctx.Doer.ID
+		canWrite := repo.OwnerID == ctx.Doer.ID
 
-		if !flag {
+		if !canWrite {
 			perms, err := access_model.GetUserRepoPermission(ctx, repo, ctx.Doer)
 			if err != nil {
 				apiError(ctx, http.StatusInternalServerError, err)
 				return
 			}
 
-			flag = perms.CanWrite(unit.TypePackages)
+			canWrite = perms.CanWrite(unit.TypePackages)
 		}
 
-		if !flag {
+		if !canWrite {
 			apiError(ctx, http.StatusForbidden, "no permission to upload this package")
 			return
 		}
