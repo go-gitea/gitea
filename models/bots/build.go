@@ -233,7 +233,7 @@ func (opts FindBuildOptions) toConds() builder.Cond {
 	if opts.IsClosed.IsTrue() {
 		cond = cond.And(builder.Expr("status IN (?,?,?,?)", core.StatusError, core.StatusFailing, core.StatusPassing))
 	} else if opts.IsClosed.IsFalse() {
-		cond = cond.And(builder.Expr("status IN (?,?,?)", core.StatusPending, core.StatusRunning))
+		cond = cond.And(builder.Expr("status IN (?,?,?)", core.StatusWaiting, core.StatusPending, core.StatusRunning))
 	}
 	return cond
 }

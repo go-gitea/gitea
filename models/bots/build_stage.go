@@ -52,7 +52,7 @@ func (opts FindStageOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"build_id": opts.BuildID})
 	}
 	if opts.IsClosed.IsTrue() {
-		cond = cond.And(builder.Expr("status IN (?,?,?,?)", core.StatusError, core.StatusFailing, core.StatusPassing))
+		cond = cond.And(builder.Expr("status IN (?,?,?,?)", core.StatusError, core.StatusFailing, core.StatusPassing, core.StatusKilled))
 	} else if opts.IsClosed.IsFalse() {
 		cond = cond.And(builder.Expr("status IN (?,?,?)", core.StatusPending, core.StatusRunning))
 	}
