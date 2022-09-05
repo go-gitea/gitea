@@ -101,7 +101,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 		// Delete Comments
 		const batchSize = 50
 		for {
-			comments := make([]*issues_model.Comment, 0, 50)
+			comments := make([]*issues_model.Comment, 0, batchSize)
 			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, 0).Find(&comments); err != nil {
 				return err
 			}
