@@ -111,6 +111,8 @@ WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack pub
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
+GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
+
 SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
@@ -130,9 +132,12 @@ GO_DIRS := cmd tests models modules routers build services tools
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(GENERATED_GO_DEST)
+GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
+	GENERATED_GO_DEST += $(BINDATA_DEST)
 endif
 
 # Force installation of playwright dependencies by setting this flag
@@ -259,7 +264,7 @@ clean:
 fmt:
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
 .PHONY: vet
@@ -278,7 +283,9 @@ TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
 
 .PHONY: generate-swagger
-generate-swagger:
+generate-swagger: $(SWAGGER_SPEC)
+
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
@@ -398,7 +405,6 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-	@$(MAKE) --no-print-directory assets/go-licenses.json
 
 .PHONY: vendor
 vendor: tidy
@@ -702,15 +708,24 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST)
+frontend: generate-frontend $(WEBPACK_DEST)
 
 .PHONY: backend
-backend: go-check generate $(EXECUTABLE)
+backend: go-check generate-backend $(EXECUTABLE)
 
+# We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: $(TAGS_PREREQ)
+generate: generate-backend generate-frontend
+
+.PHONY: generate-backend
+generate-backend: $(TAGS_PREREQ) generate-go
+
+generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
+
+.PHONY: generate-frontend
+generate-frontend: $(TAGS_PREREQ) go-licenses
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
