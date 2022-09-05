@@ -27,7 +27,7 @@ func TestMain(m *testing.M) {
 func TestHasOwnerPackages(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
 
 	p, err := packages_model.TryInsertPackage(db.DefaultContext, &packages_model.Package{
 		OwnerID:   owner.ID,
