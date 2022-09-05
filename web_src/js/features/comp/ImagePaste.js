@@ -130,17 +130,22 @@ export function initEasyMDEFilePaste(easyMDE, $dropzone) {
 }
 
 export async function addUploadedFileToEditor(file) {
-  if (!file.editor && file.previewElement.closest('div.comment')) {
-    const editor = getAttachedEasyMDE(file.previewElement.closest('div.comment').querySelector('textarea'));
-    if (editor.codemirror) {
-      file.editor = new CodeMirrorEditor(editor.codemirror);
-    } else {
-      file.editor = new TextareaEditor(editor);
+  if (!file.editor) {
+    const form = file.previewElement.closest('div.comment');
+    if (form) {
+      const editor = getAttachedEasyMDE(form.querySelector('textarea'));
+      if (editor) {
+        if (editor.codemirror) {
+          file.editor = new CodeMirrorEditor(editor.codemirror);
+        } else {
+          file.editor = new TextareaEditor(editor);
+        }
+      }
+      if (file.editor) {
+        const name = file.name.slice(0, file.name.lastIndexOf('.'));
+        const placeholder = `![${name}](uploading ...)`;
+        file.editor.insertPlaceholder(placeholder);
+      }
     }
-  }
-  if (file.editor) {
-    const name = file.name.slice(0, file.name.lastIndexOf('.'));
-    const placeholder = `![${name}](uploading ...)`;
-    file.editor.insertPlaceholder(placeholder);
   }
 }
