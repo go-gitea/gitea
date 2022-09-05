@@ -29,9 +29,9 @@ func main() {
 	base, out := os.Args[1], os.Args[2]
 
 	paths := []string{}
-	filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
+	err := filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
 		if err != nil {
-			panic(err)
+			return err
 		}
 		if entry.IsDir() || !licenseRe.MatchString(entry.Name()) {
 			return nil
@@ -39,6 +39,10 @@ func main() {
 		paths = append(paths, path)
 		return nil
 	})
+	if err != nil {
+		panic(err)
+	}
+
 	sort.Strings(paths)
 
 	entries := []LicenseEntry{}
