@@ -16,9 +16,9 @@ import (
 	"strings"
 )
 
-// regexp is based on go-license, excluding README
+// regexp is based on go-license, excluding README and NOTICE
 // https://github.com/google/go-licenses/blob/master/licenses/find.go
-var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING|NOTICE).*$`)
+var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
 type LicenseEntry struct {
 	Name        string `json:"name"`
