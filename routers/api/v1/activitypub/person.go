@@ -10,7 +10,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -172,9 +172,9 @@ func PersonOutbox(ctx *context.APIContext) {
 	outbox := ap.OrderedCollectionPageNew(orderedCollection)
 	outbox.First = ap.IRI(link + "/outbox?page=1")
 
-	feed, err := models.GetFeeds(ctx, models.GetFeedsOptions{
+	feed, err := activities.GetFeeds(ctx, activities.GetFeedsOptions{
 		RequestedUser:       ctx.ContextUser,
-		RequestedActionType: models.ActionCreateRepo,
+		RequestedActionType: activities.ActionCreateRepo,
 		Actor:               ctx.Doer,
 		IncludePrivate:      false,
 		IncludeDeleted:      false,
