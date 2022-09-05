@@ -5,6 +5,7 @@
 package web
 
 import (
+	goctx "context"
 	"errors"
 	"fmt"
 	"io"
@@ -123,8 +124,8 @@ func (d *dataStore) GetData() map[string]interface{} {
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 and a log if so.
 // This error will be created with the gitea 500 page.
-func Recovery() func(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Recovery(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 			defer func() {
@@ -158,6 +159,7 @@ func Recovery() func(next http.Handler) http.Handler {
 						store["SignedUserName"] = ""
 					}
 
+					httpcache.AddCacheControlToHeader(w.Header(), 0, "no-transform")
 					w.Header().Set(`X-Frame-Options`, setting.CORSConfig.XFrameOptions)
 
 					if !setting.IsProd {

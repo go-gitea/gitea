@@ -10,10 +10,10 @@
 				</h2>
 				<div class="ui attached segment">
 					{{template "base/alert" .}}
-					{{if .user_email }}
+					{{if .user_email}}
 						<div class="inline field">
 							<label for="user_name">{{.locale.Tr "email"}}</label>
-							<input id="user_name" type="text" value="{{ .user_email }}" disabled>
+							<input id="user_name" type="text" value="{{.user_email}}" disabled>
 						</div>
 					{{end}}
 					{{if .IsResetForm}}
@@ -34,7 +34,7 @@
 						<h4 class="ui dividing header">
 							{{.locale.Tr "twofa"}}
 						</h4>
-						<div class="ui warning visible message">{{.locale.Tr "settings.twofa_is_enrolled" | Str2html }}</div>
+						<div class="ui warning visible message">{{.locale.Tr "settings.twofa_is_enrolled" | Str2html}}</div>
 						{{if .scratch_code}}
 						<div class="required inline field {{if .Err_Token}}error{{end}}">
 							<label for="token">{{.locale.Tr "auth.scratch_code"}}</label>

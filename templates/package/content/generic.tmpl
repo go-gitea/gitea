@@ -4,7 +4,8 @@
 		<div class="ui form">
 			<div class="field">
 				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.generic.download"}}</label>
-				<div class="markup"><pre class="code-block"><code>curl {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/generic/{{.PackageDescriptor.Package.Name}}/{{.PackageDescriptor.Version.Version}}/{{(index .PackageDescriptor.Files 0).File.Name}}</code></pre></div>
+				<div class="markup"><pre class="code-block"><code>{{range .PackageDescriptor.Files}}curl {{AppUrl}}api/packages/{{$.PackageDescriptor.Owner.Name}}/generic/{{$.PackageDescriptor.Package.Name}}/{{$.PackageDescriptor.Version.Version}}/{{.File.Name}}
+{{end}}</code></pre></div>
 			</div>
 			<div class="field">
 				<label>{{.locale.Tr "packages.generic.documentation" | Safe}}</label>
