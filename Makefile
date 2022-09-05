@@ -718,7 +718,7 @@ backend: go-check generate-backend $(EXECUTABLE)
 generate: generate-backend generate-frontend
 
 .PHONY: generate-backend
-generate-backend: $(TAGS_PREREQ) generate-go generate-swagger
+generate-backend: $(TAGS_PREREQ) generate-go
 
 generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
