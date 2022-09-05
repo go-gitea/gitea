@@ -99,7 +99,7 @@ func createPackageMetadataResponse(registryURL string, pds []*packages_model.Pac
 			Name:     pd.Package.Name,
 			Version:  pd.Version.Version,
 			Type:     packageType,
-			Created:  time.Unix(int64(pd.Version.CreatedUnix), 0),
+			Created:  pd.Version.CreatedUnix.AsLocalTime(),
 			Metadata: pd.Metadata.(*composer_module.Metadata),
 			Dist: Dist{
 				Type:     "zip",

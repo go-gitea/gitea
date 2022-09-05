@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -214,7 +213,7 @@ func LoadRepoConfig() {
 	Licenses = sortedLicenses
 }
 
-func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts models.CreateRepoOptions) error {
+func prepareRepoCommit(ctx context.Context, repo *repo_model.Repository, tmpDir, repoPath string, opts CreateRepoOptions) error {
 	commitTimeStr := time.Now().Format(time.RFC3339)
 	authorSig := repo.Owner.NewGitSig()
 
@@ -387,7 +386,7 @@ func checkInitRepository(ctx context.Context, owner, name string) (err error) {
 }
 
 // InitRepository initializes README and .gitignore if needed.
-func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
+func initRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts CreateRepoOptions) (err error) {
 	if err = checkInitRepository(ctx, repo.OwnerName, repo.Name); err != nil {
 		return err
 	}

@@ -8,6 +8,7 @@ import {attachDropdownAria} from './aria.js';
 import {addUploadedFileToEditor, removeUploadedFileFromEditor} from './comp/ImagePaste.js';
 import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
 import {getAttachedEasyMDE} from './comp/EasyMDE.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -64,29 +65,13 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initPopup(target) {
-  const $el = $(target);
-  const attr = $el.attr('data-variation');
-  const attrs = attr ? attr.split(' ') : [];
-  const variations = new Set([...attrs, 'inverted', 'tiny']);
-  $el.attr('data-variation', [...variations].join(' ')).popup();
-}
-
-export function initGlobalPopups() {
-  $('.tooltip').each((_, el) => {
-    initPopup(el);
-  });
+export function initGlobalTooltips() {
+  for (const el of document.getElementsByClassName('tooltip')) {
+    initTooltip(el);
+  }
 }
 
 export function initGlobalCommon() {
-  // Show exact time
-  $('.time-since').each(function () {
-    $(this)
-      .addClass('tooltip')
-      .attr('data-content', $(this).attr('title'))
-      .attr('title', '');
-  });
-
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
     $(window).resize(() => {
@@ -108,7 +93,12 @@ export function initGlobalCommon() {
   $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      $('.tooltip').popup('hide');
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
@@ -124,13 +114,6 @@ export function initGlobalCommon() {
 
   $('.ui.checkbox').checkbox();
 
-  $('.top.menu .tooltip').popup({
-    onShow() {
-      if ($('.top.menu .menu.transition').hasClass('visible')) {
-        return false;
-      }
-    }
-  });
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
@@ -153,16 +136,12 @@ export function initGlobalCommon() {
     }
   });
 
-  // loading-button this logic used to prevent push one form more than one time
-  $(document).on('click', '.button.loading-button', function (e) {
-    const $btn = $(this);
-
-    if ($btn.hasClass('loading')) {
-      e.preventDefault();
-      return false;
-    }
-
-    $btn.addClass('loading disabled');
+  // prevent multiple form submissions on forms containing .loading-button
+  document.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('.loading-button');
+    if (!btn) return;
+    if (btn.classList.contains('loading')) return e.preventDefault();
+    btn.classList.add('loading');
   });
 }
 

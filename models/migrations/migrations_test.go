@@ -46,7 +46,7 @@ func TestMain(m *testing.M) {
 
 	giteaConf := os.Getenv("GITEA_CONF")
 	if giteaConf == "" {
-		giteaConf = path.Join(filepath.Dir(setting.AppPath), "integrations/sqlite.ini")
+		giteaConf = path.Join(filepath.Dir(setting.AppPath), "tests/sqlite.ini")
 		fmt.Printf("Environment variable $GITEA_CONF not set - defaulting to %s\n", giteaConf)
 	}
 
@@ -66,11 +66,10 @@ func TestMain(m *testing.M) {
 
 	setting.SetCustomPathAndConf("", "", "")
 	setting.LoadForTest()
-	if err = git.InitOnceWithSync(context.Background()); err != nil {
-		fmt.Printf("Unable to InitOnceWithSync: %v\n", err)
+	if err = git.InitFull(context.Background()); err != nil {
+		fmt.Printf("Unable to InitFull: %v\n", err)
 		os.Exit(1)
 	}
-	git.CheckLFSVersion()
 	setting.InitDBConfig()
 	setting.NewLogServices(true)
 
@@ -206,8 +205,7 @@ func prepareTestEnv(t *testing.T, skip int, syncModels ...interface{}) (*xorm.En
 	ourSkip += skip
 	deferFn := PrintCurrentTest(t, ourSkip)
 	assert.NoError(t, os.RemoveAll(setting.RepoRootPath))
-	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "integrations/gitea-repositories-meta"), setting.RepoRootPath))
-	assert.NoError(t, git.InitOnceWithSync(context.Background())) // the gitconfig has been removed above, so sync the gitconfig again
+	assert.NoError(t, unittest.CopyDir(path.Join(filepath.Dir(setting.AppPath), "tests/gitea-repositories-meta"), setting.RepoRootPath))
 	ownerDirs, err := os.ReadDir(setting.RepoRootPath)
 	if err != nil {
 		assert.NoError(t, err, "unable to read the new repo root: %v\n", err)
