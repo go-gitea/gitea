@@ -422,10 +422,10 @@ tidy-check: tidy
 .PHONY: go-licenses
 go-licenses: assets/go-licenses.json
 
-assets/go-licenses.json: go.mod go.sum build/generate-go-licenses.js
-	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)" 2>/dev/null
-	node build/generate-go-licenses.js "$(GO_LICENSE_TMP_DIR)" "$(GO_LICENSE_FILE)"
-	@rm -rf "$(GO_LICENSE_TMP_DIR)"
+assets/go-licenses.json: go.mod go.sum
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
+	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
+	@rm -rf $(GO_LICENSE_TMP_DIR)
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \

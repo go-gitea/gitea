@@ -90,10 +90,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
-      - curl -sL https://deb.nodesource.com/setup_18.x | bash - && apt-get -qqy install nodejs
       - make checks-backend
-    environment:
-      DEBIAN_FRONTEND: noninteractive
     depends_on: [deps-backend]
     volumes:
       - name: deps
