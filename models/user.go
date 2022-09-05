@@ -100,9 +100,9 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 
 		// Delete Comments
 		const batchSize = 50
-		for start := 0; ; start += batchSize {
+		for {
 			comments := make([]*issues_model.Comment, 0, batchSize)
-			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, 0).Find(&comments); err != nil {
 				return err
 			}
 			if len(comments) == 0 {
@@ -200,7 +200,7 @@ func DeleteUser(ctx context.Context, u *user_model.User) (err error) {
 	// ***** END: ExternalLoginUser *****
 
 	if _, err = e.ID(u.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
+		return fmt.Errorf("delete: %v", err)
 	}
 
 	return nil
