@@ -1,5 +1,5 @@
 <div class="issue list">
-	{{ $approvalCounts := .ApprovalCounts}}
+	{{$approvalCounts := .ApprovalCounts}}
 	{{range .Issues}}
 		<li class="item df py-3">
 			<div class="issue-item-left df">
@@ -55,8 +55,8 @@
 							#{{.Index}}
 						{{end}}
 					</a>
-					{{ $timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale }}
-					{{if .OriginalAuthor }}
+					{{$timeStr := TimeSinceUnix .GetLastEventTimestamp $.locale}}
+					{{if .OriginalAuthor}}
 						{{$.locale.Tr .GetLastEventLabelFake $timeStr (.OriginalAuthor|Escape) | Safe}}
 					{{else if gt .Poster.ID 0}}
 						{{$.locale.Tr .GetLastEventLabel $timeStr (.Poster.HomeLink|Escape) (.Poster.GetDisplayName | Escape) | Safe}}

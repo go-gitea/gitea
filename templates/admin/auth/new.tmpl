@@ -30,10 +30,10 @@
 				</div>
 
 				<!-- LDAP and DLDAP -->
-				{{ template "admin/auth/source/ldap" . }}
+				{{template "admin/auth/source/ldap" .}}
 
 				<!-- SMTP -->
-				{{ template "admin/auth/source/smtp" . }}
+				{{template "admin/auth/source/smtp" .}}
 
 				<!-- PAM -->
 				<div class="pam required field {{if not (eq .type 4)}}hide{{end}}">
@@ -51,10 +51,10 @@
 				</div>
 
 				<!-- OAuth2 -->
-				{{ template "admin/auth/source/oauth" . }}
+				{{template "admin/auth/source/oauth" .}}
 
 				<!-- SSPI -->
-				{{ template "admin/auth/source/sspi" . }}
+				{{template "admin/auth/source/sspi" .}}
 
 				<div class="ldap field">
 					<div class="ui checkbox">

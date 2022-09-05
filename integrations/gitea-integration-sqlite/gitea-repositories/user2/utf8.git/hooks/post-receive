@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+ORI_DIR=`pwd`
+SHELL_FOLDER=$(cd "$(dirname "$0")";pwd)
+cd "$ORI_DIR"
+for i in `ls "$SHELL_FOLDER/post-receive.d"`; do
+    sh "$SHELL_FOLDER/post-receive.d/$i"
+done

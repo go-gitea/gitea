@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -459,7 +458,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -484,7 +483,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -785,7 +784,11 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
-	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
+	templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
+
+	if len(templateErrs) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+	}
 
 	// If a template content is set, prepend the "content". In this case that's only
 	// applicable if you have one commit to compare and that commit has a message.

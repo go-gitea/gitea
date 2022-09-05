@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+"/home/tris/Projects/go/src/code.gitea.io/gitea/gitea" hook --config='/home/tris/Projects/go/src/code.gitea.io/gitea/custom/conf/app.ini' pre-receive
