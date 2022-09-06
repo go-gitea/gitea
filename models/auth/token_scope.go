@@ -91,6 +91,33 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			return 0, fmt.Errorf("invalid access token scope: %s", v)
 		}
 		bitmap |= 1 << uint(idx)
+
+		// take care of child scopes
+		switch v {
+		case AccessTokenScopeRepo:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeRepoStatus))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopePublicRepo))
+		case AccessTokenScopeAdminOrg:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteOrg))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadOrg))
+		case AccessTokenScopeAdminPublicKey:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWritePublicKey))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadPublicKey))
+		case AccessTokenScopeAdminRepoHook:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteRepoHook))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadRepoHook))
+		case AccessTokenScopeUser:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadUser))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeUserEmail))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeUserFollow))
+		case AccessTokenScopePackage:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWritePackage))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadPackage))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeDeletePackage))
+		case AccessTokenScopeAdminGPGKey:
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteGPGKey))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadGPGKey))
+		}
 	}
 	return bitmap, nil
 }
@@ -103,6 +130,21 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	}
 
 	return bitmap.ToScope(), nil
+}
+
+// HasScope returns true if the string has the given scope
+func (s AccessTokenScope) HasScope(scope string) (bool, error) {
+	index := sliceIndex(AllAccessTokenScopes, scope)
+	if index == -1 {
+		return false, fmt.Errorf("invalid access token scope: %s", scope)
+	}
+
+	bitmap, err := s.Parse()
+	if err != nil {
+		return false, err
+	}
+
+	return bitmap&(1<<uint(index)) != 0, nil
 }
 
 // ToScope returns a normalized scope string without any duplicates.
@@ -159,6 +201,7 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	return scope
 }
 
+// sliceIndex returns the index of the first instance of str in slice, or -1 if str is not present in slice.
 func sliceIndex(slice []string, element string) int {
 	for i, v := range slice {
 		if v == element {

@@ -46,3 +46,33 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		})
 	}
 }
+
+func TestAccessTokenScope__HasScope(t *testing.T) {
+	tests := []struct {
+		in    AccessTokenScope
+		scope string
+		out   bool
+		err   error
+	}{
+		{"repo", "repo", true, nil},
+		{"repo", "repo:status", true, nil},
+		{"repo", "public_repo", true, nil},
+		{"repo", "admin:org", false, nil},
+		{"repo", "admin:public_key", false, nil},
+		{"repo:status", "repo", false, nil},
+		{"repo:status", "public_repo", false, nil},
+		{"admin:org", "write:org", true, nil},
+		{"admin:org", "read:org", true, nil},
+		{"admin:org", "admin:org", true, nil},
+		{"user", "read:user", true, nil},
+		{"package", "write:package", true, nil},
+	}
+
+	for _, test := range tests {
+		t.Run(string(test.in), func(t *testing.T) {
+			scope, err := test.in.HasScope(test.scope)
+			assert.Equal(t, test.out, scope)
+			assert.Equal(t, test.err, err)
+		})
+	}
+}
