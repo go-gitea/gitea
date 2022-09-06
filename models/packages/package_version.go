@@ -39,17 +39,17 @@ type PackageVersion struct {
 
 // GetOrInsertVersion inserts a version. If the same version exist already ErrDuplicatePackageVersion is returned
 func GetOrInsertVersion(ctx context.Context, pv *PackageVersion) (*PackageVersion, error) {
-	key := &PackageVersion{
-		PackageID:    pv.PackageID,
-		LowerVersion: pv.LowerVersion,
-	}
-
 	n, err := db.InsertOnConflictDoNothing(ctx, pv)
 	if err != nil {
 		return nil, err
 	}
 	if n != 0 {
 		return pv, nil
+	}
+
+	key := &PackageVersion{
+		PackageID:    pv.PackageID,
+		LowerVersion: pv.LowerVersion,
 	}
 
 	has, err := db.GetEngine(ctx).Get(key)
