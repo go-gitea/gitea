@@ -45,21 +45,30 @@ type PackageFile struct {
 
 // TryInsertFile inserts a file. If the file exists already ErrDuplicatePackageFile is returned
 func TryInsertFile(ctx context.Context, pf *PackageFile) (*PackageFile, error) {
-	e := db.GetEngine(ctx)
+	n, err := db.InsertOnConflictDoNothing(ctx, pf)
+	if err != nil {
+		return nil, err
+	}
+	if n != 0 {
+		return pf, nil
+	}
 
 	key := &PackageFile{
 		VersionID:    pf.VersionID,
 		LowerName:    pf.LowerName,
 		CompositeKey: pf.CompositeKey,
 	}
-
-	if _, err := e.Insert(pf); err != nil {
-		if has, _ := e.Get(key); has {
-			return pf, ErrDuplicatePackageFile
+	has, err := db.GetEngine(ctx).Get(key)
+	if has {
+		if n == 0 {
+			err = ErrDuplicatePackageFile
 		}
-		return nil, err
+		return key, err
+	} else if err == nil {
+		return TryInsertFile(ctx, pf)
 	}
-	return pf, nil
+
+	return key, err
 }
 
 // GetFilesByVersionID gets all files of a version
