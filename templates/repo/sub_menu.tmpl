@@ -39,7 +39,7 @@
 	</div>
 	<a class="ui segment language-stats">
 		{{range .LanguageStats}}
-		<div class="bar tooltip" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-placement="top" data-content={{ .Language }}>&nbsp;</div>
+		<div class="bar tooltip" style="width: {{.Percentage}}%; background-color: {{.Color}}" data-placement="top" data-content={{.Language}}>&nbsp;</div>
 		{{end}}
 	</a>
 	{{end}}

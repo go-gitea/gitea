@@ -7,6 +7,7 @@ package webhook
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strconv"
 	"strings"
 
@@ -233,6 +234,19 @@ func (d *DiscordPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 	}
 
 	return d.createPayload(p.Sender, title, "", url, color), nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (d *DiscordPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
+	htmlLink := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
+
+	var description string
+	if p.Action != api.HookWikiDeleted {
+		description = p.Comment
+	}
+
+	return d.createPayload(p.Sender, text, description, htmlLink, color), nil
 }
 
 // Release implements PayloadConvertor Release method

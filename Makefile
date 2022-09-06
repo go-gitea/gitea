@@ -34,6 +34,7 @@ GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
 MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
+GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -110,9 +111,14 @@ WEBPACK_DEST_ENTRIES := public/js public/css public/fonts public/img/webpack pub
 BINDATA_DEST := modules/public/bindata.go modules/options/bindata.go modules/templates/bindata.go
 BINDATA_HASH := $(addsuffix .hash,$(BINDATA_DEST))
 
+GENERATED_GO_DEST := modules/charset/invisible_gen.go modules/charset/ambiguous_gen.go
+
 SVG_DEST_DIR := public/img/svg
 
 AIR_TMP_DIR := .air
+
+GO_LICENSE_TMP_DIR := .go-licenses
+GO_LICENSE_FILE := assets/go-licenses.json
 
 TAGS ?=
 TAGS_SPLIT := $(subst $(COMMA), ,$(TAGS))
@@ -120,15 +126,18 @@ TAGS_EVIDENCE := $(MAKE_EVIDENCE_DIR)/tags
 
 TEST_TAGS ?= sqlite sqlite_unlock_notify
 
-TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR)
+TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
+GO_SOURCES += $(GENERATED_GO_DEST)
+GO_SOURCES_NO_BINDATA := $(GO_SOURCES)
 
 ifeq ($(filter $(TAGS_SPLIT),bindata),bindata)
 	GO_SOURCES += $(BINDATA_DEST)
+	GENERATED_GO_DEST += $(BINDATA_DEST)
 endif
 
 # Force installation of playwright dependencies by setting this flag
@@ -199,8 +208,9 @@ help:
 	@echo " - generate-swagger                 generate the swagger spec from code comments"
 	@echo " - swagger-validate                 check if the swagger spec is valid"
 	@echo " - golangci-lint                    run golangci-lint linter"
+	@echo " - go-licenses                      regenerate go licenses"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - tidy                             run go mod tidy"
+	@echo " - tidy                             run go mod tidy and regenerate go licenses"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
@@ -254,7 +264,7 @@ clean:
 fmt:
 	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
-	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it 
+	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
 .PHONY: vet
@@ -273,7 +283,9 @@ TAGS_PREREQ := $(TAGS_EVIDENCE)
 endif
 
 .PHONY: generate-swagger
-generate-swagger:
+generate-swagger: $(SWAGGER_SPEC)
+
+$(SWAGGER_SPEC): $(GO_SOURCES_NO_BINDATA)
 	$(GO) run $(SWAGGER_PACKAGE) generate spec -x "$(SWAGGER_EXCLUDE)" -o './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) '$(SWAGGER_SPEC_S_TMPL)' './$(SWAGGER_SPEC)'
 	$(SED_INPLACE) $(SWAGGER_NEWLINE_COMMAND) './$(SWAGGER_SPEC)'
@@ -406,6 +418,14 @@ tidy-check: tidy
 		echo "$${diff}"; \
 		exit 1; \
 	fi
+
+.PHONY: go-licenses
+go-licenses: assets/go-licenses.json
+
+assets/go-licenses.json: go.mod go.sum build/generate-go-licenses.js
+	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path="$(GO_LICENSE_TMP_DIR)" 2>/dev/null
+	node build/generate-go-licenses.js "$(GO_LICENSE_TMP_DIR)" "$(GO_LICENSE_FILE)"
+	@rm -rf "$(GO_LICENSE_TMP_DIR)"
 
 generate-ini-sqlite:
 	sed -e 's|{{REPO_TEST_DIR}}|${REPO_TEST_DIR}|g' \
@@ -688,15 +708,24 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: $(WEBPACK_DEST)
+frontend: generate-frontend $(WEBPACK_DEST)
 
 .PHONY: backend
-backend: go-check generate $(EXECUTABLE)
+backend: go-check generate-backend $(EXECUTABLE)
 
+# We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: $(TAGS_PREREQ)
+generate: generate-backend generate-frontend
+
+.PHONY: generate-backend
+generate-backend: $(TAGS_PREREQ) generate-go
+
+generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
+
+.PHONY: generate-frontend
+generate-frontend: $(TAGS_PREREQ) go-licenses
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -782,6 +811,7 @@ deps-backend:
 	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
+	$(GO) install $(GO_LICENSES_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save

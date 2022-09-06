@@ -5,11 +5,9 @@
 package code
 
 import (
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -17,13 +15,7 @@ import (
 func TestBleveIndexAndSearch(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
-	dir, err := os.MkdirTemp("", "bleve.index")
-	assert.NoError(t, err)
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory")
-		return
-	}
-	defer util.RemoveAll(dir)
+	dir := t.TempDir()
 
 	idx, _, err := NewBleveIndexer(dir)
 	if err != nil {
