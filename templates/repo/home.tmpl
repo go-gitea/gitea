@@ -73,32 +73,33 @@
 						</a>
 					{{end}}
 					<a href="{{.Repository.Link}}/find/{{.BranchNameSubURL}}" class="ui compact basic button tooltip" data-content="{{.locale.Tr "repo.find_file.go_to_file"}}">{{svg "octicon-file-moved" 15}}</a>
-					{{if or .CanAddFile .CanUploadFile}}
-						<button class="ui basic small compact dropdown jump icon button mr-2">
-							<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
-							<div class="menu">
-								{{if .Repository.CanEnableEditor}}
-									{{if .CanAddFile}}
-										<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-											{{.locale.Tr "repo.editor.new_file"}}
-										</a>
-									{{end}}
-									{{if .CanUploadFile}}
-										<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-											{{.locale.Tr "repo.editor.upload_file"}}
-										</a>
-									{{end}}
-									{{if .CanAddFile}}
-										<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
-											{{.locale.Tr "repo.editor.patch"}}
-										</a>
-									{{end}}
+				{{end}}
+				{{if or .CanAddFile .CanUploadFile}}
+					<button class="ui basic small compact dropdown jump icon button mr-2">
+						<span class="text">{{.locale.Tr "repo.editor.add_file"}}</span>
+						<div class="menu">
+							{{if .Repository.CanEnableEditor}}
+								{{if .CanAddFile}}
+									<a class="item" href="{{.RepoLink}}/_new/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{.locale.Tr "repo.editor.new_file"}}
+									</a>
 								{{end}}
-							</div>
-							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-						</button>
-					{{end}}
-				{{else}}
+								{{if .CanUploadFile}}
+									<a class="item" href="{{.RepoLink}}/_upload/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{.locale.Tr "repo.editor.upload_file"}}
+									</a>
+								{{end}}
+								{{if .CanAddFile}}
+									<a class="item" href="{{.RepoLink}}/_diffpatch/{{.BranchName | PathEscapeSegments}}/{{.TreePath | PathEscapeSegments}}">
+										{{.locale.Tr "repo.editor.patch"}}
+									</a>
+								{{end}}
+							{{end}}
+						</div>
+						{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+					</button>
+				{{end}}
+				{{if ne $n 0}}
 					<span class="ui breadcrumb repo-path"><a class="section" href="{{.RepoLink}}/src/{{.BranchNameSubURL}}" title="{{.Repository.Name}}">{{EllipsisString .Repository.Name 30}}</a>{{range $i, $v := .TreeNames}}<span class="divider">/</span>{{if eq $i $l}}<span class="active section" title="{{$v}}">{{EllipsisString $v 30}}</span>{{else}}{{$p := index $.Paths $i}}<span class="section"><a href="{{$.BranchLink}}/{{PathEscapeSegments $p}}" title="{{$v}}">{{EllipsisString $v 30}}</a></span>{{end}}{{end}}</span>
 				{{end}}
 			</div>
