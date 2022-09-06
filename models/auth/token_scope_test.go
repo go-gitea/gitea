@@ -33,7 +33,9 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"package,write:package,delete:package", "package", nil},
 		{"admin:gpg_key", "admin:gpg_key", nil},
 		{"admin:gpg_key,write:gpg_key", "admin:gpg_key", nil},
-		{"admin:gpg_key,write:gpg_key,user", "admin:gpg_key,user", nil},
+		{"admin:gpg_key,write:gpg_key,user", "user,admin:gpg_key", nil},
+		{"all", "all", nil},
+		{"repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key", "all", nil},
 	}
 
 	for _, test := range tests {

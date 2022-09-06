@@ -13,6 +13,8 @@ import (
 type AccessTokenScope string
 
 const (
+	AccessTokenScopeAll = "all"
+
 	AccessTokenScopeRepo       = "repo"
 	AccessTokenScopeRepoStatus = "repo:status"
 	AccessTokenScopePublicRepo = "public_repo"
@@ -65,6 +67,12 @@ var AllAccessTokenScopes = []string{
 	AccessTokenScopeAdminGPGKey, AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey,
 }
 
+// AccessTokenScopeBitmap represents a bitmap of access token scopes.
+type AccessTokenScopeBitmap uint64
+
+// AccessTokenScopeAllBitmap is the bitmap of all access token scopes.
+var AccessTokenScopeAllBitmap AccessTokenScopeBitmap = 1<<uint(len(AllAccessTokenScopes)) - 1
+
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	list := strings.Split(string(s), ",")
@@ -73,6 +81,9 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	for _, v := range list {
 		if v == "" {
 			continue
+		}
+		if v == AccessTokenScopeAll {
+			return AccessTokenScopeAllBitmap, nil
 		}
 
 		idx := sliceIndex(AllAccessTokenScopes, v)
@@ -93,9 +104,6 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 
 	return bitmap.ToScope(), nil
 }
-
-// AccessTokenScopeBitmap represents a bitmap of access token scopes.
-type AccessTokenScopeBitmap uint64
 
 // ToScope returns a normalized scope string without any duplicates.
 func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
@@ -144,7 +152,11 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 		}
 	}
 
-	return AccessTokenScope(strings.Join(scopes, ","))
+	scope := AccessTokenScope(strings.Join(scopes, ","))
+	if scope == "repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key" {
+		return AccessTokenScopeAll
+	}
+	return scope
 }
 
 func sliceIndex(slice []string, element string) int {
