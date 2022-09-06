@@ -97,6 +97,10 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 		case AccessTokenScopeRepo:
 			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeRepoStatus))
 			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopePublicRepo))
+			// admin:repo_hook, write:repo_hook, read:repo_hook
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeAdminRepoHook))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteRepoHook))
+			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadRepoHook))
 		case AccessTokenScopeAdminOrg:
 			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeWriteOrg))
 			bitmap |= 1 << uint(sliceIndex(AllAccessTokenScopes, AccessTokenScopeReadOrg))
