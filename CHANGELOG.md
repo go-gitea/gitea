@@ -47,8 +47,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix SQL Query for `SearchTeam` (#20844) (#20872)
   * Fix the mode of custom dir to 0700 in docker-rootless (#20861) (#20867)
   * Fix UI mis-align for PR commit history (#20845) (#20859)
-* TRANSLATION
-  * Translations for repo buttons (#20834)
 
 ## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
 
