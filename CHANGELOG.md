@@ -6,6 +6,9 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 
 ## [1.17.2](https://github.com/go-gitea/gitea/releases/tag/v1.17.2) - 2022-09-06
 
+* SECURITY
+  * Double check CloneURL is acceptable (#20869) (#20892)
+  * Add more checks in migration code (#21011) (#21050)
 * ENHANCEMENTS
   * Fix hard-coded timeout and error panic in API archive download endpoint (#20925) (#21051)
   * Improve arc-green code theme (#21039) (#21042)
@@ -23,8 +26,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix 500 on time in timeline API (#21052) (#21057)
   * Fill the specified ref in webhook test payload (#20961) (#21055)
   * Add another index for Action table on postgres (#21033) (#21054)
-  * fix broken insecureskipverify handling in rediss connection uris (#20967) (#21053)
-  * Add more checks in migration code (#21011) (#21050)
+  * fix broken insecureskipverify handling in redis connection uris (#20967) (#21053)
   * Add Dev, Peer and Optional dependencies to npm PackageMetadataVersion (#21017) (#21044)
   * Do not add links to Posters or Assignees with ID < 0 (#20577) (#21037)
   * Fix modified due date message (#20388) (#21032)
@@ -40,7 +42,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix push mirror address backend get error Address cause setting page display error (#20593) (#20901)
   * Fix panic when an invalid oauth2 name is passed (#20820) (#20900)
   * In PushMirrorsIterate and MirrorsIterate if limit is negative do not set it (#20837) (#20899)
-  * Double check CloneURL is acceptable (#20869) (#20892)
   * Ensure that graceful start-up is informed of unused SSH listener (#20877) (#20888)
   * Pad GPG Key ID with preceding zeroes (#20878) (#20885)
   * Fix SQL Query for `SearchTeam` (#20844) (#20872)
