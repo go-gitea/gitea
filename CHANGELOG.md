@@ -4,6 +4,51 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.17.2](https://github.com/go-gitea/gitea/releases/tag/v1.17.2) - 2022-09-06
+
+* ENHANCEMENTS
+  * Fix hard-coded timeout and error panic in API archive download endpoint (#20925) (#21051)
+  * Improve arc-green code theme (#21039) (#21042)
+  * Enable contenthash in filename for dynamic assets (#20813) (#20932)
+  * Don't open new page for ext wiki on same repository (#20725) (#20910)
+  * Disable doctor logging on panic (#20847) (#20898)
+  * Remove calls to load Mirrors in user.Dashboard (#20855) (#20897)
+  * Update codemirror to 5.65.8 (#20875)
+  * Rework repo buttons (#20602, #20718) (#20719)
+* BUGFIXES
+  * Ensure delete user deletes all comments (#21067) (#21068)
+  * Delete unreferenced packages when deleting a package version (#20977) (#21060)
+  * Redirect if user does not exist on admin pages (#20981) (#21059)
+  * Set uploadpack.allowFilter etc on gitea serv to enable partial clones with ssh (#20902) (#21058)
+  * Fix 500 on time in timeline API (#21052) (#21057)
+  * Fill the specified ref in webhook test payload (#20961) (#21055)
+  * Add another index for Action table on postgres (#21033) (#21054)
+  * fix broken insecureskipverify handling in rediss connection uris (#20967) (#21053)
+  * Add more checks in migration code (#21011) (#21050)
+  * Add Dev, Peer and Optional dependencies to npm PackageMetadataVersion (#21017) (#21044)
+  * Do not add links to Posters or Assignees with ID < 0 (#20577) (#21037)
+  * Fix modified due date message (#20388) (#21032)
+  * Fix missed sort bug (#21006)
+  * Fix input.value attr for RequiredClaimName/Value (#20946) (#21001)
+  * Change review buttons to icons to make space for text (#20934) (#20978)
+  * Fix download archiver of a commit (#20962) (#20971)
+  * Return 404 NotFound if requested attachment does not exist (#20886) (#20941)
+  * Set no-tags in git fetch on compare (#20893) (#20936)
+  * Allow multiple metadata files for Maven packages (#20674) (#20916)
+  * Increase Content field size of gpg_key and public_key to MEDIUMTEXT (#20896) (#20911)
+  * Fix mirror address setting not working (#20850) (#20904)
+  * Fix push mirror address backend get error Address cause setting page display error (#20593) (#20901)
+  * Fix panic when an invalid oauth2 name is passed (#20820) (#20900)
+  * In PushMirrorsIterate and MirrorsIterate if limit is negative do not set it (#20837) (#20899)
+  * Double check CloneURL is acceptable (#20869) (#20892)
+  * Ensure that graceful start-up is informed of unused SSH listener (#20877) (#20888)
+  * Pad GPG Key ID with preceding zeroes (#20878) (#20885)
+  * Fix SQL Query for `SearchTeam` (#20844) (#20872)
+  * Fix the mode of custom dir to 0700 in docker-rootless (#20861) (#20867)
+  * Fix UI mis-align for PR commit history (#20845) (#20859)
+* TRANSLATION
+  * Translations for repo buttons (#20834)
+
 ## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
 
 * SECURITY
