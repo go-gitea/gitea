@@ -569,6 +569,9 @@ steps:
       TEST_PGSQL_DBNAME: 'testgitea-e2e'
       DEBIAN_FRONTEND: noninteractive
     depends_on: [build-frontend, deps-backend]
+    volumes:
+      - name: deps
+        path: /go
 
 ---
 kind: pipeline
