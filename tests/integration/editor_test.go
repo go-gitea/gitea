@@ -77,11 +77,20 @@ func TestCreateFileOnProtectedBranch(t *testing.T) {
 
 		// remove the protected branch
 		csrf = GetCSRF(t, session, "/user2/repo1/settings/branches")
+
 		// Change master branch to protected
-		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/master", map[string]string{
-			"_csrf":     csrf,
-			"protected": "off",
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/new", map[string]string{
+			"_csrf":       csrf,
+			"rule_name":   "master",
+			"enable_push": "true",
 		})
+		session.MakeRequest(t, req, http.StatusOK)
+
+		// Change master branch to protected
+		req = NewRequestWithValues(t, "POST", "/user2/repo1/settings/branches/1/delete", map[string]string{
+			"_csrf": csrf,
+		})
+
 		session.MakeRequest(t, req, http.StatusSeeOther)
 		// Check if master branch has been locked successfully
 		flashCookie = session.GetCookie("macaron_flash")

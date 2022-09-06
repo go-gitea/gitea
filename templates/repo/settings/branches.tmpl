@@ -59,7 +59,10 @@
 								{{range .ProtectedBranches}}
 									<tr>
 										<td><div class="ui basic primary label">{{.BranchName}}</div></td>
-										<td class="right aligned"><a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.ID}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a></td>
+										<td class="right aligned">
+										<a class="rm ui button" href="{{$.Repository.Link}}/settings/branches/{{.ID}}">{{$.locale.Tr "repo.settings.edit_protected_branch"}}</a>
+										<a class="ui red button" href="{{$.Repository.Link}}/settings/branches/{{.ID}}/delete">{{$.locale.Tr "repo.settings.protected_branch.delete_rule"}}</a>
+										</td>
 									</tr>
 								{{else}}
 									<tr class="center aligned"><td>{{.locale.Tr "repo.settings.no_protected_branch"}}</td></tr>

@@ -30,8 +30,8 @@ const (
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
-// ProtectedBranch render the page to protect the repository
-func ProtectedBranch(ctx *context.Context) {
+// ProtectedBranchRules render the page to protect the repository
+func ProtectedBranchRules(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsBranches"] = true
 
@@ -45,8 +45,8 @@ func ProtectedBranch(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplBranches)
 }
 
-// ProtectedBranchPost response for protect for a branch of a repository
-func ProtectedBranchPost(ctx *context.Context) {
+// SetDefaultBranchPost set default branch
+func SetDefaultBranchPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsBranches"] = true
 
@@ -159,19 +159,20 @@ func SettingsProtectedBranch(c *context.Context) {
 // SettingsProtectedBranchPost updates the protected branch settings
 func SettingsProtectedBranchPost(ctx *context.Context) {
 	f := web.GetForm(ctx).(*forms.ProtectBranchForm)
+	ruleID := ctx.ParamsInt64("id")
 	var protectBranch *git_model.ProtectedBranch
-	if f.RuleID > 0 {
+	if ruleID > 0 {
 		var err error
-		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, f.RuleID)
+		protectBranch, err = git_model.GetProtectedBranchRuleByID(ctx, ctx.Repo.Repository.ID, ruleID)
 		if err != nil {
 			ctx.ServerError("GetProtectBranchOfRepoByName", err)
 			return
 		}
-
 	} else {
 		// No options found, create defaults.
 		protectBranch = &git_model.ProtectedBranch{
-			RepoID: ctx.Repo.Repository.ID,
+			RepoID:     ctx.Repo.Repository.ID,
+			BranchName: f.RuleName,
 		}
 	}
 
@@ -179,7 +180,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	protectBranch.BranchName = f.RuleName
 	if f.RequiredApprovals < 0 {
 		ctx.Flash.Error(ctx.Tr("repo.settings.protected_branch_required_approvals_min"))
-		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, f.RuleID))
+		ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, ruleID))
 		return
 	}
 
@@ -259,6 +260,7 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, protectBranch.ID))
 }
 
+// DeleteProtectedBranchRulePost delete protected branch rule by id
 func DeleteProtectedBranchRulePost(ctx *context.Context) {
 	ruleID := ctx.ParamsInt64("id")
 	if ruleID <= 0 {
