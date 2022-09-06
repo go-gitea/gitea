@@ -22,6 +22,7 @@ var licenseRe = regexp.MustCompile(`^(?i)((UN)?LICEN(S|C)E|COPYING).*$`)
 
 type LicenseEntry struct {
 	Name        string `json:"name"`
+	Path        string `json:"path"`
 	LicenseText string `json:"licenseText"`
 }
 
@@ -52,8 +53,11 @@ func main() {
 			panic(err)
 		}
 
+		path := strings.Replace(path, base+string(os.PathSeparator), "", 1)
+
 		entries = append(entries, LicenseEntry{
-			Name:        filepath.Dir(strings.Replace(path, base+string(os.PathSeparator), "", 1)),
+			Name: filepath.Dir(path),
+			Path: path,
 			LicenseText: string(licenseText),
 		})
 	}
