@@ -5,6 +5,7 @@ import (
 	"strings"
 )
 
+// AccessTokenScope represents the scope for an access token.
 type AccessTokenScope string
 
 const (
@@ -60,6 +61,7 @@ var AllAccessTokenScopes = []string{
 	AccessTokenScopeAdminGPGKey, AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey,
 }
 
+// Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	list := strings.Split(string(s), ",")
 
@@ -78,6 +80,7 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 	return bitmap, nil
 }
 
+// Normalize returns a normalized scope string without any duplicates.
 func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	bitmap, err := s.Parse()
 	if err != nil {
@@ -87,8 +90,10 @@ func (s AccessTokenScope) Normalize() (AccessTokenScope, error) {
 	return bitmap.ToScope(), nil
 }
 
+// AccessTokenScopeBitmap represents a bitmap of access token scopes.
 type AccessTokenScopeBitmap uint64
 
+// ToScope returns a normalized scope string without any duplicates.
 func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	var scopes []string
 
