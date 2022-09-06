@@ -6,6 +6,7 @@
 package install
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -51,39 +52,41 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 }
 
 // Init prepare for rendering installation page
-func Init(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	dbTypeNames := getSupportedDbTypeNames()
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if setting.InstallLock {
-			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
-			return
-		}
-		locale := middleware.Locale(resp, req)
-		startTime := time.Now()
-		ctx := context.Context{
-			Resp:    context.NewResponse(resp),
-			Flash:   &middleware.Flash{},
-			Locale:  locale,
-			Render:  rnd,
-			Session: session.GetSession(req),
-			Data: map[string]interface{}{
-				"locale":        locale,
-				"Title":         locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
-				"PageStartTime": startTime,
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.InstallLock {
+				resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+				_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
+				return
+			}
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			ctx := context.Context{
+				Resp:    context.NewResponse(resp),
+				Flash:   &middleware.Flash{},
+				Locale:  locale,
+				Render:  rnd,
+				Session: session.GetSession(req),
+				Data: map[string]interface{}{
+					"locale":        locale,
+					"Title":         locale.Tr("install.install"),
+					"PageIsInstall": true,
+					"DbTypeNames":   dbTypeNames,
+					"AllLangs":      translation.AllLangs(),
+					"PageStartTime": startTime,
 
-				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
-			},
-		}
-		defer ctx.Close()
+					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+				},
+			}
+			defer ctx.Close()
 
-		ctx.Req = context.WithContext(req, &ctx)
-		next.ServeHTTP(resp, ctx.Req)
-	})
+			ctx.Req = context.WithContext(req, &ctx)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
 }
 
 // Install render installation page
