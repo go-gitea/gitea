@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -80,6 +81,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	}
 
 	store.GetData()["IsApiToken"] = true
+	store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll
 
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
