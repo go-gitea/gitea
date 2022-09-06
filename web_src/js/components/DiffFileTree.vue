@@ -77,6 +77,21 @@ export default {
           parent = newParent;
         }
       }
+      const mergeChildIfOnlyOneDir = (entries) => {
+        for (const entry of entries) {
+          if (entry.children) {
+            mergeChildIfOnlyOneDir(entry.children);
+          }
+          if (entry.children.length === 1 && entry.children[0].isFile === false) {
+            // Merge it to the parent
+            entry.name = `${entry.name}/${entry.children[0].name}`;
+            entry.children = entry.children[0].children;
+          }
+        }
+      };
+      // Merge folders with just a folder as children in order to
+      // reduce the depth of our tree.
+      mergeChildIfOnlyOneDir(result);
       return result;
     }
   },
