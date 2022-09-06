@@ -1299,6 +1299,7 @@ func NewServices() {
 	newProject()
 	newMimeTypeMap()
 	newFederationService()
+	newF3Service()
 }
 
 // NewServicesForInstall initializes the services for install

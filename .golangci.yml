@@ -98,6 +98,9 @@ issues:
         - gosec
         - unparam
         - staticcheck
+    - path: services/f3/driver/driver.go
+      linters:
+        - typecheck
     - path: models/migrations/v
       linters:
         - gocyclo

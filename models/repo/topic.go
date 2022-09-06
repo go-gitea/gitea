@@ -223,6 +223,21 @@ func GetRepoTopicByName(ctx context.Context, repoID int64, topicName string) (*T
 	return nil, err
 }
 
+// GetRepoTopicByID retrieves topic from ID for a repo if it exist
+func GetRepoTopicByID(ctx context.Context, repoID, topicID int64) (*Topic, error) {
+	cond := builder.NewCond()
+	var topic Topic
+	cond = cond.And(builder.Eq{"repo_topic.repo_id": repoID}).And(builder.Eq{"topic.id": topicID})
+	sess := db.GetEngine(ctx).Table("topic").Where(cond)
+	sess.Join("INNER", "repo_topic", "repo_topic.topic_id = topic.id")
+	if has, err := sess.Select("topic.*").Get(&topic); err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrTopicNotExist{""}
+	}
+	return &topic, nil
+}
+
 // AddTopic adds a topic name to a repository (if it does not already have it)
 func AddTopic(repoID int64, topicName string) (*Topic, error) {
 	ctx, committer, err := db.TxContext()
