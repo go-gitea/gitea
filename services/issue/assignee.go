@@ -131,9 +131,9 @@ func IsValidReviewRequest(ctx context.Context, reviewer, doer *user_model.User, 
 			return nil
 		}
 
-		pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
+		pemResult = doer.ID == issue.PosterID
 		if !pemResult {
-			pemResult = doer.ID == issue.PosterID
+			pemResult = permDoer.CanAccessAny(perm.AccessModeWrite, unit.TypePullRequests)
 		}
 		if !pemResult {
 			pemResult, err = issues_model.IsOfficialReviewer(ctx, issue, doer)
