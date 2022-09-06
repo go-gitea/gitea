@@ -462,6 +462,9 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.cannot_edit_non_text_files")
 	}
 
+	metas := ctx.Repo.Repository.ComposeDocumentMetas()
+	metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
+
 	switch {
 	case isRepresentableAsText:
 		if st.IsSvgImage() {
@@ -498,8 +501,6 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			if !detected {
 				markupType = ""
 			}
-			metas := ctx.Repo.Repository.ComposeDocumentMetas()
-			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
 				Ctx:          ctx,
 				Type:         markupType,
@@ -613,7 +614,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				Ctx:          ctx,
 				RelativePath: ctx.Repo.TreePath,
 				URLPrefix:    path.Dir(treeLink),
-				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				Metas:        metas,
 				GitRepo:      ctx.Repo.GitRepo,
 			}, rd)
 			if err != nil {

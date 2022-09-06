@@ -106,6 +106,9 @@ type ExternalRenderer interface {
 
 	// DisplayInIFrame represents whether render the content with an iframe
 	DisplayInIFrame() bool
+
+	// DisplayAsPDF represents whether to the renderer output should be viewed as PDF.
+	DisplayAsPDF() bool
 }
 
 // RendererContentDetector detects if the content can be rendered
@@ -177,23 +180,38 @@ type nopCloser struct {
 
 func (nopCloser) Close() error { return nil }
 
+func getRenderURL(ctx *RenderContext) string {
+	return fmt.Sprintf("%s/%s/%s/render/%s/%s",
+		setting.AppSubURL,
+		url.PathEscape(ctx.Metas["user"]),
+		url.PathEscape(ctx.Metas["repo"]),
+		ctx.Metas["BranchNameSubURL"],
+		url.PathEscape(ctx.RelativePath),
+	)
+}
+
 func renderIFrame(ctx *RenderContext, output io.Writer) error {
 	// set height="0" ahead, otherwise the scrollHeight would be max(150, realHeight)
 	// at the moment, only "allow-scripts" is allowed for sandbox mode.
 	// "allow-same-origin" should never be used, it leads to XSS attack, and it makes the JS in iframe can access parent window's config and CSRF token
 	// TODO: when using dark theme, if the rendered content doesn't have proper style, the default text color is black, which is not easy to read
 	_, err := io.WriteString(output, fmt.Sprintf(`
-<iframe src="%s/%s/%s/render/%s/%s"
+<iframe src="%s"
 name="giteaExternalRender"
 onload="this.height=giteaExternalRender.document.documentElement.scrollHeight"
 width="100%%" height="0" scrolling="no" frameborder="0" style="overflow: hidden"
 sandbox="allow-scripts"
 ></iframe>`,
-		setting.AppSubURL,
-		url.PathEscape(ctx.Metas["user"]),
-		url.PathEscape(ctx.Metas["repo"]),
-		ctx.Metas["BranchNameSubURL"],
-		url.PathEscape(ctx.RelativePath),
+		getRenderURL(ctx),
+	))
+	return err
+}
+
+func renderPDFViewer(ctx *RenderContext, output io.Writer) error {
+	_, err := io.WriteString(output, fmt.Sprintf(`
+<iframe width="100%%" height="600px" src="%s/vendor/plugins/pdfjs/web/viewer.html?file=%s"></iframe>`,
+		setting.StaticURLPrefix+"/assets",
+		getRenderURL(ctx),
 	))
 	return err
 }
@@ -281,11 +299,13 @@ func (err ErrUnsupportedRenderExtension) Error() string {
 func renderFile(ctx *RenderContext, input io.Reader, output io.Writer) error {
 	extension := strings.ToLower(filepath.Ext(ctx.RelativePath))
 	if renderer, ok := extRenderers[extension]; ok {
-		if r, ok := renderer.(ExternalRenderer); ok && r.DisplayInIFrame() {
-			if !ctx.InStandalonePage {
-				// for an external render, it could only output its content in a standalone page
-				// otherwise, a <iframe> should be outputted to embed the external rendered page
+		if r, ok := renderer.(ExternalRenderer); ok && !ctx.InStandalonePage {
+			// for an external render, it could only output its content in a standalone page
+			// otherwise, the output may need to be embedded into an <iframe> or a viewer
+			if r.DisplayInIFrame() {
 				return renderIFrame(ctx, output)
+			} else if r.DisplayAsPDF() {
+				return renderPDFViewer(ctx, output)
 			}
 		}
 		return render(ctx, renderer, input, output)

@@ -158,6 +158,35 @@ RENDER_COMMAND = "jupyter-nbconvert --stdin --stdout --to html --template basic"
 ALLOW_DATA_URI_IMAGES = true
 ```
 
+### Example: Office PPTX
+
+Convert Office PPTX files to PDF using
+[LibreOffice CLI](https://help.libreoffice.org/latest/en-US/text/shared/guide/start_parameters.html):
+
+```ini
+[markup.pptx]
+ENABLED = true
+FILE_EXTENSIONS = .pptx
+IS_INPUT_FILE = true
+RENDER_COMMAND = ./convert-pptx.sh
+RENDER_CONTENT_MODE = pdf
+```
+
+The script `convert-pptx.sh`:
+
+```sh
+#!/usr/bin/env sh
+set -eu
+file="$1"
+dir=`mktemp -d`
+libreoffice --convert-to pdf "$file" --outdir "$dir"
+cat "$dir/$(basename $file .pptx).pdf"
+rm -rf "$dir"
+```
+
+Using `RENDER_CONTENT_MODE = pdf` makes Gitea to embed files into a PDF viewer.
+It is mutually exclusive with post-processing and sanitization.
+
 ## Customizing CSS
 
 The external renderer is specified in the .ini in the format `[markup.XXXXX]` and the HTML supplied by your external renderer will be wrapped in a `<div>` with classes `markup` and `XXXXX`. The `markup` class provides out of the box styling (as does `markdown` if `XXXXX` is `markdown`). Otherwise you can use these classes to specifically target the contents of your rendered HTML.
