@@ -23,7 +23,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix 500 on time in timeline API (#21052) (#21057)
   * Fill the specified ref in webhook test payload (#20961) (#21055)
   * Add another index for Action table on postgres (#21033) (#21054)
-  * fix broken insecureskipverify handling in rediss connection uris (#20967) (#21053)
+  * Fix broken insecureskipverify handling in redis connection uris (#20967) (#21053)
   * Add more checks in migration code (#21011) (#21050)
   * Add Dev, Peer and Optional dependencies to npm PackageMetadataVersion (#21017) (#21044)
   * Do not add links to Posters or Assignees with ID < 0 (#20577) (#21037)
