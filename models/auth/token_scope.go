@@ -50,6 +50,8 @@ const (
 	AccessTokenScopeAdminGPGKey = "admin:gpg_key"
 	AccessTokenScopeWriteGPGKey = "write:gpg_key"
 	AccessTokenScopeReadGPGKey  = "read:gpg_key"
+
+	AccessTokenScopeSudo = "sudo"
 )
 
 // AllAccessTokenScopes contains all access token scopes.
@@ -65,13 +67,14 @@ var AllAccessTokenScopes = []string{
 	AccessTokenScopeDeleteRepo,
 	AccessTokenScopePackage, AccessTokenScopeWritePackage, AccessTokenScopeReadPackage, AccessTokenScopeDeletePackage,
 	AccessTokenScopeAdminGPGKey, AccessTokenScopeWriteGPGKey, AccessTokenScopeReadGPGKey,
+	AccessTokenScopeSudo,
 }
 
 // AccessTokenScopeBitmap represents a bitmap of access token scopes.
 type AccessTokenScopeBitmap uint64
 
 // AccessTokenScopeAllBitmap is the bitmap of all access token scopes.
-var AccessTokenScopeAllBitmap AccessTokenScopeBitmap = 1<<uint(len(AllAccessTokenScopes)) - 1
+var AccessTokenScopeAllBitmap AccessTokenScopeBitmap = 1<<uint(len(AllAccessTokenScopes)-1) - 1 // sudo is a special scope to be excluded, so -1 from the length
 
 // Parse parses the scope string into a bitmap, thus removing possible duplicates.
 func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
@@ -83,7 +86,8 @@ func (s AccessTokenScope) Parse() (AccessTokenScopeBitmap, error) {
 			continue
 		}
 		if v == AccessTokenScopeAll {
-			return AccessTokenScopeAllBitmap, nil
+			bitmap |= AccessTokenScopeAllBitmap
+			continue
 		}
 
 		idx := sliceIndex(AllAccessTokenScopes, v)
@@ -161,8 +165,13 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 			switch v {
 			// Parse scopes that contains multiple sub-scopes
 			case AccessTokenScopeRepo, AccessTokenScopeAdminOrg, AccessTokenScopeAdminPublicKey,
-				AccessTokenScopeAdminRepoHook, AccessTokenScopeUser, AccessTokenScopePackage, AccessTokenScopeAdminGPGKey:
+				AccessTokenScopeUser, AccessTokenScopePackage, AccessTokenScopeAdminGPGKey:
 				groupedScope[v] = struct{}{}
+			case AccessTokenScopeAdminRepoHook:
+				groupedScope[v] = struct{}{}
+				if _, ok := groupedScope[AccessTokenScopeRepo]; ok {
+					continue
+				}
 
 			// If parent scope is set, all sub-scopes shouldn't be added
 			case AccessTokenScopeRepoStatus, AccessTokenScopePublicRepo:
@@ -179,6 +188,9 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 				}
 			case AccessTokenScopeWriteRepoHook, AccessTokenScopeReadRepoHook:
 				if _, ok := groupedScope[AccessTokenScopeAdminRepoHook]; ok {
+					continue
+				}
+				if _, ok := groupedScope[AccessTokenScopeRepo]; ok {
 					continue
 				}
 			case AccessTokenScopeReadUser, AccessTokenScopeUserEmail, AccessTokenScopeUserFollow:
@@ -199,9 +211,11 @@ func (bitmap AccessTokenScopeBitmap) ToScope() AccessTokenScope {
 	}
 
 	scope := AccessTokenScope(strings.Join(scopes, ","))
-	if scope == "repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key" {
-		return AccessTokenScopeAll
-	}
+	scope = AccessTokenScope(strings.ReplaceAll(
+		string(scope),
+		"repo,admin:org,admin:public_key,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key",
+		"all",
+	))
 	return scope
 }
 

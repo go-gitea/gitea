@@ -24,6 +24,8 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"admin:public_key,read:public_key", "admin:public_key", nil},
 		{"admin:repo_hook,write:repo_hook", "admin:repo_hook", nil},
 		{"admin:repo_hook,read:repo_hook", "admin:repo_hook", nil},
+		{"repo,admin:repo_hook,read:repo_hook", "repo", nil}, // admin:repo_hook is a child scope of repo
+		{"repo,read:repo_hook", "repo", nil},                 // read:repo_hook is a child scope of repo
 		{"user", "user", nil},
 		{"user,read:user", "user", nil},
 		{"user,admin:org,write:org", "admin:org,user", nil},
@@ -36,6 +38,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 		{"admin:gpg_key,write:gpg_key,user", "user,admin:gpg_key", nil},
 		{"all", "all", nil},
 		{"repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key", "all", nil},
+		{"repo,admin:org,admin:public_key,admin:repo_hook,admin:org_hook,notification,user,delete_repo,package,admin:gpg_key,sudo", "all,sudo", nil},
 	}
 
 	for _, test := range tests {
@@ -47,7 +50,7 @@ func TestAccessTokenScope_Normalize(t *testing.T) {
 	}
 }
 
-func TestAccessTokenScope__HasScope(t *testing.T) {
+func TestAccessTokenScope_HasScope(t *testing.T) {
 	tests := []struct {
 		in    AccessTokenScope
 		scope string
