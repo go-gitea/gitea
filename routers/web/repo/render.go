@@ -44,7 +44,10 @@ func RenderFile(ctx *context.Context) {
 	st := typesniffer.DetectContentType(buf)
 	isTextFile := st.IsText()
 
-	rd := charset.ToUTF8WithFallbackReader(io.MultiReader(bytes.NewReader(buf), dataRc))
+	rd := io.MultiReader(bytes.NewReader(buf), dataRc)
+	if isTextFile {
+		rd = charset.ToUTF8WithFallbackReader(rd)
+	}
 
 	if markupType := markup.Type(blob.Name()); markupType == "" {
 		if isTextFile {
