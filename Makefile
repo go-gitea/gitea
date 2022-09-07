@@ -405,7 +405,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
-	$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
+	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 .PHONY: vendor
 vendor: tidy
