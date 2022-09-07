@@ -86,6 +86,7 @@ linters-settings:
       - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
+  max-issues-per-linter: 0
   max-same-issues: 0
   exclude-rules:
     # Exclude some linters from running on tests files.
