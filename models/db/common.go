@@ -111,7 +111,11 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 	sb := &strings.Builder{}
 	switch {
 	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL || setting.Database.UseMySQL:
-		_, _ = sb.WriteString("INSERT INTO ")
+		_, _ = sb.WriteString("INSERT ")
+		if setting.Database.UseMySQL && autoIncrCol == nil {
+			_, _ = sb.WriteString("IGNORE ")
+		}
+		_, _ = sb.WriteString("INTO ")
 		_, _ = sb.WriteString(x.Dialect().Quoter().Quote(tableName))
 		_, _ = sb.WriteString(" (")
 		_, _ = sb.WriteString(colNames[0])
@@ -128,13 +132,11 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
 			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
 		case setting.Database.UseMySQL:
-			_, _ = sb.WriteString(") ON CONFLICT DO DUPLICATE KEY ")
-			if autoIncrCol == nil {
+			if autoIncrCol != nil {
+				_, _ = sb.WriteString(") ON CONFLICT DO DUPLICATE KEY ")
 				_, _ = sb.WriteString(autoIncrCol.Name)
 				_, _ = sb.WriteString(" = ")
 				_, _ = sb.WriteString(autoIncrCol.Name)
-			} else {
-				_, _ = sb.WriteString(" IGNORE")
 			}
 		}
 	case setting.Database.UseMSSQL:
