@@ -154,6 +154,7 @@ func NewFuncMap() []template.FuncMap {
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"ShortSha":                       base.ShortSha,
+		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
 		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
