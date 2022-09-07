@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -407,12 +406,41 @@ func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) bi
 }
 
 func (f *NewAccessTokenForm) GetScope() auth_model.AccessTokenScope {
+	scopesMapping := map[string]string{
+		"Repo":           auth_model.AccessTokenScopeRepo,
+		"RepoStatus":     auth_model.AccessTokenScopeRepoStatus,
+		"PublicRepo":     auth_model.AccessTokenScopePublicRepo,
+		"AdminOrg":       auth_model.AccessTokenScopeAdminOrg,
+		"WriteOrg":       auth_model.AccessTokenScopeWriteOrg,
+		"ReadOrg":        auth_model.AccessTokenScopeReadOrg,
+		"AdminPublicKey": auth_model.AccessTokenScopeAdminPublicKey,
+		"WritePublicKey": auth_model.AccessTokenScopeWritePublicKey,
+		"ReadPublicKey":  auth_model.AccessTokenScopeReadPublicKey,
+		"AdminRepoHook":  auth_model.AccessTokenScopeAdminRepoHook,
+		"WriteRepoHook":  auth_model.AccessTokenScopeWriteRepoHook,
+		"ReadRepoHook":   auth_model.AccessTokenScopeReadRepoHook,
+		"Notification":   auth_model.AccessTokenScopeNotification,
+		"User":           auth_model.AccessTokenScopeUser,
+		"ReadUser":       auth_model.AccessTokenScopeReadUser,
+		"UserEmail":      auth_model.AccessTokenScopeUserEmail,
+		"UserFollow":     auth_model.AccessTokenScopeUserFollow,
+		"DeleteRepo":     auth_model.AccessTokenScopeDeleteRepo,
+		"Package":        auth_model.AccessTokenScopePackage,
+		"WritePackage":   auth_model.AccessTokenScopeWritePackage,
+		"ReadPackage":    auth_model.AccessTokenScopeReadPackage,
+		"DeletePackage":  auth_model.AccessTokenScopeDeletePackage,
+		"AdminGPGKey":    auth_model.AccessTokenScopeAdminGPGKey,
+		"WriteGPGKey":    auth_model.AccessTokenScopeWriteGPGKey,
+		"ReadGPGKey":     auth_model.AccessTokenScopeReadGPGKey,
+		"Sudo":           auth_model.AccessTokenScopeSudo,
+	}
+
 	scope := ""
 	v := reflect.ValueOf(*f)
 	for i := 0; i < v.NumField(); i++ {
 		if strings.HasPrefix(v.Type().Field(i).Name, "Scope") && v.Field(i).Bool() {
-			singleScope := v.Type().Field(i).Name[5:]
-			scope += util.ToSnakeCase(singleScope) + ","
+			singleScope := strings.TrimPrefix(v.Type().Field(i).Name, "Scope")
+			scope += scopesMapping[singleScope] + ","
 		}
 	}
 	scope = strings.TrimSuffix(scope, ",")
