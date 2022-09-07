@@ -9,11 +9,13 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/dialects"
 	"xorm.io/xorm/schemas"
 )
 
@@ -36,9 +38,6 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 	}
 
 	autoIncrCol := table.AutoIncrColumn()
-	if autoIncrCol == nil {
-		return 0, fmt.Errorf("this function requires an autoincrement column")
-	}
 
 	cols := table.Columns()
 	colNames := make([]string, 0, len(cols))
@@ -49,6 +48,27 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 	for _, col := range cols {
 		if fieldIdx := col.FieldIndex; fieldIdx != nil {
 			fieldVal := elem.FieldByIndex(fieldIdx)
+			if col.IsCreated || col.IsUpdated {
+				t := time.Now()
+				result, err := dialects.FormatColumnTime(x.Dialect(), x.DatabaseTZ, col, t)
+				if err != nil {
+					return 0, err
+				}
+
+				switch fieldVal.Type().Kind() {
+				case reflect.Struct:
+					fieldVal.Set(reflect.ValueOf(t).Convert(fieldVal.Type()))
+				case reflect.Int, reflect.Int64, reflect.Int32:
+					fieldVal.SetInt(t.Unix())
+				case reflect.Uint, reflect.Uint64, reflect.Uint32:
+					fieldVal.SetUint(uint64(t.Unix()))
+				}
+
+				colNames = append(colNames, col.Name)
+				args = append(args, result)
+				continue
+			}
+
 			if fieldVal.IsZero() {
 				continue
 			}
@@ -109,9 +129,13 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 			_, _ = sb.WriteString(") ON CONFLICT DO NOTHING")
 		case setting.Database.UseMySQL:
 			_, _ = sb.WriteString(") ON CONFLICT DO DUPLICATE KEY ")
-			_, _ = sb.WriteString(autoIncrCol.Name)
-			_, _ = sb.WriteString(" = ")
-			_, _ = sb.WriteString(autoIncrCol.Name)
+			if autoIncrCol == nil {
+				_, _ = sb.WriteString(autoIncrCol.Name)
+				_, _ = sb.WriteString(" = ")
+				_, _ = sb.WriteString(autoIncrCol.Name)
+			} else {
+				_, _ = sb.WriteString(" IGNORE")
+			}
 		}
 	case setting.Database.UseMSSQL:
 		_, _ = sb.WriteString("MERGE ")
@@ -161,7 +185,7 @@ func InsertOnConflictDoNothing(ctx context.Context, bean interface{}) (int64, er
 		return n, err
 	}
 
-	if n != 0 {
+	if n != 0 && autoIncrCol != nil {
 		id, err := res.LastInsertId()
 		if err != nil {
 			return n, err
