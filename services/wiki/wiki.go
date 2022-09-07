@@ -118,7 +118,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	return foundEscaped, escaped, nil
 }
 
-// updateWikiPage adds a new page to the repository wiki.
+// updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err

@@ -112,7 +112,7 @@ func runPR() {
 	unittest.LoadFixtures()
 	util.RemoveAll(setting.RepoRootPath)
 	util.RemoveAll(repo_module.LocalCopyPath())
-	unittest.CopyDir(path.Join(curDir, "integrations/gitea-repositories-meta"), setting.RepoRootPath)
+	unittest.CopyDir(path.Join(curDir, "tests/gitea-repositories-meta"), setting.RepoRootPath)
 
 	log.Printf("[PR] Setting up router\n")
 	// routers.GlobalInit()
