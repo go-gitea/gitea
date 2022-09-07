@@ -41,6 +41,187 @@
 					<label for="name">{{.locale.Tr "settings.token_name"}}</label>
 					<input id="name" name="name" value="{{.name}}" autofocus required>
 				</div>
+				<details class="ui optional field">
+					<summary class="p-2">
+						{{.locale.Tr "settings.select_scopes"}}
+					</summary>
+					<div class="field pl-2">
+						<div class="ui checkbox">
+							<input name="scope_repo" class="enable-system" type="checkbox">
+							<label>repo</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_repo_status" class="enable-system" type="checkbox">
+								<label>repo:status</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_public_repo" class="enable-system" type="checkbox">
+								<label>public_repo</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_admin_org" class="enable-system" type="checkbox">
+							<label>admin:org</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_write_org" class="enable-system" type="checkbox">
+								<label>write:org</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_public_key" class="enable-system" type="checkbox">
+								<label>read:public_key</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_admin_public_key" class="enable-system" type="checkbox">
+							<label>admin:public_key</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_write_public_key" class="enable-system" type="checkbox">
+								<label>write:public_key</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_public_key" class="enable-system" type="checkbox">
+								<label>read:public_key</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_admin_repo_hook" class="enable-system" type="checkbox">
+							<label>admin:repo_hook</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_write_repo_hook" class="enable-system" type="checkbox">
+								<label>write:repo_hook</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_repo_hook" class="enable-system" type="checkbox">
+								<label>read:repo_hook</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_admin_org_hook" class="enable-system" type="checkbox">
+							<label>admin:org_hook</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_notification" class="enable-system" type="checkbox">
+							<label>notification</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_user" class="enable-system" type="checkbox">
+							<label>user</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_user" class="enable-system" type="checkbox">
+								<label>read:user</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_user_email" class="enable-system" type="checkbox">
+								<label>user:email</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_user_follow" class="enable-system" type="checkbox">
+								<label>user:follow</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_delete_repo" class="enable-system" type="checkbox">
+							<label>delete_repo</label>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_package" class="enable-system" type="checkbox">
+							<label>package</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_write_package" class="enable-system" type="checkbox">
+								<label>write:package</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_package" class="enable-system" type="checkbox">
+								<label>read:package</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_delete_package" class="enable-system" type="checkbox">
+								<label>delete:package</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_gpg_key" class="enable-system" type="checkbox">
+							<label>gpg_key</label>
+						</div>
+					</div>
+					<div class="field pl-4">
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_write_gpg_key" class="enable-system" type="checkbox">
+								<label>write:gpg_key</label>
+							</div>
+						</div>
+						<div class="field">
+							<div class="ui checkbox">
+								<input name="scope_read_gpg_key" class="enable-system" type="checkbox">
+								<label>read:gpg_key</label>
+							</div>
+						</div>
+					</div>
+					<div class="field">
+						<div class="ui checkbox">
+							<input name="scope_sudo" class="enable-system" type="checkbox">
+							<label>sudo</label>
+						</div>
+					</div>
+				</details>
 				<button class="ui green button">
 					{{.locale.Tr "settings.generate_token"}}
 				</button>
