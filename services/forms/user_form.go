@@ -8,11 +8,14 @@ package forms
 import (
 	"mime/multipart"
 	"net/http"
+	"reflect"
 	"strings"
 
+	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 
 	"gitea.com/go-chi/binding"
@@ -401,6 +404,19 @@ type NewAccessTokenForm struct {
 func (f *NewAccessTokenForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+func (f *NewAccessTokenForm) GetScope() auth_model.AccessTokenScope {
+	scope := ""
+	v := reflect.ValueOf(*f)
+	for i := 0; i < v.NumField(); i++ {
+		if strings.HasPrefix(v.Type().Field(i).Name, "Scope") && v.Field(i).Bool() {
+			singleScope := v.Type().Field(i).Name[5:]
+			scope += util.ToSnakeCase(singleScope) + ","
+		}
+	}
+	scope = strings.TrimSuffix(scope, ",")
+	return auth_model.AccessTokenScope(scope)
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications

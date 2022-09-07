@@ -44,8 +44,9 @@ func ApplicationsPost(ctx *context.Context) {
 	}
 
 	t := &auth_model.AccessToken{
-		UID:  ctx.Doer.ID,
-		Name: form.Name,
+		UID:   ctx.Doer.ID,
+		Name:  form.Name,
+		Scope: form.GetScope(),
 	}
 
 	exist, err := auth_model.AccessTokenByNameExists(t)
