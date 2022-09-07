@@ -444,7 +444,8 @@ func (f *NewAccessTokenForm) GetScope() auth_model.AccessTokenScope {
 		}
 	}
 	scope = strings.TrimSuffix(scope, ",")
-	return auth_model.AccessTokenScope(scope)
+	s, _ := auth_model.AccessTokenScope(scope).Normalize() // error should not happen, since fields are valid scopes
+	return s
 }
 
 // EditOAuth2ApplicationForm form for editing oauth2 applications
