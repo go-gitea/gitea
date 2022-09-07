@@ -55,15 +55,18 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	metadata := pd.Metadata.(*npm_module.Metadata)
 
 	return &npm_module.PackageMetadataVersion{
-		ID:           fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
-		Name:         pd.Package.Name,
-		Version:      pd.Version.Version,
-		Description:  metadata.Description,
-		Author:       npm_module.User{Name: metadata.Author},
-		Homepage:     metadata.ProjectURL,
-		License:      metadata.License,
-		Dependencies: metadata.Dependencies,
-		Readme:       metadata.Readme,
+		ID:                   fmt.Sprintf("%s@%s", pd.Package.Name, pd.Version.Version),
+		Name:                 pd.Package.Name,
+		Version:              pd.Version.Version,
+		Description:          metadata.Description,
+		Author:               npm_module.User{Name: metadata.Author},
+		Homepage:             metadata.ProjectURL,
+		License:              metadata.License,
+		Dependencies:         metadata.Dependencies,
+		DevDependencies:      metadata.DevelopmentDependencies,
+		PeerDependencies:     metadata.PeerDependencies,
+		OptionalDependencies: metadata.OptionalDependencies,
+		Readme:               metadata.Readme,
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),

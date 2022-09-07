@@ -107,6 +107,14 @@ func (d *DingtalkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view issue", p.Issue.HTMLURL), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (d *DingtalkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+	url := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
+
+	return createDingtalkPayload(text, text, "view wiki", url), nil
+}
+
 // IssueComment implements PayloadConvertor IssueComment method
 func (d *DingtalkPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, error) {
 	text, issueTitle, _ := getIssueCommentPayloadInfo(p, noneLinkFormatter, true)
