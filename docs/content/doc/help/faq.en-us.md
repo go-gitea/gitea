@@ -120,6 +120,10 @@ In Gitea, an "active" user refers to a user that has activated their account via
 
 A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
 
+## Setting up logging
+
+- [Official Docs]({{< relref "doc/advanced/logging-documentation.en-us.md" >}})
+
 ## What is Swagger?
 
 [Swagger](https://swagger.io/) is what Gitea uses for its API.
