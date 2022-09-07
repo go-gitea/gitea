@@ -405,6 +405,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 .PHONY: vendor
 vendor: tidy
@@ -412,7 +413,7 @@ vendor: tidy
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum); \
+	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
@@ -420,9 +421,9 @@ tidy-check: tidy
 	fi
 
 .PHONY: go-licenses
-go-licenses: assets/go-licenses.json
+go-licenses: $(GO_LICENSE_FILE)
 
-assets/go-licenses.json: go.mod go.sum
+$(GO_LICENSE_FILE): go.mod go.sum
 	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
 	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
 	@rm -rf $(GO_LICENSE_TMP_DIR)
@@ -708,24 +709,21 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: generate-frontend $(WEBPACK_DEST)
+frontend: $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE)
 
-# We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: generate-backend generate-frontend
+generate: generate-backend
 
 .PHONY: generate-backend
 generate-backend: $(TAGS_PREREQ) generate-go
 
+.PHONY: generate-go
 generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
-
-.PHONY: generate-frontend
-generate-frontend: $(TAGS_PREREQ) go-licenses
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
