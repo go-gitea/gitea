@@ -82,7 +82,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		store.GetData()["IsApiToken"] = true
-		store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll
+		store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScope(auth_model.AccessTokenScopeAll)
 		return u
 	}
 
@@ -101,7 +101,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		store.GetData()["IsApiToken"] = true
-		store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll
+		store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScope(auth_model.AccessTokenScopeAll)
 		return u
 	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)

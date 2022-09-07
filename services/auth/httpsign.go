@@ -81,7 +81,7 @@ func (h *HTTPSign) Verify(req *http.Request, w http.ResponseWriter, store DataSt
 	}
 
 	store.GetData()["IsApiToken"] = true
-	store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScopeAll
+	store.GetData()["ApiTokenScope"] = auth_model.AccessTokenScope(auth_model.AccessTokenScopeAll)
 
 	log.Trace("HTTP Sign: Logged in user %-v", u)
 
