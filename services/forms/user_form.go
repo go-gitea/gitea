@@ -368,7 +368,33 @@ func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Er
 
 // NewAccessTokenForm form for creating access token
 type NewAccessTokenForm struct {
-	Name string `binding:"Required;MaxSize(255)"`
+	Name                string `binding:"Required;MaxSize(255)"`
+	ScopeRepo           bool
+	ScopeRepoStatus     bool
+	ScopePublicRepo     bool
+	ScopeAdminOrg       bool
+	ScopeWriteOrg       bool
+	ScopeReadOrg        bool
+	ScopeAdminPublicKey bool
+	ScopeWritePublicKey bool
+	ScopeReadPublicKey  bool
+	ScopeAdminRepoHook  bool
+	ScopeWriteRepoHook  bool
+	ScopeReadRepoHook   bool
+	ScopeNotification   bool
+	ScopeUser           bool
+	ScopeReadUser       bool
+	ScopeUserEmail      bool
+	ScopeUserFollow     bool
+	ScopeDeleteRepo     bool
+	ScopePackage        bool
+	ScopeWritePackage   bool
+	ScopeReadPackage    bool
+	ScopeDeletePackage  bool
+	ScopeAdminGPGKey    bool
+	ScopeWriteGPGKey    bool
+	ScopeReadGPGKey     bool
+	ScopeSudo           bool
 }
 
 // Validate validates the fields
