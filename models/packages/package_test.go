@@ -49,7 +49,7 @@ func TestHasOwnerPackages(t *testing.T) {
 	assert.NotNil(t, pv)
 	assert.NoError(t, err)
 
-	// A package with an internal package version gets automaticaly cleaned up and should return false
+	// A package with an internal package version gets automatically cleaned up and should return false
 	has, err = packages_model.HasOwnerPackages(db.DefaultContext, owner.ID)
 	assert.False(t, has)
 	assert.NoError(t, err)

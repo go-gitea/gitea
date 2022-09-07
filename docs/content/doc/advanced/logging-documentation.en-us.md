@@ -15,11 +15,13 @@ menu:
 
 # Logging Configuration
 
-The logging framework has been revamped in Gitea 1.9.0.
-
 **Table of Contents**
 
 {{< toc >}}
+
+## Collecting Logs for Help
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Log Groups
 
