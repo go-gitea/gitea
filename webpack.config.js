@@ -14,6 +14,8 @@ import {readFileSync} from 'fs';
 const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
+const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
+
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: dirname(fileURLToPath(new URL(import.meta.url))),
   absolute: true,
@@ -206,10 +208,12 @@ export default {
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        const goModules = JSON.parse(readFileSync('assets/go-licenses.json', 'utf8'));
+        const goJson = readFileSync('assets/go-licenses.json', 'utf8');
+        const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
+          return {name, body: formatLicenseText(licenseText)};
+        });
         const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
-          const body = wrapAnsi(licenseText || '', 80);
-          return {name, version, licenseName, body};
+          return {name, version, licenseName, body: formatLicenseText(licenseText)};
         });
 
         const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
