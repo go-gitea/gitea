@@ -408,7 +408,7 @@ tidy:
 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 .PHONY: vendor
-vendor: tidy
+vendor:
 	$(GO) mod vendor
 
 .PHONY: tidy-check
