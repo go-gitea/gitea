@@ -717,7 +717,7 @@ backend: go-check generate-backend $(EXECUTABLE)
 .PHONY: generate
 generate: generate-backend generate-frontend
 
-.PHONY: go-licenses
+.PHONY: generate-frontend
 generate-frontend: $(GO_LICENSE_FILE)
 
 .PHONY: generate-backend
