@@ -535,7 +535,7 @@ services:
 
 steps:
   - name: deps-frontend
-    image: node:16
+    image: node:18
     pull: always
     commands:
       - make deps-frontend
