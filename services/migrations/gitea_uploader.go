@@ -462,13 +462,26 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 		if comment.Updated.IsZero() {
 			comment.Updated = comment.Created
 		}
-
+		if comment.CommentType == 0 {
+			// if type field is missing, then assume a normal comment
+			comment.CommentType = int64(issues_model.CommentTypeComment)
+		}
 		cm := issues_model.Comment{
 			IssueID:     issue.ID,
-			Type:        issues_model.CommentTypeComment,
+			Type:        issues_model.CommentType(comment.CommentType),
 			Content:     comment.Content,
 			CreatedUnix: timeutil.TimeStamp(comment.Created.Unix()),
 			UpdatedUnix: timeutil.TimeStamp(comment.Updated.Unix()),
+		}
+
+		switch issues_model.CommentType(comment.CommentType) {
+		case issues_model.CommentTypeLabel:
+			// TODO: add label to issue
+		case issues_model.CommentTypeAssignees:
+			// TODO: add assignee to issue
+		case issues_model.CommentTypeChangeTitle:
+			// TODO: change issue title
+		default:
 		}
 
 		if err := g.remapUser(comment, &cm); err != nil {

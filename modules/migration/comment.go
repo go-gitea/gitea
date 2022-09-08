@@ -18,6 +18,7 @@ type Commentable interface {
 type Comment struct {
 	IssueIndex  int64 `yaml:"issue_index"`
 	Index       int64
+	CommentType int64
 	PosterID    int64  `yaml:"poster_id"`
 	PosterName  string `yaml:"poster_name"`
 	PosterEmail string `yaml:"poster_email"`
@@ -25,6 +26,7 @@ type Comment struct {
 	Updated     time.Time
 	Content     string
 	Reactions   []*Reaction
+	Meta        map[string]interface{} // see models/issues/comment.go for fields in Comment struct
 }
 
 // GetExternalName ExternalUserMigrated interface
