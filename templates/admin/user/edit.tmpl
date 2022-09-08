@@ -206,7 +206,6 @@
 	</div>
 	<form class="ui form" method="POST" action="{{.Link}}/delete">
 		{{$.CsrfTokenHtml}}
-		<input type="hidden" name="id">
 		<div class="field">
 			<div class="ui checkbox">
 				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
