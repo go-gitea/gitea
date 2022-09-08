@@ -22,6 +22,7 @@ type PayloadConvertor interface {
 	Review(*api.PullRequestPayload, webhook_model.HookEventType) (api.Payloader, error)
 	Repository(*api.RepositoryPayload) (api.Payloader, error)
 	Release(*api.ReleasePayload) (api.Payloader, error)
+	Wiki(*api.WikiPayload) (api.Payloader, error)
 }
 
 func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_model.HookEventType) (api.Payloader, error) {
@@ -51,6 +52,8 @@ func convertPayloader(s PayloadConvertor, p api.Payloader, event webhook_model.H
 		return s.Repository(p.(*api.RepositoryPayload))
 	case webhook_model.HookEventRelease:
 		return s.Release(p.(*api.ReleasePayload))
+	case webhook_model.HookEventWiki:
+		return s.Wiki(p.(*api.WikiPayload))
 	}
 	return s, nil
 }
