@@ -12,6 +12,7 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	auth_model "code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
@@ -70,14 +71,14 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	// ***** END: Follow *****
 
 	if err = db.DeleteBeans(ctx,
-		&AccessToken{UID: u.ID},
+		&auth_model.AccessToken{UID: u.ID},
 		&repo_model.Collaboration{UserID: u.ID},
 		&access_model.Access{UserID: u.ID},
 		&repo_model.Watch{UserID: u.ID},
 		&repo_model.Star{UID: u.ID},
 		&user_model.Follow{UserID: u.ID},
 		&user_model.Follow{FollowID: u.ID},
-		&Action{UserID: u.ID},
+		&activities_model.Action{UserID: u.ID},
 		&issues_model.IssueUser{UID: u.ID},
 		&user_model.EmailAddress{UID: u.ID},
 		&user_model.UserOpenID{UID: u.ID},
@@ -101,9 +102,9 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 
 		// Delete Comments
 		const batchSize = 50
-		for start := 0; ; start += batchSize {
+		for {
 			comments := make([]*issues_model.Comment, 0, batchSize)
-			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, start).Find(&comments); err != nil {
+			if err = e.Where("type=? AND poster_id=?", issues_model.CommentTypeComment, u.ID).Limit(batchSize, 0).Find(&comments); err != nil {
 				return err
 			}
 			if len(comments) == 0 {
@@ -201,7 +202,7 @@ func DeleteUser(ctx context.Context, u *user_model.User, purge bool) (err error)
 	// ***** END: ExternalLoginUser *****
 
 	if _, err = e.ID(u.ID).Delete(new(user_model.User)); err != nil {
-		return fmt.Errorf("Delete: %v", err)
+		return fmt.Errorf("delete: %v", err)
 	}
 
 	return nil

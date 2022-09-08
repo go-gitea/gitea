@@ -6,7 +6,7 @@
 	<title>{{.locale.Tr "mail.activate_account.title" (.DisplayName|DotEscape)}}</title>
 </head>
 
-{{ $activate_url := printf "%suser/activate?code=%s" AppUrl (QueryEscape .Code)}}
+{{$activate_url := printf "%suser/activate?code=%s" AppUrl (QueryEscape .Code)}}
 <body>
 	<p>{{.locale.Tr "mail.activate_account.text_1" (.DisplayName|DotEscape) AppName | Str2html}}</p><br>
 	<p>{{.locale.Tr "mail.activate_account.text_2" .ActiveCodeLives | Str2html}}</p><p><a href="{{$activate_url}}">{{$activate_url}}</a></p><br>

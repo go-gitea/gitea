@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -164,7 +165,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			if wikiRepo != nil {
@@ -588,7 +589,7 @@ func WikiPages(ctx *context.Context) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			ctx.ServerError("WikiFilenameToName", err)
@@ -693,10 +694,10 @@ func NewWikiPost(ctx *context.Context) {
 	}
 
 	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.Content, form.Message); err != nil {
-		if models.IsErrWikiReservedName(err) {
+		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.reserved_page", wikiName), tplWikiNew, &form)
-		} else if models.IsErrWikiAlreadyExist(err) {
+		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Data["Err_Title"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.wiki.page_already_exists"), tplWikiNew, &form)
 		} else {
@@ -704,6 +705,8 @@ func NewWikiPost(ctx *context.Context) {
 		}
 		return
 	}
+
+	notification.NotifyNewWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
 
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(wikiName))
 }
@@ -747,6 +750,8 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyEditWikiPage(ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(newWikiName))
 }
 
@@ -761,6 +766,8 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}
+
+	notification.NotifyDeleteWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",

@@ -215,12 +215,12 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-//  __      __      ___.   .__    .__            __
-// /  \    /  \ ____\_ |__ |  |__ |  |__   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \|  |  \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  \   Y  (  <_> )    <
-//   \__/\  /  \___  >___  /___|  /___|  /\____/|__|_ \
-//        \/       \/    \/     \/     \/            \/
+//  __      __      ___.   .__                   __
+// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
+// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
+//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
+//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
+//        \/       \/    \/     \/                   \/
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
@@ -242,6 +242,7 @@ type WebhookForm struct {
 	PullRequestComment   bool
 	PullRequestReview    bool
 	PullRequestSync      bool
+	Wiki                 bool
 	Repository           bool
 	Package              bool
 	Active               bool

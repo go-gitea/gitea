@@ -23,7 +23,7 @@
 
 				<!-- LDAP and DLDAP -->
 				{{if or .Source.IsLDAP .Source.IsDLDAP}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field {{if .Err_SecurityProtocol}}error{{end}}">
 						<label>{{.locale.Tr "admin.auths.security_protocol"}}</label>
 						<div class="ui selection security-protocol dropdown">
@@ -180,7 +180,7 @@
 
 				<!-- SMTP -->
 				{{if .Source.IsSMTP}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.smtp_auth"}}</label>
 						<div class="ui selection type dropdown">
@@ -242,7 +242,7 @@
 
 				<!-- PAM -->
 				{{if .Source.IsPAM}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="required field">
 						<label for="pam_service_name">{{.locale.Tr "admin.auths.pam_service_name"}}</label>
 						<input id="pam_service_name" name="pam_service_name" value="{{$cfg.ServiceName}}" required>
@@ -262,7 +262,7 @@
 
 				<!-- OAuth2 -->
 				{{if .Source.IsOAuth2}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="inline required field">
 						<label>{{.locale.Tr "admin.auths.oauth2_provider"}}</label>
 						<div class="ui selection type dropdown">
@@ -337,16 +337,16 @@
 
 					<div class="field">
 						<label for="oauth2_scopes">{{.locale.Tr "admin.auths.oauth2_scopes"}}</label>
-						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{Join $cfg.Scopes "," }}{{end}}">
+						<input id="oauth2_scopes" name="oauth2_scopes" value="{{if $cfg.Scopes}}{{Join $cfg.Scopes ","}}{{end}}">
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_name">{{.locale.Tr "admin.auths.oauth2_required_claim_name"}}</label>
-						<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" values="{{$cfg.RequiredClaimName}}">
+						<input id="oauth2_required_claim_name" name="oauth2_required_claim_name" value="{{$cfg.RequiredClaimName}}">
 						<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_name_helper"}}</p>
 					</div>
 					<div class="field">
 						<label for="oauth2_required_claim_value">{{.locale.Tr "admin.auths.oauth2_required_claim_value"}}</label>
-						<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" values="{{$cfg.RequiredClaimValue}}">
+						<input id="oauth2_required_claim_value" name="oauth2_required_claim_value" value="{{$cfg.RequiredClaimValue}}">
 						<p class="help">{{.locale.Tr "admin.auths.oauth2_required_claim_value_helper"}}</p>
 					</div>
 					<div class="field">
@@ -365,7 +365,7 @@
 
 				<!-- SSPI -->
 				{{if .Source.IsSSPI}}
-					{{ $cfg:=.Source.Cfg }}
+					{{$cfg:=.Source.Cfg}}
 					<div class="field">
 						<div class="ui checkbox">
 							<label for="sspi_auto_create_users"><strong>{{.locale.Tr "admin.auths.sspi_auto_create_users"}}</strong></label>

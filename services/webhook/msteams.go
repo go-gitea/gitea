@@ -6,6 +6,7 @@ package webhook
 
 import (
 	"fmt"
+	"net/url"
 	"strings"
 
 	webhook_model "code.gitea.io/gitea/models/webhook"
@@ -263,6 +264,21 @@ func (m *MSTeamsPayload) Repository(p *api.RepositoryPayload) (api.Payloader, er
 		url,
 		color,
 		nil,
+	), nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (m *MSTeamsPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	title, color, _ := getWikiPayloadInfo(p, noneLinkFormatter, false)
+
+	return createMSTeamsPayload(
+		p.Repository,
+		p.Sender,
+		title,
+		"",
+		p.Repository.HTMLURL+"/wiki/"+url.PathEscape(p.Page),
+		color,
+		&MSTeamsFact{"Repository:", p.Repository.FullName},
 	), nil
 }
 
