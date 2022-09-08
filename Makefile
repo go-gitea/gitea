@@ -405,6 +405,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
@@ -412,7 +413,7 @@ vendor: go.mod go.sum
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum); \
+	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
