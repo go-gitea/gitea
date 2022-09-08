@@ -407,9 +407,9 @@ tidy:
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
 	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
-.PHONY: vendor
-vendor:
+vendor: go.mod go.sum
 	$(GO) mod vendor
+	@touch vendor
 
 .PHONY: tidy-check
 tidy-check: tidy
