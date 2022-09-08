@@ -106,7 +106,6 @@ steps:
     image: golang:1.19
     commands:
       - make generate-frontend
-    depends_on: [test-frontend]
 
   - name: build-frontend
     image: node:18
@@ -544,7 +543,6 @@ steps:
     image: golang:1.18
     commands:
       - make generate-frontend
-    depends_on: [deps-frontend]
 
   - name: build-frontend
     image: node:18
