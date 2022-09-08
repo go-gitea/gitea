@@ -1,10 +1,10 @@
-{{if or .PullReviewers .OriginalReviews }}
+{{if or .PullReviewers .OriginalReviews}}
 	<div class="comment box">
 		<div class="content">
 			<div class="ui segment">
 				<h4>{{$.locale.Tr "repo.issues.review.reviewers"}}</h4>
 				{{range .PullReviewers}}
-					{{ $createdStr:= TimeSinceUnix .Review.UpdatedUnix $.locale }}
+					{{$createdStr:= TimeSinceUnix .Review.UpdatedUnix $.locale}}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
@@ -71,7 +71,7 @@
 								{{- else if eq .Review.Type 4}}yellow
 								{{else}}grey{{end}}">
 
-								{{if .CanChange }}
+								{{if .CanChange}}
 									<a href="#" class="ui tooltip icon re-request-review {{if .Checked}}checked{{end}}" data-issue-id="{{$.Issue.ID}}" data-content="{{if .Checked}} {{$.locale.Tr "repo.issues.remove_request_review"}} {{else}} {{$.locale.Tr "repo.issues.re_request_review"}} {{end}}"  data-id="{{.ItemID}}" data-update-url="{{$.RepoLink}}/issues/request_review">
 										{{if .Checked}} {{svg "octicon-trash"}} {{else}} {{svg "octicon-sync"}} {{end}}
 									</a>
@@ -82,14 +82,14 @@
 					</div>
 				{{end}}
 				{{range .OriginalReviews}}
-					{{ $createdStr:= TimeSinceUnix .UpdatedUnix $.locale }}
+					{{$createdStr:= TimeSinceUnix .UpdatedUnix $.locale}}
 					<div class="ui divider"></div>
 					<div class="review-item">
 						<div class="review-item-left">
-							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe }}">
+							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black ">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-									{{ .OriginalAuthor }}
+									{{.OriginalAuthor}}
 								</span>
 							</a>
 						</div>
@@ -180,7 +180,7 @@
 				<div class="item toggle-wip df ac sb" data-title="{{.Issue.Title}}" data-wip-prefix="{{(.WorkInProgressPrefix|Escape)}}" data-update-url="{{.Issue.Link}}/title">
 					<div>
 						<i class="icon icon-octicon">{{svg "octicon-x"}}</i>
-						{{$.locale.Tr "repo.pulls.cannot_merge_work_in_progress" }}
+						{{$.locale.Tr "repo.pulls.cannot_merge_work_in_progress"}}
 					</div>
 					<div>
 						{{if or .HasIssuesOrPullsWritePermission .IsIssuePoster}}
@@ -224,7 +224,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe }}
+						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<div class="ui ordered list">
 							{{range .ChangedProtectedFiles}}
 								<div data-value="-" class="item">{{.}}</div>
@@ -248,7 +248,7 @@
 					</div>
 					<div class="item">
 						<i class="icon unlock"></i>
-						{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+						{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 					</div>
 				{{end}}
 
@@ -278,7 +278,7 @@
 					{{else if .IsSigned}}
 						<div class="item">
 							<i class="icon unlock"></i>
-							{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason) }}
+							{{$.locale.Tr (printf "repo.signing.wont_sign.%s" .WontSignReason)}}
 						</div>
 					{{end}}
 				{{end}}
@@ -290,7 +290,7 @@
 							{{$.locale.Tr "repo.pulls.outdated_with_base_branch"}}
 						</div>
 						<div class="item-section-right">
-							{{if and .UpdateAllowed .UpdateByRebaseAllowed }}
+							{{if and .UpdateAllowed .UpdateByRebaseAllowed}}
 								<div class="dib">
 									<div class="ui buttons update-button">
 										<button class="ui button" data-do="{{.Link}}/update" data-redirect="{{.Link}}">
@@ -357,6 +357,7 @@
 									'emptyCommit': {{.Issue.PullRequest.IsEmpty}},
 									'pullHeadCommitID': {{.PullHeadCommitID}},
 									'isPullBranchDeletable': {{.IsPullBranchDeletable}},
+									'defaultMergeStyle': {{.MergeStyle}},
 									'defaultDeleteBranchAfterMerge': {{$prUnit.PullRequestsConfig.DefaultDeleteBranchAfterMerge}},
 									'mergeMessageFieldPlaceHolder': {{$.locale.Tr "repo.editor.commit_message_desc"}},
 
@@ -394,7 +395,7 @@
 										'allowed': {{$prUnit.PullRequestsConfig.AllowSquash}},
 										'textDoMerge': {{$.locale.Tr "repo.pulls.squash_merge_pull_request"}},
 										'mergeTitleFieldText': defaultSquashMergeTitle,
-										'mergeMessageFieldText': defaultMergeMessage,
+										'mergeMessageFieldText': {{.GetCommitMessages}} + defaultMergeMessage,
 										'hideAutoMerge': generalHideAutoMerge,
 									},
 									{
@@ -459,7 +460,7 @@
 				{{else if .IsBlockedByChangedProtectedFiles}}
 					<div class="item text red">
 						<i class="icon icon-octicon">{{svg "octicon-x" 16}}</i>
-						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe }}
+						{{$.locale.TrN $.ChangedProtectedFilesNum "repo.pulls.blocked_by_changed_protected_files_1" "repo.pulls.blocked_by_changed_protected_files_n" | Safe}}
 						<div class="ui ordered list">
 							{{range .ChangedProtectedFiles}}
 								<div data-value="-" class="item">{{.}}</div>

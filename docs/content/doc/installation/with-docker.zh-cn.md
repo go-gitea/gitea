@@ -23,7 +23,7 @@ Gitea 在其 Docker Hub 组织内提供自动更新的 Docker 镜像。可以始
 
 ## 基本
 
-最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `:1.13.0`。
+最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `{{< version >}}`。
 
 ```yaml
 version: "3"
@@ -103,11 +103,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=mysql
-+     - DB_HOST=db:3306
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=mysql
++     - GITEA__database__HOST=db:3306
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -153,11 +153,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=postgres
-+     - DB_HOST=db:5432
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=postgres
++     - GITEA__database__HOST=db:5432
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -276,6 +276,42 @@ docker-compose pull
 docker-compose up -d
 ```
 
+## 使用环境变量管理部署
+
+除了上面的环境变量之外，`app.ini` 中的任何设置都可以使用以下形式的环境变量进行设置或覆盖：`GITEA__SECTION_NAME__KEY_NAME`。 每次 docker 容器启动时都会应用这些设置。 完整信息在[这里](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini)。
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+Gitea 将为每次新安装自动生成新的 `SECRET_KEY` 并将它们写入 `app.ini`。 如果您想手动设置 `SECRET_KEY`，您可以使用以下 docker 命令来使用 Gitea 内置的[方法](https://docs.gitea.io/en-us/command-line/#generate)生成 `SECRET_KEY`。 安装后请妥善保管您的 `SECRET_KEY`，如若丢失则无法解密已加密的数据。
+
+以下命令将向 `stdout` 输出一个新的 `SECRET_KEY` 和 `INTERNAL_TOKEN`，然后您可以将其放入环境变量中。
+
+```bash
+docker run -it --rm gitea/gitea:1 gitea generate secret SECRET_KEY
+docker run -it --rm  gitea/gitea:1 gitea generate secret INTERNAL_TOKEN
+```
+
+```yaml
+...
+services:
+  server:
+    environment:
+      - GITEA__security__SECRET_KEY=[value returned by generate secret SECRET_KEY]
+      - GITEA__security__INTERNAL_TOKEN=[value returned by generate secret INTERNAL_TOKEN]
+```
+
 ## SSH 容器直通
 
 由于 SSH 在容器内运行，因此，如果需要 SSH 支持，则需要将 SSH 从主机传递到容器。一种选择是在非标准端口上运行容器 SSH（或将主机端口移至非标准端口）。另一个可能更直接的选择是将 SSH 连接从主机转发到容器。下面将说明此设置。
@@ -301,7 +337,7 @@ volumes:
 sudo -u git ssh-keygen -t rsa -b 4096 -C "Gitea Host Key"
 ```
 
-在下一步中，需要在主机上创建一个名为 `/user/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/user/local/bin/gitea`：
+在下一步中，需要在主机上创建一个名为 `/usr/local/bin/gitea` 的文件（具有可执行权限）。该文件将发出从主机到容器的 SSH 转发。将以下内容添加到 `/usr/local/bin/gitea`：
 
 ```bash
 ssh -p 2222 -o StrictHostKeyChecking=no git@127.0.0.1 "SSH_ORIGINAL_COMMAND=\"$SSH_ORIGINAL_COMMAND\" $0 $@"
@@ -324,14 +360,14 @@ ports:
 ssh-rsa <Gitea Host Key>
 
 # other keys from users
-command="/user/local/bin/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
+command="/usr/local/bin/gitea --config=/data/gitea/conf/app.ini serv key-1",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty <user pubkey>
 ```
 
 这是详细的说明，当发出 SSH 请求时会发生什么：
 
 1. 使用 `git` 用户向主机发出 SSH 请求，例如 `git clone git@domain:user/repo.git`。
-2. 在 `/home/git/.ssh/authorized_keys` 中，该命令执行 `/user/local/bin/gitea` 脚本。
-3. `/user/local/bin/gitea` 将 SSH 请求转发到端口 2222，该端口已映射到容器的 SSH 端口（22）。
+2. 在 `/home/git/.ssh/authorized_keys` 中，该命令执行 `/usr/local/bin/gitea` 脚本。
+3. `/usr/local/bin/gitea` 将 SSH 请求转发到端口 2222，该端口已映射到容器的 SSH 端口（22）。
 4. 由于 `/home/git/.ssh/authorized_keys` 中存在 `git` 用户的公钥，因此身份验证主机 → 容器成功，并且 SSH 请求转发到在 docker 容器中运行的 Gitea。
 
 如果在 Gitea Web 界面中添加了新的 SSH 密钥，它将以与现有密钥相同的方式附加到 `.ssh/authorized_keys` 中。

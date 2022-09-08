@@ -3,7 +3,7 @@
 		{{if or .PageIsCommits (gt .CommitCount 0)}}
 			{{.CommitCount}} {{.locale.Tr "repo.commits.commits"}} {{if .RefName}}({{.RefName}}){{end}}
 		{{else if .IsNothingToCompare}}
-			{{.locale.Tr "repo.commits.nothing_to_compare" }} {{if .RefName}}({{.RefName}}){{end}}
+			{{.locale.Tr "repo.commits.nothing_to_compare"}} {{if .RefName}}({{.RefName}}){{end}}
 		{{else}}
 			{{.locale.Tr "repo.commits.no_commits" $.BaseBranch $.HeadBranch}} {{if .RefName}}({{.RefName}}){{end}}
 		{{end}}

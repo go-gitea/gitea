@@ -8,7 +8,6 @@ package repo
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
@@ -108,66 +107,18 @@ func DeleteMirrorByRepoID(repoID int64) error {
 
 // MirrorsIterate iterates all mirror repositories.
 func MirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(db.DefaultContext).
+	sess := db.GetEngine(db.DefaultContext).
 		Where("next_update_unix<=?", time.Now().Unix()).
 		And("next_update_unix!=0").
-		OrderBy("updated_unix ASC").
-		Limit(limit).
-		Iterate(new(Mirror), f)
+		OrderBy("updated_unix ASC")
+	if limit > 0 {
+		sess = sess.Limit(limit)
+	}
+	return sess.Iterate(new(Mirror), f)
 }
 
 // InsertMirror inserts a mirror to database
 func InsertMirror(ctx context.Context, mirror *Mirror) error {
 	_, err := db.GetEngine(ctx).Insert(mirror)
 	return err
-}
-
-// MirrorRepositoryList contains the mirror repositories
-type MirrorRepositoryList []*Repository
-
-func (repos MirrorRepositoryList) loadAttributes(ctx context.Context) error {
-	if len(repos) == 0 {
-		return nil
-	}
-
-	// Load mirrors.
-	repoIDs := make([]int64, 0, len(repos))
-	for i := range repos {
-		if !repos[i].IsMirror {
-			continue
-		}
-
-		repoIDs = append(repoIDs, repos[i].ID)
-	}
-	mirrors := make([]*Mirror, 0, len(repoIDs))
-	if err := db.GetEngine(ctx).
-		Where("id > 0").
-		In("repo_id", repoIDs).
-		Find(&mirrors); err != nil {
-		return fmt.Errorf("find mirrors: %v", err)
-	}
-
-	set := make(map[int64]*Mirror)
-	for i := range mirrors {
-		set[mirrors[i].RepoID] = mirrors[i]
-	}
-	for i := range repos {
-		repos[i].Mirror = set[repos[i].ID]
-		repos[i].Mirror.Repo = repos[i]
-	}
-	return nil
-}
-
-// LoadAttributes loads the attributes for the given MirrorRepositoryList
-func (repos MirrorRepositoryList) LoadAttributes() error {
-	return repos.loadAttributes(db.DefaultContext)
-}
-
-// GetUserMirrorRepositories returns a list of mirror repositories of given user.
-func GetUserMirrorRepositories(userID int64) ([]*Repository, error) {
-	repos := make([]*Repository, 0, 10)
-	return repos, db.GetEngine(db.DefaultContext).
-		Where("owner_id = ?", userID).
-		And("is_mirror = ?", true).
-		Find(&repos)
 }

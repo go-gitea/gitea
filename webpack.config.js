@@ -9,10 +9,13 @@ import EsBuildLoader from 'esbuild-loader';
 import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
+import {readFileSync} from 'fs';
 
 const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
+const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
+
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: dirname(fileURLToPath(new URL(import.meta.url))),
   absolute: true,
@@ -74,7 +77,7 @@ export default {
     },
     chunkFilename: ({chunk}) => {
       const language = (/monaco.*languages?_.+?_(.+?)_/.exec(chunk.id) || [])[1];
-      return language ? `js/monaco-language-${language.toLowerCase()}.js` : `js/[name].js`;
+      return `js/${language ? `monaco-language-${language.toLowerCase()}` : `[name]`}.[contenthash:8].js`;
     },
   },
   optimization: {
@@ -173,14 +176,14 @@ export default {
         test: /\.(ttf|woff2?)$/,
         type: 'asset/resource',
         generator: {
-          filename: 'fonts/[name][ext]',
+          filename: 'fonts/[name].[contenthash:8][ext]',
         }
       },
       {
         test: /\.png$/i,
         type: 'asset/resource',
         generator: {
-          filename: 'img/webpack/[name][ext]',
+          filename: 'img/webpack/[name].[contenthash:8][ext]',
         }
       },
     ],
@@ -189,26 +192,34 @@ export default {
     new VueLoaderPlugin(),
     new MiniCssExtractPlugin({
       filename: 'css/[name].css',
-      chunkFilename: 'css/[name].css',
+      chunkFilename: 'css/[name].[contenthash:8].css',
     }),
     new SourceMapDevToolPlugin({
-      filename: '[file].map',
+      filename: '[file].[contenthash:8].map',
       include: [
         'js/index.js',
         'css/index.css',
       ],
     }),
     new MonacoWebpackPlugin({
-      filename: 'js/monaco-[name].worker.js',
+      filename: 'js/monaco-[name].[contenthash:8].worker.js',
     }),
     isProduction ? new LicenseCheckerWebpackPlugin({
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        return dependencies.map((module) => {
-          const {name, version, licenseName, licenseText} = module;
-          const body = wrapAnsi(licenseText || '', 80);
-          return `${line}\n${name}@${version} - ${licenseName}\n${line}\n${body}`;
+        const goJson = readFileSync('assets/go-licenses.json', 'utf8');
+        const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
+          return {name, body: formatLicenseText(licenseText)};
+        });
+        const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
+          return {name, version, licenseName, body: formatLicenseText(licenseText)};
+        });
+
+        const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
+        return modules.map(({name, version, licenseName, body}) => {
+          const title = licenseName ? `${name}@${version} - ${licenseName}` : name;
+          return `${line}\n${title}\n${line}\n${body}`;
         }).join('\n');
       },
       override: {

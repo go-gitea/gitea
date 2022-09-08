@@ -5,7 +5,7 @@
 package ui
 
 import (
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -42,7 +42,7 @@ func NewNotifier() base.Notifier {
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.(issueNotificationOpts)
-		if err := models.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		if err := activities_model.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
@@ -237,7 +237,7 @@ func (ns *notificationService) NotifyPullReviewRequest(doer *user_model.User, is
 }
 
 func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
+	if err := activities_model.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}
 }

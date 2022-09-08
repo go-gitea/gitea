@@ -14,8 +14,10 @@
 				<option value="maven" {{if eq .PackageType "maven"}}selected="selected"{{end}}>Maven</option>
 				<option value="npm" {{if eq .PackageType "npm"}}selected="selected"{{end}}>npm</option>
 				<option value="nuget" {{if eq .PackageType "nuget"}}selected="selected"{{end}}>NuGet</option>
+				<option value="pub" {{if eq .PackageType "pub"}}selected="selected"{{end}}>Pub</option>
 				<option value="pypi" {{if eq .PackageType "pypi"}}selected="selected"{{end}}>PyPi</option>
 				<option value="rubygems" {{if eq .PackageType "rubygems"}}selected="selected"{{end}}>RubyGems</option>
+				<option value="vagrant" {{if eq .PackageType "vagrant"}}selected="selected"{{end}}>Vagrant</option>
 			</select>
 			<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 		</div>
@@ -47,6 +49,10 @@
 				<div class="empty center">
 					{{svg "octicon-package" 32}}
 					<h2>{{.locale.Tr "packages.empty"}}</h2>
+					{{if and .Repository .CanWritePackages}}
+						{{$packagesUrl := URLJoin .Owner.HTMLURL "-" "packages"}}
+						<p>{{.locale.Tr "packages.empty.repo" $packagesUrl | Safe}}</p>
+					{{end}}
 					<p>{{.locale.Tr "packages.empty.documentation" | Safe}}</p>
 				</div>
 			{{else}}

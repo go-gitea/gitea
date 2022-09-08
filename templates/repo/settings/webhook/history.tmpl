@@ -44,7 +44,7 @@
 							<div class="right menu">
 								<form class="item" action="{{$.Link}}/replay/{{.UUID}}" method="post">
 									{{$.CsrfTokenHtml}}
-									<button class="ui tiny button tooltip" data-content="{{$.locale.Tr "repo.settings.webhook.replay.description"}}" data-variation="inverted tiny">{{svg "octicon-sync"}}</button>
+									<button class="ui tiny button tooltip" data-content="{{$.locale.Tr "repo.settings.webhook.replay.description"}}">{{svg "octicon-sync"}}</button>
 								</form>
 							</div>
 							{{end}}
@@ -54,7 +54,7 @@
 								<h5>{{$.locale.Tr "repo.settings.webhook.headers"}}</h5>
 								<pre class="webhook-info"><strong>Request URL:</strong> {{.RequestInfo.URL}}
 <strong>Request method:</strong> {{if .RequestInfo.HTTPMethod}}{{.RequestInfo.HTTPMethod}}{{else}}POST{{end}}
-{{ range $key, $val := .RequestInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
+{{range $key, $val := .RequestInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.locale.Tr "repo.settings.webhook.payload"}}</h5>
 								<pre class="webhook-info"><code class="json">{{.PayloadContent}}</code></pre>
@@ -65,7 +65,7 @@
 						<div class="ui bottom attached tab segment" data-tab="response-{{.ID}}">
 							{{if .ResponseInfo}}
 								<h5>{{$.locale.Tr "repo.settings.webhook.headers"}}</h5>
-								<pre class="webhook-info">{{ range $key, $val := .ResponseInfo.Headers }}<strong>{{$key}}:</strong> {{$val}}
+								<pre class="webhook-info">{{range $key, $val := .ResponseInfo.Headers}}<strong>{{$key}}:</strong> {{$val}}
 {{end}}</pre>
 								<h5>{{$.locale.Tr "repo.settings.webhook.body"}}</h5>
 								<pre class="webhook-info"><code>{{.ResponseInfo.Body}}</code></pre>

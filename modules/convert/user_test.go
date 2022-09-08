@@ -17,13 +17,13 @@ import (
 func TestUser_ToUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1, IsAdmin: true})
 
 	apiUser := toUser(user1, true, true)
 	assert.True(t, apiUser.IsAdmin)
 	assert.Contains(t, apiUser.AvatarURL, "://")
 
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2, IsAdmin: false}).(*user_model.User)
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2, IsAdmin: false})
 
 	apiUser = toUser(user2, true, true)
 	assert.False(t, apiUser.IsAdmin)
@@ -32,7 +32,7 @@ func TestUser_ToUser(t *testing.T) {
 	assert.False(t, apiUser.IsAdmin)
 	assert.EqualValues(t, api.VisibleTypePublic.String(), apiUser.Visibility)
 
-	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate}).(*user_model.User)
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31, IsAdmin: false, Visibility: api.VisibleTypePrivate})
 
 	apiUser = toUser(user31, true, true)
 	assert.False(t, apiUser.IsAdmin)
