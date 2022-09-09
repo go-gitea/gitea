@@ -15,8 +15,8 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
+	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -37,6 +37,7 @@ import (
 	"gitea.com/go-chi/binding"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/markbates/goth"
+	"github.com/markbates/goth/gothic"
 )
 
 const (
@@ -168,7 +169,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 		GrantID: grant.ID,
 		Counter: grant.Counter,
 		Type:    oauth2.TypeRefreshToken,
-		RegisteredClaims: jwt.RegisteredClaims{ // nolint
+		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(refreshExpirationDate),
 		},
 	}
@@ -215,7 +216,7 @@ func newAccessTokenResponse(ctx stdContext.Context, grant *auth.OAuth2Grant, ser
 			Nonce: grant.Nonce,
 		}
 		if grant.ScopeContains("profile") {
-			idToken.Name = user.FullName
+			idToken.Name = user.GetDisplayName()
 			idToken.PreferredUsername = user.Name
 			idToken.Profile = user.HTMLURL()
 			idToken.Picture = user.AvatarLink()
@@ -295,7 +296,7 @@ func InfoOAuth(ctx *context.Context) {
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
 func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := models.GetUserOrgsList(user)
+	orgs, err := org_model.GetUserOrgsList(user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %v", err)
 	}
@@ -1098,23 +1099,30 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 func oAuth2UserLoginCallback(authSource *auth.Source, request *http.Request, response http.ResponseWriter) (*user_model.User, goth.User, error) {
 	oauth2Source := authSource.Cfg.(*oauth2.Source)
 
+	// Make sure that the response is not an error response.
+	errorName := request.FormValue("error")
+
+	if len(errorName) > 0 {
+		errorDescription := request.FormValue("error_description")
+
+		// Delete the goth session
+		err := gothic.Logout(response, request)
+		if err != nil {
+			return nil, goth.User{}, err
+		}
+
+		return nil, goth.User{}, errCallback{
+			Code:        errorName,
+			Description: errorDescription,
+		}
+	}
+
+	// Proceed to authenticate through goth.
 	gothUser, err := oauth2Source.Callback(request, response)
 	if err != nil {
 		if err.Error() == "securecookie: the value is too long" || strings.Contains(err.Error(), "Data too long") {
 			log.Error("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
 			err = fmt.Errorf("OAuth2 Provider %s returned too long a token. Current max: %d. Either increase the [OAuth2] MAX_TOKEN_LENGTH or reduce the information returned from the OAuth2 provider", authSource.Name, setting.OAuth2.MaxTokenLength)
-		}
-		// goth does not provide the original error message
-		// https://github.com/markbates/goth/issues/348
-		if strings.Contains(err.Error(), "server response missing access_token") || strings.Contains(err.Error(), "could not find a matching session for this request") {
-			errorCode := request.FormValue("error")
-			errorDescription := request.FormValue("error_description")
-			if errorCode != "" || errorDescription != "" {
-				return nil, goth.User{}, errCallback{
-					Code:        errorCode,
-					Description: errorDescription,
-				}
-			}
 		}
 		return nil, goth.User{}, err
 	}

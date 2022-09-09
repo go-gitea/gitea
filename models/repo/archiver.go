@@ -39,9 +39,9 @@ func init() {
 	db.RegisterModel(new(RepoArchiver))
 }
 
-// RelativePath returns relative path
-func (archiver *RepoArchiver) RelativePath() (string, error) {
-	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String()), nil
+// RelativePath returns the archive path relative to the archive storage root.
+func (archiver *RepoArchiver) RelativePath() string {
+	return fmt.Sprintf("%d/%s/%s.%s", archiver.RepoID, archiver.CommitID[:2], archiver.CommitID, archiver.Type.String())
 }
 
 var delRepoArchiver = new(RepoArchiver)
@@ -112,5 +112,5 @@ func FindRepoArchives(opts FindRepoArchiversOption) ([]*RepoArchiver, error) {
 func SetArchiveRepoState(repo *Repository, isArchived bool) (err error) {
 	repo.IsArchived = isArchived
 	_, err = db.GetEngine(db.DefaultContext).Where("id = ?", repo.ID).Cols("is_archived").NoAutoTime().Update(repo)
-	return
+	return err
 }

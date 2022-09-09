@@ -95,7 +95,7 @@ func callShowRef(ctx context.Context, repoPath, prefix, arg string, skip, limit 
 
 		return nil
 	})
-	return
+	return branchNames, countAll, err
 }
 
 func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, walkfn func(sha1, refname string) error) (countAll int, err error) {

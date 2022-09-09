@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/updatechecker"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -85,7 +86,7 @@ var sysStatus struct {
 }
 
 func updateSystemStatus() {
-	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, "en")
+	sysStatus.Uptime = timeutil.TimeSincePro(setting.AppStartTime, translation.NewLocale("en-US"))
 
 	m := new(runtime.MemStats)
 	runtime.ReadMemStats(m)
@@ -127,7 +128,7 @@ func Dashboard(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = activities_model.GetStatistic()
 	ctx.Data["NeedUpdate"] = updatechecker.GetNeedUpdate()
 	ctx.Data["RemoteVersion"] = updatechecker.GetRemoteVersion()
 	// FIXME: update periodically
@@ -143,7 +144,7 @@ func DashboardPost(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.dashboard")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminDashboard"] = true
-	ctx.Data["Stats"] = models.GetStatistic()
+	ctx.Data["Stats"] = activities_model.GetStatistic()
 	updateSystemStatus()
 	ctx.Data["SysStatus"] = sysStatus
 
@@ -256,6 +257,7 @@ func Config(ctx *context.Context) {
 	ctx.Data["ScriptType"] = setting.ScriptType
 	ctx.Data["ReverseProxyAuthUser"] = setting.ReverseProxyAuthUser
 	ctx.Data["ReverseProxyAuthEmail"] = setting.ReverseProxyAuthEmail
+	ctx.Data["ReverseProxyAuthFullName"] = setting.ReverseProxyAuthFullName
 
 	ctx.Data["SSH"] = setting.SSH
 	ctx.Data["LFS"] = setting.LFS

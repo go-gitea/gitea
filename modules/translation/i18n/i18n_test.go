@@ -53,4 +53,8 @@ sub = Changed Sub String
 	langs, descs := ls.ListLangNameDesc()
 	assert.Equal(t, []string{"lang1", "lang2"}, langs)
 	assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
+
+	found := ls.Has("lang1", "no-such")
+	assert.False(t, found)
+	assert.NoError(t, ls.Close())
 }

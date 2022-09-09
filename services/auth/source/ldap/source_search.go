@@ -34,7 +34,7 @@ type SearchResult struct {
 	LdapTeamRemove map[string][]string // organizations teams to remove
 }
 
-func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
+func (source *Source) sanitizedUserQuery(username string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4515
 	badCharacters := "\x00()*\\"
 	if strings.ContainsAny(username, badCharacters) {
@@ -42,10 +42,10 @@ func (ls *Source) sanitizedUserQuery(username string) (string, bool) {
 		return "", false
 	}
 
-	return fmt.Sprintf(ls.Filter, username), true
+	return fmt.Sprintf(source.Filter, username), true
 }
 
-func (ls *Source) sanitizedUserDN(username string) (string, bool) {
+func (source *Source) sanitizedUserDN(username string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4514: "special characters"
 	badCharacters := "\x00()*\\,='\"#+;<>"
 	if strings.ContainsAny(username, badCharacters) {
@@ -53,10 +53,10 @@ func (ls *Source) sanitizedUserDN(username string) (string, bool) {
 		return "", false
 	}
 
-	return fmt.Sprintf(ls.UserDN, username), true
+	return fmt.Sprintf(source.UserDN, username), true
 }
 
-func (ls *Source) sanitizedGroupFilter(group string) (string, bool) {
+func (source *Source) sanitizedGroupFilter(group string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4515
 	badCharacters := "\x00*\\"
 	if strings.ContainsAny(group, badCharacters) {
@@ -67,7 +67,7 @@ func (ls *Source) sanitizedGroupFilter(group string) (string, bool) {
 	return group, true
 }
 
-func (ls *Source) sanitizedGroupDN(groupDn string) (string, bool) {
+func (source *Source) sanitizedGroupDN(groupDn string) (string, bool) {
 	// See http://tools.ietf.org/search/rfc4514: "special characters"
 	badCharacters := "\x00()*\\'\"#+;<>"
 	if strings.ContainsAny(groupDn, badCharacters) || strings.HasPrefix(groupDn, " ") || strings.HasSuffix(groupDn, " ") {
@@ -78,18 +78,18 @@ func (ls *Source) sanitizedGroupDN(groupDn string) (string, bool) {
 	return groupDn, true
 }
 
-func (ls *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
+func (source *Source) findUserDN(l *ldap.Conn, name string) (string, bool) {
 	log.Trace("Search for LDAP user: %s", name)
 
 	// A search for the user.
-	userFilter, ok := ls.sanitizedUserQuery(name)
+	userFilter, ok := source.sanitizedUserQuery(name)
 	if !ok {
 		return "", false
 	}
 
-	log.Trace("Searching for DN using filter %s and base %s", userFilter, ls.UserBase)
+	log.Trace("Searching for DN using filter %s and base %s", userFilter, source.UserBase)
 	search := ldap.NewSearchRequest(
-		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0,
+		source.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0,
 		false, userFilter, []string{}, nil)
 
 	// Ensure we found a user
@@ -197,11 +197,11 @@ func checkRestricted(l *ldap.Conn, ls *Source, userDN string) bool {
 }
 
 // List all group memberships of a user
-func (ls *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
+func (source *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
 	var ldapGroups []string
-	groupFilter := fmt.Sprintf("(%s=%s)", ls.GroupMemberUID, uid)
+	groupFilter := fmt.Sprintf("(%s=%s)", source.GroupMemberUID, ldap.EscapeFilter(uid))
 	result, err := l.Search(ldap.NewSearchRequest(
-		ls.GroupDN,
+		source.GroupDN,
 		ldap.ScopeWholeSubtree,
 		ldap.NeverDerefAliases,
 		0,
@@ -228,9 +228,9 @@ func (ls *Source) listLdapGroupMemberships(l *ldap.Conn, uid string) []string {
 }
 
 // parse LDAP groups and return map of ldap groups to organizations teams
-func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
+func (source *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 	ldapGroupsToTeams := make(map[string]map[string][]string)
-	err := json.Unmarshal([]byte(ls.GroupTeamMap), &ldapGroupsToTeams)
+	err := json.Unmarshal([]byte(source.GroupTeamMap), &ldapGroupsToTeams)
 	if err != nil {
 		log.Error("Failed to unmarshall LDAP teams map: %v", err)
 		return ldapGroupsToTeams
@@ -239,11 +239,11 @@ func (ls *Source) mapLdapGroupsToTeams() map[string]map[string][]string {
 }
 
 // getMappedMemberships : returns the organizations and teams to modify the users membership
-func (ls *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string][]string, map[string][]string) {
+func (source *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string][]string, map[string][]string) {
 	// get all LDAP group memberships for user
-	usersLdapGroups := ls.listLdapGroupMemberships(l, uid)
+	usersLdapGroups := source.listLdapGroupMemberships(l, uid)
 	// unmarshall LDAP group team map from configs
-	ldapGroupsToTeams := ls.mapLdapGroupsToTeams()
+	ldapGroupsToTeams := source.mapLdapGroupsToTeams()
 	membershipsToAdd := map[string][]string{}
 	membershipsToRemove := map[string][]string{}
 	for group, memberships := range ldapGroupsToTeams {
@@ -262,26 +262,26 @@ func (ls *Source) getMappedMemberships(l *ldap.Conn, uid string) (map[string][]s
 }
 
 // SearchEntry : search an LDAP source if an entry (name, passwd) is valid and in the specific filter
-func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
+func (source *Source) SearchEntry(name, passwd string, directBind bool) *SearchResult {
 	// See https://tools.ietf.org/search/rfc4513#section-5.1.2
 	if len(passwd) == 0 {
 		log.Debug("Auth. failed for %s, password cannot be empty", name)
 		return nil
 	}
-	l, err := dial(ls)
+	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
-		ls.Enabled = false
+		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		source.Enabled = false
 		return nil
 	}
 	defer l.Close()
 
 	var userDN string
 	if directBind {
-		log.Trace("LDAP will bind directly via UserDN template: %s", ls.UserDN)
+		log.Trace("LDAP will bind directly via UserDN template: %s", source.UserDN)
 
 		var ok bool
-		userDN, ok = ls.sanitizedUserDN(name)
+		userDN, ok = source.sanitizedUserDN(name)
 
 		if !ok {
 			return nil
@@ -292,11 +292,11 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 			return nil
 		}
 
-		if ls.UserBase != "" {
+		if source.UserBase != "" {
 			// not everyone has a CN compatible with input name so we need to find
 			// the real userDN in that case
 
-			userDN, ok = ls.findUserDN(l, name)
+			userDN, ok = source.findUserDN(l, name)
 			if !ok {
 				return nil
 			}
@@ -306,24 +306,24 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 
 		var found bool
 
-		if ls.BindDN != "" && ls.BindPassword != "" {
-			err := l.Bind(ls.BindDN, ls.BindPassword)
+		if source.BindDN != "" && source.BindPassword != "" {
+			err := l.Bind(source.BindDN, source.BindPassword)
 			if err != nil {
-				log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+				log.Debug("Failed to bind as BindDN[%s]: %v", source.BindDN, err)
 				return nil
 			}
-			log.Trace("Bound as BindDN %s", ls.BindDN)
+			log.Trace("Bound as BindDN %s", source.BindDN)
 		} else {
 			log.Trace("Proceeding with anonymous LDAP search.")
 		}
 
-		userDN, found = ls.findUserDN(l, name)
+		userDN, found = source.findUserDN(l, name)
 		if !found {
 			return nil
 		}
 	}
 
-	if !ls.AttributesInBind {
+	if !source.AttributesInBind {
 		// binds user (checking password) before looking-up attributes in user context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
@@ -331,26 +331,26 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		}
 	}
 
-	userFilter, ok := ls.sanitizedUserQuery(name)
+	userFilter, ok := source.sanitizedUserQuery(name)
 	if !ok {
 		return nil
 	}
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
-	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(source.AttributeAvatar)) > 0
 
-	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail}
-	if len(strings.TrimSpace(ls.UserUID)) > 0 {
-		attribs = append(attribs, ls.UserUID)
+	attribs := []string{source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail}
+	if len(strings.TrimSpace(source.UserUID)) > 0 {
+		attribs = append(attribs, source.UserUID)
 	}
 	if isAttributeSSHPublicKeySet {
-		attribs = append(attribs, ls.AttributeSSHPublicKey)
+		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
 	if isAtributeAvatarSet {
-		attribs = append(attribs, ls.AttributeAvatar)
+		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, ls.UserUID, userFilter, userDN)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v', '%v' with filter '%s' and base '%s'", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, source.UserUID, userFilter, userDN)
 	search := ldap.NewSearchRequest(
 		userDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
@@ -372,30 +372,30 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	var sshPublicKey []string
 	var Avatar []byte
 
-	username := sr.Entries[0].GetAttributeValue(ls.AttributeUsername)
-	firstname := sr.Entries[0].GetAttributeValue(ls.AttributeName)
-	surname := sr.Entries[0].GetAttributeValue(ls.AttributeSurname)
-	mail := sr.Entries[0].GetAttributeValue(ls.AttributeMail)
-	uid := sr.Entries[0].GetAttributeValue(ls.UserUID)
-	if ls.UserUID == "dn" || ls.UserUID == "DN" {
+	username := sr.Entries[0].GetAttributeValue(source.AttributeUsername)
+	firstname := sr.Entries[0].GetAttributeValue(source.AttributeName)
+	surname := sr.Entries[0].GetAttributeValue(source.AttributeSurname)
+	mail := sr.Entries[0].GetAttributeValue(source.AttributeMail)
+	uid := sr.Entries[0].GetAttributeValue(source.UserUID)
+	if source.UserUID == "dn" || source.UserUID == "DN" {
 		uid = sr.Entries[0].DN
 	}
 
 	// Check group membership
-	if ls.GroupsEnabled && ls.GroupFilter != "" {
-		groupFilter, ok := ls.sanitizedGroupFilter(ls.GroupFilter)
+	if source.GroupsEnabled && source.GroupFilter != "" {
+		groupFilter, ok := source.sanitizedGroupFilter(source.GroupFilter)
 		if !ok {
 			return nil
 		}
-		groupDN, ok := ls.sanitizedGroupDN(ls.GroupDN)
+		groupDN, ok := source.sanitizedGroupDN(source.GroupDN)
 		if !ok {
 			return nil
 		}
 
-		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", ls.GroupMemberUID, groupFilter, groupDN)
+		log.Trace("Fetching groups '%v' with filter '%s' and base '%s'", source.GroupMemberUID, groupFilter, groupDN)
 		groupSearch := ldap.NewSearchRequest(
 			groupDN, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, groupFilter,
-			[]string{ls.GroupMemberUID},
+			[]string{source.GroupMemberUID},
 			nil)
 
 		srg, err := l.Search(groupSearch)
@@ -410,8 +410,8 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 		isMember := false
 	Entries:
 		for _, group := range srg.Entries {
-			for _, member := range group.GetAttributeValues(ls.GroupMemberUID) {
-				if (ls.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
+			for _, member := range group.GetAttributeValues(source.GroupMemberUID) {
+				if (source.UserUID == "dn" && member == sr.Entries[0].DN) || member == uid {
 					isMember = true
 					break Entries
 				}
@@ -425,25 +425,25 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 	}
 
 	if isAttributeSSHPublicKeySet {
-		sshPublicKey = sr.Entries[0].GetAttributeValues(ls.AttributeSSHPublicKey)
+		sshPublicKey = sr.Entries[0].GetAttributeValues(source.AttributeSSHPublicKey)
 	}
-	isAdmin := checkAdmin(l, ls, userDN)
+	isAdmin := checkAdmin(l, source, userDN)
 	var isRestricted bool
 	if !isAdmin {
-		isRestricted = checkRestricted(l, ls, userDN)
+		isRestricted = checkRestricted(l, source, userDN)
 	}
 
 	if isAtributeAvatarSet {
-		Avatar = sr.Entries[0].GetRawAttributeValue(ls.AttributeAvatar)
+		Avatar = sr.Entries[0].GetRawAttributeValue(source.AttributeAvatar)
 	}
 
 	teamsToAdd := make(map[string][]string)
 	teamsToRemove := make(map[string][]string)
-	if ls.GroupsEnabled && (ls.GroupTeamMap != "" || ls.GroupTeamMapRemoval) {
-		teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, uid)
+	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
+		teamsToAdd, teamsToRemove = source.getMappedMemberships(l, uid)
 	}
 
-	if !directBind && ls.AttributesInBind {
+	if !directBind && source.AttributesInBind {
 		// binds user (checking password) after looking-up attributes in BindDN context
 		err = bindUser(l, userDN, passwd)
 		if err != nil {
@@ -467,52 +467,52 @@ func (ls *Source) SearchEntry(name, passwd string, directBind bool) *SearchResul
 }
 
 // UsePagedSearch returns if need to use paged search
-func (ls *Source) UsePagedSearch() bool {
-	return ls.SearchPageSize > 0
+func (source *Source) UsePagedSearch() bool {
+	return source.SearchPageSize > 0
 }
 
 // SearchEntries : search an LDAP source for all users matching userFilter
-func (ls *Source) SearchEntries() ([]*SearchResult, error) {
-	l, err := dial(ls)
+func (source *Source) SearchEntries() ([]*SearchResult, error) {
+	l, err := dial(source)
 	if err != nil {
-		log.Error("LDAP Connect error, %s:%v", ls.Host, err)
-		ls.Enabled = false
+		log.Error("LDAP Connect error, %s:%v", source.Host, err)
+		source.Enabled = false
 		return nil, err
 	}
 	defer l.Close()
 
-	if ls.BindDN != "" && ls.BindPassword != "" {
-		err := l.Bind(ls.BindDN, ls.BindPassword)
+	if source.BindDN != "" && source.BindPassword != "" {
+		err := l.Bind(source.BindDN, source.BindPassword)
 		if err != nil {
-			log.Debug("Failed to bind as BindDN[%s]: %v", ls.BindDN, err)
+			log.Debug("Failed to bind as BindDN[%s]: %v", source.BindDN, err)
 			return nil, err
 		}
-		log.Trace("Bound as BindDN %s", ls.BindDN)
+		log.Trace("Bound as BindDN %s", source.BindDN)
 	} else {
 		log.Trace("Proceeding with anonymous LDAP search.")
 	}
 
-	userFilter := fmt.Sprintf(ls.Filter, "*")
+	userFilter := fmt.Sprintf(source.Filter, "*")
 
-	isAttributeSSHPublicKeySet := len(strings.TrimSpace(ls.AttributeSSHPublicKey)) > 0
-	isAtributeAvatarSet := len(strings.TrimSpace(ls.AttributeAvatar)) > 0
+	isAttributeSSHPublicKeySet := len(strings.TrimSpace(source.AttributeSSHPublicKey)) > 0
+	isAtributeAvatarSet := len(strings.TrimSpace(source.AttributeAvatar)) > 0
 
-	attribs := []string{ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.UserUID}
+	attribs := []string{source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.UserUID}
 	if isAttributeSSHPublicKeySet {
-		attribs = append(attribs, ls.AttributeSSHPublicKey)
+		attribs = append(attribs, source.AttributeSSHPublicKey)
 	}
 	if isAtributeAvatarSet {
-		attribs = append(attribs, ls.AttributeAvatar)
+		attribs = append(attribs, source.AttributeAvatar)
 	}
 
-	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", ls.AttributeUsername, ls.AttributeName, ls.AttributeSurname, ls.AttributeMail, ls.AttributeSSHPublicKey, ls.AttributeAvatar, userFilter, ls.UserBase)
+	log.Trace("Fetching attributes '%v', '%v', '%v', '%v', '%v', '%v' with filter %s and base %s", source.AttributeUsername, source.AttributeName, source.AttributeSurname, source.AttributeMail, source.AttributeSSHPublicKey, source.AttributeAvatar, userFilter, source.UserBase)
 	search := ldap.NewSearchRequest(
-		ls.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
+		source.UserBase, ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false, userFilter,
 		attribs, nil)
 
 	var sr *ldap.SearchResult
-	if ls.UsePagedSearch() {
-		sr, err = l.SearchWithPaging(search, ls.SearchPageSize)
+	if source.UsePagedSearch() {
+		sr, err = l.SearchWithPaging(search, source.SearchPageSize)
 	} else {
 		sr, err = l.Search(search)
 	}
@@ -526,30 +526,30 @@ func (ls *Source) SearchEntries() ([]*SearchResult, error) {
 	for i, v := range sr.Entries {
 		teamsToAdd := make(map[string][]string)
 		teamsToRemove := make(map[string][]string)
-		if ls.GroupsEnabled && (ls.GroupTeamMap != "" || ls.GroupTeamMapRemoval) {
-			userAttributeListedInGroup := v.GetAttributeValue(ls.UserUID)
-			if ls.UserUID == "dn" || ls.UserUID == "DN" {
+		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
+			userAttributeListedInGroup := v.GetAttributeValue(source.UserUID)
+			if source.UserUID == "dn" || source.UserUID == "DN" {
 				userAttributeListedInGroup = v.DN
 			}
-			teamsToAdd, teamsToRemove = ls.getMappedMemberships(l, userAttributeListedInGroup)
+			teamsToAdd, teamsToRemove = source.getMappedMemberships(l, userAttributeListedInGroup)
 		}
 		result[i] = &SearchResult{
-			Username:       v.GetAttributeValue(ls.AttributeUsername),
-			Name:           v.GetAttributeValue(ls.AttributeName),
-			Surname:        v.GetAttributeValue(ls.AttributeSurname),
-			Mail:           v.GetAttributeValue(ls.AttributeMail),
-			IsAdmin:        checkAdmin(l, ls, v.DN),
+			Username:       v.GetAttributeValue(source.AttributeUsername),
+			Name:           v.GetAttributeValue(source.AttributeName),
+			Surname:        v.GetAttributeValue(source.AttributeSurname),
+			Mail:           v.GetAttributeValue(source.AttributeMail),
+			IsAdmin:        checkAdmin(l, source, v.DN),
 			LdapTeamAdd:    teamsToAdd,
 			LdapTeamRemove: teamsToRemove,
 		}
 		if !result[i].IsAdmin {
-			result[i].IsRestricted = checkRestricted(l, ls, v.DN)
+			result[i].IsRestricted = checkRestricted(l, source, v.DN)
 		}
 		if isAttributeSSHPublicKeySet {
-			result[i].SSHPublicKey = v.GetAttributeValues(ls.AttributeSSHPublicKey)
+			result[i].SSHPublicKey = v.GetAttributeValues(source.AttributeSSHPublicKey)
 		}
 		if isAtributeAvatarSet {
-			result[i].Avatar = v.GetRawAttributeValue(ls.AttributeAvatar)
+			result[i].Avatar = v.GetRawAttributeValue(source.AttributeAvatar)
 		}
 		result[i].LowerName = strings.ToLower(result[i].Username)
 	}

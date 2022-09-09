@@ -10,49 +10,13 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
-	"code.gitea.io/gitea/models/perm"
+	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 
 	"xorm.io/builder"
 )
-
-func addCollaborator(ctx context.Context, repo *repo_model.Repository, u *user_model.User) error {
-	collaboration := &repo_model.Collaboration{
-		RepoID: repo.ID,
-		UserID: u.ID,
-	}
-
-	has, err := db.GetByBean(ctx, collaboration)
-	if err != nil {
-		return err
-	} else if has {
-		return nil
-	}
-	collaboration.Mode = perm.AccessModeWrite
-
-	if err = db.Insert(ctx, collaboration); err != nil {
-		return err
-	}
-
-	return access_model.RecalculateUserAccess(ctx, repo, u.ID)
-}
-
-// AddCollaborator adds new collaboration to a repository with default access mode.
-func AddCollaborator(repo *repo_model.Repository, u *user_model.User) error {
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err := addCollaborator(ctx, repo, u); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
 
 // DeleteCollaboration removes collaboration relation between the user and repository.
 func DeleteCollaboration(repo *repo_model.Repository, uid int64) (err error) {
@@ -101,7 +65,7 @@ func reconsiderRepoIssuesAssignee(ctx context.Context, repo *repo_model.Reposito
 
 	if _, err := db.GetEngine(ctx).Where(builder.Eq{"assignee_id": uid}).
 		In("issue_id", builder.Select("id").From("issue").Where(builder.Eq{"repo_id": repo.ID})).
-		Delete(&IssueAssignees{}); err != nil {
+		Delete(&issues_model.IssueAssignees{}); err != nil {
 		return fmt.Errorf("Could not delete assignee[%d] %v", uid, err)
 	}
 	return nil
@@ -116,5 +80,5 @@ func reconsiderWatches(ctx context.Context, repo *repo_model.Repository, uid int
 	}
 
 	// Remove all IssueWatches a user has subscribed to in the repository
-	return removeIssueWatchersByRepoID(ctx, uid, repo.ID)
+	return issues_model.RemoveIssueWatchersByRepoID(ctx, uid, repo.ID)
 }

@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
@@ -44,7 +45,7 @@ type Branch struct {
 	DeletedBranch     *git_model.DeletedBranch
 	CommitsAhead      int
 	CommitsBehind     int
-	LatestPullRequest *models.PullRequest
+	LatestPullRequest *issues_model.PullRequest
 	MergeMovedOn      bool
 }
 
@@ -79,7 +80,7 @@ func Branches(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -264,7 +265,7 @@ func loadOneBranch(ctx *context.Context, rawBranch, defaultBranch *git.Branch, p
 		}
 	}
 
-	pr, err := models.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
+	pr, err := issues_model.GetLatestPullRequestByHeadInfo(ctx.Repo.Repository.ID, branchName)
 	if err != nil {
 		ctx.ServerError("GetLatestPullRequestByHeadInfo", err)
 		return nil
@@ -372,6 +373,12 @@ func CreateBranch(ctx *context.Context) {
 		err = repo_service.CreateNewBranchFromCommit(ctx, ctx.Doer, ctx.Repo.Repository, ctx.Repo.CommitID, form.NewBranchName)
 	}
 	if err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Flash.Error(ctx.Tr("repo.release.tag_name_protected"))
+			ctx.Redirect(ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL())
+			return
+		}
+
 		if models.IsErrTagAlreadyExists(err) {
 			e := err.(models.ErrTagAlreadyExists)
 			ctx.Flash.Error(ctx.Tr("repo.branch.tag_collision", e.TagName))

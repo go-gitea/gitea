@@ -11,7 +11,9 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/sitemap"
 )
 
 const (
@@ -30,16 +32,27 @@ type RepoSearchOptions struct {
 
 // RenderRepoSearch render repositories search page
 func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
-	page := ctx.FormInt("page")
+	// Sitemap index for sitemap paths
+	page := int(ctx.ParamsInt64("idx"))
+	isSitemap := ctx.Params("idx") != ""
+	if page <= 1 {
+		page = ctx.FormInt("page")
+	}
+
 	if page <= 0 {
 		page = 1
 	}
 
+	if isSitemap {
+		opts.PageSize = setting.UI.SitemapPagingNum
+	}
+
 	var (
-		repos   []*repo_model.Repository
-		count   int64
-		err     error
-		orderBy db.SearchOrderBy
+		repos            []*repo_model.Repository
+		count            int64
+		err              error
+		orderBy          db.SearchOrderBy
+		onlyShowRelevant bool
 	)
 
 	ctx.Data["SortType"] = ctx.FormString("sort")
@@ -48,8 +61,6 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		orderBy = db.SearchOrderByNewest
 	case "oldest":
 		orderBy = db.SearchOrderByOldest
-	case "recentupdate":
-		orderBy = db.SearchOrderByRecentUpdated
 	case "leastupdate":
 		orderBy = db.SearchOrderByLeastUpdated
 	case "reversealphabetically":
@@ -71,9 +82,16 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	default:
 		ctx.Data["SortType"] = "recentupdate"
 		orderBy = db.SearchOrderByRecentUpdated
+		onlyShowRelevant = setting.UI.OnlyShowRelevantRepos && !ctx.FormBool("no_filter")
 	}
 
 	keyword := ctx.FormTrim("q")
+	if keyword != "" {
+		onlyShowRelevant = false
+	}
+
+	ctx.Data["OnlyShowRelevant"] = onlyShowRelevant
+
 	topicOnly := ctx.FormBool("topic")
 	ctx.Data["TopicOnly"] = topicOnly
 
@@ -95,11 +113,24 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 		TopicOnly:          topicOnly,
 		Language:           language,
 		IncludeDescription: setting.UI.SearchRepoDescription,
+		OnlyShowRelevant:   onlyShowRelevant,
 	})
 	if err != nil {
 		ctx.ServerError("SearchRepository", err)
 		return
 	}
+	if isSitemap {
+		m := sitemap.NewSitemap()
+		for _, item := range repos {
+			m.Add(sitemap.URL{URL: item.HTMLURL(), LastMod: item.UpdatedUnix.AsTimePtr()})
+		}
+		ctx.Resp.Header().Set("Content-Type", "text/xml")
+		if _, err := m.WriteTo(ctx.Resp); err != nil {
+			log.Error("Failed writing sitemap: %v", err)
+		}
+		return
+	}
+
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Total"] = count
 	ctx.Data["Repos"] = repos
@@ -109,6 +140,7 @@ func RenderRepoSearch(ctx *context.Context, opts *RepoSearchOptions) {
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "topic", "TopicOnly")
 	pager.AddParam(ctx, "language", "Language")
+	pager.AddParamString("no_filter", ctx.FormString("no_filter"))
 	ctx.Data["Page"] = pager
 
 	ctx.HTML(http.StatusOK, opts.TplName)

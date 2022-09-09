@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -24,7 +25,7 @@ import (
 )
 
 // CreateRepository creates a repository for the user/organization.
-func CreateRepository(doer, owner *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
+func CreateRepository(doer, owner *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
 	repo, err := repo_module.CreateRepository(doer, owner, opts)
 	if err != nil {
 		// No need to rollback here we should do this in CreateRepository...
@@ -68,7 +69,7 @@ func PushCreateRepo(authUser, owner *user_model.User, repoName string) (*repo_mo
 		}
 	}
 
-	repo, err := CreateRepository(authUser, owner, models.CreateRepoOptions{
+	repo, err := CreateRepository(authUser, owner, repo_module.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: setting.Repository.DefaultPushCreatePrivate,
 	})
@@ -105,7 +106,7 @@ func UpdateRepository(repo *repo_model.Repository, visibilityChanged bool) (err 
 // LinkedRepository returns the linked repo if any
 func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Type, error) {
 	if a.IssueID != 0 {
-		iss, err := models.GetIssueByID(a.IssueID)
+		iss, err := issues_model.GetIssueByID(db.DefaultContext, a.IssueID)
 		if err != nil {
 			return nil, unit.TypeIssues, err
 		}
@@ -116,7 +117,7 @@ func LinkedRepository(a *repo_model.Attachment) (*repo_model.Repository, unit.Ty
 		}
 		return repo, unitType, err
 	} else if a.ReleaseID != 0 {
-		rel, err := models.GetReleaseByID(db.DefaultContext, a.ReleaseID)
+		rel, err := repo_model.GetReleaseByID(db.DefaultContext, a.ReleaseID)
 		if err != nil {
 			return nil, unit.TypeReleases, err
 		}

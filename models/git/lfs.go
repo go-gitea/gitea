@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -213,7 +214,7 @@ func LFSObjectAccessible(user *user_model.User, oid string) (bool, error) {
 		count, err := db.GetEngine(db.DefaultContext).Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 		return count > 0, err
 	}
-	cond := repo_model.AccessibleRepositoryCondition(user)
+	cond := repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)
 	count, err := db.GetEngine(db.DefaultContext).Where(cond).Join("INNER", "repository", "`lfs_meta_object`.repository_id = `repository`.id").Count(&LFSMetaObject{Pointer: lfs.Pointer{Oid: oid}})
 	return count > 0, err
 }
@@ -244,7 +245,7 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		newMetas := make([]*LFSMetaObject, 0, len(metas))
 		cond := builder.In(
 			"`lfs_meta_object`.repository_id",
-			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user)),
+			builder.Select("`repository`.id").From("repository").Where(repo_model.AccessibleRepositoryCondition(user, unit.TypeInvalid)),
 		)
 		err = sess.Cols("oid").Where(cond).In("oid", oids...).GroupBy("oid").Find(&newMetas)
 		if err != nil {
@@ -275,29 +276,6 @@ func LFSAutoAssociate(metas []*LFSMetaObject, user *user_model.User, repoID int6
 		}
 	}
 	return committer.Commit()
-}
-
-// IterateLFS iterates lfs object
-func IterateLFS(f func(mo *LFSMetaObject) error) error {
-	var start int
-	const batchSize = 100
-	e := db.GetEngine(db.DefaultContext)
-	for {
-		mos := make([]*LFSMetaObject, 0, batchSize)
-		if err := e.Limit(batchSize, start).Find(&mos); err != nil {
-			return err
-		}
-		if len(mos) == 0 {
-			return nil
-		}
-		start += len(mos)
-
-		for _, mo := range mos {
-			if err := f(mo); err != nil {
-				return err
-			}
-		}
-	}
 }
 
 // CopyLFS copies LFS data from one repo to another

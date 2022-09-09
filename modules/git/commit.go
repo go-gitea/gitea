@@ -80,6 +80,9 @@ func (c *Commit) ParentCount() int {
 
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	if c.repo.LastCommitCache != nil {
+		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
@@ -206,26 +209,17 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, nil
 	}
 
-	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
-		if err == nil {
-			return true, nil
-		}
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
-				return false, nil
-			}
-		}
-		return false, err
+	_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
+	if err == nil {
+		return true, nil
 	}
-
-	result, _, err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunStdString(&RunOpts{Dir: c.repo.Path})
-	if err != nil {
-		return false, err
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+			return false, nil
+		}
 	}
-
-	return len(strings.TrimSpace(result)) > 0, nil
+	return false, err
 }
 
 // CommitsBeforeLimit returns num commits before current revision
@@ -427,7 +421,7 @@ func (c *Commit) LoadBranchName() (err error) {
 	}
 
 	c.Branch, err = c.GetBranchName()
-	return
+	return err
 }
 
 // GetTagName gets the current tag name for given commit

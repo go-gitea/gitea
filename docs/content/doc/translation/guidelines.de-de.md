@@ -15,10 +15,12 @@ menu:
 ## Allgemeines
 
 Anrede: Wenig förmlich:
+
 * "Du"-Form
 * Keine "Amtsdeusch"-Umschreibungen, einfach so als ob man den Nutzer direkt persönlich ansprechen würde
 
 Genauer definiert:
+
 * "falsch" anstatt "nicht korrekt/inkorrekt"
 * Benutzerkonto oder Konto? Oder Account?
 * "Wende dich an ..." anstatt "kontaktiere ..."

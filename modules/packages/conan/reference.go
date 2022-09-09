@@ -8,10 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
-
-	goversion "github.com/hashicorp/go-version"
 )
 
 const (
@@ -56,7 +55,9 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 	if !namePattern.MatchString(name) {
 		return nil, ErrValidation
 	}
-	if _, err := goversion.NewSemver(version); err != nil {
+
+	v := strings.TrimSpace(version)
+	if v == "" {
 		return nil, ErrValidation
 	}
 	if user != "" && !namePattern.MatchString(user) {
@@ -69,7 +70,7 @@ func NewRecipeReference(name, version, user, channel, revision string) (*RecipeR
 		return nil, ErrValidation
 	}
 
-	return &RecipeReference{name, version, user, channel, revision}, nil
+	return &RecipeReference{name, v, user, channel, revision}, nil
 }
 
 func (r *RecipeReference) RevisionOrDefault() string {

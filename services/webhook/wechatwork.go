@@ -166,6 +166,13 @@ func (f *WechatworkPayload) Repository(p *api.RepositoryPayload) (api.Payloader,
 	return nil, nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (f *WechatworkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+
+	return newWechatworkMarkdownPayload(text), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (f *WechatworkPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)
