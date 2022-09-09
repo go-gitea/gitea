@@ -35,8 +35,7 @@ func TestRepoCloneWiki(t *testing.T) {
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
 		defer tests.PrepareTestEnv(t)()
 
-		dstPath, err := os.MkdirTemp("", "clone_wiki")
-		assert.NoError(t, err)
+		dstPath := t.TempDir()
 
 		r := fmt.Sprintf("%suser2/repo1.wiki.git", u.String())
 		u, _ = url.Parse(r)

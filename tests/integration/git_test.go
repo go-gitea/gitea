@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/tests"
 
 	"github.com/stretchr/testify/assert"
@@ -57,9 +56,7 @@ func testGit(t *testing.T, u *url.URL) {
 		httpContext.Reponame = "repo-tmp-17"
 		forkedUserCtx.Reponame = httpContext.Reponame
 
-		dstPath, err := os.MkdirTemp("", httpContext.Reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(dstPath)
+		dstPath := t.TempDir()
 
 		t.Run("CreateRepoInDifferentUser", doAPICreateRepository(forkedUserCtx, false))
 		t.Run("AddUserAsCollaborator", doAPIAddCollaborator(forkedUserCtx, httpContext.Username, perm.AccessModeRead))
@@ -71,9 +68,7 @@ func testGit(t *testing.T, u *url.URL) {
 
 		t.Run("Clone", doGitClone(dstPath, u))
 
-		dstPath2, err := os.MkdirTemp("", httpContext.Reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(dstPath2)
+		dstPath2 := t.TempDir()
 
 		t.Run("Partial Clone", doPartialGitClone(dstPath2, u))
 
@@ -114,9 +109,7 @@ func testGit(t *testing.T, u *url.URL) {
 			sshURL := createSSHUrl(sshContext.GitPath(), u)
 
 			// Setup clone folder
-			dstPath, err := os.MkdirTemp("", sshContext.Reponame)
-			assert.NoError(t, err)
-			defer util.RemoveAll(dstPath)
+			dstPath := t.TempDir()
 
 			t.Run("Clone", doGitClone(dstPath, sshURL))
 
@@ -140,9 +133,7 @@ func testGit(t *testing.T, u *url.URL) {
 }
 
 func ensureAnonymousClone(t *testing.T, u *url.URL) {
-	dstLocalPath, err := os.MkdirTemp("", "repo1")
-	assert.NoError(t, err)
-	defer util.RemoveAll(dstLocalPath)
+	dstLocalPath := t.TempDir()
 	t.Run("CloneAnonymous", doGitClone(dstLocalPath, u))
 }
 
@@ -560,9 +551,7 @@ func doPushCreate(ctx APITestContext, u *url.URL) func(t *testing.T) {
 		u.Path = ctx.GitPath()
 
 		// Create a temporary directory
-		tmpDir, err := os.MkdirTemp("", ctx.Reponame)
-		assert.NoError(t, err)
-		defer util.RemoveAll(tmpDir)
+		tmpDir := t.TempDir()
 
 		// Now create local repository to push as our test and set its origin
 		t.Run("InitTestRepository", doGitInitTestRepository(tmpDir))
