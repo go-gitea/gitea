@@ -501,6 +501,44 @@ func (m *webhookNotifier) NotifyDeleteComment(doer *user_model.User, comment *is
 	}
 }
 
+func (m *webhookNotifier) NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	// Add to hook queue for created wiki page.
+	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventWiki, &api.WikiPayload{
+		Action:     api.HookWikiCreated,
+		Repository: convert.ToRepo(repo, perm.AccessModeOwner),
+		Sender:     convert.ToUser(doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	// Add to hook queue for edit wiki page.
+	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventWiki, &api.WikiPayload{
+		Action:     api.HookWikiEdited,
+		Repository: convert.ToRepo(repo, perm.AccessModeOwner),
+		Sender:     convert.ToUser(doer, nil),
+		Page:       page,
+		Comment:    comment,
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
+func (m *webhookNotifier) NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string) {
+	// Add to hook queue for edit wiki page.
+	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventWiki, &api.WikiPayload{
+		Action:     api.HookWikiDeleted,
+		Repository: convert.ToRepo(repo, perm.AccessModeOwner),
+		Sender:     convert.ToUser(doer, nil),
+		Page:       page,
+	}); err != nil {
+		log.Error("PrepareWebhooks [repo_id: %d]: %v", repo.ID, err)
+	}
+}
+
 func (m *webhookNotifier) NotifyIssueChangeLabels(doer *user_model.User, issue *issues_model.Issue,
 	addedLabels, removedLabels []*issues_model.Label,
 ) {
