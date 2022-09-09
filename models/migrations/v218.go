@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
@@ -37,8 +38,14 @@ func (*improveActionTableIndicesAction) TableIndices() []*schemas.Index {
 
 	actUserIndex := schemas.NewIndex("au_r_c_u_d", schemas.IndexType)
 	actUserIndex.AddColumn("act_user_id", "repo_id", "created_unix", "user_id", "is_deleted")
+	indices := []*schemas.Index{actUserIndex, repoIndex}
+	if setting.Database.UsePostgreSQL {
+		cudIndex := schemas.NewIndex("c_u_d", schemas.IndexType)
+		cudIndex.AddColumn("created_unix", "user_id", "is_deleted")
+		indices = append(indices, cudIndex)
+	}
 
-	return []*schemas.Index{actUserIndex, repoIndex}
+	return indices
 }
 
 func improveActionTableIndices(x *xorm.Engine) error {

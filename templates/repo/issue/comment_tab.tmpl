@@ -1,17 +1,34 @@
-<div class="ui top tabular menu" data-write="write" data-preview="preview">
-	<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
-	<a class="item" data-tab="preview" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}">{{.locale.Tr "preview"}}</a>
-</div>
-<div class="field">
-	<div class="ui bottom active tab" data-tab="write">
+{{if .Fields}}
+	<input type="hidden" name="template-file" value="{{.TemplateFile}}">
+	{{range .Fields}}
+		{{if eq .Type "input"}}
+			{{template "repo/issue/fields/input" .}}
+		{{else if eq .Type "markdown"}}
+			{{template "repo/issue/fields/markdown" .}}
+		{{else if eq .Type "textarea"}}
+			{{template "repo/issue/fields/textarea" .}}
+		{{else if eq .Type "dropdown"}}
+			{{template "repo/issue/fields/dropdown" .}}
+		{{else if eq .Type "checkboxes"}}
+			{{template "repo/issue/fields/checkboxes" .}}
+		{{end}}
+	{{end}}
+{{else}}
+	<div class="ui top tabular menu" data-write="write" data-preview="preview">
+		<a class="active item" data-tab="write">{{.locale.Tr "write"}}</a>
+		<a class="item" data-tab="preview" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.RepoLink}}">{{.locale.Tr "preview"}}</a>
+	</div>
+	<div class="field">
+		<div class="ui bottom active tab" data-tab="write">
 		<textarea id="content" class="edit_area js-quick-submit" name="content" tabindex="4" data-id="issue-{{.RepoName}}" data-url="{{.Repository.HTMLURL}}/markdown" data-context="{{.Repo.RepoLink}}">
 			{{- if .BodyQuery}}{{.BodyQuery}}{{else if .IssueTemplate}}{{.IssueTemplate}}{{else if .PullRequestTemplate}}{{.PullRequestTemplate}}{{else}}{{.content}}{{end -}}
 		</textarea>
+		</div>
+		<div class="ui bottom tab markup" data-tab="preview">
+			{{.locale.Tr "loading"}}
+		</div>
 	</div>
-	<div class="ui bottom tab markup" data-tab="preview">
-		{{.locale.Tr "loading"}}
-	</div>
-</div>
+{{end}}
 {{if .IsAttachmentEnabled}}
 	<div class="field">
 		{{template "repo/upload" .}}

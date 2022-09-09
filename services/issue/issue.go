@@ -7,7 +7,7 @@ package issue
 import (
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
@@ -224,7 +224,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 		return err
 	}
 
-	if err := models.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
+	if err := activities_model.DeleteIssueActions(ctx, issue.RepoID, issue.ID); err != nil {
 		return err
 	}
 
@@ -245,7 +245,7 @@ func deleteIssue(issue *issues_model.Issue) error {
 		&issues_model.IssueDependency{},
 		&issues_model.IssueAssignees{},
 		&issues_model.IssueUser{},
-		&models.Notification{},
+		&activities_model.Notification{},
 		&issues_model.Reaction{},
 		&issues_model.IssueWatch{},
 		&issues_model.Stopwatch{},

@@ -27,6 +27,24 @@ func TestRedisPasswordOpt(t *testing.T) {
 	}
 }
 
+func TestSkipVerifyOpt(t *testing.T) {
+	uri, _ := url.Parse("rediss://myredis/0?skipverify=true")
+	tlsConfig := getRedisTLSOptions(uri)
+
+	if !tlsConfig.InsecureSkipVerify {
+		t.Fail()
+	}
+}
+
+func TestInsecureSkipVerifyOpt(t *testing.T) {
+	uri, _ := url.Parse("rediss://myredis/0?insecureskipverify=true")
+	tlsConfig := getRedisTLSOptions(uri)
+
+	if !tlsConfig.InsecureSkipVerify {
+		t.Fail()
+	}
+}
+
 func TestRedisSentinelUsernameOpt(t *testing.T) {
 	uri, _ := url.Parse("redis+sentinel://redis:password@myredis/0?sentinelusername=suser&sentinelpassword=spass")
 	opts := getRedisOptions(uri).Failover()

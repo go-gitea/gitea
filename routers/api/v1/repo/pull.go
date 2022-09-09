@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	pull_model "code.gitea.io/gitea/models/pull"
@@ -753,7 +754,7 @@ func MergePullRequest(ctx *context.APIContext) {
 
 	if ctx.IsSigned {
 		// Update issue-user.
-		if err = models.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
+		if err = activities_model.SetIssueReadBy(ctx, pr.Issue.ID, ctx.Doer.ID); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ReadBy", err)
 			return
 		}

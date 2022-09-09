@@ -7,7 +7,7 @@ package feed
 import (
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 
@@ -16,7 +16,7 @@ import (
 
 // ShowRepoFeed shows user activity on the repo as RSS / Atom feed
 func ShowRepoFeed(ctx *context.Context, repo *repo_model.Repository, formatType string) {
-	actions, err := models.GetFeeds(ctx, models.GetFeedsOptions{
+	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedRepo:  repo,
 		Actor:          ctx.Doer,
 		IncludePrivate: true,

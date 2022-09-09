@@ -7,11 +7,19 @@
 		{{if and $.PageIsComparePull $.IsSigned (not .Repository.IsArchived)}}
 			{{.locale.Tr "repo.pulls.compare_changes"}}
 			<div class="sub header">{{.locale.Tr "repo.pulls.compare_changes_desc"}}</div>
-		{{ else }}
+		{{else}}
 			{{.locale.Tr "action.compare_commits_general"}}
-		{{ end }}
+		{{end}}
 	</h2>
-	{{ $BaseCompareName := $.BaseName -}}
+	{{if .Flash.WarningMsg}}
+		{{/*
+			There's already an importing of alert.tmpl in new_form.tmpl,
+			but only the negative message will be displayed within forms for some reasons, see semantic.css:10659.
+			To avoid repeated negative messages, the importing here if for .Flash.WarningMsg only.
+		*/}}
+		{{template "base/alert" .}}
+	{{end}}
+	{{$BaseCompareName := $.BaseName -}}
 	{{- $HeadCompareName := $.HeadRepo.OwnerName -}}
 	{{- if and (eq $.BaseName $.HeadRepo.OwnerName) (ne $.Repository.Name $.HeadRepo.Name) -}}
 		{{- $HeadCompareName = printf "%s/%s" $.HeadRepo.OwnerName $.HeadRepo.Name -}}
@@ -174,7 +182,7 @@
 	</div>
 
 	{{if .IsNothingToCompare}}
-		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived) }}
+		{{if and $.IsSigned $.AllowEmptyPr (not .Repository.IsArchived)}}
 			<div class="ui segment">{{.locale.Tr "repo.pulls.nothing_to_compare_and_allow_empty_pr"}}</div>
 			<div class="ui info message show-form-container" {{if .Flash}}style="display: none"{{end}}>
 				<button class="ui button green show-form">{{.locale.Tr "repo.pulls.new"}}</button>

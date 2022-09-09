@@ -98,7 +98,6 @@ func PersonInbox(ctx *context.APIContext) {
 	//   type: string
 	//   required: true
 	// responses:
-	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
 

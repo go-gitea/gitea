@@ -22,6 +22,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/routing"
@@ -97,7 +98,7 @@ func buildAuthGroup() *auth_service.Group {
 }
 
 // Routes returns all web routes
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	routes := web.NewRoute()
 
 	routes.Use(web.WrapWithPrefix(public.AssetsURLPathPrefix, public.AssetsHandlerFunc(&public.Options{
@@ -119,7 +120,9 @@ func Routes() *web.Route {
 	})
 	routes.Use(sessioner)
 
-	routes.Use(Recovery())
+	ctx, _ = templates.HTMLRenderer(ctx)
+
+	routes.Use(Recovery(ctx))
 
 	// We use r.Route here over r.Use because this prevents requests that are not for avatars having to go through this additional handler
 	routes.Route("/avatars/*", "GET, HEAD", storageHandler(setting.Avatar.Storage, "avatars", storage.Avatars))
@@ -192,10 +195,10 @@ func Routes() *web.Route {
 	routes.Get("/api/healthz", healthcheck.Check)
 
 	// Removed: toolbox.Toolboxer middleware will provide debug information which seems unnecessary
-	common = append(common, context.Contexter())
+	common = append(common, context.Contexter(ctx))
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 
@@ -525,7 +528,7 @@ func RegisterRoutes(m *web.Route) {
 				m.Get("", repo.WebHooksEdit)
 				m.Post("/replay/{uuid}", repo.ReplayWebhook)
 			})
-			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+			m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 			m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 			m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 			m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
@@ -678,7 +681,7 @@ func RegisterRoutes(m *web.Route) {
 						m.Get("", repo.WebHooksEdit)
 						m.Post("/replay/{uuid}", repo.ReplayWebhook)
 					})
-					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+					m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 					m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 					m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 					m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
@@ -800,7 +803,7 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/test", repo.TestWebhook)
 					m.Post("/replay/{uuid}", repo.ReplayWebhook)
 				})
-				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.WebHooksEditPost)
+				m.Post("/gitea/{id}", bindIgnErr(forms.NewWebhookForm{}), repo.GiteaHooksEditPost)
 				m.Post("/gogs/{id}", bindIgnErr(forms.NewGogshookForm{}), repo.GogsHooksEditPost)
 				m.Post("/slack/{id}", bindIgnErr(forms.NewSlackHookForm{}), repo.SlackHooksEditPost)
 				m.Post("/discord/{id}", bindIgnErr(forms.NewDiscordHookForm{}), repo.DiscordHooksEditPost)
