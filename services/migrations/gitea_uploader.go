@@ -476,11 +476,16 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 
 		switch issues_model.CommentType(comment.CommentType) {
 		case issues_model.CommentTypeLabel:
-			// TODO: add label to issue
+			cm.LabelID = comment.Meta["LabelID"].(int64)
+			// Note: if you want to add a label, you'll need to set content to value "1"
 		case issues_model.CommentTypeAssignees:
-			// TODO: add assignee to issue
+			cm.AssigneeID = comment.Meta["AssigneeID"].(int64)
+			if comment.Meta["RemovedAssigneeID"] != nil {
+				cm.RemovedAssignee = true
+			}
 		case issues_model.CommentTypeChangeTitle:
-			// TODO: change issue title
+			cm.OldTitle = comment.Meta["OldTitle"].(string)
+			cm.NewTitle = comment.Meta["NewTitle"].(string)
 		default:
 		}
 
