@@ -126,6 +126,7 @@
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
 								{{end}}
 								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item js-clone-url-vsc" href="vscodium://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscodium" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vscodium"}}</a>
 							</div>
 						</button>
 						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
