@@ -8,8 +8,9 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
@@ -25,7 +26,7 @@ type mailCommentContext struct {
 	context.Context
 	Issue      *issues_model.Issue
 	Doer       *user_model.User
-	ActionType models.ActionType
+	ActionType activities_model.ActionType
 	Content    string
 	Comment    *issues_model.Comment
 }
@@ -80,7 +81,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
-	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
+	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != activities_model.ActionCreatePullRequest) {
 		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
@@ -149,7 +150,7 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
-		if !models.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {
+		if !access_model.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -175,16 +176,16 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	content := issue.Content
-	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
-		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
-		opType == models.ActionMergePullRequest {
+	if opType == activities_model.ActionCloseIssue || opType == activities_model.ActionClosePullRequest ||
+		opType == activities_model.ActionReopenIssue || opType == activities_model.ActionReopenPullRequest ||
+		opType == activities_model.ActionMergePullRequest {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(

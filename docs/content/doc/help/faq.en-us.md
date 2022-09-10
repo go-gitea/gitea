@@ -392,7 +392,9 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
-Similarly stdout on docker can be viewed using `docker logs <container>`
+Similarly, stdout on docker can be viewed using `docker logs <container>`.
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -413,7 +415,7 @@ unchanged in the database schema. This may lead to warning such as:
 2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
-These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:
 
 ```
 gitea doctor recreate-table user

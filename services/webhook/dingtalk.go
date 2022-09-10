@@ -15,7 +15,7 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
 
-	dingtalk "github.com/lunny/dingtalk_webhook"
+	dingtalk "gitea.com/lunny/dingtalk_webhook"
 )
 
 type (
@@ -105,6 +105,14 @@ func (d *DingtalkPayload) Issue(p *api.IssuePayload) (api.Payloader, error) {
 	text, issueTitle, attachmentText, _ := getIssuesPayloadInfo(p, noneLinkFormatter, true)
 
 	return createDingtalkPayload(issueTitle, text+"\r\n\r\n"+attachmentText, "view issue", p.Issue.HTMLURL), nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (d *DingtalkPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+	url := p.Repository.HTMLURL + "/wiki/" + url.PathEscape(p.Page)
+
+	return createDingtalkPayload(text, text, "view wiki", url), nil
 }
 
 // IssueComment implements PayloadConvertor IssueComment method

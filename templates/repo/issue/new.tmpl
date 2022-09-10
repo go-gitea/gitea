@@ -6,6 +6,14 @@
 			{{template "repo/issue/navbar" .}}
 		</div>
 		<div class="ui divider"></div>
+		{{if .Flash.WarningMsg}}
+			{{/*
+			There's already an importing of alert.tmpl in new_form.tmpl,
+			but only the negative message will be displayed within forms for some reasons, see semantic.css:10659.
+			To avoid repeated negative messages, the importing here if for .Flash.WarningMsg only.
+			 */}}
+			{{template "base/alert" .}}
+		{{end}}
 		{{template "repo/issue/new_form" .}}
 	</div>
 </div>

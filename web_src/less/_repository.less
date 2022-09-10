@@ -82,7 +82,11 @@
 
   .broken-code-point {
     font-family: var(--fonts-monospace);
-    color: blue;
+    color: var(--color-blue);
+  }
+
+  .unicode-escaped .ambiguous-code-point {
+    border: 1px var(--color-yellow) solid;
   }
 
   .metas {
@@ -902,6 +906,7 @@
 
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
+            clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
             > .avatar.image,
             > .avatar.image img {
@@ -2822,6 +2827,11 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
+}
+
 @media @mediaSm {
   tr.commit-list {
     width: 100%;
@@ -3395,6 +3405,18 @@ td.blob-excerpt {
       .copy-commit-sha {
         display: none !important;
       }
+    }
+  }
+
+  .comment-header {
+    flex-wrap: wrap;
+
+    .comment-header-left {
+      flex-wrap: wrap;
+    }
+
+    .comment-header-right {
+      margin-left: auto;
     }
   }
 }

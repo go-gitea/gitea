@@ -46,7 +46,7 @@ Authorization: token 65eaa9c8ef52460d22a93307fe0aee76289dc675
 以 `curl` 命令为例，它会以如下形式携带在请求中：
 
 ```
-curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
+curl "http://localhost:4000/api/v1/repos/test1/test1/issues" \
     -H "accept: application/json" \
     -H "Authorization: token 65eaa9c8ef52460d22a93307fe0aee76289dc675" \
     -H "Content-Type: application/json" -d "{ \"body\": \"testing\", \"title\": \"test 20\"}" -i
@@ -62,7 +62,7 @@ curl -X POST "http://localhost:4000/api/v1/repos/test1/test1/issues" \
 ### 使用 Basic authentication 认证：
 
 ```
-$ curl --request GET --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
+$ curl --url https://yourusername:yourpassword@gitea.your.host/api/v1/users/yourusername/tokens
 [{"name":"test","sha1":"..."},{"name":"dev","sha1":"..."}]
 ```
 
