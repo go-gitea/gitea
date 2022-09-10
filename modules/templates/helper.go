@@ -383,11 +383,15 @@ func NewFuncMap() []template.FuncMap {
 				if label == nil {
 					continue
 				}
+
+				// Prevent invalid links.
+				if !strings.HasSuffix(repoLink, "/") {
+					repoLink += "/"
+				}
+
 				html += fmt.Sprintf("<a href='%s' class='ui label' style='color: %s; background-color: %s'>%s</a> ",
-					repoLink+"/issues?q=&labels="+strconv.FormatInt(label.ID, 10), label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+					repoLink+"issues?labels="+strconv.FormatInt(label.ID, 10), label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
-			html += "</span>"
-			return template.HTML(html)
 		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
