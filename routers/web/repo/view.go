@@ -136,7 +136,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 }
 
 // localizedExtensions prepends the provided language code with and without a
-// regional identifier to the provided extenstion.
+// regional identifier to the provided extension.
 // Note: the language code will always be lower-cased, if a region is present it must be separated with a `-`
 // Note: ext should be prefixed with a `.`
 func localizedExtensions(ext, languageCode string) (localizedExts []string) {

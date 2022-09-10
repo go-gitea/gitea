@@ -28,7 +28,7 @@ type ActivityAuthorData struct {
 	Commits    int64  `json:"commits"`
 }
 
-// ActivityStats represets issue and pull request information.
+// ActivityStats represents issue and pull request information.
 type ActivityStats struct {
 	OpenedPRs                   issues_model.PullRequestList
 	OpenedPRAuthorCount         int64
