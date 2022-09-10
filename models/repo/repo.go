@@ -661,7 +661,7 @@ func GetRepositoryByName(ownerID int64, name string) (*Repository, error) {
 // getRepositoryURLPathSegments returns segments (owner, reponame) extracted from a url
 func getRepositoryURLPathSegments(repoURL string) []string {
 	if strings.HasPrefix(repoURL, setting.AppURL) {
-		return strings.Split(strings.Replace(repoURL, setting.AppURL, "", 1), "/")
+		return strings.Split(strings.TrimPrefix(repoURL, setting.AppURL), "/")
 	}
 
 	sshURLVariants := [4]string{
@@ -673,11 +673,11 @@ func getRepositoryURLPathSegments(repoURL string) []string {
 
 	for _, sshURL := range sshURLVariants {
 		if strings.HasPrefix(repoURL, sshURL) {
-			return strings.Split(strings.Replace(repoURL, sshURL, "", 1), "/")
+			return strings.Split(strings.TrimPrefix(repoURL, sshURL), "/")
 		}
 	}
 
-	return []string{}
+	return nil
 }
 
 // GetRepositoryByURL returns the repository by given url
