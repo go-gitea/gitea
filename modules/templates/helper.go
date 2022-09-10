@@ -392,6 +392,8 @@ func NewFuncMap() []template.FuncMap {
 				html += fmt.Sprintf("<a href='%s' class='ui label' style='color: %s; background-color: %s'>%s</a> ",
 					repoLink+"issues?labels="+strconv.FormatInt(label.ID, 10), label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
+			html += "</span>"
+			return template.HTML(html)
 		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
