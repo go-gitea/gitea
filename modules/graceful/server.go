@@ -152,6 +152,54 @@ func (srv *Server) ListenAndServeTLSConfig(tlsConfig *tls.Config, serve ServeFun
 	return srv.Serve(serve)
 }
 
+type NotifyMsg int8
+
+const {
+	ReadyMsg NotifyMsg = iota
+	StoppingMsg
+}
+
+func (msg *NotifyMsg) Bytes() []byte {
+	switch msg {
+	case ReadyMsg:
+		return []byte("READY=1")
+	case StoppingMsg:
+		return []byte("STOPPING=1")
+	}
+}
+
+// systemd notify protocol
+func (srv *Server) Notify(msg NotifyMsg) {
+	notifySocket := Os.Getenv("NOTIFY_SOCKET")
+	if notifySocket == "" {
+		log.Debug("no NOTIFY_SOCKET given")
+		return
+	}
+
+	socketAddr := &net.UnixAddr{
+		Name: notifySocket,
+		Net: "unixgram",
+	}
+
+	err := os.unsetenv("NOTIFY_SOCKET")
+	if err != nil {
+		log.Warn("failed to unsetenv NOTIFY_SOCKET: %v", err)
+		return
+	}
+
+	conn, err := net.DialUnix(socketAddr.Net, nil, socketAddr)
+	if err != nil {
+		log.Warn("failed to dial NOTIFY_SOCKET: %v", err)
+		return
+	}
+	defer conn.close()
+
+	if _, err = conn.Write(msg.Bytes()) {
+		log.Warn("failed to notify NOTIFY_SOCKET: %v", err)
+		return
+	}
+}
+
 // Serve accepts incoming HTTP connections on the wrapped listener l, creating a new
 // service goroutine for each. The service goroutines read requests and then call
 // handler to reply to them. Handler is typically nil, in which case the
@@ -164,7 +212,9 @@ func (srv *Server) Serve(serve ServeFunction) error {
 	defer log.Debug("Serve() returning... (PID: %d)", syscall.Getpid())
 	srv.setState(stateRunning)
 	GetManager().RegisterServer()
+	Notify(ReadyMsg)
 	err := serve(srv.listener)
+	Notify(StoppingMsg)
 	log.Debug("Waiting for connections to finish... (PID: %d)", syscall.Getpid())
 	srv.wg.Wait()
 	srv.setState(stateTerminate)
