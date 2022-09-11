@@ -21,9 +21,11 @@ import (
 )
 
 const (
-	listenFDs = "LISTEN_FDS"
-	startFD   = 3
-	unlinkFDs = "GITEA_UNLINK_FDS"
+	listenFDsEnv = "LISTEN_FDS"
+	startFD      = 3
+	unlinkFDsEnv = "GITEA_UNLINK_FDS"
+
+	notifySocketEnv = "NOTIFY_SOCKET"
 )
 
 // In order to keep the working directory the same as when we started we record
@@ -38,6 +40,8 @@ var (
 	activeListenersToUnlink   = []bool{}
 	providedListeners         = []net.Listener{}
 	activeListeners           = []net.Listener{}
+
+	notifySocketAddr string
 )
 
 func getProvidedFDs() (savedErr error) {
@@ -46,17 +50,17 @@ func getProvidedFDs() (savedErr error) {
 		mutex.Lock()
 		defer mutex.Unlock()
 
-		numFDs := os.Getenv(listenFDs)
+		numFDs := os.Getenv(listenFDsEnv)
 		if numFDs == "" {
 			return
 		}
 		n, err := strconv.Atoi(numFDs)
 		if err != nil {
-			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDs, numFDs, err)
+			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDsEnv, numFDs, err)
 			return
 		}
 
-		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDs), ",")
+		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
 		providedListenersToUnlink = make([]bool, n)
 		for _, fdStr := range fdsToUnlinkStr {
 			i, err := strconv.Atoi(fdStr)
@@ -83,6 +87,18 @@ func getProvidedFDs() (savedErr error) {
 			// If needed we can handle packetconns here.
 			savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
 			return
+		}
+
+		notifySocketAddr = os.Getenv(notifySocketEnv)
+		if notifySocketAddr != "" {
+			log.Debug("Systemd Notify Socket provided: %s", notifySocketAddr)
+			savedErr = os.Unsetenv(notifySocketEnv)
+			if savedErr != nil {
+				log.Warn("Unable to Unset the NOTIFY_SOCKET environment variable: %v", savedErr)
+				return
+			}
+		} else {
+			log.Trace("No Systemd Notify Socket provided")
 		}
 	})
 	return savedErr
@@ -254,4 +270,27 @@ func getActiveListenersToUnlink() []bool {
 	listenersToUnlink := make([]bool, len(activeListenersToUnlink))
 	copy(listenersToUnlink, activeListenersToUnlink)
 	return listenersToUnlink
+}
+
+func getNotifySocket() (*net.UnixConn, error) {
+	if err := getProvidedFDs(); err != nil {
+		return nil, err
+	}
+
+	if notifySocketAddr == "" {
+		return nil, nil
+	}
+
+	socketAddr := &net.UnixAddr{
+		Name: notifySocketAddr,
+		Net:  "unixgram",
+	}
+
+	notifySocket, err := net.DialUnix(socketAddr.Net, nil, socketAddr)
+	if err != nil {
+		log.Warn("failed to dial NOTIFY_SOCKET %s: %v", socketAddr, err)
+		return nil, err
+	}
+
+	return notifySocket, nil
 }
