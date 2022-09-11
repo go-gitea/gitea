@@ -3,7 +3,7 @@ import {htmlEscape} from 'escape-goat';
 
 const {appSubUrl} = window.config;
 
-const emailAddressCheck = /\S+@\S+\.\S+/;
+const looksLikeEmailAddressCheck = /^\S+@\S+$/;
 
 export function initCompSearchUserBox() {
   const $searchUserBox = $('#search-user-box');
@@ -33,7 +33,7 @@ export function initCompSearchUserBox() {
           }
         });
 
-        if (allowEmailInput && items.length === 0 && emailAddressCheck.test(searchQuery)) {
+        if (allowEmailInput && items.length === 0 && looksLikeEmailAddressCheck.test(searchQuery)) {
           const resultItem = {
             title: searchQuery,
             description: allowEmailDescription
