@@ -63,6 +63,7 @@ type TeamInvite struct {
 	ID          int64              `xorm:"pk autoincr"`
 	Token       string             `xorm:"UNIQUE(token) INDEX"`
 	InviterID   int64              `xorm:"NOT NULL"`
+	OrgID       int64              `xorm:"INDEX"`
 	TeamID      int64              `xorm:"UNIQUE(team_mail) INDEX NOT NULL"`
 	Email       string             `xorm:"UNIQUE(team_mail) NOT NULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
@@ -112,6 +113,7 @@ func CreateTeamInvite(ctx context.Context, doer *user_model.User, team *Team, em
 	invite := &TeamInvite{
 		Token:     token,
 		InviterID: doer.ID,
+		OrgID:     team.OrgID,
 		TeamID:    team.ID,
 		Email:     email,
 	}

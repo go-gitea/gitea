@@ -142,11 +142,9 @@ func TeamsAction(ctx *context.Context) {
 							ctx.ServerError("CreateTeamInvite", err)
 							return
 						}
-					} else {
-						if err := mailer.MailTeamInvite(ctx, ctx.Doer, ctx.Org.Team, invite); err != nil {
-							ctx.ServerError("MailTeamInvite", err)
-							return
-						}
+					} else if err := mailer.MailTeamInvite(ctx, ctx.Doer, ctx.Org.Team, invite); err != nil {
+						ctx.ServerError("MailTeamInvite", err)
+						return
 					}
 				} else {
 					ctx.Flash.Error(ctx.Tr("form.user_not_exist"))

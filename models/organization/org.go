@@ -356,21 +356,12 @@ func DeleteOrganization(ctx context.Context, org *Organization) error {
 		return fmt.Errorf("%s is a user not an organization", org.Name)
 	}
 
-	teams, err := FindOrgTeams(ctx, org.ID)
-	if err != nil {
-		return fmt.Errorf("FindOrgTeams: %v", err)
-	}
-	for _, team := range teams {
-		if err := db.DeleteBeans(ctx, &TeamInvite{TeamID: team.ID}); err != nil {
-			return fmt.Errorf("DeleteBeans: %v", err)
-		}
-	}
-
 	if err := db.DeleteBeans(ctx,
 		&Team{OrgID: org.ID},
 		&OrgUser{OrgID: org.ID},
 		&TeamUser{OrgID: org.ID},
 		&TeamUnit{OrgID: org.ID},
+		&TeamInvite{OrgID: org.ID},
 	); err != nil {
 		return fmt.Errorf("DeleteBeans: %v", err)
 	}
