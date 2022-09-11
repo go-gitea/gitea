@@ -40,7 +40,7 @@ steps:
     depends_on: [deps-frontend]
 
   - name: security-check
-    image: golang:1.18
+    image: golang:1.19
     pull: always
     commands:
       - make security-check
