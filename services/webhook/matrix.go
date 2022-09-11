@@ -143,6 +143,13 @@ func (m *MatrixPayloadUnsafe) IssueComment(p *api.IssueCommentPayload) (api.Payl
 	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (m *MatrixPayloadUnsafe) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, MatrixLinkFormatter, true)
+
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (m *MatrixPayloadUnsafe) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, MatrixLinkFormatter, true)

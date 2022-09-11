@@ -189,6 +189,44 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(DingtalkPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+	})
+
 	t.Run("Release", func(t *testing.T) {
 		p := pullReleaseTestPayload()
 
