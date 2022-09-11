@@ -64,15 +64,17 @@ func WithBlockDollarParser(enable ...bool) Option {
 
 // Math represents a math extension with default rendered delimiters
 var Math = &Extension{
-	enabled:          true,
-	parseDollarBlock: true,
+	enabled:           true,
+	parseDollarBlock:  true,
+	parseDollarInline: true,
 }
 
 // NewExtension creates a new math extension with the provided options
 func NewExtension(opts ...Option) *Extension {
 	r := &Extension{
-		enabled:          true,
-		parseDollarBlock: true,
+		enabled:           true,
+		parseDollarBlock:  true,
+		parseDollarInline: true,
 	}
 
 	for _, o := range opts {

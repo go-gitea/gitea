@@ -10,7 +10,6 @@ import (
 	"github.com/yuin/goldmark/ast"
 	"github.com/yuin/goldmark/parser"
 	"github.com/yuin/goldmark/text"
-	"github.com/yuin/goldmark/util"
 )
 
 type inlineParser struct {
@@ -43,40 +42,37 @@ func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
 
+func isAlphanumeric(b byte) bool {
+	// Github only cares about 0-9A-Za-z
+	return (b >= '0' && b <= '9') || (b >= 'A' && b <= 'Z') || (b >= 'a' && b <= 'z')
+}
+
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
-	line, startSegment := block.PeekLine()
+	line, _ := block.PeekLine()
 	opener := bytes.Index(line, parser.start)
 	if opener < 0 {
 		return nil
 	}
-	opener += len(parser.start)
-	block.Advance(opener)
-	l, pos := block.Position()
-	node := NewInline()
-
-	for {
-		line, segment := block.PeekLine()
-		if line == nil {
-			block.SetPosition(l, pos)
-			return ast.NewTextSegment(startSegment.WithStop(startSegment.Start + opener))
-		}
-
-		closer := bytes.Index(line, parser.end)
-		if closer < 0 {
-			if !util.IsBlank(line) {
-				node.AppendChild(node, ast.NewRawTextSegment(segment))
-			}
-			block.AdvanceLine()
-			continue
-		}
-		segment = segment.WithStop(segment.Start + closer)
-		if !segment.IsEmpty() {
-			node.AppendChild(node, ast.NewRawTextSegment(segment))
-		}
-		block.Advance(closer + len(parser.end))
-		break
+	if opener != 0 && isAlphanumeric(line[opener-1]) {
+		return nil
 	}
+
+	opener += len(parser.start)
+	ender := bytes.Index(line[opener:], parser.end)
+	if ender < 0 {
+		return nil
+	}
+	if len(line) > opener+ender+len(parser.end) && isAlphanumeric(line[opener+ender+len(parser.end)]) {
+		return nil
+	}
+
+	block.Advance(opener)
+	_, pos := block.Position()
+	node := NewInline()
+	segment := pos.WithStop(pos.Start + ender)
+	node.AppendChild(node, ast.NewRawTextSegment(segment))
+	block.Advance(ender + len(parser.end))
 
 	trimBlock(node, block)
 	return node

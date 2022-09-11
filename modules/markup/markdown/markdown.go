@@ -124,7 +124,6 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 				),
 				math.NewExtension(
 					math.Enabled(setting.Markdown.EnableMath),
-					math.WithInlineDollarParser(setting.Markdown.EnableInlineDollarMath),
 				),
 				meta.Meta,
 			),
