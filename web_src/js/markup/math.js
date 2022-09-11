@@ -1,16 +1,15 @@
 function displayError(el, err) {
-  let target = el;
-  if (el.classList.contains('is-loading')) {
-    // assume no pre
-    el.classList.remove('is-loading');
-  } else {
-    target = el.closest('pre');
-    target.classList.remove('is-loading');
-  }
+  const target = targetElement(el);
+  target.remove('is-loading');
   const errorNode = document.createElement('div');
   errorNode.setAttribute('class', 'ui message error markup-block-error mono');
   errorNode.textContent = err.str || err.message || String(err);
   target.before(errorNode);
+}
+
+function targetElement(el) {
+  // The target element is either the current element if it has the `is-loading` class or the pre that contains it
+  return el.classList.contains('is-loading') ? el : el.closest('pre');
 }
 
 export async function renderMath() {
@@ -28,13 +27,9 @@ export async function renderMath() {
 
     try {
       const markup = katex.renderToString(source, options);
-      const target = document.createElement(options.display ? 'p' : 'span');
-      target.innerHTML = markup;
-      if (el.classList.contains('is-loading')) {
-        el.replaceWith(target);
-      } else {
-        el.closest('pre').replaceWith(target);
-      }
+      const tempEl = document.createElement(options.display ? 'p' : 'span');
+      tempEl.innerHTML = markup;
+      targetElement(el).replaceWith(tempEl);
     } catch (error) {
       displayError(el, error);
     }
