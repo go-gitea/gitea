@@ -2827,6 +2827,11 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
+}
+
 @media @mediaSm {
   tr.commit-list {
     width: 100%;
