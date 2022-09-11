@@ -377,23 +377,13 @@ func NewFuncMap() []template.FuncMap {
 			return ""
 		},
 		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
-			html := `<span class="labels-list">`
+			htmlStr := `<span class="labels-list">`
 			for _, label := range labels {
-				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
-				if label == nil {
-					continue
-				}
-
-				// Prevent invalid links.
-				if !strings.HasSuffix(repoLink, "/") {
-					repoLink += "/"
-				}
-
-				html += fmt.Sprintf("<a href='%s' class='ui label' style='color: %s; background-color: %s'>%s</a> ",
-					repoLink+"issues?labels="+strconv.FormatInt(label.ID, 10), label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				htmlStr += fmt.Sprintf("<a href='%s/%s' class='ui label' style='color: %s !important; background-color: %s !important'>%s</a> ",
+					repoLink, "issues?labels="+strconv.FormatInt(label.ID, 10), label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
-			html += "</span>"
-			return template.HTML(html)
+			htmlStr += "</span>"
+			return template.HTML(htmlStr)
 		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
