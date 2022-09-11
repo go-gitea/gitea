@@ -46,7 +46,7 @@ rules:
   accessor-pairs: [2]
   array-bracket-newline: [0]
   array-bracket-spacing: [2, never]
-  array-callback-return: [0]
+  array-callback-return: [2, {checkForEach: true}]
   array-element-newline: [0]
   arrow-body-style: [0]
   arrow-parens: [2, always]
