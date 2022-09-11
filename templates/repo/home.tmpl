@@ -126,7 +126,7 @@
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip" 16 "mr-3"}}{{.locale.Tr "repo.download_tar"}}</a>
 									<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.RefName}}.bundle" rel="nofollow">{{svg "octicon-package" 16 "mr-3"}}{{.locale.Tr "repo.download_bundle"}}</a>
 								{{end}}
-								<a class="item" href="vscode://vscode.git/clone?url={{$.RepoCloneLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
+								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
 					</div>

@@ -54,9 +54,17 @@ func main() {
 		}
 
 		path := strings.Replace(path, base+string(os.PathSeparator), "", 1)
+		name := filepath.Dir(path)
+
+		// There might be a bug somewhere in go-licenses that sometimes interprets the
+		// root package as "." and sometimes as "code.gitea.io/gitea". Workaround by
+		// removing both of them for the sake of stable output.
+		if name == "." || name == "code.gitea.io/gitea" {
+			continue
+		}
 
 		entries = append(entries, LicenseEntry{
-			Name: filepath.Dir(path),
+			Name: name,
 			Path: path,
 			LicenseText: string(licenseText),
 		})
