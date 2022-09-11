@@ -30,6 +30,8 @@ func TestPackageContainer(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	// session := loginUser(t, user.Name)
+	// accessToken := getTokenForLoggedInUser(t, session, "package")
 
 	has := func(l packages_model.PackagePropertyList, name string) bool {
 		for _, pp := range l {

@@ -21,7 +21,7 @@ import (
 
 func TestAPIOrgCreate(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
-		token := getUserToken(t, "user1")
+		token := getUserToken(t, "user1", "admin_org")
 
 		org := api.CreateOrgOption{
 			UserName:    "user1_org",
@@ -79,7 +79,7 @@ func TestAPIOrgEdit(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",
@@ -106,7 +106,7 @@ func TestAPIOrgEditBadVisibility(t *testing.T) {
 	onGiteaRun(t, func(*testing.T, *url.URL) {
 		session := loginUser(t, "user1")
 
-		token := getTokenForLoggedInUser(t, session)
+		token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
 		org := api.EditOrgOption{
 			FullName:    "User3 organization new full name",
 			Description: "A new description",

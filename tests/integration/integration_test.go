@@ -218,8 +218,8 @@ func emptyTestSession(t testing.TB) *TestSession {
 	return &TestSession{jar: jar}
 }
 
-func getUserToken(t testing.TB, userName string) string {
-	return getTokenForLoggedInUser(t, loginUser(t, userName))
+func getUserToken(t testing.TB, userName string, scope ...string) string {
+	return getTokenForLoggedInUser(t, loginUser(t, userName), scope...)
 }
 
 func loginUser(t testing.TB, userName string) *TestSession {
@@ -261,8 +261,10 @@ func loginUserWithPassword(t testing.TB, userName, password string) *TestSession
 // token has to be unique this counter take care of
 var tokenCounter int64
 
+// getTokenForLoggedInUser returns a token for a logged in user.
+// The scope is an optional list of snake_case strings like the frontend form fields,
+// but without the "scope_" prefix.
 func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...string) string {
-	// TODO set the scope for the token
 	t.Helper()
 	tokenCounter++
 	req := NewRequest(t, "GET", "/user/settings/applications")
@@ -273,7 +275,7 @@ func getTokenForLoggedInUser(t testing.TB, session *TestSession, scopes ...strin
 		"name":  fmt.Sprintf("api-testing-token-%d", tokenCounter),
 	}
 	for _, scope := range scopes {
-		values[fmt.Sprintf("scope_[%s]", scope)] = "on"
+		values[fmt.Sprintf("scope_%s", scope)] = "on"
 	}
 	req = NewRequestWithValues(t, "POST", "/user/settings/applications", values)
 	session.MakeRequest(t, req, http.StatusSeeOther)

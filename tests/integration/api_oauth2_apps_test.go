@@ -54,7 +54,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 func testAPIListOAuth2Applications(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
@@ -83,7 +83,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 func testAPIDeleteOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
 
 	oldApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
@@ -104,7 +104,7 @@ func testAPIDeleteOAuth2Application(t *testing.T) {
 func testAPIGetOAuth2Application(t *testing.T) {
 	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	session := loginUser(t, user.Name)
-	token := getTokenForLoggedInUser(t, session)
+	token := getTokenForLoggedInUser(t, session, "repo", "admin_org", "admin_public_key", "admin_repo_hook", "admin_org_hook", "notification", "user", "delete_repo", "package", "admin_gpg_key")
 
 	existApp := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{
 		UID:  user.ID,
