@@ -6,7 +6,7 @@ package math
 
 import "github.com/yuin/goldmark/ast"
 
-// Block represents a math Block
+// Block represents a display math block e.g. $$...$$ or \[...\]
 type Block struct {
 	ast.BaseBlock
 	Dollars bool

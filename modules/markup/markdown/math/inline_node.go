@@ -9,7 +9,7 @@ import (
 	"github.com/yuin/goldmark/util"
 )
 
-// Inline represents inline math
+// Inline represents inline math e.g. $...$ or \(...\)
 type Inline struct {
 	ast.BaseInline
 }
