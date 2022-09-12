@@ -105,7 +105,7 @@ func (q *WrappedUniqueQueue) Push(data Data) error {
 // PushFunc will push the data to the internal channel checking it against the exemplar
 func (q *WrappedUniqueQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 
 	q.tlock.Lock()

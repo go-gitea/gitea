@@ -48,6 +48,7 @@ func NewSMTPLogger() LoggerProvider {
 
 // Init smtp writer with json config.
 // config like:
+//
 //	{
 //		"Username":"example@gmail.com",
 //		"password:"password",
@@ -93,6 +94,11 @@ func (log *SMTPLogger) sendMail(p []byte) (int, error) {
 		log.RecipientAddresses,
 		mailmsg,
 	)
+}
+
+// Content returns the content accumulated in the content provider
+func (log *SMTPLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
 }
 
 // Flush when log should be flushed

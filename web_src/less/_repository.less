@@ -4,6 +4,13 @@
     // otherwise some part of the popup will be hidden by viewport boundary
     max-height: 45vh;
     max-width: 60vw;
+
+    &.ui.right {
+      // Override `.ui.attached.header .right:not(.dropdown) height: 30px;` which would otherwise lead to
+      // the status popup box having its height fixed at 30px. See https://github.com/go-gitea/gitea/issues/18498
+      height: auto;
+    }
+
     overflow: auto;
     padding: 0;
 
@@ -60,22 +67,6 @@
     min-width: 40% !important;
   }
 
-  #file-buttons {
-    /* The reason for the !important is that Semantic itself has
-    margin-left: 0 !important on right items on mobile, which is mostly
-    to make sure elements which on menus would otherwise be on the right
-    align correctly with other elements when stacked.
-    Unfortunately, this brings some weird alignment on this particular
-    element, so we need to override it. */
-    margin-left: auto !important;
-    font-weight: normal;
-
-    .ui.button {
-      padding: 8px 10px;
-      font-weight: normal;
-    }
-  }
-
   .unicode-escaped .escaped-code-point {
     &[data-escaped]::before {
       visibility: visible;
@@ -91,7 +82,11 @@
 
   .broken-code-point {
     font-family: var(--fonts-monospace);
-    color: blue;
+    color: var(--color-blue);
+  }
+
+  .unicode-escaped .ambiguous-code-point {
+    border: 1px var(--color-yellow) solid;
   }
 
   .metas {
@@ -216,22 +211,15 @@
   }
 
   #clone-panel {
-    width: 350px;
+    #repo-clone-url {
+      width: 320px;
 
-    @media @mediaSm {
-      width: 100%;
-    }
-
-    input {
-      border-radius: 0;
-      padding: 5px 10px;
-      width: 50%;
-      line-height: 1.4;
-    }
-
-    .clone.button {
-      font-size: 13px;
-      padding: 7.5px 5px;
+      @media @mediaMd {
+        width: 200px;
+      }
+      @media @mediaSm {
+        width: 200px;
+      }
     }
 
     #repo-clone-https,
@@ -249,10 +237,6 @@
 
     button:last-of-type {
       border-radius: 0 var(--border-radius) var(--border-radius) 0 !important;
-    }
-
-    .icon.button {
-      padding: 0 10px;
     }
 
     .dropdown .menu {
@@ -286,25 +270,6 @@
       }
     }
 
-    #file-buttons {
-      font-weight: normal;
-
-      .ui.button {
-        padding: 8px 10px;
-        font-weight: normal;
-      }
-
-      .ui.tiny.blue.buttons {
-        @media @mediaSm {
-          width: 100%;
-        }
-      }
-
-      .button + .button {
-        border-left: none;
-      }
-    }
-
     #repo-files-table {
       thead {
         th {
@@ -327,7 +292,7 @@
             margin-right: 10px;
           }
 
-          &.octicon-file-directory,
+          &.octicon-file-directory-fill,
           &.octicon-file-submodule {
             color: var(--color-primary);
           }
@@ -345,15 +310,38 @@
         overflow: initial;
 
         &.name {
-          max-width: 150px;
+          @media @mediaXl {
+            max-width: 150px;
+          }
+          @media @mediaLg {
+            max-width: 200px;
+          }
+          @media @mediaMd {
+            max-width: 300px;
+          }
+          width: 33%;
+
+          max-width: calc(100vw - 140px);
         }
 
         &.message {
-          max-width: 400px;
+          color: var(--color-text-light-1);
+
+          @media @mediaXl {
+            max-width: 400px;
+          }
+          @media @mediaLg {
+            max-width: 350px;
+          }
+          @media @mediaMd {
+            max-width: 250px;
+          }
+          width: 66%;
         }
 
         &.age {
           width: 120px;
+          color: var(--color-text-light-1);
         }
 
         .truncate {
@@ -404,10 +392,6 @@
         padding-top: 8px;
         padding-bottom: 8px;
         width: calc(100% - 1.25rem);
-      }
-
-      .jumpable-path {
-        color: var(--color-text-light-2);
       }
     }
 
@@ -467,7 +451,10 @@
           object-fit: contain;
         }
 
-        /* also see misc.css for one more related rule */
+        img[src$='.svg' i] {
+          max-height: 600px !important;
+          max-width: 600px !important;
+        }
       }
 
       .plain-text {
@@ -854,6 +841,11 @@
           }
         }
 
+        /* Don't show the mobile oriented avatar ".inline-timeline-avatar" on desktop. Desktop uses the avatar with class ".timeline-avatar" */
+        .inline-timeline-avatar {
+          display: none;
+        }
+
         .avatar.image,
         .avatar.image img {
           width: 20px;
@@ -914,6 +906,7 @@
 
           .singular-commit {
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
+            clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
             > .avatar.image,
             > .avatar.image img {
@@ -1043,10 +1036,6 @@
         .merge-section {
           background-color: var(--color-box-body);
 
-          .item {
-            padding: .25rem 0;
-          }
-
           .item-section {
             display: flex;
             align-items: center;
@@ -1156,7 +1145,7 @@
             border-color: var(--color-secondary-dark-1) !important;
           }
 
-          .ui.label.basic.blue {
+          .ui.label.basic.primary {
             background-color: var(--color-reaction-active-bg) !important;
             border-color: var(--color-primary-alpha-80) !important;
           }
@@ -1214,6 +1203,10 @@
         height: 200px;
         font-family: var(--fonts-monospace);
       }
+
+      .CodeMirror-scroll {
+        max-height: 85vh;
+      }
     }
   }
 
@@ -1226,26 +1219,9 @@
       padding-bottom: 10px;
       border-bottom: 1px dashed var(--color-secondary);
 
-      > a {
-        padding-top: 5px;
-        padding-right: 10px;
-        font-size: 1.5rem;
-        color: var(--color-text);
-
-        &:hover {
-          color: var(--color-primary);
-        }
-      }
-
-      .ui.progress {
-        width: 40%;
-        padding: 0;
-        border: 0;
-        margin: 0;
-
-        .bar {
-          height: 20px;
-        }
+      progress {
+        width: 200px;
+        height: 16px;
       }
 
       .meta {
@@ -1576,6 +1552,7 @@
     }
 
     .line-num {
+      &:extend(.unselectable);
       width: 1%;
       min-width: 50px;
       font-family: monospace;
@@ -1584,7 +1561,6 @@
       white-space: nowrap;
       vertical-align: top;
       cursor: pointer;
-      user-select: none;
       text-align: right;
       background: var(--color-body);
       border: 0;
@@ -1648,7 +1624,7 @@
       @media (max-width: 480px) {
         padding-top: .25rem;
 
-        .ui.button {
+        .ui.button:not(.btn-submit) {
           padding-left: .5rem;
           padding-right: .5rem;
           display: flex;
@@ -1720,11 +1696,11 @@
       background: var(--color-code-bg);
 
       .lines-num {
+        &:extend(.unselectable);
         text-align: right;
         color: var(--color-text-light);
         width: 1%;
         min-width: 50px;
-        user-select: none;
 
         span.fold {
           display: block;
@@ -1767,9 +1743,9 @@
           }
 
           .lines-type-marker {
+            &:extend(.unselectable);
             width: 10px;
             min-width: 10px;
-            user-select: none;
           }
 
           [data-type-marker]::before {
@@ -2058,6 +2034,21 @@
     }
   }
 
+  &.packages {
+    .empty {
+      padding-top: 70px;
+      padding-bottom: 100px;
+
+      .svg {
+        height: 48px;
+      }
+    }
+
+    .file-size {
+      white-space: nowrap;
+    }
+  }
+
   &.wiki {
     &.start {
       .ui.segment {
@@ -2077,10 +2068,6 @@
     }
 
     &.view {
-      .choose.page {
-        margin-top: -5px;
-      }
-
       > .markup {
         padding: 15px 30px;
 
@@ -2097,10 +2084,20 @@
       }
     }
 
+    .form .CodeMirror-scroll {
+      max-height: 85vh;
+    }
+
     @media @mediaSm {
       .dividing.header .stackable.grid .button {
         margin-top: 2px;
         margin-bottom: 2px;
+      }
+    }
+
+    @media @mediaSm {
+      #clone-panel #repo-clone-url {
+        width: 160px;
       }
     }
   }
@@ -2384,7 +2381,7 @@
       color: var(--color-primary) !important;
     }
 
-    .ui.label.basic.blue {
+    .ui.label.basic.primary {
       background-color: var(--color-reaction-active-bg) !important;
       border-color: var(--color-secondary) !important;
     }
@@ -2428,13 +2425,13 @@
     }
 
     .segment.language-stats {
+      &:extend(.unselectable);
       padding: 0;
       height: 11px;
       display: flex;
       white-space: nowrap;
       width: 100%;
       border-radius: 0;
-      user-select: none;
 
       @media @mediaSm {
         display: none;
@@ -2544,12 +2541,6 @@
   padding-top: 15px;
 }
 
-.browse-button {
-  position: absolute;
-  right: 1rem;
-  top: .75rem;
-}
-
 .commit-header-row {
   min-height: 50px !important;
   padding-top: 0 !important;
@@ -2646,7 +2637,7 @@
   background: var(--color-box-header);
   border-bottom: 1px solid var(--color-secondary) !important;
   font-weight: normal !important;
-  padding: .5rem 1rem !important;
+  padding: .5rem 1rem;
   margin: 0 !important;
   position: relative;
   color: var(--color-text-light-2);
@@ -2799,6 +2790,31 @@
   line-height: 1.3em; // there is a `font-size: 1.25em` for inside emoji, so here the line-height needs to be larger slightly
 }
 
+.repo-button-row {
+  margin-bottom: 10px;
+}
+
+.repo-button-row > * {
+  margin-top: 10px;
+}
+
+.wiki .repo-button-row {
+  margin-bottom: 0;
+}
+
+.wiki .repo-button-row > * {
+  margin-top: 0;
+}
+
+.repo-button-row .button {
+  padding: 6px 10px !important;
+  height: 30px;
+}
+
+.repo-button-row input {
+  height: 30px;
+}
+
 tbody.commit-list {
   vertical-align: baseline;
 }
@@ -2809,6 +2825,11 @@ tbody.commit-list {
   max-width: calc(100% - 50px);
   display: inline-block;
   vertical-align: middle;
+}
+
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
 }
 
 @media @mediaSm {
@@ -2876,20 +2897,6 @@ tbody.commit-list {
   text-align: left;
 }
 
-@media @mediaSm {
-  .ui.stackable.menu {
-    &.mobile--margin-between-items > .item {
-      margin-top: 5px;
-      margin-bottom: 5px;
-    }
-
-    &.mobile--no-negative-margins {
-      margin-left: 0;
-      margin-right: 0;
-    }
-  }
-}
-
 #topic_edit {
   margin-top: 5px;
 }
@@ -2940,11 +2947,24 @@ tbody.commit-list {
   justify-content: space-between;
   flex-wrap: wrap;
   word-break: break-word;
+
+  @media @mediaSm {
+    + .container {
+      margin-top: 7px;
+    }
+  }
 }
 
 .repo-buttons {
-  display: flex;
   align-items: center;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  word-break: keep-all;
+
+  @media @mediaSm {
+    margin-top: 1em;
+  }
 }
 
 .repo-buttons .ui.labeled.button > .label:hover {
@@ -2985,6 +3005,11 @@ tbody.commit-list {
       pointer-events: none !important;
     }
   }
+  @media @mediaSm {
+    .svg {
+      display: none;
+    }
+  }
 }
 
 .tag-code {
@@ -3022,9 +3047,10 @@ td.blob-excerpt {
 }
 
 .file-header {
+  align-items: center;
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  overflow-x: auto;
   padding: 8px 12px !important;
 }
 
@@ -3036,10 +3062,11 @@ td.blob-excerpt {
 .file-info-entry {
   display: flex;
   align-items: center;
+  width: max-content;
 }
 
 .file-info-entry + .file-info-entry {
-  border-left: 1px solid currentColor;
+  border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
 }
@@ -3055,6 +3082,18 @@ td.blob-excerpt {
 .wiki-content-footer .ui.message.unicode-escape-prompt {
   p {
     display: none;
+  }
+}
+
+.wiki-content-toc {
+  > ul > li {
+    margin-bottom: 4px;
+  }
+
+  ul {
+    margin: 0;
+    list-style: none;
+    padding-left: 1em;
   }
 }
 
@@ -3186,7 +3225,7 @@ td.blob-excerpt {
   background: var(--color-diff-inactive);
 }
 
-.code-diff-split tbody tr td:nth-child(4) {
+.code-diff-split tbody tr td:nth-child(5) {
   border-left: 1px solid var(--color-secondary);
 }
 
@@ -3210,4 +3249,186 @@ td.blob-excerpt {
 .repository.migrate .card:hover {
   transform: scale(105%);
   box-shadow: 0 .5rem 1rem var(--color-shadow) !important;
+}
+
+@media @mediaSm {
+  .repository.file.list {
+    #repo-files-table {
+      .entry,
+      .commit-list {
+        align-items: center;
+        display: flex !important;
+        padding-top: 4px;
+        padding-bottom: 4px;
+
+        td.age,
+        th.age {
+          margin-left: auto;
+        }
+
+        td.message,
+        span.commit-summary {
+          display: none !important;
+        }
+      }
+    }
+  }
+  .issue-list-headers.ui[class].grid {
+    > div:nth-child(1) {
+      order: 1;
+      width: 50%;
+    }
+
+    > div:nth-child(2) {
+      order: 3;
+      width: 100%;
+    }
+
+    > div.column:not(.row):nth-child(3) {
+      order: 2;
+      width: 50%;
+    }
+  }
+
+  .repository.view.issue .comment-list {
+    .timeline,
+    .timeline-item {
+      margin-left: 0;
+    }
+
+    .timeline {
+      &::before {
+        left: 14px;
+      }
+
+      .inline-timeline-avatar {
+        display: flex;
+        margin-bottom: auto;
+
+        img.avatar.image {
+          height: 24px;
+          width: 24px;
+        }
+      }
+
+      .comment-header {
+        &::before,
+        &::after {
+          content: unset;
+        }
+
+        padding-left: 4px;
+      }
+
+      /* Don't show the general avatar, we show the inline avatar on mobile.
+       * And don't show the role labels, there's no place for that. */
+      .timeline-avatar,
+      .comment-header-right .role-label {
+        display: none;
+      }
+    }
+  }
+  .commit-header-row {
+    .ui.horizontal.list {
+      width: 100%;
+      overflow-x: auto;
+      margin-top: 2px;
+
+      .item {
+        align-items: center;
+        display: flex;
+      }
+    }
+
+    .author {
+      padding: 3px 0;
+    }
+  }
+
+  .commit-header h3 {
+    flex-basis: auto !important;
+    margin-bottom: .5rem !important;
+  }
+
+  .commits-table {
+    flex-direction: column;
+
+    .commits-table-left {
+      align-items: initial !important;
+      margin-bottom: 6px;
+    }
+
+    .commits-table-right form {
+      display: flex;
+      flex-wrap: wrap;
+
+      > div:nth-child(1) {
+        order: 1;
+      }
+
+      > div:nth-child(2) {
+        order: 3;
+        margin-left: .5rem;
+        margin-top: .5rem;
+      }
+
+      > button:nth-child(3) {
+        order: 2;
+        margin-left: .25rem;
+      }
+    }
+  }
+
+  .commit-table {
+    overflow-x: auto;
+
+    td.sha,
+    th.sha {
+      display: none !important;
+    }
+
+    .commit-list {
+      span.message-wrapper {
+        max-width: none;
+      }
+
+      tr td:last-child {
+        display: block;
+        width: max-content;
+      }
+
+      td.author {
+        display: block;
+        width: calc(100% + .5rem);
+      }
+
+      .copy-commit-sha {
+        display: none !important;
+      }
+    }
+  }
+
+  .comment-header {
+    flex-wrap: wrap;
+
+    .comment-header-left {
+      flex-wrap: wrap;
+    }
+
+    .comment-header-right {
+      margin-left: auto;
+    }
+  }
+}
+
+.branch-dropdown-button {
+  max-width: 340px;
+  vertical-align: bottom !important;
+
+  @media @mediaMd {
+    max-width: 185px;
+  }
+  @media @mediaSm {
+    max-width: 165px;
+  }
 }

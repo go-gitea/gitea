@@ -16,10 +16,12 @@ import (
 
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/routers/install"
 
+	"github.com/felixge/fgprof"
 	"github.com/urfave/cli"
 	ini "gopkg.in/ini.v1"
 )
@@ -59,6 +61,9 @@ and it takes care of all the other things for you`,
 }
 
 func runHTTPRedirector() {
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: HTTP Redirector", process.SystemProcessType, true)
+	defer finished()
+
 	source := fmt.Sprintf("%s:%s", setting.HTTPAddr, setting.PortToRedirect)
 	dest := strings.TrimSuffix(setting.AppURL, "/")
 	log.Info("Redirecting: %s to %s", source, dest)
@@ -71,7 +76,7 @@ func runHTTPRedirector() {
 		http.Redirect(w, r, target, http.StatusTemporaryRedirect)
 	})
 
-	err := runHTTP("tcp", source, "HTTP Redirector", handler)
+	err := runHTTP("tcp", source, "HTTP Redirector", handler, setting.RedirectorUseProxyProtocol)
 	if err != nil {
 		log.Fatal("Failed to start port redirection: %v", err)
 	}
@@ -121,8 +126,10 @@ func runWeb(ctx *cli.Context) error {
 				return err
 			}
 		}
-		c := install.Routes()
+		installCtx, cancel := context.WithCancel(graceful.GetManager().HammerContext())
+		c := install.Routes(installCtx)
 		err := listen(c, false)
+		cancel()
 		if err != nil {
 			log.Critical("Unable to open listener for installer. Is Gitea already running?")
 			graceful.GetManager().DoGracefulShutdown()
@@ -141,8 +148,12 @@ func runWeb(ctx *cli.Context) error {
 
 	if setting.EnablePprof {
 		go func() {
+			http.DefaultServeMux.Handle("/debug/fgprof", fgprof.Handler())
+			_, _, finished := process.GetManager().AddTypedContext(context.Background(), "Web: PProf Server", process.SystemProcessType, true)
+			// The pprof server is for debug purpose only, it shouldn't be exposed on public network. At the moment it's not worth to introduce a configurable option for it.
 			log.Info("Starting pprof server on localhost:6060")
-			log.Info("%v", http.ListenAndServe("localhost:6060", nil))
+			log.Info("Stopped pprof server: %v", http.ListenAndServe("localhost:6060", nil))
+			finished()
 		}()
 	}
 
@@ -166,7 +177,7 @@ func runWeb(ctx *cli.Context) error {
 	}
 
 	// Set up Chi routes
-	c := routers.NormalRoutes()
+	c := routers.NormalRoutes(graceful.GetManager().HammerContext())
 	err := listen(c, true)
 	<-graceful.GetManager().Done()
 	log.Info("PID: %d Gitea Web Finished", os.Getpid())
@@ -204,6 +215,8 @@ func listen(m http.Handler, handleRedirector bool) error {
 	if setting.Protocol != setting.HTTPUnix && setting.Protocol != setting.FCGIUnix {
 		listenAddr = net.JoinHostPort(listenAddr, setting.HTTPPort)
 	}
+	_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Web: Gitea Server", process.SystemProcessType, true)
+	defer finished()
 	log.Info("Listen: %v://%s%s", setting.Protocol, listenAddr, setting.AppSubURL)
 	// This can be useful for users, many users do wrong to their config and get strange behaviors behind a reverse-proxy.
 	// A user may fix the configuration mistake when he sees this log.
@@ -220,10 +233,10 @@ func listen(m http.Handler, handleRedirector bool) error {
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("tcp", listenAddr, "Web", m)
+		err = runHTTP("tcp", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.HTTPS:
-		if setting.EnableLetsEncrypt {
-			err = runLetsEncrypt(listenAddr, setting.Domain, setting.LetsEncryptDirectory, setting.LetsEncryptEmail, m)
+		if setting.EnableAcme {
+			err = runACME(listenAddr, m)
 			break
 		}
 		if handleRedirector {
@@ -233,26 +246,25 @@ func listen(m http.Handler, handleRedirector bool) error {
 				NoHTTPRedirector()
 			}
 		}
-		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m)
+		err = runHTTPS("tcp", listenAddr, "Web", setting.CertFile, setting.KeyFile, m, setting.UseProxyProtocol, setting.ProxyProtocolTLSBridging)
 	case setting.FCGI:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("tcp", listenAddr, "FCGI Web", m)
+		err = runFCGI("tcp", listenAddr, "FCGI Web", m, setting.UseProxyProtocol)
 	case setting.HTTPUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runHTTP("unix", listenAddr, "Web", m)
+		err = runHTTP("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	case setting.FCGIUnix:
 		if handleRedirector {
 			NoHTTPRedirector()
 		}
-		err = runFCGI("unix", listenAddr, "Web", m)
+		err = runFCGI("unix", listenAddr, "Web", m, setting.UseProxyProtocol)
 	default:
 		log.Fatal("Invalid protocol: %s", setting.Protocol)
 	}
-
 	if err != nil {
 		log.Critical("Failed to start server: %v", err)
 	}

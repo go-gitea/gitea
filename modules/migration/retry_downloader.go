@@ -148,7 +148,7 @@ func (d *RetryDownloader) GetIssues(page, perPage int) ([]*Issue, bool, error) {
 }
 
 // GetComments returns a repository's comments with retry
-func (d *RetryDownloader) GetComments(opts GetCommentOptions) ([]*Comment, bool, error) {
+func (d *RetryDownloader) GetComments(commentable Commentable) ([]*Comment, bool, error) {
 	var (
 		comments []*Comment
 		isEnd    bool
@@ -156,7 +156,7 @@ func (d *RetryDownloader) GetComments(opts GetCommentOptions) ([]*Comment, bool,
 	)
 
 	err = d.retry(func() error {
-		comments, isEnd, err = d.Downloader.GetComments(opts)
+		comments, isEnd, err = d.Downloader.GetComments(commentable)
 		return err
 	})
 
@@ -180,14 +180,14 @@ func (d *RetryDownloader) GetPullRequests(page, perPage int) ([]*PullRequest, bo
 }
 
 // GetReviews returns pull requests reviews
-func (d *RetryDownloader) GetReviews(pullRequestContext IssueContext) ([]*Review, error) {
+func (d *RetryDownloader) GetReviews(reviewable Reviewable) ([]*Review, error) {
 	var (
 		reviews []*Review
 		err     error
 	)
 
 	err = d.retry(func() error {
-		reviews, err = d.Downloader.GetReviews(pullRequestContext)
+		reviews, err = d.Downloader.GetReviews(reviewable)
 		return err
 	})
 

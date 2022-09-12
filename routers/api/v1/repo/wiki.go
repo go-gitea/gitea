@@ -10,10 +10,11 @@ import (
 	"net/http"
 	"net/url"
 
-	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
@@ -71,10 +72,10 @@ func NewWikiPage(ctx *context.APIContext) {
 	}
 	form.ContentBase64 = string(content)
 
-	if err := wiki_service.AddWikiPage(ctx, ctx.User, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
-		if models.IsErrWikiReservedName(err) {
+	if err := wiki_service.AddWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName, form.ContentBase64, form.Message); err != nil {
+		if repo_model.IsErrWikiReservedName(err) {
 			ctx.Error(http.StatusBadRequest, "IsErrWikiReservedName", err)
-		} else if models.IsErrWikiAlreadyExist(err) {
+		} else if repo_model.IsErrWikiAlreadyExist(err) {
 			ctx.Error(http.StatusBadRequest, "IsErrWikiAlreadyExists", err)
 		} else {
 			ctx.Error(http.StatusInternalServerError, "AddWikiPage", err)
@@ -85,6 +86,7 @@ func NewWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, wikiName)
 
 	if !ctx.Written() {
+		notification.NotifyNewWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
 		ctx.JSON(http.StatusCreated, wikiPage)
 	}
 }
@@ -144,7 +146,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	}
 	form.ContentBase64 = string(content)
 
-	if err := wiki_service.EditWikiPage(ctx, ctx.User, ctx.Repo.Repository, oldWikiName, newWikiName, form.ContentBase64, form.Message); err != nil {
+	if err := wiki_service.EditWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, oldWikiName, newWikiName, form.ContentBase64, form.Message); err != nil {
 		ctx.Error(http.StatusInternalServerError, "EditWikiPage", err)
 		return
 	}
@@ -152,6 +154,7 @@ func EditWikiPage(ctx *context.APIContext) {
 	wikiPage := getWikiPage(ctx, newWikiName)
 
 	if !ctx.Written() {
+		notification.NotifyEditWikiPage(ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
 		ctx.JSON(http.StatusOK, wikiPage)
 	}
 }
@@ -233,7 +236,7 @@ func DeleteWikiPage(ctx *context.APIContext) {
 
 	wikiName := wiki_service.NormalizeWikiName(ctx.Params(":pageName"))
 
-	if err := wiki_service.DeleteWikiPage(ctx, ctx.User, ctx.Repo.Repository, wikiName); err != nil {
+	if err := wiki_service.DeleteWikiPage(ctx, ctx.Doer, ctx.Repo.Repository, wikiName); err != nil {
 		if err.Error() == "file does not exist" {
 			ctx.NotFound(err)
 			return
@@ -241,6 +244,8 @@ func DeleteWikiPage(ctx *context.APIContext) {
 		ctx.Error(http.StatusInternalServerError, "DeleteWikiPage", err)
 		return
 	}
+
+	notification.NotifyDeleteWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.Status(http.StatusNoContent)
 }
@@ -314,7 +319,7 @@ func ListWikiPages(ctx *context.APIContext) {
 		}
 		wikiName, err := wiki_service.FilenameToName(entry.Name())
 		if err != nil {
-			if models.IsErrWikiInvalidFileName(err) {
+			if repo_model.IsErrWikiInvalidFileName(err) {
 				continue
 			}
 			ctx.Error(http.StatusInternalServerError, "WikiFilenameToName", err)
@@ -427,9 +432,9 @@ func ListPageRevisions(ctx *context.APIContext) {
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRangeNoFollow("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRangeNoFollow", err)
+		ctx.Error(http.StatusInternalServerError, "CommitsByFileAndRange", err)
 		return
 	}
 
@@ -458,7 +463,7 @@ func findEntryForFile(commit *git.Commit, target string) (*git.TreeEntry, error)
 // findWikiRepoCommit opens the wiki repo and returns the latest commit, writing to context on error.
 // The caller is responsible for closing the returned repo again
 func findWikiRepoCommit(ctx *context.APIContext) (*git.Repository, *git.Commit) {
-	wikiRepo, err := git.OpenRepositoryCtx(ctx, ctx.Repo.Repository.WikiPath())
+	wikiRepo, err := git.OpenRepository(ctx, ctx.Repo.Repository.WikiPath())
 	if err != nil {
 
 		if git.IsErrNotExist(err) || err.Error() == "no such file or directory" {

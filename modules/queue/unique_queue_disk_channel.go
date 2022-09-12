@@ -6,6 +6,7 @@ package queue
 
 import (
 	"context"
+	"runtime/pprof"
 	"sync"
 	"time"
 
@@ -61,7 +62,7 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}
 
 	channelUniqueQueue, err := NewChannelUniqueQueue(wrappedHandle, ChannelUniqueQueueConfiguration{
@@ -72,9 +73,9 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 			BoostTimeout: config.BoostTimeout,
 			BoostWorkers: config.BoostWorkers,
 			MaxWorkers:   config.MaxWorkers,
+			Name:         config.Name + "-channel",
 		},
 		Workers: config.Workers,
-		Name:    config.Name + "-channel",
 	}, exemplar)
 	if err != nil {
 		return nil, err
@@ -90,9 +91,9 @@ func NewPersistableChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interfac
 				BoostTimeout: 5 * time.Minute,
 				BoostWorkers: 1,
 				MaxWorkers:   5,
+				Name:         config.Name + "-level",
 			},
 			Workers: 0,
-			Name:    config.Name + "-level",
 		},
 		DataDir: config.DataDir,
 	}
@@ -183,6 +184,7 @@ func (q *PersistableChannelUniqueQueue) Has(data Data) (bool, error) {
 
 // Run starts to run the queue
 func (q *PersistableChannelUniqueQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.channelQueue.baseCtx)
 	log.Debug("PersistableChannelUniqueQueue: %s Starting", q.delayedStarter.name)
 
 	q.lock.Lock()
@@ -239,6 +241,26 @@ func (q *PersistableChannelUniqueQueue) IsEmpty() bool {
 	return q.channelQueue.IsEmpty()
 }
 
+// IsPaused will return if the pool or queue is paused
+func (q *PersistableChannelUniqueQueue) IsPaused() bool {
+	return q.channelQueue.IsPaused()
+}
+
+// Pause will pause the pool or queue
+func (q *PersistableChannelUniqueQueue) Pause() {
+	q.channelQueue.Pause()
+}
+
+// Resume will resume the pool or queue
+func (q *PersistableChannelUniqueQueue) Resume() {
+	q.channelQueue.Resume()
+}
+
+// IsPausedIsResumed will return a bool indicating if the pool or queue is paused and a channel that will be closed when it is resumed
+func (q *PersistableChannelUniqueQueue) IsPausedIsResumed() (paused, resumed <-chan struct{}) {
+	return q.channelQueue.IsPausedIsResumed()
+}
+
 // Shutdown processing this queue
 func (q *PersistableChannelUniqueQueue) Shutdown() {
 	log.Trace("PersistableChannelUniqueQueue: %s Shutting down", q.delayedStarter.name)
@@ -262,13 +284,12 @@ func (q *PersistableChannelUniqueQueue) Shutdown() {
 	q.channelQueue.Wait()
 	q.internal.(*LevelUniqueQueue).Wait()
 	// Redirect all remaining data in the chan to the internal channel
-	go func() {
-		log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
-		for data := range q.channelQueue.dataChan {
-			_ = q.internal.Push(data)
-		}
-		log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
-	}()
+	close(q.channelQueue.dataChan)
+	log.Trace("PersistableChannelUniqueQueue: %s Redirecting remaining data", q.delayedStarter.name)
+	for data := range q.channelQueue.dataChan {
+		_ = q.internal.Push(data)
+	}
+	log.Trace("PersistableChannelUniqueQueue: %s Done Redirecting remaining data", q.delayedStarter.name)
 
 	log.Debug("PersistableChannelUniqueQueue: %s Shutdown", q.delayedStarter.name)
 }
@@ -282,6 +303,7 @@ func (q *PersistableChannelUniqueQueue) Terminate() {
 	if q.internal != nil {
 		q.internal.(*LevelUniqueQueue).Terminate()
 	}
+	q.channelQueue.baseCtxFinished()
 	log.Debug("PersistableChannelUniqueQueue: %s Terminated", q.delayedStarter.name)
 }
 

@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/log"
@@ -43,7 +43,7 @@ func (b *Basic) Name() string {
 // Returns nil if header is empty or validation fails.
 func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
 	// Basic authentication should only fire on API, Download or on Git or LFSPaths
-	if !middleware.IsAPIPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
+	if !middleware.IsAPIPath(req) && !isContainerPath(req) && !isAttachmentDownload(req) && !isGitRawReleaseOrLFSPath(req) {
 		return nil
 	}
 
@@ -85,7 +85,7 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		return u
 	}
 
-	token, err := models.GetAccessTokenBySHA(authToken)
+	token, err := auth_model.GetAccessTokenBySHA(authToken)
 	if err == nil {
 		log.Trace("Basic Authorization: Valid AccessToken for user[%d]", uid)
 		u, err := user_model.GetUserByID(token.UID)
@@ -95,13 +95,13 @@ func (b *Basic) Verify(req *http.Request, w http.ResponseWriter, store DataStore
 		}
 
 		token.UpdatedUnix = timeutil.TimeStampNow()
-		if err = models.UpdateAccessToken(token); err != nil {
+		if err = auth_model.UpdateAccessToken(token); err != nil {
 			log.Error("UpdateAccessToken:  %v", err)
 		}
 
 		store.GetData()["IsApiToken"] = true
 		return u
-	} else if !models.IsErrAccessTokenNotExist(err) && !models.IsErrAccessTokenEmpty(err) {
+	} else if !auth_model.IsErrAccessTokenNotExist(err) && !auth_model.IsErrAccessTokenEmpty(err) {
 		log.Error("GetAccessTokenBySha: %v", err)
 	}
 

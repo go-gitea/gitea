@@ -27,12 +27,12 @@ func Organizations(ctx *context.Context) {
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	visibleTypes := []structs.VisibleType{structs.VisibleTypePublic}
-	if ctx.User != nil {
+	if ctx.Doer != nil {
 		visibleTypes = append(visibleTypes, structs.VisibleTypeLimited, structs.VisibleTypePrivate)
 	}
 
 	RenderUserSearch(ctx, &user_model.SearchUserOptions{
-		Actor:       ctx.User,
+		Actor:       ctx.Doer,
 		Type:        user_model.UserTypeOrganization,
 		ListOptions: db.ListOptions{PageSize: setting.UI.ExplorePagingNum},
 		Visible:     visibleTypes,

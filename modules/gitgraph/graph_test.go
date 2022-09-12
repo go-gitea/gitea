@@ -14,7 +14,7 @@ import (
 )
 
 func BenchmarkGetCommitGraph(b *testing.B) {
-	currentRepo, err := git.OpenRepository(".")
+	currentRepo, err := git.OpenRepository(git.DefaultContext, ".")
 	if err != nil || currentRepo == nil {
 		b.Error("Could not open repository")
 	}
@@ -53,7 +53,7 @@ func BenchmarkParseGlyphs(b *testing.B) {
 	parser := &Parser{}
 	parser.Reset()
 	tgBytes := []byte(testglyphs)
-	tg := tgBytes
+	var tg []byte
 	for i := 0; i < b.N; i++ {
 		parser.Reset()
 		tg = tgBytes

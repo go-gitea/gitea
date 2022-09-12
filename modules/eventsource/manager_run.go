@@ -8,9 +8,13 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/graceful"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 )
@@ -25,6 +29,9 @@ func (m *Manager) Init() {
 
 // Run runs the manager within a provided context
 func (m *Manager) Run(ctx context.Context) {
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: EventSource", process.SystemProcessType, true)
+	defer finished()
+
 	then := timeutil.TimeStampNow().Add(-2)
 	timer := time.NewTicker(setting.UI.Notification.EventSourceUpdateTime)
 loop:
@@ -65,7 +72,7 @@ loop:
 
 			now := timeutil.TimeStampNow().Add(-2)
 
-			uidCounts, err := models.GetUIDsAndNotificationCounts(then, now)
+			uidCounts, err := activities_model.GetUIDsAndNotificationCounts(then, now)
 			if err != nil {
 				log.Error("Unable to get UIDcounts: %v", err)
 			}
@@ -76,6 +83,33 @@ loop:
 				})
 			}
 			then = now
+
+			if setting.Service.EnableTimetracking {
+				usersStopwatches, err := issues_model.GetUIDsAndStopwatch()
+				if err != nil {
+					log.Error("Unable to get GetUIDsAndStopwatch: %v", err)
+					return
+				}
+
+				for _, userStopwatches := range usersStopwatches {
+					apiSWs, err := convert.ToStopWatches(userStopwatches.StopWatches)
+					if err != nil {
+						if !issues_model.IsErrIssueNotExist(err) {
+							log.Error("Unable to APIFormat stopwatches: %v", err)
+						}
+						continue
+					}
+					dataBs, err := json.Marshal(apiSWs)
+					if err != nil {
+						log.Error("Unable to marshal stopwatches: %v", err)
+						continue
+					}
+					m.SendMessage(userStopwatches.UserID, &Event{
+						Name: "stopwatches",
+						Data: string(dataBs),
+					})
+				}
+			}
 		}
 	}
 	m.UnregisterAll()

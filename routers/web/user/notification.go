@@ -5,16 +5,19 @@
 package user
 
 import (
+	goctx "context"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 )
 
 const (
@@ -33,9 +36,11 @@ func GetNotificationCount(c *context.Context) {
 	}
 
 	c.Data["NotificationUnreadCount"] = func() int64 {
-		count, err := models.GetNotificationCount(c.User, models.NotificationStatusUnread)
+		count, err := activities_model.GetNotificationCount(c, c.Doer, activities_model.NotificationStatusUnread)
 		if err != nil {
-			c.ServerError("GetNotificationCount", err)
+			if err != goctx.Canceled {
+				log.Error("Unable to GetNotificationCount for user:%-v: %v", c.Doer, err)
+			}
 			return -1
 		}
 
@@ -60,7 +65,7 @@ func Notifications(c *context.Context) {
 func getNotifications(c *context.Context) {
 	var (
 		keyword = c.FormTrim("q")
-		status  models.NotificationStatus
+		status  activities_model.NotificationStatus
 		page    = c.FormInt("page")
 		perPage = c.FormInt("perPage")
 	)
@@ -73,12 +78,12 @@ func getNotifications(c *context.Context) {
 
 	switch keyword {
 	case "read":
-		status = models.NotificationStatusRead
+		status = activities_model.NotificationStatusRead
 	default:
-		status = models.NotificationStatusUnread
+		status = activities_model.NotificationStatusUnread
 	}
 
-	total, err := models.GetNotificationCount(c.User, status)
+	total, err := activities_model.GetNotificationCount(c, c.Doer, status)
 	if err != nil {
 		c.ServerError("ErrGetNotificationCount", err)
 		return
@@ -91,8 +96,8 @@ func getNotifications(c *context.Context) {
 		return
 	}
 
-	statuses := []models.NotificationStatus{status, models.NotificationStatusPinned}
-	notifications, err := models.NotificationsForUser(c.User, statuses, page, perPage)
+	statuses := []activities_model.NotificationStatus{status, activities_model.NotificationStatusPinned}
+	notifications, err := activities_model.NotificationsForUser(c, c.Doer, statuses, page, perPage)
 	if err != nil {
 		c.ServerError("ErrNotificationsForUser", err)
 		return
@@ -146,22 +151,22 @@ func NotificationStatusPost(c *context.Context) {
 	var (
 		notificationID = c.FormInt64("notification_id")
 		statusStr      = c.FormString("status")
-		status         models.NotificationStatus
+		status         activities_model.NotificationStatus
 	)
 
 	switch statusStr {
 	case "read":
-		status = models.NotificationStatusRead
+		status = activities_model.NotificationStatusRead
 	case "unread":
-		status = models.NotificationStatusUnread
+		status = activities_model.NotificationStatusUnread
 	case "pinned":
-		status = models.NotificationStatusPinned
+		status = activities_model.NotificationStatusPinned
 	default:
 		c.ServerError("InvalidNotificationStatus", errors.New("Invalid notification status"))
 		return
 	}
 
-	if _, err := models.SetNotificationStatus(notificationID, c.User, status); err != nil {
+	if _, err := activities_model.SetNotificationStatus(notificationID, c.Doer, status); err != nil {
 		c.ServerError("SetNotificationStatus", err)
 		return
 	}
@@ -183,11 +188,16 @@ func NotificationStatusPost(c *context.Context) {
 
 // NotificationPurgePost is a route for 'purging' the list of notifications - marking all unread as read
 func NotificationPurgePost(c *context.Context) {
-	err := models.UpdateNotificationStatuses(c.User, models.NotificationStatusUnread, models.NotificationStatusRead)
+	err := activities_model.UpdateNotificationStatuses(c.Doer, activities_model.NotificationStatusUnread, activities_model.NotificationStatusRead)
 	if err != nil {
 		c.ServerError("ErrUpdateNotificationStatuses", err)
 		return
 	}
 
 	c.Redirect(setting.AppSubURL+"/notifications", http.StatusSeeOther)
+}
+
+// NewAvailable returns the notification counts
+func NewAvailable(ctx *context.Context) {
+	ctx.JSON(http.StatusOK, structs.NotificationCount{New: activities_model.CountUnread(ctx, ctx.Doer.ID)})
 }

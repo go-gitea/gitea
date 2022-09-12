@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -91,7 +90,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 
 	statList := make([]string, 0)
 	for _, fi := range fis {
-		if strings.Contains(fi.Name(), ".DS_Store") {
+		if CommonSkip(fi.Name()) {
 			continue
 		}
 
@@ -154,6 +153,10 @@ func StatDir(rootPath string, includeDir ...bool) ([]string, error) {
 	return statDir(rootPath, "", isIncludeDir, false, false)
 }
 
+func isOSWindows() bool {
+	return runtime.GOOS == "windows"
+}
+
 // FileURLToPath extracts the path information from a file://... url.
 func FileURLToPath(u *url.URL) (string, error) {
 	if u.Scheme != "file" {
@@ -162,7 +165,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 
 	path := u.Path
 
-	if runtime.GOOS != "windows" {
+	if !isOSWindows() {
 		return path, nil
 	}
 
@@ -172,4 +175,44 @@ func FileURLToPath(u *url.URL) (string, error) {
 		return path[1:], nil
 	}
 	return path, nil
+}
+
+// HomeDir returns path of '~'(in Linux) on Windows,
+// it returns error when the variable does not exist.
+func HomeDir() (home string, err error) {
+	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
+	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
+	// so at the moment we can not use `user.Current().HomeDir`
+	if isOSWindows() {
+		home = os.Getenv("USERPROFILE")
+		if home == "" {
+			home = os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		}
+	} else {
+		home = os.Getenv("HOME")
+	}
+
+	if home == "" {
+		return "", errors.New("cannot get home directory")
+	}
+
+	return home, nil
+}
+
+// CommonSkip will check a provided name to see if it represents file or directory that should not be watched
+func CommonSkip(name string) bool {
+	if name == "" {
+		return true
+	}
+
+	switch name[0] {
+	case '.':
+		return true
+	case 't', 'T':
+		return name[1:] == "humbs.db"
+	case 'd', 'D':
+		return name[1:] == "esktop.ini"
+	}
+
+	return false
 }

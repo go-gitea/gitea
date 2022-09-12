@@ -1,10 +1,14 @@
+import $ from 'jquery';
+import 'jquery.are-you-sure';
 import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
+import {showGlobalErrorMessage} from '../bootstrap.js';
+import {attachDropdownAria} from './aria.js';
+import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
+import {initTooltip} from '../modules/tippy.js';
 
-import 'jquery.are-you-sure';
-
-const {csrfToken} = window.config;
+const {appUrl, csrfToken} = window.config;
 
 export function initGlobalFormDirtyLeaveConfirm() {
   // Warn users that try to leave a page after entering data into a form.
@@ -43,9 +47,10 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $('.js-quick-submit').on('keydown', function (e) {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').trigger('submit');
+  $(document).on('keydown', '.js-quick-submit', (e) => {
+    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
+      handleGlobalEnterQuickSubmit(e.target);
+      return false;
     }
   });
 }
@@ -58,15 +63,13 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initGlobalCommon() {
-  // Show exact time
-  $('.time-since').each(function () {
-    $(this)
-      .addClass('tooltip')
-      .attr('data-content', $(this).attr('title'))
-      .attr('title', '');
-  });
+export function initGlobalTooltips() {
+  for (const el of document.getElementsByClassName('tooltip')) {
+    initTooltip(el);
+  }
+}
 
+export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
     $(window).resize(() => {
@@ -81,45 +84,34 @@ export function initGlobalCommon() {
   }
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown({
+  const $uiDropdowns = $('.ui.dropdown');
+  $uiDropdowns.filter(':not(.custom)').dropdown({
     fullTextSearch: 'exact'
   });
-  $('.jump.dropdown').dropdown({
+  $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      $('.tooltip').popup('hide');
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
-  $('.slide.up.dropdown').dropdown({
+  $uiDropdowns.filter('.slide.up').dropdown({
     transition: 'slide up',
     fullTextSearch: 'exact'
   });
-  $('.upward.dropdown').dropdown({
+  $uiDropdowns.filter('.upward').dropdown({
     direction: 'upward',
     fullTextSearch: 'exact'
   });
+  attachDropdownAria($uiDropdowns);
+
   $('.ui.checkbox').checkbox();
-  $('.ui.progress').progress({
-    showActivity: false
-  });
 
-  // init popups
-  $('.tooltip').each((_, el) => {
-    const $el = $(el);
-    const attr = $el.attr('data-variation');
-    const attrs = attr ? attr.split(' ') : [];
-    const variations = new Set([...attrs, 'inverted', 'tiny']);
-    $el.attr('data-variation', [...variations].join(' ')).popup();
-  });
-
-  $('.top.menu .tooltip').popup({
-    onShow() {
-      if ($('.top.menu .menu.transition').hasClass('visible')) {
-        return false;
-      }
-    }
-  });
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
@@ -140,6 +132,14 @@ export function initGlobalCommon() {
     } else {
       window.location = href;
     }
+  });
+
+  // prevent multiple form submissions on forms containing .loading-button
+  document.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('.loading-button');
+    if (!btn) return;
+    if (btn.classList.contains('loading')) return e.preventDefault();
+    btn.classList.add('loading');
   });
 }
 
@@ -163,7 +163,8 @@ export function initGlobalDropzone() {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (_file, data) => {
+        this.on('success', (file, data) => {
+          file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
@@ -211,7 +212,7 @@ export function initGlobalLinkActions() {
         };
         for (const [key, value] of Object.entries(dataArray)) {
           if (key && key.startsWith('data')) {
-            postData[key.substr(4)] = value;
+            postData[key.slice(4)] = value;
           }
           if (key === 'id') {
             postData['id'] = value;
@@ -313,9 +314,22 @@ export function initGlobalButtons() {
     alert('Nothing to hide');
   });
 
-  $('.show-modal.button').on('click', function () {
-    $($(this).data('modal')).modal('show');
-    const colorPickers = $($(this).data('modal')).find('.color-picker');
+  $('.show-modal').on('click', function () {
+    const modalDiv = $($(this).attr('data-modal'));
+    for (const attrib of this.attributes) {
+      if (!attrib.name.startsWith('data-modal-')) {
+        continue;
+      }
+      const id = attrib.name.substring(11);
+      const target = modalDiv.find(`#${id}`);
+      if (target.is('input')) {
+        target.val(attrib.value);
+      } else {
+        target.text(attrib.value);
+      }
+    }
+    modalDiv.modal('show');
+    const colorPickers = $($(this).attr('data-modal')).find('.color-picker');
     if (colorPickers.length > 0) {
       initCompColorPicker();
     }
@@ -323,10 +337,31 @@ export function initGlobalButtons() {
 
   $('.delete-post.button').on('click', function () {
     const $this = $(this);
-    $.post($this.data('request-url'), {
+    $.post($this.attr('data-request-url'), {
       _csrf: csrfToken
     }).done(() => {
-      window.location.href = $this.data('done-url');
+      window.location.href = $this.attr('data-done-url');
     });
   });
+}
+
+/**
+ * Too many users set their ROOT_URL to wrong value, and it causes a lot of problems:
+ *   * Cross-origin API request without correct cookie
+ *   * Incorrect href in <a>
+ *   * ...
+ * So we check whether current URL starts with AppUrl(ROOT_URL).
+ * If they don't match, show a warning to users.
+ */
+export function checkAppUrl() {
+  const curUrl = window.location.href;
+  // some users visit "https://domain/gitea" while appUrl is "https://domain/gitea/", there should be no warning
+  if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
+    return;
+  }
+  if (document.querySelector('.page-content.install')) {
+    return; // no need to show the message on the installation page
+  }
+  showGlobalErrorMessage(`Your ROOT_URL in app.ini is ${appUrl} but you are visiting ${curUrl}
+You should set ROOT_URL correctly, otherwise the web may not work correctly.`);
 }

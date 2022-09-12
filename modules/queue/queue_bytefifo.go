@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -20,7 +21,6 @@ import (
 type ByteFIFOQueueConfiguration struct {
 	WorkerPoolConfiguration
 	Workers     int
-	Name        string
 	WaitOnEmpty bool
 }
 
@@ -73,7 +73,7 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil
@@ -92,7 +92,7 @@ func (q *ByteFIFOQueue) Push(data Data) error {
 // PushBack pushes data to the fifo
 func (q *ByteFIFOQueue) PushBack(data Data) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -110,7 +110,7 @@ func (q *ByteFIFOQueue) PushBack(data Data) error {
 // PushFunc pushes data to the fifo
 func (q *ByteFIFOQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {
@@ -135,6 +135,13 @@ func (q *ByteFIFOQueue) IsEmpty() bool {
 	return q.byteFIFO.Len(q.terminateCtx) == 0
 }
 
+// NumberInQueue returns the number in the queue
+func (q *ByteFIFOQueue) NumberInQueue() int64 {
+	q.lock.Lock()
+	defer q.lock.Unlock()
+	return q.byteFIFO.Len(q.terminateCtx) + q.WorkerPool.NumberInQueue()
+}
+
 // Flush flushes the ByteFIFOQueue
 func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 	select {
@@ -146,6 +153,7 @@ func (q *ByteFIFOQueue) Flush(timeout time.Duration) error {
 
 // Run runs the bytefifo queue
 func (q *ByteFIFOQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("%s: %s Starting", q.typ, q.name)
@@ -205,7 +213,10 @@ loop:
 				// tell the pool to shutdown.
 				q.baseCtxCancel()
 				return
-			case data := <-q.dataChan:
+			case data, ok := <-q.dataChan:
+				if !ok {
+					return
+				}
 				if err := q.PushBack(data); err != nil {
 					log.Error("Unable to push back data into queue %s", q.name)
 				}
@@ -345,6 +356,7 @@ func (q *ByteFIFOQueue) Terminate() {
 	if err := q.byteFIFO.Close(); err != nil {
 		log.Error("Error whilst closing internal byte fifo in %s: %s: %v", q.typ, q.name, err)
 	}
+	q.baseCtxFinished()
 	log.Debug("%s: %s Terminated", q.typ, q.name)
 }
 
@@ -389,7 +401,7 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil
@@ -398,7 +410,7 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 // Has checks if the provided data is in the queue
 func (q *ByteFIFOUniqueQueue) Has(data Data) (bool, error) {
 	if !assignableTo(data, q.exemplar) {
-		return false, fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return false, fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 	bs, err := json.Marshal(data)
 	if err != nil {

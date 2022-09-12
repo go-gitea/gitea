@@ -8,7 +8,7 @@ package json
 import (
 	"bytes"
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json" //nolint:depguard
 	"io"
 
 	jsoniter "github.com/json-iterator/go"

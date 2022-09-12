@@ -9,8 +9,11 @@ import (
 	"testing"
 
 	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
@@ -22,13 +25,13 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
 	testTeamRepositories := func(teamID int64, repoIds []int64) {
-		team := unittest.AssertExistsAndLoadBean(t, &models.Team{ID: teamID}).(*models.Team)
-		assert.NoError(t, team.GetRepositories(&models.SearchTeamOptions{}), "%s: GetRepositories", team.Name)
+		team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: teamID})
+		assert.NoError(t, team.GetRepositoriesCtx(db.DefaultContext), "%s: GetRepositories", team.Name)
 		assert.Len(t, team.Repos, team.NumRepos, "%s: len repo", team.Name)
 		assert.Len(t, team.Repos, len(repoIds), "%s: repo count", team.Name)
 		for i, rid := range repoIds {
 			if rid > 0 {
-				assert.True(t, team.HasRepository(rid), "%s: HasRepository(%d) %d", rid, i)
+				assert.True(t, models.HasRepository(team, rid), "%s: HasRepository(%d) %d", rid, i)
 			}
 		}
 	}
@@ -38,13 +41,13 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetUserByID")
 
 	// Create org.
-	org := &models.Organization{
+	org := &organization.Organization{
 		Name:       "All_repo",
 		IsActive:   true,
 		Type:       user_model.UserTypeOrganization,
 		Visibility: structs.VisibleTypePublic,
 	}
-	assert.NoError(t, models.CreateOrganization(org, user), "CreateOrganization")
+	assert.NoError(t, organization.CreateOrganization(org, user), "CreateOrganization")
 
 	// Check Owner team.
 	ownerTeam, err := org.GetOwnerTeam()
@@ -54,7 +57,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	// Create repos.
 	repoIds := make([]int64, 0)
 	for i := 0; i < 3; i++ {
-		r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
+		r, err := CreateRepository(user, org.AsUser(), CreateRepoOptions{Name: fmt.Sprintf("repo-%d", i)})
 		assert.NoError(t, err, "CreateRepository %d", i)
 		if r != nil {
 			repoIds = append(repoIds, r.ID)
@@ -65,7 +68,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	assert.NoError(t, err, "GetOwnerTeam")
 
 	// Create teams and check repositories.
-	teams := []*models.Team{
+	teams := []*organization.Team{
 		ownerTeam,
 		{
 			OrgID:                   org.ID,
@@ -116,7 +119,7 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 	}
 
 	// Create repo and check teams repositories.
-	r, err := CreateRepository(user, org.AsUser(), models.CreateRepoOptions{Name: "repo-last"})
+	r, err := CreateRepository(user, org.AsUser(), CreateRepoOptions{Name: "repo-last"})
 	assert.NoError(t, err, "CreateRepository last")
 	if r != nil {
 		repoIds = append(repoIds, r.ID)
@@ -144,5 +147,25 @@ func TestIncludesAllRepositoriesTeams(t *testing.T) {
 			assert.NoError(t, models.DeleteRepository(user, org.ID, rid), "DeleteRepository %d", i)
 		}
 	}
-	assert.NoError(t, models.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
+	assert.NoError(t, organization.DeleteOrganization(db.DefaultContext, org), "DeleteOrganization")
+}
+
+func TestUpdateRepositoryVisibilityChanged(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	// Get sample repo and change visibility
+	repo, err := repo_model.GetRepositoryByID(9)
+	assert.NoError(t, err)
+	repo.IsPrivate = true
+
+	// Update it
+	err = UpdateRepository(db.DefaultContext, repo, true)
+	assert.NoError(t, err)
+
+	// Check visibility of action has become private
+	act := activities_model.Action{}
+	_, err = db.GetEngine(db.DefaultContext).ID(3).Get(&act)
+
+	assert.NoError(t, err)
+	assert.True(t, act.IsPrivate)
 }

@@ -111,7 +111,7 @@ func PrintCurrentTest(t testing.TB, skip ...int) func() {
 			if log.CanColorStdout {
 				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", fmt.Formatter(log.NewColoredValue(t.Name(), log.Bold, log.FgYellow)), fmt.Formatter(log.NewColoredValue(took, log.Bold, log.FgYellow)))
 			} else {
-				fmt.Fprintf(os.Stdout, "+++ %s is a slow tets (took %v)\n", t.Name(), took)
+				fmt.Fprintf(os.Stdout, "+++ %s is a slow test (took %v)\n", t.Name(), took)
 			}
 		}
 		timer := time.AfterFunc(slowFlush, func() {
@@ -166,6 +166,11 @@ func (log *TestLogger) Init(config string) error {
 	return nil
 }
 
+// Content returns the content accumulated in the content provider
+func (log *TestLogger) Content() (string, error) {
+	return "", fmt.Errorf("not supported")
+}
+
 // Flush when log should be flushed
 func (log *TestLogger) Flush() {
 }
@@ -183,5 +188,5 @@ func (log *TestLogger) GetName() string {
 func init() {
 	log.Register("test", NewTestLogger)
 	_, filename, _, _ := runtime.Caller(0)
-	prefix = strings.TrimSuffix(filename, "integrations/testlogger.go")
+	prefix = strings.TrimSuffix(filename, "tests/testlogger.go")
 }

@@ -6,61 +6,34 @@ package process
 
 import (
 	"context"
-	"sync"
 	"time"
 )
 
-// Process represents a working process inheriting from Gitea.
-type Process struct {
+var (
+	SystemProcessType  = "system"
+	RequestProcessType = "request"
+	NormalProcessType  = "normal"
+	NoneProcessType    = "none"
+)
+
+// process represents a working process inheriting from Gitea.
+type process struct {
 	PID         IDType // Process ID, not system one.
 	ParentPID   IDType
 	Description string
 	Start       time.Time
 	Cancel      context.CancelFunc
-
-	lock     sync.Mutex
-	children []*Process
+	Type        string
 }
 
-// Children gets the children of the process
-// Note: this function will behave nicely even if p is nil
-func (p *Process) Children() (children []*Process) {
-	if p == nil {
-		return
+// ToProcess converts a process to a externally usable Process
+func (p *process) toProcess() *Process {
+	process := &Process{
+		PID:         p.PID,
+		ParentPID:   p.ParentPID,
+		Description: p.Description,
+		Start:       p.Start,
+		Type:        p.Type,
 	}
-
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	children = make([]*Process, len(p.children))
-	copy(children, p.children)
-	return children
-}
-
-// AddChild adds a child process
-// Note: this function will behave nicely even if p is nil
-func (p *Process) AddChild(child *Process) {
-	if p == nil {
-		return
-	}
-
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	p.children = append(p.children, child)
-}
-
-// RemoveChild removes a child process
-// Note: this function will behave nicely even if p is nil
-func (p *Process) RemoveChild(process *Process) {
-	if p == nil {
-		return
-	}
-
-	p.lock.Lock()
-	defer p.lock.Unlock()
-	for i, child := range p.children {
-		if child == process {
-			p.children = append(p.children[:i], p.children[i+1:]...)
-			return
-		}
-	}
+	return process
 }

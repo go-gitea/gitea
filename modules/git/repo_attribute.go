@@ -28,17 +28,12 @@ type CheckAttributeOpts struct {
 
 // CheckAttribute return the Blame object of file
 func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[string]string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return nil, fmt.Errorf("git version missing: %v", err)
-	}
-
 	env := []string{}
 
-	if len(opts.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.IndexFile) > 0 {
 		env = append(env, "GIT_INDEX_FILE="+opts.IndexFile)
 	}
-	if len(opts.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(opts.WorkTree) > 0 {
 		env = append(env, "GIT_WORK_TREE="+opts.WorkTree)
 	}
 
@@ -61,8 +56,7 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		}
 	}
 
-	// git check-attr --cached first appears in git 1.7.8
-	if opts.CachedOnly && CheckGitVersionAtLeast("1.7.8") == nil {
+	if opts.CachedOnly {
 		cmdArgs = append(cmdArgs, "--cached")
 	}
 
@@ -74,9 +68,14 @@ func (repo *Repository) CheckAttribute(opts CheckAttributeOpts) (map[string]map[
 		}
 	}
 
-	cmd := NewCommandContext(repo.Ctx, cmdArgs...)
+	cmd := NewCommand(repo.Ctx, cmdArgs...)
 
-	if err := cmd.RunInDirTimeoutEnvPipeline(env, -1, repo.Path, stdOut, stdErr); err != nil {
+	if err := cmd.Run(&RunOpts{
+		Env:    env,
+		Dir:    repo.Path,
+		Stdout: stdOut,
+		Stderr: stdErr,
+	}); err != nil {
 		return nil, fmt.Errorf("failed to run check-attr: %v\n%s\n%s", err, stdOut.String(), stdErr.String())
 	}
 
@@ -119,20 +118,18 @@ type CheckAttributeReader struct {
 	env         []string
 	ctx         context.Context
 	cancel      context.CancelFunc
-	running     chan struct{}
 }
 
-// Init initializes the cmd
+// Init initializes the CheckAttributeReader
 func (c *CheckAttributeReader) Init(ctx context.Context) error {
-	c.running = make(chan struct{})
 	cmdArgs := []string{"check-attr", "--stdin", "-z"}
 
-	if len(c.IndexFile) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(c.IndexFile) > 0 {
 		cmdArgs = append(cmdArgs, "--cached")
 		c.env = append(c.env, "GIT_INDEX_FILE="+c.IndexFile)
 	}
 
-	if len(c.WorkTree) > 0 && CheckGitVersionAtLeast("1.7.8") == nil {
+	if len(c.WorkTree) > 0 {
 		c.env = append(c.env, "GIT_WORK_TREE="+c.WorkTree)
 	}
 
@@ -152,7 +149,7 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 	cmdArgs = append(cmdArgs, "--")
 
 	c.ctx, c.cancel = context.WithCancel(ctx)
-	c.cmd = NewCommandContext(c.ctx, cmdArgs...)
+	c.cmd = NewCommand(c.ctx, cmdArgs...)
 
 	var err error
 
@@ -162,34 +159,32 @@ func (c *CheckAttributeReader) Init(ctx context.Context) error {
 		return err
 	}
 
-	if CheckGitVersionAtLeast("1.8.5") == nil {
-		lw := new(nulSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	} else {
-		lw := new(lineSeparatedAttributeWriter)
-		lw.attributes = make(chan attributeTriple, 5)
-		lw.closed = make(chan struct{})
-		c.stdOut = lw
-	}
+	lw := new(nulSeparatedAttributeWriter)
+	lw.attributes = make(chan attributeTriple, 5)
+	lw.closed = make(chan struct{})
+	c.stdOut = lw
 	return nil
 }
 
 // Run run cmd
 func (c *CheckAttributeReader) Run() error {
 	defer func() {
-		_ = c.Close()
+		_ = c.stdinReader.Close()
+		_ = c.stdOut.Close()
 	}()
 	stdErr := new(bytes.Buffer)
-	err := c.cmd.RunInDirTimeoutEnvFullPipelineFunc(c.env, -1, c.Repo.Path, c.stdOut, stdErr, c.stdinReader, func(_ context.Context, _ context.CancelFunc) error {
-		close(c.running)
-		return nil
+	err := c.cmd.Run(&RunOpts{
+		Env:    c.env,
+		Dir:    c.Repo.Path,
+		Stdin:  c.stdinReader,
+		Stdout: c.stdOut,
+		Stderr: stdErr,
 	})
-	if err != nil && c.ctx.Err() != nil && err.Error() != "signal: killed" {
+	if err != nil && //                      If there is an error we need to return but:
+		c.ctx.Err() != err && //             1. Ignore the context error if the context is cancelled or exceeds the deadline (RunWithContext could return c.ctx.Err() which is Canceled or DeadlineExceeded)
+		err.Error() != "signal: killed" { // 2. We should not pass up errors due to the program being killed
 		return fmt.Errorf("failed to run attr-check. Error: %w\nStderr: %s", err, stdErr.String())
 	}
-
 	return nil
 }
 
@@ -204,7 +199,7 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 	select {
 	case <-c.ctx.Done():
 		return nil, c.ctx.Err()
-	case <-c.running:
+	default:
 	}
 
 	if _, err = c.stdinWriter.Write([]byte(path + "\x00")); err != nil {
@@ -229,15 +224,8 @@ func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err
 
 // Close close pip after use
 func (c *CheckAttributeReader) Close() error {
-	err := c.stdinWriter.Close()
-	_ = c.stdinReader.Close()
-	_ = c.stdOut.Close()
 	c.cancel()
-	select {
-	case <-c.running:
-	default:
-		close(c.running)
-	}
+	err := c.stdinWriter.Close()
 	return err
 }
 
@@ -346,7 +334,7 @@ func (wr *lineSeparatedAttributeWriter) Write(p []byte) (n int, err error) {
 						wr.tmp = []byte(remaining[3:])
 						break
 					}
-					return l, fmt.Errorf("unexpected tail %s", string(remaining))
+					return l, fmt.Errorf("unexpected tail %s", remaining)
 				}
 				_, _ = sb.WriteRune(rn)
 				remaining = tail
@@ -403,4 +391,38 @@ func (wr *lineSeparatedAttributeWriter) Close() error {
 	close(wr.attributes)
 	close(wr.closed)
 	return nil
+}
+
+// Create a check attribute reader for the current repository and provided commit ID
+func (repo *Repository) CheckAttributeReader(commitID string) (*CheckAttributeReader, context.CancelFunc) {
+	indexFilename, worktree, deleteTemporaryFile, err := repo.ReadTreeToTemporaryIndex(commitID)
+	if err != nil {
+		return nil, func() {}
+	}
+
+	checker := &CheckAttributeReader{
+		Attributes: []string{"linguist-vendored", "linguist-generated", "linguist-language", "gitlab-language"},
+		Repo:       repo,
+		IndexFile:  indexFilename,
+		WorkTree:   worktree,
+	}
+	ctx, cancel := context.WithCancel(repo.Ctx)
+	if err := checker.Init(ctx); err != nil {
+		log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+	} else {
+		go func() {
+			err := checker.Run()
+			if err != nil && err != ctx.Err() {
+				log.Error("Unable to open checker for %s. Error: %v", commitID, err)
+			}
+			cancel()
+		}()
+	}
+	deferable := func() {
+		_ = checker.Close()
+		cancel()
+		deleteTemporaryFile()
+	}
+
+	return checker, deferable
 }

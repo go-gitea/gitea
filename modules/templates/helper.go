@@ -18,21 +18,26 @@ import (
 	"reflect"
 	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	texttmpl "text/template"
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
+	issues_model "code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
 	"code.gitea.io/gitea/modules/git"
+	giturl "code.gitea.io/gitea/modules/git/url"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	"code.gitea.io/gitea/modules/markup/markdown"
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
@@ -50,7 +55,7 @@ var mailSubjectSplit = regexp.MustCompile(`(?m)^-{3,}[\s]*$`)
 func NewFuncMap() []template.FuncMap {
 	return []template.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"UseHTTPS": func() bool {
 			return strings.HasPrefix(setting.AppURL, "https")
@@ -76,6 +81,9 @@ func NewFuncMap() []template.FuncMap {
 		"AppDomain": func() string {
 			return setting.Domain
 		},
+		"AssetVersion": func() string {
+			return setting.AssetVersion
+		},
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
 		},
@@ -94,18 +102,18 @@ func NewFuncMap() []template.FuncMap {
 		"CustomEmojis": func() map[string]string {
 			return setting.UI.CustomEmojisMap
 		},
-		"Safe":          Safe,
-		"SafeJS":        SafeJS,
-		"JSEscape":      JSEscape,
-		"Str2html":      Str2html,
-		"TimeSince":     timeutil.TimeSince,
-		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
-		"FileSize":      base.FileSize,
-		"PrettyNumber":  base.PrettyNumber,
-		"Subtract":      base.Subtract,
-		"EntryIcon":     base.EntryIcon,
-		"MigrationIcon": MigrationIcon,
+		"Safe":           Safe,
+		"SafeJS":         SafeJS,
+		"JSEscape":       JSEscape,
+		"Str2html":       Str2html,
+		"TimeSince":      timeutil.TimeSince,
+		"TimeSinceUnix":  timeutil.TimeSinceUnix,
+		"FileSize":       base.FileSize,
+		"PrettyNumber":   base.PrettyNumber,
+		"JsPrettyNumber": JsPrettyNumber,
+		"Subtract":       base.Subtract,
+		"EntryIcon":      base.EntryIcon,
+		"MigrationIcon":  MigrationIcon,
 		"Add": func(a ...int) int {
 			sum := 0
 			for _, val := range a {
@@ -144,9 +152,7 @@ func NewFuncMap() []template.FuncMap {
 		"EllipsisString":                 base.EllipsisString,
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
-		"Sha1":                           Sha1,
 		"ShortSha":                       base.ShortSha,
-		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
 		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
@@ -160,7 +166,16 @@ func NewFuncMap() []template.FuncMap {
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
 		"ReactionToEmoji":                ReactionToEmoji,
 		"RenderNote":                     RenderNote,
-		"IsMultilineCommitMessage":       IsMultilineCommitMessage,
+		"RenderMarkdownToHtml": func(input string) template.HTML {
+			output, err := markdown.RenderString(&markup.RenderContext{
+				URLPrefix: setting.AppSubURL,
+			}, input)
+			if err != nil {
+				log.Error("RenderString: %v", err)
+			}
+			return template.HTML(output)
+		},
+		"IsMultilineCommitMessage": IsMultilineCommitMessage,
 		"ThemeColorMetaTag": func() string {
 			return setting.UI.ThemeColorMetaTag
 		},
@@ -256,7 +271,7 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -361,7 +376,7 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*models.Label) template.HTML {
+		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
@@ -379,6 +394,68 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"Join":        strings.Join,
 		"QueryEscape": url.QueryEscape,
+		"DotEscape":   DotEscape,
+		"Iterate": func(arg interface{}) (items []uint64) {
+			count := uint64(0)
+			switch val := arg.(type) {
+			case uint64:
+				count = val
+			case *uint64:
+				count = *val
+			case int64:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int64:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case int:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint:
+				count = uint64(val)
+			case *uint:
+				count = uint64(*val)
+			case int32:
+				if val < 0 {
+					val = 0
+				}
+				count = uint64(val)
+			case *int32:
+				if *val < 0 {
+					*val = 0
+				}
+				count = uint64(*val)
+			case uint32:
+				count = uint64(val)
+			case *uint32:
+				count = uint64(*val)
+			case string:
+				cnt, _ := strconv.ParseInt(val, 10, 64)
+				if cnt < 0 {
+					cnt = 0
+				}
+				count = uint64(cnt)
+			}
+			if count <= 0 {
+				return items
+			}
+			for i := uint64(0); i < count; i++ {
+				items = append(items, i)
+			}
+			return items
+		},
+		"HasPrefix": strings.HasPrefix,
 	}}
 }
 
@@ -387,7 +464,7 @@ func NewFuncMap() []template.FuncMap {
 func NewTextFuncMap() []texttmpl.FuncMap {
 	return []texttmpl.FuncMap{map[string]interface{}{
 		"GoVer": func() string {
-			return strings.Title(runtime.Version())
+			return util.ToTitleCase(runtime.Version())
 		},
 		"AppName": func() string {
 			return setting.AppName
@@ -409,7 +486,6 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"TimeSince":     timeutil.TimeSince,
 		"TimeSinceUnix": timeutil.TimeSinceUnix,
-		"RawTimeSince":  timeutil.RawTimeSince,
 		"DateFmtLong": func(t time.Time) string {
 			return t.Format(time.RFC1123Z)
 		},
@@ -447,7 +523,7 @@ func NewTextFuncMap() []texttmpl.FuncMap {
 		},
 		"Printf":   fmt.Sprintf,
 		"Escape":   Escape,
-		"Sec2Time": models.SecToTime,
+		"Sec2Time": util.SecToTime,
 		"ParseDeadline": func(deadline string) []string {
 			return strings.Split(deadline, "|")
 		},
@@ -555,7 +631,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -563,12 +639,12 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Collaborator:
+	case *repo_model.Collaborator:
 		src := t.AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.DisplayName())
 		}
-	case *models.Organization:
+	case *organization.Organization:
 		src := t.AsUser().AvatarLinkWithSize(size * setting.Avatar.RenderedSizeFactor)
 		if src != "" {
 			return AvatarHTML(src, size, class, t.AsUser().DisplayName())
@@ -579,7 +655,7 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
 	action.LoadActUser()
 	return Avatar(action.ActUser, others...)
 }
@@ -632,9 +708,9 @@ func JSEscape(raw string) string {
 	return template.JSEscapeString(raw)
 }
 
-// Sha1 returns sha1 sum of string
-func Sha1(str string) string {
-	return base.EncodeSha1(str)
+// DotEscape wraps a dots in names with ZWJ [U+200D] in order to prevent autolinkers from detecting these as urls
+func DotEscape(raw string) string {
+	return strings.ReplaceAll(raw, ".", "\u200d.\u200d")
 }
 
 // RenderCommitMessage renders commit message with XSS-safe and special links.
@@ -658,7 +734,7 @@ func RenderCommitMessageLink(ctx context.Context, msg, urlPrefix, urlDefault str
 		log.Error("RenderCommitMessage: %v", err)
 		return ""
 	}
-	msgLines := strings.Split(strings.TrimSpace(string(fullMessage)), "\n")
+	msgLines := strings.Split(strings.TrimSpace(fullMessage), "\n")
 	if len(msgLines) == 0 {
 		return template.HTML("")
 	}
@@ -768,7 +844,7 @@ func RenderNote(ctx context.Context, msg, urlPrefix string, metas map[string]str
 		log.Error("RenderNote: %v", err)
 		return ""
 	}
-	return template.HTML(string(fullMessage))
+	return template.HTML(fullMessage)
 }
 
 // IsMultilineCommitMessage checks to see if a commit message contains multiple lines.
@@ -778,7 +854,7 @@ func IsMultilineCommitMessage(msg string) bool {
 
 // Actioner describes an action
 type Actioner interface {
-	GetOpType() models.ActionType
+	GetOpType() activities_model.ActionType
 	GetActUserName() string
 	GetRepoUserName() string
 	GetRepoName() string
@@ -791,33 +867,33 @@ type Actioner interface {
 }
 
 // ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType models.ActionType) string {
+func ActionIcon(opType activities_model.ActionType) string {
 	switch opType {
-	case models.ActionCreateRepo, models.ActionTransferRepo, models.ActionRenameRepo:
+	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
-	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
+	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
 		return "git-commit"
-	case models.ActionCreateIssue:
+	case activities_model.ActionCreateIssue:
 		return "issue-opened"
-	case models.ActionCreatePullRequest:
+	case activities_model.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue, models.ActionCommentPull:
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case models.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest:
 		return "git-merge"
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
+	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		return "issue-reopened"
-	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
 		return "mirror"
-	case models.ActionApprovePullRequest:
+	case activities_model.ActionApprovePullRequest:
 		return "check"
-	case models.ActionRejectPullRequest:
+	case activities_model.ActionRejectPullRequest:
 		return "diff"
-	case models.ActionPublishRelease:
+	case activities_model.ActionPublishRelease:
 		return "tag"
-	case models.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed:
 		return "x"
 	default:
 		return "question"
@@ -899,21 +975,41 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m repo_model.RemoteMirrorer) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
 	a := remoteAddress{}
 
-	u, err := git.GetRemoteAddress(ctx, m.GetRepository().RepoPath(), m.GetRemoteName())
+	remoteURL := m.OriginalURL
+	if ignoreOriginalURL || remoteURL == "" {
+		var err error
+		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
+		if err != nil {
+			log.Error("GetRemoteURL %v", err)
+			return a
+		}
+	}
+
+	u, err := giturl.Parse(remoteURL)
 	if err != nil {
-		log.Error("GetRemoteAddress %v", err)
+		log.Error("giturl.Parse %v", err)
 		return a
 	}
 
-	if u.User != nil {
-		a.Username = u.User.Username()
-		a.Password, _ = u.User.Password()
+	if u.Scheme != "ssh" && u.Scheme != "file" {
+		if u.User != nil {
+			a.Username = u.User.Username()
+			a.Password, _ = u.User.Password()
+		}
+		u.User = nil
 	}
-	u.User = nil
 	a.Address = u.String()
 
 	return a
+}
+
+// JsPrettyNumber renders a number using english decimal separators, e.g. 1,200 and subsequent
+// JS will replace the number with locale-specific separators, based on the user's selected language
+func JsPrettyNumber(i interface{}) template.HTML {
+	num := util.NumberIntoInt64(i)
+
+	return template.HTML(`<span class="js-pretty-number" data-value="` + strconv.FormatInt(num, 10) + `">` + base.PrettyNumber(num) + `</span>`)
 }

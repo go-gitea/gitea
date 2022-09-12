@@ -6,12 +6,19 @@ package migration
 
 import "time"
 
+// Reviewable can be reviewed
+type Reviewable interface {
+	GetLocalIndex() int64
+	GetForeignIndex() int64
+}
+
 // enumerate all review states
 const (
 	ReviewStatePending          = "PENDING"
 	ReviewStateApproved         = "APPROVED"
 	ReviewStateChangesRequested = "CHANGES_REQUESTED"
 	ReviewStateCommented        = "COMMENTED"
+	ReviewStateRequestReview    = "REQUEST_REVIEW"
 )
 
 // Review is a standard review information
@@ -27,6 +34,12 @@ type Review struct {
 	State        string    // PENDING, APPROVED, REQUEST_CHANGES, or COMMENT
 	Comments     []*ReviewComment
 }
+
+// GetExternalName ExternalUserMigrated interface
+func (r *Review) GetExternalName() string { return r.ReviewerName }
+
+// ExternalID ExternalUserMigrated interface
+func (r *Review) GetExternalID() int64 { return r.ReviewerID }
 
 // ReviewComment represents a review comment
 type ReviewComment struct {

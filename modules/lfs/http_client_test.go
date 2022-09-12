@@ -81,7 +81,7 @@ func lfsTestRoundtripHandler(req *http.Request) *http.Response {
 			Objects: []*ObjectResponse{
 				{
 					Error: &ObjectError{
-						Code:    404,
+						Code:    http.StatusNotFound,
 						Message: "Object not found",
 					},
 				},

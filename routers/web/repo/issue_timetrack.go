@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 )
@@ -21,7 +23,7 @@ func AddTimeManually(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
@@ -41,7 +43,7 @@ func AddTimeManually(c *context.Context) {
 		return
 	}
 
-	if _, err := models.AddTime(c.User, issue, int64(total.Seconds()), time.Now()); err != nil {
+	if _, err := issues_model.AddTime(c.Doer, issue, int64(total.Seconds()), time.Now()); err != nil {
 		c.ServerError("AddTime", err)
 		return
 	}
@@ -55,14 +57,14 @@ func DeleteTime(c *context.Context) {
 	if c.Written() {
 		return
 	}
-	if !c.Repo.CanUseTimetracker(issue, c.User) {
+	if !c.Repo.CanUseTimetracker(issue, c.Doer) {
 		c.NotFound("CanUseTimetracker", nil)
 		return
 	}
 
-	t, err := models.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
+	t, err := issues_model.GetTrackedTimeByID(c.ParamsInt64(":timeid"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			c.NotFound("time not found", err)
 			return
 		}
@@ -71,16 +73,16 @@ func DeleteTime(c *context.Context) {
 	}
 
 	// only OP or admin may delete
-	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.User.ID != t.UserID) {
+	if !c.IsSigned || (!c.IsUserSiteAdmin() && c.Doer.ID != t.UserID) {
 		c.Error(http.StatusForbidden, "not allowed")
 		return
 	}
 
-	if err = models.DeleteTime(t); err != nil {
+	if err = issues_model.DeleteTime(t); err != nil {
 		c.ServerError("DeleteTime", err)
 		return
 	}
 
-	c.Flash.Success(c.Tr("repo.issues.del_time_history", models.SecToTime(t.Time)))
+	c.Flash.Success(c.Tr("repo.issues.del_time_history", util.SecToTime(t.Time)))
 	c.Redirect(issue.HTMLURL())
 }

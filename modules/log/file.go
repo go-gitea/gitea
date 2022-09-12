@@ -93,6 +93,7 @@ func NewFileLogger() LoggerProvider {
 
 // Init file logger with json config.
 // config like:
+//
 //	{
 //	"filename":"log/gogs.log",
 //	"maxsize":1<<30,
@@ -241,6 +242,15 @@ func (log *FileLogger) deleteOldLog() {
 		}
 		return returnErr
 	})
+}
+
+// Content returns the content accumulated in the content provider
+func (log *FileLogger) Content() (string, error) {
+	b, err := os.ReadFile(log.Filename)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Flush flush file logger.

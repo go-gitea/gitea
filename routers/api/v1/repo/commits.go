@@ -11,14 +11,12 @@ import (
 	"net/http"
 	"strconv"
 
-	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -54,7 +52,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
@@ -268,16 +266,12 @@ func DownloadCommitDiffOrPatch(ctx *context.APIContext) {
 	//     "$ref": "#/responses/string"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	repoPath := repo_model.RepoPath(ctx.Repo.Owner.Name, ctx.Repo.Repository.Name)
-	if err := git.GetRawDiff(
-		ctx,
-		repoPath,
-		ctx.Params(":sha"),
-		git.RawDiffType(ctx.Params(":diffType")),
-		ctx.Resp,
-	); err != nil {
+	sha := ctx.Params(":sha")
+	diffType := git.RawDiffType(ctx.Params(":diffType"))
+
+	if err := git.GetRawDiff(ctx.Repo.GitRepo, sha, diffType, ctx.Resp); err != nil {
 		if git.IsErrNotExist(err) {
-			ctx.NotFound(ctx.Params(":sha"))
+			ctx.NotFound(sha)
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, "DownloadCommitDiffOrPatch", err)

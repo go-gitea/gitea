@@ -22,7 +22,7 @@ func validType(t string) (Type, error) {
 			return typ, nil
 		}
 	}
-	return PersistableChannelQueueType, fmt.Errorf("Unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
+	return PersistableChannelQueueType, fmt.Errorf("unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
 }
 
 func getQueueSettings(name string) (setting.QueueSettings, []byte) {

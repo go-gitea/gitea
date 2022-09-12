@@ -5,6 +5,7 @@
 package issues
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strconv"
@@ -186,6 +187,15 @@ func (b *BleveIndexer) Init() (bool, error) {
 	return false, err
 }
 
+// SetAvailabilityChangeCallback does nothing
+func (b *BleveIndexer) SetAvailabilityChangeCallback(callback func(bool)) {
+}
+
+// Ping does nothing
+func (b *BleveIndexer) Ping() bool {
+	return true
+}
+
 // Close will close the bleve indexer
 func (b *BleveIndexer) Close() {
 	if b.indexer != nil {
@@ -229,7 +239,7 @@ func (b *BleveIndexer) Delete(ids ...int64) error {
 
 // Search searches for issues by given conditions.
 // Returns the matching issue IDs
-func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
+func (b *BleveIndexer) Search(ctx context.Context, keyword string, repoIDs []int64, limit, start int) (*SearchResult, error) {
 	var repoQueriesP []*query.NumericRangeQuery
 	for _, repoID := range repoIDs {
 		repoQueriesP = append(repoQueriesP, numericEqualityQuery(repoID, "RepoID"))
@@ -249,7 +259,7 @@ func (b *BleveIndexer) Search(keyword string, repoIDs []int64, limit, start int)
 	search := bleve.NewSearchRequestOptions(indexerQuery, limit, start, false)
 	search.SortBy([]string{"-_score"})
 
-	result, err := b.indexer.Search(search)
+	result, err := b.indexer.SearchInContext(ctx, search)
 	if err != nil {
 		return nil, err
 	}

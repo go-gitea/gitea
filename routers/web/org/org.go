@@ -9,8 +9,8 @@ import (
 	"errors"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -29,7 +29,7 @@ const (
 func Create(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("new_org")
 	ctx.Data["DefaultOrgVisibilityMode"] = setting.Service.DefaultOrgVisibilityMode
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
@@ -41,7 +41,7 @@ func CreatePost(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.CreateOrgForm)
 	ctx.Data["Title"] = ctx.Tr("new_org")
 
-	if !ctx.User.CanCreateOrganization() {
+	if !ctx.Doer.CanCreateOrganization() {
 		ctx.ServerError("Not allowed", errors.New(ctx.Tr("org.form.create_org_not_allowed")))
 		return
 	}
@@ -51,7 +51,7 @@ func CreatePost(ctx *context.Context) {
 		return
 	}
 
-	org := &models.Organization{
+	org := &organization.Organization{
 		Name:                      form.OrgName,
 		IsActive:                  true,
 		Type:                      user_model.UserTypeOrganization,
@@ -59,7 +59,7 @@ func CreatePost(ctx *context.Context) {
 		RepoAdminChangeTeamAccess: form.RepoAdminChangeTeamAccess,
 	}
 
-	if err := models.CreateOrganization(org, ctx.User); err != nil {
+	if err := organization.CreateOrganization(org, ctx.Doer); err != nil {
 		ctx.Data["Err_OrgName"] = true
 		switch {
 		case user_model.IsErrUserAlreadyExist(err):
@@ -68,7 +68,7 @@ func CreatePost(ctx *context.Context) {
 			ctx.RenderWithErr(ctx.Tr("org.form.name_reserved", err.(db.ErrNameReserved).Name), tplCreateOrg, &form)
 		case db.IsErrNamePatternNotAllowed(err):
 			ctx.RenderWithErr(ctx.Tr("org.form.name_pattern_not_allowed", err.(db.ErrNamePatternNotAllowed).Pattern), tplCreateOrg, &form)
-		case models.IsErrUserNotAllowedCreateOrg(err):
+		case organization.IsErrUserNotAllowedCreateOrg(err):
 			ctx.RenderWithErr(ctx.Tr("org.form.create_org_not_allowed"), tplCreateOrg, &form)
 		default:
 			ctx.ServerError("CreateOrganization", err)

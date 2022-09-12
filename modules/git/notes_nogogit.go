@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -21,6 +20,9 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 	log.Trace("Searching for git note corresponding to the commit %q in the repository %q", commitID, repo.Path)
 	notes, err := repo.GetCommit(NotesRef)
 	if err != nil {
+		if IsErrNotExist(err) {
+			return err
+		}
 		log.Error("Unable to get commit from ref %q. Error: %v", NotesRef, err)
 		return err
 	}
@@ -44,7 +46,10 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 			commitID = commitID[2:]
 		}
 		if err != nil {
-			log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
+			// Err may have been updated by the SubTree we need to recheck if it's again an ErrNotExist
+			if !IsErrNotExist(err) {
+				log.Error("Unable to find git note corresponding to the commit %q. Error: %v", originalCommitID, err)
+			}
 			return err
 		}
 	}
@@ -76,7 +81,7 @@ func GetNote(ctx context.Context, repo *Repository, commitID string, note *Note)
 		path = path[idx+1:]
 	}
 
-	lastCommits, err := GetLastCommitForPaths(ctx, nil, notes, treePath, []string{path})
+	lastCommits, err := GetLastCommitForPaths(ctx, notes, treePath, []string{path})
 	if err != nil {
 		log.Error("Unable to get the commit for the path %q. Error: %v", treePath, err)
 		return err

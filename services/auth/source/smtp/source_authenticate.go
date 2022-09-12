@@ -32,7 +32,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	var auth smtp.Auth
 	switch source.Auth {
 	case PlainAuthentication:
-		auth = smtp.PlainAuth("", userName, password, source.Host)
+		auth = smtp.PlainAuth("", userName, password, source.Addr)
 	case LoginAuthentication:
 		auth = &loginAuthenticator{userName, password}
 	case CRAMMD5Authentication:
@@ -74,10 +74,12 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 		LoginType:   auth_model.SMTP,
 		LoginSource: source.authSource.ID,
 		LoginName:   userName,
-		IsActive:    true,
+	}
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive: util.OptionalBoolTrue,
 	}
 
-	if err := user_model.CreateUser(user); err != nil {
+	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return user, err
 	}
 

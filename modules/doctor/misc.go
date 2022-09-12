@@ -27,9 +27,9 @@ import (
 	"xorm.io/builder"
 )
 
-func iterateRepositories(each func(*repo_model.Repository) error) error {
+func iterateRepositories(ctx context.Context, each func(*repo_model.Repository) error) error {
 	err := db.Iterate(
-		db.DefaultContext,
+		ctx,
 		new(repo_model.Repository),
 		builder.Gt{"id": 0},
 		func(idx int, bean interface{}) error {
@@ -50,7 +50,7 @@ func checkScriptType(ctx context.Context, logger log.Logger, autofix bool) error
 }
 
 func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		results, err := repository.CheckDelegateHooks(repo.RepoPath())
 		if err != nil {
 			logger.Critical("Unable to check delegate hooks for repo %-v. ERROR: %v", repo, err)
@@ -75,9 +75,14 @@ func checkHooks(ctx context.Context, logger log.Logger, autofix bool) error {
 }
 
 func checkUserStarNum(ctx context.Context, logger log.Logger, autofix bool) error {
-	if err := models.DoctorUserStarNum(); err != nil {
-		logger.Critical("Unable update User Stars numbers")
-		return err
+	if autofix {
+		if err := models.DoctorUserStarNum(); err != nil {
+			logger.Critical("Unable update User Stars numbers")
+			return err
+		}
+		logger.Info("Updated User Stars numbers.")
+	} else {
+		logger.Info("No check available for User Stars numbers (skipped)")
 	}
 	return nil
 }
@@ -86,20 +91,20 @@ func checkEnablePushOptions(ctx context.Context, logger log.Logger, autofix bool
 	numRepos := 0
 	numNeedUpdate := 0
 
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
-		r, err := git.OpenRepositoryCtx(git.DefaultContext, repo.RepoPath())
+		r, err := git.OpenRepository(ctx, repo.RepoPath())
 		if err != nil {
 			return err
 		}
 		defer r.Close()
 
 		if autofix {
-			_, err := git.NewCommandContext(ctx, "config", "receive.advertisePushOptions", "true").RunInDir(r.Path)
+			_, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions", "true").RunStdString(&git.RunOpts{Dir: r.Path})
 			return err
 		}
 
-		value, err := git.NewCommandContext(ctx, "config", "receive.advertisePushOptions").RunInDir(r.Path)
+		value, _, err := git.NewCommand(ctx, "config", "receive.advertisePushOptions").RunStdString(&git.RunOpts{Dir: r.Path})
 		if err != nil {
 			return err
 		}
@@ -132,13 +137,13 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 		logger.Critical("Unable to create cache: %v", err)
 		return err
 	}
-	if err := iterateRepositories(func(repo *repo_model.Repository) error {
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
 		numRepos++
 
 		if owner, has := cache.Get(repo.OwnerID); has {
 			repo.Owner = owner.(*user_model.User)
 		} else {
-			if err := repo.GetOwner(db.DefaultContext); err != nil {
+			if err := repo.GetOwner(ctx); err != nil {
 				return err
 			}
 			cache.Add(repo.OwnerID, repo.Owner)
@@ -184,6 +189,71 @@ func checkDaemonExport(ctx context.Context, logger log.Logger, autofix bool) err
 	return nil
 }
 
+func checkCommitGraph(ctx context.Context, logger log.Logger, autofix bool) error {
+	numRepos := 0
+	numNeedUpdate := 0
+	numWritten := 0
+	if err := iterateRepositories(ctx, func(repo *repo_model.Repository) error {
+		numRepos++
+
+		commitGraphExists := func() (bool, error) {
+			// Check commit-graph exists
+			commitGraphFile := path.Join(repo.RepoPath(), `objects/info/commit-graph`)
+			isExist, err := util.IsExist(commitGraphFile)
+			if err != nil {
+				logger.Error("Unable to check if %s exists. Error: %v", commitGraphFile, err)
+				return false, err
+			}
+
+			if !isExist {
+				commitGraphsDir := path.Join(repo.RepoPath(), `objects/info/commit-graphs`)
+				isExist, err = util.IsExist(commitGraphsDir)
+				if err != nil {
+					logger.Error("Unable to check if %s exists. Error: %v", commitGraphsDir, err)
+					return false, err
+				}
+			}
+			return isExist, nil
+		}
+
+		isExist, err := commitGraphExists()
+		if err != nil {
+			return err
+		}
+		if !isExist {
+			numNeedUpdate++
+			if autofix {
+				if err := git.WriteCommitGraph(ctx, repo.RepoPath()); err != nil {
+					logger.Error("Unable to write commit-graph in %s. Error: %v", repo.FullName(), err)
+					return err
+				}
+				isExist, err := commitGraphExists()
+				if err != nil {
+					return err
+				}
+				if isExist {
+					numWritten++
+					logger.Info("Commit-graph written:    %s", repo.FullName())
+				} else {
+					logger.Warn("No commit-graph written: %s", repo.FullName())
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		logger.Critical("Unable to checkCommitGraph: %v", err)
+		return err
+	}
+
+	if autofix {
+		logger.Info("Wrote commit-graph files for %d of %d repositories.", numWritten, numRepos)
+	} else {
+		logger.Info("Checked %d repositories, %d without commit-graphs.", numRepos, numNeedUpdate)
+	}
+
+	return nil
+}
+
 func init() {
 	Register(&Check{
 		Title:     "Check if SCRIPT_TYPE is available",
@@ -207,7 +277,7 @@ func init() {
 		Priority:  6,
 	})
 	Register(&Check{
-		Title:     "Enable push options",
+		Title:     "Check that all git repositories have receive.advertisePushOptions set to true",
 		Name:      "enable-push-options",
 		IsDefault: false,
 		Run:       checkEnablePushOptions,
@@ -219,5 +289,12 @@ func init() {
 		IsDefault: false,
 		Run:       checkDaemonExport,
 		Priority:  8,
+	})
+	Register(&Check{
+		Title:     "Check commit-graphs",
+		Name:      "check-commit-graphs",
+		IsDefault: false,
+		Run:       checkCommitGraph,
+		Priority:  9,
 	})
 }

@@ -15,7 +15,6 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -24,14 +23,16 @@ import (
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/proxy"
+	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/gobwas/glob"
 )
 
 // Deliver deliver hook task
-func Deliver(t *webhook_model.HookTask) error {
+func Deliver(ctx context.Context, t *webhook_model.HookTask) error {
 	w, err := webhook_model.GetWebhookByID(t.HookID)
 	if err != nil {
 		return err
@@ -148,6 +149,8 @@ func Deliver(t *webhook_model.HookTask) error {
 		t.Delivered = time.Now().UnixNano()
 		if t.IsSucceed {
 			log.Trace("Hook delivered: %s", t.UUID)
+		} else if !w.IsActive {
+			log.Trace("Hook delivery skipped as webhook is inactive: %s", t.UUID)
 		} else {
 			log.Trace("Hook delivery failed: %s", t.UUID)
 		}
@@ -172,7 +175,11 @@ func Deliver(t *webhook_model.HookTask) error {
 		return fmt.Errorf("webhook task skipped (webhooks disabled): [%d]", t.ID)
 	}
 
-	resp, err := webhookHTTPClient.Do(req.WithContext(graceful.GetManager().ShutdownContext()))
+	if !w.IsActive {
+		return nil
+	}
+
+	resp, err := webhookHTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
 		t.ResponseInfo.Body = fmt.Sprintf("Delivery: %v", err)
 		return err
@@ -195,15 +202,15 @@ func Deliver(t *webhook_model.HookTask) error {
 	return nil
 }
 
-// DeliverHooks checks and delivers undelivered hooks.
-// FIXME: graceful: This would likely benefit from either a worker pool with dummy queue
-// or a full queue. Then more hooks could be sent at same time.
-func DeliverHooks(ctx context.Context) {
+// populateDeliverHooks checks and delivers undelivered hooks.
+func populateDeliverHooks(ctx context.Context) {
 	select {
 	case <-ctx.Done():
 		return
 	default:
 	}
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Service: DeliverHooks", process.SystemProcessType, true)
+	defer finished()
 	tasks, err := webhook_model.FindUndeliveredHookTasks()
 	if err != nil {
 		log.Error("DeliverHooks: %v", err)
@@ -217,42 +224,9 @@ func DeliverHooks(ctx context.Context) {
 			return
 		default:
 		}
-		if err = Deliver(t); err != nil {
-			log.Error("deliver: %v", err)
-		}
-	}
 
-	// Start listening on new hook requests.
-	for {
-		select {
-		case <-ctx.Done():
-			hookQueue.Close()
-			return
-		case repoIDStr := <-hookQueue.Queue():
-			log.Trace("DeliverHooks [repo_id: %v]", repoIDStr)
-			hookQueue.Remove(repoIDStr)
-
-			repoID, err := strconv.ParseInt(repoIDStr, 10, 64)
-			if err != nil {
-				log.Error("Invalid repo ID: %s", repoIDStr)
-				continue
-			}
-
-			tasks, err := webhook_model.FindRepoUndeliveredHookTasks(repoID)
-			if err != nil {
-				log.Error("Get repository [%d] hook tasks: %v", repoID, err)
-				continue
-			}
-			for _, t := range tasks {
-				select {
-				case <-ctx.Done():
-					return
-				default:
-				}
-				if err = Deliver(t); err != nil {
-					log.Error("deliver: %v", err)
-				}
-			}
+		if err := addToTask(t.RepoID); err != nil {
+			log.Error("DeliverHook failed [%d]: %v", t.RepoID, err)
 		}
 	}
 }
@@ -288,8 +262,8 @@ func webhookProxy() func(req *http.Request) (*url.URL, error) {
 	}
 }
 
-// InitDeliverHooks starts the hooks delivery thread
-func InitDeliverHooks() {
+// Init starts the hooks delivery thread
+func Init() error {
 	timeout := time.Duration(setting.Webhook.DeliverTimeout) * time.Second
 
 	allowedHostListValue := setting.Webhook.AllowedHostList
@@ -307,5 +281,13 @@ func InitDeliverHooks() {
 		},
 	}
 
-	go graceful.GetManager().RunWithShutdownContext(DeliverHooks)
+	hookQueue = queue.CreateUniqueQueue("webhook_sender", handle, "")
+	if hookQueue == nil {
+		return fmt.Errorf("Unable to create webhook_sender Queue")
+	}
+	go graceful.GetManager().RunWithShutdownFns(hookQueue.Run)
+
+	populateDeliverHooks(graceful.GetManager().HammerContext())
+
+	return nil
 }

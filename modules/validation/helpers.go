@@ -13,32 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var loopbackIPBlocks []*net.IPNet
-
 var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
-func init() {
-	for _, cidr := range []string{
-		"127.0.0.0/8", // IPv4 loopback
-		"::1/128",     // IPv6 loopback
-	} {
-		if _, block, err := net.ParseCIDR(cidr); err == nil {
-			loopbackIPBlocks = append(loopbackIPBlocks, block)
-		}
-	}
-}
-
 func isLoopbackIP(ip string) bool {
-	pip := net.ParseIP(ip)
-	if pip == nil {
-		return false
-	}
-	for _, block := range loopbackIPBlocks {
-		if block.Contains(pip) {
-			return true
-		}
-	}
-	return false
+	return net.ParseIP(ip).IsLoopback()
 }
 
 // IsValidURL checks if URL is valid

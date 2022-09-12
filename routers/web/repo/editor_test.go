@@ -67,12 +67,10 @@ func TestGetClosestParentWithFiles(t *testing.T) {
 
 	repo := ctx.Repo.Repository
 	branch := repo.DefaultBranch
-	gitRepo, _ := git.OpenRepository(repo.RepoPath())
+	gitRepo, _ := git.OpenRepository(git.DefaultContext, repo.RepoPath())
 	defer gitRepo.Close()
 	commit, _ := gitRepo.GetBranchCommit(branch)
-	expectedTreePath := ""
-
-	expectedTreePath = "" // Should return the root dir, empty string, since there are no subdirs in this repo
+	var expectedTreePath string // Should return the root dir, empty string, since there are no subdirs in this repo
 	for _, deletedFile := range []string{
 		"dir1/dir2/dir3/file.txt",
 		"file.txt",

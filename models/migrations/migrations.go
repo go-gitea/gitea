@@ -56,6 +56,9 @@ type Version struct {
 	Version int64
 }
 
+// Use noopMigration when there is a migration that has been no-oped
+var noopMigration = func(_ *xorm.Engine) error { return nil }
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
@@ -351,7 +354,7 @@ var migrations = []Migration{
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
-	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	NewMigration("No-op (remote version is using AppState now)", noopMigration),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
@@ -367,9 +370,49 @@ var migrations = []Migration{
 	// v206 -> v207
 	NewMigration("Add authorize column to team_unit table", addAuthorizeColForTeamUnit),
 	// v207 -> v208
-	NewMigration("Add webauthn table and migrate u2f data to webauthn", addWebAuthnCred),
+	NewMigration("Add webauthn table and migrate u2f data to webauthn - NO-OPED", addWebAuthnCred),
 	// v208 -> v209
-	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive", useBase32HexForCredIDInWebAuthnCredential),
+	NewMigration("Use base32.HexEncoding instead of base64 encoding for cred ID as it is case insensitive - NO-OPED", useBase32HexForCredIDInWebAuthnCredential),
+	// v209 -> v210
+	NewMigration("Increase WebAuthentication CredentialID size to 410 - NO-OPED", increaseCredentialIDTo410),
+	// v210 -> v211
+	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
+
+	// Gitea 1.16.2 ends at v211
+
+	// v211 -> v212
+	NewMigration("Create ForeignReference table", createForeignReferenceTable),
+	// v212 -> v213
+	NewMigration("Add package tables", addPackageTables),
+	// v213 -> v214
+	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
+	// v214 -> v215
+	NewMigration("Add auto merge table", addAutoMergeTable),
+	// v215 -> v216
+	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
+	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
+	// v217 -> v218
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v218 -> v219
+	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	// v219 -> v220
+	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	// v221 -> v222
+	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	// v222 -> v223
+	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	// v223 -> v224
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+
+	// Gitea 1.17.0 ends at v224
+
+	// v224 -> v225
+	NewMigration("Add badges to users", createUserBadgesTable),
+	// v225 -> v226
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -402,7 +445,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialised")
+		return fmt.Errorf("Database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -450,9 +493,12 @@ Please try upgrading to a lower version first (suggested v1.6.4), then upgrade t
 
 	// Downgrading Gitea's database version not supported
 	if int(v-minDBVersion) > len(migrations) {
-		msg := fmt.Sprintf("Downgrading database version from '%d' to '%d' is not supported and may result in loss of data integrity.\nIf you really know what you're doing, execute `UPDATE version SET version=%d WHERE id=1;`\n",
-			v, minDBVersion+len(migrations), minDBVersion+len(migrations))
-		fmt.Fprint(os.Stderr, msg)
+		msg := fmt.Sprintf("Your database (migration version: %d) is for a newer Gitea, you can not use the newer database for this old Gitea release (%d).", v, minDBVersion+len(migrations))
+		msg += "\nGitea will exit to keep your database safe and unchanged. Please use the correct Gitea release, do not change the migration version manually (incorrect manual operation may lose data)."
+		if !setting.IsProd {
+			msg += fmt.Sprintf("\nIf you are in development and really know what you're doing, you can force changing the migration version by executing: UPDATE version SET version=%d WHERE id=1;", minDBVersion+len(migrations))
+		}
+		_, _ = fmt.Fprintln(os.Stderr, msg)
 		log.Fatal(msg)
 		return nil
 	}
@@ -933,7 +979,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+// modifyColumn will modify column's type or other property. SQLITE is not supported
 func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error

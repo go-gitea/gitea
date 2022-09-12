@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	packages_service "code.gitea.io/gitea/services/packages"
 	repo_service "code.gitea.io/gitea/services/repository"
 	archiver_service "code.gitea.io/gitea/services/repository/archiver"
 )
@@ -28,10 +30,9 @@ func registerUpdateMirrorTask() {
 
 	RegisterTaskFatal("update_mirrors", &UpdateMirrorTaskConfig{
 		BaseConfig: BaseConfig{
-			Enabled:         true,
-			RunAtStart:      false,
-			Schedule:        "@every 10m",
-			NoSuccessNotice: true,
+			Enabled:    true,
+			RunAtStart: false,
+			Schedule:   "@every 10m",
 		},
 		PullLimit: 50,
 		PushLimit: 50,
@@ -109,7 +110,7 @@ func registerDeletedBranchesCleanup() {
 		OlderThan: 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		realConfig := config.(*OlderThanConfig)
-		models.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
+		git_model.RemoveOldDeletedBranches(ctx, realConfig.OlderThan)
 		return nil
 	})
 }
@@ -140,8 +141,24 @@ func registerCleanupHookTaskTable() {
 	})
 }
 
+func registerCleanupPackages() {
+	RegisterTaskFatal("cleanup_packages", &OlderThanConfig{
+		BaseConfig: BaseConfig{
+			Enabled:    true,
+			RunAtStart: true,
+			Schedule:   "@midnight",
+		},
+		OlderThan: 24 * time.Hour,
+	}, func(ctx context.Context, _ *user_model.User, config Config) error {
+		realConfig := config.(*OlderThanConfig)
+		return packages_service.Cleanup(ctx, realConfig.OlderThan)
+	})
+}
+
 func initBasicTasks() {
-	registerUpdateMirrorTask()
+	if setting.Mirror.Enabled {
+		registerUpdateMirrorTask()
+	}
 	registerRepoHealthCheck()
 	registerCheckRepoStats()
 	registerArchiveCleanup()
@@ -151,4 +168,7 @@ func initBasicTasks() {
 		registerUpdateMigrationPosterID()
 	}
 	registerCleanupHookTaskTable()
+	if setting.Packages.Enabled {
+		registerCleanupPackages()
+	}
 }

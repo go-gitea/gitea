@@ -7,6 +7,7 @@ package queue
 import (
 	"context"
 	"fmt"
+	"runtime/pprof"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -97,6 +98,7 @@ func NewChannelUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 
 // Run starts to run the queue
 func (q *ChannelUniqueQueue) Run(atShutdown, atTerminate func(func())) {
+	pprof.SetGoroutineLabels(q.baseCtx)
 	atShutdown(q.Shutdown)
 	atTerminate(q.Terminate)
 	log.Debug("ChannelUniqueQueue: %s Starting", q.name)
@@ -111,7 +113,7 @@ func (q *ChannelUniqueQueue) Push(data Data) error {
 // PushFunc will push data into the queue
 func (q *ChannelUniqueQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in queue: %s", data, q.exemplar, q.name)
 	}
 
 	bs, err := json.Marshal(data)
@@ -178,7 +180,10 @@ func (q *ChannelUniqueQueue) FlushWithContext(ctx context.Context) error {
 		default:
 		}
 		select {
-		case data := <-q.dataChan:
+		case data, ok := <-q.dataChan:
+			if !ok {
+				return nil
+			}
 			if unhandled := q.handle(data); unhandled != nil {
 				log.Error("Unhandled Data whilst flushing queue %d", q.qid)
 			}
@@ -223,6 +228,7 @@ func (q *ChannelUniqueQueue) Terminate() {
 	default:
 	}
 	q.terminateCtxCancel()
+	q.baseCtxFinished()
 	log.Debug("ChannelUniqueQueue: %s Terminated", q.name)
 }
 

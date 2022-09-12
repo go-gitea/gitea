@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
@@ -40,7 +42,7 @@ const (
 )
 
 func renderCommitRights(ctx *context.Context) bool {
-	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.User)
+	canCommitToBranch, err := ctx.Repo.CanCommitToBranch(ctx, ctx.Doer)
 	if err != nil {
 		log.Error("CanCommitToBranch: %v", err)
 	}
@@ -67,7 +69,6 @@ func getParentTreeFields(treePath string) (treeNames, treePaths []string) {
 func editFile(ctx *context.Context, isNewFile bool) {
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	canCommit := renderCommitRights(ctx)
 
 	treePath := cleanUploadFileName(ctx.Repo.TreePath)
@@ -197,7 +198,6 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 	ctx.Data["PageIsEdit"] = true
 	ctx.Data["PageHasPosted"] = true
 	ctx.Data["IsNewFile"] = isNewFile
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["TreePath"] = form.TreePath
 	ctx.Data["TreeNames"] = treeNames
 	ctx.Data["TreePaths"] = treePaths
@@ -241,7 +241,7 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.UpdateRepoFileOptions{
+	if _, err := files_service.CreateOrUpdateRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UpdateRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -255,9 +255,9 @@ func editFilePost(ctx *context.Context, form forms.EditRepoFileForm, isNewFile b
 		// This is where we handle all the errors thrown by files_service.CreateOrUpdateRepoFile
 		if git.IsErrNotExist(err) {
 			ctx.RenderWithErr(ctx.Tr("repo.editor.file_editing_no_longer_exists", ctx.Repo.TreePath), tplEditFile, &form)
-		} else if models.IsErrLFSFileLocked(err) {
+		} else if git_model.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplEditFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(git_model.ErrLFSFileLocked).Path, err.(git_model.ErrLFSFileLocked).UserName), tplEditFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplEditFile, &form)
@@ -447,7 +447,7 @@ func DeleteFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.User, &files_service.DeleteRepoFileOptions{
+	if _, err := files_service.DeleteRepoFile(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.DeleteRepoFileOptions{
 		LastCommitID: form.LastCommit,
 		OldBranch:    ctx.Repo.BranchName,
 		NewBranch:    branchName,
@@ -653,7 +653,7 @@ func UploadFilePost(ctx *context.Context) {
 		message += "\n\n" + form.CommitMessage
 	}
 
-	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.User, &files_service.UploadRepoFileOptions{
+	if err := files_service.UploadRepoFiles(ctx, ctx.Repo.Repository, ctx.Doer, &files_service.UploadRepoFileOptions{
 		LastCommitID: ctx.Repo.CommitID,
 		OldBranch:    oldBranchName,
 		NewBranch:    branchName,
@@ -662,9 +662,9 @@ func UploadFilePost(ctx *context.Context) {
 		Files:        form.Files,
 		Signoff:      form.Signoff,
 	}); err != nil {
-		if models.IsErrLFSFileLocked(err) {
+		if git_model.IsErrLFSFileLocked(err) {
 			ctx.Data["Err_TreePath"] = true
-			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(models.ErrLFSFileLocked).Path, err.(models.ErrLFSFileLocked).UserName), tplUploadFile, &form)
+			ctx.RenderWithErr(ctx.Tr("repo.editor.upload_file_is_locked", err.(git_model.ErrLFSFileLocked).Path, err.(git_model.ErrLFSFileLocked).UserName), tplUploadFile, &form)
 		} else if models.IsErrFilenameInvalid(err) {
 			ctx.Data["Err_TreePath"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.editor.filename_is_invalid", form.TreePath), tplUploadFile, &form)
@@ -764,7 +764,7 @@ func UploadFileToServer(ctx *context.Context) {
 		return
 	}
 
-	upload, err := models.NewUpload(name, buf, file)
+	upload, err := repo_model.NewUpload(name, buf, file)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("NewUpload: %v", err))
 		return
@@ -780,17 +780,17 @@ func UploadFileToServer(ctx *context.Context) {
 func RemoveUploadFileFromServer(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RemoveUploadFileForm)
 	if len(form.File) == 0 {
-		ctx.Status(204)
+		ctx.Status(http.StatusNoContent)
 		return
 	}
 
-	if err := models.DeleteUploadByUUID(form.File); err != nil {
+	if err := repo_model.DeleteUploadByUUID(form.File); err != nil {
 		ctx.Error(http.StatusInternalServerError, fmt.Sprintf("DeleteUploadByUUID: %v", err))
 		return
 	}
 
 	log.Trace("Upload file removed: %s", form.File)
-	ctx.Status(204)
+	ctx.Status(http.StatusNoContent)
 }
 
 // GetUniquePatchBranchName Gets a unique branch name for a new patch branch
@@ -798,7 +798,7 @@ func RemoveUploadFileFromServer(ctx *context.Context) {
 // that doesn't already exist. If we exceed 1000 tries or an error is thrown, we just return "" so the user has to
 // type in the branch name themselves (will be an empty field)
 func GetUniquePatchBranchName(ctx *context.Context) string {
-	prefix := ctx.User.LowerName + "-patch-"
+	prefix := ctx.Doer.LowerName + "-patch-"
 	for i := 1; i <= 1000; i++ {
 		branchName := fmt.Sprintf("%s%d", prefix, i)
 		if _, err := ctx.Repo.GitRepo.GetBranch(branchName); err != nil {

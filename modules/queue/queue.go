@@ -196,7 +196,7 @@ func RegisteredTypesAsString() []string {
 func NewQueue(queueType Type, handlerFunc HandlerFunc, opts, exemplar interface{}) (Queue, error) {
 	newFn, ok := queuesMap[queueType]
 	if !ok {
-		return nil, fmt.Errorf("Unsupported queue type: %v", queueType)
+		return nil, fmt.Errorf("unsupported queue type: %v", queueType)
 	}
 	return newFn(handlerFunc, opts, exemplar)
 }

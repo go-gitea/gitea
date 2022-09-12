@@ -18,14 +18,29 @@ linters:
     - ineffassign
     - revive
     - gofumpt
+    - depguard
+    - nakedret
+    - unconvert
+    - wastedassign
+    - nolintlint
+    - stylecheck
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  timeout: 3m
+  go: 1.19
+  timeout: 10m
+  skip-dirs:
+    - node_modules
+    - public
+    - web_src
 
 linters-settings:
+  stylecheck:
+    checks: ["all", "-ST1005", "-ST1003"]
+  nakedret:
+    max-func-lines: 0 
   gocritic:
     disabled-checks:
       - ifElseChain
@@ -60,7 +75,15 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: 1.16
+    lang-version: "1.19"
+  depguard:
+    # TODO: use depguard to replace import checks in gitea-vet
+    list-type: denylist
+    # Check the list against standard lib.
+    include-go-root: true
+    packages-with-error-message:
+      - encoding/json: "use gitea's modules/json instead of encoding/json"
+      - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
   exclude-rules:
@@ -148,3 +171,7 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
+    - path: models/user/badge.go
+      linters:
+        - revive
+      text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"

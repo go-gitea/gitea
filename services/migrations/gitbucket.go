@@ -6,9 +6,11 @@ package migrations
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 
+	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
 )
@@ -37,6 +39,7 @@ func (f *GitBucketDownloaderFactory) New(ctx context.Context, opts base.MigrateO
 	oldOwner := fields[1]
 	oldName := strings.TrimSuffix(fields[2], ".git")
 
+	log.Trace("Create GitBucket downloader. BaseURL: %s RepoOwner: %s RepoName: %s", baseURL, oldOwner, oldName)
 	return NewGitBucketDownloader(ctx, baseURL, opts.AuthUsername, opts.AuthPassword, opts.AuthToken, oldOwner, oldName), nil
 }
 
@@ -51,6 +54,20 @@ type GitBucketDownloader struct {
 	*GithubDownloaderV3
 }
 
+// String implements Stringer
+func (g *GitBucketDownloader) String() string {
+	return fmt.Sprintf("migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+// ColorFormat provides a basic color format for a GitBucketDownloader
+func (g *GitBucketDownloader) ColorFormat(s fmt.State) {
+	if g == nil {
+		log.ColorFprintf(s, "<nil: GitBucketDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from gitbucket server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
 // NewGitBucketDownloader creates a GitBucket downloader
 func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, token, repoOwner, repoName string) *GitBucketDownloader {
 	githubDownloader := NewGithubDownloaderV3(ctx, baseURL, userName, password, token, repoOwner, repoName)
@@ -63,9 +80,4 @@ func NewGitBucketDownloader(ctx context.Context, baseURL, userName, password, to
 // SupportGetRepoComments return true if it supports get repo comments
 func (g *GitBucketDownloader) SupportGetRepoComments() bool {
 	return false
-}
-
-// GetReviews is not supported
-func (g *GitBucketDownloader) GetReviews(context base.IssueContext) ([]*base.Review, error) {
-	return nil, &base.ErrNotSupported{Entity: "Reviews"}
 }

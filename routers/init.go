@@ -6,11 +6,8 @@ package routers
 
 import (
 	"context"
-	"net"
 	"reflect"
 	"runtime"
-	"strconv"
-	"strings"
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
@@ -30,14 +27,18 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
+	packages_router "code.gitea.io/gitea/routers/api/packages"
 	apiv1 "code.gitea.io/gitea/routers/api/v1"
 	"code.gitea.io/gitea/routers/common"
 	"code.gitea.io/gitea/routers/private"
 	web_routers "code.gitea.io/gitea/routers/web"
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
+	"code.gitea.io/gitea/services/automerge"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	repo_migrations "code.gitea.io/gitea/services/migrations"
@@ -47,8 +48,6 @@ import (
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
-
-	"gitea.com/go-chi/session"
 )
 
 func mustInit(fn func() error) {
@@ -73,7 +72,7 @@ func mustInitCtx(ctx context.Context, fn func(ctx context.Context) error) {
 func InitGitServices() {
 	setting.NewServices()
 	mustInit(storage.Init)
-	mustInit(repo_service.NewContext)
+	mustInit(repo_service.Init)
 }
 
 func syncAppPathForGit(ctx context.Context) error {
@@ -102,22 +101,22 @@ func GlobalInitInstalled(ctx context.Context) {
 		log.Fatal("Gitea is not installed")
 	}
 
-	mustInitCtx(ctx, git.Init)
-	log.Info(git.VersionInfo())
-
-	git.CheckLFSVersion()
+	mustInitCtx(ctx, git.InitFull)
+	log.Info("Git Version: %s (home: %s)", git.VersionInfo(), git.HomeDir())
 	log.Info("AppPath: %s", setting.AppPath)
 	log.Info("AppWorkPath: %s", setting.AppWorkPath)
 	log.Info("Custom path: %s", setting.CustomPath)
 	log.Info("Log path: %s", setting.LogRootPath)
 	log.Info("Configuration file: %s", setting.CustomConf)
-	log.Info("Run Mode: %s", strings.Title(setting.RunMode))
+	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 
 	// Setup i18n
-	translation.InitLocales()
+	translation.InitLocales(ctx)
 
-	InitGitServices()
-	mailer.NewContext()
+	setting.NewServices()
+	mustInit(storage.Init)
+
+	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
 	mustInit(archiver.Init)
@@ -138,55 +137,46 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(oauth2.Init)
 
 	models.NewRepoContext()
+	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
-	cron.NewContext()
 	issue_indexer.InitIssueIndexer(false)
 	code_indexer.Init()
 	mustInit(stats_indexer.Init)
 
 	mirror_service.InitSyncMirrors()
-	webhook.InitDeliverHooks()
+	mustInit(webhook.Init)
 	mustInit(pull_service.Init)
+	mustInit(automerge.Init)
 	mustInit(task.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 
 	mustInitCtx(ctx, syncAppPathForGit)
 
-	if setting.SSH.StartBuiltinServer {
-		ssh.Listen(setting.SSH.ListenHost, setting.SSH.ListenPort, setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-		log.Info("SSH server started on %s. Cipher list (%v), key exchange algorithms (%v), MACs (%v)",
-			net.JoinHostPort(setting.SSH.ListenHost, strconv.Itoa(setting.SSH.ListenPort)),
-			setting.SSH.ServerCiphers, setting.SSH.ServerKeyExchanges, setting.SSH.ServerMACs)
-	} else {
-		ssh.Unused()
-	}
+	mustInit(ssh.Init)
+
 	auth.Init()
 	svg.Init()
+
+	// Finally start up the cron
+	cron.NewContext(ctx)
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes(ctx context.Context) *web.Route {
+	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
-	sessioner := session.Sessioner(session.Options{
-		Provider:       setting.SessionConfig.Provider,
-		ProviderConfig: setting.SessionConfig.ProviderConfig,
-		CookieName:     setting.SessionConfig.CookieName,
-		CookiePath:     setting.SessionConfig.CookiePath,
-		Gclifetime:     setting.SessionConfig.Gclifetime,
-		Maxlifetime:    setting.SessionConfig.Maxlifetime,
-		Secure:         setting.SessionConfig.Secure,
-		SameSite:       setting.SessionConfig.SameSite,
-		Domain:         setting.SessionConfig.Domain,
-	})
-
-	r.Mount("/", web_routers.Routes(sessioner))
-	r.Mount("/api/v1", apiv1.Routes(sessioner))
+	r.Mount("/", web_routers.Routes(ctx))
+	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
+	if setting.Packages.Enabled {
+		r.Mount("/api/packages", packages_router.Routes(ctx))
+		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
+	}
 	return r
 }

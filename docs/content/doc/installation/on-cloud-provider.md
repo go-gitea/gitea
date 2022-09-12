@@ -48,3 +48,9 @@ To deploy Gitea to DigitalOcean, have a look at the [DigitalOcean Marketplace](h
 [Linode](https://www.linode.com/) has Gitea as an app in their marketplace.
 
 To deploy Gitea to Linode, have a look at the [Linode Marketplace](https://www.linode.com/marketplace/apps/linode/gitea/).
+
+## alwaysdata
+
+[alwaysdata](https://www.alwaysdata.com/) has Gitea as an app in their marketplace.
+
+To deploy Gitea to alwaysdata, have a look at the [alwaysdata Marketplace](https://www.alwaysdata.com/en/marketplace/gitea/).

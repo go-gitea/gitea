@@ -5,31 +5,23 @@
 package issues
 
 import (
-	"os"
+	"context"
 	"testing"
-
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBleveIndexAndSearch(t *testing.T) {
-	dir, err := os.MkdirTemp("", "bleve.index")
-	assert.NoError(t, err)
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory")
-		return
-	}
-	defer util.RemoveAll(dir)
+	dir := t.TempDir()
 	indexer := NewBleveIndexer(dir)
 	defer indexer.Close()
 
 	if _, err := indexer.Init(); err != nil {
-		assert.Fail(t, "Unable to initialise bleve indexer: %v", err)
+		assert.Fail(t, "Unable to initialize bleve indexer: %v", err)
 		return
 	}
 
-	err = indexer.Index([]*IndexerData{
+	err := indexer.Index([]*IndexerData{
 		{
 			ID:      1,
 			RepoID:  2,
@@ -84,7 +76,7 @@ func TestBleveIndexAndSearch(t *testing.T) {
 	}
 
 	for _, kw := range keywords {
-		res, err := indexer.Search(kw.Keyword, []int64{2}, 10, 0)
+		res, err := indexer.Search(context.TODO(), kw.Keyword, []int64{2}, 10, 0)
 		assert.NoError(t, err)
 
 		ids := make([]int64, 0, len(res.Hits))

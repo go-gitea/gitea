@@ -5,6 +5,7 @@
 package code
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 
@@ -17,7 +18,9 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	unittest.MainTest(m, filepath.Join("..", "..", ".."))
+	unittest.MainTest(m, &unittest.TestOptions{
+		GiteaRootPath: filepath.Join("..", "..", ".."),
+	})
 }
 
 func testIndexer(name string, t *testing.T, indexer Indexer) {
@@ -65,7 +68,7 @@ func testIndexer(name string, t *testing.T, indexer Indexer) {
 
 		for _, kw := range keywords {
 			t.Run(kw.Keyword, func(t *testing.T) {
-				total, res, langs, err := indexer.Search(kw.RepoIDs, "", kw.Keyword, 1, 10, false)
+				total, res, langs, err := indexer.Search(context.TODO(), kw.RepoIDs, "", kw.Keyword, 1, 10, false)
 				assert.NoError(t, err)
 				assert.EqualValues(t, len(kw.IDs), total)
 				assert.Len(t, langs, kw.Langs)

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/setting"
@@ -21,8 +21,8 @@ import (
 
 func TestLabel_ToLabel(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	label := unittest.AssertExistsAndLoadBean(t, &models.Label{ID: 1}).(*models.Label)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: label.RepoID}).(*repo_model.Repository)
+	label := unittest.AssertExistsAndLoadBean(t, &issues_model.Label{ID: 1})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: label.RepoID})
 	assert.Equal(t, &api.Label{
 		ID:    label.ID,
 		Name:  label.Name,
@@ -32,7 +32,7 @@ func TestLabel_ToLabel(t *testing.T) {
 }
 
 func TestMilestone_APIFormat(t *testing.T) {
-	milestone := &models.Milestone{
+	milestone := &issues_model.Milestone{
 		ID:              3,
 		RepoID:          4,
 		Name:            "milestoneName",

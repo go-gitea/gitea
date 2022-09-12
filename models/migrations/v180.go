@@ -66,7 +66,7 @@ func deleteMigrationCredentials(x *xorm.Engine) (err error) {
 			return
 		}
 	}
-	return
+	return err
 }
 
 func removeCredentials(payload string) (string, error) {
@@ -112,7 +112,7 @@ func removeCredentials(payload string) (string, error) {
 
 	opts.AuthPassword = ""
 	opts.AuthToken = ""
-	opts.CloneAddr = util.NewStringURLSanitizer(opts.CloneAddr, true).Replace(opts.CloneAddr)
+	opts.CloneAddr = util.SanitizeCredentialURLs(opts.CloneAddr)
 
 	confBytes, err := json.Marshal(opts)
 	if err != nil {

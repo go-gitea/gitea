@@ -1,4 +1,8 @@
+import $ from 'jquery';
 import {svg} from '../svg.js';
+import {invertFileFolding} from './file-fold.js';
+import {createTippy} from '../modules/tippy.js';
+import {copyToClipboard} from './clipboard.js';
 
 function changeHash(hash) {
   if (window.history.pushState) {
@@ -14,26 +18,41 @@ function selectRange($list, $select, $from) {
   // add hashchange to permalink
   const $issue = $('a.ref-in-new-issue');
   const $copyPermalink = $('a.copy-line-permalink');
+  const $viewGitBlame = $('a.view_git_blame');
 
-  if ($issue.length === 0 || $copyPermalink.length === 0) {
-    return;
-  }
-
-  const updateIssueHref = function(anchor) {
+  const updateIssueHref = function (anchor) {
+    if ($issue.length === 0) {
+      return;
+    }
     let href = $issue.attr('href');
     href = `${href.replace(/%23L\d+$|%23L\d+-L\d+$/, '')}%23${anchor}`;
     $issue.attr('href', href);
   };
 
-  const updateCopyPermalinkHref = function(anchor) {
-    let link = $copyPermalink.attr('data-clipboard-text');
+  const updateViewGitBlameFragment = function (anchor) {
+    if ($viewGitBlame.length === 0) {
+      return;
+    }
+    let href = $viewGitBlame.attr('href');
+    href = `${href.replace(/#L\d+$|#L\d+-L\d+$/, '')}`;
+    if (anchor.length !== 0) {
+      href = `${href}#${anchor}`;
+    }
+    $viewGitBlame.attr('href', href);
+  };
+
+  const updateCopyPermalinkUrl = function(anchor) {
+    if ($copyPermalink.length === 0) {
+      return;
+    }
+    let link = $copyPermalink.attr('data-url');
     link = `${link.replace(/#L\d+$|#L\d+-L\d+$/, '')}#${anchor}`;
-    $copyPermalink.attr('data-clipboard-text', link);
+    $copyPermalink.attr('data-url', link);
   };
 
   if ($from) {
-    let a = parseInt($select.attr('rel').substr(1));
-    let b = parseInt($from.attr('rel').substr(1));
+    let a = parseInt($select.attr('rel').slice(1));
+    let b = parseInt($from.attr('rel').slice(1));
     let c;
     if (a !== b) {
       if (a > b) {
@@ -49,7 +68,8 @@ function selectRange($list, $select, $from) {
       changeHash(`#L${a}-L${b}`);
 
       updateIssueHref(`L${a}-L${b}`);
-      updateCopyPermalinkHref(`L${a}-L${b}`);
+      updateViewGitBlameFragment(`L${a}-L${b}`);
+      updateCopyPermalinkUrl(`L${a}-L${b}`);
       return;
     }
   }
@@ -57,17 +77,37 @@ function selectRange($list, $select, $from) {
   changeHash(`#${$select.attr('rel')}`);
 
   updateIssueHref($select.attr('rel'));
-  updateCopyPermalinkHref($select.attr('rel'));
+  updateViewGitBlameFragment($select.attr('rel'));
+  updateCopyPermalinkUrl($select.attr('rel'));
 }
 
 function showLineButton() {
-  if ($('.code-line-menu').length === 0) return;
-  $('.code-line-button').remove();
-  $('.code-view td.lines-code.active').closest('tr').find('td:eq(0)').first().prepend(
-    $(`<button class="code-line-button">${svg('octicon-kebab-horizontal')}</button>`)
-  );
-  $('.code-line-menu').appendTo($('.code-view'));
-  $('.code-line-button').popup({popup: $('.code-line-menu'), on: 'click'});
+  const menu = document.querySelector('.code-line-menu');
+  if (!menu) return;
+
+  // remove all other line buttons
+  for (const el of document.querySelectorAll('.code-line-button')) {
+    el.remove();
+  }
+
+  // find active row and add button
+  const tr = document.querySelector('.code-view td.lines-code.active').closest('tr');
+  const td = tr.querySelector('td');
+  const btn = document.createElement('button');
+  btn.classList.add('code-line-button');
+  btn.innerHTML = svg('octicon-kebab-horizontal');
+  td.prepend(btn);
+
+  // put a copy of the menu back into DOM for the next click
+  btn.closest('.code-view').appendChild(menu.cloneNode(true));
+
+  createTippy(btn, {
+    trigger: 'click',
+    content: menu,
+    placement: 'right-start',
+    role: 'menu',
+    interactive: 'true',
+  });
 }
 
 export function initRepoCodeView() {
@@ -130,10 +170,7 @@ export function initRepoCodeView() {
     }).trigger('hashchange');
   }
   $(document).on('click', '.fold-file', ({currentTarget}) => {
-    const box = currentTarget.closest('.file-content');
-    const folded = box.getAttribute('data-folded') !== 'true';
-    currentTarget.innerHTML = svg(`octicon-chevron-${folded ? 'right' : 'down'}`, 18);
-    box.setAttribute('data-folded', String(folded));
+    invertFileFolding(currentTarget.closest('.file-content'), currentTarget);
   });
   $(document).on('click', '.blob-excerpt', async ({currentTarget}) => {
     const url = currentTarget.getAttribute('data-url');
@@ -142,5 +179,10 @@ export function initRepoCodeView() {
     if (!url) return;
     const blob = await $.get(`${url}?${query}&anchor=${anchor}`);
     currentTarget.closest('tr').outerHTML = blob;
+  });
+  $(document).on('click', '.copy-line-permalink', async (e) => {
+    const success = await copyToClipboard(e.currentTarget.getAttribute('data-url'));
+    if (!success) return;
+    document.querySelector('.code-line-button')?._tippy?.hide();
   });
 }

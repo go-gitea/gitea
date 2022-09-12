@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
@@ -28,10 +29,10 @@ import (
 	"code.gitea.io/gitea/modules/indexer/stats"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/repository"
+	mirror_module "code.gitea.io/gitea/modules/mirror"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
@@ -42,6 +43,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 	"code.gitea.io/gitea/services/migrations"
 	mirror_service "code.gitea.io/gitea/services/mirror"
+	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
 )
@@ -57,50 +59,65 @@ const (
 	tplProtectedBranch base.TplName = "repo/settings/protected_branch"
 )
 
-// Settings show a repository's settings page
-func Settings(ctx *context.Context) {
+// SettingsCtxData is a middleware that sets all the general context data for the
+// settings template.
+func SettingsCtxData(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsOptions"] = true
 	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
 	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
 	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
 	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
+	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
 
 	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
 	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
 	ctx.Data["SigningSettings"] = setting.Repository.Signing
 	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	if ctx.User.IsAdmin {
+
+	if ctx.Doer.IsAdmin {
 		if setting.Indexer.RepoIndexerEnabled {
-			status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
+			status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeCode)
 			if err != nil {
 				ctx.ServerError("repo.indexer_status", err)
 				return
 			}
 			ctx.Data["CodeIndexerStatus"] = status
 		}
-		status, err := repo_model.GetIndexerStatus(ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
+		status, err := repo_model.GetIndexerStatus(ctx, ctx.Repo.Repository, repo_model.RepoIndexerTypeStats)
 		if err != nil {
 			ctx.ServerError("repo.indexer_status", err)
 			return
 		}
 		ctx.Data["StatsIndexerStatus"] = status
 	}
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(ctx.Repo.Repository.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetPushMirrorsByRepoID", err)
 		return
 	}
 	ctx.Data["PushMirrors"] = pushMirrors
+}
 
+// Settings show a repository's settings page
+func Settings(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplSettingsOptions)
 }
 
 // SettingsPost response for changes of a repository
 func SettingsPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.RepoSettingForm)
-	ctx.Data["Title"] = ctx.Tr("repo.settings")
-	ctx.Data["PageIsSettingsOptions"] = true
+
+	ctx.Data["ForcePrivate"] = setting.Repository.ForcePrivate
+	ctx.Data["MirrorsEnabled"] = setting.Mirror.Enabled
+	ctx.Data["DisableNewPushMirrors"] = setting.Mirror.DisableNewPush
+	ctx.Data["DefaultMirrorInterval"] = setting.Mirror.DefaultInterval
+	ctx.Data["MinimumMirrorInterval"] = setting.Mirror.MinInterval
+
+	signing, _ := asymkey_service.SigningKey(ctx, ctx.Repo.Repository.RepoPath())
+	ctx.Data["SigningKeyAvailable"] = len(signing) > 0
+	ctx.Data["SigningSettings"] = setting.Repository.Signing
+	ctx.Data["CodeIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
 
 	repo := ctx.Repo.Repository
 
@@ -119,7 +136,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.Repo.GitRepo.Close()
 				ctx.Repo.GitRepo = nil
 			}
-			if err := repo_service.ChangeRepositoryName(ctx.User, repo, newRepoName); err != nil {
+			if err := repo_service.ChangeRepositoryName(ctx.Doer, repo, newRepoName); err != nil {
 				ctx.Data["Err_RepoName"] = true
 				switch {
 				case repo_model.IsErrRepoAlreadyExist(err):
@@ -162,13 +179,13 @@ func SettingsPost(ctx *context.Context) {
 
 		visibilityChanged := repo.IsPrivate != form.Private
 		// when ForcePrivate enabled, you could change public repo to private, but only admin users can change private to public
-		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.User.IsAdmin {
+		if visibilityChanged && setting.Repository.ForcePrivate && !form.Private && !ctx.Doer.IsAdmin {
 			ctx.RenderWithErr(ctx.Tr("form.repository_force_private"), tplSettingsOptions, form)
 			return
 		}
 
 		repo.IsPrivate = form.Private
-		if err := models.UpdateRepository(repo, visibilityChanged); err != nil {
+		if err := repo_service.UpdateRepository(repo, visibilityChanged); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -191,29 +208,30 @@ func SettingsPost(ctx *context.Context) {
 		if err != nil || (interval != 0 && interval < setting.Mirror.MinInterval) {
 			ctx.Data["Err_Interval"] = true
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
-		} else {
-			ctx.Repo.Mirror.EnablePrune = form.EnablePrune
-			ctx.Repo.Mirror.Interval = interval
-			if interval != 0 {
-				ctx.Repo.Mirror.NextUpdateUnix = timeutil.TimeStampNow().AddDuration(interval)
-			} else {
-				ctx.Repo.Mirror.NextUpdateUnix = 0
-			}
-			if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
-				ctx.Data["Err_Interval"] = true
-				ctx.RenderWithErr(ctx.Tr("repo.mirror_interval_invalid"), tplSettingsOptions, &form)
-				return
-			}
+			return
 		}
 
-		u, _ := git.GetRemoteAddress(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		ctx.Repo.Mirror.EnablePrune = form.EnablePrune
+		ctx.Repo.Mirror.Interval = interval
+		ctx.Repo.Mirror.ScheduleNextUpdate()
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
+			ctx.ServerError("UpdateMirror", err)
+			return
+		}
+
+		u, err := git.GetRemoteURL(ctx, ctx.Repo.Repository.RepoPath(), ctx.Repo.Mirror.GetRemoteName())
+		if err != nil {
+			ctx.Data["Err_MirrorAddress"] = true
+			handleSettingRemoteAddrError(ctx, err, form)
+			return
+		}
 		if u.User != nil && form.MirrorPassword == "" && form.MirrorUsername == u.User.Username() {
 			form.MirrorPassword, _ = u.User.Password()
 		}
 
 		address, err := forms.ParseRemoteAddr(form.MirrorAddress, form.MirrorUsername, form.MirrorPassword)
 		if err == nil {
-			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_MirrorAddress"] = true
@@ -235,7 +253,7 @@ func SettingsPost(ctx *context.Context) {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.invalid_lfs_endpoint"), tplSettingsOptions, &form)
 				return
 			}
-			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.User)
+			err = migrations.IsMigrateURLAllowed(ep.String(), ctx.Doer)
 			if err != nil {
 				ctx.Data["Err_LFSEndpoint"] = true
 				handleSettingRemoteAddrError(ctx, err, form)
@@ -245,7 +263,7 @@ func SettingsPost(ctx *context.Context) {
 
 		ctx.Repo.Mirror.LFS = form.LFS
 		ctx.Repo.Mirror.LFSEndpoint = form.LFSEndpoint
-		if err := repo_model.UpdateMirror(ctx.Repo.Mirror); err != nil {
+		if err := repo_model.UpdateMirror(ctx, ctx.Repo.Mirror); err != nil {
 			ctx.ServerError("UpdateMirror", err)
 			return
 		}
@@ -259,7 +277,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		mirror_service.StartToMirror(repo.ID)
+		mirror_module.AddPullMirrorToQueue(repo.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -270,13 +288,13 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
 		}
 
-		mirror_service.AddPushMirrorToQueue(m.ID)
+		mirror_module.AddPushMirrorToQueue(m.ID)
 
 		ctx.Flash.Info(ctx.Tr("repo.settings.mirror_sync_in_progress"))
 		ctx.Redirect(repo.Link() + "/settings")
@@ -291,7 +309,7 @@ func SettingsPost(ctx *context.Context) {
 		// as an error on the UI for this action
 		ctx.Data["Err_RepoName"] = nil
 
-		m, err := selectPushMirrorByForm(form, repo)
+		m, err := selectPushMirrorByForm(ctx, form, repo)
 		if err != nil {
 			ctx.NotFound("", nil)
 			return
@@ -302,7 +320,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		if err = repo_model.DeletePushMirrorByID(m.ID); err != nil {
+		if err = repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
 			ctx.ServerError("DeletePushMirrorByID", err)
 			return
 		}
@@ -329,7 +347,7 @@ func SettingsPost(ctx *context.Context) {
 
 		address, err := forms.ParseRemoteAddr(form.PushMirrorAddress, form.PushMirrorUsername, form.PushMirrorPassword)
 		if err == nil {
-			err = migrations.IsMigrateURLAllowed(address, ctx.User)
+			err = migrations.IsMigrateURLAllowed(address, ctx.Doer)
 		}
 		if err != nil {
 			ctx.Data["Err_PushMirrorAddress"] = true
@@ -337,26 +355,27 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		remoteSuffix, err := util.RandomString(10)
+		remoteSuffix, err := util.CryptoRandomString(10)
 		if err != nil {
 			ctx.ServerError("RandomString", err)
 			return
 		}
 
 		m := &repo_model.PushMirror{
-			RepoID:     repo.ID,
-			Repo:       repo,
-			RemoteName: fmt.Sprintf("remote_mirror_%s", remoteSuffix),
-			Interval:   interval,
+			RepoID:       repo.ID,
+			Repo:         repo,
+			RemoteName:   fmt.Sprintf("remote_mirror_%s", remoteSuffix),
+			SyncOnCommit: form.PushMirrorSyncOnCommit,
+			Interval:     interval,
 		}
-		if err := repo_model.InsertPushMirror(m); err != nil {
+		if err := repo_model.InsertPushMirror(ctx, m); err != nil {
 			ctx.ServerError("InsertPushMirror", err)
 			return
 		}
 
 		if err := mirror_service.AddPushMirrorRemote(ctx, m, address); err != nil {
-			if err := repo_model.DeletePushMirrorByID(m.ID); err != nil {
-				log.Error("DeletePushMirrorByID %v", err)
+			if err := repo_model.DeletePushMirrors(ctx, repo_model.PushMirrorOptions{ID: m.ID, RepoID: m.RepoID}); err != nil {
+				log.Error("DeletePushMirrors %v", err)
 			}
 			ctx.ServerError("AddPushMirrorRemote", err)
 			return
@@ -425,9 +444,10 @@ func SettingsPost(ctx *context.Context) {
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalTracker,
 				Config: &repo_model.ExternalTrackerConfig{
-					ExternalTrackerURL:    form.ExternalTrackerURL,
-					ExternalTrackerFormat: form.TrackerURLFormat,
-					ExternalTrackerStyle:  form.TrackerIssueStyle,
+					ExternalTrackerURL:           form.ExternalTrackerURL,
+					ExternalTrackerFormat:        form.TrackerURLFormat,
+					ExternalTrackerStyle:         form.TrackerIssueStyle,
+					ExternalTrackerRegexpPattern: form.ExternalTrackerRegexpPattern,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)
@@ -460,6 +480,15 @@ func SettingsPost(ctx *context.Context) {
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeProjects)
 		}
 
+		if form.EnablePackages && !unit_model.TypePackages.UnitGlobalDisabled() {
+			units = append(units, repo_model.RepoUnit{
+				RepoID: repo.ID,
+				Type:   unit_model.TypePackages,
+			})
+		} else if !unit_model.TypePackages.UnitGlobalDisabled() {
+			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypePackages)
+		}
+
 		if form.EnablePulls && !unit_model.TypePullRequests.UnitGlobalDisabled() {
 			units = append(units, repo_model.RepoUnit{
 				RepoID: repo.ID,
@@ -472,6 +501,7 @@ func SettingsPost(ctx *context.Context) {
 					AllowSquash:                   form.PullsAllowSquash,
 					AllowManualMerge:              form.PullsAllowManualMerge,
 					AutodetectManualMerge:         form.EnableAutodetectManualMerge,
+					AllowRebaseUpdate:             form.PullsAllowRebaseUpdate,
 					DefaultDeleteBranchAfterMerge: form.DefaultDeleteBranchAfterMerge,
 					DefaultMergeStyle:             repo_model.MergeStyle(form.PullsDefaultMergeStyle),
 				},
@@ -485,7 +515,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 		if repoChanged {
-			if err := models.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -504,7 +534,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if changed {
-			if err := models.UpdateRepository(repo, false); err != nil {
+			if err := repo_service.UpdateRepository(repo, false); err != nil {
 				ctx.ServerError("UpdateRepository", err)
 				return
 			}
@@ -515,7 +545,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "admin":
-		if !ctx.User.IsAdmin {
+		if !ctx.Doer.IsAdmin {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -524,7 +554,7 @@ func SettingsPost(ctx *context.Context) {
 			repo.IsFsckEnabled = form.EnableHealthCheck
 		}
 
-		if err := models.UpdateRepository(repo, false); err != nil {
+		if err := repo_service.UpdateRepository(repo, false); err != nil {
 			ctx.ServerError("UpdateRepository", err)
 			return
 		}
@@ -535,7 +565,7 @@ func SettingsPost(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 
 	case "admin_index":
-		if !ctx.User.IsAdmin {
+		if !ctx.Doer.IsAdmin {
 			ctx.Error(http.StatusForbidden)
 			return
 		}
@@ -578,7 +608,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 		repo.IsMirror = false
 
-		if _, err := repository.CleanUpMigrateInfo(ctx, repo); err != nil {
+		if _, err := repo_module.CleanUpMigrateInfo(ctx, repo); err != nil {
 			ctx.ServerError("CleanUpMigrateInfo", err)
 			return
 		} else if err = repo_model.DeleteMirrorByRepoID(ctx.Repo.Repository.ID); err != nil {
@@ -594,7 +624,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Error(http.StatusNotFound)
 			return
 		}
-		if err := repo.GetOwner(db.DefaultContext); err != nil {
+		if err := repo.GetOwner(ctx); err != nil {
 			ctx.ServerError("Convert Fork", err)
 			return
 		}
@@ -636,7 +666,7 @@ func SettingsPost(ctx *context.Context) {
 			return
 		}
 
-		newOwner, err := user_model.GetUserByName(ctx.FormString("new_owner_name"))
+		newOwner, err := user_model.GetUserByName(ctx, ctx.FormString("new_owner_name"))
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
@@ -647,7 +677,7 @@ func SettingsPost(ctx *context.Context) {
 		}
 
 		if newOwner.Type == user_model.UserTypeOrganization {
-			if !ctx.User.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !models.OrgFromUser(newOwner).HasMemberWithUserID(ctx.User.ID) {
+			if !ctx.Doer.IsAdmin && newOwner.Visibility == structs.VisibleTypePrivate && !organization.OrgFromUser(newOwner).HasMemberWithUserID(ctx.Doer.ID) {
 				// The user shouldn't know about this organization
 				ctx.RenderWithErr(ctx.Tr("form.enterred_invalid_owner_name"), tplSettingsOptions, nil)
 				return
@@ -660,7 +690,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo = nil
 		}
 
-		if err := repo_service.StartRepositoryTransfer(ctx.User, newOwner, repo, nil); err != nil {
+		if err := repo_service.StartRepositoryTransfer(ctx.Doer, newOwner, repo, nil); err != nil {
 			if repo_model.IsErrRepoAlreadyExist(err) {
 				ctx.RenderWithErr(ctx.Tr("repo.settings.new_owner_has_same_repo"), tplSettingsOptions, nil)
 			} else if models.IsErrRepoTransferInProgress(err) {
@@ -723,7 +753,7 @@ func SettingsPost(ctx *context.Context) {
 			ctx.Repo.GitRepo.Close()
 		}
 
-		if err := repo_service.DeleteRepository(ctx, ctx.User, ctx.Repo.Repository, true); err != nil {
+		if err := repo_service.DeleteRepository(ctx, ctx.Doer, ctx.Repo.Repository, true); err != nil {
 			ctx.ServerError("DeleteRepository", err)
 			return
 		}
@@ -805,7 +835,7 @@ func handleSettingRemoteAddrError(ctx *context.Context, err error, form *forms.R
 		case addrErr.IsProtocolInvalid:
 			ctx.RenderWithErr(ctx.Tr("repo.mirror_address_protocol_invalid"), tplSettingsOptions, form)
 		case addrErr.IsURLError:
-			ctx.RenderWithErr(ctx.Tr("form.url_error"), tplSettingsOptions, form)
+			ctx.RenderWithErr(ctx.Tr("form.url_error", addrErr.Host), tplSettingsOptions, form)
 		case addrErr.IsPermissionDenied:
 			if addrErr.LocalPath {
 				ctx.RenderWithErr(ctx.Tr("repo.migrate.permission_denied"), tplSettingsOptions, form)
@@ -827,14 +857,14 @@ func Collaboration(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.settings")
 	ctx.Data["PageIsSettingsCollaboration"] = true
 
-	users, err := models.GetCollaborators(ctx.Repo.Repository.ID, db.ListOptions{})
+	users, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, db.ListOptions{})
 	if err != nil {
 		ctx.ServerError("GetCollaborators", err)
 		return
 	}
 	ctx.Data["Collaborators"] = users
 
-	teams, err := models.GetRepoTeams(ctx.Repo.Repository)
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.ServerError("GetRepoTeams", err)
 		return
@@ -857,7 +887,7 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	u, err := user_model.GetUserByName(name)
+	u, err := user_model.GetUserByName(ctx, name)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.user_not_exist"))
@@ -881,19 +911,19 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
-	if got, err := models.IsCollaborator(ctx.Repo.Repository.ID, u.ID); err == nil && got {
+	if got, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, u.ID); err == nil && got {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
-	if err = models.AddCollaborator(ctx.Repo.Repository, u); err != nil {
+	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
 	}
 
 	if setting.Service.EnableNotifyMail {
-		mailer.SendCollaboratorMail(u, ctx.User, ctx.Repo.Repository)
+		mailer.SendCollaboratorMail(u, ctx.Doer, ctx.Repo.Repository)
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.settings.add_collaborator_success"))
@@ -902,7 +932,7 @@ func CollaborationPost(ctx *context.Context) {
 
 // ChangeCollaborationAccessMode response for changing access of a collaboration
 func ChangeCollaborationAccessMode(ctx *context.Context) {
-	if err := models.ChangeCollaborationAccessMode(
+	if err := repo_model.ChangeCollaborationAccessMode(
 		ctx.Repo.Repository,
 		ctx.FormInt64("uid"),
 		perm.AccessMode(ctx.FormInt("mode"))); err != nil {
@@ -937,9 +967,9 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	team, err := models.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
+	team, err := organization.OrgFromUser(ctx.Repo.Owner).GetTeam(name)
 	if err != nil {
-		if models.IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			ctx.Flash.Error(ctx.Tr("form.team_not_exist"))
 			ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		} else {
@@ -954,14 +984,14 @@ func AddTeamPost(ctx *context.Context) {
 		return
 	}
 
-	if models.HasTeamRepo(ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
+	if organization.HasTeamRepo(ctx, ctx.Repo.Repository.OwnerID, team.ID, ctx.Repo.Repository.ID) {
 		ctx.Flash.Error(ctx.Tr("repo.settings.add_team_duplicate"))
 		ctx.Redirect(ctx.Repo.RepoLink + "/settings/collaboration")
 		return
 	}
 
-	if err = team.AddRepository(ctx.Repo.Repository); err != nil {
-		ctx.ServerError("team.AddRepository", err)
+	if err = org_service.TeamAddRepository(team, ctx.Repo.Repository); err != nil {
+		ctx.ServerError("TeamAddRepository", err)
 		return
 	}
 
@@ -977,13 +1007,13 @@ func DeleteTeam(ctx *context.Context) {
 		return
 	}
 
-	team, err := models.GetTeamByID(ctx.FormInt64("id"))
+	team, err := organization.GetTeamByID(ctx, ctx.FormInt64("id"))
 	if err != nil {
 		ctx.ServerError("GetTeamByID", err)
 		return
 	}
 
-	if err = team.RemoveRepository(ctx.Repo.Repository.ID); err != nil {
+	if err = models.RemoveRepository(team, ctx.Repo.Repository.ID); err != nil {
 		ctx.ServerError("team.RemoveRepositorys", err)
 		return
 	}
@@ -1054,7 +1084,7 @@ func DeployKeys(ctx *context.Context) {
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1069,8 +1099,9 @@ func DeployKeysPost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
+	ctx.Data["DisableSSH"] = setting.SSH.Disabled
 
-	keys, err := asymkey_model.ListDeployKeys(db.DefaultContext, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
+	keys, err := asymkey_model.ListDeployKeys(ctx, &asymkey_model.ListDeployKeysOptions{RepoID: ctx.Repo.Repository.ID})
 	if err != nil {
 		ctx.ServerError("ListDeployKeys", err)
 		return
@@ -1126,7 +1157,7 @@ func DeployKeysPost(ctx *context.Context) {
 
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
-	if err := asymkey_service.DeleteDeployKey(ctx.User, ctx.FormInt64("id")); err != nil {
+	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
 		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
@@ -1195,19 +1226,20 @@ func SettingsDeleteAvatar(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings")
 }
 
-func selectPushMirrorByForm(form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
+func selectPushMirrorByForm(ctx *context.Context, form *forms.RepoSettingForm, repo *repo_model.Repository) (*repo_model.PushMirror, error) {
 	id, err := strconv.ParseInt(form.PushMirrorID, 10, 64)
 	if err != nil {
 		return nil, err
 	}
 
-	pushMirrors, err := repo_model.GetPushMirrorsByRepoID(repo.ID)
+	pushMirrors, _, err := repo_model.GetPushMirrorsByRepoID(ctx, repo.ID, db.ListOptions{})
 	if err != nil {
 		return nil, err
 	}
 
 	for _, m := range pushMirrors {
 		if m.ID == id {
+			m.Repo = repo
 			return m, nil
 		}
 	}

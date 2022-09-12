@@ -132,8 +132,10 @@ type HookEvents struct {
 	PullRequestComment   bool `json:"pull_request_comment"`
 	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
+	Wiki                 bool `json:"wiki"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
+	Package              bool `json:"package"`
 }
 
 // HookEvent represents events that will delivery hook.
@@ -161,6 +163,7 @@ const (
 	FEISHU     HookType = "feishu"
 	MATRIX     HookType = "matrix"
 	WECHATWORK HookType = "wechatwork"
+	PACKAGIST  HookType = "packagist"
 )
 
 // HookStatus is the status of a web hook
@@ -326,6 +329,12 @@ func (w *Webhook) HasPullRequestSyncEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestSync)
 }
 
+// HasWikiEvent returns true if hook enabled wiki event.
+func (w *Webhook) HasWikiEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvent.Wiki)
+}
+
 // HasReleaseEvent returns if hook enabled release event.
 func (w *Webhook) HasReleaseEvent() bool {
 	return w.SendEverything ||
@@ -336,6 +345,12 @@ func (w *Webhook) HasReleaseEvent() bool {
 func (w *Webhook) HasRepositoryEvent() bool {
 	return w.SendEverything ||
 		(w.ChooseEvents && w.HookEvents.Repository)
+}
+
+// HasPackageEvent returns if hook enabled package event.
+func (w *Webhook) HasPackageEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvents.Package)
 }
 
 // EventCheckers returns event checkers
@@ -365,8 +380,10 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
 		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
+		{w.HasWikiEvent, HookEventWiki},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
+		{w.HasPackageEvent, HookEventPackage},
 	}
 }
 
@@ -386,6 +403,18 @@ func (w *Webhook) EventsArray() []string {
 func CreateWebhook(ctx context.Context, w *Webhook) error {
 	w.Type = strings.TrimSpace(w.Type)
 	return db.Insert(ctx, w)
+}
+
+// CreateWebhooks creates multiple web hooks
+func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
+	// xorm returns err "no element on slice when insert" for empty slices.
+	if len(ws) == 0 {
+		return nil
+	}
+	for i := 0; i < len(ws); i++ {
+		ws[i].Type = strings.TrimSpace(ws[i].Type)
+	}
+	return db.Insert(ctx, ws)
 }
 
 // getWebhook uses argument bean as query condition,
@@ -445,8 +474,9 @@ func (opts *ListWebhookOptions) toCond() builder.Cond {
 	return cond
 }
 
-func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, error) {
-	sess := e.Where(opts.toCond())
+// ListWebhooksByOpts return webhooks based on options
+func ListWebhooksByOpts(ctx context.Context, opts *ListWebhookOptions) ([]*Webhook, error) {
+	sess := db.GetEngine(ctx).Where(opts.toCond())
 
 	if opts.Page != 0 {
 		sess = db.SetSessionPagination(sess, opts)
@@ -460,22 +490,13 @@ func listWebhooksByOpts(e db.Engine, opts *ListWebhookOptions) ([]*Webhook, erro
 	return webhooks, err
 }
 
-// ListWebhooksByOpts return webhooks based on options
-func ListWebhooksByOpts(opts *ListWebhookOptions) ([]*Webhook, error) {
-	return listWebhooksByOpts(db.GetEngine(db.DefaultContext), opts)
-}
-
 // CountWebhooksByOpts count webhooks based on options and ignore pagination
 func CountWebhooksByOpts(opts *ListWebhookOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).Where(opts.toCond()).Count(&Webhook{})
 }
 
 // GetDefaultWebhooks returns all admin-default webhooks.
-func GetDefaultWebhooks() ([]*Webhook, error) {
-	return getDefaultWebhooks(db.DefaultContext)
-}
-
-func getDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
+func GetDefaultWebhooks(ctx context.Context) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
 	return webhooks, db.GetEngine(ctx).
 		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, false).
@@ -497,14 +518,15 @@ func GetSystemOrDefaultWebhook(id int64) (*Webhook, error) {
 }
 
 // GetSystemWebhooks returns all admin system webhooks.
-func GetSystemWebhooks() ([]*Webhook, error) {
-	return getSystemWebhooks(db.GetEngine(db.DefaultContext))
-}
-
-func getSystemWebhooks(e db.Engine) ([]*Webhook, error) {
+func GetSystemWebhooks(ctx context.Context, isActive util.OptionalBool) ([]*Webhook, error) {
 	webhooks := make([]*Webhook, 0, 5)
-	return webhooks, e.
-		Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+	if isActive.IsNone() {
+		return webhooks, db.GetEngine(ctx).
+			Where("repo_id=? AND org_id=? AND is_system_webhook=?", 0, 0, true).
+			Find(&webhooks)
+	}
+	return webhooks, db.GetEngine(ctx).
+		Where("repo_id=? AND org_id=? AND is_system_webhook=? AND is_active = ?", 0, 0, true, isActive.IsTrue()).
 		Find(&webhooks)
 }
 
@@ -582,7 +604,7 @@ func DeleteDefaultSystemWebhook(id int64) error {
 
 // CopyDefaultWebhooksToRepo creates copies of the default webhooks in a new repo
 func CopyDefaultWebhooksToRepo(ctx context.Context, repoID int64) error {
-	ws, err := getDefaultWebhooks(ctx)
+	ws, err := GetDefaultWebhooks(ctx)
 	if err != nil {
 		return fmt.Errorf("GetDefaultWebhooks: %v", err)
 	}

@@ -1,3 +1,5 @@
+import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 function getArchive($target, url, first) {
@@ -41,26 +43,32 @@ export function initRepoArchiveLinks() {
   });
 }
 
-export function initRepoClone() {
-  // Quick start and repository home
-  $('#repo-clone-ssh').on('click', function () {
-    $('.clone-url').text($(this).data('link'));
-    $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('primary');
-    $('#repo-clone-https').removeClass('primary');
+export function initRepoCloneLink() {
+  const $repoCloneSsh = $('#repo-clone-ssh');
+  const $repoCloneHttps = $('#repo-clone-https');
+  const $inputLink = $('#repo-clone-url');
+
+  if ((!$repoCloneSsh.length && !$repoCloneHttps.length) || !$inputLink.length) {
+    return;
+  }
+
+  // restore animation after first init
+  setTimeout(() => {
+    $repoCloneSsh.removeClass('no-transition');
+    $repoCloneHttps.removeClass('no-transition');
+  }, 100);
+
+  $repoCloneSsh.on('click', () => {
     localStorage.setItem('repo-clone-protocol', 'ssh');
+    window.updateCloneStates();
   });
-  $('#repo-clone-https').on('click', function () {
-    $('.clone-url').text($(this).data('link'));
-    $('#repo-clone-url').val($(this).data('link'));
-    $(this).addClass('primary');
-    if ($('#repo-clone-ssh').length > 0) {
-      $('#repo-clone-ssh').removeClass('primary');
-      localStorage.setItem('repo-clone-protocol', 'https');
-    }
+  $repoCloneHttps.on('click', () => {
+    localStorage.setItem('repo-clone-protocol', 'https');
+    window.updateCloneStates();
   });
-  $('#repo-clone-url').on('click', function () {
-    $(this).select();
+
+  $inputLink.on('focus', () => {
+    $inputLink.select();
   });
 }
 
@@ -78,14 +86,14 @@ export function initRepoCommonBranchOrTagDropdown(selector) {
 export function initRepoCommonFilterSearchDropdown(selector) {
   const $dropdown = $(selector);
   $dropdown.dropdown({
-    fullTextSearch: true,
+    fullTextSearch: 'exact',
     selectOnKeydown: false,
     onChange(_text, _value, $choice) {
-      if ($choice.data('url')) {
-        window.location.href = $choice.data('url');
+      if ($choice.attr('data-url')) {
+        window.location.href = $choice.attr('data-url');
       }
     },
-    message: {noResults: $dropdown.data('no-results')},
+    message: {noResults: $dropdown.attr('data-no-results')},
   });
 }
 
