@@ -376,15 +376,15 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
+		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
 			html := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 				if label == nil {
 					continue
 				}
-				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
-					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				html += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important'>%s</a> ",
+					repoLink, label.ID, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
 			}
 			html += "</span>"
 			return template.HTML(html)
