@@ -6,6 +6,7 @@ package git
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -15,6 +16,8 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 )
+
+var ErrBranchIsProtected = errors.New("branch is protected")
 
 // DeletedBranch struct
 type DeletedBranch struct {
@@ -149,7 +152,7 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 	}
 
 	// 2. Update protected branch if needed
-	protectedBranch, err := GetProtectedBranchBy(ctx, repo.ID, from)
+	protectedBranch, err := GetProtectedBranchRuleByName(ctx, repo.ID, from)
 	if err != nil {
 		return err
 	}
@@ -159,6 +162,14 @@ func RenameBranch(repo *repo_model.Repository, from, to string, gitAction func(i
 		_, err = sess.ID(protectedBranch.ID).Cols("branch_name").Update(protectedBranch)
 		if err != nil {
 			return err
+		}
+	} else {
+		protected, err := IsBranchProtected(repo.ID, from)
+		if err != nil {
+			return err
+		}
+		if protected {
+			return ErrBranchIsProtected
 		}
 	}
 

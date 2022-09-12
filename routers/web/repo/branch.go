@@ -100,7 +100,7 @@ func DeleteBranchPost(ctx *context.Context) {
 		case errors.Is(err, repo_service.ErrBranchIsDefault):
 			log.Debug("DeleteBranch: Can't delete default branch '%s'", branchName)
 			ctx.Flash.Error(ctx.Tr("repo.branch.default_deletion_failed", branchName))
-		case errors.Is(err, repo_service.ErrBranchIsProtected):
+		case errors.Is(err, git_model.ErrBranchIsProtected):
 			log.Debug("DeleteBranch: Can't delete protected branch '%s'", branchName)
 			ctx.Flash.Error(ctx.Tr("repo.branch.protected_deletion_failed", branchName))
 		default:

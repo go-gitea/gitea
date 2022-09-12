@@ -8,6 +8,8 @@ import (
 	"context"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git"
+	"github.com/gobwas/glob"
 )
 
 type ProtectedBranchRules []*ProtectedBranch
@@ -28,11 +30,37 @@ func FindRepoProtectedBranchRules(ctx context.Context, repoID int64) (ProtectedB
 	return rules, err
 }
 
+// FindAllMatchedBranches find all matched branches
+func FindAllMatchedBranches(ctx context.Context, gitRepo *git.Repository, ruleName string) ([]string, error) {
+	// FIXME: how many should we get?
+	branches, _, err := gitRepo.GetBranchNames(0, 9999999)
+	if err != nil {
+		return nil, err
+	}
+	rule := glob.MustCompile(ruleName)
+	results := make([]string, 0, len(branches))
+	for _, branch := range branches {
+		if rule.Match(branch) {
+			results = append(results, branch)
+		}
+	}
+	return results, nil
+}
+
 // GetFirstMatchProtectedBranchRule returns the first matched rules
-func GetFirstMatchProtectedBranchRule(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
+func GetFirstMatchProtectedBranchRule(ctx context.Context, repoID int64, branchName string) (*ProtectedBranch, error) {
 	rules, err := FindRepoProtectedBranchRules(ctx, repoID)
 	if err != nil {
 		return nil, err
 	}
-	return rules.GetFirstMatched(ruleName), nil
+	return rules.GetFirstMatched(branchName), nil
+}
+
+// IsBranchProtected checks if branch is protected
+func IsBranchProtected(repoID int64, branchName string) (bool, error) {
+	rule, err := GetFirstMatchProtectedBranchRule(db.DefaultContext, repoID, branchName)
+	if err != nil {
+		return false, err
+	}
+	return rule != nil, nil
 }

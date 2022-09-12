@@ -26,10 +26,11 @@ import (
 
 // ProtectedBranch struct
 type ProtectedBranch struct {
-	ID                            int64  `xorm:"pk autoincr"`
-	RepoID                        int64  `xorm:"UNIQUE(s)"`
-	BranchName                    string `xorm:"UNIQUE(s)"`
-	CanPush                       bool   `xorm:"NOT NULL DEFAULT false"`
+	ID                            int64     `xorm:"pk autoincr"`
+	RepoID                        int64     `xorm:"UNIQUE(s)"`
+	BranchName                    string    `xorm:"UNIQUE(s)"` // a branch name or a glob match to branch name
+	globRule                      glob.Glob `xorm:"-"`
+	CanPush                       bool      `xorm:"NOT NULL DEFAULT false"`
 	EnableWhitelist               bool
 	WhitelistUserIDs              []int64  `xorm:"JSON TEXT"`
 	WhitelistTeamIDs              []int64  `xorm:"JSON TEXT"`
@@ -64,7 +65,10 @@ func (protectBranch *ProtectedBranch) Match(branchName string) bool {
 	if strings.EqualFold(protectBranch.BranchName, branchName) {
 		return true
 	}
-	return glob.MustCompile(protectBranch.BranchName).Match(branchName)
+	if protectBranch.globRule == nil {
+		protectBranch.globRule = glob.MustCompile(protectBranch.BranchName)
+	}
+	return protectBranch.globRule.Match(branchName)
 }
 
 // CanUserPush returns if some user could push to this protected branch
@@ -234,9 +238,9 @@ func (protectBranch *ProtectedBranch) IsUnprotectedFile(patterns []glob.Glob, pa
 	return r
 }
 
-// GetProtectedBranchBy getting protected branch by ID/Name
-func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) (*ProtectedBranch, error) {
-	rel := &ProtectedBranch{RepoID: repoID, BranchName: branchName}
+// GetProtectedBranchRuleByName getting protected branch rule by name
+func GetProtectedBranchRuleByName(ctx context.Context, repoID int64, ruleName string) (*ProtectedBranch, error) {
+	rel := &ProtectedBranch{RepoID: repoID, BranchName: ruleName}
 	has, err := db.GetByBean(ctx, rel)
 	if err != nil {
 		return nil, err
@@ -247,7 +251,7 @@ func GetProtectedBranchBy(ctx context.Context, repoID int64, branchName string) 
 	return rel, nil
 }
 
-// GetProtectedBranchRuleByID getting protected branch by ID/Name
+// GetProtectedBranchRuleByID getting protected branch rule by rule ID
 func GetProtectedBranchRuleByID(ctx context.Context, repoID, ruleID int64) (*ProtectedBranch, error) {
 	rel := &ProtectedBranch{ID: ruleID, RepoID: repoID}
 	has, err := db.GetByBean(ctx, rel)
@@ -331,20 +335,6 @@ func UpdateProtectBranch(ctx context.Context, repo *repo_model.Repository, prote
 	}
 
 	return nil
-}
-
-// IsProtectedBranch checks if branch is protected
-func IsProtectedBranch(repoID int64, branchName string) (bool, error) {
-	protectedBranch := &ProtectedBranch{
-		RepoID:     repoID,
-		BranchName: branchName,
-	}
-
-	has, err := db.GetEngine(db.DefaultContext).Exist(protectedBranch)
-	if err != nil {
-		return true, err
-	}
-	return has, nil
 }
 
 // updateApprovalWhitelist checks whether the user whitelist changed and returns a whitelist with

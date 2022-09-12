@@ -252,10 +252,20 @@ func SettingsProtectedBranchPost(ctx *context.Context) {
 		ctx.ServerError("UpdateProtectBranch", err)
 		return
 	}
-	if err = pull_service.CheckPrsForBaseBranch(ctx.Repo.Repository, protectBranch.BranchName); err != nil {
-		ctx.ServerError("CheckPrsForBaseBranch", err)
+
+	// FIXME: since we only need to recheck files protected rules, we could improve this
+	matchedBranches, err := git_model.FindAllMatchedBranches(ctx, ctx.Repo.GitRepo, protectBranch.BranchName)
+	if err != nil {
+		ctx.ServerError("FindAllMatchedBranches", err)
 		return
 	}
+	for _, branchName := range matchedBranches {
+		if err = pull_service.CheckPRsForBaseBranch(ctx.Repo.Repository, branchName); err != nil {
+			ctx.ServerError("CheckPRsForBaseBranch", err)
+			return
+		}
+	}
+
 	ctx.Flash.Success(ctx.Tr("repo.settings.update_protect_branch_success", protectBranch.BranchName))
 	ctx.Redirect(fmt.Sprintf("%s/settings/branches/%d", ctx.Repo.RepoLink, protectBranch.ID))
 }
