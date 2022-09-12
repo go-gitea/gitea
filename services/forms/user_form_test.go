@@ -9,13 +9,29 @@ import (
 
 	"code.gitea.io/gitea/modules/setting"
 
+	"github.com/gobwas/glob"
 	"github.com/stretchr/testify/assert"
 )
+
+// BuildEmailGlobs takes in an array of strings and
+// builds an array of compiled globs used to do
+// pattern matching in IsEmailDomainAllowed. A compiled list
+func BuildEmailGlobs(list []string) []glob.Glob {
+	var EmailList []glob.Glob
+
+	for _, s := range list {
+		if g, err := glob.Compile(s); err == nil {
+			EmailList = append(EmailList, g)
+		}
+	}
+
+	return EmailList
+}
 
 func TestRegisterForm_IsDomainAllowed_Empty(t *testing.T) {
 	_ = setting.Service
 
-	setting.Service.EmailDomainWhitelist = []string{}
+	setting.Service.EmailDomainWhitelist = BuildEmailGlobs([]string{})
 
 	form := RegisterForm{}
 
@@ -25,7 +41,7 @@ func TestRegisterForm_IsDomainAllowed_Empty(t *testing.T) {
 func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 	_ = setting.Service
 
-	setting.Service.EmailDomainWhitelist = []string{"gitea.io"}
+	setting.Service.EmailDomainWhitelist = BuildEmailGlobs([]string{"gitea.io"})
 
 	tt := []struct {
 		email string
@@ -44,7 +60,7 @@ func TestRegisterForm_IsDomainAllowed_InvalidEmail(t *testing.T) {
 func TestRegisterForm_IsDomainAllowed_WhitelistedEmail(t *testing.T) {
 	_ = setting.Service
 
-	setting.Service.EmailDomainWhitelist = []string{"gitea.io", "*.gov"}
+	setting.Service.EmailDomainWhitelist = BuildEmailGlobs([]string{"gitea.io", "*.gov"})
 
 	tt := []struct {
 		email string
@@ -67,8 +83,8 @@ func TestRegisterForm_IsDomainAllowed_WhitelistedEmail(t *testing.T) {
 func TestRegisterForm_IsDomainAllowed_BlocklistedEmail(t *testing.T) {
 	_ = setting.Service
 
-	setting.Service.EmailDomainWhitelist = []string{}
-	setting.Service.EmailDomainBlocklist = []string{"gitea.io", "*.gov"}
+	setting.Service.EmailDomainWhitelist = BuildEmailGlobs([]string{})
+	setting.Service.EmailDomainBlocklist = BuildEmailGlobs([]string{"gitea.io", "*.gov"})
 
 	tt := []struct {
 		email string
