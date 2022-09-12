@@ -35,6 +35,7 @@ MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
+GOVULNCHECK_PACKAGE ?= golang.org/x/vuln/cmd/govulncheck@latest
 
 DOCKER_IMAGE ?= gitea/gitea
 DOCKER_TAG ?= latest
@@ -210,7 +211,7 @@ help:
 	@echo " - golangci-lint                    run golangci-lint linter"
 	@echo " - go-licenses                      regenerate go licenses"
 	@echo " - vet                              examines Go source code and reports suspicious constructs"
-	@echo " - tidy                             run go mod tidy and regenerate go licenses"
+	@echo " - tidy                             run go mod tidy"
 	@echo " - test[\#TestSpecificName]    	    run unit test"
 	@echo " - test-sqlite[\#TestSpecificName]  run integration test for sqlite"
 	@echo " - pr#<index>                       build and start gitea from a PR with integration test data loaded"
@@ -406,9 +407,9 @@ tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
 
-.PHONY: vendor
-vendor: tidy
+vendor: go.mod go.sum
 	$(GO) mod vendor
+	@touch vendor
 
 .PHONY: tidy-check
 tidy-check: tidy
@@ -420,9 +421,9 @@ tidy-check: tidy
 	fi
 
 .PHONY: go-licenses
-go-licenses: assets/go-licenses.json
+go-licenses: $(GO_LICENSE_FILE)
 
-assets/go-licenses.json: go.mod go.sum
+$(GO_LICENSE_FILE): go.mod go.sum
 	-$(GO) run $(GO_LICENSES_PACKAGE) save . --force --save_path=$(GO_LICENSE_TMP_DIR) 2>/dev/null
 	$(GO) run build/generate-go-licenses.go $(GO_LICENSE_TMP_DIR) $(GO_LICENSE_FILE)
 	@rm -rf $(GO_LICENSE_TMP_DIR)
@@ -717,15 +718,20 @@ backend: go-check generate-backend $(EXECUTABLE)
 .PHONY: generate
 generate: generate-backend generate-frontend
 
+.PHONY: generate-frontend
+generate-frontend: $(GO_LICENSE_FILE)
+
 .PHONY: generate-backend
 generate-backend: $(TAGS_PREREQ) generate-go
 
+.PHONY: generate-go
 generate-go: $(TAGS_PREREQ)
 	@echo "Running go generate..."
 	@CC= GOOS= GOARCH= $(GO) generate -tags '$(TAGS)' $(GO_PACKAGES)
 
-.PHONY: generate-frontend
-generate-frontend: $(TAGS_PREREQ) go-licenses
+.PHONY: security-check
+security-check:
+	govulncheck -v ./...
 
 $(EXECUTABLE): $(GO_SOURCES) $(TAGS_PREREQ)
 	CGO_CFLAGS="$(CGO_CFLAGS)" $(GO) build $(GOFLAGS) $(EXTRA_GOFLAGS) -tags '$(TAGS)' -ldflags '-s -w $(LDFLAGS)' -o $@
@@ -812,6 +818,7 @@ deps-backend:
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
+	$(GO) install $(GOVULNCHECK_PACKAGE)
 
 node_modules: package-lock.json
 	npm install --no-save
