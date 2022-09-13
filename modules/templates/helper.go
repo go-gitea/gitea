@@ -383,8 +383,8 @@ func NewFuncMap() []template.FuncMap {
 				if label == nil {
 					continue
 				}
-				html += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important'>%s</a> ",
-					repoLink, label.ID, label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				html += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
+					repoLink, label.ID, label.ForegroundColor(), label.Color, label.Description, RenderEmoji(label.Name))
 			}
 			html += "</span>"
 			return template.HTML(html)
