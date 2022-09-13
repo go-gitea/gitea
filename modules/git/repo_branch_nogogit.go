@@ -63,7 +63,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // GetBranchNames returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "refs/heads --sort=-committerdate", skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, BranchPrefix + " --sort=-committerdate", skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
@@ -77,9 +77,9 @@ func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walk
 	var arg string
 	switch refType {
 	case ObjectTag:
-		arg = "refs/tags --sort=-taggerdate"
+		arg = TagPrefix + " --sort=-taggerdate"
 	case ObjectBranch:
-		arg = "refs/heads --sort=-committerdate"
+		arg = BranchPrefix + " --sort=-committerdate"
 	default:
 		arg = ""
 	}
