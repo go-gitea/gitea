@@ -692,7 +692,7 @@ func GetRepositoryByURL(repoURL string) (*Repository, error) {
 
 	pathSegments := getRepositoryURLPathSegments(repoURL)
 
-	if len(pathSegments) < 2 {
+	if len(pathSegments) != 2 {
 		return nil, fmt.Errorf("unknown or malformed repository URL")
 	}
 
