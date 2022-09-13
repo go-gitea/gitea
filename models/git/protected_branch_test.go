@@ -1,0 +1,49 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package git
+
+import (
+	"fmt"
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
+
+func TestBranchRuleMatch(t *testing.T) {
+	kases := []struct {
+		Rule          string
+		BranchName    string
+		ExpectedMatch bool
+	}{
+		{
+			Rule:          "release/**",
+			BranchName:    "release/v1.17",
+			ExpectedMatch: true,
+		},
+		{
+			Rule:          "release/v*",
+			BranchName:    "release/v1.16",
+			ExpectedMatch: true,
+		},
+		{
+			Rule:          "*",
+			BranchName:    "release/v1.16",
+			ExpectedMatch: false,
+		},
+	}
+
+	for _, kase := range kases {
+		pb := ProtectedBranch{BranchName: kase.Rule}
+		var should, infact string
+		if !kase.ExpectedMatch {
+			should = " not"
+		} else {
+			infact = " not"
+		}
+		assert.EqualValues(t, kase.ExpectedMatch, pb.Match(kase.BranchName),
+			fmt.Sprintf("%s should%s match %s but it is%s", kase.BranchName, should, kase.Rule, infact),
+		)
+	}
+}
