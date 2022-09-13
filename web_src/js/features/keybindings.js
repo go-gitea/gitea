@@ -1,14 +1,15 @@
+import hotkeys from 'hotkeys-js';
 import $ from 'jquery';
 
-let keysDown = {}
-
 function isBindingPressed(binding) {
-  if (Object.keys(keysDown).length != binding.length) {
+  let pressed = hotkeys.getPressedKeyString();
+
+  if (pressed.length != binding.length) {
     return false;
   }
 
   for (let i = 0; i < binding.length; i++) {
-    if (!keysDown[binding[i]]) {
+    if (!pressed.includes(binding[i])) {
       return false;
     }
   }
@@ -19,18 +20,19 @@ function isBindingPressed(binding) {
 function checkKeybindings() {
   $("[keybinding-shortcut]").each(function(_, element) {
     if (isBindingPressed(element.getAttribute("keybinding-shortcut").split("+"))) {
-      element.focus();
       element.click();
+      element.focus();
     }
   });
 }
 
 export function initKeybindings() {
   $(window).on('keydown', (event) => {
-    keysDown[event.key] = true;
+    if (!event.originalEvent.repeat) {
+      checkKeybindings();
+    }
   })
-  $(window).on('keyup', (event) => {
-    checkKeybindings();
-    delete keysDown[event.key];
+  hotkeys('', function(){
+    // This is needed to make hotkeys-js work
   })
 }
