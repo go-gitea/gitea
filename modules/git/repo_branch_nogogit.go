@@ -63,7 +63,7 @@ func (repo *Repository) IsBranchExist(name string) bool {
 // GetBranchNames returns branches from the repository, skipping skip initial branches and
 // returning at most limit branches, or all branches if limit is 0.
 func (repo *Repository) GetBranchNames(skip, limit int) ([]string, int, error) {
-	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, "--heads", skip, limit)
+	return callShowRef(repo.Ctx, repo.Path, BranchPrefix, BranchPrefix+" --sort=-committerdate", skip, limit)
 }
 
 // WalkReferences walks all the references from the repository
@@ -77,9 +77,9 @@ func (repo *Repository) WalkReferences(refType ObjectType, skip, limit int, walk
 	var arg string
 	switch refType {
 	case ObjectTag:
-		arg = "--tags"
+		arg = TagPrefix + " --sort=-taggerdate"
 	case ObjectBranch:
-		arg = "--heads"
+		arg = BranchPrefix + " --sort=-committerdate"
 	default:
 		arg = ""
 	}
@@ -107,9 +107,9 @@ func walkShowRef(ctx context.Context, repoPath, arg string, skip, limit int, wal
 
 	go func() {
 		stderrBuilder := &strings.Builder{}
-		args := []string{"show-ref"}
+		args := []string{"for-each-ref", "--format=%(objectname) %(refname)"}
 		if arg != "" {
-			args = append(args, arg)
+			args = append(args, strings.Fields(arg)...)
 		}
 		err := NewCommand(ctx, args...).Run(&RunOpts{
 			Dir:    repoPath,
