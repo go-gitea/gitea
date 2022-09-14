@@ -374,6 +374,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
+	if ctx.Repo.TreePath == ".editorconfig" {
+		_, editorconfigErr := ctx.Repo.GetEditorconfig()
+		ctx.Data["FileError"] = editorconfigErr
+	}
+
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
 	buf = buf[:n]

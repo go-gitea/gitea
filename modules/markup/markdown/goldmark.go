@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
-	meta "github.com/yuin/goldmark-meta"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -32,20 +31,12 @@ type ASTTransformer struct{}
 
 // Transform transforms the given AST tree.
 func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc parser.Context) {
-	metaData := meta.GetItems(pc)
 	firstChild := node.FirstChild()
 	createTOC := false
 	ctx := pc.Get(renderContextKey).(*markup.RenderContext)
-	rc := &RenderConfig{
-		Meta: "table",
-		Icon: "table",
-		Lang: "",
-	}
-
-	if metaData != nil {
-		rc.ToRenderConfig(metaData)
-
-		metaNode := rc.toMetaNode(metaData)
+	rc := pc.Get(renderConfigKey).(*RenderConfig)
+	if rc.yamlNode != nil {
+		metaNode := rc.toMetaNode()
 		if metaNode != nil {
 			node.InsertBefore(node, firstChild, metaNode)
 		}
