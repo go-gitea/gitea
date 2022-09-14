@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"testing"
 
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -29,16 +30,18 @@ func TestMigrateLocalPath(t *testing.T) {
 	old := setting.ImportLocalPaths
 	setting.ImportLocalPaths = true
 
-	lowercasePath, err := os.MkdirTemp("", "lowercase") // may not be lowercase because MkdirTemp creates a random directory name which may be mixedcase
+	basePath := t.TempDir()
+
+	lowercasePath := filepath.Join(basePath, "lowercase")
+	err := os.Mkdir(lowercasePath, 0o700)
 	assert.NoError(t, err)
-	defer os.RemoveAll(lowercasePath)
 
 	err = migrations.IsMigrateURLAllowed(lowercasePath, adminUser)
 	assert.NoError(t, err, "case lowercase path")
 
-	mixedcasePath, err := os.MkdirTemp("", "mIxeDCaSe")
+	mixedcasePath := filepath.Join(basePath, "mIxeDCaSe")
+	err = os.Mkdir(mixedcasePath, 0o700)
 	assert.NoError(t, err)
-	defer os.RemoveAll(mixedcasePath)
 
 	err = migrations.IsMigrateURLAllowed(mixedcasePath, adminUser)
 	assert.NoError(t, err, "case mixedcase path")

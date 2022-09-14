@@ -5,7 +5,6 @@
 package wiki
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -13,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -273,15 +271,9 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := os.MkdirTemp("", "empty-wiki")
-	assert.NoError(t, err)
-	defer func() {
-		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = util.RemoveAll(tmpDir)
-		}
-	}()
+	tmpDir := t.TempDir()
 
-	err = git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)
