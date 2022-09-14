@@ -62,7 +62,7 @@ Gitea 支持两种格式的模板：Markdown 和 YAML。
 - `.gitea/ISSUE_TEMPLATE.yml`
 - `.gitea/issue_template.md`
 - `.gitea/issue_template.yaml`
-- `.gitea/issue_template.md`
+- `.gitea/issue_template.yml`
 - `.github/ISSUE_TEMPLATE.md`
 - `.github/ISSUE_TEMPLATE.yaml`
 - `.github/ISSUE_TEMPLATE.yml`
