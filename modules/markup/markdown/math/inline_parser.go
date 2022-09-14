@@ -59,20 +59,29 @@ func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.
 	}
 
 	opener += len(parser.start)
-	ender := bytes.Index(line[opener:], parser.end)
-	if ender < 0 {
-		return nil
-	}
-	if len(line) > opener+ender+len(parser.end) && isAlphanumeric(line[opener+ender+len(parser.end)]) {
-		return nil
+	ender := opener
+	for pos := opener; pos < len(line); {
+		ender = bytes.Index(line[pos:], parser.end)
+		if ender < 0 {
+			return nil
+		}
+
+		ender += pos
+		pos += len(parser.end)
+		if len(line) <= pos {
+			break
+		}
+		if !isAlphanumeric(line[pos]) {
+			break
+		}
 	}
 
 	block.Advance(opener)
 	_, pos := block.Position()
 	node := NewInline()
-	segment := pos.WithStop(pos.Start + ender)
+	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
-	block.Advance(ender + len(parser.end))
+	block.Advance(ender - opener + len(parser.end))
 
 	trimBlock(node, block)
 	return node
