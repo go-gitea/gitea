@@ -74,7 +74,7 @@ export function initRepoCommentForm() {
         continue;
       }
       const easyMDE = await createCommentEasyMDE(textarea);
-      initEasyMDEImagePaste(easyMDE, $commentForm.find('.dropzone'));
+      initEasyMDEFilePaste(easyMDE, $commentForm.find('.dropzone'));
     }
   })();
 
