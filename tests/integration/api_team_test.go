@@ -240,6 +240,8 @@ func TestAPITeamSearch(t *testing.T) {
 	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
 	token29 := getUserToken(t, user29.Name)
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token29)
+	resp = MakeRequest(t, req, http.StatusOK)
+	DecodeJSON(t, resp, &results)
 	assert.NotEmpty(t, results.Data)
 	assert.Len(t, results.Data, 1)
 	assert.Equal(t, "test_team", results.Data[0].Name)
