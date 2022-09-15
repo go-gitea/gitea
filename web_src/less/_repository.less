@@ -846,8 +846,8 @@
           display: none;
         }
 
-        .avatar.image,
-        .avatar.image img {
+        img.avatar,
+        .avatar img {
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
@@ -908,8 +908,8 @@
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
             clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
-            > .avatar.image,
-            > .avatar.image img {
+            > img.avatar,
+            > .avatar img {
               position: relative;
               top: -2px;
             }
@@ -1125,7 +1125,7 @@
           margin-left: 36px;
         }
 
-        .avatar.image {
+        img.avatar {
           width: 28px;
           height: 28px;
         }
@@ -2497,7 +2497,7 @@
 #search-user-box {
   .results {
     .result {
-      .image {
+      img {
         float: left;
         margin-right: 8px;
         width: 2em;
@@ -3305,7 +3305,7 @@ td.blob-excerpt {
         display: flex;
         margin-bottom: auto;
 
-        img.avatar.image {
+        img.avatar {
           height: 24px;
           width: 24px;
         }
