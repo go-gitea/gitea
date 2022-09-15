@@ -113,6 +113,8 @@ func BuildEmailGlobs(list []string) []glob.Glob {
 	for _, s := range list {
 		if g, err := glob.Compile(s); err == nil {
 			EmailList = append(EmailList, g)
+		} else {
+			log.Error("glob.Compile %s failed: %v", s, err)
 		}
 	}
 
