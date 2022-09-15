@@ -11,7 +11,7 @@
 				{{if $canAddRemove}}
 					<div class="ui attached segment" id="repo-top-segment">
 						<div class="inline ui field left">
-							<form class="ui form" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
+							<form class="ui form ignore-dirty" id="add-repo-form" action="{{$.OrgLink}}/teams/{{$.Team.LowerName | PathEscape}}/action/repo/add" method="post">
 								{{.CsrfTokenHtml}}
 								<div class="inline field ui left">
 									<div id="search-repo-box" data-uid="{{.Org.ID}}" class="ui search">
