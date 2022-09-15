@@ -236,10 +236,17 @@ func TestAPITeamSearch(t *testing.T) {
 	assert.Len(t, results.Data, 1)
 	assert.Equal(t, "test_team", results.Data[0].Name)
 
+	// access if org member but not team member
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29})
+	token29 := getUserToken(t, user29.Name)
+	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token29)
+	assert.NotEmpty(t, results.Data)
+	assert.Len(t, results.Data, 1)
+	assert.Equal(t, "test_team", results.Data[0].Name)
+
 	// no access if not organization member
 	user5 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
 	token5 := getUserToken(t, user5.Name)
-
 	req = NewRequestf(t, "GET", "/api/v1/orgs/%s/teams/search?q=%s&token=%s", org.Name, "team", token5)
 	MakeRequest(t, req, http.StatusForbidden)
 }
