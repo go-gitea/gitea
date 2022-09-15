@@ -417,8 +417,23 @@ func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 }
 
 // ToChangedFile convert a gitdiff.DiffFile to api.ChangedFile
-func ToChangedFile(f *gitdiff.DiffFile) *api.ChangedFile {
-	return &api.ChangedFile{
-		Filename: f.Name,
+func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit string) *api.ChangedFile {
+	status := "changed"
+	if f.IsDeleted {
+		status = "deleted"
 	}
+	file := &api.ChangedFile{
+		NameHash:  f.NameHash,
+		Filename:  f.Name,
+		Status:    status,
+		Additions: f.Addition,
+		Deletions: f.Deletion,
+	}
+
+	if f.Name != "" {
+		file.HTMLURL = fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", f.GetDiffFileName())
+		file.ContentsURL = fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", f.GetDiffFileName())
+	}
+
+	return file
 }

@@ -1350,6 +1350,15 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: skip-to
+	//   in: query
+	//   description: skip to given file
+	//   type: string
+	// - name: whitespace
+	//   in: query
+	//   description: whitespace behavior
+	//   type: string
+	//   enum: [ignore-all, ignore-change, ignore-eol, show-all]
 	// - name: page
 	//   in: query
 	//   description: page number of results to return (1-based)
@@ -1364,9 +1373,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 	//   "404":
 	//     "$ref": "#/responses/notFound"
 
-	pr, err := models.GetPullRequestByIndex(ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
+	pr, err := issues_model.GetPullRequestByIndex(ctx, ctx.Repo.Repository.ID, ctx.ParamsInt64(":index"))
 	if err != nil {
-		if models.IsErrPullRequestNotExist(err) {
+		if issues_model.IsErrPullRequestNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "GetPullRequestByIndex", err)
@@ -1379,13 +1388,9 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	baseGitRepo := ctx.Repo.GitRepo
+
 	var prInfo *git.CompareInfo
-	baseGitRepo, err := git.OpenRepository(pr.BaseRepo.RepoPath())
-	if err != nil {
-		ctx.ServerError("OpenRepository", err)
-		return
-	}
-	defer baseGitRepo.Close()
 	if pr.HasMerged {
 		prInfo, err = baseGitRepo.GetCompareInfo(pr.BaseRepo.RepoPath(), pr.MergeBase, pr.GetGitRefName(), true, false)
 	} else {
@@ -1415,10 +1420,10 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 			MaxLines:           maxLines,
 			MaxLineCharacters:  setting.Git.MaxGitDiffLineCharacters,
 			MaxFiles:           maxFiles,
-			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.Data["WhitespaceBehavior"].(string)),
+			WhitespaceBehavior: gitdiff.GetWhitespaceFlag(ctx.FormString("whitespace")),
 		}, ctx.FormStrings("files")...)
 	if err != nil {
-		ctx.ServerError("GetDiffRangeWithWhitespaceBehavior", err)
+		ctx.ServerError("GetDiff", err)
 		return
 	}
 
@@ -1435,8 +1440,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	apiFiles := make([]*api.ChangedFile, 0, end-start)
 	for i := start; i < end; i++ {
-		apiFile := convert.ToChangedFile(diff.Files[i])
-		apiFiles = append(apiFiles, apiFile)
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], ctx.Repo.Repository, endCommitID))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
