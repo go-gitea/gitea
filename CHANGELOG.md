@@ -2994,7 +2994,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix missing updated time on migrated issues and comments (#9744) (#9764)
   * Move Errored PRs out of StatusChecking (#9675) (#9726)
   * Make hook status printing configurable with delay (#9641) (#9725)
-  * ​Fix /repos​/issues​/search (#9698) (#9724)
+  * Fix /repos/issues/search (#9698) (#9724)
   * Silence fomantic error regarding tabs (#9713) (#9718)
   * Remove unused lock (#9709) (#9710)
   * Remove q.lock.Unlock() in setInternal to prevent panic (#9705) (#9706)
