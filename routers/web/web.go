@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"time"
 
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/unit"
@@ -51,6 +52,7 @@ import (
 	"github.com/NYTimes/gziphandler"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/go-chi/httprate"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -352,8 +354,13 @@ func RegisterRoutes(m *web.Route) {
 					Post(bindIgnErr(forms.SignUpOpenIDForm{}), auth.RegisterOpenIDPost)
 			}, openIDSignUpEnabled)
 		}, openIDSignInEnabled)
-		m.Get("/sign_up", auth.SignUp)
-		m.Post("/sign_up", bindIgnErr(forms.RegisterForm{}), auth.SignUpPost)
+
+		m.Group("/sign_up", func() {
+			m.Use(httprate.LimitByIP(10, 1*time.Minute))
+			m.Get("", auth.SignUp)
+			m.Post("", bindIgnErr(forms.RegisterForm{}), auth.SignUpPost)
+		})
+
 		m.Get("/link_account", linkAccountEnabled, auth.LinkAccount)
 		m.Post("/link_account_signin", linkAccountEnabled, bindIgnErr(forms.SignInForm{}), auth.LinkAccountPostSignIn)
 		m.Post("/link_account_signup", linkAccountEnabled, bindIgnErr(forms.RegisterForm{}), auth.LinkAccountPostRegister)
