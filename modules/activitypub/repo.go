@@ -7,6 +7,7 @@ package activitypub
 import (
 	"context"
 
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/forgefed"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -20,7 +21,12 @@ func FederatedRepoNew(ctx context.Context, repository *forgefed.Repository) erro
 		return err
 	}
 
-	// TODO: Check if repo already exists
+	_, err = repo_model.GetRepositoryByOwnerAndNameCtx(ctx, user.Name, repository.Name.String())
+	if err == nil {
+		return nil
+	}
+	
+
 	repo, err := repo_service.CreateRepository(user, user, repo_module.CreateRepoOptions{
 		Name: repository.Name.String(),
 	})

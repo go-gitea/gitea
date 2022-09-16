@@ -58,7 +58,7 @@ func ReceiveFork(ctx context.Context, create ap.Create) error {
 	}
 
 	// Don't create an actual copy of the remote repo!
-	// https://gitea.com/Ta180m/gitea/issues/7
+	// https://gitea.com/xy/gitea/issues/7
 
 	// Create the fork
 	repoIRI := repository.GetLink()
