@@ -42,11 +42,11 @@
 				{{end}}
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{$.locale.Tr "repo.repo_desc"}}</label>
-					<textarea id="description" name="description" rows="2">{{.Repository.Description}}</textarea>
+					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "repo.settings.site"}}</label>
-					<input id="website" name="website" type="url" value="{{.Repository.Website}}">
+					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
 
 				<div class="field">
