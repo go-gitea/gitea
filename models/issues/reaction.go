@@ -181,6 +181,10 @@ func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 		Reaction:  opts.Type,
 		UserID:    opts.DoerID,
 	}
+	if findOpts.CommentID == 0 {
+		// explicit search of Issue Reactions where CommentID = 0
+		findOpts.CommentID = -1
+	}
 
 	existingR, _, err := FindReactions(ctx, findOpts)
 	if err != nil {
