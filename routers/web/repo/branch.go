@@ -427,5 +427,5 @@ func CreateBranch(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName) + "/" + util.PathEscapeSegments(form.CurrentPath))
 }
