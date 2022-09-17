@@ -153,7 +153,7 @@
 									{{if $isImage}}
 										{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
 									{{else}}
-										{{template "repo/diff/csv_diff" dict "file" . "root" $}}
+										{{template "repo/diff/csv_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
 									{{end}}
 								</table>
 							</div>
