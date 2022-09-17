@@ -102,6 +102,9 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	if err := util.Rename(tmp.Name(), p); err != nil {
 		return 0, err
 	}
+	if err := os.Chmod(p, 0o640); err != nil {
+		return 0, err
+	}
 
 	tmpRemoved = true
 
