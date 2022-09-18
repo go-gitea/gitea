@@ -273,7 +273,7 @@ type swaggerChangedFileList struct {
 	HasMore bool `json:"X-HasMore"`
 
 	// in: body
-	Files []api.ChangedFile `json:"files"`
+	Body []api.ChangedFile `json:"body"`
 }
 
 // Note

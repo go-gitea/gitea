@@ -8053,6 +8053,24 @@
             "required": true
           },
           {
+            "type": "string",
+            "description": "skip to given file",
+            "name": "skip-to",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "ignore-all",
+              "ignore-change",
+              "ignore-eol",
+              "show-all"
+            ],
+            "type": "string",
+            "description": "whitespace behavior",
+            "name": "whitespace",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -13775,9 +13793,35 @@
       "description": "ChangedFile store information about files affected by the pull request",
       "type": "object",
       "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "contents_url": {
+          "type": "string",
+          "x-go-name": "ContentsURL"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
         "filename": {
           "type": "string",
           "x-go-name": "Filename"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "name_hash": {
+          "type": "string",
+          "x-go-name": "NameHash"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
         }
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
