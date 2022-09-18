@@ -352,13 +352,17 @@ func setPackageTag(tag string, pv *packages_model.PackageVersion, deleteOnly boo
 }
 
 func PackageSearch(ctx *context.Context) {
-	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
+	pvs, total, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
 		OwnerID: ctx.Package.Owner.ID,
 		Type:    packages_model.TypeNpm,
 		Name: packages_model.SearchValue{
 			ExactMatch: false,
-			Value:      ctx.Req.URL.Query().Get("text"),
+			Value:      ctx.FormTrim("text"),
 		},
+		Paginator: db.NewAbsoluteListOptions(
+			ctx.FormInt("from"),
+			ctx.FormInt("size"),
+		),
 	})
 	if err != nil {
 		apiError(ctx, http.StatusInternalServerError, err)
@@ -372,8 +376,8 @@ func PackageSearch(ctx *context.Context) {
 	}
 
 	resp := createPackageSearchResponse(
-		setting.AppURL+"api/packages/"+ctx.Package.Owner.Name+"/npm",
 		pds,
+		total,
 	)
 
 	ctx.JSON(http.StatusOK, resp)

@@ -98,8 +98,7 @@ type PackageDistribution struct {
 
 type PackageSearch struct {
 	Objects []*PackageSearchObject `json:"objects"`
-	Total   int                    `json:"total"`
-	Time    map[string]time.Time   `json:"time,omitempty"`
+	Total   int64                  `json:"total"`
 }
 
 type PackageSearchObject struct {
@@ -107,11 +106,16 @@ type PackageSearchObject struct {
 }
 
 type PackageSearchPackage struct {
+	Scope       string                     `json:"scope"`
 	Name        string                     `json:"name"`
 	Version     string                     `json:"version"`
+	Date        time.Time                  `json:"date"`
 	Description string                     `json:"description"`
+	Author      User                       `json:"author"`
+	Publisher   User                       `json:"publisher"`
+	Maintainers []User                     `json:"maintainers"`
+	Keywords    []string                   `json:"keywords,omitempty"`
 	Links       *PackageSearchPackageLinks `json:"links"`
-	Maintainers []User                     `json:"maintainers,omitempty"`
 }
 
 type PackageSearchPackageLinks struct {

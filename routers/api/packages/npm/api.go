@@ -75,31 +75,37 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 	}
 }
 
-func createPackageSearchResponse(registryURL string, pds []*packages_model.PackageDescriptor) *npm_module.PackageSearch {
-	versions := make([]*npm_module.PackageSearchObject, len(pds))
-	for i := range pds {
-		pd := pds[i]
-		metadata := createPackageMetadataVersion(registryURL, pd)
+func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
+	objects := make([]*npm_module.PackageSearchObject, 0, len(pds))
+	for _, pd := range pds {
+		metadata := pd.Metadata.(*npm_module.Metadata)
 
-		pkg := &npm_module.PackageSearchPackage{
-			Name:        pd.Package.Name,
-			Version:     pd.Version.Version,
-			Description: metadata.Description,
-			Links: &npm_module.PackageSearchPackageLinks{
-				Registry:   registryURL,
-				Homepage:   metadata.Homepage,
-				Repository: metadata.Repository.URL,
+		scope := metadata.Scope
+		if scope == "" {
+			scope = "unscoped"
+		}
+
+		objects = append(objects, &npm_module.PackageSearchObject{
+			Package: &npm_module.PackageSearchPackage{
+				Scope:       scope,
+				Name:        metadata.Name,
+				Version:     pd.Version.Version,
+				Date:        pd.Version.CreatedUnix.AsLocalTime(),
+				Description: metadata.Description,
+				Author:      npm_module.User{Name: metadata.Author},
+				Publisher:   npm_module.User{Name: pd.Owner.Name},
+				Maintainers: []npm_module.User{}, // npm cli needs this field
+				Keywords:    metadata.Keywords,
+				Links: &npm_module.PackageSearchPackageLinks{
+					Registry: pd.FullWebLink(),
+					Homepage: metadata.ProjectURL,
+				},
 			},
-			Maintainers: metadata.Maintainers,
-		}
-
-		versions[i] = &npm_module.PackageSearchObject{
-			Package: pkg,
-		}
+		})
 	}
 
 	return &npm_module.PackageSearch{
-		Objects: versions,
-		Total:   len(versions),
+		Objects: objects,
+		Total:   total,
 	}
 }
