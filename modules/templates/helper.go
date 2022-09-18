@@ -24,7 +24,7 @@ import (
 	"time"
 	"unicode"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/avatars"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
@@ -80,6 +80,9 @@ func NewFuncMap() []template.FuncMap {
 		},
 		"AppDomain": func() string {
 			return setting.Domain
+		},
+		"AssetVersion": func() string {
+			return setting.AssetVersion
 		},
 		"DisableGravatar": func() bool {
 			return setting.DisableGravatar
@@ -150,7 +153,6 @@ func NewFuncMap() []template.FuncMap {
 		"DiffTypeToStr":                  DiffTypeToStr,
 		"DiffLineTypeToStr":              DiffLineTypeToStr,
 		"ShortSha":                       base.ShortSha,
-		"MD5":                            base.EncodeMD5,
 		"ActionContent2Commits":          ActionContent2Commits,
 		"PathEscape":                     url.PathEscape,
 		"PathEscapeSegments":             util.PathEscapeSegments,
@@ -374,18 +376,18 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
-			html := `<span class="labels-list">`
+		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
+			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 				if label == nil {
 					continue
 				}
-				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
-					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
+					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
 			}
-			html += "</span>"
-			return template.HTML(html)
+			htmlCode += "</span>"
+			return template.HTML(htmlCode)
 		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
@@ -453,6 +455,7 @@ func NewFuncMap() []template.FuncMap {
 			}
 			return items
 		},
+		"HasPrefix": strings.HasPrefix,
 	}}
 }
 
@@ -628,7 +631,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -652,14 +655,14 @@ func Avatar(item interface{}, others ...interface{}) template.HTML {
 }
 
 // AvatarByAction renders user avatars from action. args: action, size (int), class (string)
-func AvatarByAction(action *models.Action, others ...interface{}) template.HTML {
+func AvatarByAction(action *activities_model.Action, others ...interface{}) template.HTML {
 	action.LoadActUser()
 	return Avatar(action.ActUser, others...)
 }
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -670,7 +673,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {
@@ -851,7 +854,7 @@ func IsMultilineCommitMessage(msg string) bool {
 
 // Actioner describes an action
 type Actioner interface {
-	GetOpType() models.ActionType
+	GetOpType() activities_model.ActionType
 	GetActUserName() string
 	GetRepoUserName() string
 	GetRepoName() string
@@ -864,33 +867,33 @@ type Actioner interface {
 }
 
 // ActionIcon accepts an action operation type and returns an icon class name.
-func ActionIcon(opType models.ActionType) string {
+func ActionIcon(opType activities_model.ActionType) string {
 	switch opType {
-	case models.ActionCreateRepo, models.ActionTransferRepo, models.ActionRenameRepo:
+	case activities_model.ActionCreateRepo, activities_model.ActionTransferRepo, activities_model.ActionRenameRepo:
 		return "repo"
-	case models.ActionCommitRepo, models.ActionPushTag, models.ActionDeleteTag, models.ActionDeleteBranch:
+	case activities_model.ActionCommitRepo, activities_model.ActionPushTag, activities_model.ActionDeleteTag, activities_model.ActionDeleteBranch:
 		return "git-commit"
-	case models.ActionCreateIssue:
+	case activities_model.ActionCreateIssue:
 		return "issue-opened"
-	case models.ActionCreatePullRequest:
+	case activities_model.ActionCreatePullRequest:
 		return "git-pull-request"
-	case models.ActionCommentIssue, models.ActionCommentPull:
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		return "comment-discussion"
-	case models.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest:
 		return "git-merge"
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
+	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		return "issue-closed"
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		return "issue-reopened"
-	case models.ActionMirrorSyncPush, models.ActionMirrorSyncCreate, models.ActionMirrorSyncDelete:
+	case activities_model.ActionMirrorSyncPush, activities_model.ActionMirrorSyncCreate, activities_model.ActionMirrorSyncDelete:
 		return "mirror"
-	case models.ActionApprovePullRequest:
+	case activities_model.ActionApprovePullRequest:
 		return "check"
-	case models.ActionRejectPullRequest:
+	case activities_model.ActionRejectPullRequest:
 		return "diff"
-	case models.ActionPublishRelease:
+	case activities_model.ActionPublishRelease:
 		return "tag"
-	case models.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed:
 		return "x"
 	default:
 		return "question"
@@ -972,11 +975,11 @@ type remoteAddress struct {
 	Password string
 }
 
-func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string) remoteAddress {
+func mirrorRemoteAddress(ctx context.Context, m *repo_model.Repository, remoteName string, ignoreOriginalURL bool) remoteAddress {
 	a := remoteAddress{}
 
 	remoteURL := m.OriginalURL
-	if remoteURL == "" {
+	if ignoreOriginalURL || remoteURL == "" {
 		var err error
 		remoteURL, err = git.GetRemoteAddress(ctx, m.RepoPath(), remoteName)
 		if err != nil {

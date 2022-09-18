@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
+	"code.gitea.io/gitea/modules/markup/markdown/math"
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
@@ -38,6 +39,7 @@ var (
 	isWikiKey        = parser.NewContextKey()
 	renderMetasKey   = parser.NewContextKey()
 	renderContextKey = parser.NewContextKey()
+	renderConfigKey  = parser.NewContextKey()
 )
 
 type limitWriter struct {
@@ -98,7 +100,7 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							languageStr := string(language)
 
 							preClasses := []string{"code-block"}
-							if languageStr == "mermaid" {
+							if languageStr == "mermaid" || languageStr == "math" {
 								preClasses = append(preClasses, "is-loading")
 							}
 
@@ -119,6 +121,9 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 							}
 						}
 					}),
+				),
+				math.NewExtension(
+					math.Enabled(setting.Markdown.EnableMath),
 				),
 				meta.Meta,
 			),
@@ -167,7 +172,18 @@ func actualRender(ctx *markup.RenderContext, input io.Reader, output io.Writer) 
 		log.Error("Unable to ReadAll: %v", err)
 		return err
 	}
-	if err := converter.Convert(giteautil.NormalizeEOL(buf), lw, parser.WithContext(pc)); err != nil {
+	buf = giteautil.NormalizeEOL(buf)
+
+	rc := &RenderConfig{
+		Meta: "table",
+		Icon: "table",
+		Lang: "",
+	}
+	buf, _ = ExtractMetadataBytes(buf, rc)
+
+	pc.Set(renderConfigKey, rc)
+
+	if err := converter.Convert(buf, lw, parser.WithContext(pc)); err != nil {
 		log.Error("Unable to render: %v", err)
 		return err
 	}

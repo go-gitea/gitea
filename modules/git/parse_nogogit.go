@@ -44,7 +44,7 @@ func parseTreeEntries(data []byte, ptree *Tree) ([]*TreeEntry, error) {
 		case "160000":
 			entry.entryMode = EntryModeCommit
 			pos += 14 // skip over "160000 object "
-		case "040000":
+		case "040000", "040755": // git uses 040000 for tree object, but some users may get 040755 for unknown reasons
 			entry.entryMode = EntryModeTree
 			pos += 12 // skip over "040000 tree "
 		default:
@@ -119,7 +119,7 @@ loop:
 			entry.entryMode = EntryModeSymlink
 		case "160000":
 			entry.entryMode = EntryModeCommit
-		case "40000":
+		case "40000", "40755": // git uses 40000 for tree object, but some users may get 40755 for unknown reasons
 			entry.entryMode = EntryModeTree
 		default:
 			log.Debug("Unknown mode: %v", string(mode))

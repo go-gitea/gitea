@@ -95,9 +95,11 @@
   --color-body: #383c4a;
   --color-box-header: #404652;
   --color-box-body: #303440;
+  --color-box-body-highlight: #353945;
   --color-text-dark: #dbe0ea;
   --color-text: #bbc0ca;
   --color-text-light: #a6aab5;
+  --color-text-light-1: #979ba6;
   --color-text-light-2: #8a8e99;
   --color-text-light-3: #707687;
   --color-footer: #2e323e;
@@ -149,10 +151,6 @@
   color: #fff;
 }
 
-.feeds .list ul li.private {
-  background: #353945;
-}
-
 .ui.red.label,
 .ui.red.labels .label {
   background-color: #7d3434 !important;
@@ -185,7 +183,7 @@ a.ui.basic.green.label:hover {
   color: #fff !important;
 }
 
-.ui.divider:not(.vertical):not(.horizontal) {
+.ui.divider:not(.vertical,.horizontal) {
   border-bottom-color: var(--color-secondary);
   border-top-color: transparent;
 }
@@ -339,10 +337,6 @@ td.blob-hunk {
 .ui.list .list > .item .description,
 .ui.list > .item .description {
   color: var(--color-secondary-dark-6);
-}
-
-.repository.labels .ui.basic.black.label {
-  background-color: #bbbbbb !important;
 }
 
 .lines-num {

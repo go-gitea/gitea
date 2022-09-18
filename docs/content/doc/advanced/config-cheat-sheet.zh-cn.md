@@ -15,7 +15,14 @@ menu:
 
 # 配置说明
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。
+所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。
+如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
+标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+
+## ⚠️时效性警告⚠️
+
+此文档的内容可能过于陈旧或者错误，请参考英文文档。
 
 {{< toc >}}
 
@@ -173,8 +180,8 @@ menu:
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
-    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+  - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
+  - Memache: `127.0.0.1:9090;127.0.0.1:9091`
 - `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
@@ -239,7 +246,6 @@ file -I test01.xls
 test01.xls: application/vnd.ms-excel; charset=binary
 ```
 
-
 ## Log (`log`)
 
 - `ROOT_PATH`: 日志文件根目录。
@@ -251,10 +257,9 @@ test01.xls: application/vnd.ms-excel; charset=binary
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
 - `SCHEDULE` 所接受的格式
-   - 完整 crontab 控制, 例如 `* * * * * ?`
-   - 描述符, 例如 `@midnight`, `@every 1h30m` ...
-   - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
-
+  - 完整 crontab 控制, 例如 `* * * * * ?`
+  - 描述符, 例如 `@midnight`, `@every 1h30m` ...
+  - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
@@ -346,7 +351,7 @@ ALLOW_DATA_URI_IMAGES = true
 - `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
 
 多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
-为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 seciton。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 section。
 如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)
@@ -440,6 +445,7 @@ Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配�
 - `PROXY_HOSTS`: **\<empty\>**: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
 
 i.e.
+
 ```ini
 PROXY_ENABLED = true
 PROXY_URL = socks://127.0.0.1:1080
