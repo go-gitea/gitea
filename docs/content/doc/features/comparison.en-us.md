@@ -53,6 +53,8 @@ _Symbols used in table:_
 | WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
 | Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | Subgroups: groups within groups     | [✘](https://github.com/go-gitea/gitea/issues/1872) | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Mermaid diagrams in Markdown        | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Math syntax in Markdown             | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 
 ## Code management
 
