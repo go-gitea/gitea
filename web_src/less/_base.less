@@ -737,6 +737,13 @@ a.ui.card:hover,
   padding-bottom: 80px;
 }
 
+/* enable fluid page widths for medium size viewports */
+@media @mediaMdAndUp and @mediaLgAndDown {
+  .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 3em);
+  }
+}
+
 .following.bar {
   z-index: 900;
   left: 0;
