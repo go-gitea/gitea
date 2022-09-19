@@ -123,16 +123,13 @@ func (opts *SearchTeamOptions) toCond() builder.Cond {
 func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
 
+	opts.SetDefaultValues()
 	cond := opts.toCond()
 
 	if opts.UserID > 0 {
 		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
-
-	if opts.PageSize != -1 {
-		opts.SetDefaultValues()
-		sess = db.SetSessionPagination(sess, opts)
-	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
 	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
