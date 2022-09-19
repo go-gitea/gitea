@@ -435,8 +435,8 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 	}
 
 	if f.Name != "" {
-		file.HTMLURL = fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", f.GetDiffFileName())
-		file.ContentsURL = fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", f.GetDiffFileName())
+		file.HTMLURL = fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.Name))
+		file.ContentsURL = fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.Name))
 	}
 
 	return file
