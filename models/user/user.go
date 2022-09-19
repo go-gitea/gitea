@@ -1283,6 +1283,9 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		if viewer == nil || viewer.IsRestricted {
 			return false
 		}
+		if viewer.ID == u.ID {
+			return true
+		}
 
 		// If they follow - they see each over
 		follower := IsFollowing(u.ID, viewer.ID)
@@ -1306,7 +1309,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}
