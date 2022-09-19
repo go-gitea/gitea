@@ -173,7 +173,7 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 		})
 		MakeRequest(t, req, http.StatusCreated)
 
-		// search for team with no member
+		// case-insensitive search for teams that have no members
 		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s&token=%s", orgName, "empty", token))
 		resp := MakeRequest(t, req, http.StatusOK)
 		data := struct {
