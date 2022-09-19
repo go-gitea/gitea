@@ -98,7 +98,6 @@ type EditPullRequestOption struct {
 
 // ChangedFile store information about files affected by the pull request
 type ChangedFile struct {
-	NameHash    string `json:"name_hash"`
 	Filename    string `json:"filename"`
 	Status      string `json:"status"`
 	Additions   int    `json:"additions"`
