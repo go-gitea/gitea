@@ -1015,11 +1015,11 @@ Default templates for project boards:
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables the API documentation endpoints (`/api/swagger`, `/api/v1/swagger`, …). True or false.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for Git trees API.
-- `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760** (10MiB): Default max size of a blob that can be returned by the blobs API.
 
 ## OAuth2 (`oauth2`)
 
