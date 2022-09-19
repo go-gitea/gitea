@@ -1267,7 +1267,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1282,9 +1282,6 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 	case structs.VisibleTypePrivate:
 		if viewer == nil || viewer.IsRestricted {
 			return false
-		}
-		if viewer.ID == u.ID {
-			return true
 		}
 
 		// If they follow - they see each over
