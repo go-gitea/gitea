@@ -183,3 +183,33 @@ func TestAPIEditPull(t *testing.T) {
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
+
+func TestAPIGetPullFiles(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	repo10 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 10})
+	owner10 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo10.OwnerID})
+
+	session := loginUser(t, owner10.Name)
+	token := getTokenForLoggedInUser(t, session)
+	createFileOptions := getCreateFileOptions()
+	createFileOptions.NewBranchName = "get-pull-files-test-branch"
+	req := NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/repos/%s/%s/contents/%s?token=%s", owner10.Name, repo10.Name, "new/file1.txt", token), &createFileOptions)
+	session.MakeRequest(t, req, http.StatusCreated)
+	req = NewRequestWithJSON(t, http.MethodPost, fmt.Sprintf("/api/v1/repos/%s/%s/pulls?token=%s", owner10.Name, repo10.Name, token), &api.CreatePullRequestOption{
+		Head:  "get-pull-files-test-branch",
+		Base:  "master",
+		Title: "create a success pr",
+	})
+	pull := new(api.PullRequest)
+	resp := session.MakeRequest(t, req, http.StatusCreated)
+	DecodeJSON(t, resp, pull)
+	assert.EqualValues(t, "master", pull.Base.Name)
+
+	req = NewRequest(t, http.MethodGet, fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files?token=%s", owner10.Name, repo10.Name, pull.Index, token))
+	resp = session.MakeRequest(t, req, http.StatusOK)
+	files := make([]*api.ChangedFile, 0)
+	DecodeJSON(t, resp, &files)
+	assert.Len(t, files, 0)
+	assert.EqualValues(t, "new/file1.txt", files[0].Filename)
+	assert.EqualValues(t, "added", files[0].Status)
+}

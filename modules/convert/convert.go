@@ -423,6 +423,8 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 		status = "deleted"
 	} else if f.IsCreated {
 		status = "added"
+	} else if f.IsRenamed {
+		status = "renamed"
 	}
 
 	file := &api.ChangedFile{
