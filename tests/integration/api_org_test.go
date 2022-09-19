@@ -166,7 +166,7 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 
 		// create team with no member
 		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), &api.CreateTeamOption{
-			Name:                    "Lehr",
+			Name:                    "Empty",
 			IncludesAllRepositories: true,
 			Permission:              "read",
 			Units:                   []string{"repo.code", "repo.issues", "repo.ext_issues", "repo.wiki", "repo.pulls"},
@@ -174,7 +174,7 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 		MakeRequest(t, req, http.StatusCreated)
 
 		// search for team with no member
-		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s&token=%s", orgName, "lehr", token))
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s&token=%s", orgName, "empty", token))
 		resp := MakeRequest(t, req, http.StatusOK)
 		data := struct {
 			Ok   bool
@@ -183,7 +183,7 @@ func TestAPIOrgSearchEmptyTeam(t *testing.T) {
 		DecodeJSON(t, resp, &data)
 		assert.True(t, data.Ok)
 		if assert.Len(t, data.Data, 1) {
-			assert.EqualValues(t, "Lehr", data.Data[0].Name)
+			assert.EqualValues(t, "Empty", data.Data[0].Name)
 		}
 	})
 }
