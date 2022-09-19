@@ -520,5 +520,5 @@ func CalculateTrustStatus(verification *CommitVerification, repoTrustModel repo_
 		}
 	}
 
-	return
+	return err
 }

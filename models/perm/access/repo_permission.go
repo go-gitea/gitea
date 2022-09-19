@@ -273,7 +273,7 @@ func GetUserRepoPermission(ctx context.Context, repo *repo_model.Repository, use
 		}
 	}
 
-	return
+	return perm, err
 }
 
 // IsUserRealRepoAdmin check if this user is real repo admin
@@ -429,4 +429,18 @@ func IsRepoReader(ctx context.Context, repo *repo_model.Repository, userID int64
 		return true, nil
 	}
 	return db.GetEngine(ctx).Where("repo_id = ? AND user_id = ? AND mode >= ?", repo.ID, userID, perm_model.AccessModeRead).Get(&Access{})
+}
+
+// CheckRepoUnitUser check whether user could visit the unit of this repository
+func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
+	if user != nil && user.IsAdmin {
+		return true
+	}
+	perm, err := GetUserRepoPermission(ctx, repo, user)
+	if err != nil {
+		log.Error("GetUserRepoPermission: %w", err)
+		return false
+	}
+
+	return perm.CanRead(unitType)
 }

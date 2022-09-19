@@ -13,8 +13,9 @@ import (
 	"testing"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -46,7 +47,7 @@ const bodyTpl = `
 </html>
 `
 
-func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *models.Issue, comment *models.Comment) {
+func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Repository, issue *issues_model.Issue, comment *issues_model.Comment) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	mailService := setting.Mailer{
 		From: "test@gitea.com",
@@ -55,25 +56,24 @@ func prepareMailerTest(t *testing.T) (doer *user_model.User, repo *repo_model.Re
 	setting.MailService = &mailService
 	setting.Domain = "localhost"
 
-	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer}).(*repo_model.Repository)
-	issue = unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 1, Repo: repo, Poster: doer}).(*models.Issue)
+	doer = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	repo = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1, Owner: doer})
+	issue = unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 1, Repo: repo, Poster: doer})
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
-	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 2, Issue: issue}).(*models.Comment)
-	return
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 2, Issue: issue})
+	return doer, repo, issue, comment
 }
 
 func TestComposeIssueCommentMessage(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 
-	stpl := texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
-	btpl := template.Must(template.New("issue/comment").Parse(bodyTpl))
-	InitMailRender(stpl, btpl)
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/comment").Parse(subjectTpl))
+	bodyTemplates = template.Must(template.New("issue/comment").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, "en-US", recipients, false, "issue comment")
 	assert.NoError(t, err)
@@ -96,14 +96,13 @@ func TestComposeIssueCommentMessage(t *testing.T) {
 func TestComposeIssueMessage(t *testing.T) {
 	doer, _, issue, _ := prepareMailerTest(t)
 
-	stpl := texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
-	btpl := template.Must(template.New("issue/new").Parse(bodyTpl))
-	InitMailRender(stpl, btpl)
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/new").Parse(subjectTpl))
+	bodyTemplates = template.Must(template.New("issue/new").Parse(bodyTpl))
 
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}, {Name: "Test2", Email: "test2@gitea.com"}}
 	msgs, err := composeIssueCommentMessages(&mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, "en-US", recipients, false, "issue create")
 	assert.NoError(t, err)
@@ -127,17 +126,15 @@ func TestTemplateSelection(t *testing.T) {
 	doer, repo, issue, comment := prepareMailerTest(t)
 	recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 
-	stpl := texttmpl.Must(texttmpl.New("issue/default").Parse("issue/default/subject"))
-	texttmpl.Must(stpl.New("issue/new").Parse("issue/new/subject"))
-	texttmpl.Must(stpl.New("pull/comment").Parse("pull/comment/subject"))
-	texttmpl.Must(stpl.New("issue/close").Parse("")) // Must default to fallback subject
+	subjectTemplates = texttmpl.Must(texttmpl.New("issue/default").Parse("issue/default/subject"))
+	texttmpl.Must(subjectTemplates.New("issue/new").Parse("issue/new/subject"))
+	texttmpl.Must(subjectTemplates.New("pull/comment").Parse("pull/comment/subject"))
+	texttmpl.Must(subjectTemplates.New("issue/close").Parse("")) // Must default to fallback subject
 
-	btpl := template.Must(template.New("issue/default").Parse("issue/default/body"))
-	template.Must(btpl.New("issue/new").Parse("issue/new/body"))
-	template.Must(btpl.New("pull/comment").Parse("pull/comment/body"))
-	template.Must(btpl.New("issue/close").Parse("issue/close/body"))
-
-	InitMailRender(stpl, btpl)
+	bodyTemplates = template.Must(template.New("issue/default").Parse("issue/default/body"))
+	template.Must(bodyTemplates.New("issue/new").Parse("issue/new/body"))
+	template.Must(bodyTemplates.New("pull/comment").Parse("pull/comment/body"))
+	template.Must(bodyTemplates.New("issue/close").Parse("issue/close/body"))
 
 	expect := func(t *testing.T, msg *Message, expSubject, expBody string) {
 		subject := msg.ToMessage().GetHeader("Subject")
@@ -150,30 +147,30 @@ func TestTemplateSelection(t *testing.T) {
 
 	msg := testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCreateIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCreateIssue,
 		Content: "test body",
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/new/subject", "issue/new/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCommentIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCommentIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "issue/default/subject", "issue/default/body")
 
-	pull := unittest.AssertExistsAndLoadBean(t, &models.Issue{ID: 2, Repo: repo, Poster: doer}).(*models.Issue)
-	comment = unittest.AssertExistsAndLoadBean(t, &models.Comment{ID: 4, Issue: pull}).(*models.Comment)
+	pull := unittest.AssertExistsAndLoadBean(t, &issues_model.Issue{ID: 2, Repo: repo, Poster: doer})
+	comment = unittest.AssertExistsAndLoadBean(t, &issues_model.Comment{ID: 4, Issue: pull})
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   pull, Doer: doer, ActionType: models.ActionCommentPull,
+		Issue:   pull, Doer: doer, ActionType: activities_model.ActionCommentPull,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "pull/comment/subject", "pull/comment/body")
 
 	msg = testComposeIssueCommentMessage(t, &mailCommentContext{
 		Context: context.TODO(), // TODO: use a correct context
-		Issue:   issue, Doer: doer, ActionType: models.ActionCloseIssue,
+		Issue:   issue, Doer: doer, ActionType: activities_model.ActionCloseIssue,
 		Content: "test body", Comment: comment,
 	}, recipients, false, "TestTemplateSelection")
 	expect(t, msg, "Re: [user2/repo1] issue1 (#1)", "issue/close/body")
@@ -183,12 +180,11 @@ func TestTemplateServices(t *testing.T) {
 	doer, _, issue, comment := prepareMailerTest(t)
 	assert.NoError(t, issue.LoadRepo(db.DefaultContext))
 
-	expect := func(t *testing.T, issue *models.Issue, comment *models.Comment, doer *user_model.User,
-		actionType models.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
+	expect := func(t *testing.T, issue *issues_model.Issue, comment *issues_model.Comment, doer *user_model.User,
+		actionType activities_model.ActionType, fromMention bool, tplSubject, tplBody, expSubject, expBody string,
 	) {
-		stpl := texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
-		btpl := template.Must(template.New("issue/default").Parse(tplBody))
-		InitMailRender(stpl, btpl)
+		subjectTemplates = texttmpl.Must(texttmpl.New("issue/default").Parse(tplSubject))
+		bodyTemplates = template.Must(template.New("issue/default").Parse(tplBody))
 
 		recipients := []*user_model.User{{Name: "Test", Email: "test@gitea.com"}}
 		msg := testComposeIssueCommentMessage(t, &mailCommentContext{
@@ -206,19 +202,19 @@ func TestTemplateServices(t *testing.T) {
 		assert.Contains(t, wholemsg, "\r\n"+expBody+"\r\n")
 	}
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, false,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, false,
 		"{{.SubjectPrefix}}[{{.Repo}}]: @{{.Doer.Name}} commented on #{{.Issue.Index}} - {{.Issue.Title}}",
 		"//{{.ActionType}},{{.ActionName}},{{if .IsMention}}norender{{end}}//",
 		"Re: [user2/repo1]: @user2 commented on #1 - issue1",
 		"//issue,comment,//")
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, true,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, true,
 		"{{if .IsMention}}must render{{end}}",
 		"//subject is: {{.Subject}}//",
 		"must render",
 		"//subject is: must render//")
 
-	expect(t, issue, comment, doer, models.ActionCommentIssue, true,
+	expect(t, issue, comment, doer, activities_model.ActionCommentIssue, true,
 		"{{.FallbackSubject}}",
 		"//{{.SubjectPrefix}}//",
 		"Re: [user2/repo1] issue1 (#1)",
@@ -268,9 +264,9 @@ func Test_createReference(t *testing.T) {
 	pullIssue.IsPull = true
 
 	type args struct {
-		issue      *models.Issue
-		comment    *models.Comment
-		actionType models.ActionType
+		issue      *issues_model.Issue
+		comment    *issues_model.Comment
+		actionType activities_model.ActionType
 	}
 	tests := []struct {
 		name   string
@@ -282,7 +278,7 @@ func Test_createReference(t *testing.T) {
 			name: "Open Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionCreateIssue,
+				actionType: activities_model.ActionCreateIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
@@ -290,7 +286,7 @@ func Test_createReference(t *testing.T) {
 			name: "Open Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionCreatePullRequest,
+				actionType: activities_model.ActionCreatePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d@%s", issue.Repo.FullName(), issue.Index, setting.Domain),
 		},
@@ -299,7 +295,7 @@ func Test_createReference(t *testing.T) {
 			args: args{
 				issue:      issue,
 				comment:    comment,
-				actionType: models.ActionCommentIssue,
+				actionType: activities_model.ActionCommentIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
@@ -308,7 +304,7 @@ func Test_createReference(t *testing.T) {
 			args: args{
 				issue:      pullIssue,
 				comment:    comment,
-				actionType: models.ActionCommentPull,
+				actionType: activities_model.ActionCommentPull,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/comment/%d@%s", issue.Repo.FullName(), issue.Index, comment.ID, setting.Domain),
 		},
@@ -316,7 +312,7 @@ func Test_createReference(t *testing.T) {
 			name: "Close Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionCloseIssue,
+				actionType: activities_model.ActionCloseIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
@@ -324,7 +320,7 @@ func Test_createReference(t *testing.T) {
 			name: "Close Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionClosePullRequest,
+				actionType: activities_model.ActionClosePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/close/", issue.Repo.FullName(), issue.Index),
 		},
@@ -332,7 +328,7 @@ func Test_createReference(t *testing.T) {
 			name: "Reopen Issue",
 			args: args{
 				issue:      issue,
-				actionType: models.ActionReopenIssue,
+				actionType: activities_model.ActionReopenIssue,
 			},
 			prefix: fmt.Sprintf("%s/issues/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
@@ -340,7 +336,7 @@ func Test_createReference(t *testing.T) {
 			name: "Reopen Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionReopenPullRequest,
+				actionType: activities_model.ActionReopenPullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/reopen/", issue.Repo.FullName(), issue.Index),
 		},
@@ -348,7 +344,7 @@ func Test_createReference(t *testing.T) {
 			name: "Merge Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionMergePullRequest,
+				actionType: activities_model.ActionMergePullRequest,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/merge/", issue.Repo.FullName(), issue.Index),
 		},
@@ -356,7 +352,7 @@ func Test_createReference(t *testing.T) {
 			name: "Ready Pull",
 			args: args{
 				issue:      pullIssue,
-				actionType: models.ActionPullRequestReadyForReview,
+				actionType: activities_model.ActionPullRequestReadyForReview,
 			},
 			prefix: fmt.Sprintf("%s/pulls/%d/ready/", issue.Repo.FullName(), issue.Index),
 		},

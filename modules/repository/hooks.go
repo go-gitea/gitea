@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -104,7 +105,7 @@ done
 		giteaHookTpls = append(giteaHookTpls, "")
 	}
 
-	return
+	return hookNames, hookTpls, giteaHookTpls
 }
 
 // CreateDelegateHooks creates all the hooks scripts for the repo
@@ -153,6 +154,10 @@ func createDelegateHooks(repoPath string) (err error) {
 }
 
 func checkExecutable(filename string) bool {
+	// windows has no concept of a executable bit
+	if runtime.GOOS == "windows" {
+		return true
+	}
 	fileInfo, err := os.Stat(filename)
 	if err != nil {
 		return false

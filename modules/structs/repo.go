@@ -77,24 +77,26 @@ type Repository struct {
 	// swagger:strfmt date-time
 	Created time.Time `json:"created_at"`
 	// swagger:strfmt date-time
-	Updated                   time.Time        `json:"updated_at"`
-	Permissions               *Permission      `json:"permissions,omitempty"`
-	HasIssues                 bool             `json:"has_issues"`
-	InternalTracker           *InternalTracker `json:"internal_tracker,omitempty"`
-	ExternalTracker           *ExternalTracker `json:"external_tracker,omitempty"`
-	HasWiki                   bool             `json:"has_wiki"`
-	ExternalWiki              *ExternalWiki    `json:"external_wiki,omitempty"`
-	HasPullRequests           bool             `json:"has_pull_requests"`
-	HasProjects               bool             `json:"has_projects"`
-	IgnoreWhitespaceConflicts bool             `json:"ignore_whitespace_conflicts"`
-	AllowMerge                bool             `json:"allow_merge_commits"`
-	AllowRebase               bool             `json:"allow_rebase"`
-	AllowRebaseMerge          bool             `json:"allow_rebase_explicit"`
-	AllowSquash               bool             `json:"allow_squash_merge"`
-	DefaultMergeStyle         string           `json:"default_merge_style"`
-	AvatarURL                 string           `json:"avatar_url"`
-	Internal                  bool             `json:"internal"`
-	MirrorInterval            string           `json:"mirror_interval"`
+	Updated                       time.Time        `json:"updated_at"`
+	Permissions                   *Permission      `json:"permissions,omitempty"`
+	HasIssues                     bool             `json:"has_issues"`
+	InternalTracker               *InternalTracker `json:"internal_tracker,omitempty"`
+	ExternalTracker               *ExternalTracker `json:"external_tracker,omitempty"`
+	HasWiki                       bool             `json:"has_wiki"`
+	ExternalWiki                  *ExternalWiki    `json:"external_wiki,omitempty"`
+	HasPullRequests               bool             `json:"has_pull_requests"`
+	HasProjects                   bool             `json:"has_projects"`
+	IgnoreWhitespaceConflicts     bool             `json:"ignore_whitespace_conflicts"`
+	AllowMerge                    bool             `json:"allow_merge_commits"`
+	AllowRebase                   bool             `json:"allow_rebase"`
+	AllowRebaseMerge              bool             `json:"allow_rebase_explicit"`
+	AllowSquash                   bool             `json:"allow_squash_merge"`
+	AllowRebaseUpdate             bool             `json:"allow_rebase_update"`
+	DefaultDeleteBranchAfterMerge bool             `json:"default_delete_branch_after_merge"`
+	DefaultMergeStyle             string           `json:"default_merge_style"`
+	AvatarURL                     string           `json:"avatar_url"`
+	Internal                      bool             `json:"internal"`
+	MirrorInterval                string           `json:"mirror_interval"`
 	// swagger:strfmt date-time
 	MirrorUpdated time.Time     `json:"mirror_updated,omitempty"`
 	RepoTransfer  *RepoTransfer `json:"repo_transfer"`
@@ -109,7 +111,7 @@ type CreateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
@@ -138,9 +140,9 @@ type EditRepoOption struct {
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
-	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
+	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
-	Website *string `json:"website,omitempty" binding:"MaxSize(255)"`
+	Website *string `json:"website,omitempty" binding:"MaxSize(1024)"`
 	// either `true` to make the repository private or `false` to make it public.
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
@@ -206,7 +208,7 @@ type GenerateRepoOption struct {
 	// Default branch of the new repository
 	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// include git content of default branch in template repo
@@ -314,7 +316,7 @@ type MigrateRepoOptions struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`

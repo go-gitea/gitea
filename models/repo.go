@@ -12,13 +12,13 @@ import (
 
 	_ "image/jpeg" // Needed for jpeg support
 
+	activities_model "code.gitea.io/gitea/models/activities"
 	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
-	"code.gitea.io/gitea/models/perm"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -27,10 +27,7 @@ import (
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
-	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -38,162 +35,6 @@ import (
 // NewRepoContext creates a new repository context
 func NewRepoContext() {
 	unit.LoadUnitConfig()
-}
-
-// CheckRepoUnitUser check whether user could visit the unit of this repository
-func CheckRepoUnitUser(ctx context.Context, repo *repo_model.Repository, user *user_model.User, unitType unit.Type) bool {
-	if user != nil && user.IsAdmin {
-		return true
-	}
-	perm, err := access_model.GetUserRepoPermission(ctx, repo, user)
-	if err != nil {
-		log.Error("GetUserRepoPermission(): %v", err)
-		return false
-	}
-
-	return perm.CanRead(unitType)
-}
-
-// CreateRepoOptions contains the create repository options
-type CreateRepoOptions struct {
-	Name           string
-	Description    string
-	OriginalURL    string
-	GitServiceType api.GitServiceType
-	Gitignores     string
-	IssueLabels    string
-	License        string
-	Readme         string
-	DefaultBranch  string
-	IsPrivate      bool
-	IsMirror       bool
-	IsTemplate     bool
-	AutoInit       bool
-	Status         repo_model.RepositoryStatus
-	TrustModel     repo_model.TrustModelType
-	MirrorInterval string
-}
-
-// CreateRepository creates a repository for the user/organization.
-func CreateRepository(ctx context.Context, doer, u *user_model.User, repo *repo_model.Repository, overwriteOrAdopt bool) (err error) {
-	if err = repo_model.IsUsableRepoName(repo.Name); err != nil {
-		return err
-	}
-
-	has, err := repo_model.IsRepositoryExist(ctx, u, repo.Name)
-	if err != nil {
-		return fmt.Errorf("IsRepositoryExist: %v", err)
-	} else if has {
-		return repo_model.ErrRepoAlreadyExist{
-			Uname: u.Name,
-			Name:  repo.Name,
-		}
-	}
-
-	repoPath := repo_model.RepoPath(u.Name, repo.Name)
-	isExist, err := util.IsExist(repoPath)
-	if err != nil {
-		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
-		return err
-	}
-	if !overwriteOrAdopt && isExist {
-		log.Error("Files already exist in %s and we are not going to adopt or delete.", repoPath)
-		return repo_model.ErrRepoFilesAlreadyExist{
-			Uname: u.Name,
-			Name:  repo.Name,
-		}
-	}
-
-	if err = db.Insert(ctx, repo); err != nil {
-		return err
-	}
-	if err = repo_model.DeleteRedirect(ctx, u.ID, repo.Name); err != nil {
-		return err
-	}
-
-	// insert units for repo
-	units := make([]repo_model.RepoUnit, 0, len(unit.DefaultRepoUnits))
-	for _, tp := range unit.DefaultRepoUnits {
-		if tp == unit.TypeIssues {
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   tp,
-				Config: &repo_model.IssuesConfig{
-					EnableTimetracker:                setting.Service.DefaultEnableTimetracking,
-					AllowOnlyContributorsToTrackTime: setting.Service.DefaultAllowOnlyContributorsToTrackTime,
-					EnableDependencies:               setting.Service.DefaultEnableDependencies,
-				},
-			})
-		} else if tp == unit.TypePullRequests {
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   tp,
-				Config: &repo_model.PullRequestsConfig{AllowMerge: true, AllowRebase: true, AllowRebaseMerge: true, AllowSquash: true, DefaultMergeStyle: repo_model.MergeStyle(setting.Repository.PullRequest.DefaultMergeStyle), AllowRebaseUpdate: true},
-			})
-		} else {
-			units = append(units, repo_model.RepoUnit{
-				RepoID: repo.ID,
-				Type:   tp,
-			})
-		}
-	}
-
-	if err = db.Insert(ctx, units); err != nil {
-		return err
-	}
-
-	// Remember visibility preference.
-	u.LastRepoVisibility = repo.IsPrivate
-	if err = user_model.UpdateUserCols(ctx, u, "last_repo_visibility"); err != nil {
-		return fmt.Errorf("updateUser: %v", err)
-	}
-
-	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(u.ID).Update(new(user_model.User)); err != nil {
-		return fmt.Errorf("increment user total_repos: %v", err)
-	}
-	u.NumRepos++
-
-	// Give access to all members in teams with access to all repositories.
-	if u.IsOrganization() {
-		teams, err := organization.FindOrgTeams(ctx, u.ID)
-		if err != nil {
-			return fmt.Errorf("loadTeams: %v", err)
-		}
-		for _, t := range teams {
-			if t.IncludesAllRepositories {
-				if err := addRepository(ctx, t, repo); err != nil {
-					return fmt.Errorf("addRepository: %v", err)
-				}
-			}
-		}
-
-		if isAdmin, err := access_model.IsUserRepoAdmin(ctx, repo, doer); err != nil {
-			return fmt.Errorf("IsUserRepoAdminCtx: %v", err)
-		} else if !isAdmin {
-			// Make creator repo admin if it wasn't assigned automatically
-			if err = addCollaborator(ctx, repo, doer); err != nil {
-				return fmt.Errorf("AddCollaborator: %v", err)
-			}
-			if err = repo_model.ChangeCollaborationAccessModeCtx(ctx, repo, doer.ID, perm.AccessModeAdmin); err != nil {
-				return fmt.Errorf("ChangeCollaborationAccessMode: %v", err)
-			}
-		}
-	} else if err = access_model.RecalculateAccesses(ctx, repo); err != nil {
-		// Organization automatically called this in addRepository method.
-		return fmt.Errorf("recalculateAccesses: %v", err)
-	}
-
-	if setting.Service.AutoWatchNewRepos {
-		if err = repo_model.WatchRepo(ctx, doer.ID, repo.ID, true); err != nil {
-			return fmt.Errorf("watchRepo: %v", err)
-		}
-	}
-
-	if err = webhook.CopyDefaultWebhooksToRepo(ctx, repo.ID); err != nil {
-		return fmt.Errorf("copyDefaultWebhooksToRepo: %v", err)
-	}
-
-	return nil
 }
 
 // DeleteRepository deletes a repository for a user or organization.
@@ -279,9 +120,9 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	if err := db.DeleteBeans(ctx,
 		&access_model.Access{RepoID: repo.ID},
-		&Action{RepoID: repo.ID},
+		&activities_model.Action{RepoID: repo.ID},
 		&repo_model.Collaboration{RepoID: repoID},
-		&Comment{RefRepoID: repoID},
+		&issues_model.Comment{RefRepoID: repoID},
 		&git_model.CommitStatus{RepoID: repoID},
 		&git_model.DeletedBranch{RepoID: repoID},
 		&webhook.HookTask{RepoID: repoID},
@@ -289,16 +130,16 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		&repo_model.LanguageStat{RepoID: repoID},
 		&issues_model.Milestone{RepoID: repoID},
 		&repo_model.Mirror{RepoID: repoID},
-		&Notification{RepoID: repoID},
+		&activities_model.Notification{RepoID: repoID},
 		&git_model.ProtectedBranch{RepoID: repoID},
 		&git_model.ProtectedTag{RepoID: repoID},
 		&repo_model.PushMirror{RepoID: repoID},
-		&Release{RepoID: repoID},
+		&repo_model.Release{RepoID: repoID},
 		&repo_model.RepoIndexerStatus{RepoID: repoID},
 		&repo_model.Redirect{RedirectRepoID: repoID},
 		&repo_model.RepoUnit{RepoID: repoID},
 		&repo_model.Star{RepoID: repoID},
-		&Task{RepoID: repoID},
+		&admin_model.Task{RepoID: repoID},
 		&repo_model.Watch{RepoID: repoID},
 		&webhook.Webhook{RepoID: repoID},
 	); err != nil {
@@ -306,18 +147,18 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete Labels and related objects
-	if err := deleteLabelsByRepoID(ctx, repoID); err != nil {
+	if err := issues_model.DeleteLabelsByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Pulls and related objects
-	if err := deletePullsByBaseRepoID(ctx, repoID); err != nil {
+	if err := issues_model.DeletePullsByBaseRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
 	// Delete Issues and related objects
 	var attachmentPaths []string
-	if attachmentPaths, err = deleteIssuesByRepoID(ctx, repoID); err != nil {
+	if attachmentPaths, err = issues_model.DeleteIssuesByRepoID(ctx, repoID); err != nil {
 		return err
 	}
 
@@ -342,16 +183,8 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 		}
 	}
 
-	projects, _, err := project_model.GetProjects(ctx, project_model.SearchOptions{
-		RepoID: repoID,
-	})
-	if err != nil {
-		return fmt.Errorf("get projects: %v", err)
-	}
-	for i := range projects {
-		if err := project_model.DeleteProjectByIDCtx(ctx, projects[i].ID); err != nil {
-			return fmt.Errorf("delete project [%d]: %v", projects[i].ID, err)
-		}
+	if err := project_model.DeleteProjectByRepoIDCtx(ctx, repoID); err != nil {
+		return fmt.Errorf("unable to delete projects for repo[%d]: %v", repoID, err)
 	}
 
 	// Remove LFS objects
@@ -385,8 +218,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	archivePaths := make([]string, 0, len(archives))
 	for _, v := range archives {
-		p, _ := v.RelativePath()
-		archivePaths = append(archivePaths, p)
+		archivePaths = append(archivePaths, v.RelativePath())
 	}
 
 	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
@@ -576,16 +408,11 @@ func repoStatsCorrectNum(ctx context.Context, id int64, isPull bool, field strin
 }
 
 func repoStatsCorrectNumClosedIssues(ctx context.Context, id int64) error {
-	return repoStatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
+	return repo_model.StatsCorrectNumClosed(ctx, id, false, "num_closed_issues")
 }
 
 func repoStatsCorrectNumClosedPulls(ctx context.Context, id int64) error {
-	return repoStatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
-}
-
-func repoStatsCorrectNumClosed(ctx context.Context, id int64, isPull bool, field string) error {
-	_, err := db.GetEngine(ctx).Exec("UPDATE `repository` SET "+field+"=(SELECT COUNT(*) FROM `issue` WHERE repo_id=? AND is_closed=? AND is_pull=?) WHERE id=?", id, true, isPull, id)
-	return err
+	return repo_model.StatsCorrectNumClosed(ctx, id, true, "num_closed_pulls")
 }
 
 func statsQuery(args ...interface{}) func(context.Context) ([]map[string][]byte, error) {
@@ -687,12 +514,11 @@ func CheckRepoStats(ctx context.Context) error {
 				continue
 			}
 
-			rawResult, err := e.Query("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID)
+			_, err = e.SQL("SELECT COUNT(*) FROM `repository` WHERE fork_id=?", repo.ID).Get(&repo.NumForks)
 			if err != nil {
 				log.Error("Select count of forks[%d]: %v", repo.ID, err)
 				continue
 			}
-			repo.NumForks = int(parseCountResult(rawResult))
 
 			if _, err = e.ID(repo.ID).Cols("num_forks").Update(repo); err != nil {
 				log.Error("UpdateRepository[%d]: %v", id, err)
@@ -762,7 +588,7 @@ func DoctorUserStarNum() (err error) {
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return
+	return err
 }
 
 // DeleteDeployKey delete deploy keys

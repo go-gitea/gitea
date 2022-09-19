@@ -13,6 +13,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -24,12 +25,12 @@ import (
 	"xorm.io/builder"
 )
 
-func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
+func AddRepository(ctx context.Context, t *organization.Team, repo *repo_model.Repository) (err error) {
 	if err = organization.AddTeamRepo(ctx, t.OrgID, t.ID, repo.ID); err != nil {
 		return err
 	}
 
-	if _, err = db.GetEngine(ctx).Incr("num_repos").ID(t.ID).Update(new(organization.Team)); err != nil {
+	if err = organization.IncrTeamRepoNum(ctx, t.ID); err != nil {
 		return fmt.Errorf("update team: %v", err)
 	}
 
@@ -57,16 +58,15 @@ func addRepository(ctx context.Context, t *organization.Team, repo *repo_model.R
 // addAllRepositories adds all repositories to the team.
 // If the team already has some repositories they will be left unchanged.
 func addAllRepositories(ctx context.Context, t *organization.Team) error {
-	var orgRepos []repo_model.Repository
-	e := db.GetEngine(ctx)
-	if err := e.Where("owner_id = ?", t.OrgID).Find(&orgRepos); err != nil {
+	orgRepos, err := organization.GetOrgRepositories(ctx, t.OrgID)
+	if err != nil {
 		return fmt.Errorf("get org repos: %v", err)
 	}
 
 	for _, repo := range orgRepos {
 		if !organization.HasTeamRepo(ctx, t.OrgID, t.ID, repo.ID) {
-			if err := addRepository(ctx, t, &repo); err != nil {
-				return fmt.Errorf("addRepository: %v", err)
+			if err := AddRepository(ctx, t, repo); err != nil {
+				return fmt.Errorf("AddRepository: %v", err)
 			}
 		}
 	}
@@ -83,27 +83,6 @@ func AddAllRepositories(t *organization.Team) (err error) {
 	defer committer.Close()
 
 	if err = addAllRepositories(ctx, t); err != nil {
-		return err
-	}
-
-	return committer.Commit()
-}
-
-// AddRepository adds new repository to team of organization.
-func AddRepository(t *organization.Team, repo *repo_model.Repository) (err error) {
-	if repo.OwnerID != t.OrgID {
-		return errors.New("Repository does not belong to organization")
-	} else if HasRepository(t, repo.ID) {
-		return nil
-	}
-
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-	if err = addRepository(ctx, t, repo); err != nil {
 		return err
 	}
 
@@ -153,7 +132,7 @@ func removeAllRepositories(ctx context.Context, t *organization.Team) (err error
 			}
 
 			// Remove all IssueWatches a user has subscribed to in the repositories
-			if err = removeIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
+			if err = issues_model.RemoveIssueWatchersByRepoID(ctx, user.ID, repo.ID); err != nil {
 				return err
 			}
 		}
@@ -216,7 +195,7 @@ func removeRepository(ctx context.Context, t *organization.Team, repo *repo_mode
 		}
 
 		// Remove all IssueWatches a user has subscribed to in the repositories
-		if err := removeIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
+		if err := issues_model.RemoveIssueWatchersByRepoID(ctx, teamUser.UID, repo.ID); err != nil {
 			return err
 		}
 	}

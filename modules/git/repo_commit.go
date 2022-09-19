@@ -7,10 +7,13 @@ package git
 
 import (
 	"bytes"
+	"encoding/hex"
+	"fmt"
 	"io"
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -208,9 +211,9 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(repo.Ctx, "log", revision, "--follow",
+		err := NewCommand(repo.Ctx, "rev-list", revision,
 			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
-			prettyLogFormat, "--", file).
+			"--skip="+strconv.Itoa(skip), "--", file).
 			Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: stdoutWriter,
@@ -223,32 +226,30 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 		}
 	}()
 
-	if skip > 0 {
-		_, err := io.CopyN(io.Discard, stdoutReader, int64(skip*41))
-		if err != nil {
+	commits := []*Commit{}
+	shaline := [41]byte{}
+	var sha1 SHA1
+	for {
+		n, err := io.ReadFull(stdoutReader, shaline[:])
+		if err != nil || n < 40 {
 			if err == io.EOF {
-				return []*Commit{}, nil
+				err = nil
 			}
-			_ = stdoutReader.CloseWithError(err)
+			return commits, err
+		}
+		n, err = hex.Decode(sha1[:], shaline[0:40])
+		if n != 20 {
+			err = fmt.Errorf("invalid sha %q", string(shaline[:40]))
+		}
+		if err != nil {
 			return nil, err
 		}
+		commit, err := repo.getCommit(sha1)
+		if err != nil {
+			return nil, err
+		}
+		commits = append(commits, commit)
 	}
-
-	stdout, err := io.ReadAll(stdoutReader)
-	if err != nil {
-		return nil, err
-	}
-	return repo.parsePrettyFormatLogToList(stdout)
-}
-
-// CommitsByFileAndRangeNoFollow return the commits according revision file and the page
-func (repo *Repository) CommitsByFileAndRangeNoFollow(revision, file string, page int) ([]*Commit, error) {
-	stdout, _, err := NewCommand(repo.Ctx, "log", revision, "--skip="+strconv.Itoa((page-1)*50),
-		"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize), prettyLogFormat, "--", file).RunStdBytes(&RunOpts{Dir: repo.Path})
-	if err != nil {
-		return nil, err
-	}
-	return repo.parsePrettyFormatLogToList(stdout)
 }
 
 // FilesCountBetween return the number of files changed between two commits
@@ -433,4 +434,21 @@ func (repo *Repository) IsCommitInBranch(commitID, branch string) (r bool, err e
 		return false, err
 	}
 	return len(stdout) > 0, err
+}
+
+func (repo *Repository) AddLastCommitCache(cacheKey, fullName, sha string) error {
+	if repo.LastCommitCache == nil {
+		commitsCount, err := cache.GetInt64(cacheKey, func() (int64, error) {
+			commit, err := repo.GetCommit(sha)
+			if err != nil {
+				return 0, err
+			}
+			return commit.CommitsCount()
+		})
+		if err != nil {
+			return err
+		}
+		repo.LastCommitCache = NewLastCommitCache(commitsCount, fullName, repo, cache.GetCache())
+	}
+	return nil
 }
