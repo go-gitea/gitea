@@ -423,7 +423,9 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 		status = "deleted"
 	} else if f.IsCreated {
 		status = "added"
-	} else if f.IsRenamed {
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileCopy {
+		status = "copied"
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileRename {
 		status = "renamed"
 	}
 
