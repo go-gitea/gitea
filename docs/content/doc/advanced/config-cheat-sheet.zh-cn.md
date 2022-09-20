@@ -299,7 +299,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
+- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
