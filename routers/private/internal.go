@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 // CheckInternalToken check internal token is set
@@ -50,6 +51,7 @@ func bind(obj interface{}) http.HandlerFunc {
 // These APIs will be invoked by internal commands for example `gitea serv` and etc.
 func Routes() *web.Route {
 	r := web.NewRoute()
+	r.Use(chi_middleware.RealIP)
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
 
