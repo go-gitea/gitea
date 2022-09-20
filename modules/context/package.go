@@ -5,6 +5,7 @@
 package context
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 
@@ -14,6 +15,7 @@ import (
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/templates"
 )
 
 // Package contains owner, access mode and optional the package descriptor
@@ -118,12 +120,14 @@ func packageAssignment(ctx *Context, errCb func(int, string, interface{})) {
 }
 
 // PackageContexter initializes a package context for a request.
-func PackageContexter() func(next http.Handler) http.Handler {
+func PackageContexter(ctx gocontext.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
 			ctx := Context{
-				Resp: NewResponse(resp),
-				Data: map[string]interface{}{},
+				Resp:   NewResponse(resp),
+				Data:   map[string]interface{}{},
+				Render: rnd,
 			}
 			defer ctx.Close()
 

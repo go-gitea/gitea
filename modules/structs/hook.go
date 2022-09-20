@@ -397,6 +397,39 @@ type ReviewPayload struct {
 	Content string `json:"content"`
 }
 
+//  __      __.__ __   .__
+// /  \    /  \__|  | _|__|
+// \   \/\/   /  |  |/ /  |
+//  \        /|  |    <|  |
+//   \__/\  / |__|__|_ \__|
+//        \/          \/
+
+// HookWikiAction an action that happens to a wiki page
+type HookWikiAction string
+
+const (
+	// HookWikiCreated created
+	HookWikiCreated HookWikiAction = "created"
+	// HookWikiEdited edited
+	HookWikiEdited HookWikiAction = "edited"
+	// HookWikiDeleted deleted
+	HookWikiDeleted HookWikiAction = "deleted"
+)
+
+// WikiPayload payload for repository webhooks
+type WikiPayload struct {
+	Action     HookWikiAction `json:"action"`
+	Repository *Repository    `json:"repository"`
+	Sender     *User          `json:"sender"`
+	Page       string         `json:"page"`
+	Comment    string         `json:"comment"`
+}
+
+// JSONPayload JSON representation of the payload
+func (p *WikiPayload) JSONPayload() ([]byte, error) {
+	return json.MarshalIndent(p, "", " ")
+}
+
 //__________                           .__  __
 //\______   \ ____ ______   ____  _____|__|/  |_  ___________ ___.__.
 // |       _// __ \\____ \ /  _ \/  ___/  \   __\/  _ \_  __ <   |  |
