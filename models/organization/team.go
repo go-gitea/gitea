@@ -96,16 +96,7 @@ type SearchTeamOptions struct {
 	IncludeDesc bool
 }
 
-// SearchTeam search for teams. Caller is responsible to check permissions.
-func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
-	if opts.Page <= 0 {
-		opts.Page = 1
-	}
-	if opts.PageSize == 0 {
-		// Default limit
-		opts.PageSize = 10
-	}
-
+func (opts *SearchTeamOptions) toCond() builder.Cond {
 	cond := builder.NewCond()
 
 	if len(opts.Keyword) > 0 {
@@ -117,28 +108,32 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 		cond = cond.And(keywordCond)
 	}
 
-	cond = cond.And(builder.Eq{"org_id": opts.OrgID})
+	if opts.OrgID > 0 {
+		cond = cond.And(builder.Eq{"`team`.org_id": opts.OrgID})
+	}
 
+	if opts.UserID > 0 {
+		cond = cond.And(builder.Eq{"team_user.uid": opts.UserID})
+	}
+
+	return cond
+}
+
+// SearchTeam search for teams. Caller is responsible to check permissions.
+func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	sess := db.GetEngine(db.DefaultContext)
 
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
+	opts.SetDefaultValues()
+	cond := opts.toCond()
 
-	sess = sess.Where(cond)
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	if opts.UserID > 0 {
+		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -185,7 +180,7 @@ func (t *Team) GetUnitNames() (res []string) {
 	for _, u := range t.Units {
 		res = append(res, unit.Units[u.Type].NameKey)
 	}
-	return
+	return res
 }
 
 // GetUnitsMap returns the team units permissions
@@ -226,7 +221,7 @@ func (t *Team) GetRepositoriesCtx(ctx context.Context) (err error) {
 	t.Repos, err = GetTeamRepositories(ctx, &SearchTeamRepoOptions{
 		TeamID: t.ID,
 	})
-	return
+	return err
 }
 
 // GetMembersCtx returns paginated members in team of organization.
@@ -272,7 +267,8 @@ func IsUsableTeamName(name string) error {
 	}
 }
 
-func getTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
+// GetTeam returns team by given team name and organization.
+func GetTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
 	t := &Team{
 		OrgID:     orgID,
 		LowerName: strings.ToLower(name),
@@ -286,16 +282,11 @@ func getTeam(ctx context.Context, orgID int64, name string) (*Team, error) {
 	return t, nil
 }
 
-// GetTeam returns team by given team name and organization.
-func GetTeam(orgID int64, name string) (*Team, error) {
-	return getTeam(db.DefaultContext, orgID, name)
-}
-
 // GetTeamIDsByNames returns a slice of team ids corresponds to names.
 func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]int64, error) {
 	ids := make([]int64, 0, len(names))
 	for _, name := range names {
-		u, err := GetTeam(orgID, name)
+		u, err := GetTeam(db.DefaultContext, orgID, name)
 		if err != nil {
 			if ignoreNonExistent {
 				continue
@@ -310,11 +301,11 @@ func GetTeamIDsByNames(orgID int64, names []string, ignoreNonExistent bool) ([]i
 
 // GetOwnerTeam returns team by given team name and organization.
 func GetOwnerTeam(ctx context.Context, orgID int64) (*Team, error) {
-	return getTeam(ctx, orgID, OwnerTeamName)
+	return GetTeam(ctx, orgID, OwnerTeamName)
 }
 
-// GetTeamByIDCtx returns team by given ID.
-func GetTeamByIDCtx(ctx context.Context, teamID int64) (*Team, error) {
+// GetTeamByID returns team by given ID.
+func GetTeamByID(ctx context.Context, teamID int64) (*Team, error) {
 	t := new(Team)
 	has, err := db.GetEngine(ctx).ID(teamID).Get(t)
 	if err != nil {
@@ -323,11 +314,6 @@ func GetTeamByIDCtx(ctx context.Context, teamID int64) (*Team, error) {
 		return nil, ErrTeamNotExist{0, teamID, ""}
 	}
 	return t, nil
-}
-
-// GetTeamByID returns team by given ID.
-func GetTeamByID(teamID int64) (*Team, error) {
-	return GetTeamByIDCtx(db.DefaultContext, teamID)
 }
 
 // GetTeamNamesByID returns team's lower name from a list of team ids.
@@ -346,8 +332,9 @@ func GetTeamNamesByID(teamIDs []int64) ([]string, error) {
 	return teamNames, err
 }
 
-func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err error) {
-	return teams, e.
+// GetRepoTeams gets the list of teams that has access to the repository
+func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Team, err error) {
+	return teams, db.GetEngine(ctx).
 		Join("INNER", "team_repo", "team_repo.team_id = team.id").
 		Where("team.org_id = ?", repo.OwnerID).
 		And("team_repo.repo_id=?", repo.ID).
@@ -355,7 +342,8 @@ func getRepoTeams(e db.Engine, repo *repo_model.Repository) (teams []*Team, err 
 		Find(&teams)
 }
 
-// GetRepoTeams gets the list of teams that has access to the repository
-func GetRepoTeams(repo *repo_model.Repository) ([]*Team, error) {
-	return getRepoTeams(db.GetEngine(db.DefaultContext), repo)
+// IncrTeamRepoNum increases the number of repos for the given team by 1
+func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+	return err
 }

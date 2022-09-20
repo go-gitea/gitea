@@ -33,6 +33,13 @@
   height: var(--height-loading);
 }
 
+code.language-math.is-loading::after {
+  padding: 0;
+  border-width: 2px;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
 @keyframes fadein {
   0% {
     opacity: 0;
@@ -49,4 +56,20 @@
   100% {
     opacity: 0;
   }
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.8);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pulse {
+  animation: pulse 2s linear;
 }

@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -30,8 +30,8 @@ import (
 )
 
 /*
-	GitHub, GitLab, Gogs: *.wiki.git
-	BitBucket: *.git/wiki
+GitHub, GitLab, Gogs: *.wiki.git
+BitBucket: *.git/wiki
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
@@ -116,7 +116,7 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		repo.Owner = u
 	}
 
-	if err = models.CheckDaemonExportOK(ctx, repo); err != nil {
+	if err = CheckDaemonExportOK(ctx, repo); err != nil {
 		return repo, fmt.Errorf("checkDaemonExportOK: %v", err)
 	}
 
@@ -168,9 +168,11 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 		}
 	}
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
-		log.Error("Failed to update size for repository: %v", err)
+	ctx, committer, err := db.TxContext()
+	if err != nil {
+		return nil, err
 	}
+	defer committer.Close()
 
 	if opts.Mirror {
 		mirrorModel := repo_model.Mirror{
@@ -203,17 +205,24 @@ func MigrateRepositoryGitData(ctx context.Context, u *user_model.User,
 			}
 		}
 
-		if err = repo_model.InsertMirror(&mirrorModel); err != nil {
+		if err = repo_model.InsertMirror(ctx, &mirrorModel); err != nil {
 			return repo, fmt.Errorf("InsertOne: %v", err)
 		}
 
 		repo.IsMirror = true
-		err = models.UpdateRepository(repo, false)
+		if err = UpdateRepository(ctx, repo, false); err != nil {
+			return nil, err
+		}
 	} else {
-		repo, err = CleanUpMigrateInfo(ctx, repo)
+		if err = UpdateRepoSize(ctx, repo); err != nil {
+			log.Error("Failed to update size for repository: %v", err)
+		}
+		if repo, err = CleanUpMigrateInfo(ctx, repo); err != nil {
+			return nil, err
+		}
 	}
 
-	return repo, err
+	return repo, committer.Commit()
 }
 
 // cleanUpMigrateGitConfig removes mirror info which prevents "push --all".
@@ -253,7 +262,7 @@ func CleanUpMigrateInfo(ctx context.Context, repo *repo_model.Repository) (*repo
 		}
 	}
 
-	return repo, models.UpdateRepository(repo, false)
+	return repo, UpdateRepository(ctx, repo, false)
 }
 
 // SyncReleasesWithTags synchronizes release table with repository tags
@@ -267,14 +276,14 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 	}
 
 	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{
+	opts := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		ListOptions:   db.ListOptions{PageSize: 50},
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
+		rels, err := repo_model.GetReleasesByRepoID(repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -290,7 +299,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := models.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+				if err := repo_model.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
@@ -349,7 +358,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("unable to get CommitsCount: %w", err)
 	}
 
-	rel := models.Release{
+	rel := repo_model.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),
@@ -362,7 +371,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		rel.PublisherID = author.ID
 	}
 
-	return models.SaveOrUpdateTag(repo, &rel)
+	return repo_model.SaveOrUpdateTag(repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -381,7 +390,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			defer content.Close()
 
-			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: p, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, p, err)
 				return err
@@ -389,7 +398,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 			if err := contentStore.Put(p, content); err != nil {
 				log.Error("Repo[%-v]: Error storing content for LFS meta object %-v: %v", repo, p, err)
-				if _, err2 := models.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
+				if _, err2 := git_model.RemoveLFSMetaObjectByOid(repo.ID, p.Oid); err2 != nil {
 					log.Error("Repo[%-v]: Error removing LFS meta object %-v: %v", repo, p, err2)
 				}
 				return err
@@ -408,8 +417,8 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 	var batch []lfs.Pointer
 	for pointerBlob := range pointerChan {
-		meta, err := models.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
-		if err != nil && err != models.ErrLFSObjectNotExist {
+		meta, err := git_model.GetLFSMetaObjectByOid(repo.ID, pointerBlob.Oid)
+		if err != nil && err != git_model.ErrLFSObjectNotExist {
 			log.Error("Repo[%-v]: Error querying LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 			return err
 		}
@@ -428,7 +437,7 @@ func StoreMissingLfsObjectsInRepository(ctx context.Context, repo *repo_model.Re
 
 		if exist {
 			log.Trace("Repo[%-v]: LFS object %-v already present; creating meta object", repo, pointerBlob.Pointer)
-			_, err := models.NewLFSMetaObject(&models.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
+			_, err := git_model.NewLFSMetaObject(&git_model.LFSMetaObject{Pointer: pointerBlob.Pointer, RepositoryID: repo.ID})
 			if err != nil {
 				log.Error("Repo[%-v]: Error creating LFS meta object %-v: %v", repo, pointerBlob.Pointer, err)
 				return err
@@ -479,14 +488,14 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 		//
 		// clear out existing releases
 		//
-		if _, err := db.DeleteByBean(ctx, &models.Release{RepoID: repo.ID}); err != nil {
+		if _, err := db.DeleteByBean(ctx, &repo_model.Release{RepoID: repo.ID}); err != nil {
 			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
 		//
 		// make release set identical to upstream tags
 		//
 		for _, tag := range tags {
-			release := models.Release{
+			release := repo_model.Release{
 				RepoID:       repo.ID,
 				TagName:      tag.Name,
 				LowerTagName: strings.ToLower(tag.Name),

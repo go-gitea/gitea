@@ -19,12 +19,17 @@ linters:
     - revive
     - gofumpt
     - depguard
+    - nakedret
+    - unconvert
+    - wastedassign
+    - nolintlint
+    - stylecheck
   enable-all: false
   disable-all: true
   fast: false
 
 run:
-  go: 1.18
+  go: 1.19
   timeout: 10m
   skip-dirs:
     - node_modules
@@ -32,6 +37,10 @@ run:
     - web_src
 
 linters-settings:
+  stylecheck:
+    checks: ["all", "-ST1005", "-ST1003"]
+  nakedret:
+    max-func-lines: 0
   gocritic:
     disabled-checks:
       - ifElseChain
@@ -66,7 +75,7 @@ linters-settings:
       - name: modifies-value-receiver
   gofumpt:
     extra-rules: true
-    lang-version: "1.18"
+    lang-version: "1.19"
   depguard:
     # TODO: use depguard to replace import checks in gitea-vet
     list-type: denylist
@@ -77,6 +86,8 @@ linters-settings:
       - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
@@ -162,6 +173,7 @@ issues:
     - path: models/user/openid.go
       linters:
         - golint
-    - linters:
-        - staticcheck
-      text: "strings.Title is deprecated: The rule Title uses for word boundaries does not handle Unicode punctuation properly. Use golang.org/x/text/cases instead."
+    - path: models/user/badge.go
+      linters:
+        - revive
+      text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"

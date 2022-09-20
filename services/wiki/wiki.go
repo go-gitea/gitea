@@ -12,7 +12,6 @@ import (
 	"os"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
@@ -27,12 +26,13 @@ import (
 
 var (
 	reservedWikiNames = []string{"_pages", "_new", "_edit", "raw"}
-	wikiWorkingPool   = sync.NewExclusivePool()
+	// TODO: use clustered lock (unique queue? or *abuse* cache)
+	wikiWorkingPool = sync.NewExclusivePool()
 )
 
 func nameAllowed(name string) error {
 	if util.IsStringInSlice(name, reservedWikiNames) {
-		return models.ErrWikiReservedName{
+		return repo_model.ErrWikiReservedName{
 			Title: name,
 		}
 	}
@@ -58,7 +58,7 @@ func NameToFilename(name string) string {
 // FilenameToName converts a wiki filename to its corresponding page name.
 func FilenameToName(filename string) (string, error) {
 	if !strings.HasSuffix(filename, ".md") {
-		return "", models.ErrWikiInvalidFileName{
+		return "", repo_model.ErrWikiInvalidFileName{
 			FileName: filename,
 		}
 	}
@@ -118,7 +118,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	return foundEscaped, escaped, nil
 }
 
-// updateWikiPage adds a new page to the repository wiki.
+// updateWikiPage adds a new page or edits an existing page in repository wiki.
 func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model.Repository, oldWikiName, newWikiName, content, message string, isNew bool) (err error) {
 	if err = nameAllowed(newWikiName); err != nil {
 		return err
@@ -132,12 +132,12 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), "master")
 
-	basePath, err := models.CreateTemporaryPath("update-wiki")
+	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -177,7 +177,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 
 	if isNew {
 		if isWikiExist {
-			return models.ErrWikiAlreadyExist{
+			return repo_model.ErrWikiAlreadyExist{
 				Title: newWikiPath,
 			}
 		}
@@ -248,7 +248,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env: models.FullPushingEnvironment(
+		Env: repo_module.FullPushingEnvironment(
 			doer,
 			doer,
 			repo,
@@ -286,12 +286,12 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	basePath, err := models.CreateTemporaryPath("update-wiki")
+	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
 		return err
 	}
 	defer func() {
-		if err := models.RemoveTemporaryPath(basePath); err != nil {
+		if err := repo_module.RemoveTemporaryPath(basePath); err != nil {
 			log.Error("Merge: RemoveTemporaryPath: %s", err)
 		}
 	}()
@@ -362,7 +362,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
 		Remote: "origin",
 		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
-		Env:    models.PushingEnvironment(doer, repo),
+		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
 			return err

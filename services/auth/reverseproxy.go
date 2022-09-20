@@ -63,7 +63,7 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 	}
 	log.Trace("ReverseProxy Authorization: Found username: %s", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) || !r.isAutoRegisterAllowed() {
 			log.Error("GetUserByName: %v", err)
@@ -105,9 +105,15 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		}
 	}
 
+	var fullname string
+	if setting.Service.EnableReverseProxyFullName {
+		fullname = req.Header.Get(setting.ReverseProxyAuthFullName)
+	}
+
 	user := &user_model.User{
-		Name:  username,
-		Email: email,
+		Name:     username,
+		Email:    email,
+		FullName: fullname,
 	}
 
 	overwriteDefault := user_model.CreateUserOverwriteOptions{

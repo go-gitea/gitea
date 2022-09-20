@@ -67,6 +67,7 @@ empty commit`
 	gitRepo, err := openRepositoryWithDefaultContext(filepath.Join(testReposDir, "repo1_bare"))
 	assert.NoError(t, err)
 	assert.NotNil(t, gitRepo)
+	defer gitRepo.Close()
 
 	commitFromReader, err := CommitFromReader(gitRepo, sha, strings.NewReader(commitString))
 	assert.NoError(t, err)
@@ -111,6 +112,7 @@ func TestHasPreviousCommit(t *testing.T) {
 
 	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	assert.NoError(t, err)
+	defer repo.Close()
 
 	commit, err := repo.GetCommit("8006ff9adbf0cb94da7dad9e537e53817f9fa5c0")
 	assert.NoError(t, err)

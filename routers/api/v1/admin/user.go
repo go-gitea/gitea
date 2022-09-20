@@ -269,7 +269,7 @@ func EditUser(ctx *context.APIContext) {
 		ctx.ContextUser.IsRestricted = *form.Restricted
 	}
 
-	if err := user_model.UpdateUser(ctx.ContextUser, emailChanged); err != nil {
+	if err := user_model.UpdateUser(ctx, ctx.ContextUser, emailChanged); err != nil {
 		if user_model.IsErrEmailAlreadyUsed(err) ||
 			user_model.IsErrEmailCharIsNotSupported(err) ||
 			user_model.IsErrEmailInvalid(err) {
@@ -310,7 +310,13 @@ func DeleteUser(ctx *context.APIContext) {
 		return
 	}
 
-	if err := user_service.DeleteUser(ctx.ContextUser); err != nil {
+	// admin should not delete themself
+	if ctx.ContextUser.ID == ctx.Doer.ID {
+		ctx.Error(http.StatusUnprocessableEntity, "", fmt.Errorf("you cannot delete yourself"))
+		return
+	}
+
+	if err := user_service.DeleteUser(ctx, ctx.ContextUser, ctx.FormBool("purge")); err != nil {
 		if models.IsErrUserOwnRepos(err) ||
 			models.IsErrUserHasOrgs(err) ||
 			models.IsErrUserOwnPackages(err) {

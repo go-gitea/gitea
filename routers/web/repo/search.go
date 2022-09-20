@@ -47,7 +47,6 @@ func Search(ctx *context.Context) {
 	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["RequireHighlightJS"] = true
 	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)

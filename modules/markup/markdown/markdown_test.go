@@ -5,6 +5,7 @@
 package markdown_test
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -28,7 +29,14 @@ const (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../../tests/gitea-repositories-meta/user13/repo11.git/",
+}
+
+func TestMain(m *testing.M) {
+	setting.LoadAllowEmpty()
+	if err := git.InitSimple(context.Background()); err != nil {
+		log.Fatal("git init failed, err: %v", err)
+	}
 }
 
 func TestRender_StandardLinks(t *testing.T) {

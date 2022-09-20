@@ -10,18 +10,17 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
@@ -152,7 +151,7 @@ func Create(ctx *context.Context) {
 	templateID := ctx.FormInt64("template_id")
 	if templateID > 0 {
 		templateRepo, err := repo_model.GetRepositoryByID(templateID)
-		if err == nil && models.CheckRepoUnitUser(templateRepo, ctxUser, unit.TypeCode) {
+		if err == nil && access_model.CheckRepoUnitUser(ctx, templateRepo, ctxUser, unit.TypeCode) {
 			ctx.Data["repo_template"] = templateID
 			ctx.Data["repo_template_name"] = templateRepo.Name
 		}
@@ -223,7 +222,7 @@ func CreatePost(ctx *context.Context) {
 	var repo *repo_model.Repository
 	var err error
 	if form.RepoTemplate > 0 {
-		opts := models.GenerateRepoOptions{
+		opts := repo_module.GenerateRepoOptions{
 			Name:        form.RepoName,
 			Description: form.Description,
 			Private:     form.Private,
@@ -257,7 +256,7 @@ func CreatePost(ctx *context.Context) {
 			return
 		}
 	} else {
-		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+		repo, err = repo_service.CreateRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:          form.RepoName,
 			Description:   form.Description,
 			Gitignores:    form.Gitignores,
@@ -285,9 +284,9 @@ func Action(ctx *context.Context) {
 	var err error
 	switch ctx.Params(":action") {
 	case "watch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unwatch":
-		err = repo_model.WatchRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, false)
+		err = repo_model.WatchRepo(ctx, ctx.Doer.ID, ctx.Repo.Repository.ID, false)
 	case "star":
 		err = repo_model.StarRepo(ctx.Doer.ID, ctx.Repo.Repository.ID, true)
 	case "unstar":
@@ -304,7 +303,7 @@ func Action(ctx *context.Context) {
 
 		ctx.Repo.Repository.Description = ctx.FormString("desc")
 		ctx.Repo.Repository.Website = ctx.FormString("site")
-		err = models.UpdateRepository(ctx.Repo.Repository, false)
+		err = repo_service.UpdateRepository(ctx.Repo.Repository, false)
 	}
 
 	if err != nil {
@@ -358,7 +357,7 @@ func RedirectDownload(ctx *context.Context) {
 	)
 	tagNames := []string{vTag}
 	curRepo := ctx.Repo.Repository
-	releases, err := models.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, curRepo.ID, tagNames)
 	if err != nil {
 		if repo_model.IsErrAttachmentNotExist(err) {
 			ctx.Error(http.StatusNotFound)
@@ -369,7 +368,7 @@ func RedirectDownload(ctx *context.Context) {
 	}
 	if len(releases) == 1 {
 		release := releases[0]
-		att, err := repo_model.GetAttachmentByReleaseIDFileName(release.ID, fileName)
+		att, err := repo_model.GetAttachmentByReleaseIDFileName(ctx, release.ID, fileName)
 		if err != nil {
 			ctx.Error(http.StatusNotFound)
 			return
@@ -389,68 +388,27 @@ func Download(ctx *context.Context) {
 	if err != nil {
 		if errors.Is(err, archiver_service.ErrUnknownArchiveFormat{}) {
 			ctx.Error(http.StatusBadRequest, err.Error())
+		} else if errors.Is(err, archiver_service.RepoRefNotFoundError{}) {
+			ctx.Error(http.StatusNotFound, err.Error())
 		} else {
 			ctx.ServerError("archiver_service.NewRequest", err)
 		}
 		return
 	}
-	if aReq == nil {
-		ctx.Error(http.StatusNotFound)
-		return
-	}
 
-	archiver, err := repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
+	archiver, err := aReq.Await(ctx)
 	if err != nil {
-		ctx.ServerError("models.GetRepoArchiver", err)
-		return
-	}
-	if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-		download(ctx, aReq.GetArchiveName(), archiver)
+		ctx.ServerError("archiver.Await", err)
 		return
 	}
 
-	if err := archiver_service.StartArchive(aReq); err != nil {
-		ctx.ServerError("archiver_service.StartArchive", err)
-		return
-	}
-
-	var times int
-	t := time.NewTicker(time.Second * 1)
-	defer t.Stop()
-
-	for {
-		select {
-		case <-graceful.GetManager().HammerContext().Done():
-			log.Warn("exit archive download because system stop")
-			return
-		case <-t.C:
-			if times > 20 {
-				ctx.ServerError("wait download timeout", nil)
-				return
-			}
-			times++
-			archiver, err = repo_model.GetRepoArchiver(ctx, aReq.RepoID, aReq.Type, aReq.CommitID)
-			if err != nil {
-				ctx.ServerError("archiver_service.StartArchive", err)
-				return
-			}
-			if archiver != nil && archiver.Status == repo_model.ArchiverReady {
-				download(ctx, aReq.GetArchiveName(), archiver)
-				return
-			}
-		}
-	}
+	download(ctx, aReq.GetArchiveName(), archiver)
 }
 
 func download(ctx *context.Context, archiveName string, archiver *repo_model.RepoArchiver) {
 	downloadName := ctx.Repo.Repository.Name + "-" + archiveName
 
-	rPath, err := archiver.RelativePath()
-	if err != nil {
-		ctx.ServerError("archiver.RelativePath", err)
-		return
-	}
-
+	rPath := archiver.RelativePath()
 	if setting.RepoArchive.ServeDirect {
 		// If we have a signed url (S3, object storage), redirect to this directly.
 		u, err := storage.RepoArchives.URL(rPath, downloadName)
@@ -467,7 +425,8 @@ func download(ctx *context.Context, archiveName string, archiver *repo_model.Rep
 		return
 	}
 	defer fr.Close()
-	ctx.ServeStream(fr, downloadName)
+
+	ctx.ServeContent(downloadName, fr, archiver.CreatedUnix.AsLocalTime())
 }
 
 // InitiateDownload will enqueue an archival request, as needed.  It may submit
@@ -509,7 +468,7 @@ func InitiateDownload(ctx *context.Context) {
 
 // SearchRepo repositories via options
 func SearchRepo(ctx *context.Context) {
-	opts := &models.SearchRepoOptions{
+	opts := &repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			Page:     ctx.FormInt("page"),
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
@@ -581,7 +540,7 @@ func SearchRepo(ctx *context.Context) {
 	}
 
 	var err error
-	repos, count, err := models.SearchRepository(opts)
+	repos, count, err := repo_model.SearchRepository(opts)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, api.SearchError{
 			OK:    false,

@@ -7,16 +7,18 @@ package user
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	org_model "code.gitea.io/gitea/models/organization"
 	packages_model "code.gitea.io/gitea/models/packages"
 	container_model "code.gitea.io/gitea/models/packages/container"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -43,9 +45,10 @@ func ListPackages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		Type:    packages_model.Type(packageType),
-		Name:    packages_model.SearchValue{Value: query},
+		OwnerID:    ctx.ContextUser.ID,
+		Type:       packages_model.Type(packageType),
+		Name:       packages_model.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -56,6 +59,23 @@ func ListPackages(ctx *context.Context) {
 	if err != nil {
 		ctx.ServerError("GetPackageDescriptors", err)
 		return
+	}
+
+	repositoryAccessMap := make(map[int64]bool)
+	for _, pd := range pds {
+		if pd.Repository == nil {
+			continue
+		}
+		if _, has := repositoryAccessMap[pd.Repository.ID]; has {
+			continue
+		}
+
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		repositoryAccessMap[pd.Repository.ID] = permission.HasAccess()
 	}
 
 	hasPackages, err := packages_model.HasOwnerPackages(ctx, ctx.ContextUser.ID)
@@ -72,6 +92,22 @@ func ListPackages(ctx *context.Context) {
 	ctx.Data["HasPackages"] = hasPackages
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
+	ctx.Data["RepositoryAccessMap"] = repositoryAccessMap
+
+	// TODO: context/org -> HandleOrgAssignment() can not be used
+	if ctx.ContextUser.IsOrganization() {
+		org := org_model.OrgFromUser(ctx.ContextUser)
+		ctx.Data["Org"] = org
+		ctx.Data["OrgLink"] = ctx.ContextUser.OrganisationLink()
+
+		if ctx.Doer != nil {
+			ctx.Data["IsOrganizationMember"], _ = org_model.IsOrganizationMember(ctx, org.ID, ctx.Doer.ID)
+			ctx.Data["IsOrganizationOwner"], _ = org_model.IsOrganizationOwner(ctx, org.ID, ctx.Doer.ID)
+		} else {
+			ctx.Data["IsOrganizationMember"] = false
+			ctx.Data["IsOrganizationOwner"] = false
+		}
+	}
 
 	pager := context.NewPagination(int(total), setting.UI.PackagesPagingNum, page, 5)
 	pager.AddParam(ctx, "q", "Query")
@@ -94,7 +130,8 @@ func RedirectToLastVersion(ctx *context.Context) {
 	}
 
 	pvs, _, err := packages_model.SearchLatestVersions(ctx, &packages_model.PackageSearchOptions{
-		PackageID: p.ID,
+		PackageID:  p.ID,
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("GetPackageByName", err)
@@ -139,8 +176,9 @@ func ViewPackageVersion(ctx *context.Context) {
 		})
 	default:
 		pvs, total, err = packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-			Paginator: db.NewAbsoluteListOptions(0, 5),
-			PackageID: pd.Package.ID,
+			Paginator:  db.NewAbsoluteListOptions(0, 5),
+			PackageID:  pd.Package.ID,
+			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -156,6 +194,17 @@ func ViewPackageVersion(ctx *context.Context) {
 	ctx.Data["TotalVersionCount"] = total
 
 	ctx.Data["CanWritePackages"] = ctx.Package.AccessMode >= perm.AccessModeWrite || ctx.IsUserSiteAdmin()
+
+	hasRepositoryAccess := false
+	if pd.Repository != nil {
+		permission, err := access_model.GetUserRepoPermission(ctx, pd.Repository, ctx.Doer)
+		if err != nil {
+			ctx.ServerError("GetUserRepoPermission", err)
+			return
+		}
+		hasRepositoryAccess = permission.HasAccess()
+	}
+	ctx.Data["HasRepositoryAccess"] = hasRepositoryAccess
 
 	ctx.HTML(http.StatusOK, tplPackagesView)
 }
@@ -225,6 +274,7 @@ func ListPackageVersions(ctx *context.Context) {
 				ExactMatch: false,
 				Value:      query,
 			},
+			IsInternal: util.OptionalBoolFalse,
 		})
 		if err != nil {
 			ctx.ServerError("SearchVersions", err)
@@ -258,7 +308,7 @@ func PackageSettings(ctx *context.Context) {
 	ctx.Data["ContextUser"] = ctx.ContextUser
 	ctx.Data["PackageDescriptor"] = pd
 
-	repos, _, _ := models.GetUserRepositories(&models.SearchRepoOptions{
+	repos, _, _ := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 		Actor:   pd.Owner,
 		Private: true,
 	})
@@ -343,5 +393,5 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }

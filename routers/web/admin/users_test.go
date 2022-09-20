@@ -25,7 +25,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -47,7 +47,7 @@ func TestNewUserPost_MustChangePassword(t *testing.T) {
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
-	u, err := user_model.GetUserByName(username)
+	u, err := user_model.GetUserByName(ctx, username)
 
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
@@ -62,7 +62,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -84,7 +84,7 @@ func TestNewUserPost_MustChangePasswordFalse(t *testing.T) {
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
-	u, err := user_model.GetUserByName(username)
+	u, err := user_model.GetUserByName(ctx, username)
 
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
@@ -99,7 +99,7 @@ func TestNewUserPost_InvalidEmail(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -129,7 +129,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -151,7 +151,7 @@ func TestNewUserPost_VisibilityDefaultPublic(t *testing.T) {
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
-	u, err := user_model.GetUserByName(username)
+	u, err := user_model.GetUserByName(ctx, username)
 
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)
@@ -167,7 +167,7 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 	u := unittest.AssertExistsAndLoadBean(t, &user_model.User{
 		IsAdmin: true,
 		ID:      2,
-	}).(*user_model.User)
+	})
 
 	ctx.Doer = u
 
@@ -190,7 +190,7 @@ func TestNewUserPost_VisibilityPrivate(t *testing.T) {
 
 	assert.NotEmpty(t, ctx.Flash.SuccessMsg)
 
-	u, err := user_model.GetUserByName(username)
+	u, err := user_model.GetUserByName(ctx, username)
 
 	assert.NoError(t, err)
 	assert.Equal(t, username, u.Name)

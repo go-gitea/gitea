@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/cache"
@@ -95,7 +95,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 	}
 	defer gitRepo.Close()
 
-	if err = models.UpdateRepoSize(ctx, repo); err != nil {
+	if err = repo_module.UpdateRepoSize(ctx, repo); err != nil {
 		log.Error("Failed to update size for repository: %v", err)
 	}
 
@@ -181,7 +181,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 							}
 						}
 						// Update the is empty and default_branch columns
-						if err := repo_model.UpdateRepositoryCols(repo, "default_branch", "is_empty"); err != nil {
+						if err := repo_model.UpdateRepositoryCols(db.DefaultContext, repo, "default_branch", "is_empty"); err != nil {
 							return fmt.Errorf("UpdateRepositoryCols: %v", err)
 						}
 					}
@@ -252,7 +252,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
 
-				if err = models.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
+				if err = git_model.RemoveDeletedBranchByName(repo.ID, branch); err != nil {
 					log.Error("models.RemoveDeletedBranch %s/%s failed: %v", repo.ID, branch, err)
 				}
 
@@ -269,7 +269,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 			}
 
 			// Even if user delete a branch on a repository which he didn't watch, he will be watch that.
-			if err = repo_model.WatchIfAuto(opts.PusherID, repo.ID, true); err != nil {
+			if err = repo_model.WatchIfAuto(db.DefaultContext, opts.PusherID, repo.ID, true); err != nil {
 				log.Warn("Fail to perform auto watch on user %v for repo %v: %v", opts.PusherID, repo.ID, err)
 			}
 		} else {
@@ -291,7 +291,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
 	return db.WithTx(func(ctx context.Context) error {
-		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
+		if err := repo_model.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
 		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
@@ -309,16 +309,16 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
-	releases, err := models.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
 	if err != nil {
 		return fmt.Errorf("GetReleasesByRepoIDAndNames: %v", err)
 	}
-	relMap := make(map[string]*models.Release)
+	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.LowerTagName] = rel
 	}
 
-	newReleases := make([]*models.Release, 0, len(lowerTags)-len(relMap))
+	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
 
 	emailToUser := make(map[string]*user_model.User)
 
@@ -365,7 +365,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		rel, has := relMap[lowerTag]
 
 		if !has {
-			rel = &models.Release{
+			rel = &repo_model.Release{
 				RepoID:       repo.ID,
 				Title:        "",
 				TagName:      tags[i],
@@ -392,14 +392,14 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			if rel.IsTag && author != nil {
 				rel.PublisherID = author.ID
 			}
-			if err = models.UpdateRelease(ctx, rel); err != nil {
+			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %v", err)
 			}
 		}
 	}
 
 	if len(newReleases) > 0 {
-		if err = models.InsertReleasesContext(ctx, newReleases); err != nil {
+		if err = db.Insert(ctx, newReleases); err != nil {
 			return fmt.Errorf("Insert: %v", err)
 		}
 	}

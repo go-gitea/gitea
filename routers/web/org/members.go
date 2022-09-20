@@ -45,6 +45,7 @@ func Members(ctx *context.Context) {
 		}
 		opts.PublicOnly = !isMember && !ctx.Doer.IsAdmin
 	}
+	ctx.Data["PublicOnly"] = opts.PublicOnly
 
 	total, err := organization.CountOrgMembers(opts)
 	if err != nil {
@@ -63,7 +64,7 @@ func Members(ctx *context.Context) {
 	ctx.Data["Page"] = pager
 	ctx.Data["Members"] = members
 	ctx.Data["MembersIsPublicMember"] = membersIsPublic
-	ctx.Data["MembersIsUserOrgOwner"] = models.IsUserOrgOwner(members, org.ID)
+	ctx.Data["MembersIsUserOrgOwner"] = organization.IsUserOrgOwner(members, org.ID)
 	ctx.Data["MembersTwoFaStatus"] = members.GetTwoFaStatus()
 
 	ctx.HTML(http.StatusOK, tplMembers)

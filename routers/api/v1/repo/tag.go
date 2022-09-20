@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -176,6 +177,8 @@ func CreateTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/Tag"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "405":
+	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
 	form := web.GetForm(ctx).(*api.CreateTagOption)
@@ -196,6 +199,11 @@ func CreateTag(ctx *context.APIContext) {
 			ctx.Error(http.StatusConflict, "tag exist", err)
 			return
 		}
+		if models.IsErrProtectedTagName(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "CreateNewTag", "user not allowed to create protected tag")
+			return
+		}
+
 		ctx.InternalServerError(err)
 		return
 	}
@@ -236,13 +244,15 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
+	//   "405":
+	//     "$ref": "#/responses/empty"
 	//   "409":
 	//     "$ref": "#/responses/conflict"
 	tagName := ctx.Params("*")
 
-	tag, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}
@@ -256,7 +266,12 @@ func DeleteTag(ctx *context.APIContext) {
 	}
 
 	if err = releaseservice.DeleteReleaseByID(ctx, tag.ID, ctx.Doer, true); err != nil {
+		if models.IsErrProtectedTagName(err) {
+			ctx.Error(http.StatusMethodNotAllowed, "delTag", "user not allowed to delete protected tag")
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "DeleteReleaseByID", err)
+		return
 	}
 
 	ctx.Status(http.StatusNoContent)

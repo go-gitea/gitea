@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	"xorm.io/builder"
+	"xorm.io/xorm/schemas"
 )
 
 // DefaultContext is the default context to run xorm queries in
@@ -22,21 +23,28 @@ type contextKey struct {
 	name string
 }
 
-// EnginedContextKey is a context key. It is used with context.Value() to get the current Engined for the context
-var EnginedContextKey = &contextKey{"engined"}
+// enginedContextKey is a context key. It is used with context.Value() to get the current Engined for the context
+var enginedContextKey = &contextKey{"engined"}
+var _ Engined = &Context{}
 
 // Context represents a db context
 type Context struct {
 	context.Context
-	e Engine
+	e           Engine
+	transaction bool
 }
 
-// WithEngine returns a db.Context from a context.Context and db.Engine
-func WithEngine(ctx context.Context, e Engine) *Context {
+func newContext(ctx context.Context, e Engine, transaction bool) *Context {
 	return &Context{
-		Context: ctx,
-		e:       e.Context(ctx),
+		Context:     ctx,
+		e:           e,
+		transaction: transaction,
 	}
+}
+
+// InTransaction if context is in a transaction
+func (ctx *Context) InTransaction() bool {
+	return ctx.transaction
 }
 
 // Engine returns db engine
@@ -46,7 +54,7 @@ func (ctx *Context) Engine() Engine {
 
 // Value shadows Value for context.Context but allows us to get ourselves and an Engined object
 func (ctx *Context) Value(key interface{}) interface{} {
-	if key == EnginedContextKey {
+	if key == enginedContextKey {
 		return ctx
 	}
 	return ctx.Context.Value(key)
@@ -54,7 +62,7 @@ func (ctx *Context) Value(key interface{}) interface{} {
 
 // WithContext returns this engine tied to this context
 func (ctx *Context) WithContext(other context.Context) *Context {
-	return WithEngine(other, ctx.e)
+	return newContext(ctx, ctx.e.Context(other), ctx.transaction)
 }
 
 // Engined structs provide an Engine
@@ -67,7 +75,7 @@ func GetEngine(ctx context.Context) Engine {
 	if engined, ok := ctx.(Engined); ok {
 		return engined.Engine()
 	}
-	enginedInterface := ctx.Value(EnginedContextKey)
+	enginedInterface := ctx.Value(enginedContextKey)
 	if enginedInterface != nil {
 		return enginedInterface.(Engined).Engine()
 	}
@@ -88,32 +96,25 @@ func TxContext() (*Context, Committer, error) {
 		return nil, nil, err
 	}
 
-	return &Context{
-		Context: DefaultContext,
-		e:       sess,
-	}, sess, nil
-}
-
-// WithContext represents executing database operations
-func WithContext(f func(ctx *Context) error) error {
-	return f(&Context{
-		Context: DefaultContext,
-		e:       x,
-	})
+	return newContext(DefaultContext, sess, true), sess, nil
 }
 
 // WithTx represents executing database operations on a transaction
-func WithTx(f func(ctx context.Context) error) error {
+// you can optionally change the context to a parent one
+func WithTx(f func(ctx context.Context) error, stdCtx ...context.Context) error {
+	parentCtx := DefaultContext
+	if len(stdCtx) != 0 && stdCtx[0] != nil {
+		// TODO: make sure parent context has no open session
+		parentCtx = stdCtx[0]
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
 
-	if err := f(&Context{
-		Context: DefaultContext,
-		e:       sess,
-	}); err != nil {
+	if err := f(newContext(parentCtx, sess, true)); err != nil {
 		return err
 	}
 
@@ -167,4 +168,25 @@ func CountByBean(ctx context.Context, bean interface{}) (int64, error) {
 // TableName returns the table name according a bean object
 func TableName(bean interface{}) string {
 	return x.TableName(bean)
+}
+
+// EstimateCount returns an estimate of total number of rows in table
+func EstimateCount(ctx context.Context, bean interface{}) (int64, error) {
+	e := GetEngine(ctx)
+	e.Context(ctx)
+
+	var rows int64
+	var err error
+	tablename := TableName(bean)
+	switch x.Dialect().URI().DBType {
+	case schemas.MYSQL:
+		_, err = e.Context(ctx).SQL("SELECT table_rows FROM information_schema.tables WHERE tables.table_name = ? AND tables.table_schema = ?;", tablename, x.Dialect().URI().DBName).Get(&rows)
+	case schemas.POSTGRES:
+		_, err = e.Context(ctx).SQL("SELECT reltuples AS estimate FROM pg_class WHERE relname = ?;", tablename).Get(&rows)
+	case schemas.MSSQL:
+		_, err = e.Context(ctx).SQL("sp_spaceused ?;", tablename).Get(&rows)
+	default:
+		return e.Context(ctx).Count(tablename)
+	}
+	return rows, err
 }

@@ -12,7 +12,6 @@ import (
 	"path/filepath"
 	"regexp"
 	"runtime"
-	"strings"
 )
 
 // EnsureAbsolutePath ensure that a path is absolute, making it
@@ -91,7 +90,7 @@ func statDir(dirPath, recPath string, includeDir, isDirOnly, followSymlinks bool
 
 	statList := make([]string, 0)
 	for _, fi := range fis {
-		if strings.Contains(fi.Name(), ".DS_Store") {
+		if CommonSkip(fi.Name()) {
 			continue
 		}
 
@@ -182,6 +181,7 @@ func FileURLToPath(u *url.URL) (string, error) {
 // it returns error when the variable does not exist.
 func HomeDir() (home string, err error) {
 	// TODO: some users run Gitea with mismatched uid  and "HOME=xxx" (they set HOME=xxx by environment manually)
+	// TODO: when running gitea as a sub command inside git, the HOME directory is not the user's home directory
 	// so at the moment we can not use `user.Current().HomeDir`
 	if isOSWindows() {
 		home = os.Getenv("USERPROFILE")
@@ -197,4 +197,22 @@ func HomeDir() (home string, err error) {
 	}
 
 	return home, nil
+}
+
+// CommonSkip will check a provided name to see if it represents file or directory that should not be watched
+func CommonSkip(name string) bool {
+	if name == "" {
+		return true
+	}
+
+	switch name[0] {
+	case '.':
+		return true
+	case 't', 'T':
+		return name[1:] == "humbs.db"
+	case 'd', 'D':
+		return name[1:] == "esktop.ini"
+	}
+
+	return false
 }

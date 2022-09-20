@@ -5,15 +5,16 @@
 package templates
 
 import (
+	"fmt"
+	"io/fs"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
-
-	"github.com/unrolled/render"
 )
 
 // Vars represents variables to be render in golang templates
@@ -35,10 +36,11 @@ func BaseVars() Vars {
 		"IsLandingPageExplore":       setting.LandingPageURL == setting.LandingPageExplore,
 		"IsLandingPageOrganizations": setting.LandingPageURL == setting.LandingPageOrganizations,
 
-		"ShowRegistrationButton":      setting.Service.ShowRegistrationButton,
-		"ShowMilestonesDashboardPage": setting.Service.ShowMilestonesDashboardPage,
-		"ShowFooterBranding":          setting.ShowFooterBranding,
-		"ShowFooterVersion":           setting.ShowFooterVersion,
+		"ShowRegistrationButton":        setting.Service.ShowRegistrationButton,
+		"ShowMilestonesDashboardPage":   setting.Service.ShowMilestonesDashboardPage,
+		"ShowFooterBranding":            setting.ShowFooterBranding,
+		"ShowFooterVersion":             setting.ShowFooterVersion,
+		"DisableDownloadSourceArchives": setting.Repository.DisableDownloadSourceArchives,
 
 		"EnableSwagger":      setting.API.EnableSwagger,
 		"EnableOpenIDSignIn": setting.Service.EnableOpenIDSignIn,
@@ -46,8 +48,16 @@ func BaseVars() Vars {
 	}
 }
 
-func getDirAssetNames(dir string) []string {
+func getDirTemplateAssetNames(dir string) []string {
+	return getDirAssetNames(dir, false)
+}
+
+func getDirAssetNames(dir string, mailer bool) []string {
 	var tmpls []string
+
+	if mailer {
+		dir += filepath.Join(dir, "mail")
+	}
 	f, err := os.Stat(dir)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -66,8 +76,13 @@ func getDirAssetNames(dir string) []string {
 		log.Warn("Failed to read %s templates dir. %v", dir, err)
 		return tmpls
 	}
+
+	prefix := "templates/"
+	if mailer {
+		prefix += "mail/"
+	}
 	for _, filePath := range files {
-		if strings.HasPrefix(filePath, "mail/") {
+		if !mailer && strings.HasPrefix(filePath, "mail/") {
 			continue
 		}
 
@@ -75,20 +90,39 @@ func getDirAssetNames(dir string) []string {
 			continue
 		}
 
-		tmpls = append(tmpls, "templates/"+filePath)
+		tmpls = append(tmpls, prefix+filePath)
 	}
 	return tmpls
 }
 
-// HTMLRenderer returns a render.
-func HTMLRenderer() *render.Render {
-	return render.New(render.Options{
-		Extensions:                []string{".tmpl"},
-		Directory:                 "templates",
-		Funcs:                     NewFuncMap(),
-		Asset:                     GetAsset,
-		AssetNames:                GetAssetNames,
-		IsDevelopment:             !setting.IsProd,
-		DisableHTTPErrorRendering: true,
-	})
+func walkAssetDir(root string, skipMail bool, callback func(path, name string, d fs.DirEntry, err error) error) error {
+	mailRoot := filepath.Join(root, "mail")
+	if err := filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+		name := path[len(root):]
+		if len(name) > 0 && name[0] == '/' {
+			name = name[1:]
+		}
+		if err != nil {
+			if os.IsNotExist(err) {
+				return callback(path, name, d, err)
+			}
+			return err
+		}
+		if skipMail && path == mailRoot && d.IsDir() {
+			return fs.SkipDir
+		}
+		if util.CommonSkip(d.Name()) {
+			if d.IsDir() {
+				return fs.SkipDir
+			}
+			return nil
+		}
+		if strings.HasSuffix(d.Name(), ".tmpl") || d.IsDir() {
+			return callback(path, name, d, err)
+		}
+		return nil
+	}); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("unable to get files for template assets in %s: %w", root, err)
+	}
+	return nil
 }

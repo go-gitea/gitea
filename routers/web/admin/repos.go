@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -101,7 +101,7 @@ func UnadoptedRepos(ctx *context.Context) {
 		ctx.ServerError("ListUnadoptedRepositories", err)
 	}
 	ctx.Data["Dirs"] = repoNames
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	pager.AddParam(ctx, "search", "search")
 	ctx.Data["Page"] = pager
@@ -121,7 +121,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 		return
 	}
 
-	ctxUser, err := user_model.GetUserByName(dirSplit[0])
+	ctxUser, err := user_model.GetUserByName(ctx, dirSplit[0])
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			log.Debug("User does not exist: %s", dirSplit[0])
@@ -135,7 +135,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	repoName := dirSplit[1]
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.ServerError("IsRepositoryExist", err)
 		return
@@ -148,7 +148,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {
