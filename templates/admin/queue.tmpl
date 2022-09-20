@@ -157,7 +157,7 @@
 				<tbody>
 					{{range .Queue.Workers}}
 					<tr>
-						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{.i18n.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
+						<td>{{.Workers}}{{if .IsFlusher}}<span title="{{$.i18n.Tr "admin.monitor.queue.flush"}}">{{svg "octicon-sync"}}</span>{{end}}</td>
 						<td>{{DateFmtLong .Start}}</td>
 						<td>{{if .HasTimeout}}{{DateFmtLong .Timeout}}{{else}}-{{end}}</td>
 						<td>
