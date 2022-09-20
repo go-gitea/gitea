@@ -54,7 +54,7 @@ func Routes() *web.Route {
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
 	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
-	// Since internal API will be sent only from Gitea sub commands and it's under controll, we can trust the headers.
+	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
 	r.Use(chi_middleware.RealIP)
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
