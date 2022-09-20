@@ -47,7 +47,7 @@ type WebAuthnCredential struct {
 	AttestationType string
 	AAGUID          []byte
 	SignCount       uint32 `xorm:"BIGINT"`
-	CloneWarning    bool
+	CloneWarning    bool               `xorm:"NOT NULL DEFAULT false"`
 	CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 }

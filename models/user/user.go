@@ -82,7 +82,7 @@ type User struct {
 	FullName  string
 	// Email is the primary email address (to be used for communication)
 	Email                        string `xorm:"NOT NULL"`
-	KeepEmailPrivate             bool
+	KeepEmailPrivate             bool   `xorm:"NOT NULL DEFAULT false"`
 	EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 	Passwd                       string `xorm:"NOT NULL"`
 	PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`

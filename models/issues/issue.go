@@ -117,7 +117,7 @@ type Issue struct {
 	MilestoneID      int64                  `xorm:"INDEX NOT NULL DEFAULT 0"`
 	Milestone        *Milestone             `xorm:"-"`
 	Project          *project_model.Project `xorm:"-"`
-	Priority         int
+	Priority         int              `xorm:"NOT NULL DEFAULT 0"`
 	AssigneeID       int64            `xorm:"-"`
 	Assignee         *user_model.User `xorm:"-"`
 	IsClosed         bool             `xorm:"INDEX NOT NULL DEFAULT false"`

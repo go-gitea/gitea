@@ -63,7 +63,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		Title            string `xorm:"name"`
 		Content          string `xorm:"LONGTEXT"`
 		MilestoneID      int64  `xorm:"INDEX NOT NULL DEFAULT 0"`
-		Priority         int
+		Priority         int  `xorm:"NOT NULL DEFAULT 0"`
 		IsClosed         bool `xorm:"INDEX NOT NULL DEFAULT false"`
 		IsPull           bool `xorm:"INDEX NOT NULL DEFAULT false"` // Indicates whether is a pull request or not.
 		NumComments      int  `xorm:"NOT NULL DEFAULT 0"`
@@ -102,7 +102,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		IssueID       int64  `xorm:"INDEX NOT NULL DEFAULT 0"` // maybe zero when creating
 		ReleaseID     int64  `xorm:"INDEX NOT NULL DEFAULT 0"` // maybe zero when creating
 		UploaderID    int64  `xorm:"INDEX NOT NULL DEFAULT 0"` // Notice: will be zero before this column added
-		CommentID     int64
+		CommentID     int64  `xorm:"NOT NULL DEFAULT 0"`
 		Name          string
 		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 		Size          int64              `xorm:"NOT NULL DEFAULT 0"`
@@ -175,7 +175,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		FullName  string
 		// Email is the primary email address (to be used for communication)
 		Email                        string `xorm:"NOT NULL"`
-		KeepEmailPrivate             bool
+		KeepEmailPrivate             bool   `xorm:"NOT NULL DEFAULT false"`
 		EmailNotificationsPreference string `xorm:"VARCHAR(20) NOT NULL DEFAULT 'enabled'"`
 		Passwd                       string `xorm:"NOT NULL"`
 		PasswdHashAlgo               string `xorm:"NOT NULL DEFAULT 'argon2'"`
@@ -243,6 +243,29 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 	}
 	recreateTable(sess, &User{})
+
+	type WebAuthnCredential struct {
+		ID              int64 `xorm:"pk autoincr"`
+		Name            string
+		LowerName       string `xorm:"unique(s)"`
+		UserID          int64  `xorm:"INDEX unique(s)"`
+		CredentialID    []byte `xorm:"INDEX VARBINARY(1024)"`
+		PublicKey       []byte
+		AttestationType string
+		AAGUID          []byte
+		SignCount       uint32 `xorm:"BIGINT"`
+		CloneWarning    bool               `xorm:"NOT NULL DEFAULT false"`
+		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
+		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
+	}
+	recreateTable(sess, &WebAuthnCredential{})
+
+	type UserBadge struct {
+		ID      int64 `xorm:"pk autoincr"`
+		BadgeID int64 `xorm:"NOT NULL DEFAULT 0"`
+		UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
+	}
+	recreateTable(sess, &WebAuthnCredential{})
 
 	return sess.Commit()
 }
