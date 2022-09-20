@@ -48,6 +48,8 @@ import (
 	"code.gitea.io/gitea/services/repository/archiver"
 	"code.gitea.io/gitea/services/task"
 	"code.gitea.io/gitea/services/webhook"
+
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 func mustInit(fn func() error) {
@@ -167,6 +169,7 @@ func GlobalInitInstalled(ctx context.Context) {
 func NormalRoutes(ctx context.Context) *web.Route {
 	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
+	r.Use(chi_middleware.RealIP)
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
