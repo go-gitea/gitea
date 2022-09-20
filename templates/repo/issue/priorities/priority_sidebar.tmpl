@@ -1,0 +1,11 @@
+<div class="ui labels list">
+	<span class="no-select item {{if .ctx.HasSelectedPriority}}hide{{end}}">{{.ctx.locale.Tr "repo.issues.new.no_priority"}}</span>
+	<span class="labels-list">
+		{{range .ctx.Priorities}}
+			{{template "repo/issue/priorities/priority" dict "root" $.root "priority" .}}
+		{{end}}
+		{{range .ctx.OrgPriorities}}
+			{{template "repo/issue/priorities/priority" dict "root" $.root "priority" .}}
+		{{end}}
+	</span>
+</div>

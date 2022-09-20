@@ -1,0 +1,9 @@
+<a
+	class="ui label item {{if not .priority.IsChecked}}hide{{end}}"
+	id="label_{{.priority.ID}}"
+	href="{{.root.RepoLink}}/{{if or .root.IsPull .root.Issue.IsPull}}pulls{{else}}issues{{end}}?priority={{.priority.ID}}"{{/* FIXME: use .root.Issue.Link or create .root.Link */}}
+	style="color: {{.priority.ForegroundColor}}; background-color: {{.priority.Color}}"
+	title="{{.priority.Description | RenderEmojiPlain}}"
+>
+	{{.priority.Name | RenderEmoji}}
+</a>
