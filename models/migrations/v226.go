@@ -63,10 +63,10 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		Title            string `xorm:"name"`
 		Content          string `xorm:"LONGTEXT"`
 		MilestoneID      int64  `xorm:"INDEX NOT NULL DEFAULT 0"`
-		Priority         int  `xorm:"NOT NULL DEFAULT 0"`
-		IsClosed         bool `xorm:"INDEX NOT NULL DEFAULT false"`
-		IsPull           bool `xorm:"INDEX NOT NULL DEFAULT false"` // Indicates whether is a pull request or not.
-		NumComments      int  `xorm:"NOT NULL DEFAULT 0"`
+		Priority         int    `xorm:"NOT NULL DEFAULT 0"`
+		IsClosed         bool   `xorm:"INDEX NOT NULL DEFAULT false"`
+		IsPull           bool   `xorm:"INDEX NOT NULL DEFAULT false"` // Indicates whether is a pull request or not.
+		NumComments      int    `xorm:"NOT NULL DEFAULT 0"`
 		Ref              string
 
 		DeadlineUnix timeutil.TimeStamp `xorm:"INDEX"`
@@ -253,7 +253,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		PublicKey       []byte
 		AttestationType string
 		AAGUID          []byte
-		SignCount       uint32 `xorm:"BIGINT"`
+		SignCount       uint32             `xorm:"BIGINT"`
 		CloneWarning    bool               `xorm:"NOT NULL DEFAULT false"`
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`

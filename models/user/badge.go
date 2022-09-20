@@ -21,7 +21,7 @@ type Badge struct {
 type UserBadge struct {
 	ID      int64 `xorm:"pk autoincr"`
 	BadgeID int64 `xorm:"NOT NULL DEFAULT 0"`
-		UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
+	UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 }
 
 func init() {
