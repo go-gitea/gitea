@@ -126,13 +126,13 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
 
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
-
-[Swagger Example](https://try.gitea.io/api/swagger)
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
 ## Adjusting your server for public/private use
 
