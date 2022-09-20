@@ -1267,7 +1267,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1306,7 +1306,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}

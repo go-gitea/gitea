@@ -692,12 +692,9 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
-.ui.avatar.images .image,
-.ui.avatar.images img,
-.ui.avatar.images svg,
-.ui.avatar.image img,
-.ui.avatar.image svg,
-.ui.avatar.image,
+.ui.avatar img,
+.ui.avatar svg,
+.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
@@ -740,6 +737,13 @@ a.ui.card:hover,
   padding-bottom: 80px;
 }
 
+/* enable fluid page widths for medium size viewports */
+@media @mediaMdAndUp and @mediaLgAndDown {
+  .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 3em);
+  }
+}
+
 .following.bar {
   z-index: 900;
   left: 0;
@@ -756,10 +760,6 @@ a.ui.card:hover,
 
   .top.menu a.item.brand {
     padding-left: 0;
-  }
-
-  .brand .ui.mini.image {
-    width: 30px;
   }
 
   .top.menu a.item:hover,
@@ -1686,7 +1686,7 @@ a.ui.label:hover {
     }
   }
 
-  .ui.avatar.image {
+  .ui.avatar {
     height: 18px;
     width: 18px;
     display: block;
