@@ -272,13 +272,22 @@ a.blob-excerpt:hover {
 }
 
 .viewed-file-form {
-  margin: 0 3px;
-  padding: 0 3px;
-  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  border: 1px none;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  border-radius: .285rem; // just like .ui.tiny.button
+  font-size: .857rem; // just like .ui.tiny.button
+}
+
+.viewed-file-form input {
+  margin-right: 4px;
 }
 
 .viewed-file-checked-form {
-  background-color: var(--color-primary-light-4);
+  background-color: var(--color-primary-light-6);
+  border: 1px solid var(--color-primary-light-4);
 }
 
 #viewed-files-summary {
