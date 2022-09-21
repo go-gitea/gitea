@@ -116,8 +116,8 @@
 									<span class="changed-since-last-review unselectable">{{$.locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
 								<div data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
-									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$i}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}></input>
-									<label for="viewed-file-checkbox-{{$i}}">{{$.locale.Tr "repo.pulls.has_viewed_file"}}</label>
+									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$file.NameHash}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}></input>
+									<label for="viewed-file-checkbox-{{$file.NameHash}}">{{$.locale.Tr "repo.pulls.has_viewed_file"}}</label>
 								</div>
 							{{end}}
 						</div>
