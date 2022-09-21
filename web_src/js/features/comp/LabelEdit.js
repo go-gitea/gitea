@@ -12,6 +12,14 @@ export function initCompLabelEdit(selector) {
     $newLabelPanel.hide();
   });
 
+  const $newPriorityPanel = $('.new-priority.segment');
+  $('.new-priority.button').on('click', () => {
+    $newPriorityPanel.show();
+  });
+  $('.new-priority.segment .cancel').on('click', () => {
+    $newPriorityPanel.hide();
+  });
+
   initCompColorPicker();
 
   $('.edit-label-button').on('click', function () {

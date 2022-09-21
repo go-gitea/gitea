@@ -7,15 +7,21 @@
 			{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 				<div class="ui right">
 					<div class="ui green new-label button">{{.locale.Tr "repo.issues.new_label"}}</div>
+					<div class="ui green new-priority button">{{.locale.Tr "repo.issues.new_priority"}}</div>
 				</div>
 			{{end}}
 		</div>
 		<div class="ui divider"></div>
 		{{if and (or .CanWriteIssues .CanWritePulls) (not .Repository.IsArchived)}}
 			{{template "repo/issue/labels/label_new" .}}
+			{{template "repo/issue/priorities/priority_new" .}}
 		{{end}}
 		{{template "base/alert" .}}
 		{{template "repo/issue/labels/label_list" .}}
+	</div>
+	<div class="ui container">
+		<div class="ui divider"></div>
+		{{template "repo/issue/priorities/priority_list" .}}
 	</div>
 </div>
 

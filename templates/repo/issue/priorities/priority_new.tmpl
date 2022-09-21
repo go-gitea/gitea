@@ -1,6 +1,7 @@
-<div class="ui new-label segment hide">
+<div class="ui new-priority segment hide">
 	<form class="ui form" action="{{$.Link}}/new" method="post">
 		{{.CsrfTokenHtml}}
+		<input type="hidden" name="priority" value="1">
 		<div class="ui grid">
 			<div class="three wide column">
 				<div class="ui small input">
@@ -10,6 +11,11 @@
 			<div class="three wide column">
 				<div class="ui small fluid input">
 					<input class="new-label-desc-input" name="description" placeholder="{{.locale.Tr "repo.issues.new_priority_desc_placeholder"}}" maxlength="200">
+				</div>
+			</div>
+			<div class="three wide column">
+				<div class="ui small fluid input">
+					<input class="new-label-weight-input" name="weight" placeholder="{{.locale.Tr "repo.issues.new_priority_weight_placeholder"}}" maxlength="200">
 				</div>
 			</div>
 			<div class="color picker column">
