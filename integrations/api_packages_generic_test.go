@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/packages"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -77,6 +78,18 @@ func TestPackageGeneric(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, pvs, 1)
 		assert.Equal(t, int64(1), pvs[0].DownloadCount)
+	})
+
+	t.Run("RequireSignInView", func(t *testing.T) {
+		defer PrintCurrentTest(t)()
+
+		setting.Service.RequireSignInView = true
+		defer func() {
+			setting.Service.RequireSignInView = false
+		}()
+
+		req := NewRequest(t, "GET", url)
+		MakeRequest(t, req, http.StatusUnauthorized)
 	})
 
 	t.Run("Delete", func(t *testing.T) {
