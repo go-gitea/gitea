@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"gopkg.in/yaml.v3"
 )
 
