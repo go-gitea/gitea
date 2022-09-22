@@ -385,8 +385,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	archivePaths := make([]string, 0, len(archives))
 	for _, v := range archives {
-		p, _ := v.RelativePath()
-		archivePaths = append(archivePaths, p)
+		archivePaths = append(archivePaths, v.RelativePath())
 	}
 
 	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {

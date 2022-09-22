@@ -448,7 +448,7 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
 func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
-	pf, err := packages_model.GetFileForVersionByName(db.DefaultContext, pv.ID, pfi.Filename, pfi.CompositeKey)
+	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
 	}

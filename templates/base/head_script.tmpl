@@ -10,6 +10,7 @@ If you introduce mistakes in it, Gitea JavaScript code wouldn't run correctly.
 		appVer: '{{AppVer}}',
 		appUrl: '{{AppUrl}}',
 		appSubUrl: '{{AppSubUrl}}',
+		assetVersionEncoded: encodeURIComponent('{{AssetVersion}}'), // will be used in URL construction directly
 		assetUrlPrefix: '{{AssetUrlPrefix}}',
 		runModeIsProd: {{.RunModeIsProd}},
 		customEmojis: {{CustomEmojis}},

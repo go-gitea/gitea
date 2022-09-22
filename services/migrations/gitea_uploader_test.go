@@ -46,7 +46,7 @@ func TestGiteaUploadRepo(t *testing.T) {
 		uploader   = NewGiteaLocalUploader(graceful.GetManager().HammerContext(), user, user.Name, repoName)
 	)
 
-	err := migrateRepository(downloader, uploader, base.MigrateOptions{
+	err := migrateRepository(user, downloader, uploader, base.MigrateOptions{
 		CloneAddr:    "https://github.com/go-xorm/builder",
 		RepoName:     repoName,
 		AuthUsername: "",
@@ -391,7 +391,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "AddRemote failed")
+				assert.Contains(t, content, "AddRemote")
 			},
 		},
 		{
@@ -440,7 +440,7 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 				},
 			},
 			assertContent: func(t *testing.T, content string) {
-				assert.Contains(t, content, "Empty reference, removing")
+				assert.Contains(t, content, "Empty reference")
 				assert.NotContains(t, content, "Cannot remove local head")
 			},
 		},
@@ -468,7 +468,6 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 			},
 			assertContent: func(t *testing.T, content string) {
 				assert.Contains(t, content, "Deprecated local head")
-				assert.Contains(t, content, "Cannot remove local head")
 			},
 		},
 		{
@@ -504,6 +503,8 @@ func TestGiteaUploadUpdateGitForPullRequest(t *testing.T) {
 			assert.True(t, ok)
 			logger.SetLogger("buffer", "buffer", "{}")
 			defer logger.DelLogger("buffer")
+
+			testCase.pr.EnsuredSafe = true
 
 			head, err := uploader.updateGitForPullRequest(&testCase.pr)
 			assert.NoError(t, err)

@@ -8,9 +8,7 @@
 	<div class="twelve wide column">
 		<div class="ui comments">
 			<div class="comment">
-				<a class="avatar" href="{{.SignedUser.HomeLink}}">
-					{{avatar .SignedUser}}
-				</a>
+				{{template "shared/user/avatarlink" .SignedUser}}
 				<div class="ui segment content">
 					<div class="field">
 						<input name="title" id="issue_title" placeholder="{{.i18n.Tr "repo.milestones.title"}}" value="{{if .TitleQuery}}{{.TitleQuery}}{{else if .IssueTemplateTitle}}{{.IssueTemplateTitle}}{{else}}{{.title}}{{end}}" tabindex="3" autofocus required maxlength="255" autocomplete="off">

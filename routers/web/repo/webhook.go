@@ -1271,10 +1271,12 @@ func TestWebhook(ctx *context.Context) {
 		},
 	}
 
+	commitID := commit.ID.String()
 	p := &api.PushPayload{
 		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before:     commit.ID.String(),
-		After:      commit.ID.String(),
+		Before:     commitID,
+		After:      commitID,
+		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
 		Commits:    []*api.PayloadCommit{apiCommit},
 		HeadCommit: apiCommit,
 		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),

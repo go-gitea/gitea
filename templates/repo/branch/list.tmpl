@@ -26,13 +26,15 @@
 										{{svg "octicon-git-branch"}}
 									</div>
 								{{end}}
-								<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
+								{{if not $.DisableDownloadSourceArchives}}
+									<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" ($.DefaultBranch)}}" data-position="top right">
 									{{svg "octicon-download"}}
 									<div class="menu">
 										<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.zip" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;ZIP</a>
 										<a class="item archive-link" href="{{$.RepoLink}}/archive/{{PathEscapeSegments $.DefaultBranch}}.tar.gz" rel="nofollow">{{svg "octicon-file-zip"}}&nbsp;TAR.GZ</a>
+										</div>
 									</div>
-								</div>
+								{{end}}
 							</td>
 						</tr>
 					</tbody>
@@ -110,7 +112,7 @@
 												{{svg "octicon-git-branch"}}
 											</div>
 										{{end}}
-										{{if (not .IsDeleted)}}
+										{{if and (not .IsDeleted) (not $.DisableDownloadSourceArchives)}}
 											<div class="ui basic jump dropdown icon button tooltip" data-content="{{$.i18n.Tr "repo.branch.download" (.Name)}}" data-position="top right">
 												{{svg "octicon-download"}}
 												<div class="menu">

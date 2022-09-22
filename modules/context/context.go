@@ -224,7 +224,7 @@ func (ctx *Context) HTML(status int, name base.TplName) {
 	ctx.Data["TemplateLoadTimes"] = func() string {
 		return strconv.FormatInt(time.Since(tmplStartTime).Nanoseconds()/1e6, 10) + "ms"
 	}
-	if err := ctx.Render.HTML(ctx.Resp, status, string(name), ctx.Data); err != nil {
+	if err := ctx.Render.HTML(ctx.Resp, status, string(name), templates.BaseVars().Merge(ctx.Data)); err != nil {
 		if status == http.StatusInternalServerError && name == base.TplName("status/500") {
 			ctx.PlainText(http.StatusInternalServerError, "Unable to find status/500 template")
 			return

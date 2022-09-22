@@ -44,7 +44,6 @@
     "wrap-ansi": "8.0.1"
   },
   "devDependencies": {
-    "@happy-dom/jest-environment": "4.0.1",
     "eslint": "8.15.0",
     "eslint-plugin-html": "6.2.0",
     "eslint-plugin-import": "2.26.0",
@@ -52,6 +51,7 @@
     "eslint-plugin-unicorn": "42.0.0",
     "eslint-plugin-vue": "9.0.1",
     "jest": "28.1.0",
+    "jest-environment-jsdom": "28.1.3",
     "jest-extended": "2.0.0",
     "postcss-less": "6.0.0",
     "stylelint": "14.8.2",

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
+	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
@@ -218,6 +219,46 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 
 	for _, issue := range issues {
 		issue.Milestone = milestoneMaps[issue.MilestoneID]
+	}
+	return nil
+}
+
+func (issues IssueList) getProjectIDs() []int64 {
+	ids := make(map[int64]struct{}, len(issues))
+	for _, issue := range issues {
+		projectID := issue.ProjectID()
+		if _, ok := ids[projectID]; !ok {
+			ids[projectID] = struct{}{}
+		}
+	}
+	return container.KeysInt64(ids)
+}
+
+func (issues IssueList) loadProjects(ctx context.Context) error {
+	projectIDs := issues.getProjectIDs()
+	if len(projectIDs) == 0 {
+		return nil
+	}
+
+	projectMaps := make(map[int64]*project_model.Project, len(projectIDs))
+	left := len(projectIDs)
+	for left > 0 {
+		limit := db.DefaultMaxInSize
+		if left < limit {
+			limit = left
+		}
+		err := db.GetEngine(ctx).
+			In("id", projectIDs[:limit]).
+			Find(&projectMaps)
+		if err != nil {
+			return err
+		}
+		left -= limit
+		projectIDs = projectIDs[limit:]
+	}
+
+	for _, issue := range issues {
+		issue.Project = projectMaps[issue.ProjectID()]
 	}
 	return nil
 }
@@ -493,6 +534,10 @@ func (issues IssueList) loadAttributes(ctx context.Context) error {
 
 	if err := issues.loadMilestones(ctx); err != nil {
 		return fmt.Errorf("issue.loadAttributes: loadMilestones: %v", err)
+	}
+
+	if err := issues.loadProjects(ctx); err != nil {
+		return fmt.Errorf("issue.loadAttributes: loadProjects: %v", err)
 	}
 
 	if err := issues.loadAssignees(ctx); err != nil {
