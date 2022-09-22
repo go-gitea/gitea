@@ -1196,7 +1196,7 @@ MINIO_USE_SSL = false
 
 And used by `[attachment]`, `[lfs]` and etc. as `STORAGE_TYPE`.
 
-## Repository Archive Storage (`storage.repo-archive`)
+## Repository Archive Storage (`repo-archive`)
 
 Configuration for repository archive storage. It will inherit from default `[storage]` or
 `[storage.xxx]` when set `STORAGE_TYPE` to `xxx`. The default of `PATH`
