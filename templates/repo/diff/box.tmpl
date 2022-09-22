@@ -94,8 +94,8 @@
 						<div class="diff-file-header-actions df ac">
 							{{if $showFileViewToggle}}
 								<div class="ui compact icon buttons">
-									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
-									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.i18n.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.i18n.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
 								</div>
 							{{end}}
 							{{if $file.IsProtected}}
@@ -117,7 +117,7 @@
 									<span class="changed-since-last-review unselectable">{{$.i18n.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
 								<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
-									<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{$.locale.Tr "repo.pulls.has_viewed_file"}}
+									<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{$.i18n.Tr "repo.pulls.has_viewed_file"}}
 								</label>
 							{{end}}
 						</div>
