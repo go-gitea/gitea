@@ -10,7 +10,6 @@ import (
 	"os"
 	"path"
 	"strings"
-	"unicode/utf8"
 
 	"code.gitea.io/gitea/models"
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -336,13 +335,6 @@ func CheckDaemonExportOK(ctx context.Context, repo *repo_model.Repository) error
 // UpdateRepository updates a repository with db context
 func UpdateRepository(ctx context.Context, repo *repo_model.Repository, visibilityChanged bool) (err error) {
 	repo.LowerName = strings.ToLower(repo.Name)
-
-	if utf8.RuneCountInString(repo.Description) > 255 {
-		repo.Description = string([]rune(repo.Description)[:255])
-	}
-	if utf8.RuneCountInString(repo.Website) > 255 {
-		repo.Website = string([]rune(repo.Website)[:255])
-	}
 
 	e := db.GetEngine(ctx)
 

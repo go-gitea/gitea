@@ -43,7 +43,7 @@ const (
 var CmdServ = cli.Command{
 	Name:        "serv",
 	Usage:       "This command should only be called by SSH shell",
-	Description: `Serv provide access auth for repositories`,
+	Description: "Serv provides access auth for repositories",
 	Action:      runServ,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
