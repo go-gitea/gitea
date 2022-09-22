@@ -68,6 +68,12 @@ export function initRepoDiffConversationForm() {
     initCompReactionSelector($newConversationHolder);
   });
 
+  $(document).on('click', '#show-file-list-btn', (e) => {
+    e.preventDefault();
+    const pageData = window.config.pageData;
+    pageData.diffFileInfo.fileListIsVisible = !pageData.diffFileInfo.fileListIsVisible;
+  });
+
 
   $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
@@ -128,7 +134,7 @@ export function doLoadMoreFiles(link, diffEnd, callback) {
       callback(resp);
       return;
     }
-    // By simply rerunning the script we add the new data to our existing 
+    // By simply rerunning the script we add the new data to our existing
     // pagedata object. this triggers vue and the filetree and filelist will
     // render the new elements.
     $('body').append($(resp).find('script#diff-data-script'));
