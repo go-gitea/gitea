@@ -128,6 +128,9 @@ export function doLoadMoreFiles(link, diffEnd, callback) {
       callback(resp);
       return;
     }
+    // By simply rerunning the script we add the new data to our existing 
+    // pagedata object. this triggers vue and the filetree and filelist will
+    // render the new elements.
     $('body').append($(resp).find('script#diff-data-script'));
     callback(resp);
   }).fail(() => {
@@ -155,7 +158,6 @@ export function initRepoDiffShowMore() {
         $target.removeClass('disabled');
         return;
       }
-
       $target.parent().replaceWith($(resp).find('#diff-file-boxes .diff-file-body .file-body').children());
       onShowMoreFiles();
     }).fail(() => {
