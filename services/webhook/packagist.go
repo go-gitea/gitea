@@ -94,6 +94,11 @@ func (f *PackagistPayload) Repository(p *api.RepositoryPayload) (api.Payloader, 
 	return nil, nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (f *PackagistPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	return nil, nil
+}
+
 // Release implements PayloadConvertor Release method
 func (f *PackagistPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	return nil, nil

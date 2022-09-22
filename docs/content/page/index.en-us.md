@@ -131,7 +131,8 @@ You can try it out using [the online demo](https://try.gitea.io/).
   - Environment variables
   - Command line options
 - Multi-language support ([21 languages](https://github.com/go-gitea/gitea/tree/main/options/locale))
-- [Mermaid](https://mermaidjs.github.io/) Diagram support
+- [Mermaid](https://mermaidjs.github.io/) diagrams in Markdown
+- Math syntax in Markdown
 - Mail service
   - Notifications
   - Registration confirmation
