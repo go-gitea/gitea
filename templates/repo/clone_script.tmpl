@@ -21,8 +21,9 @@
 		for (const el of document.getElementsByClassName('js-clone-url')) {
 			el[el.nodeName === 'INPUT' ? 'value' : 'textContent'] = link;
 		}
+		const sep = '//'; // Golang's template has a bug with string interpolation containing slashes, the double slash will be treated as a comment there
 		for (const el of document.getElementsByClassName('js-clone-url-vsc')) {
-			el['href'] = `vscode://vscode.git/clone?url=${encodeURIComponent(link)}`;
+			el.href = `vscode:${sep}vscode.git/clone?url=${encodeURIComponent(link)}`;
 		}
 	})();
 </script>
