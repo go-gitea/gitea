@@ -5,6 +5,10 @@
 package activitypub
 
 import (
+	"strconv"
+
+	issues_model "code.gitea.io/gitea/models/issues"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/forgefed"
 	"code.gitea.io/gitea/modules/setting"
@@ -44,7 +48,44 @@ func Ticket(ctx *context.APIContext) {
 	ticket := forgefed.TicketNew()
 	ticket.ID = ap.IRI(link)
 
-	// TODO: Add other ticket fields according to https://forgefed.org/modeling.html#ticket
+	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, ctx.ContextUser.Name, ctx.Repo.Repository.Name)
+	if err != nil {
+		ctx.ServerError("Couldn't get repo", err)
+		return
+	}
+	index, err := strconv.ParseInt(ctx.Params("id"), 10, 64)
+	if err != nil {
+		ctx.ServerError("ID must be an integer", err)
+		return
+	}
+	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
+	if err != nil {
+		ctx.ServerError("Couldn't get issue", err)
+		return
+	}
+
+	ticket.Context = ap.IRI(setting.AppURL + ctx.ContextUser.Name + "/" + ctx.Repo.Repository.Name)
+
+	err = issue.LoadPoster()
+	if err != nil {
+		ctx.ServerError("LoadPoster", err)
+		return
+	}
+	ticket.AttributedTo = ap.IRI(setting.AppURL + "api/v1/activitypub/user/" + issue.Poster.Name)
+
+	ticket.Summary = ap.NaturalLanguageValuesNew()
+	err = ticket.Summary.Set("en", ap.Content(issue.Title))
+	if err != nil {
+		ctx.ServerError("Set Summary", err)
+		return
+	}
+
+	ticket.Content = ap.NaturalLanguageValuesNew()
+	err = ticket.Content.Set("en", ap.Content(issue.Content))
+	if err != nil {
+		ctx.ServerError("Set Content", err)
+		return
+	}
 
 	response(ctx, ticket)
 }
