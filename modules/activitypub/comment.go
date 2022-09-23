@@ -27,7 +27,7 @@ func Comment(ctx context.Context, note *ap.Note) error {
 	contextSplit := strings.Split(context.String(), "/")
 	username := contextSplit[3]
 	reponame := contextSplit[4]
-	repo, _ := repo_model.GetRepositoryByOwnerAndName(username, reponame)
+	repo, _ := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, username, reponame)
 
 	idx, _ := strconv.ParseInt(contextSplit[len(contextSplit)-1], 10, 64)
 	issue, _ := issues.GetIssueByIndex(repo.ID, idx)

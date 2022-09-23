@@ -50,17 +50,17 @@ func Ticket(ctx *context.APIContext) {
 
 	repo, err := repo_model.GetRepositoryByOwnerAndNameCtx(ctx, ctx.ContextUser.Name, ctx.Repo.Repository.Name)
 	if err != nil {
-		ctx.ServerError("Couldn't get repo", err)
+		ctx.ServerError("GetRepositoryByOwnerAndNameCtx", err)
 		return
 	}
 	index, err := strconv.ParseInt(ctx.Params("id"), 10, 64)
 	if err != nil {
-		ctx.ServerError("ID must be an integer", err)
+		ctx.ServerError("ParseInt", err)
 		return
 	}
 	issue, err := issues_model.GetIssueByIndex(repo.ID, index)
 	if err != nil {
-		ctx.ServerError("Couldn't get issue", err)
+		ctx.ServerError("GetIssueByIndex", err)
 		return
 	}
 
