@@ -11,10 +11,12 @@ import (
 )
 
 func ToAPIProject(project *project_model.Project) *api.Project {
-	if err := project.LoadRepo(db.DefaultContext); err != nil {
+	ctx := db.DefaultContext
+
+	if err := project.LoadRepo(ctx); err != nil {
 		return &api.Project{}
 	}
-	if err := project.LoadCreator(db.DefaultContext); err != nil {
+	if err := project.LoadCreator(ctx); err != nil {
 		return &api.Project{}
 	}
 

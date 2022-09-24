@@ -349,7 +349,7 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return nil
 }
 
-func (p *Project) LoadProjectCreator(ctx context.Context) (err error) {
+func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	if p.Creator == nil {
 		p.Creator, err = user_model.GetUserByIDCtx(ctx, p.CreatorID)
 		if err != nil {

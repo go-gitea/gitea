@@ -231,18 +231,16 @@ func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, 
 	engine := db.GetEngine(ctx)
 	boards := make([]*Board, 0, 10)
 
-	engine.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting")
-
 	defaultB, err := getDefaultBoard(ctx, projectID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	count, err := engine.FindAndCount(&boards)
+	count, err := engine.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting").FindAndCount(&boards)
 	if err != nil {
 		return nil, 0, err
 	}
-	return append([]*Board{defaultB}, boards...), count+1, nil
+	return append([]*Board{defaultB}, boards...), count + 1, nil
 }
 
 // getDefaultBoard return default board and create a dummy if none exist
