@@ -15,7 +15,7 @@ func TestApplyUmask(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "test-filemode-")
 	assert.NoError(t, err)
 
-	err = os.Chmod(f.Name(), 0777)
+	err = os.Chmod(f.Name(), 0o777)
 	assert.NoError(t, err)
 	st, err := os.Stat(f.Name())
 	assert.NoError(t, err)
@@ -27,6 +27,7 @@ func TestApplyUmask(t *testing.T) {
 		defaultUmask = oldDefaultUmask
 	}()
 	err = ApplyUmask(f.Name(), os.ModePerm)
+	assert.NoError(t, err)
 	st, err = os.Stat(f.Name())
 	assert.NoError(t, err)
 	assert.EqualValues(t, 0o740, st.Mode().Perm()&0o777)
