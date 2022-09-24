@@ -6,6 +6,10 @@
 
 package util
 
+import (
+	"os"
+)
+
 func ApplyUmask(f string, newMode os.FileMode) error {
 	// do nothing for Windows, because Windows doesn't use umask
 	return nil
