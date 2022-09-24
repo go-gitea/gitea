@@ -180,7 +180,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Get("/*", maven.DownloadPackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex)
+			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
 			r.Group("", func() {
 				r.Get("/query", nuget.SearchService)
 				r.Group("/registration/{id}", func() {
