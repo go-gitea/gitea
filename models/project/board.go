@@ -231,7 +231,7 @@ func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, 
 	engine := db.GetEngine(ctx)
 	boards := make([]*Board, 0, 10)
 
-	engine.Where("project_id=?", projectID).OrderBy("Sorting")
+	engine.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting")
 
 	defaultB, err := getDefaultBoard(ctx, projectID)
 	if err != nil {
