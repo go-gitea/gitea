@@ -359,6 +359,40 @@ func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	return nil
 }
 
+func (pl ProjectList) LoadAttributes(ctx context.Context) (err error) {
+	repos := make(map[int64]*repo_model.Repository)
+	creators := make(map[int64]*user_model.User)
+	var ok bool
+
+	for i := range pl {
+		if pl[i].Repo == nil {
+			pl[i].Repo, ok = repos[pl[i].RepoID]
+			if !ok {
+				repo, err := repo_model.GetRepositoryByIDCtx(ctx, pl[i].RepoID)
+				if err != nil {
+					return fmt.Errorf("getRepositoryByID [%d]: %v", pl[i].RepoID, err)
+				}
+				pl[i].Repo = repo
+				repos[pl[i].RepoID] = repo
+			}
+		}
+
+		if pl[i].Creator == nil {
+			pl[i].Creator, ok = creators[pl[i].CreatorID]
+			if !ok {
+				creator, err := user_model.GetUserByIDCtx(ctx, pl[i].CreatorID)
+				if err != nil {
+					return fmt.Errorf("getUserByID [%d]: %v", pl[i].CreatorID, err)
+				}
+				pl[i].Creator = creator
+				creators[pl[i].CreatorID] = creator
+			}
+		}
+	}
+
+	return nil
+}
+
 func DeleteProjectByRepoIDCtx(ctx context.Context, repoID int64) error {
 	switch {
 	case setting.Database.UseSQLite3:

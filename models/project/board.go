@@ -313,3 +313,37 @@ func (b *Board) LoadProject(ctx context.Context) (err error) {
 	}
 	return nil
 }
+
+func (bl BoardList) LoadAttributes(ctx context.Context) (err error) {
+	creators := make(map[int64]*user_model.User)
+	projects := make(map[int64]*Project)
+	var ok bool
+
+	for i := range bl {
+		if bl[i].Project == nil {
+			bl[i].Project, ok = projects[bl[i].ProjectID]
+			if !ok {
+				project, err := GetProjectByID(ctx, bl[i].ProjectID)
+				if err != nil {
+					return fmt.Errorf("getProjectByID [%d]: %v", bl[i].ProjectID, err)
+				}
+				bl[i].Project = project
+				projects[bl[i].ProjectID] = project
+			}
+		}
+
+		if bl[i].Creator == nil {
+			bl[i].Creator, ok = creators[bl[i].CreatorID]
+			if !ok {
+				creator, err := user_model.GetUserByIDCtx(ctx, bl[i].CreatorID)
+				if err != nil {
+					return fmt.Errorf("getUserByID [%d]: %v", bl[i].CreatorID, err)
+				}
+				bl[i].Creator = creator
+				creators[bl[i].CreatorID] = creator
+			}
+		}
+	}
+
+	return nil
+}

@@ -11,10 +11,12 @@ import (
 )
 
 func ToAPIProjectBoard(board *project_model.Board) *api.ProjectBoard {
-	if err := board.LoadProject(db.DefaultContext); err != nil {
+	ctx := db.DefaultContext
+
+	if err := board.LoadProject(ctx); err != nil {
 		return &api.ProjectBoard{}
 	}
-	if err := board.LoadBoardCreator(db.DefaultContext); err != nil {
+	if err := board.LoadBoardCreator(ctx); err != nil {
 		return &api.ProjectBoard{}
 	}
 
@@ -43,7 +45,8 @@ func ToAPIProjectBoard(board *project_model.Board) *api.ProjectBoard {
 	return apiProjectBoard
 }
 
-func ToAPIProjectBoardList(boards []*project_model.Board) []*api.ProjectBoard {
+func ToAPIProjectBoardList(boards project_model.BoardList) []*api.ProjectBoard {
+	boards.LoadAttributes(db.DefaultContext)
 	result := make([]*api.ProjectBoard, len(boards))
 	for i := range boards {
 		result[i] = ToAPIProjectBoard(boards[i])
