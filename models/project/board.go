@@ -242,7 +242,7 @@ func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, 
 	if err != nil {
 		return nil, 0, err
 	}
-	return append([]*Board{defaultB}, boards...), count, nil
+	return append([]*Board{defaultB}, boards...), count+1, nil
 }
 
 // getDefaultBoard return default board and create a dummy if none exist
