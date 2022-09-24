@@ -229,24 +229,19 @@ func GetBoards(ctx context.Context, projectID int64) (BoardList, error) {
 
 func GetBoardsAndCount(ctx context.Context, projectID int64) (BoardList, int64, error) {
 	engine := db.GetEngine(ctx)
-	boards := make([]*Board, 0, setting.UI.IssuePagingNum)
+	boards := make([]*Board, 0, 10)
 
-	engine.Where("project_id=? AND `default`=?", projectID, false).OrderBy("Sorting")
+	engine.Where("project_id=?", projectID).OrderBy("Sorting")
 
 	defaultB, err := getDefaultBoard(ctx, projectID)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	count, err := engine.Count(new(Board))
+	count, err := engine.FindAndCount(&boards)
 	if err != nil {
-		return nil, 0, fmt.Errorf("count: %v", err)
+		return nil, 0, err
 	}
-
-	if err = engine.Find(&boards); err != nil {
-		return nil, 0, fmt.Errorf("internal server error: %v", err)
-	}
-
 	return append([]*Board{defaultB}, boards...), count, nil
 }
 
