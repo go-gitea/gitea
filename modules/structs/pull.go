@@ -98,10 +98,11 @@ type EditPullRequestOption struct {
 
 // ChangedFile store information about files affected by the pull request
 type ChangedFile struct {
-	Filename    string `json:"filename"`
-	Status      string `json:"status"`
-	Additions   int    `json:"additions"`
-	Deletions   int    `json:"deletions"`
-	HTMLURL     string `json:"html_url,omitempty"`
-	ContentsURL string `json:"contents_url,omitempty"`
+	Filename         string `json:"filename"`
+	PreviousFilename string `json:"previous_filename,omitempty"`
+	Status           string `json:"status"`
+	Additions        int    `json:"additions"`
+	Deletions        int    `json:"deletions"`
+	HTMLURL          string `json:"html_url,omitempty"`
+	ContentsURL      string `json:"contents_url,omitempty"`
 }

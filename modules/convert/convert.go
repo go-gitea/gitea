@@ -430,15 +430,16 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 	}
 
 	file := &api.ChangedFile{
-		Filename:  f.Name,
-		Status:    status,
-		Additions: f.Addition,
-		Deletions: f.Deletion,
+		Filename:    f.GetDiffFileName(),
+		Status:      status,
+		Additions:   f.Addition,
+		Deletions:   f.Deletion,
+		HTMLURL:     fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+		ContentsURL: fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
 	}
 
-	if f.Name != "" {
-		file.HTMLURL = fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.Name))
-		file.ContentsURL = fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.Name))
+	if status == "rename" {
+		file.PreviousFilename = f.OldName
 	}
 
 	return file
