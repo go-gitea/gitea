@@ -183,5 +183,5 @@ type swaggerParameterBodies struct {
 	UpdateProjectBoardPayload api.UpdateProjectBoardPayload
 
 	// in:body
-  CreatePushMirrorOption api.CreatePushMirrorOption
+	CreatePushMirrorOption api.CreatePushMirrorOption
 }

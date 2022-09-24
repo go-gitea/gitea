@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package integrations
+package integration
 
 import (
 	"fmt"
@@ -14,14 +14,16 @@ import (
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/tests"
+
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAPIListProjectBoads(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -39,12 +41,12 @@ func TestAPIListProjectBoads(t *testing.T) {
 }
 
 func TestAPICreateProjectBoard(t *testing.T) {
-	defer prepareTestEnv(t)()
-	var title, is_default, color = "Board 10", false, "#ff0000"
+	defer tests.PrepareTestEnv(t)()
+	title, is_default, color := "Board 10", false, "#ff0000"
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1}).(*project_model.Project)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	project := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -68,10 +70,10 @@ func TestAPICreateProjectBoard(t *testing.T) {
 }
 
 func TestAPIGetProjectBoard(t *testing.T) {
-	defer prepareTestEnv(t)()
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	board := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1}).(*project_model.Board)
+	defer tests.PrepareTestEnv(t)()
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	board := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -90,11 +92,11 @@ func TestAPIGetProjectBoard(t *testing.T) {
 }
 
 func TestAPIUpdateProjectBoard(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
-	board := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1}).(*project_model.Board)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
+	board := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -113,16 +115,16 @@ func TestAPIUpdateProjectBoard(t *testing.T) {
 	assert.Equal(t, payload.Title, apiProjectBoard.Title)
 	assert.Equal(t, payload.Color, apiProjectBoard.Color)
 
-	boardAfter := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1}).(*project_model.Board)
+	boardAfter := unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: 1})
 	assert.Equal(t, payload.Title, boardAfter.Title)
 	assert.Equal(t, payload.Color, boardAfter.Color)
 }
 
 func TestAPIDeleteProjectBoard(t *testing.T) {
-	defer prepareTestEnv(t)()
+	defer tests.PrepareTestEnv(t)()
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
@@ -132,5 +134,4 @@ func TestAPIDeleteProjectBoard(t *testing.T) {
 	_ = session.MakeRequest(t, req, http.StatusNoContent)
 
 	unittest.AssertNotExistsBean(t, &project_model.Board{ID: 1})
-
 }
