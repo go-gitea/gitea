@@ -38,8 +38,8 @@ func TestGetProjects(t *testing.T) {
 	projects, _, err := GetProjects(db.DefaultContext, SearchOptions{RepoID: 1})
 	assert.NoError(t, err)
 
-	// 1 value for this repo exists in the fixtures
-	assert.Len(t, projects, 1)
+	// this repo has two projects in the fixtures
+	assert.Len(t, projects, 2)
 
 	projects, _, err = GetProjects(db.DefaultContext, SearchOptions{RepoID: 3})
 	assert.NoError(t, err)
