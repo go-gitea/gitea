@@ -6,7 +6,7 @@
 
 package util
 
-func ApplyUmask(f string) error {
-	// do nothing for Windows
+func ApplyUmask(f string, newMode os.FileMode) error {
+	// do nothing for Windows, because Windows doesn't use umask
 	return nil
 }
