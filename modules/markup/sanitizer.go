@@ -56,7 +56,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
 
 	// For Chroma markdown plugin
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+$`)).OnElements("code")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+( display)?( is-loading)?$`)).OnElements("code")
 
 	// Checkboxes
 	policy.AllowAttrs("type").Matching(regexp.MustCompile(`^checkbox$`)).OnElements("input")
@@ -83,7 +83,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`emoji`)).OnElements("img")
 
 	// Allow icons, emojis, chroma syntax and keyword markup on span
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^((icon(\s+[\p{L}\p{N}_-]+)+)|(emoji)|(language-math display)|(language-math inline))$|^([a-z][a-z0-9]{0,2})$|^` + keywordClass + `$`)).OnElements("span")
 
 	// Allow 'style' attribute on text elements.
 	policy.AllowAttrs("style").OnElements("span", "p")

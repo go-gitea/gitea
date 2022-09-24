@@ -375,7 +375,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
 
 	if ctx.Repo.TreePath == ".editorconfig" {
-		_, editorconfigErr := ctx.Repo.GetEditorconfig()
+		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
 		ctx.Data["FileError"] = editorconfigErr
 	}
 
