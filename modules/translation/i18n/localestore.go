@@ -37,9 +37,7 @@ func NewLocaleStore() LocaleStore {
 }
 
 // AddLocaleByIni adds locale by ini into the store
-// if source is a string, then the file is loaded
-// if source is a []byte, then the content is used
-func (store *localeStore) AddLocaleByIni(langName, langDesc string, source interface{}) error {
+func (store *localeStore) AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error {
 	if _, ok := store.localeMap[langName]; ok {
 		return ErrLocaleAlreadyExist
 	}
@@ -53,7 +51,7 @@ func (store *localeStore) AddLocaleByIni(langName, langDesc string, source inter
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
-	}, source)
+	}, source, moreSource)
 	if err != nil {
 		return fmt.Errorf("unable to load ini: %w", err)
 	}
