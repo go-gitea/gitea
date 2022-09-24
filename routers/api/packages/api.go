@@ -69,7 +69,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Get("/p2/{vendorname}/{projectname}.json", composer.PackageMetadata)
 			r.Get("/files/{package}/{version}/{filename}", composer.DownloadPackageFile)
 			r.Put("", reqPackageAccess(perm.AccessModeWrite), composer.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/conan", func() {
 			r.Group("/v1", func() {
 				r.Get("/ping", conan.Ping)
@@ -157,7 +157,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, conan.ExtractPathParameters)
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/generic", func() {
 			r.Group("/{packagename}/{packageversion}", func() {
 				r.Delete("", reqPackageAccess(perm.AccessModeWrite), generic.DeletePackage)
@@ -169,33 +169,35 @@ func Routes(ctx gocontext.Context) *web.Route {
 					}, reqPackageAccess(perm.AccessModeWrite))
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/helm", func() {
 			r.Get("/index.yaml", helm.Index)
 			r.Get("/{filename}", helm.DownloadPackageFile)
 			r.Post("/api/charts", reqPackageAccess(perm.AccessModeWrite), helm.UploadPackage)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/maven", func() {
 			r.Put("/*", reqPackageAccess(perm.AccessModeWrite), maven.UploadPackageFile)
 			r.Get("/*", maven.DownloadPackageFile)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex)
-			r.Get("/query", nuget.SearchService)
-			r.Group("/registration/{id}", func() {
-				r.Get("/index.json", nuget.RegistrationIndex)
-				r.Get("/{version}", nuget.RegistrationLeaf)
-			})
-			r.Group("/package/{id}", func() {
-				r.Get("/index.json", nuget.EnumeratePackageVersions)
-				r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
-			})
+			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
 			r.Group("", func() {
-				r.Put("/", nuget.UploadPackage)
-				r.Put("/symbolpackage", nuget.UploadSymbolPackage)
-				r.Delete("/{id}/{version}", nuget.DeletePackage)
-			}, reqPackageAccess(perm.AccessModeWrite))
-			r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/query", nuget.SearchService)
+				r.Group("/registration/{id}", func() {
+					r.Get("/index.json", nuget.RegistrationIndex)
+					r.Get("/{version}", nuget.RegistrationLeaf)
+				})
+				r.Group("/package/{id}", func() {
+					r.Get("/index.json", nuget.EnumeratePackageVersions)
+					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
+				})
+				r.Group("", func() {
+					r.Put("/", nuget.UploadPackage)
+					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
+					r.Delete("/{id}/{version}", nuget.DeletePackage)
+				}, reqPackageAccess(perm.AccessModeWrite))
+				r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {
 			r.Group("/@{scope}/{id}", func() {
@@ -239,7 +241,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Group("/-/v1/search", func() {
 				r.Get("", npm.PackageSearch)
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {
 			r.Group("/api/packages", func() {
 				r.Group("/versions/new", func() {
@@ -253,12 +255,12 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Get("/{version}", pub.PackageVersionMetadata)
 				})
 			})
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pypi", func() {
 			r.Post("/", reqPackageAccess(perm.AccessModeWrite), pypi.UploadPackageFile)
 			r.Get("/files/{id}/{version}/{filename}", pypi.DownloadPackageFile)
 			r.Get("/simple/{id}", pypi.PackageMetadata)
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/rubygems", func() {
 			r.Get("/specs.4.8.gz", rubygems.EnumeratePackages)
 			r.Get("/latest_specs.4.8.gz", rubygems.EnumeratePackagesLatest)
@@ -269,7 +271,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 				r.Post("/", rubygems.UploadPackageFile)
 				r.Delete("/yank", rubygems.DeletePackage)
 			}, reqPackageAccess(perm.AccessModeWrite))
-		})
+		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/vagrant", func() {
 			r.Group("/authenticate", func() {
 				r.Get("", vagrant.CheckAuthenticate)
@@ -282,8 +284,8 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Put("", reqPackageAccess(perm.AccessModeWrite), vagrant.UploadPackageFile)
 				})
 			})
-		})
-	}, context_service.UserAssignmentWeb(), context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
+		}, reqPackageAccess(perm.AccessModeRead))
+	}, context_service.UserAssignmentWeb(), context.PackageAssignment())
 
 	return r
 }
