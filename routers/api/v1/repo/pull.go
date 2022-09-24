@@ -1388,6 +1388,11 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 		return
 	}
 
+	if err := pr.LoadHeadRepo(); err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
 	baseGitRepo := ctx.Repo.GitRepo
 
 	var prInfo *git.CompareInfo
@@ -1440,7 +1445,7 @@ func GetPullRequestFiles(ctx *context.APIContext) {
 
 	apiFiles := make([]*api.ChangedFile, 0, end-start)
 	for i := start; i < end; i++ {
-		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], ctx.Repo.Repository, endCommitID))
+		apiFiles = append(apiFiles, convert.ToChangedFile(diff.Files[i], pr.HeadRepo, endCommitID))
 	}
 
 	ctx.SetLinkHeader(totalNumberOfFiles, listOptions.PageSize)
