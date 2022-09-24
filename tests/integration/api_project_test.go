@@ -46,7 +46,7 @@ func TestAPIListRepositoryProjects(t *testing.T) {
 
 func TestAPICreateRepositoryProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	const title, description, board_type = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
+	const title, description, boardType = "project_name", "project_description", uint8(project_model.BoardTypeBasicKanban)
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -58,14 +58,14 @@ func TestAPICreateRepositoryProject(t *testing.T) {
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectPayload{
 		Title:       title,
 		Description: description,
-		BoardType:   board_type,
+		BoardType:   boardType,
 	})
 	resp := session.MakeRequest(t, req, http.StatusCreated)
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
 	assert.Equal(t, title, apiProject.Title)
 	assert.Equal(t, description, apiProject.Description)
-	assert.Equal(t, board_type, apiProject.BoardType)
+	assert.Equal(t, boardType, apiProject.BoardType)
 	assert.Equal(t, owner.Name, apiProject.Creator.UserName)
 	assert.Equal(t, owner.FullName, apiProject.Creator.FullName)
 	assert.Equal(t, repo.ID, apiProject.Repo.ID)
@@ -110,12 +110,12 @@ func TestAPIUpdateProject(t *testing.T) {
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	project_before := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	projectBefore := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/projects/%d?token=%s", project_before.ID, token)
+	urlStr := fmt.Sprintf("/api/v1/projects/%d?token=%s", projectBefore.ID, token)
 
 	req := NewRequestWithJSON(t, "PATCH", urlStr, &api.UpdateProjectPayload{
 		Title:       "This is new title",
@@ -125,24 +125,24 @@ func TestAPIUpdateProject(t *testing.T) {
 
 	var apiProject api.Project
 	DecodeJSON(t, resp, &apiProject)
-	project_after := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	projectAfter := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
 
 	assert.Equal(t, "This is new title", apiProject.Title)
 	assert.Equal(t, "This is new description", apiProject.Description)
-	assert.Equal(t, "This is new title", project_after.Title)
-	assert.Equal(t, "This is new description", project_after.Description)
+	assert.Equal(t, "This is new title", projectAfter.Title)
+	assert.Equal(t, "This is new description", projectAfter.Description)
 }
 
 func TestAPIDeleteProject(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	project_before := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
+	projectBefore := unittest.AssertExistsAndLoadBean(t, &project_model.Project{ID: 1})
 
 	session := loginUser(t, owner.Name)
 	token := getTokenForLoggedInUser(t, session)
 
-	urlStr := fmt.Sprintf("/api/v1/projects/%d?token=%s", project_before.ID, token)
+	urlStr := fmt.Sprintf("/api/v1/projects/%d?token=%s", projectBefore.ID, token)
 
 	req := NewRequest(t, "DELETE", urlStr)
 	_ = session.MakeRequest(t, req, http.StatusNoContent)

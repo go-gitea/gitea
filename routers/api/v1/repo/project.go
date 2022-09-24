@@ -231,5 +231,11 @@ func ListRepositoryProjects(ctx *context.APIContext) {
 	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
 	ctx.SetTotalCountHeader(count)
 
-	ctx.JSON(http.StatusOK, convert.ToAPIProjectList(projects))
+	apiProjects, err := convert.ToAPIProjectList(projects)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiProjects)
 }

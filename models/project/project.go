@@ -72,9 +72,8 @@ func (err ErrProjectBoardNotExist) Error() string {
 	return fmt.Sprintf("project board does not exist [id: %d]", err.BoardID)
 }
 
-type (
-	ProjectList []*Project
-)
+// List is a list of projects
+type List []*Project
 
 // Project represents a project board
 type Project struct {
@@ -362,7 +361,7 @@ func (p *Project) LoadCreator(ctx context.Context) (err error) {
 }
 
 // LoadAttributes load repos and creators of projects.
-func (pl ProjectList) LoadAttributes(ctx context.Context) (err error) {
+func (pl List) LoadAttributes(ctx context.Context) (err error) {
 	repos := make(map[int64]*repo_model.Repository)
 	creators := make(map[int64]*user_model.User)
 	var ok bool

@@ -42,7 +42,7 @@ func TestAPIListProjectBoads(t *testing.T) {
 
 func TestAPICreateProjectBoard(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
-	title, is_default, color := "Board 10", false, "#ff0000"
+	title, isDefault, color := "Board 10", false, "#ff0000"
 
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
@@ -55,7 +55,7 @@ func TestAPICreateProjectBoard(t *testing.T) {
 
 	req := NewRequestWithJSON(t, "POST", urlStr, &api.NewProjectBoardPayload{
 		Title:   title,
-		Default: is_default,
+		Default: isDefault,
 		Color:   color,
 		Sorting: 0,
 	})
@@ -65,7 +65,7 @@ func TestAPICreateProjectBoard(t *testing.T) {
 
 	unittest.AssertExistsAndLoadBean(t, &project_model.Board{ID: apiProjectBoard.ID})
 	assert.Equal(t, title, apiProjectBoard.Title)
-	assert.Equal(t, is_default, apiProjectBoard.Default)
+	assert.Equal(t, isDefault, apiProjectBoard.Default)
 	assert.Equal(t, color, apiProjectBoard.Color)
 }
 

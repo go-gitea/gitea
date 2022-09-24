@@ -165,7 +165,14 @@ func ListProjectBoards(ctx *context.APIContext) {
 
 	ctx.SetLinkHeader(int(count), setting.UI.IssuePagingNum)
 	ctx.SetTotalCountHeader(count)
-	ctx.JSON(http.StatusOK, convert.ToAPIProjectBoardList(boards))
+
+	apiBoards, err := convert.ToAPIProjectBoardList(boards)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, apiBoards)
 }
 
 func CreateProjectBoard(ctx *context.APIContext) {

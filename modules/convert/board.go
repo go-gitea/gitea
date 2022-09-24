@@ -45,11 +45,13 @@ func ToAPIProjectBoard(board *project_model.Board) *api.ProjectBoard {
 	return apiProjectBoard
 }
 
-func ToAPIProjectBoardList(boards project_model.BoardList) []*api.ProjectBoard {
-	boards.LoadAttributes(db.DefaultContext)
+func ToAPIProjectBoardList(boards project_model.BoardList) ([]*api.ProjectBoard, error) {
+	if err := boards.LoadAttributes(db.DefaultContext); err != nil {
+		return nil, err
+	}
 	result := make([]*api.ProjectBoard, len(boards))
 	for i := range boards {
 		result[i] = ToAPIProjectBoard(boards[i])
 	}
-	return result
+	return result, nil
 }

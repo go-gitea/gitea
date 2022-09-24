@@ -46,11 +46,13 @@ func ToAPIProject(project *project_model.Project) *api.Project {
 	return apiProject
 }
 
-func ToAPIProjectList(projects project_model.ProjectList) []*api.Project {
-	projects.LoadAttributes(db.DefaultContext)
+func ToAPIProjectList(projects project_model.List) ([]*api.Project, error) {
+	if err := projects.LoadAttributes(db.DefaultContext); err != nil {
+		return nil, err
+	}
 	result := make([]*api.Project, len(projects))
 	for i := range projects {
 		result[i] = ToAPIProject(projects[i])
 	}
-	return result
+	return result, nil
 }
