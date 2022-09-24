@@ -9,31 +9,31 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/structs"
 )
 
-func statusStringToNotificationStatus(status string) models.NotificationStatus {
+func statusStringToNotificationStatus(status string) activities_model.NotificationStatus {
 	switch strings.ToLower(strings.TrimSpace(status)) {
 	case "unread":
-		return models.NotificationStatusUnread
+		return activities_model.NotificationStatusUnread
 	case "read":
-		return models.NotificationStatusRead
+		return activities_model.NotificationStatusRead
 	case "pinned":
-		return models.NotificationStatusPinned
+		return activities_model.NotificationStatusPinned
 	default:
 		return 0
 	}
 }
 
-func statusStringsToNotificationStatuses(statuses, defaultStatuses []string) []models.NotificationStatus {
+func statusStringsToNotificationStatuses(statuses, defaultStatuses []string) []activities_model.NotificationStatus {
 	if len(statuses) == 0 {
 		statuses = defaultStatuses
 	}
-	results := make([]models.NotificationStatus, 0, len(statuses))
+	results := make([]activities_model.NotificationStatus, 0, len(statuses))
 	for _, status := range statuses {
 		notificationStatus := statusStringToNotificationStatus(status)
 		if notificationStatus > 0 {
@@ -109,13 +109,13 @@ func ListRepoNotifications(ctx *context.APIContext) {
 	}
 	opts.RepoID = ctx.Repo.Repository.ID
 
-	totalCount, err := models.CountNotifications(opts)
+	totalCount, err := activities_model.CountNotifications(opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	nl, err := models.GetNotifications(ctx, opts)
+	nl, err := activities_model.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -192,7 +192,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		}
 	}
 
-	opts := &models.FindNotificationOptions{
+	opts := &activities_model.FindNotificationOptions{
 		UserID:            ctx.Doer.ID,
 		RepoID:            ctx.Repo.Repository.ID,
 		UpdatedBeforeUnix: lastRead,
@@ -203,7 +203,7 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 		opts.Status = statusStringsToNotificationStatuses(statuses, []string{"unread"})
 		log.Error("%v", opts.Status)
 	}
-	nl, err := models.GetNotifications(ctx, opts)
+	nl, err := activities_model.GetNotifications(ctx, opts)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -211,13 +211,13 @@ func ReadRepoNotifications(ctx *context.APIContext) {
 
 	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
-		targetStatus = models.NotificationStatusRead
+		targetStatus = activities_model.NotificationStatusRead
 	}
 
 	changed := make([]*structs.NotificationThread, 0, len(nl))
 
 	for _, n := range nl {
-		notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
+		notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 		if err != nil {
 			ctx.InternalServerError(err)
 			return

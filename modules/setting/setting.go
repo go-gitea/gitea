@@ -59,6 +59,7 @@ const (
 	ImageCaptcha = "image"
 	ReCaptcha    = "recaptcha"
 	HCaptcha     = "hcaptcha"
+	MCaptcha     = "mcaptcha"
 )
 
 // settings
@@ -91,47 +92,56 @@ var (
 	// LocalURL is the url for locally running applications to contact Gitea. It always has a '/' suffix
 	// It maps to ini:"LOCAL_ROOT_URL"
 	LocalURL string
+	// AssetVersion holds a opaque value that is used for cache-busting assets
+	AssetVersion string
 
 	// Server settings
-	Protocol             Scheme
-	Domain               string
-	HTTPAddr             string
-	HTTPPort             string
-	RedirectOtherPort    bool
-	PortToRedirect       string
-	OfflineMode          bool
-	CertFile             string
-	KeyFile              string
-	StaticRootPath       string
-	StaticCacheTime      time.Duration
-	EnableGzip           bool
-	LandingPageURL       LandingPage
-	LandingPageCustom    string
-	UnixSocketPermission uint32
-	EnablePprof          bool
-	PprofDataPath        string
-	EnableAcme           bool
-	AcmeTOS              bool
-	AcmeLiveDirectory    string
-	AcmeEmail            string
-	AcmeURL              string
-	AcmeCARoot           string
-	SSLMinimumVersion    string
-	SSLMaximumVersion    string
-	SSLCurvePreferences  []string
-	SSLCipherSuites      []string
-	GracefulRestartable  bool
-	GracefulHammerTime   time.Duration
-	StartupTimeout       time.Duration
-	PerWriteTimeout      = 30 * time.Second
-	PerWritePerKbTimeout = 10 * time.Second
-	StaticURLPrefix      string
-	AbsoluteAssetURL     string
+	Protocol                   Scheme
+	UseProxyProtocol           bool // `ini:"USE_PROXY_PROTOCOL"`
+	ProxyProtocolTLSBridging   bool //`ini:"PROXY_PROTOCOL_TLS_BRIDGING"`
+	ProxyProtocolHeaderTimeout time.Duration
+	ProxyProtocolAcceptUnknown bool
+	Domain                     string
+	HTTPAddr                   string
+	HTTPPort                   string
+	LocalUseProxyProtocol      bool
+	RedirectOtherPort          bool
+	RedirectorUseProxyProtocol bool
+	PortToRedirect             string
+	OfflineMode                bool
+	CertFile                   string
+	KeyFile                    string
+	StaticRootPath             string
+	StaticCacheTime            time.Duration
+	EnableGzip                 bool
+	LandingPageURL             LandingPage
+	LandingPageCustom          string
+	UnixSocketPermission       uint32
+	EnablePprof                bool
+	PprofDataPath              string
+	EnableAcme                 bool
+	AcmeTOS                    bool
+	AcmeLiveDirectory          string
+	AcmeEmail                  string
+	AcmeURL                    string
+	AcmeCARoot                 string
+	SSLMinimumVersion          string
+	SSLMaximumVersion          string
+	SSLCurvePreferences        []string
+	SSLCipherSuites            []string
+	GracefulRestartable        bool
+	GracefulHammerTime         time.Duration
+	StartupTimeout             time.Duration
+	PerWriteTimeout            = 30 * time.Second
+	PerWritePerKbTimeout       = 10 * time.Second
+	StaticURLPrefix            string
+	AbsoluteAssetURL           string
 
 	SSH = struct {
 		Disabled                              bool               `ini:"DISABLE_SSH"`
 		StartBuiltinServer                    bool               `ini:"START_SSH_SERVER"`
 		BuiltinServerUser                     string             `ini:"BUILTIN_SSH_SERVER_USER"`
+		UseProxyProtocol                      bool               `ini:"SSH_SERVER_USE_PROXY_PROTOCOL"`
 		Domain                                string             `ini:"SSH_DOMAIN"`
 		Port                                  int                `ini:"SSH_PORT"`
 		User                                  string             `ini:"SSH_USER"`
@@ -185,6 +195,7 @@ var (
 	CookieRememberName                 string
 	ReverseProxyAuthUser               string
 	ReverseProxyAuthEmail              string
+	ReverseProxyAuthFullName           string
 	ReverseProxyLimit                  int
 	ReverseProxyTrustedProxies         []string
 	MinPasswordLength                  int
@@ -229,6 +240,7 @@ var (
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
 		UseServiceWorker      bool
+		OnlyShowRelevantRepos bool
 
 		Notification struct {
 			MinTimeout            time.Duration
@@ -262,8 +274,8 @@ var (
 	}{
 		ExplorePagingNum:    20,
 		SitemapPagingNum:    20,
-		IssuePagingNum:      10,
-		RepoSearchPagingNum: 10,
+		IssuePagingNum:      20,
+		RepoSearchPagingNum: 20,
 		MembersPagingNum:    20,
 		FeedMaxCommitNum:    5,
 		FeedPagingNum:       20,
@@ -332,10 +344,12 @@ var (
 		EnableHardLineBreakInDocuments bool
 		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions                 []string
+		EnableMath                     bool
 	}{
 		EnableHardLineBreakInComments:  true,
 		EnableHardLineBreakInDocuments: false,
 		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableMath:                     true,
 	}
 
 	// Admin settings
@@ -715,6 +729,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 			HTTPAddr = filepath.Join(AppWorkPath, HTTPAddr)
 		}
 	}
+	UseProxyProtocol = sec.Key("USE_PROXY_PROTOCOL").MustBool(false)
+	ProxyProtocolTLSBridging = sec.Key("PROXY_PROTOCOL_TLS_BRIDGING").MustBool(false)
+	ProxyProtocolHeaderTimeout = sec.Key("PROXY_PROTOCOL_HEADER_TIMEOUT").MustDuration(5 * time.Second)
+	ProxyProtocolAcceptUnknown = sec.Key("PROXY_PROTOCOL_ACCEPT_UNKNOWN").MustBool(false)
 	GracefulRestartable = sec.Key("ALLOW_GRACEFUL_RESTARTS").MustBool(true)
 	GracefulHammerTime = sec.Key("GRACEFUL_HAMMER_TIME").MustDuration(60 * time.Second)
 	StartupTimeout = sec.Key("STARTUP_TIMEOUT").MustDuration(0 * time.Second)
@@ -746,6 +764,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 
 	AbsoluteAssetURL = MakeAbsoluteAssetURL(AppURL, StaticURLPrefix)
+	AssetVersion = strings.ReplaceAll(AppVer, "+", "~") // make sure the version string is clear (no real escaping is needed)
 
 	manifestBytes := MakeManifestData(AppName, AppURL, AbsoluteAssetURL)
 	ManifestData = `application/json;base64,` + base64.StdEncoding.EncodeToString(manifestBytes)
@@ -768,8 +787,10 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	}
 	LocalURL = sec.Key("LOCAL_ROOT_URL").MustString(defaultLocalURL)
 	LocalURL = strings.TrimRight(LocalURL, "/") + "/"
+	LocalUseProxyProtocol = sec.Key("LOCAL_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	RedirectOtherPort = sec.Key("REDIRECT_OTHER_PORT").MustBool(false)
 	PortToRedirect = sec.Key("PORT_TO_REDIRECT").MustString("80")
+	RedirectorUseProxyProtocol = sec.Key("REDIRECTOR_USE_PROXY_PROTOCOL").MustBool(UseProxyProtocol)
 	OfflineMode = sec.Key("OFFLINE_MODE").MustBool()
 	DisableRouterLog = sec.Key("DISABLE_ROUTER_LOG").MustBool()
 	if len(StaticRootPath) == 0 {
@@ -834,6 +855,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SSH.KeygenPath = sec.Key("SSH_KEYGEN_PATH").MustString("ssh-keygen")
 	SSH.Port = sec.Key("SSH_PORT").MustInt(22)
 	SSH.ListenPort = sec.Key("SSH_LISTEN_PORT").MustInt(SSH.Port)
+	SSH.UseProxyProtocol = sec.Key("SSH_SERVER_USE_PROXY_PROTOCOL").MustBool(false)
 
 	// When disable SSH, start builtin server value is ignored.
 	if SSH.Disabled {
@@ -908,6 +930,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	ReverseProxyAuthUser = sec.Key("REVERSE_PROXY_AUTHENTICATION_USER").MustString("X-WEBAUTH-USER")
 	ReverseProxyAuthEmail = sec.Key("REVERSE_PROXY_AUTHENTICATION_EMAIL").MustString("X-WEBAUTH-EMAIL")
+	ReverseProxyAuthFullName = sec.Key("REVERSE_PROXY_AUTHENTICATION_FULL_NAME").MustString("X-WEBAUTH-FULLNAME")
 
 	ReverseProxyLimit = sec.Key("REVERSE_PROXY_LIMIT").MustInt(1)
 	ReverseProxyTrustedProxies = sec.Key("REVERSE_PROXY_TRUSTED_PROXIES").Strings(",")
@@ -1067,6 +1090,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	UI.DefaultShowFullName = Cfg.Section("ui").Key("DEFAULT_SHOW_FULL_NAME").MustBool(false)
 	UI.SearchRepoDescription = Cfg.Section("ui").Key("SEARCH_REPO_DESCRIPTION").MustBool(true)
 	UI.UseServiceWorker = Cfg.Section("ui").Key("USE_SERVICE_WORKER").MustBool(false)
+	UI.OnlyShowRelevantRepos = Cfg.Section("ui").Key("ONLY_SHOW_RELEVANT_REPOS").MustBool(false)
 
 	HasRobotsTxt, err = util.IsFile(path.Join(CustomPath, "robots.txt"))
 	if err != nil {

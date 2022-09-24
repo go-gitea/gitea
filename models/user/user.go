@@ -64,12 +64,14 @@ var AvailableHashAlgorithms = []string{
 }
 
 const (
-	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications except your own
 	EmailNotificationsEnabled = "enabled"
 	// EmailNotificationsOnMention indicates that the user would like to be notified via email when mentioned.
 	EmailNotificationsOnMention = "onmention"
 	// EmailNotificationsDisabled indicates that the user would not like to be notified via email.
 	EmailNotificationsDisabled = "disabled"
+	// EmailNotificationsEnabled indicates that the user would like to receive all email notifications and your own
+	EmailNotificationsAndYourOwn = "andyourown"
 )
 
 // User represents the object of individual and member of organization.
@@ -1045,7 +1047,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 			Where("`type` = ?", UserTypeIndividual).
 			And("`prohibit_login` = ?", false).
 			And("`is_active` = ?", true).
-			And("`email_notifications_preference` IN ( ?, ?)", EmailNotificationsEnabled, EmailNotificationsOnMention).
+			In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsOnMention, EmailNotificationsAndYourOwn).
 			Find(&ous)
 	}
 
@@ -1053,7 +1055,7 @@ func GetMaileableUsersByIDs(ids []int64, isMention bool) ([]*User, error) {
 		Where("`type` = ?", UserTypeIndividual).
 		And("`prohibit_login` = ?", false).
 		And("`is_active` = ?", true).
-		And("`email_notifications_preference` = ?", EmailNotificationsEnabled).
+		In("`email_notifications_preference`", EmailNotificationsEnabled, EmailNotificationsAndYourOwn).
 		Find(&ous)
 }
 
@@ -1265,7 +1267,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1304,7 +1306,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}
@@ -1313,6 +1315,16 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
+}
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

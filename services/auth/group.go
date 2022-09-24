@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 	"strings"
@@ -51,14 +52,14 @@ func (b *Group) Name() string {
 }
 
 // Init does nothing as the Basic implementation does not need to allocate any resources
-func (b *Group) Init() error {
+func (b *Group) Init(ctx context.Context) error {
 	for _, method := range b.methods {
 		initializable, ok := method.(Initializable)
 		if !ok {
 			continue
 		}
 
-		if err := initializable.Init(); err != nil {
+		if err := initializable.Init(ctx); err != nil {
 			return err
 		}
 	}

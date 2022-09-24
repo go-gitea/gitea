@@ -87,7 +87,7 @@
 												{{.CsrfTokenHtml}}
 												<div class="field">
 													<label>
-														{{.locale.Tr "repo.branch.new_branch_from" "<span class=\"text\" id=\"modal-create-branch-from-span\"></span>" | Safe }}
+														{{.locale.Tr "repo.branch.new_branch_from" "<span class=\"text\" id=\"modal-create-branch-from-span\"></span>" | Safe}}
 													</label>
 												</div>
 												<div class="required field">
@@ -112,7 +112,7 @@
 												<input type="hidden" name="create_tag" value="true">
 												<div class="field">
 													<label>
-														{{.locale.Tr "repo.tag.create_tag_from" "<span class=\"text\" id=\"modal-create-tag-from-span\"></span>" | Safe }}
+														{{.locale.Tr "repo.tag.create_tag_from" "<span class=\"text\" id=\"modal-create-tag-from-span\"></span>" | Safe}}
 													</label>
 												</div>
 												<div class="required field">
@@ -222,7 +222,7 @@
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
 								<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{else}}
 							{{svg "octicon-shield-lock" 16 "mr-3"}}
@@ -231,7 +231,7 @@
 								{{.Verification.SigningSSHKey.Fingerprint}}
 							{{else}}
 								<span class="ui text mr-3 tooltip" data-content="{{.locale.Tr "gpg.default_key"}}">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 					{{else if .Verification.Warning}}
@@ -241,14 +241,14 @@
 							{{.Verification.SigningSSHKey.Fingerprint}}
 						{{else}}
 							<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
-							{{.Verification.SigningKey.KeyID}}
+							{{.Verification.SigningKey.PaddedKeyID}}
 						{{end}}
 					{{else}}
 						{{if .Verification.SigningKey}}
 							{{if ne .Verification.SigningKey.KeyID ""}}
 								{{svg "octicon-shield" 16 "mr-3"}}
 								<span class="ui text mr-3">{{.locale.Tr "repo.commits.gpg_key_id"}}:</span>
-								{{.Verification.SigningKey.KeyID}}
+								{{.Verification.SigningKey.PaddedKeyID}}
 							{{end}}
 						{{end}}
 						{{if .Verification.SigningSSHKey}}

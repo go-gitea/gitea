@@ -22,7 +22,7 @@ import (
 
 func TestOAuth2Application_LoadUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1}).(*auth.OAuth2Application)
+	app := unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: 1})
 	user, err := user_model.GetUserByID(app.UID)
 	assert.NoError(t, err)
 	assert.NotNil(t, user)
@@ -41,10 +41,10 @@ func TestGetUserEmailsByNames(t *testing.T) {
 func TestCanCreateOrganization(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	admin := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.True(t, admin.CanCreateOrganization())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.CanCreateOrganization())
 	// Disable user create organization permission.
 	user.AllowCreateOrganization = false
@@ -141,7 +141,7 @@ func TestEmailNotificationPreferences(t *testing.T) {
 		{user_model.EmailNotificationsEnabled, 8},
 		{user_model.EmailNotificationsOnMention, 9},
 	} {
-		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID}).(*user_model.User)
+		user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: test.userID})
 		assert.Equal(t, test.expected, user.EmailNotifications())
 
 		// Try all possible settings
@@ -153,6 +153,9 @@ func TestEmailNotificationPreferences(t *testing.T) {
 
 		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsDisabled))
 		assert.Equal(t, user_model.EmailNotificationsDisabled, user.EmailNotifications())
+
+		assert.NoError(t, user_model.SetEmailNotifications(user, user_model.EmailNotificationsAndYourOwn))
+		assert.Equal(t, user_model.EmailNotificationsAndYourOwn, user.EmailNotifications())
 	}
 }
 
@@ -239,7 +242,7 @@ func TestCreateUserInvalidEmail(t *testing.T) {
 func TestCreateUserEmailAlreadyUsed(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	// add new user with user2's email
 	user.Name = "testuser"
@@ -285,18 +288,18 @@ func TestGetMaileableUsersByIDs(t *testing.T) {
 
 func TestUpdateUser(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	user.KeepActivityPrivate = true
 	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, false))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
 	setting.Service.AllowedUserVisibilityModesSlice = []bool{true, false, false}
 	user.KeepActivityPrivate = false
 	user.Visibility = structs.VisibleTypePrivate
 	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, false))
-	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
 	user.Email = "no mail@mail.org"
@@ -307,7 +310,7 @@ func TestNewUserRedirect(t *testing.T) {
 	// redirect to a completely new name
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
@@ -324,7 +327,7 @@ func TestNewUserRedirect2(t *testing.T) {
 	// redirect to previously used name
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "olduser1"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
@@ -341,7 +344,7 @@ func TestNewUserRedirect3(t *testing.T) {
 	// redirect for a previously-unredirected user
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.NoError(t, user_model.NewUserRedirect(db.DefaultContext, user.ID, user.Name, "newusername"))
 
 	unittest.AssertExistsAndLoadBean(t, &user_model.Redirect{
@@ -396,4 +399,57 @@ func TestUnfollowUser(t *testing.T) {
 	testSuccess(2, 2)
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
+}
+
+func TestIsUserVisibleToViewer(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})   // admin, public
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})   // normal, public
+	user20 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}) // public, same team as user31
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}) // public, is restricted
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31}) // private, same team as user20
+	user33 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33}) // limited, follows 31
+
+	test := func(u, viewer *user_model.User, expected bool) {
+		name := func(u *user_model.User) string {
+			if u == nil {
+				return "<nil>"
+			}
+			return u.Name
+		}
+		assert.Equal(t, expected, user_model.IsUserVisibleToViewer(db.DefaultContext, u, viewer), "user %v should be visible to viewer %v: %v", name(u), name(viewer), expected)
+	}
+
+	// admin viewer
+	test(user1, user1, true)
+	test(user20, user1, true)
+	test(user31, user1, true)
+	test(user33, user1, true)
+
+	// non admin viewer
+	test(user4, user4, true)
+	test(user20, user4, true)
+	test(user31, user4, false)
+	test(user33, user4, true)
+	test(user4, nil, true)
+
+	// public user
+	test(user4, user20, true)
+	test(user4, user31, true)
+	test(user4, user33, true)
+
+	// limited user
+	test(user33, user33, true)
+	test(user33, user4, true)
+	test(user33, user29, false)
+	test(user33, nil, false)
+
+	// private user
+	test(user31, user31, true)
+	test(user31, user4, false)
+	test(user31, user20, true)
+	test(user31, user29, false)
+	test(user31, user33, true)
+	test(user31, nil, false)
 }

@@ -181,4 +181,7 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	UpdateProjectBoardPayload api.UpdateProjectBoardPayload
+
+	// in:body
+  CreatePushMirrorOption api.CreatePushMirrorOption
 }

@@ -171,6 +171,13 @@ func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 	return nil, nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (t *TelegramPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayload(text), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (t *TelegramPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, htmlLinkFormatter, true)

@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -292,7 +291,7 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 // PushUpdateAddDeleteTags updates a number of added and delete tags
 func PushUpdateAddDeleteTags(repo *repo_model.Repository, gitRepo *git.Repository, addTags, delTags []string) error {
 	return db.WithTx(func(ctx context.Context) error {
-		if err := models.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
+		if err := repo_model.PushUpdateDeleteTagsContext(ctx, repo, delTags); err != nil {
 			return err
 		}
 		return pushUpdateAddTags(ctx, repo, gitRepo, addTags)
@@ -310,16 +309,16 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		lowerTags = append(lowerTags, strings.ToLower(tag))
 	}
 
-	releases, err := models.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
+	releases, err := repo_model.GetReleasesByRepoIDAndNames(ctx, repo.ID, lowerTags)
 	if err != nil {
 		return fmt.Errorf("GetReleasesByRepoIDAndNames: %v", err)
 	}
-	relMap := make(map[string]*models.Release)
+	relMap := make(map[string]*repo_model.Release)
 	for _, rel := range releases {
 		relMap[rel.LowerTagName] = rel
 	}
 
-	newReleases := make([]*models.Release, 0, len(lowerTags)-len(relMap))
+	newReleases := make([]*repo_model.Release, 0, len(lowerTags)-len(relMap))
 
 	emailToUser := make(map[string]*user_model.User)
 
@@ -366,7 +365,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 		rel, has := relMap[lowerTag]
 
 		if !has {
-			rel = &models.Release{
+			rel = &repo_model.Release{
 				RepoID:       repo.ID,
 				Title:        "",
 				TagName:      tags[i],
@@ -393,7 +392,7 @@ func pushUpdateAddTags(ctx context.Context, repo *repo_model.Repository, gitRepo
 			if rel.IsTag && author != nil {
 				rel.PublisherID = author.ID
 			}
-			if err = models.UpdateRelease(ctx, rel); err != nil {
+			if err = repo_model.UpdateRelease(ctx, rel); err != nil {
 				return fmt.Errorf("Update: %v", err)
 			}
 		}
