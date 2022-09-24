@@ -339,6 +339,7 @@ func DeleteProjectByIDCtx(ctx context.Context, id int64) error {
 	return updateRepositoryProjectCount(ctx, p.RepoID)
 }
 
+// LoadRepo load repo of the project.
 func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	if p.Repo == nil {
 		p.Repo, err = repo_model.GetRepositoryByIDCtx(ctx, p.RepoID)
@@ -349,6 +350,7 @@ func (p *Project) LoadRepo(ctx context.Context) (err error) {
 	return nil
 }
 
+// LoadCreator load creator of the project.
 func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	if p.Creator == nil {
 		p.Creator, err = user_model.GetUserByIDCtx(ctx, p.CreatorID)
@@ -359,6 +361,7 @@ func (p *Project) LoadCreator(ctx context.Context) (err error) {
 	return nil
 }
 
+// LoadAttributes load repos and creators of projects.
 func (pl ProjectList) LoadAttributes(ctx context.Context) (err error) {
 	repos := make(map[int64]*repo_model.Repository)
 	creators := make(map[int64]*user_model.User)

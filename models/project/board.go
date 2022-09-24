@@ -294,6 +294,7 @@ func UpdateBoardSorting(bs BoardList) error {
 	return nil
 }
 
+// LoadBoardCreator load creator of project board.
 func (b *Board) LoadBoardCreator(ctx context.Context) (err error) {
 	if b.Creator == nil {
 		b.Creator, err = user_model.GetUserByIDCtx(ctx, b.CreatorID)
@@ -304,6 +305,7 @@ func (b *Board) LoadBoardCreator(ctx context.Context) (err error) {
 	return nil
 }
 
+// LoadProject load project of project board.
 func (b *Board) LoadProject(ctx context.Context) (err error) {
 	if b.Project == nil {
 		b.Project, err = GetProjectByID(ctx, b.ProjectID)
@@ -314,6 +316,7 @@ func (b *Board) LoadProject(ctx context.Context) (err error) {
 	return nil
 }
 
+// LoadAttributes load projects and creators of project boards.
 func (bl BoardList) LoadAttributes(ctx context.Context) (err error) {
 	creators := make(map[int64]*user_model.User)
 	projects := make(map[int64]*Project)
