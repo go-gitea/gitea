@@ -238,6 +238,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Delete("", npm.DeletePackageTag)
 				}, reqPackageAccess(perm.AccessModeWrite))
 			})
+			r.Group("/-/v1/search", func() {
+				r.Get("", npm.PackageSearch)
+			})
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/pub", func() {
 			r.Group("/api/packages", func() {
