@@ -376,18 +376,18 @@ func NewFuncMap() []template.FuncMap {
 			// the table is NOT sorted with this header
 			return ""
 		},
-		"RenderLabels": func(labels []*issues_model.Label) template.HTML {
-			html := `<span class="labels-list">`
+		"RenderLabels": func(labels []*issues_model.Label, repoLink string) template.HTML {
+			htmlCode := `<span class="labels-list">`
 			for _, label := range labels {
 				// Protect against nil value in labels - shouldn't happen but would cause a panic if so
 				if label == nil {
 					continue
 				}
-				html += fmt.Sprintf("<div class='ui label' style='color: %s; background-color: %s'>%s</div> ",
-					label.ForegroundColor(), label.Color, RenderEmoji(label.Name))
+				htmlCode += fmt.Sprintf("<a href='%s/issues?labels=%d' class='ui label' style='color: %s !important; background-color: %s !important' title='%s'>%s</a> ",
+					repoLink, label.ID, label.ForegroundColor(), label.Color, html.EscapeString(label.Description), RenderEmoji(label.Name))
 			}
-			html += "</span>"
-			return template.HTML(html)
+			htmlCode += "</span>"
+			return template.HTML(htmlCode)
 		},
 		"MermaidMaxSourceCharacters": func() int {
 			return setting.MermaidMaxSourceCharacters
@@ -631,7 +631,7 @@ func SVG(icon string, others ...interface{}) template.HTML {
 
 // Avatar renders user avatars. args: user, size (int), class (string)
 func Avatar(item interface{}, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image vm", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar vm", others...)
 
 	switch t := item.(type) {
 	case *user_model.User:
@@ -662,7 +662,7 @@ func AvatarByAction(action *activities_model.Action, others ...interface{}) temp
 
 // RepoAvatar renders repo avatars. args: repo, size(int), class (string)
 func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 
 	src := repo.RelAvatarLink()
 	if src != "" {
@@ -673,7 +673,7 @@ func RepoAvatar(repo *repo_model.Repository, others ...interface{}) template.HTM
 
 // AvatarByEmail renders avatars by email address. args: email, name, size (int), class (string)
 func AvatarByEmail(email, name string, others ...interface{}) template.HTML {
-	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar image", others...)
+	size, class := parseOthers(avatars.DefaultAvatarPixelSize, "ui avatar", others...)
 	src := avatars.GenerateEmailAvatarFastLink(email, size*setting.Avatar.RenderedSizeFactor)
 
 	if src != "" {

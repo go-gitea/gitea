@@ -126,13 +126,13 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
 
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
-
-[Swagger Example](https://try.gitea.io/api/swagger)
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
 ## Adjusting your server for public/private use
 
@@ -392,7 +392,9 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
-Similarly stdout on docker can be viewed using `docker logs <container>`
+Similarly, stdout on docker can be viewed using `docker logs <container>`.
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -413,7 +415,7 @@ unchanged in the database schema. This may lead to warning such as:
 2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
-These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:
 
 ```
 gitea doctor recreate-table user
