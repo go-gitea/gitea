@@ -189,9 +189,8 @@ func File(fileName, language string, code []byte) ([]string, error) {
 			return nil, fmt.Errorf("can't format code: %w", err)
 		}
 		_ = htmlWriter.Flush()
-		str := htmlBuf.String()
+		lines = append(lines, htmlBuf.String())
 		htmlBuf.Reset()
-		lines = append(lines, str)
 	}
 
 	return lines, nil
