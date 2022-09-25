@@ -15,8 +15,8 @@
 				<label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
-			<label class="pen">
-				<input class="mr-3 pen" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
 				{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
 			</label>
 		</a>
