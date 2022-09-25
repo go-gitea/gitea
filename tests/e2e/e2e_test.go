@@ -72,8 +72,8 @@ func TestMain(m *testing.M) {
 	os.Exit(exitVal)
 }
 
-// This should be the only test e2e necessary. It will collect all "*.test.e2e.js"
-//   files in this directory and build a test for each.
+// TestE2e should be the only test e2e necessary. It will collect all "*.test.e2e.js"
+// files in this directory and build a test for each.
 func TestE2e(t *testing.T) {
 	// Find the paths of all e2e test files in test test directory.
 	searchGlob := filepath.Join(filepath.Dir(setting.AppPath), "tests", "e2e", "*.test.e2e.js")

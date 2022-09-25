@@ -5,7 +5,7 @@
 	{{end}}
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
-			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 		{{if .IsSigned}}
 		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
