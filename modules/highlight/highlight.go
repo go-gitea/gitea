@@ -172,7 +172,6 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		}
 	}
 
-
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
 		return nil, fmt.Errorf("can't tokenize code: %w", err)
@@ -183,7 +182,7 @@ func File(fileName, language string, code []byte) ([]string, error) {
 	htmlWriter := bufio.NewWriter(&htmlBuf)
 
 	lines := []string{}
-	for _, tokens := range(tokensArray) {
+	for _, tokens := range tokensArray {
 		iterator := chroma.Literator(tokens...)
 		err = formatter.Format(htmlWriter, styles.GitHub, iterator)
 		if err != nil {
