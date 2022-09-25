@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/lexers"
-	"github.com/alecthomas/chroma/styles"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -134,6 +134,16 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
+// use a nop wrapper because PreventSurroundingPre(true) causes chroma to not emit
+// line wrappers which are necessary to split the html string into lines
+type nopPreWrapper struct{}
+
+// Start is called to write a start <pre> element.
+func (nopPreWrapper) Start(code bool, styleAttr string) string { return "" }
+
+// End is called to write the end </pre> element.
+func (nopPreWrapper) End(code bool) string { return "" }
+
 // File returns a slice of chroma syntax highlighted HTML lines of code
 func File(fileName, language string, code []byte) ([]string, error) {
 	NewContext()
@@ -144,7 +154,7 @@ func File(fileName, language string, code []byte) ([]string, error) {
 
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
-		html.PreventSurroundingPre(true),
+		html.WithPreWrapper(nopPreWrapper{}),
 	)
 
 	htmlBuf := bytes.Buffer{}
