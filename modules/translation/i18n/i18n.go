@@ -41,14 +41,14 @@ func NewLocaleStore() *LocaleStore {
 }
 
 // AddLocaleByIni adds locale by ini into the store
-func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, localeFile interface{}, otherLocaleFiles ...interface{}) error {
+func (ls *LocaleStore) AddLocaleByIni(langName, langDesc string, source, moreSource []byte) error {
 	if _, ok := ls.localeMap[langName]; ok {
 		return ErrLocaleAlreadyExist
 	}
 	iniFile, err := ini.LoadSources(ini.LoadOptions{
 		IgnoreInlineComment:         true,
 		UnescapeValueCommentSymbols: true,
-	}, localeFile, otherLocaleFiles...)
+	}, source, moreSource)
 	if err == nil {
 		iniFile.BlockMode = false
 		lc := &locale{store: ls, langName: langName, langDesc: langDesc, messages: iniFile}

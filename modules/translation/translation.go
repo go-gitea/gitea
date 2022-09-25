@@ -60,9 +60,9 @@ func InitLocales() {
 		log.Fatal("Failed to list locale files: %v", err)
 	}
 
-	localFiles := make(map[string][]byte, len(localeNames))
+	localeData := make(map[string][]byte, len(localeNames))
 	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
+		localeData[name], err = options.Locale(name)
 		if err != nil {
 			log.Fatal("Failed to load %s locale file. %v", name, err)
 		}
@@ -75,8 +75,16 @@ func InitLocales() {
 
 	matcher = language.NewMatcher(supportedTags)
 	for i := range setting.Names {
+		var localeDataBase []byte
+		if i == 0 && setting.Langs[0] != "en-US" {
+			// Only en-US has complete translations. When use other language as default, the en-US should still be used as fallback.
+			localeDataBase = localeData["locale_en-US.ini"]
+			if localeDataBase == nil {
+				log.Fatal("Failed to load locale_en-US.ini file.")
+			}
+		}
 		key := "locale_" + setting.Langs[i] + ".ini"
-		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
+		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
 			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
 		}
 	}
