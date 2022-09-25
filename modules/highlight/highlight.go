@@ -134,16 +134,6 @@ func CodeFromLexer(lexer chroma.Lexer, code string) string {
 	return strings.TrimSuffix(htmlbuf.String(), "\n")
 }
 
-// use a nop wrapper because PreventSurroundingPre(true) causes chroma to not emit
-// line wrappers which are necessary to split the html string into lines
-type nopPreWrapper struct{}
-
-// Start is called to write a start <pre> element.
-func (nopPreWrapper) Start(code bool, styleAttr string) string { return "" }
-
-// End is called to write the end </pre> element.
-func (nopPreWrapper) End(code bool) string { return "" }
-
 // File returns a slice of chroma syntax highlighted HTML lines of code
 func File(fileName, language string, code []byte) ([]string, error) {
 	NewContext()
@@ -154,11 +144,8 @@ func File(fileName, language string, code []byte) ([]string, error) {
 
 	formatter := html.New(html.WithClasses(true),
 		html.WithLineNumbers(false),
-		html.WithPreWrapper(nopPreWrapper{}),
+		html.PreventSurroundingPre(true),
 	)
-
-	htmlBuf := bytes.Buffer{}
-	htmlWriter := bufio.NewWriter(&htmlBuf)
 
 	var lexer chroma.Lexer
 
@@ -185,28 +172,30 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		}
 	}
 
+
 	iterator, err := lexer.Tokenise(nil, string(code))
 	if err != nil {
 		return nil, fmt.Errorf("can't tokenize code: %w", err)
 	}
 
-	err = formatter.Format(htmlWriter, styles.GitHub, iterator)
-	if err != nil {
-		return nil, fmt.Errorf("can't format code: %w", err)
+	tokensArray := chroma.SplitTokensIntoLines(iterator.Tokens())
+	htmlBuf := bytes.Buffer{}
+	htmlWriter := bufio.NewWriter(&htmlBuf)
+
+	lines := []string{}
+	for _, tokens := range(tokensArray) {
+		iterator := chroma.Literator(tokens...)
+		err = formatter.Format(htmlWriter, styles.GitHub, iterator)
+		if err != nil {
+			return nil, fmt.Errorf("can't format code: %w", err)
+		}
+		_ = htmlWriter.Flush()
+		str := htmlBuf.String()
+		htmlBuf.Reset()
+		lines = append(lines, str)
 	}
 
-	_ = htmlWriter.Flush()
-
-	// at the moment, Chroma generates stable output `<span class="line"><span class="cl">...\n</span></span>` for each line
-	htmlStr := htmlBuf.String()
-	lines := strings.Split(htmlStr, `<span class="line"><span class="cl">`)
-	m := make([]string, 0, len(lines))
-	for i := 1; i < len(lines); i++ {
-		line := lines[i]
-		line = strings.TrimSuffix(line, "</span></span>")
-		m = append(m, line)
-	}
-	return m, nil
+	return lines, nil
 }
 
 // PlainText returns non-highlighted HTML for code
