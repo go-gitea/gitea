@@ -3,20 +3,28 @@
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all">
-			<input id="whitespace-show-all" class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
-			<label for="whitespace-show-all" class="pointer-events-none">{{.locale.Tr "repo.diff.whitespace_show_everything"}}</label>
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_show_everything"}}
+			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
-			<input id="whitespace-ignore-all" class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
-			<label for="whitespace-ignore-all" class="pointer-events-none">{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}<label>
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
+				<label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
-			<input id="whitespace-ignore-change" class="mr-3 pen" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
-			<label for="whitespace-ignore-change" class="pen">{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}</label>
+			<label class="pen">
+				<input class="mr-3 pen" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
+			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
-			<input id="whitespace-ignore-eol" class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
-			<label for="whitespace-ignore-eol" class="pointer-events-none">{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}</label>
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
+			</label>
 		</a>
 	</div>
 </div>
