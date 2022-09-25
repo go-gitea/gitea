@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Tr(t *testing.T) {
+func TestLocaleStore(t *testing.T) {
 	testData1 := []byte(`
 .dot.name = Dot Name
 fmt = %[1]s %[2]s
@@ -28,8 +28,8 @@ sub = Changed Sub String
 `)
 
 	ls := NewLocaleStore()
-	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1))
-	assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2))
+	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, nil))
+	assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2, nil))
 	ls.SetDefaultLang("lang1")
 
 	result := ls.Tr("lang1", "fmt", "a", "b")
@@ -53,4 +53,22 @@ sub = Changed Sub String
 	langs, descs := ls.ListLangNameDesc()
 	assert.Equal(t, []string{"lang1", "lang2"}, langs)
 	assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
+}
+
+func TestLocaleStoreMoreSource(t *testing.T) {
+	testData1 := []byte(`
+a=11
+b=12
+`)
+
+	testData2 := []byte(`
+b=21
+c=22
+`)
+
+	ls := NewLocaleStore()
+	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, testData2))
+	assert.Equal(t, "11", ls.Tr("lang1", "a"))
+	assert.Equal(t, "21", ls.Tr("lang1", "b"))
+	assert.Equal(t, "22", ls.Tr("lang1", "c"))
 }
