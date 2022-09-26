@@ -116,7 +116,7 @@ export default {
     adjustToggleButton(visible) {
       const icons = document.querySelectorAll('.diff-toggle-file-tree-button .icon'); // icons[0] is "ToShow", icons[1] is "ToHide"
       icons[0 + visible].classList.remove('hide'); // 0+true=1 (show the "ToShow"), 0+false=0 (show the "ToHide")
-      icons[1 - visible].classList.add('hide'); //           1-true=0 (hide the "ToHide"), 1-false=1 (hide the "ToShow"),
+      icons[1 - visible].classList.add('hide'); //    1-true=0 (hide the "ToHide"), 1-false=1 (hide the "ToShow")
     },
     loadMoreData() {
       this.isLoadingNewData = true;
