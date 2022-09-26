@@ -34,7 +34,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	recreateTable(sess, &Label{})
+	if err := recreateTable(sess, &Label{}); err != nil {
+		return err
+	}
 
 	type Milestone struct {
 		ID              int64 `xorm:"pk autoincr"`
@@ -51,7 +53,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		DeadlineUnix   timeutil.TimeStamp
 		ClosedDateUnix timeutil.TimeStamp
 	}
-	recreateTable(sess, &Milestone{})
+	if err := recreateTable(sess, &Milestone{}); err != nil {
+		return err
+	}
 
 	type Issue struct {
 		ID               int64 `xorm:"pk autoincr"`
@@ -79,7 +83,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		// with write access
 		IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	recreateTable(sess, &Issue{})
+	if err := recreateTable(sess, &Issue{}); err != nil {
+		return err
+	}
 
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`
@@ -93,7 +99,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		IncludesAllRepositories bool            `xorm:"NOT NULL DEFAULT false"`
 		CanCreateOrgRepo        bool            `xorm:"NOT NULL DEFAULT false"`
 	}
-	recreateTable(sess, &Team{})
+	if err := recreateTable(sess, &Team{}); err != nil {
+		return err
+	}
 
 	type Attachment struct {
 		ID            int64  `xorm:"pk autoincr"`
@@ -108,7 +116,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
 	}
-	recreateTable(sess, &Attachment{})
+	if err := recreateTable(sess, &Attachment{}); err != nil {
+		return err
+	}
 
 	type Repository struct {
 		ID                  int64 `xorm:"pk autoincr"`
@@ -157,7 +167,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	recreateTable(sess, &Repository{})
+	if err := recreateTable(sess, &Repository{}); err != nil {
+		return err
+	}
 
 	type Topic struct {
 		ID          int64              `xorm:"pk autoincr"`
@@ -166,7 +178,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	recreateTable(sess, &Topic{})
+	if err := recreateTable(sess, &Topic{}); err != nil {
+		return err
+	}
 
 	type User struct {
 		ID        int64  `xorm:"pk autoincr"`
@@ -242,7 +256,9 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		Theme               string `xorm:"NOT NULL DEFAULT ''"`
 		KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 	}
-	recreateTable(sess, &User{})
+	if err := recreateTable(sess, &User{}); err != nil {
+		return err
+	}
 
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
@@ -258,14 +274,18 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	recreateTable(sess, &webauthnCredential{})
+	if err := recreateTable(sess, &webauthnCredential{}); err != nil {
+		return err
+	}
 
 	type UserBadge struct {
 		ID      int64 `xorm:"pk autoincr"`
 		BadgeID int64 `xorm:"NOT NULL DEFAULT 0"`
 		UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 	}
-	recreateTable(sess, &UserBadge{})
+	if err := recreateTable(sess, &UserBadge{}); err != nil {
+		return err
+	}
 
 	return sess.Commit()
 }
