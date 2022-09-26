@@ -16,6 +16,7 @@
   num_watches: 4
   num_projects: 1
   num_closed_projects: 0
+  is_mirror: false
   status: 0
 
 -
@@ -33,6 +34,7 @@
   num_closed_pulls: 0
   num_stars: 1
   close_issues_via_commit_in_any_branch: true
+  is_mirror: false
   status: 0
 
 -
@@ -51,6 +53,7 @@
   num_watches: 0
   num_projects: 1
   num_closed_projects: 0
+  is_mirror: false
   status: 0
 
 -
@@ -68,6 +71,7 @@
   num_stars: 1
   num_projects: 0
   num_closed_projects: 1
+  is_mirror: false
   status: 0
 
 -
@@ -225,6 +229,7 @@
   name: repo15
   is_empty: false
   is_private: true
+  is_mirror: false
   status: 0
 
 -
@@ -240,6 +245,7 @@
   num_pulls: 0
   num_closed_pulls: 0
   num_watches: 0
+  is_mirror: false
   status: 0
 
 -
@@ -496,6 +502,7 @@
   name: utf8
   is_empty: false
   is_private: false
+  is_mirror: false
   status: 0
 
 -
@@ -619,7 +626,7 @@
   num_forks: 0
   num_issues: 1
   num_milestones: 1
-  is_mirror:
+  is_mirror: false
   is_archived: false
 
 -
@@ -739,6 +746,7 @@
   num_watches: 0
   num_projects: 0
   num_closed_projects: 0
+  is_mirror: false
   status: 0
 
 -
@@ -759,6 +767,7 @@
   num_watches: 0
   num_projects: 0
   num_closed_projects: 0
+  is_mirror: false
   status: 0
 
 -
@@ -769,4 +778,5 @@
   name: empty
   is_empty: true
   is_private: true
+  is_mirror: false
   status: 0
