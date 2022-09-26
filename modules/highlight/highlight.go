@@ -177,18 +177,16 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		return nil, fmt.Errorf("can't tokenize code: %w", err)
 	}
 
-	tokensArray := chroma.SplitTokensIntoLines(iterator.Tokens())
-	htmlBuf := bytes.Buffer{}
-	htmlWriter := bufio.NewWriter(&htmlBuf)
+	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
+	htmlBuf := &bytes.Buffer{}
 
-	lines := []string{}
-	for _, tokens := range tokensArray {
-		iterator := chroma.Literator(tokens...)
-		err = formatter.Format(htmlWriter, styles.GitHub, iterator)
+	lines := make([]string, 0, len(tokensLines))
+	for _, tokens := range tokensLines {
+		iterator = chroma.Literator(tokens...)
+		err = formatter.Format(htmlBuf, styles.GitHub, iterator)
 		if err != nil {
 			return nil, fmt.Errorf("can't format code: %w", err)
 		}
-		_ = htmlWriter.Flush()
 		lines = append(lines, htmlBuf.String())
 		htmlBuf.Reset()
 	}
