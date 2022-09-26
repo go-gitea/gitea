@@ -218,6 +218,11 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
+// GetRepoAbsoluteLink returns the absolute link to action repository.
+func (a *Action) GetRepoAbsoluteLink() string {
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
+}
+
 // GetRepositoryFromMatch returns a *repo_model.Repository from a username and repo strings
 func GetRepositoryFromMatch(ownerName, repoName string) (*repo_model.Repository, error) {
 	var err error
