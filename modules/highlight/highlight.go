@@ -19,10 +19,10 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/lexers"
-	"github.com/alecthomas/chroma/styles"
+	"github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	lru "github.com/hashicorp/golang-lru"
 )
 
@@ -147,9 +147,6 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		html.PreventSurroundingPre(true),
 	)
 
-	htmlBuf := bytes.Buffer{}
-	htmlWriter := bufio.NewWriter(&htmlBuf)
-
 	var lexer chroma.Lexer
 
 	// provided language overrides everything
@@ -180,23 +177,21 @@ func File(fileName, language string, code []byte) ([]string, error) {
 		return nil, fmt.Errorf("can't tokenize code: %w", err)
 	}
 
-	err = formatter.Format(htmlWriter, styles.GitHub, iterator)
-	if err != nil {
-		return nil, fmt.Errorf("can't format code: %w", err)
+	tokensLines := chroma.SplitTokensIntoLines(iterator.Tokens())
+	htmlBuf := &bytes.Buffer{}
+
+	lines := make([]string, 0, len(tokensLines))
+	for _, tokens := range tokensLines {
+		iterator = chroma.Literator(tokens...)
+		err = formatter.Format(htmlBuf, styles.GitHub, iterator)
+		if err != nil {
+			return nil, fmt.Errorf("can't format code: %w", err)
+		}
+		lines = append(lines, htmlBuf.String())
+		htmlBuf.Reset()
 	}
 
-	_ = htmlWriter.Flush()
-
-	// at the moment, Chroma generates stable output `<span class="line"><span class="cl">...\n</span></span>` for each line
-	htmlStr := htmlBuf.String()
-	lines := strings.Split(htmlStr, `<span class="line"><span class="cl">`)
-	m := make([]string, 0, len(lines))
-	for i := 1; i < len(lines); i++ {
-		line := lines[i]
-		line = strings.TrimSuffix(line, "</span></span>")
-		m = append(m, line)
-	}
-	return m, nil
+	return lines, nil
 }
 
 // PlainText returns non-highlighted HTML for code
