@@ -74,12 +74,13 @@ RENDER_COMMAND = "timeout 30s pandoc +RTS -M512M -RTS -f rst"
 IS_INPUT_FILE = false
 ```
 
-If your external markup relies on additional classes and attributes on the generated HTML elements, you might need to enable custom sanitizer policies. Gitea uses the [`bluemonday`](https://godoc.org/github.com/microcosm-cc/bluemonday) package as our HTML sanitizier. The example below will support [KaTeX](https://katex.org/) output from [`pandoc`](https://pandoc.org/).
+If your external markup relies on additional classes and attributes on the generated HTML elements, you might need to enable custom sanitizer policies. Gitea uses the [`bluemonday`](https://godoc.org/github.com/microcosm-cc/bluemonday) package as our HTML sanitizer. The example below could be used to support server-side [KaTeX](https://katex.org/) rendering output from [`pandoc`](https://pandoc.org/).
 
 ```ini
 [markup.sanitizer.TeX]
 ; Pandoc renders TeX segments as <span>s with the "math" class, optionally
 ; with "inline" or "display" classes depending on context.
+; - note this is different from the built-in math support in our markdown parser which uses <code>
 ELEMENT = span
 ALLOW_ATTR = class
 REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+

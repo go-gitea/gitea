@@ -1267,7 +1267,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1306,7 +1306,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}
@@ -1315,6 +1315,16 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
+}
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

@@ -17,7 +17,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	git_model "code.gitea.io/gitea/models/git"
 	issues_model "code.gitea.io/gitea/models/issues"
 	access_model "code.gitea.io/gitea/models/perm/access"
@@ -113,17 +112,17 @@ func setCsvCompareContext(ctx *context.Context) {
 		Error    string
 	}
 
-	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseCommit, headCommit *git.Commit) CsvDiffResult {
-		if diffFile == nil || baseCommit == nil || headCommit == nil {
+	ctx.Data["CreateCsvDiff"] = func(diffFile *gitdiff.DiffFile, baseBlob, headBlob *git.Blob) CsvDiffResult {
+		if diffFile == nil {
 			return CsvDiffResult{nil, ""}
 		}
 
 		errTooLarge := errors.New(ctx.Locale.Tr("repo.error.csv.too_large"))
 
-		csvReaderFromCommit := func(ctx *markup.RenderContext, c *git.Commit) (*csv.Reader, io.Closer, error) {
-			blob, err := c.GetBlobByPath(diffFile.Name)
-			if err != nil {
-				return nil, nil, err
+		csvReaderFromCommit := func(ctx *markup.RenderContext, blob *git.Blob) (*csv.Reader, io.Closer, error) {
+			if blob == nil {
+				// It's ok for blob to be nil (file added or deleted)
+				return nil, nil, nil
 			}
 
 			if setting.UI.CSV.MaxFileSize != 0 && setting.UI.CSV.MaxFileSize < blob.Size() {
@@ -139,28 +138,28 @@ func setCsvCompareContext(ctx *context.Context) {
 			return csvReader, reader, err
 		}
 
-		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseCommit)
+		baseReader, baseBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.OldName}, baseBlob)
 		if baseBlobCloser != nil {
 			defer baseBlobCloser.Close()
 		}
-		if err == errTooLarge {
-			return CsvDiffResult{nil, err.Error()}
-		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating baseReader from file %s in commit %s in %s: %v", diffFile.Name, baseCommit.ID.String(), ctx.Repo.Repository.Name, err)
-			return CsvDiffResult{nil, "unable to load file from base commit"}
+			if err == errTooLarge {
+				return CsvDiffResult{nil, err.Error()}
+			}
+			log.Error("error whilst creating csv.Reader from file %s in base commit %s in %s: %v", diffFile.Name, baseBlob.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file"}
 		}
 
-		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headCommit)
+		headReader, headBlobCloser, err := csvReaderFromCommit(&markup.RenderContext{Ctx: ctx, RelativePath: diffFile.Name}, headBlob)
 		if headBlobCloser != nil {
 			defer headBlobCloser.Close()
 		}
-		if err == errTooLarge {
-			return CsvDiffResult{nil, err.Error()}
-		}
 		if err != nil {
-			log.Error("CreateCsvDiff error whilst creating headReader from file %s in commit %s in %s: %v", diffFile.Name, headCommit.ID.String(), ctx.Repo.Repository.Name, err)
-			return CsvDiffResult{nil, "unable to load file from head commit"}
+			if err == errTooLarge {
+				return CsvDiffResult{nil, err.Error()}
+			}
+			log.Error("error whilst creating csv.Reader from file %s in head commit %s in %s: %v", diffFile.Name, headBlob.ID.String(), ctx.Repo.Repository.Name, err)
+			return CsvDiffResult{nil, "unable to load file"}
 		}
 
 		sections, err := gitdiff.CreateCsvDiff(diffFile, baseReader, headReader)
@@ -459,7 +458,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 	if rootRepo != nil &&
 		rootRepo.ID != ci.HeadRepo.ID &&
 		rootRepo.ID != baseRepo.ID {
-		canRead := models.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, rootRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["RootRepo"] = rootRepo
 			if !fileOnly {
@@ -484,7 +483,7 @@ func ParseCompareInfo(ctx *context.Context) *CompareInfo {
 		ownForkRepo.ID != ci.HeadRepo.ID &&
 		ownForkRepo.ID != baseRepo.ID &&
 		(rootRepo == nil || ownForkRepo.ID != rootRepo.ID) {
-		canRead := models.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
+		canRead := access_model.CheckRepoUnitUser(ctx, ownForkRepo, ctx.Doer, unit.TypeCode)
 		if canRead {
 			ctx.Data["OwnForkRepo"] = ownForkRepo
 			if !fileOnly {
@@ -785,7 +784,11 @@ func CompareDiff(ctx *context.Context) {
 	ctx.Data["IsRepoToolbarCommits"] = true
 	ctx.Data["IsDiffCompare"] = true
 	ctx.Data["RequireTribute"] = true
-	setTemplateIfExists(ctx, pullRequestTemplateKey, nil, pullRequestTemplateCandidates)
+	templateErrs := setTemplateIfExists(ctx, pullRequestTemplateKey, pullRequestTemplateCandidates)
+
+	if len(templateErrs) > 0 {
+		ctx.Flash.Warning(renderErrorOfTemplates(ctx, templateErrs), true)
+	}
 
 	// If a template content is set, prepend the "content". In this case that's only
 	// applicable if you have one commit to compare and that commit has a message.

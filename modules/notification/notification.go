@@ -5,7 +5,6 @@
 package notification
 
 import (
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -39,6 +38,27 @@ func NewContext() {
 	RegisterNotifier(webhook.NewNotifier())
 	RegisterNotifier(action.NewNotifier())
 	RegisterNotifier(mirror.NewNotifier())
+}
+
+// NotifyNewWikiPage notifies creating new wiki pages to notifiers
+func NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyNewWikiPage(doer, repo, page, comment)
+	}
+}
+
+// NotifyEditWikiPage notifies editing or renaming wiki pages to notifiers
+func NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyEditWikiPage(doer, repo, page, comment)
+	}
+}
+
+// NotifyDeleteWikiPage notifies deleting wiki pages to notifiers
+func NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string) {
+	for _, notifier := range notifiers {
+		notifier.NotifyDeleteWikiPage(doer, repo, page)
+	}
 }
 
 // NotifyCreateIssueComment notifies issue comment related message to notifiers
@@ -142,21 +162,21 @@ func NotifyDeleteComment(doer *user_model.User, c *issues_model.Comment) {
 }
 
 // NotifyNewRelease notifies new release to notifiers
-func NotifyNewRelease(rel *models.Release) {
+func NotifyNewRelease(rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyNewRelease(rel)
 	}
 }
 
 // NotifyUpdateRelease notifies update release to notifiers
-func NotifyUpdateRelease(doer *user_model.User, rel *models.Release) {
+func NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyUpdateRelease(doer, rel)
 	}
 }
 
 // NotifyDeleteRelease notifies delete release to notifiers
-func NotifyDeleteRelease(doer *user_model.User, rel *models.Release) {
+func NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release) {
 	for _, notifier := range notifiers {
 		notifier.NotifyDeleteRelease(doer, rel)
 	}

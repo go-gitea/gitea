@@ -14,7 +14,6 @@ import (
 	"strings"
 	"time"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/modules/log"
 	base "code.gitea.io/gitea/modules/migration"
 	"code.gitea.io/gitea/modules/structs"
@@ -71,6 +70,7 @@ type GiteaDownloader struct {
 	base.NullDownloader
 	ctx        context.Context
 	client     *gitea_sdk.Client
+	baseURL    string
 	repoOwner  string
 	repoName   string
 	pagination bool
@@ -78,8 +78,9 @@ type GiteaDownloader struct {
 }
 
 // NewGiteaDownloader creates a gitea Downloader via gitea API
-//   Use either a username/password or personal token. token is preferred
-//   Note: Public access only allows very basic access
+//
+//	Use either a username/password or personal token. token is preferred
+//	Note: Public access only allows very basic access
 func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GiteaDownloader, error) {
 	giteaClient, err := gitea_sdk.NewClient(
 		baseURL,
@@ -116,6 +117,7 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 	return &GiteaDownloader{
 		ctx:        ctx,
 		client:     giteaClient,
+		baseURL:    baseURL,
 		repoOwner:  path[0],
 		repoName:   path[1],
 		pagination: paginationSupport,
@@ -126,6 +128,20 @@ func NewGiteaDownloader(ctx context.Context, baseURL, repoPath, username, passwo
 // SetContext set context
 func (g *GiteaDownloader) SetContext(ctx context.Context) {
 	g.ctx = ctx
+}
+
+// String implements Stringer
+func (g *GiteaDownloader) String() string {
+	return fmt.Sprintf("migration from gitea server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
+}
+
+// ColorFormat provides a basic color format for a GiteaDownloader
+func (g *GiteaDownloader) ColorFormat(s fmt.State) {
+	if g == nil {
+		log.ColorFprintf(s, "<nil: GiteaDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from gitea server %s %s/%s", g.baseURL, g.repoOwner, g.repoName)
 }
 
 // GetRepoInfo returns a repository information
@@ -283,6 +299,12 @@ func (g *GiteaDownloader) convertGiteaRelease(rel *gitea_sdk.Release) *base.Rele
 				if err != nil {
 					return nil, err
 				}
+
+				if !hasBaseURL(asset.DownloadURL, g.baseURL) {
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, asset.DownloadURL)
+					return io.NopCloser(strings.NewReader(asset.DownloadURL)), nil
+				}
+
 				// FIXME: for a private download?
 				req, err := http.NewRequest("GET", asset.DownloadURL, nil)
 				if err != nil {
@@ -402,11 +424,7 @@ func (g *GiteaDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, err
 
 		reactions, err := g.getIssueReactions(issue.Index)
 		if err != nil {
-			log.Warn("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)
-			if err2 := admin_model.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating issue #%d to %s/%s. Error: %v", issue.Index, g.repoOwner, g.repoName, err)); err2 != nil {
-				log.Error("create repository notice failed: ", err2)
-			}
+			WarnAndNotice("Unable to load reactions during migrating issue #%d in %s. Error: %v", issue.Index, g, err)
 		}
 
 		var assignees []string
@@ -464,11 +482,7 @@ func (g *GiteaDownloader) GetComments(commentable base.Commentable) ([]*base.Com
 		for _, comment := range comments {
 			reactions, err := g.getCommentReactions(comment.ID)
 			if err != nil {
-				log.Warn("Unable to load comment reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)
-				if err2 := admin_model.CreateRepositoryNotice(
-					fmt.Sprintf("Unable to load reactions during migrating issue #%d for comment %d to %s/%s. Error: %v", commentable.GetForeignIndex(), comment.ID, g.repoOwner, g.repoName, err)); err2 != nil {
-					log.Error("create repository notice failed: ", err2)
-				}
+				WarnAndNotice("Unable to load comment reactions during migrating issue #%d for comment %d in %s. Error: %v", commentable.GetForeignIndex(), comment.ID, g, err)
 			}
 
 			allComments = append(allComments, &base.Comment{
@@ -543,11 +557,7 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 
 		reactions, err := g.getIssueReactions(pr.Index)
 		if err != nil {
-			log.Warn("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)
-			if err2 := admin_model.CreateRepositoryNotice(
-				fmt.Sprintf("Unable to load reactions during migrating pull #%d to %s/%s. Error: %v", pr.Index, g.repoOwner, g.repoName, err)); err2 != nil {
-				log.Error("create repository notice failed: ", err2)
-			}
+			WarnAndNotice("Unable to load reactions during migrating pull #%d in %s. Error: %v", pr.Index, g, err)
 		}
 
 		var assignees []string
@@ -604,6 +614,8 @@ func (g *GiteaDownloader) GetPullRequests(page, perPage int) ([]*base.PullReques
 			},
 			ForeignIndex: pr.Index,
 		})
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
 	}
 
 	isEnd := len(prs) < perPage

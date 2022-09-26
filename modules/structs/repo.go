@@ -111,7 +111,7 @@ type CreateRepoOption struct {
 	// unique: true
 	Name string `json:"name" binding:"Required;AlphaDashDot;MaxSize(100)"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// Label-Set to use
@@ -140,9 +140,9 @@ type EditRepoOption struct {
 	// unique: true
 	Name *string `json:"name,omitempty" binding:"OmitEmpty;AlphaDashDot;MaxSize(100);"`
 	// a short description of the repository.
-	Description *string `json:"description,omitempty" binding:"MaxSize(255)"`
+	Description *string `json:"description,omitempty" binding:"MaxSize(2048)"`
 	// a URL with more information about the repository.
-	Website *string `json:"website,omitempty" binding:"MaxSize(255)"`
+	Website *string `json:"website,omitempty" binding:"MaxSize(1024)"`
 	// either `true` to make the repository private or `false` to make it public.
 	// Note: you will get a 422 error if the organization restricts changing repository visibility to organization
 	// owners and a non-owner tries to change the value of private.
@@ -208,7 +208,7 @@ type GenerateRepoOption struct {
 	// Default branch of the new repository
 	DefaultBranch string `json:"default_branch"`
 	// Description of the repository to create
-	Description string `json:"description" binding:"MaxSize(255)"`
+	Description string `json:"description" binding:"MaxSize(2048)"`
 	// Whether the repository is private
 	Private bool `json:"private"`
 	// include git content of default branch in template repo
@@ -316,7 +316,7 @@ type MigrateRepoOptions struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`
