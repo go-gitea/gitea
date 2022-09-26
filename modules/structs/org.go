@@ -8,7 +8,7 @@ package structs
 type Organization struct {
 	ID                        int64  `json:"id"`
 	Name                      string `json:"name"`
-	UserName                  string `json:"username"`
+	UserName                  string `json:"username"` // deprecated
 	FullName                  string `json:"full_name"`
 	AvatarURL                 string `json:"avatar_url"`
 	Description               string `json:"description"`
