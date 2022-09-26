@@ -45,7 +45,18 @@ export default {
     }
   },
 
+  mounted() {
+    document.getElementById('show-file-list-btn').addEventListener('click', this.toggleFileList);
+  },
+
+  unmounted() {
+    document.getElementById('show-file-list-btn').removeEventListener('click', this.toggleFileList);
+  },
+
   methods: {
+    toggleFileList() {
+      this.fileListIsVisible = !this.fileListIsVisible;
+    },
     diffTypeToString(pType) {
       const diffTypes = {
         1: 'add',

@@ -68,13 +68,6 @@ export function initRepoDiffConversationForm() {
     initCompReactionSelector($newConversationHolder);
   });
 
-  $(document).on('click', '#show-file-list-btn', (e) => {
-    e.preventDefault();
-    const pageData = window.config.pageData;
-    pageData.diffFileInfo.fileListIsVisible = !pageData.diffFileInfo.fileListIsVisible;
-  });
-
-
   $(document).on('click', '.resolve-conversation', async function (e) {
     e.preventDefault();
     const comment_id = $(this).data('comment-id');
