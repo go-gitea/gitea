@@ -82,6 +82,10 @@
 							{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
+							<div class="ui icon search input">
+								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
+								<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_poster"}}">
+							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}">{{.locale.Tr "repo.issues.filter_poster_no_select"}}</a>
 							{{range .Posters}}
 								<a class="{{if eq $.PosterID .ID}}active selected{{end}} item" href="{{$.Link}}?type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{$.SelectLabels}}&milestone={{$.MilestoneID}}&assignee={{$.AssigneeID}}&poster={{.ID}}">
