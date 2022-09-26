@@ -224,6 +224,37 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusOK, packageTag2)
 	})
 
+	t.Run("Search", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/packages/%s/npm/-/v1/search", user.Name)
+
+		cases := []struct {
+			Query           string
+			Skip            int
+			Take            int
+			ExpectedTotal   int64
+			ExpectedResults int
+		}{
+			{"", 0, 0, 1, 1},
+			{"", 0, 10, 1, 1},
+			{"gitea", 0, 10, 0, 0},
+			{"test", 0, 10, 1, 1},
+			{"test", 1, 10, 1, 0},
+		}
+
+		for i, c := range cases {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s?text=%s&from=%d&size=%d", url, c.Query, c.Skip, c.Take))
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var result npm.PackageSearch
+			DecodeJSON(t, resp, &result)
+
+			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
+			assert.Len(t, result.Objects, c.ExpectedResults, "case %d: unexpected result count", i)
+		}
+	})
+
 	t.Run("Delete", func(t *testing.T) {
 		defer tests.PrintCurrentTest(t)()
 
