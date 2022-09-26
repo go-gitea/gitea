@@ -65,18 +65,15 @@ export function strSubMatch(full, sub) {
   const res = [''];
   let i = 0, j = 0;
   while (i < sub.length && j < full.length) {
-    while (j < full.length) {
-      if (sub[i]?.toLowerCase() === full[j]?.toLowerCase()) {
-        if (res.length % 2 !== 0) res.push('');
-        res[res.length - 1] += full[j];
-        j++;
-        i++;
-      } else {
-        if (res.length % 2 === 0) res.push('');
-        res[res.length - 1] += full[j];
-        j++;
-        break;
-      }
+    if (sub[i].toLowerCase() === full[j].toLowerCase()) {
+      if (res.length % 2 !== 0) res.push('');
+      res[res.length - 1] += full[j];
+      j++;
+      i++;
+    } else {
+      if (res.length % 2 === 0) res.push('');
+      res[res.length - 1] += full[j];
+      j++;
     }
   }
   if (i !== sub.length) {
