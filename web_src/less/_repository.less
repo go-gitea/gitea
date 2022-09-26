@@ -3072,7 +3072,7 @@ td.blob-excerpt {
   display: flex;
 }
 #diff-file-boxes {
-  width: 100%;
+  flex: 1
 }
 
 #diff-file-tree {
@@ -3085,10 +3085,6 @@ td.blob-excerpt {
   max-height: calc(100vh - 50px);
   height: calc(100vh - 50px);
   overflow-y: auto;
-}
-
-#diff-file-tree[style*='display: block'] ~ #diff-file-boxes {
-  width: 80%;
 }
 
 @media @mediaMdAndDown {
