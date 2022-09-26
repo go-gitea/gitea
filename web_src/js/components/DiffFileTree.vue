@@ -109,15 +109,14 @@ export default {
       this.updateVisibility(!this.fileTreeIsVisible);
     },
     updateVisibility(visible) {
-      this.fileTreeIsVisible = visible; // toggle the visibility
+      this.fileTreeIsVisible = visible;
       localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
       this.adjustToggleButton(this.fileTreeIsVisible);
     },
     adjustToggleButton(visible) {
       const [toShow, toHide] = document.querySelectorAll('.diff-toggle-file-tree-button .icon');
-      toShow.classList.remove('hide');
-      toHide.classList.remove('hide');
-      (visible ? toShow : toHide).classList.add('hide');
+      toShow.classList.toggle('hide', visible);  // hide the toShow icon if the tree is visible
+      toHide.classList.toggle('hide', !visible); // similarly
     },
     loadMoreData() {
       this.isLoadingNewData = true;
