@@ -44,7 +44,7 @@ func (r *ReverseProxy) getUserName(req *http.Request) string {
 			log.Error("Not a valid email address %v", email)
 			return ""
 		} else if strings.HasPrefix(email, "@") {
-			log.Fatal("Invalid email address found : %v", err)
+			log.Fatal("Invalid email address found : %v", email)
 			return ""
 		} else {
 			webAuthUser := strings.Split(email, "@")[0]
