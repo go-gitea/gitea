@@ -118,8 +118,11 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 
 	opts := repo_model.FindReleasesOptions{
 		ListOptions:   listOptions,
-		IncludeDrafts: writeAccess && !isTagList,
+		IncludeDrafts: isTagList || writeAccess,
 		IncludeTags:   isTagList,
+	}
+	if isTagList {
+		opts.HasSha1 = util.OptionalBoolTrue // only draft releases which are created with existing tags
 	}
 
 	releases, err := repo_model.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
