@@ -852,7 +852,7 @@ Default templates for project boards:
 - `SCHEDULE` accept formats
   - Full crontab specs, e.g. `* * * * * ?`
   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
-  - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+  - See more: [cron documentation](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 
