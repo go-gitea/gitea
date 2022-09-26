@@ -244,7 +244,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 	}
 	recreateTable(sess, &User{})
 
-	type WebAuthnCredential struct {
+	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
 		Name            string
 		LowerName       string `xorm:"unique(s)"`
@@ -258,14 +258,14 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	recreateTable(sess, &WebAuthnCredential{})
+	recreateTable(sess, &webauthnCredential{})
 
 	type UserBadge struct {
 		ID      int64 `xorm:"pk autoincr"`
 		BadgeID int64 `xorm:"NOT NULL DEFAULT 0"`
 		UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 	}
-	recreateTable(sess, &WebAuthnCredential{})
+	recreateTable(sess, &UserBadge{})
 
 	return sess.Commit()
 }
