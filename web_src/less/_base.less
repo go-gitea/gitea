@@ -135,7 +135,7 @@
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
-  --color-hover: #0000000f;
+  --color-hover: #0000000c;
   --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
@@ -157,6 +157,7 @@
   --color-reaction-active-bg: var(--color-primary-alpha-20);
   --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
+  --color-header-bar: #ffffff;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -294,6 +295,29 @@ a.commit-statuses-trigger {
   text-decoration: none !important;
 }
 
+.ui.search > .results {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+}
+
+.ui.search > .results .result {
+  background: var(--color-body);
+}
+
+.ui.search > .results .result .title {
+  color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .image {
+  width: auto;
+  height: auto;
+}
+
+.ui.search > .results .result:hover,
+.ui.category.search > .results .category .result:hover {
+  background: var(--color-hover);
+}
+
 .unselectable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -316,6 +340,11 @@ a.commit-statuses-trigger {
 
 .ui.breadcrumb .divider {
   color: var(--color-text-light-2);
+}
+
+.ui.divider:not(.vertical,.horizontal) {
+  border-top-color: var(--color-secondary) !important;
+  border-bottom: none !important;
 }
 
 .page-content {
@@ -447,6 +476,11 @@ a.commit-statuses-trigger {
 
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
+}
+
+.ui.list .list > .item > .content,
+.ui.list > .item > .content {
+  color: var(--color-text);
 }
 
 .ui.secondary.menu .dropdown.item:hover,
@@ -656,8 +690,18 @@ a.ui.card:hover,
 
 .ui.table {
   color: var(--color-text);
-  background: var(--color-body);
+  background: var(--color-box-body);
   border-color: var(--color-secondary);
+}
+
+.ui.table th,
+.ui.table td {
+  transition: none;
+}
+
+.ui.table > tr > td,
+.ui.table > tbody > tr > td {
+  border-top-color: var(--color-secondary-alpha-50);
 }
 
 .ui.ui.selectable.table > tbody > tr:hover,
@@ -669,6 +713,11 @@ a.ui.card:hover,
 .ui.ui.ui.ui.table tr.grey:not(.marked),
 .ui.ui.table td.grey:not(.marked) {
   background: var(--color-body);
+  color: var(--color-text);
+}
+
+.ui.table > thead > tr > th {
+  background: var(--color-box-header);
   color: var(--color-text);
 }
 
@@ -750,7 +799,7 @@ a.ui.card:hover,
   margin: 0 !important;
 
   &.light {
-    background: var(--color-body);
+    background: var(--color-header-bar);
     border-bottom: 1px solid var(--color-secondary);
   }
 

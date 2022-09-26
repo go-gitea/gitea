@@ -384,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -3013,9 +3013,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3031,7 +3031,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {

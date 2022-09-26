@@ -74,3 +74,38 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		},
 	}
 }
+
+func createPackageSearchResponse(pds []*packages_model.PackageDescriptor, total int64) *npm_module.PackageSearch {
+	objects := make([]*npm_module.PackageSearchObject, 0, len(pds))
+	for _, pd := range pds {
+		metadata := pd.Metadata.(*npm_module.Metadata)
+
+		scope := metadata.Scope
+		if scope == "" {
+			scope = "unscoped"
+		}
+
+		objects = append(objects, &npm_module.PackageSearchObject{
+			Package: &npm_module.PackageSearchPackage{
+				Scope:       scope,
+				Name:        metadata.Name,
+				Version:     pd.Version.Version,
+				Date:        pd.Version.CreatedUnix.AsLocalTime(),
+				Description: metadata.Description,
+				Author:      npm_module.User{Name: metadata.Author},
+				Publisher:   npm_module.User{Name: pd.Owner.Name},
+				Maintainers: []npm_module.User{}, // npm cli needs this field
+				Keywords:    metadata.Keywords,
+				Links: &npm_module.PackageSearchPackageLinks{
+					Registry: pd.FullWebLink(),
+					Homepage: metadata.ProjectURL,
+				},
+			},
+		})
+	}
+
+	return &npm_module.PackageSearch{
+		Objects: objects,
+		Total:   total,
+	}
+}
