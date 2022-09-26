@@ -215,8 +215,7 @@ func NotificationSubscriptions(c *context.Context) {
 	c.Data["SortType"] = sortType
 
 	state := c.FormString("state")
-	states := []string{"all", "open", "closed"}
-	if !util.IsStringInSlice(state, states, true) {
+	if !util.IsStringInSlice(state, []string{"all", "open", "closed"}, true) {
 		state = "all"
 	}
 	c.Data["State"] = state
