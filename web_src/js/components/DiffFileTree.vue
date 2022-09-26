@@ -98,32 +98,25 @@ export default {
 
   mounted() {
     // ensure correct buttons when we are mounted to the dom
-    this.adjustShowHideButtons(this.fileTreeIsVisible);
-
-    // Add our eventlisteners to the show / hide buttons
-    document
-      .querySelector('.diff-show-file-tree-button')
-      .addEventListener('click', (evt) => {
-        evt.stopPropagation();
-        this.toggleVisibility(this.fileTreeIsVisible);
-      });
-    document
-      .querySelector('.diff-hide-file-tree-button')
-      .addEventListener('click', (evt) => {
-        evt.stopPropagation();
-        this.toggleVisibility(this.fileTreeIsVisible);
-      });
+    this.adjustToggleButton(this.fileTreeIsVisible);
+    document.querySelector('.diff-toggle-file-tree-button').addEventListener('click', this.toggleVisibility);
   },
-
+  unmounted() {
+    document.querySelector('.diff-toggle-file-tree-button').removeEventListener('click', this.toggleVisibility);
+  },
   methods: {
-    toggleVisibility(isCurrentlyVisible) {
-      this.fileTreeIsVisible = !isCurrentlyVisible; // toggle the visibility
-      localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
-      this.adjustShowHideButtons(this.fileTreeIsVisible);
+    toggleVisibility() {
+      this.updateVisibility(!this.fileTreeIsVisible);
     },
-    adjustShowHideButtons(isCurrentlyVisible) {
-      document.querySelector('.diff-show-file-tree-button').style.display = isCurrentlyVisible ? 'none' : 'block';
-      document.querySelector('.diff-hide-file-tree-button').style.display = isCurrentlyVisible ? 'block' : 'none';
+    updateVisibility(visible) {
+      this.fileTreeIsVisible = visible; // toggle the visibility
+      localStorage.setItem(LOCAL_STORAGE_KEY, this.fileTreeIsVisible);
+      this.adjustToggleButton(this.fileTreeIsVisible);
+    },
+    adjustToggleButton(visible) {
+      const icons = document.querySelectorAll('.diff-toggle-file-tree-button .icon'); // icons[0] is "ToShow", icons[1] is "ToHide"
+      icons[0 + visible].classList.remove('hide'); // 0+true=1 (show the "ToShow"), 0+false=0 (show the "ToHide")
+      icons[1 - visible].classList.add('hide'); //           1-true=0 (hide the "ToHide"), 1-false=1 (hide the "ToShow"),
     },
     loadMoreData() {
       this.isLoadingNewData = true;
