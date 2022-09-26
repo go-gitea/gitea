@@ -57,7 +57,8 @@
 			{{end}}
 		</ol>
 		<div id="diff-file-boxes">
-			{{range $i, $file := .Diff.Files}}
+			{{range $file := .Diff.Files}}
+				{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
 				{{$blobBase := call $.GetBlobByPathForCommit $.BaseCommit $file.OldName}}
 				{{$blobHead := call $.GetBlobByPathForCommit $.HeadCommit $file.Name}}
 				{{$isImage := or (call $.IsBlobAnImage $blobBase) (call $.IsBlobAnImage $blobHead)}}
@@ -93,8 +94,8 @@
 						<div class="diff-file-header-actions df ac">
 							{{if $showFileViewToggle}}
 								<div class="ui compact icon buttons">
-									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$i}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
-									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$i}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle" data-toggle-selector="#diff-source-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_source"}}" data-position="bottom center">{{svg "octicon-code"}}</span>
+									<span class="ui tiny basic button tooltip file-view-toggle active" data-toggle-selector="#diff-rendered-{{$file.NameHash}}" data-content="{{$.locale.Tr "repo.file_view_rendered"}}" data-position="bottom center">{{svg "octicon-file"}}</span>
 								</div>
 							{{end}}
 							{{if $file.IsProtected}}
@@ -115,15 +116,14 @@
 								{{if $file.HasChangedSinceLastReview}}
 									<span class="changed-since-last-review unselectable">{{$.locale.Tr "repo.pulls.has_changed_since_last_review"}}</span>
 								{{end}}
-								<div data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
-									<input type="checkbox" name="{{$file.GetDiffFileName}}" id="viewed-file-checkbox-{{$i}}" autocomplete="off" {{if $file.IsViewed}}checked{{end}}></input>
-									<label for="viewed-file-checkbox-{{$i}}">{{$.locale.Tr "repo.pulls.has_viewed_file"}}</label>
-								</div>
+								<label data-link="{{$.Issue.Link}}/viewed-files" data-headcommit="{{$.PullHeadCommitID}}" class="viewed-file-form unselectable{{if $file.IsViewed}} viewed-file-checked-form{{end}}">
+									<input type="checkbox" name="{{$file.GetDiffFileName}}" autocomplete="off"{{if $file.IsViewed}} checked{{end}}> {{$.locale.Tr "repo.pulls.has_viewed_file"}}
+								</label>
 							{{end}}
 						</div>
 					</h4>
 					<div class="diff-file-body ui attached unstackable table segment" {{if $file.IsViewed}}data-folded="true"{{end}}>
-						<div id="diff-source-{{$i}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
+						<div id="diff-source-{{$file.NameHash}}" class="file-body file-code unicode-escaped code-diff{{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}{{if $showFileViewToggle}} hide{{end}}">
 							{{if or $file.IsIncomplete $file.IsBin}}
 								<div class="diff-file-body binary" style="padding: 5px 10px;">
 									{{if $file.IsIncomplete}}
@@ -148,7 +148,7 @@
 							{{end}}
 						</div>
 						{{if $showFileViewToggle}}
-							<div id="diff-rendered-{{$i}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
+							<div id="diff-rendered-{{$file.NameHash}}" class="file-body file-code {{if $.IsSplitStyle}} code-diff-split{{else}} code-diff-unified{{end}}">
 								<table class="chroma w-100">
 									{{if $isImage}}
 										{{template "repo/diff/image_diff" dict "file" . "root" $ "blobBase" $blobBase "blobHead" $blobHead}}
