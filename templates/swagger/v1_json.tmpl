@@ -1960,8 +1960,10 @@
               "maven",
               "npm",
               "nuget",
+              "pub",
               "pypi",
-              "rubygems"
+              "rubygems",
+              "vagrant"
             ],
             "type": "string",
             "description": "package type filter",
@@ -4664,7 +4666,7 @@
           },
           {
             "type": "string",
-            "description": "The name of the commit/branch/tag. Default the repository’s default branch (usually master)",
+            "description": "The name of the commit/branch/tag, indicates which commit will be loaded to the webhook payload.",
             "name": "ref",
             "in": "query"
           }
@@ -12698,6 +12700,18 @@
         "operationId": "userCurrentTrackedTimes",
         "parameters": [
           {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          },
+          {
             "type": "string",
             "format": "date-time",
             "description": "Only show times updated after the given time. This is a timestamp in RFC 3339 format",
@@ -15555,32 +15569,32 @@
       "type": "object",
       "properties": {
         "allow_manual_merge": {
-          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow mark pr as merged manually, or `false` to prevent it.",
           "type": "boolean",
           "x-go-name": "AllowManualMerge"
         },
         "allow_merge_commits": {
-          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow merging pull requests with a merge commit, or `false` to prevent merging pull requests with merge commits.",
           "type": "boolean",
           "x-go-name": "AllowMerge"
         },
         "allow_rebase": {
-          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase-merging pull requests, or `false` to prevent rebase-merging.",
           "type": "boolean",
           "x-go-name": "AllowRebase"
         },
         "allow_rebase_explicit": {
-          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow rebase with explicit merge commits (--no-ff), or `false` to prevent rebase with explicit merge commits.",
           "type": "boolean",
           "x-go-name": "AllowRebaseMerge"
         },
         "allow_rebase_update": {
-          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow updating pull request branch by rebase, or `false` to prevent it.",
           "type": "boolean",
           "x-go-name": "AllowRebaseUpdate"
         },
         "allow_squash_merge": {
-          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging. `has_pull_requests` must be `true`.",
+          "description": "either `true` to allow squash-merging pull requests, or `false` to prevent squash-merging.",
           "type": "boolean",
           "x-go-name": "AllowSquash"
         },
@@ -15590,7 +15604,7 @@
           "x-go-name": "Archived"
         },
         "autodetect_manual_merge": {
-          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. `has_pull_requests` must be `true`, Note: In some special cases, misjudgments can occur.",
+          "description": "either `true` to enable AutodetectManualMerge, or `false` to prevent it. Note: In some special cases, misjudgments can occur.",
           "type": "boolean",
           "x-go-name": "AutodetectManualMerge"
         },
@@ -15605,7 +15619,7 @@
           "x-go-name": "DefaultDeleteBranchAfterMerge"
         },
         "default_merge_style": {
-          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\". `has_pull_requests` must be `true`.",
+          "description": "set to a merge style to be used by this repository: \"merge\", \"rebase\", \"rebase-merge\", or \"squash\".",
           "type": "string",
           "x-go-name": "DefaultMergeStyle"
         },
@@ -15646,7 +15660,7 @@
           "x-go-name": "HasWiki"
         },
         "ignore_whitespace_conflicts": {
-          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace. `has_pull_requests` must be `true`.",
+          "description": "either `true` to ignore whitespace for conflicts, or `false` to not ignore whitespace.",
           "type": "boolean",
           "x-go-name": "IgnoreWhitespaceConflicts"
         },
@@ -15934,7 +15948,6 @@
           "$ref": "#/definitions/FileCommitResponse"
         },
         "content": {
-          "type": "object",
           "x-go-name": "Content"
         },
         "verification": {
@@ -16571,6 +16584,35 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "IssueFormField": {
+      "description": "IssueFormField represents a form field",
+      "type": "object",
+      "properties": {
+        "attributes": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Attributes"
+        },
+        "id": {
+          "type": "string",
+          "x-go-name": "ID"
+        },
+        "type": {
+          "$ref": "#/definitions/IssueFormFieldType"
+        },
+        "validations": {
+          "type": "object",
+          "additionalProperties": {},
+          "x-go-name": "Validations"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
+    "IssueFormFieldType": {
+      "type": "string",
+      "title": "IssueFormFieldType defines issue form field type, can be \"markdown\", \"textarea\", \"input\", \"dropdown\" or \"checkboxes\"",
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "IssueLabelsOption": {
       "description": "IssueLabelsOption a collection of labels",
       "type": "object",
@@ -16594,6 +16636,13 @@
         "about": {
           "type": "string",
           "x-go-name": "About"
+        },
+        "body": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/IssueFormField"
+          },
+          "x-go-name": "Fields"
         },
         "content": {
           "type": "string",
@@ -18827,7 +18876,7 @@
           "$ref": "#/definitions/TimeStamp"
         }
       },
-      "x-go-package": "code.gitea.io/gitea/models"
+      "x-go-package": "code.gitea.io/gitea/models/activities"
     },
     "UserSettings": {
       "description": "UserSettings represents user settings",
@@ -18931,7 +18980,6 @@
           "x-go-name": "Ignored"
         },
         "reason": {
-          "type": "object",
           "x-go-name": "Reason"
         },
         "repository_url": {

@@ -18,6 +18,7 @@ import (
 
 func Init() error {
 	if setting.SSH.Disabled {
+		builtinUnused()
 		return nil
 	}
 

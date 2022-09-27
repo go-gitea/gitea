@@ -123,6 +123,7 @@
   --color-text-light-3: #a0a0a0;
   --color-box-header: #f7f7f7;
   --color-box-body: #ffffff;
+  --color-box-body-highlight: #f8f8f8;
   --color-footer: #ffffff;
   --color-timeline: #ececec;
   --color-input-text: #212121;
@@ -134,7 +135,7 @@
   --color-light: #00000006;
   --color-light-mimic-enabled: rgba(0, 0, 0, calc(6 / 255 * 222 / 255 / var(--opacity-disabled)));
   --color-light-border: #0000001d;
-  --color-hover: #0000000f;
+  --color-hover: #0000000c;
   --color-active: #00000014;
   --color-menu: #ffffff;
   --color-card: #ffffff;
@@ -154,6 +155,9 @@
   --color-caret: var(--color-text-dark);
   --color-reaction-bg: #0000000a;
   --color-reaction-active-bg: var(--color-primary-alpha-20);
+  --color-tooltip-bg: #000000f0;
+  --color-tooltip-text: #ffffff;
+  --color-header-bar: #ffffff;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -291,6 +295,29 @@ a.commit-statuses-trigger {
   text-decoration: none !important;
 }
 
+.ui.search > .results {
+  background: var(--color-body);
+  border-color: var(--color-secondary);
+}
+
+.ui.search > .results .result {
+  background: var(--color-body);
+}
+
+.ui.search > .results .result .title {
+  color: var(--color-text-dark);
+}
+
+.ui.search > .results .result .image {
+  width: auto;
+  height: auto;
+}
+
+.ui.search > .results .result:hover,
+.ui.category.search > .results .category .result:hover {
+  background: var(--color-hover);
+}
+
 .unselectable {
   -webkit-touch-callout: none;
   -webkit-user-select: none;
@@ -301,12 +328,23 @@ a.commit-statuses-trigger {
   &:extend(.unselectable);
 }
 
+/* try to match button with no icons in height */
+.icon-button {
+  padding-top: 7.42px !important;
+  padding-bottom: 7.42px !important;
+}
+
 .ui.breadcrumb a:hover {
   text-decoration: underline !important;
 }
 
 .ui.breadcrumb .divider {
   color: var(--color-text-light-2);
+}
+
+.ui.divider:not(.vertical,.horizontal) {
+  border-top-color: var(--color-secondary) !important;
+  border-bottom: none !important;
 }
 
 .page-content {
@@ -438,6 +476,11 @@ a.commit-statuses-trigger {
 
 .ui.dropdown .menu > .message:not(.ui) {
   color: var(--color-text-light-2);
+}
+
+.ui.list .list > .item > .content,
+.ui.list > .item > .content {
+  color: var(--color-text);
 }
 
 .ui.secondary.menu .dropdown.item:hover,
@@ -647,8 +690,18 @@ a.ui.card:hover,
 
 .ui.table {
   color: var(--color-text);
-  background: var(--color-body);
+  background: var(--color-box-body);
   border-color: var(--color-secondary);
+}
+
+.ui.table th,
+.ui.table td {
+  transition: none;
+}
+
+.ui.table > tr > td,
+.ui.table > tbody > tr > td {
+  border-top-color: var(--color-secondary-alpha-50);
 }
 
 .ui.ui.selectable.table > tbody > tr:hover,
@@ -660,6 +713,11 @@ a.ui.card:hover,
 .ui.ui.ui.ui.table tr.grey:not(.marked),
 .ui.ui.table td.grey:not(.marked) {
   background: var(--color-body);
+  color: var(--color-text);
+}
+
+.ui.table > thead > tr > th {
+  background: var(--color-box-header);
   color: var(--color-text);
 }
 
@@ -683,12 +741,9 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
-.ui.avatar.images .image,
-.ui.avatar.images img,
-.ui.avatar.images svg,
-.ui.avatar.image img,
-.ui.avatar.image svg,
-.ui.avatar.image,
+.ui.avatar img,
+.ui.avatar svg,
+.ui.avatar.img,
 .ui.cards > .card img.avatar,
 .ui.cards > .card .avatar img,
 .ui.card img.avatar,
@@ -731,13 +786,20 @@ a.ui.card:hover,
   padding-bottom: 80px;
 }
 
+/* enable fluid page widths for medium size viewports */
+@media @mediaMdAndUp and @mediaLgAndDown {
+  .ui.ui.ui.container:not(.fluid) {
+    width: calc(100vw - 3em);
+  }
+}
+
 .following.bar {
   z-index: 900;
   left: 0;
   margin: 0 !important;
 
   &.light {
-    background: var(--color-body);
+    background: var(--color-header-bar);
     border-bottom: 1px solid var(--color-secondary);
   }
 
@@ -747,10 +809,6 @@ a.ui.card:hover,
 
   .top.menu a.item.brand {
     padding-left: 0;
-  }
-
-  .brand .ui.mini.image {
-    width: 30px;
   }
 
   .top.menu a.item:hover,
@@ -1677,7 +1735,7 @@ a.ui.label:hover {
     }
   }
 
-  .ui.avatar.image {
+  .ui.avatar {
     height: 18px;
     width: 18px;
     display: block;
@@ -1870,41 +1928,6 @@ a.ui.basic.label:hover {
 
 .migrate .svg.gitea-git {
   color: #f05133; /* from https://upload.wikimedia.org/wikipedia/commons/e/e0/Git-logo.svg */
-}
-
-.ui.popup {
-  background-color: var(--color-body);
-  color: var(--color-secondary-dark-6);
-  border-color: var(--color-secondary);
-}
-
-.ui.popup::before {
-  box-shadow: 1px 1px 0 0 var(--color-secondary);
-}
-
-.ui.bottom.popup::before,
-.ui.top.popup::before,
-.ui.right.center.popup::before,
-.ui.left.center.popup::before {
-  background-color: var(--color-body);
-}
-
-.ui.bottom.left.popup::before,
-.ui.bottom.right.popup::before,
-.ui.bottom.center.popup::before {
-  box-shadow: -1px -1px 0 0 var(--color-secondary);
-}
-
-.ui.left.center.popup::before {
-  box-shadow: 1px -1px 0 0 var(--color-secondary);
-}
-
-.ui.right.center.popup::before {
-  box-shadow: -1px 1px 0 0 var(--color-secondary);
-}
-
-.ui.popup .ui.label {
-  margin-bottom: .4em;
 }
 
 .color-icon {
@@ -2152,7 +2175,8 @@ table th[data-sortt-desc] {
   margin-top: inherit;
 }
 
-.flash-error details code {
+.flash-error details code,
+.flash-warning details code {
   display: block;
   text-align: left;
 }

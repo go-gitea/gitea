@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
@@ -59,7 +60,7 @@ func SendEmail(ctx *context.PrivateContext) {
 			}
 		}
 	} else {
-		err := user_model.IterateUser(func(user *user_model.User) error {
+		err := db.IterateObjects(ctx, func(user *user_model.User) error {
 			if len(user.Email) > 0 && user.IsActive {
 				emails = append(emails, user.Email)
 			}

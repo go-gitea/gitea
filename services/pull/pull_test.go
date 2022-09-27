@@ -38,7 +38,7 @@ func TestPullRequest_CommitMessageTrailersPattern(t *testing.T) {
 
 func TestPullRequest_GetDefaultMergeMessage_InternalTracker(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2})
 
 	assert.NoError(t, pr.LoadBaseRepo())
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())
@@ -65,10 +65,10 @@ func TestPullRequest_GetDefaultMergeMessage_ExternalTracker(t *testing.T) {
 			ExternalTrackerFormat: "https://someurl.com/{user}/{repo}/{issue}",
 		},
 	}
-	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	baseRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	baseRepo.Units = []*repo_model.RepoUnit{&externalTracker}
 
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo}).(*issues_model.PullRequest)
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 2, BaseRepo: baseRepo})
 
 	assert.NoError(t, pr.LoadBaseRepo())
 	gitRepo, err := git.OpenRepository(git.DefaultContext, pr.BaseRepo.RepoPath())

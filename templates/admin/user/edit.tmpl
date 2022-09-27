@@ -12,7 +12,7 @@
 				{{.CsrfTokenHtml}}
 				<div class="field {{if .Err_UserName}}error{{end}}">
 					<label for="user_name">{{.locale.Tr "username"}}</label>
-					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal }}disabled{{end}}>
+					<input id="user_name" name="user_name" value="{{.User.Name}}" autofocus {{if not .User.IsLocal}}disabled{{end}}>
 				</div>
 				<!-- Types and name -->
 				<div class="inline required field {{if .Err_LoginType}}error{{end}}">
@@ -117,7 +117,7 @@
 					</div>
 				</div>
 				<div class="inline field"{{if DisableGitHooks}} hidden{{end}}>
-					<div class="ui checkbox tooltip" data-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}" data-variation="very wide">
+					<div class="ui checkbox tooltip" data-content="{{.locale.Tr "admin.users.allow_git_hook_tooltip"}}">
 						<label><strong>{{.locale.Tr "admin.users.allow_git_hook"}}</strong></label>
 						<input name="allow_git_hook" type="checkbox" {{if .User.CanEditGitHook}}checked{{end}} {{if DisableGitHooks}}disabled{{end}}>
 					</div>
@@ -151,7 +151,7 @@
 
 				<div class="field">
 					<button class="ui green button">{{.locale.Tr "admin.users.update_profile"}}</button>
-					<div class="ui red button show-modal" data-modal="#delete-user-modal" data-url="{{$.Link}}/delete" data-id="{{.User.ID}}">{{.locale.Tr "admin.users.delete_account"}}</div>
+					<div class="ui red button show-modal" data-modal="#delete-user-modal">{{.locale.Tr "admin.users.delete_account"}}</div>
 				</div>
 			</form>
 		</div>
@@ -206,7 +206,6 @@
 	</div>
 	<form class="ui form" method="POST" action="{{.Link}}/delete">
 		{{$.CsrfTokenHtml}}
-		<input type="hidden" name="id">
 		<div class="field">
 			<div class="ui checkbox">
 				<label for="purge">{{.locale.Tr "admin.users.purge"}}</label>
@@ -214,7 +213,16 @@
 			</div>
 			<p class="help">{{.locale.Tr "admin.users.purge_help"}}</p>
 		</div>
-		{{template "base/delete_modal_actions" .}}
+		<div class="actions">
+			<div class="ui red basic inverted cancel button">
+				{{svg "octicon-x"}}
+				{{.locale.Tr "modal.no"}}
+			</div>
+			<button class="ui green basic inverted ok button">
+				{{svg "octicon-check"}}
+				{{.locale.Tr "modal.yes"}}
+			</button>
+		</div>
 	</form>
 </div>
 {{template "base/footer" .}}
