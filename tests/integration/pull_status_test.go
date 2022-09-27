@@ -107,7 +107,7 @@ func doAPICreateCommitStatus(ctx APITestContext, commitID string, status api.Com
 
 func TestPullCreate_EmptyChangesWithDifferentCommits(t *testing.T) {
 	// Merge must continue if commits SHA are different, even if content is same
-	// Reason: gitflow and merging master back into develop, where is high possiblity, there are no changes
+	// Reason: gitflow and merging master back into develop, where is high possibility, there are no changes
 	// but just commit saying "Merge branch". And this meta commit can be also tagged,
 	// so we need to have this meta commit also in develop branch.
 	onGiteaRun(t, func(t *testing.T, u *url.URL) {
