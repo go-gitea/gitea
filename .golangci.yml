@@ -177,3 +177,15 @@ issues:
       linters:
         - revive
       text: "exported: type name will be used as user.UserBadge by other packages, and that stutters; consider calling this Badge"
+    - path: routers/web/repo/issue_priority.go
+      linters:
+        - dupl
+    - path: routers/web/repo/issue_label.go
+      linters:
+        - dupl
+    - path: models/issues/priority.go
+      linters:
+        - dupl
+    - path: models/issues/label.go
+      linters:
+        - dupl

@@ -218,9 +218,9 @@ func UpdatePriority(priority *Priority) error {
 	return updatePriorityCols(db.DefaultContext, priority, "name", "description", "color", "weight")
 }
 
-// DeleteLabel delete a label
-func DeletePriority(id, priorityId int64) error {
-	priority, err := GetPriorityByID(db.DefaultContext, priorityId)
+// DeletePriority delete a label
+func DeletePriority(id, priorityID int64) error {
+	priority, err := GetPriorityByID(db.DefaultContext, priorityID)
 	if err != nil {
 		if IsErrPriorityNotExist(err) {
 			return nil
@@ -243,16 +243,16 @@ func DeletePriority(id, priorityId int64) error {
 		return nil
 	}
 
-	if _, err = sess.ID(priorityId).Delete(new(Priority)); err != nil {
+	if _, err = sess.ID(priorityID).Delete(new(Priority)); err != nil {
 		return err
 	} else if _, err = sess.
-		Where("label_id = ?", priorityId).
+		Where("label_id = ?", priorityID).
 		Delete(new(IssueLabel)); err != nil {
 		return err
 	}
 
 	// delete comments about now deleted label_id
-	if _, err = sess.Where("priority_id = ?", priorityId).Cols("priority_id").Delete(&Comment{}); err != nil {
+	if _, err = sess.Where("priority_id = ?", priorityID).Cols("priority_id").Delete(&Comment{}); err != nil {
 		return err
 	}
 
@@ -559,15 +559,10 @@ func HasIssuePriority(ctx context.Context, issueID, priority int64) bool {
 	return has
 }
 
-// newIssueLabel this function creates a new label it does not check if the label is valid for the issue
+// newIssuePriority this function creates a new label it does not check if the label is valid for the issue
 // YOU MUST CHECK THIS BEFORE THIS FUNCTION
 func newIssuePriority(ctx context.Context, issue *Issue, priority *Priority, doer *user_model.User) (err error) {
 	issue.PriorityID = priority.ID
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
 
 	if err = UpdateIssueCols(ctx, issue, "priority_id"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
@@ -667,11 +662,6 @@ func NewIssuePriorities(issue *Issue, priorities []*Priority, doer *user_model.U
 
 func deleteIssuePriority(ctx context.Context, issue *Issue, priority *Priority, doer *user_model.User) (err error) {
 	issue.PriorityID = 0
-	ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
 
 	if err = UpdateIssueCols(ctx, issue, "priority_id"); err != nil {
 		return fmt.Errorf("updateIssueCols: %v", err)
