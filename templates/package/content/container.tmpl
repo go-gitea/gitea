@@ -43,7 +43,7 @@
 	{{if .PackageDescriptor.Metadata.ImageLayers}}
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.container.layers"}}</h4>
 		<div class="ui attached segment">
-			<table id="notice-table" class="ui very basic compact table">
+			<table class="ui very basic compact table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.ImageLayers}}
 						<tr>
@@ -57,7 +57,7 @@
 	{{if .PackageDescriptor.Metadata.Labels}}
 		<h4 class="ui top attached header">{{.i18n.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table id="notice-table" class="ui very basic compact table">
+			<table class="ui very basic compact table container-labels">
 				<thead>
 					<tr>
 						<th>{{.i18n.Tr "packages.container.labels.key"}}</th>
