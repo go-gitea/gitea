@@ -149,17 +149,23 @@ func GetUserIDByExternalUserID(provider, userID string) (int64, error) {
 }
 
 // UpdateExternalUserByExternalID updates an external user's information
-func UpdateExternalUserByExternalID(external *ExternalLoginUser) error {
+func UpdateExternalUserByExternalID(external *ExternalLoginUser, upsert bool) error {
 	has, err := db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).
 		NoAutoCondition().
 		Exist(external)
 	if err != nil {
 		return err
-	} else if !has {
+	}
+
+	if !has && !upsert {
 		return ErrExternalLoginUserNotExist{external.UserID, external.LoginSourceID}
 	}
 
-	_, err = db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
+	if has {
+		_, err = db.GetEngine(db.DefaultContext).Where("external_id=? AND login_source_id=?", external.ExternalID, external.LoginSourceID).AllCols().Update(external)
+	} else {
+		_, err = db.GetEngine(db.DefaultContext).Insert(external)
+	}
 	return err
 }
 

@@ -70,11 +70,11 @@ func LinkAccountToUser(user *user_model.User, gothUser goth.User) error {
 }
 
 // UpdateExternalUser updates external user's information
-func UpdateExternalUser(user *user_model.User, gothUser goth.User) error {
+func UpdateExternalUser(user *user_model.User, gothUser goth.User, upsert bool) error {
 	externalLoginUser, err := toExternalLoginUser(user, gothUser)
 	if err != nil {
 		return err
 	}
 
-	return user_model.UpdateExternalUserByExternalID(externalLoginUser)
+	return user_model.UpdateExternalUserByExternalID(externalLoginUser, upsert)
 }
