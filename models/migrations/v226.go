@@ -280,11 +280,11 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		}
 
 		return sess.Commit()
-	} else {
-		for _, bean := range beans {
-			if err := setDefaultsForColumns(x, bean); err != nil {
-				return err
-			}
+	}
+
+	for _, bean := range beans {
+		if err := setDefaultsForColumns(x, bean); err != nil {
+			return err
 		}
 	}
 
