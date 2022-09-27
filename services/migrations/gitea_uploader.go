@@ -411,7 +411,7 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 				Type:         foreignreference.TypeIssue,
 			},
 		}
-		
+
 		if is.ForeignReference.ForeignIndex == "0" {
 			is.ForeignReference.ForeignIndex = strconv.FormatInt(is.Index, 10)
 		}
