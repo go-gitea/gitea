@@ -49,14 +49,15 @@ func NewPriority(ctx *context.Context) {
 		return
 	}
 
-	l := &issues_model.Label{
+	p := &issues_model.Priority{
 		RepoID:      ctx.Repo.Repository.ID,
 		Name:        form.Title,
 		Description: form.Description,
 		Color:       form.Color,
+		Weight:      form.Weight,
 	}
-	if err := issues_model.NewLabel(ctx, l); err != nil {
-		ctx.ServerError("NewLabel", err)
+	if err := issues_model.NewPriority(ctx, p); err != nil {
+		ctx.ServerError("NewPriority", err)
 		return
 	}
 	ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -65,7 +66,7 @@ func NewPriority(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdatePriority(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
-	l, err := issues_model.GetPriorityInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
+	p, err := issues_model.GetPriorityInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {
 		case issues_model.IsErrRepoPriorityNotExist(err):
@@ -76,11 +77,11 @@ func UpdatePriority(ctx *context.Context) {
 		return
 	}
 
-	l.Name = form.Title
-	l.Description = form.Description
-	l.Weight = form.Weight
-	l.Color = form.Color
-	if err := issues_model.UpdatePriority(l); err != nil {
+	p.Name = form.Title
+	p.Description = form.Description
+	p.Weight = form.Weight
+	p.Color = form.Color
+	if err := issues_model.UpdatePriority(p); err != nil {
 		ctx.ServerError("UpdatePriority", err)
 		return
 	}
