@@ -16,7 +16,7 @@ func migrateUserPasswordSalt(x *xorm.Engine) error {
 		return nil
 	}
 
-	if err := modifyColumn(x, "user", &schemas.Column{
+	if err := modifyColumns(x, "user", &schemas.Column{
 		Name: "rands",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
@@ -29,7 +29,7 @@ func migrateUserPasswordSalt(x *xorm.Engine) error {
 		return err
 	}
 
-	return modifyColumn(x, "user", &schemas.Column{
+	return modifyColumns(x, "user", &schemas.Column{
 		Name: "salt",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",

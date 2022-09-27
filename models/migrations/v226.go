@@ -9,19 +9,15 @@ import (
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 
 	"xorm.io/xorm"
+	"xorm.io/xorm/schemas"
 )
 
 func convertFromNullToDefault(x *xorm.Engine) error {
-	sess := x.NewSession()
-	defer sess.Close()
-	if err := sess.Begin(); err != nil {
-		return err
-	}
-
 	type Label struct {
 		ID              int64 `xorm:"pk autoincr"`
 		RepoID          int64 `xorm:"INDEX"`
@@ -33,9 +29,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		NumClosedIssues int                `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-	if err := recreateTable(sess, &Label{}); err != nil {
-		return err
 	}
 
 	type Milestone struct {
@@ -52,9 +45,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		UpdatedUnix    timeutil.TimeStamp `xorm:"INDEX updated"`
 		DeadlineUnix   timeutil.TimeStamp
 		ClosedDateUnix timeutil.TimeStamp
-	}
-	if err := recreateTable(sess, &Milestone{}); err != nil {
-		return err
 	}
 
 	type Issue struct {
@@ -83,9 +73,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		// with write access
 		IsLocked bool `xorm:"NOT NULL DEFAULT false"`
 	}
-	if err := recreateTable(sess, &Issue{}); err != nil {
-		return err
-	}
 
 	type Team struct {
 		ID                      int64 `xorm:"pk autoincr"`
@@ -98,9 +85,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		NumMembers              int             `xorm:"NOT NULL DEFAULT 0"`
 		IncludesAllRepositories bool            `xorm:"NOT NULL DEFAULT false"`
 		CanCreateOrgRepo        bool            `xorm:"NOT NULL DEFAULT false"`
-	}
-	if err := recreateTable(sess, &Team{}); err != nil {
-		return err
 	}
 
 	type Attachment struct {
@@ -115,9 +99,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		DownloadCount int64              `xorm:"NOT NULL DEFAULT 0"`
 		Size          int64              `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix   timeutil.TimeStamp `xorm:"created"`
-	}
-	if err := recreateTable(sess, &Attachment{}); err != nil {
-		return err
 	}
 
 	type Repository struct {
@@ -167,9 +148,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	if err := recreateTable(sess, &Repository{}); err != nil {
-		return err
-	}
 
 	type Topic struct {
 		ID          int64              `xorm:"pk autoincr"`
@@ -177,9 +155,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		RepoCount   int                `xorm:"NOT NULL DEFAULT 0"`
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
-	}
-	if err := recreateTable(sess, &Topic{}); err != nil {
-		return err
 	}
 
 	type User struct {
@@ -256,9 +231,6 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		Theme               string `xorm:"NOT NULL DEFAULT ''"`
 		KeepActivityPrivate bool   `xorm:"NOT NULL DEFAULT false"`
 	}
-	if err := recreateTable(sess, &User{}); err != nil {
-		return err
-	}
 
 	type webauthnCredential struct {
 		ID              int64 `xorm:"pk autoincr"`
@@ -274,18 +246,66 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		CreatedUnix     timeutil.TimeStamp `xorm:"INDEX created"`
 		UpdatedUnix     timeutil.TimeStamp `xorm:"INDEX updated"`
 	}
-	if err := recreateTable(sess, &webauthnCredential{}); err != nil {
-		return err
-	}
 
 	type UserBadge struct {
 		ID      int64 `xorm:"pk autoincr"`
 		BadgeID int64 `xorm:"NOT NULL DEFAULT 0"`
 		UserID  int64 `xorm:"INDEX NOT NULL DEFAULT 0"`
 	}
-	if err := recreateTable(sess, &UserBadge{}); err != nil {
+
+	beans := []interface{}{
+		&Label{},
+		&Milestone{},
+		&Issue{},
+		&Team{},
+		&Attachment{},
+		&Repository{},
+		&Topic{},
+		&User{},
+		&webauthnCredential{},
+		&UserBadge{},
+	}
+
+	if setting.Database.UseSQLite3 {
+		sess := x.NewSession()
+		defer sess.Close()
+		if err := sess.Begin(); err != nil {
+			return err
+		}
+
+		for _, bean := range beans {
+			if err := recreateTable(sess, bean); err != nil {
+				return err
+			}
+		}
+
+		return sess.Commit()
+	} else {
+		for _, bean := range beans {
+			if err := setDefaultsForColumns(x, bean); err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func setDefaultsForColumns(x *xorm.Engine, bean interface{}) error {
+	table, err := x.TableInfo(bean)
+	if err != nil {
 		return err
 	}
 
-	return sess.Commit()
+	columns := []*schemas.Column{}
+
+	for _, c := range table.Columns() {
+		if c.Nullable || c.IsPrimaryKey {
+			continue
+		}
+
+		columns = append(columns, c)
+	}
+
+	return modifyColumns(x, table.Name, columns...)
 }

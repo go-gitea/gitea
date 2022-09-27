@@ -19,7 +19,7 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		Typ string `xorm:"VARCHAR(16) index"`
 	}
 
-	if err := modifyColumn(x, "hook_task", &schemas.Column{
+	if err := modifyColumns(x, "hook_task", &schemas.Column{
 		Name: "typ",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",
@@ -45,7 +45,7 @@ func convertHookTaskTypeToVarcharAndTrim(x *xorm.Engine) error {
 		Type string `xorm:"VARCHAR(16) index"`
 	}
 
-	if err := modifyColumn(x, "webhook", &schemas.Column{
+	if err := modifyColumns(x, "webhook", &schemas.Column{
 		Name: "type",
 		SQLType: schemas.SQLType{
 			Name: "VARCHAR",

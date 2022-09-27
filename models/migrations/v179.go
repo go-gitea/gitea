@@ -16,7 +16,7 @@ func convertAvatarURLToText(x *xorm.Engine) error {
 	}
 
 	// Some oauth2 providers may give very long avatar urls (i.e. Google)
-	return modifyColumn(x, "external_login_user", &schemas.Column{
+	return modifyColumns(x, "external_login_user", &schemas.Column{
 		Name: "avatar_url",
 		SQLType: schemas.SQLType{
 			Name: schemas.Text,

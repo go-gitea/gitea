@@ -981,8 +981,8 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other property. SQLITE is not supported
-func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
+// modifyColumns will modify columns type or other property. SQLITE is not supported
+func modifyColumns(x *xorm.Engine, tableName string, cols ...*schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error
 	// MSSQL have to remove index at first, otherwise alter column will fail
@@ -1010,9 +1010,12 @@ func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 		}
 	}()
 
-	alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
-	if _, err := x.Exec(alterSQL); err != nil {
-		return err
+	for _, col := range cols {
+		alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
+		if _, err := x.Exec(alterSQL); err != nil {
+			return err
+		}
 	}
+
 	return nil
 }
