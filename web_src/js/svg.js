@@ -2,6 +2,11 @@ import octiconChevronDown from '../../public/img/svg/octicon-chevron-down.svg';
 import octiconChevronRight from '../../public/img/svg/octicon-chevron-right.svg';
 import octiconCopy from '../../public/img/svg/octicon-copy.svg';
 import octiconClock from '../../public/img/svg/octicon-clock.svg';
+import octiconDiffAdded from '../../public/img/svg/octicon-diff-added.svg';
+import octiconDiffModified from '../../public/img/svg/octicon-diff-modified.svg';
+import octiconDiffRemoved from '../../public/img/svg/octicon-diff-removed.svg';
+import octiconDiffRenamed from '../../public/img/svg/octicon-diff-renamed.svg';
+import octiconFileDirectoryFill from '../../public/img/svg/octicon-file-directory-fill.svg';
 import octiconGitMerge from '../../public/img/svg/octicon-git-merge.svg';
 import octiconGitPullRequest from '../../public/img/svg/octicon-git-pull-request.svg';
 import octiconIssueClosed from '../../public/img/svg/octicon-issue-closed.svg';
@@ -17,6 +22,9 @@ import octiconRepoForked from '../../public/img/svg/octicon-repo-forked.svg';
 import octiconRepoTemplate from '../../public/img/svg/octicon-repo-template.svg';
 import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg';
 import octiconFile from '../../public/img/svg/octicon-file.svg';
+import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
+import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
+
 
 import Vue from 'vue';
 
@@ -40,7 +48,15 @@ export const svgs = {
   'octicon-repo-template': octiconRepoTemplate,
   'octicon-triangle-down': octiconTriangleDown,
   'octicon-file': octiconFile,
+  'octicon-file-directory-fill': octiconFileDirectoryFill,
+  'octicon-sidebar-expand': octiconSidebarExpand,
+  'octicon-sidebar-collapse': octiconSidebarCollapse,
+  'octicon-diff-added': octiconDiffAdded,
+  'octicon-diff-modified': octiconDiffModified,
+  'octicon-diff-removed': octiconDiffRemoved,
+  'octicon-diff-renamed': octiconDiffRenamed,
 };
+
 
 const parser = new DOMParser();
 const serializer = new XMLSerializer();
