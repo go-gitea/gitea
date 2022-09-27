@@ -484,8 +484,12 @@ func (g *GiteaLocalUploader) CreateComments(comments ...*base.Comment) error {
 				cm.RemovedAssignee = true
 			}
 		case issues_model.CommentTypeChangeTitle:
-			cm.OldTitle = comment.Meta["OldTitle"].(string)
-			cm.NewTitle = comment.Meta["NewTitle"].(string)
+			if comment.Meta["OldTitle"] != nil {
+				cm.OldTitle = fmt.Sprintf("%s", comment.Meta["OldTitle"])
+			}
+			if comment.Meta["NewTitle"] != nil {
+				cm.NewTitle = fmt.Sprintf("%s", comment.Meta["NewTitle"])
+			}
 		default:
 		}
 
