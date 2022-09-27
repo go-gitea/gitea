@@ -1013,6 +1013,7 @@ func modifyColumns(x *xorm.Engine, tableName string, cols ...*schemas.Column) er
 	for _, col := range cols {
 		alterSQL := x.Dialect().ModifyColumnSQL(tableName, col)
 		if _, err := x.Exec(alterSQL); err != nil {
+			log.Error("Error modifying column: %v", col.Name)
 			return err
 		}
 	}

@@ -5,10 +5,13 @@
 package migrations
 
 import (
+	"reflect"
+
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/perm"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -275,6 +278,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 
 		for _, bean := range beans {
 			if err := recreateTable(sess, bean); err != nil {
+				log.Error("Error recreating table '%v': %v", reflect.TypeOf(bean).Elem().Name(), err)
 				return err
 			}
 		}
@@ -284,6 +288,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 
 	for _, bean := range beans {
 		if err := setDefaultsForColumns(x, bean); err != nil {
+			log.Error("Error modifying columns of table '%v': %v", reflect.TypeOf(bean).Elem().Name(), err)
 			return err
 		}
 	}
@@ -300,8 +305,13 @@ func setDefaultsForColumns(x *xorm.Engine, bean interface{}) error {
 	columns := []*schemas.Column{}
 
 	for _, c := range table.Columns() {
-		if c.Nullable || c.IsPrimaryKey {
+		if c.Nullable || c.IsPrimaryKey || c.DefaultIsEmpty {
 			continue
+		}
+
+		_, err := x.Exec("UPDATE `" + table.Name + "` SET `" + c.Name + "` = " + c.Default + " WHERE `" + c.Name + "` IS NULL")
+		if err != nil {
+			return err
 		}
 
 		columns = append(columns, c)
