@@ -436,6 +436,7 @@ type CreateIssueForm struct {
 	MilestoneID         int64
 	ProjectID           int64
 	AssigneeID          int64
+	Priority            int64
 	Content             string
 	Files               []string
 	AllowMaintainerEdit bool
