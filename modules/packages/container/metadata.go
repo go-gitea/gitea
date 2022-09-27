@@ -95,7 +95,9 @@ func parseOCIImageConfig(r io.Reader) (*Metadata, error) {
 		if i := strings.Index(cmd, "#(nop) "); i != -1 {
 			cmd = strings.TrimSpace(cmd[i+7:])
 		}
-		imageLayers = append(imageLayers, cmd)
+		if cmd != "" {
+			imageLayers = append(imageLayers, cmd)
+		}
 	}
 
 	metadata := &Metadata{

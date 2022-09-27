@@ -96,6 +96,34 @@ type PackageDistribution struct {
 	NpmSignature string `json:"npm-signature,omitempty"`
 }
 
+type PackageSearch struct {
+	Objects []*PackageSearchObject `json:"objects"`
+	Total   int64                  `json:"total"`
+}
+
+type PackageSearchObject struct {
+	Package *PackageSearchPackage `json:"package"`
+}
+
+type PackageSearchPackage struct {
+	Scope       string                     `json:"scope"`
+	Name        string                     `json:"name"`
+	Version     string                     `json:"version"`
+	Date        time.Time                  `json:"date"`
+	Description string                     `json:"description"`
+	Author      User                       `json:"author"`
+	Publisher   User                       `json:"publisher"`
+	Maintainers []User                     `json:"maintainers"`
+	Keywords    []string                   `json:"keywords,omitempty"`
+	Links       *PackageSearchPackageLinks `json:"links"`
+}
+
+type PackageSearchPackageLinks struct {
+	Registry   string `json:"npm"`
+	Homepage   string `json:"homepage,omitempty"`
+	Repository string `json:"repository,omitempty"`
+}
+
 // User https://github.com/npm/registry/blob/master/docs/REGISTRY-API.md#package
 type User struct {
 	Username string `json:"username,omitempty"`
