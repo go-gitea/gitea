@@ -471,3 +471,32 @@ func InitializeLabels(ctx context.Context, id int64, labelTemplate string, isOrg
 	}
 	return nil
 }
+
+// InitializeLabels adds a label set to a repository using a template
+func InitializePriorities(ctx context.Context, id int64, labelTemplate string, isOrg bool) error {
+	list, err := GetLabelTemplateFile(labelTemplate)
+	if err != nil {
+		return err
+	}
+
+	priorities := make([]*issues_model.Priority, len(list))
+	for i := 0; i < len(list); i++ {
+		priorities[i] = &issues_model.Priority{
+			Name:        list[i][0],
+			Description: list[i][2],
+			Color:       list[i][1],
+			Weight:      10, // FIXME: this should be configurable
+		}
+		if isOrg {
+			priorities[i].OrgID = id
+		} else {
+			priorities[i].RepoID = id
+		}
+	}
+	for _, priority := range priorities {
+		if err = issues_model.NewPriority(ctx, priority); err != nil {
+			return err
+		}
+	}
+	return nil
+}

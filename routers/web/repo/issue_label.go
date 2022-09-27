@@ -66,7 +66,18 @@ func RetrieveLabels(ctx *context.Context) {
 		l.CalOpenIssues()
 	}
 
+	priorities, err := issues_model.GetPrioritiesByRepoID(ctx, ctx.Repo.Repository.ID, ctx.FormString("sort"), db.ListOptions{})
+	if err != nil {
+		ctx.ServerError("RetrieveLabels.GetPriorities", err)
+		return
+	}
+
+	for _, p := range priorities {
+		p.CalOpenIssues()
+	}
+
 	ctx.Data["Labels"] = labels
+	ctx.Data["Priorities"] = priorities
 
 	if ctx.Repo.Owner.IsOrganization() {
 		orgLabels, err := issues_model.GetLabelsByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
@@ -78,6 +89,16 @@ func RetrieveLabels(ctx *context.Context) {
 			l.CalOpenOrgIssues(ctx.Repo.Repository.ID, l.ID)
 		}
 		ctx.Data["OrgLabels"] = orgLabels
+
+		orgPriorities, err := issues_model.GetPrioritiesByOrgID(ctx, ctx.Repo.Owner.ID, ctx.FormString("sort"), db.ListOptions{})
+		if err != nil {
+			ctx.ServerError("GetPrioritiesByOrgID", err)
+			return
+		}
+		for _, p := range orgPriorities {
+			p.CalOpenOrgIssues(ctx.Repo.Repository.ID, p.ID)
+		}
+		ctx.Data["OrgPriorities"] = orgPriorities
 
 		org, err := organization.GetOrgByName(ctx.Repo.Owner.LowerName)
 		if err != nil {
@@ -96,6 +117,7 @@ func RetrieveLabels(ctx *context.Context) {
 		}
 	}
 	ctx.Data["NumLabels"] = len(labels)
+	ctx.Data["NumPriorities"] = len(priorities)
 	ctx.Data["SortType"] = ctx.FormString("sort")
 }
 
@@ -105,6 +127,10 @@ func NewLabel(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.labels")
 	ctx.Data["PageIsLabels"] = true
 
+	if form.Priority {
+		NewPriority(ctx)
+		return
+	}
 	if ctx.HasError() {
 		ctx.Flash.Error(ctx.Data["ErrorMsg"].(string))
 		ctx.Redirect(ctx.Repo.RepoLink + "/labels")
@@ -127,6 +153,10 @@ func NewLabel(ctx *context.Context) {
 // UpdateLabel update a label's name and color
 func UpdateLabel(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateLabelForm)
+	if form.Priority {
+		UpdatePriority(ctx)
+		return
+	}
 	l, err := issues_model.GetLabelInRepoByID(ctx, ctx.Repo.Repository.ID, form.ID)
 	if err != nil {
 		switch {

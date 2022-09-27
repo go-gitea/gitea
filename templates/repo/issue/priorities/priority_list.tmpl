@@ -21,7 +21,7 @@
 
 <div class="ui attached segment">
 	<div class="labelspage">
-		{{if and (not $.PageIsOrgSettingsPriorities) (or $.CanWriteIssues $.CanWritePulls) (eq .NumPriorities 0) (not $.Repository.IsArchived) }}
+		{{if and (not $.PageIsOrgSettingsPriorities) (or $.CanWriteIssues $.CanWritePulls) (eq .NumPriorities 0) (not $.Repository.IsArchived)}}
 			{{template "repo/issue/priorities/priority_load_template" .}}
 			<div class="ui divider"></div>
 		{{else if and ($.PageIsOrgSettingsPriorities) (eq .NumPriorities 0)}}
@@ -57,7 +57,7 @@
 			</div>
 			</li>
 		{{end}}
-		{{if and (not .PageIsOrgSettingsPriorities) (.OrgPriorities) }}
+		{{if and (not .PageIsOrgSettingsPriorities) (.OrgPriorities)}}
 			<li class="item">
 				<div class="ui grid middle aligned">
 					<div class="ten wide column">
