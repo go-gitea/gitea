@@ -106,4 +106,5 @@ type ChangedFile struct {
 	Changes          int    `json:"changes"`
 	HTMLURL          string `json:"html_url,omitempty"`
 	ContentsURL      string `json:"contents_url,omitempty"`
+	RawURL           string `json:"raw_url,omitempty"`
 }

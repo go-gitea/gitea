@@ -438,7 +438,8 @@ func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit stri
 		Deletions:   f.Deletion,
 		Changes:     f.Addition + f.Deletion,
 		HTMLURL:     fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
-		ContentsURL: fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+		ContentsURL: fmt.Sprint(repo.APIURL(), "/contents/", util.PathEscapeSegments(f.GetDiffFileName()), "?ref=", commit),
+		RawURL:      fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
 	}
 
 	if status == "rename" {
