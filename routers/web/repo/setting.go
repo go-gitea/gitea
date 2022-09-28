@@ -917,6 +917,19 @@ func CollaborationPost(ctx *context.Context) {
 		return
 	}
 
+	// find the owner team of the organization the repo belongs too and
+	// check if the user we're trying to add is an owner.
+	if ctx.Repo.Repository.Owner.IsOrganization() {
+		if isOwner, err := organization.IsOrganizationOwner(ctx, ctx.Repo.Repository.Owner.ID, u.ID); err != nil {
+			ctx.ServerError("IsOrganizationOwner", err)
+			return
+		} else if isOwner {
+			ctx.Flash.Error(ctx.Tr("repo.settings.add_collaborator_owner"))
+			ctx.Redirect(setting.AppSubURL + ctx.Req.URL.EscapedPath())
+			return
+		}
+	}
+
 	if err = repo_module.AddCollaborator(ctx.Repo.Repository, u); err != nil {
 		ctx.ServerError("AddCollaborator", err)
 		return
