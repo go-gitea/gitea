@@ -64,19 +64,17 @@ export function parseIssueHref(href) {
 export function strSubMatch(full, sub) {
   const res = [''];
   let i = 0, j = 0;
-  while (i < sub.length && j < full.length) {
-    while (j < full.length) {
-      if (sub[i] === full[j]) {
-        if (res.length % 2 !== 0) res.push('');
-        res[res.length - 1] += full[j];
-        j++;
-        i++;
-      } else {
-        if (res.length % 2 === 0) res.push('');
-        res[res.length - 1] += full[j];
-        j++;
-        break;
-      }
+  const subLower = sub.toLowerCase(), fullLower = full.toLowerCase();
+  while (i < subLower.length && j < fullLower.length) {
+    if (subLower[i] === fullLower[j]) {
+      if (res.length % 2 !== 0) res.push('');
+      res[res.length - 1] += full[j];
+      j++;
+      i++;
+    } else {
+      if (res.length % 2 === 0) res.push('');
+      res[res.length - 1] += full[j];
+      j++;
     }
   }
   if (i !== sub.length) {
