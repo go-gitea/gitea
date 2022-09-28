@@ -344,10 +344,12 @@ var (
 		EnableHardLineBreakInDocuments bool
 		CustomURLSchemes               []string `ini:"CUSTOM_URL_SCHEMES"`
 		FileExtensions                 []string
+		EnableMath                     bool
 	}{
 		EnableHardLineBreakInComments:  true,
 		EnableHardLineBreakInDocuments: false,
 		FileExtensions:                 strings.Split(".md,.markdown,.mdown,.mkd", ","),
+		EnableMath:                     true,
 	}
 
 	// Admin settings
