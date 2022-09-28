@@ -712,7 +712,9 @@ func Routes(ctx gocontext.Context) *web.Route {
 
 		m.Group("/user", func() {
 			m.Get("", user.GetAuthenticatedUser)
-			m.Delete("", user.DeleteAuthenticatedUser)
+			m.Group("", func() {
+				m.Delete("", user.DeleteAuthenticatedUser)
+			}, reqBasicOrRevProxyAuth())
 			m.Group("/settings", func() {
 				m.Get("", user.GetUserSettings)
 				m.Patch("", bind(api.UserSettingsOptions{}), user.UpdateUserSettings)
