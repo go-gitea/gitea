@@ -925,11 +925,12 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
-	SecretKey = loadOrGenerateSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", func() (string, error) {
+	SecretKey = loadOrGenerateSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", nil)
+	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
-		return "!#@FDEWREWR&*(", nil
-	})
+		SecretKey = "!#@FDEWREWR&*(" // nolint:gosec
+	}
 
 	CookieRememberName = sec.Key("COOKIE_REMEMBER_NAME").MustString("gitea_incredible")
 
@@ -1160,7 +1161,7 @@ func loadOrGenerateSecret(
 	// if we have no URI, use verbatim
 	if uri == "" {
 		// if verbatim isn't provided, generate one
-		if verbatim == "" {
+		if verbatim == "" && generator != nil {
 			secret, err := generator()
 			if err != nil {
 				log.Fatal("Error trying to generate %s: %v", verbatimKey, err)
@@ -1186,7 +1187,7 @@ func loadOrGenerateSecret(
 		}
 
 		// empty file; generate secret and store it
-		if len(buf) == 0 {
+		if len(buf) == 0 && generator != nil {
 			token, err := generator()
 			if err != nil {
 				log.Fatal("Error generating %s: %v", verbatimKey, err)
