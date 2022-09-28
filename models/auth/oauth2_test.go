@@ -42,6 +42,26 @@ func TestOAuth2Application_ContainsRedirectURI(t *testing.T) {
 	assert.False(t, app.ContainsRedirectURI("d"))
 }
 
+func TestOAuth2Application_ContainsRedirectURI_WithPort(t *testing.T) {
+	app := &OAuth2Application{
+		RedirectURIs: []string{"http://127.0.0.1/", "http://::1/", "http://192.168.0.1/", "http://intranet/", "https://127.0.0.1/"},
+	}
+
+	// http loopback uris should ignore port
+	// https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1:3456/"))
+	assert.True(t, app.ContainsRedirectURI("http://127.0.0.1/"))
+	assert.True(t, app.ContainsRedirectURI("http://[::1]:3456/"))
+
+	// not http
+	assert.False(t, app.ContainsRedirectURI("https://127.0.0.1:3456/"))
+	// not loopback
+	assert.False(t, app.ContainsRedirectURI("http://192.168.0.1:9954/"))
+	assert.False(t, app.ContainsRedirectURI("http://intranet:3456/"))
+	// unparseable
+	assert.False(t, app.ContainsRedirectURI(":"))
+}
+
 func TestOAuth2Application_ValidateClientSecret(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	app := unittest.AssertExistsAndLoadBean(t, &OAuth2Application{ID: 1}).(*OAuth2Application)
