@@ -1163,7 +1163,7 @@ func loadSecret(
 			if err != nil {
 				log.Fatal("Error trying to generate %s: %v", verbatimKey, err)
 			}
-			CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			CreateOrAppendToCustomConf(sec.Name()+"."+verbatimKey, func(cfg *ini.File) {
 				cfg.Section(sec.Name()).Key(verbatimKey).SetValue(secret)
 			})
 			return secret
@@ -1272,7 +1272,7 @@ func MakeManifestData(appName, appURL, absoluteAssetURL string) []byte {
 
 // CreateOrAppendToCustomConf creates or updates the custom config.
 // Use the callback to set individual values.
-func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
+func CreateOrAppendToCustomConf(purpose string, callback func(cfg *ini.File)) {
 	if CustomConf == "" {
 		log.Error("Custom config path must not be empty")
 		return
@@ -1299,7 +1299,7 @@ func CreateOrAppendToCustomConf(callback func(cfg *ini.File)) {
 	if err := cfg.SaveTo(CustomConf); err != nil {
 		log.Fatal("error saving to custom config: %v", err)
 	}
-	log.Info("Settings saved to: %q", CustomConf)
+	log.Info("Settings for %s saved to: %q", purpose, CustomConf)
 
 	// Change permissions to be more restrictive
 	fi, err := os.Stat(CustomConf)
