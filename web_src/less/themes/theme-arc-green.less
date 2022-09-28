@@ -118,7 +118,7 @@
   --color-menu: #2e323e;
   --color-card: #2e323e;
   --color-markup-table-row: #ffffff06;
-  --color-markup-code-block: #292d39;
+  --color-markup-code-block: #ffffff0d;
   --color-button: #353846;
   --color-code-bg: #2a2e3a;
   --color-code-sidebar-bg: #2e323e;
@@ -133,6 +133,7 @@
   --color-reaction-bg: #ffffff12;
   --color-reaction-active-bg: var(--color-primary-alpha-40);
   --color-header-bar: #2e323e;
+  --color-label-active-bg: #4c525e;
 }
 
 ::-webkit-calendar-picker-indicator {
@@ -228,11 +229,6 @@ a.ui.basic.green.label:hover {
   background-color: #a0cc75;
 }
 
-.repository .navbar .active.item,
-.repository .navbar .active.item:hover {
-  border-color: transparent !important;
-}
-
 .repository .diff-stats li {
   border-color: var(--color-secondary);
 }
@@ -247,35 +243,9 @@ a.ui.basic.green.label:hover {
   background-color: #984646;
 }
 
-.ui.list .list > .item .header,
-.ui.list > .item .header {
-  color: #dedede;
-}
-
-.ui.list .list > .item .description,
-.ui.list > .item .description {
-  color: var(--color-secondary-dark-6);
-}
-
-.lines-num {
-  color: var(--color-secondary-dark-6) !important;
-  border-color: var(--color-secondary) !important;
-}
-
 .lines-code.active,
 .lines-code .active {
   background: #534d1b !important;
-}
-
-.ui.ui.ui.ui.table tr.active,
-.ui.ui.table td.active {
-  color: #dbdbdb;
-}
-
-.ui.active.label {
-  background: #393d4a;
-  border-color: #393d4a;
-  color: #dbdbdb;
 }
 
 .ui.header .sub.header {
@@ -284,20 +254,6 @@ a.ui.basic.green.label:hover {
 
 .ui.dividing.header {
   border-bottom: 1px solid var(--color-secondary);
-}
-
-.ui.modal > .header {
-  background: var(--color-secondary);
-  color: #dbdbdb;
-}
-
-.ui.modal > .actions {
-  background: var(--color-secondary);
-  border-color: var(--color-secondary);
-}
-
-.ui.modal > .content {
-  background: #383c4a;
 }
 
 .minicolors-panel {
