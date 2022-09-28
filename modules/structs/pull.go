@@ -103,6 +103,7 @@ type ChangedFile struct {
 	Status           string `json:"status"`
 	Additions        int    `json:"additions"`
 	Deletions        int    `json:"deletions"`
+	Changes          int    `json:"changes"`
 	HTMLURL          string `json:"html_url,omitempty"`
 	ContentsURL      string `json:"contents_url,omitempty"`
 }
