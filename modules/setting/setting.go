@@ -925,11 +925,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
-	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", func() (string, error) {
+	SecretKey = loadOrGenerateSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", func() (string, error) {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
-		//
-		// Until we properly support rotating an existing secret key,
-		// we shouldn't move users off of the default value
+		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
 		return "!#@FDEWREWR&*(", nil
 	})
 
@@ -955,7 +953,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN", generate.NewInternalToken)
+	InternalToken = loadOrGenerateSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN", generate.NewInternalToken)
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1144,7 +1142,9 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-func loadSecret(
+// loadOrGenerateSecret loads the secret if it exists in the config file,
+// or generates a new one and saves it into the config file
+func loadOrGenerateSecret(
 	sec *ini.Section,
 	uriKey string,
 	verbatimKey string,
