@@ -24,6 +24,7 @@ import octiconTriangleDown from '../../public/img/svg/octicon-triangle-down.svg'
 import octiconFile from '../../public/img/svg/octicon-file.svg';
 import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.svg';
 import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
+import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fill.svg';
 
 
 export const svgs = {
@@ -53,6 +54,7 @@ export const svgs = {
   'octicon-diff-modified': octiconDiffModified,
   'octicon-diff-removed': octiconDiffRemoved,
   'octicon-diff-renamed': octiconDiffRenamed,
+  'octicon-check-circle-fill': octiconCheckCircleFill,
 };
 
 

@@ -661,7 +661,7 @@ func RegisterRoutes(m *web.Route) {
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
 
 	if !setting.IsProd {
-		m.Any("/dev/termdemo", dev.TermDemo)
+		m.Get("/dev/buildview", dev.BuildView)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
