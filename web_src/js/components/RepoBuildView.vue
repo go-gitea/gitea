@@ -9,7 +9,11 @@
         </div>
         <div class="job-brief-list">
           <a class="job-brief-item" v-for="job in jobGroup.jobs" :key="job.id">
-            <SvgIcon name="octicon-check-circle-fill"/> {{ job.name }}
+            <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
+            <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
+            <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+            <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
+            {{ job.name }}
           </a>
         </div>
       </div>
@@ -24,19 +28,23 @@
           {{ currentJobInfo.detail }}
         </div>
       </div>
-      <div class="job-stage-container">
-        <div class="job-stage-section" v-for="(jobStage, i) in currentJobStages" :key="i">
-          <div class="job-stage-summary" @click.stop="toggleStageLogs(i)">
-            <SvgIcon name="octicon-chevron-down" v-show="currentJobStagesStates[i].expanded"/>
-            <SvgIcon name="octicon-chevron-right" v-show="!currentJobStagesStates[i].expanded"/>
+      <div class="job-step-container">
+        <div class="job-step-section" v-for="(jobStep, i) in currentJobSteps" :key="i">
+          <div class="job-step-summary" @click.stop="toggleStepLogs(i)">
+            <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
+            <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-            <SvgIcon name="octicon-check-circle-fill"/>
+            <SvgIcon name="octicon-check-circle-fill" class="green mr-3 " v-if="jobStep.status === 'success'"/>
+            <SvgIcon name="octicon-skip" class="ui text grey mr-3 " v-else-if="jobStep.status === 'skipped'"/>
+            <SvgIcon name="octicon-clock" class="ui text yellow mr-3 " v-else-if="jobStep.status === 'waiting'"/>
+            <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
 
-            {{ jobStage.summary }}
+            <span class="step-summary-msg">{{ jobStep.summary }}</span>
+            <span class="step-summary-dur">{{ Math.round(jobStep.duration/1000) }}s</span>
           </div>
 
           <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
-          <div class="job-stage-logs" ref="elJobStageLogs" v-show="currentJobStagesStates[i].expanded">
+          <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
             <!--
             <div class="job-log-group">
               <div class="job-log-group-summary"></div>
@@ -70,13 +78,13 @@ const sfc = {
     return {
       // internal state
       loading: false,
-      currentJobStagesStates: [],
+      currentJobStepsStates: [],
 
       // provided by backend
       buildInfo: {},
       allJobGroups: [],
       currentJobInfo: {},
-      currentJobStages: [],
+      currentJobSteps: [],
     };
   },
 
@@ -87,12 +95,12 @@ const sfc = {
   },
 
   methods: {
-    stageLogsGetActiveContainer(idx) {
-      const el = this.$refs.elJobStageLogs[idx];
-      return el._stageLogsActiveContainer ?? el;
+    stepLogsGetActiveContainer(idx) {
+      const el = this.$refs.elJobStepLogs[idx];
+      return el._stepLogsActiveContainer ?? el;
     },
-    stageLogsGroupBegin(idx) {
-      const el = this.$refs.elJobStageLogs[idx];
+    stepLogsGroupBegin(idx) {
+      const el = this.$refs.elJobStepLogs[idx];
 
       const elJobLogGroup = document.createElement('div');
       elJobLogGroup.classList.add('job-log-group');
@@ -105,30 +113,42 @@ const sfc = {
 
       elJobLogGroup.appendChild(elJobLogGroupSummary);
       elJobLogGroup.appendChild(elJobLogList);
-      el._stageLogsActiveContainer = elJobLogList;
+      el._stepLogsActiveContainer = elJobLogList;
     },
-    stageLogsGroupEnd(idx) {
-      const el = this.$refs.elJobStageLogs[idx];
-      el._stageLogsActiveContainer = null;
-    },
-
-    toggleStageLogs(idx) {
-      this.currentJobStagesStates[idx].expanded = !this.currentJobStagesStates[idx].expanded;
+    stepLogsGroupEnd(idx) {
+      const el = this.$refs.elJobStepLogs[idx];
+      el._stepLogsActiveContainer = null;
     },
 
-    createLogLine(msg, time) {
+    toggleStepLogs(idx) {
+      this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
+    },
+
+    createLogLine(line) {
       const el = document.createElement('div');
       el.classList.add('job-log-line');
-      el.innerText = msg;
-      el._jobLogTime = time;
+      el._jobLogTime = line.t;
+
+      const elLineNum = document.createElement('line-num');
+      elLineNum.innerText = line.ln;
+      el.appendChild(elLineNum);
+
+      const elLogTime = document.createElement('log-time');
+      elLogTime.innerText = new Date(line.t).toUTCString();
+      el.appendChild(elLogTime);
+
+      const elLogMsg = document.createElement('log-msg');
+      elLogMsg.innerText = line.m;
+      el.appendChild(elLogMsg);
+
       return el;
     },
 
-    appendLogs(stageIndex, logLines) {
+    appendLogs(stepIndex, logLines) {
       for (const line of logLines) {
-        // group: ##[group]GroupTItle , ##[endgroup]
-        const el = this.stageLogsGetActiveContainer(stageIndex);
-        el.append(this.createLogLine(line.m, line.t));
+        // TODO: group support: ##[group]GroupTitle , ##[endgroup]
+        const el = this.stepLogsGetActiveContainer(stepIndex);
+        el.append(this.createLogLine(line));
       }
     },
 
@@ -136,28 +156,35 @@ const sfc = {
       const stateData = {
         buildInfo: {title: 'The Demo Build'},
         allJobGroups: [
-          {summary: 'Job Group Foo', jobs: [{id: 1, name: 'Job A'}, {id: 2, name: 'Job B'}]},
-          {summary: 'Job Group Bar', jobs: [{id: 3, name: 'Job X'}, {id: 4, name: 'Job Y'}]},
+          {summary: 'Job Group Foo', jobs: [{id: 1, name: 'Job A', status: 'success'}, {id: 2, name: 'Job B', status: 'error'}]},
+          {summary: 'Job Group Bar', jobs: [{id: 3, name: 'Job X', status: 'skipped'}, {id: 4, name: 'Job Y', status: 'waiting'}]},
         ],
         currentJobInfo: {title: 'the job title', detail: ' succeeded 3 hours ago in 11s'},
-        currentJobStages: [
-          {summary: 'Job Stage 1'},
-          {summary: 'Job Stage 2'},
+        currentJobSteps: [
+          {summary: 'Job Step 1', duration: 3000, status: 'success'},
+          {summary: 'Job Step 2', duration: 3000, status: 'error'},
+          {summary: 'Job Step 3', duration: 3000, status: 'skipped'},
+          {summary: 'Job Step 4', duration: 3000, status: 'waiting'},
         ],
       };
       const logsData = {streamingLogs: []};
 
-      for (const reqCursor of reqData.stageLogCursors) {
+      for (const reqCursor of reqData.stepLogCursors) {
         if (!reqCursor.expanded) continue;
         // if (reqCursor.cursor > 100) continue;
-        const stageIndex = reqCursor.stageIndex;
+        const stepIndex = reqCursor.stepIndex;
         let cursor = reqCursor.cursor;
         const lines = [];
         for (let i = 0; i < 110; i++) {
-          lines.push({m: `hello world ${Date.now()}, cursor: ${cursor}`, t: Date.now()});
+          lines.push({
+            ln: cursor+0, // line number
+            m: `hello world ${Date.now()}, cursor: ${cursor}`,
+            t: Date.now(),
+            d: 3000, // duration
+          });
           cursor++;
         }
-        logsData.streamingLogs.push({stageIndex, cursor, lines});
+        logsData.streamingLogs.push({stepIndex, cursor, lines});
       }
       return {stateData, logsData};
     },
@@ -172,8 +199,8 @@ const sfc = {
         if (this.loading) return;
         this.loading = true;
 
-        const stageLogCursors = this.currentJobStagesStates.map((it, idx) => {return {stageIndex: idx, cursor: it.cursor, expanded: it.expanded}});
-        const reqData = {stageLogCursors};
+        const stepLogCursors = this.currentJobStepsStates.map((it, idx) => {return {stepIndex: idx, cursor: it.cursor, expanded: it.expanded}});
+        const reqData = {stepLogCursors};
 
         // const data = await this.fetchJobData();
         const data = this.fetchMockData(reqData);
@@ -183,14 +210,14 @@ const sfc = {
         for (const [key, value] of Object.entries(data.stateData)) {
           this[key] = value;
         }
-        for (let i = 0; i < this.currentJobStages.length; i++) {
-          if (!this.currentJobStagesStates[i]) {
-            this.$set(this.currentJobStagesStates, i, {cursor: null, expanded: false});
+        for (let i = 0; i < this.currentJobSteps.length; i++) {
+          if (!this.currentJobStepsStates[i]) {
+            this.$set(this.currentJobStepsStates, i, {cursor: null, expanded: false});
           }
         }
         for (const [_, logs] of data.logsData.streamingLogs.entries()) {
-          this.currentJobStagesStates[logs.stageIndex].cursor = logs.cursor;
-          this.appendLogs(logs.stageIndex, logs.lines);
+          this.currentJobStepsStates[logs.stepIndex].cursor = logs.cursor;
+          this.appendLogs(logs.stepIndex, logs.lines);
         }
       } finally {
         this.loading = false;
@@ -237,15 +264,18 @@ export function initRepositoryBuildView() {
 
 .job-group-section {
   .job-group-summary {
+    margin: 5px 0;
+    padding: 10px;
   }
 
   .job-brief-list {
     a.job-brief-item {
       display: block;
       margin: 5px 0;
-      padding: 5px;
+      padding: 10px;
       background: #f8f8f8;
       border-radius: 5px;
+      text-decoration: none;
     }
   }
 }
@@ -277,15 +307,23 @@ export function initRepositoryBuildView() {
   }
 }
 
-.job-stage-container {
+.job-step-container {
   max-height: 100%;
   overflow: auto;
 
-  .job-stage-summary {
+  .job-step-summary {
     cursor: pointer;
-    padding: 5px 0;
+    padding: 5px 10px;
+    display: flex;
+
+    .step-summary-msg {
+      flex: 1;
+    }
+    .step-summary-dur {
+      margin-left: 16px;
+    }
   }
-  .job-stage-summary:hover {
+  .job-step-summary:hover {
     background-color: #333;
   }
 }
@@ -293,13 +331,27 @@ export function initRepositoryBuildView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
-.job-stage-section {
+.job-step-section {
   margin: 10px;
-  .job-stage-logs {
+  .job-step-logs {
     .job-log-line {
-      margin-left: 20px;
+      display: flex;
+      line-num {
+        width: 48px;
+        color: #555;
+        text-align: right;
+      }
+      log-time {
+        color: #777;
+        margin-left: 16px;
+      }
+      log-msg {
+        flex: 1;
+        margin-left: 16px;
+      }
     }
 
+    // TODO: group support
     .job-log-group {
     }
 
