@@ -45,13 +45,17 @@ func TestAPIViewPulls(t *testing.T) {
 		assert.NoError(t, err)
 		// TODO: use diff to generate stats to test against
 
-		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID), func(t *testing.T) {
-			doAPIGetPullFiles(ctx, pull, func(files []*api.ChangedFile) {
-				if assert.Len(t, files, 2) {
-					assert.EqualValues(t, "", files)
+		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
+			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
+				if assert.Len(t, files, 1) {
+					assert.EqualValues(t, "File-WoW", files[0].Filename)
+					assert.EqualValues(t, "", files[0].PreviousFilename)
+					assert.EqualValues(t, 1, files[0].Additions)
+					assert.EqualValues(t, 1, files[0].Changes)
+					assert.EqualValues(t, 0, files[0].Deletions)
+					assert.EqualValues(t, "added", files[0].Status)
 				}
-			})
-		})
+			}))
 	}
 }
 
@@ -201,7 +205,7 @@ func TestAPIEditPull(t *testing.T) {
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
-func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, checkFiles func([]*api.ChangedFile)) func(*testing.T) {
+func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {
 	return func(t *testing.T) {
 		url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files?token=%s", ctx.Username, ctx.Reponame, pr.Index, ctx.Token)
 
@@ -213,6 +217,9 @@ func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, checkFiles func(
 
 		files := make([]*api.ChangedFile, 0, 1)
 		DecodeJSON(t, resp, &files)
-		checkFiles(files)
+
+		if callback != nil {
+			callback(t, files)
+		}
 	}
 }
