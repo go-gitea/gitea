@@ -296,6 +296,7 @@ func ToOrganization(org *organization.Organization) *api.Organization {
 	return &api.Organization{
 		ID:                        org.ID,
 		AvatarURL:                 org.AsUser().AvatarLink(),
+		Name:                      org.Name,
 		UserName:                  org.Name,
 		FullName:                  org.FullName,
 		Description:               org.Description,
