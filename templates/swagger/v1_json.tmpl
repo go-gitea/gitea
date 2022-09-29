@@ -8019,6 +8019,80 @@
         }
       }
     },
+    "/repos/{owner}/{repo}/pulls/{index}/files": {
+      "get": {
+        "produces": [
+          "application/json"
+        ],
+        "tags": [
+          "repository"
+        ],
+        "summary": "Get changed files for a pull request",
+        "operationId": "repoGetPullRequestFiles",
+        "parameters": [
+          {
+            "type": "string",
+            "description": "owner of the repo",
+            "name": "owner",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "name of the repo",
+            "name": "repo",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "integer",
+            "format": "int64",
+            "description": "index of the pull request to get",
+            "name": "index",
+            "in": "path",
+            "required": true
+          },
+          {
+            "type": "string",
+            "description": "skip to given file",
+            "name": "skip-to",
+            "in": "query"
+          },
+          {
+            "enum": [
+              "ignore-all",
+              "ignore-change",
+              "ignore-eol",
+              "show-all"
+            ],
+            "type": "string",
+            "description": "whitespace behavior",
+            "name": "whitespace",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page number of results to return (1-based)",
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "type": "integer",
+            "description": "page size of results",
+            "name": "limit",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "$ref": "#/responses/ChangedFileList"
+          },
+          "404": {
+            "$ref": "#/responses/notFound"
+          }
+        }
+      }
+    },
     "/repos/{owner}/{repo}/pulls/{index}/merge": {
       "get": {
         "produces": [
@@ -13715,6 +13789,52 @@
       },
       "x-go-package": "code.gitea.io/gitea/modules/structs"
     },
+    "ChangedFile": {
+      "description": "ChangedFile store information about files affected by the pull request",
+      "type": "object",
+      "properties": {
+        "additions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Additions"
+        },
+        "changes": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Changes"
+        },
+        "contents_url": {
+          "type": "string",
+          "x-go-name": "ContentsURL"
+        },
+        "deletions": {
+          "type": "integer",
+          "format": "int64",
+          "x-go-name": "Deletions"
+        },
+        "filename": {
+          "type": "string",
+          "x-go-name": "Filename"
+        },
+        "html_url": {
+          "type": "string",
+          "x-go-name": "HTMLURL"
+        },
+        "previous_filename": {
+          "type": "string",
+          "x-go-name": "PreviousFilename"
+        },
+        "raw_url": {
+          "type": "string",
+          "x-go-name": "RawURL"
+        },
+        "status": {
+          "type": "string",
+          "x-go-name": "Status"
+        }
+      },
+      "x-go-package": "code.gitea.io/gitea/modules/structs"
+    },
     "CombinedStatus": {
       "description": "CombinedStatus holds the combined state of several statuses for a single commit",
       "type": "object",
@@ -19170,6 +19290,41 @@
         "type": "array",
         "items": {
           "$ref": "#/definitions/BranchProtection"
+        }
+      }
+    },
+    "ChangedFileList": {
+      "description": "ChangedFileList",
+      "schema": {
+        "type": "array",
+        "items": {
+          "$ref": "#/definitions/ChangedFile"
+        }
+      },
+      "headers": {
+        "X-HasMore": {
+          "type": "boolean",
+          "description": "True if there is another page"
+        },
+        "X-Page": {
+          "type": "integer",
+          "format": "int64",
+          "description": "The current page"
+        },
+        "X-PageCount": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total number of pages"
+        },
+        "X-PerPage": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Commits per page"
+        },
+        "X-Total": {
+          "type": "integer",
+          "format": "int64",
+          "description": "Total commit count"
         }
       }
     },
