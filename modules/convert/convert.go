@@ -27,6 +27,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
+	"code.gitea.io/gitea/services/gitdiff"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -413,4 +414,37 @@ func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 			Name: u.DisplayName(),
 		},
 	}
+}
+
+// ToChangedFile convert a gitdiff.DiffFile to api.ChangedFile
+func ToChangedFile(f *gitdiff.DiffFile, repo *repo_model.Repository, commit string) *api.ChangedFile {
+	status := "changed"
+	if f.IsDeleted {
+		status = "deleted"
+	} else if f.IsCreated {
+		status = "added"
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileCopy {
+		status = "copied"
+	} else if f.IsRenamed && f.Type == gitdiff.DiffFileRename {
+		status = "renamed"
+	} else if f.Addition == 0 && f.Deletion == 0 {
+		status = "unchanged"
+	}
+
+	file := &api.ChangedFile{
+		Filename:    f.GetDiffFileName(),
+		Status:      status,
+		Additions:   f.Addition,
+		Deletions:   f.Deletion,
+		Changes:     f.Addition + f.Deletion,
+		HTMLURL:     fmt.Sprint(repo.HTMLURL(), "/src/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+		ContentsURL: fmt.Sprint(repo.APIURL(), "/contents/", util.PathEscapeSegments(f.GetDiffFileName()), "?ref=", commit),
+		RawURL:      fmt.Sprint(repo.HTMLURL(), "/raw/commit/", commit, "/", util.PathEscapeSegments(f.GetDiffFileName())),
+	}
+
+	if status == "rename" {
+		file.PreviousFilename = f.OldName
+	}
+
+	return file
 }
