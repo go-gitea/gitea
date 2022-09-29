@@ -443,6 +443,10 @@ var migrations = []Migration{
 	NewMigration("Add package cleanup rule table", v1_19.CreatePackageCleanupRuleTable),
 	// v235 -> v236
 	NewMigration("Add index for access_token", v1_19.AddIndexForAccessToken),
+
+
+	// in dev
+	NewMigration("Add bots tables", addBotTables),
 }
 
 // GetCurrentDBVersion returns the current db version
