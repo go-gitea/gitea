@@ -87,5 +87,9 @@ func Ticket(ctx *context.APIContext) {
 		return
 	}
 
+	if issue.IsClosed {
+		ticket.IsResolved = true
+	}
+
 	response(ctx, ticket)
 }
