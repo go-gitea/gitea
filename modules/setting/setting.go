@@ -21,7 +21,6 @@ import (
 	"text/template"
 	"time"
 
-	"code.gitea.io/gitea/modules/generate"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
@@ -925,7 +924,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	InstallLock = sec.Key("INSTALL_LOCK").MustBool(false)
 	LogInRememberDays = sec.Key("LOGIN_REMEMBER_DAYS").MustInt(7)
 	CookieUserName = sec.Key("COOKIE_USERNAME").MustString("gitea_awesome")
-	SecretKey = loadOrGenerateSecret(sec, "SECRET_KEY_URI", "SECRET_KEY", nil)
+	SecretKey = loadSecret(sec, "SECRET_KEY_URI", "SECRET_KEY")
 	if SecretKey == "" {
 		// FIXME: https://github.com/go-gitea/gitea/issues/16832
 		// Until it supports rotating an existing secret key, we shouldn't move users off of the widely used default value
@@ -954,7 +953,7 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	PasswordCheckPwn = sec.Key("PASSWORD_CHECK_PWN").MustBool(false)
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
-	InternalToken = loadOrGenerateSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN", generate.NewInternalToken)
+	InternalToken = loadSecret(sec, "INTERNAL_TOKEN_URI", "INTERNAL_TOKEN")
 
 	cfgdata := sec.Key("PASSWORD_COMPLEXITY").Strings(",")
 	if len(cfgdata) == 0 {
@@ -1143,14 +1142,7 @@ func parseAuthorizedPrincipalsAllow(values []string) ([]string, bool) {
 	return authorizedPrincipalsAllow, true
 }
 
-// loadOrGenerateSecret loads the secret if it exists in the config file,
-// or generates a new one and saves it into the config file
-func loadOrGenerateSecret(
-	sec *ini.Section,
-	uriKey string,
-	verbatimKey string,
-	generator func() (string, error),
-) string {
+func loadSecret(sec *ini.Section, uriKey, verbatimKey string) string {
 	// don't allow setting both URI and verbatim string
 	uri := sec.Key(uriKey).String()
 	verbatim := sec.Key(verbatimKey).String()
@@ -1160,18 +1152,6 @@ func loadOrGenerateSecret(
 
 	// if we have no URI, use verbatim
 	if uri == "" {
-		// if verbatim isn't provided, generate one
-		if verbatim == "" && generator != nil {
-			secret, err := generator()
-			if err != nil {
-				log.Fatal("Error trying to generate %s: %v", verbatimKey, err)
-			}
-			CreateOrAppendToCustomConf(sec.Name()+"."+verbatimKey, func(cfg *ini.File) {
-				cfg.Section(sec.Name()).Key(verbatimKey).SetValue(secret)
-			})
-			return secret
-		}
-
 		return verbatim
 	}
 
@@ -1182,36 +1162,16 @@ func loadOrGenerateSecret(
 	switch tempURI.Scheme {
 	case "file":
 		buf, err := os.ReadFile(tempURI.RequestURI())
-		if err != nil && !os.IsNotExist(err) {
-			log.Fatal("Failed to open %s (%s): %v", uriKey, uri, err)
+		if err != nil {
+			log.Fatal("Failed to read %s (%s): %v", uriKey, tempURI.RequestURI(), err)
 		}
-
-		// empty file; generate secret and store it
-		if len(buf) == 0 && generator != nil {
-			token, err := generator()
-			if err != nil {
-				log.Fatal("Error generating %s: %v", verbatimKey, err)
-			}
-
-			err = os.WriteFile(tempURI.RequestURI(), []byte(token), 0o600)
-			if err != nil {
-				log.Fatal("Error writing to %s (%s): %v", uriKey, uri, err)
-			}
-
-			// we assume generator gives pre-parsed token
-			return token
-		}
-
 		return strings.TrimSpace(string(buf))
 
 	// only file URIs are allowed
 	default:
 		log.Fatal("Unsupported URI-Scheme %q (INTERNAL_TOKEN_URI = %q)", tempURI.Scheme, uri)
+		return ""
 	}
-
-	// we should never get here
-	log.Fatal("Unknown error when loading %s", verbatimKey)
-	return ""
 }
 
 // MakeAbsoluteAssetURL returns the absolute asset url prefix without a trailing slash
