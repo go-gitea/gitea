@@ -63,7 +63,7 @@ require (
 	github.com/keybase/go-crypto v0.0.0-20200123153347-de78d2cb44f4
 	github.com/klauspost/compress v1.15.11
 	github.com/klauspost/cpuid/v2 v2.1.1
-	github.com/lib/pq v1.10.6
+	github.com/lib/pq v1.10.7
 	github.com/markbates/goth v1.73.0
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mattn/go-sqlite3 v1.14.13
