@@ -18,7 +18,7 @@ require (
 	github.com/alecthomas/chroma/v2 v2.3.0
 	github.com/blevesearch/bleve/v2 v2.3.4
 	github.com/buildkite/terminal-to-html/v3 v3.7.0
-	github.com/caddyserver/certmagic v0.17.0
+	github.com/caddyserver/certmagic v0.17.2
 	github.com/chi-middleware/proxy v1.1.1
 	github.com/denisenkom/go-mssqldb v0.12.2
 	github.com/djherbis/buffer v1.2.0
