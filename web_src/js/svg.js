@@ -27,6 +27,7 @@ import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collaps
 import octiconCheckCircleFill from '../../public/img/svg/octicon-check-circle-fill.svg';
 import octiconXCircleFill from '../../public/img/svg/octicon-x-circle-fill.svg';
 import octiconSkip from '../../public/img/svg/octicon-skip.svg';
+import octiconMeter from '../../public/img/svg/octicon-meter.svg';
 
 
 export const svgs = {
@@ -59,6 +60,7 @@ export const svgs = {
   'octicon-check-circle-fill': octiconCheckCircleFill,
   'octicon-x-circle-fill': octiconXCircleFill,
   'octicon-skip': octiconSkip,
+  'octicon-meter': octiconMeter,
 };
 
 

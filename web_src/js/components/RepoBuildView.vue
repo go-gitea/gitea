@@ -14,6 +14,7 @@
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
+            <SvgIcon name="octicon-meter" class="ui text yellow" class-name="job-status-rotate" v-else-if="job.status === 'running'"/>
             <SvgIcon name="octicon-x-circle-fill" class="red" v-else/>
             {{ job.name }}
           </a>
@@ -39,10 +40,11 @@
             <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
+            <SvgIcon name="octicon-meter" class="ui text yellow mr-3" class-name="job-status-rotate" v-else-if="jobStep.status === 'running'"/>
             <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
 
             <span class="step-summary-msg">{{ jobStep.summary }}</span>
-            <span class="step-summary-dur">{{ Math.round(jobStep.duration/1000) }}s</span>
+            <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span> <!-- TODO: time format -->
           </div>
 
           <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -135,6 +137,26 @@ const sfc = {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
     },
 
+    formatDuration(d) {
+      d = Math.round(d);
+      const unitValues = [60, 60, 24];
+      const unitNames = ['s', 'm', 'h', 'd'];
+      const parts = [];
+      for (let i = 0; i < unitValues.length; i++) {
+        parts[i] = d % unitValues[i];
+        d = Math.floor(d / unitValues[i]);
+      }
+      parts.push(d);
+      let res = '';
+      for (let i = parts.length - 1; i >= 0; i--) {
+        if (parts[i] > 0) {
+          res += parts[i] + unitNames[i] + ' ';
+        }
+      }
+      if (!res) return '0s';
+      return res.substring(0, res.length - 1);
+    },
+
     createLogLine(line) {
       const el = document.createElement('div');
       el.classList.add('job-log-line');
@@ -145,7 +167,7 @@ const sfc = {
       el.appendChild(elLineNum);
 
       const elLogTime = document.createElement('log-time');
-      elLogTime.innerText = new Date(line.t).toUTCString();
+      elLogTime.innerText = new Date(line.t*1000).toISOString();
       el.appendChild(elLogTime);
 
       const elLogMsg = document.createElement('log-msg');
@@ -170,15 +192,26 @@ const sfc = {
       const stateData = {
         buildInfo: {title: 'The Demo Build'},
         allJobGroups: [
-          {summary: 'Job Group Foo', jobs: [{id: 1, name: 'Job A', status: 'success'}, {id: 2, name: 'Job B', status: 'error'}]},
-          {summary: 'Job Group Bar', jobs: [{id: 3, name: 'Job X', status: 'skipped'}, {id: 4, name: 'Job Y', status: 'waiting'}]},
+          {
+            summary: 'Job Group Foo',
+            jobs: [{id: 1, name: 'Job A', status: 'success'}, {id: 2, name: 'Job B', status: 'error'}]
+          },
+          {
+            summary: 'Job Group Bar',
+            jobs: [{id: 3, name: 'Job X', status: 'skipped'}, {id: 4, name: 'Job Y', status: 'waiting'}, {
+              id: 5,
+              name: 'Job Z',
+              status: 'running'
+            }]
+          },
         ],
         currentJobInfo: {title: 'the job title', detail: ' succeeded 3 hours ago in 11s'},
         currentJobSteps: [
-          {summary: 'Job Step 1', duration: 3000, status: 'success'},
-          {summary: 'Job Step 2', duration: 3000, status: 'error'},
-          {summary: 'Job Step 3', duration: 3000, status: 'skipped'},
-          {summary: 'Job Step 4', duration: 3000, status: 'waiting'},
+          {summary: 'Job Step 1', duration: 0.5, status: 'success'},
+          {summary: 'Job Step 2', duration: 2, status: 'error'},
+          {summary: 'Job Step 3', duration: 64, status: 'skipped'},
+          {summary: 'Job Step 4', duration: 3600 + 60, status: 'waiting'},
+          {summary: 'Job Step 5', duration: 86400 + 1, status: 'running'},
         ],
       };
       const logsData = {
@@ -197,7 +230,7 @@ const sfc = {
           lines.push({
             ln: cursor, // demo only, use cursor for line number
             m: ' '.repeat(i % 4) + `\x1B[1;3;31mDemo Log\x1B[0m, tag test <br>, hello world ${Date.now()}, cursor: ${cursor}`,
-            t: Date.now(),
+            t: Date.now()/1000, // use second as unit
           });
           cursor++;
         }
@@ -224,7 +257,7 @@ const sfc = {
         });
         const reqData = {stepLogCursors};
 
-        // const data = await this.fetchJobData();
+        // const respData = await this.fetchJobData();
         const respData = this.fetchMockData(reqData);
 
         // console.log('loadJobData by request', reqData, ', get response ', respData);
@@ -274,6 +307,7 @@ export function initRepositoryBuildView() {
   display: flex;
   height: 100%;
 }
+
 
 // ================
 // build view left
@@ -358,6 +392,15 @@ export function initRepositoryBuildView() {
 
 <style lang="less">
 // some elements are not managed by vue, so we need to use global style
+.job-status-rotate {
+  animation: job-status-rotate-keyframes 1s linear infinite;
+}
+@keyframes job-status-rotate-keyframes {
+  100% {
+    transform:rotate(360deg);
+  }
+}
+
 .job-step-section {
   margin: 10px;
   .job-step-logs {
