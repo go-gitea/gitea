@@ -49,7 +49,7 @@ require (
 	github.com/gogs/cron v0.0.0-20171120032916-9f6c956d3e14
 	github.com/gogs/go-gogs-client v0.0.0-20210131175652-1d7215cd8d85
 	github.com/golang-jwt/jwt/v4 v4.4.2
-	github.com/google/go-github/v45 v45.0.0
+	github.com/google/go-github/v45 v45.2.0
 	github.com/google/pprof v0.0.0-20220829040838-70bd9ae97f40
 	github.com/google/uuid v1.3.0
 	github.com/gorilla/feeds v1.1.1
