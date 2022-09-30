@@ -44,7 +44,7 @@
             <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
 
             <span class="step-summary-msg">{{ jobStep.summary }}</span>
-            <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span> <!-- TODO: time format -->
+            <span class="step-summary-dur">{{ formatDuration(jobStep.duration) }}</span>
           </div>
 
           <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
@@ -404,6 +404,7 @@ export function initRepositoryBuildView() {
 .job-step-section {
   margin: 10px;
   .job-step-logs {
+    font-family: monospace, monospace;
     .job-log-line {
       display: flex;
       line-num {
