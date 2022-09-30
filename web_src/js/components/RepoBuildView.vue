@@ -68,6 +68,7 @@
 <script>
 import {SvgIcon} from '../svg.js';
 import Vue from 'vue';
+import AnsiToHTML from `ansi-to-html`;
 
 const sfc = {
   name: 'RepoBuildView',
@@ -87,6 +88,10 @@ const sfc = {
       currentJobInfo: {},
       currentJobSteps: [],
     };
+  },
+
+  created() {
+    this.ansiToHTML = new AnsiToHTML({escapeXML: true});
   },
 
   mounted() {
@@ -144,7 +149,7 @@ const sfc = {
       el.appendChild(elLogTime);
 
       const elLogMsg = document.createElement('log-msg');
-      elLogMsg.innerText = line.m;
+      elLogMsg.innerHTML = this.ansiToHTML.toHtml(line.m);
       el.appendChild(elLogMsg);
 
       return el;
@@ -191,7 +196,7 @@ const sfc = {
         for (let i = 0; i < 110; i++) {
           lines.push({
             ln: cursor, // demo only, use cursor for line number
-            m: `hello world ${Date.now()}, cursor: ${cursor}`,
+            m: ' '.repeat(i % 4) + `\x1B[1;3;31mDemo Log\x1B[0m, tag test <br>, hello world ${Date.now()}, cursor: ${cursor}`,
             t: Date.now(),
           });
           cursor++;
@@ -369,6 +374,7 @@ export function initRepositoryBuildView() {
       }
       log-msg {
         flex: 1;
+        white-space: pre;
         margin-left: 16px;
       }
     }
