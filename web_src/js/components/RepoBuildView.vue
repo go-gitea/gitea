@@ -1,7 +1,9 @@
 <template>
   <div class="build-view-container">
     <div class="build-view-left">
-      <div class="build-info-summary">{{ buildInfo.title }}</div>
+      <div class="build-info-summary">
+        {{ buildInfo.title }}
+      </div>
 
       <div class="job-group-section" v-for="(jobGroup, i) in allJobGroups" :key="i">
         <div class="job-group-summary">
@@ -34,9 +36,9 @@
             <SvgIcon name="octicon-chevron-down" class="mr-3" v-show="currentJobStepsStates[i].expanded"/>
             <SvgIcon name="octicon-chevron-right" class="mr-3" v-show="!currentJobStepsStates[i].expanded"/>
 
-            <SvgIcon name="octicon-check-circle-fill" class="green mr-3 " v-if="jobStep.status === 'success'"/>
-            <SvgIcon name="octicon-skip" class="ui text grey mr-3 " v-else-if="jobStep.status === 'skipped'"/>
-            <SvgIcon name="octicon-clock" class="ui text yellow mr-3 " v-else-if="jobStep.status === 'waiting'"/>
+            <SvgIcon name="octicon-check-circle-fill" class="green mr-3" v-if="jobStep.status === 'success'"/>
+            <SvgIcon name="octicon-skip" class="ui text grey mr-3" v-else-if="jobStep.status === 'skipped'"/>
+            <SvgIcon name="octicon-clock" class="ui text yellow mr-3" v-else-if="jobStep.status === 'waiting'"/>
             <SvgIcon name="octicon-x-circle-fill" class="red mr-3 " v-else/>
 
             <span class="step-summary-msg">{{ jobStep.summary }}</span>
@@ -46,15 +48,14 @@
           <!-- the log elements could be a lot, do not use v-if to destroy/reconstruct the DOM -->
           <div class="job-step-logs" ref="elJobStepLogs" v-show="currentJobStepsStates[i].expanded">
             <!--
+            possible layouts:
             <div class="job-log-group">
               <div class="job-log-group-summary"></div>
               <div class="job-log-list">
                 <div class="job-log-line"></div>
               </div>
             </div>
-            -->
-
-            <!--
+            -- or --
             <div class="job-log-line"></div>
             -->
           </div>
@@ -89,16 +90,19 @@ const sfc = {
   },
 
   mounted() {
+    // TODO: the parent element's full height doesn't work well now
     const elBodyDiv = document.querySelector('body > div.full.height');
     elBodyDiv.style.height = '100%';
     this.loadJobData();
   },
 
   methods: {
+    // get the active container element, either the `job-step-logs` or the `job-log-list` in the `job-log-group`
     stepLogsGetActiveContainer(idx) {
       const el = this.$refs.elJobStepLogs[idx];
       return el._stepLogsActiveContainer ?? el;
     },
+    // begin a log group
     stepLogsGroupBegin(idx) {
       const el = this.$refs.elJobStepLogs[idx];
 
@@ -115,11 +119,13 @@ const sfc = {
       elJobLogGroup.appendChild(elJobLogList);
       el._stepLogsActiveContainer = elJobLogList;
     },
+    // end a log group
     stepLogsGroupEnd(idx) {
       const el = this.$refs.elJobStepLogs[idx];
       el._stepLogsActiveContainer = null;
     },
 
+    // show/hide the step logs for a step
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
     },
@@ -152,6 +158,9 @@ const sfc = {
       }
     },
 
+    // the respData has the fields
+    // stateData: it's stored into Vue data and used to update the UI state
+    // logsData: the logs in it will be appended to the UI manually, no touch to Vue data
     fetchMockData(reqData) {
       const stateData = {
         buildInfo: {title: 'The Demo Build'},
@@ -167,7 +176,11 @@ const sfc = {
           {summary: 'Job Step 4', duration: 3000, status: 'waiting'},
         ],
       };
-      const logsData = {streamingLogs: []};
+      const logsData = {
+        streamingLogs: [
+          // {stepIndex: 0, lines: [{t: timestamp, ln: lineNumber, m: message}, ...]},
+        ]
+      };
 
       for (const reqCursor of reqData.stepLogCursors) {
         if (!reqCursor.expanded) continue;
@@ -177,10 +190,9 @@ const sfc = {
         const lines = [];
         for (let i = 0; i < 110; i++) {
           lines.push({
-            ln: cursor+0, // line number
+            ln: cursor, // demo only, use cursor for line number
             m: `hello world ${Date.now()}, cursor: ${cursor}`,
             t: Date.now(),
-            d: 3000, // duration
           });
           cursor++;
         }
@@ -199,23 +211,33 @@ const sfc = {
         if (this.loading) return;
         this.loading = true;
 
-        const stepLogCursors = this.currentJobStepsStates.map((it, idx) => {return {stepIndex: idx, cursor: it.cursor, expanded: it.expanded}});
+        const stepLogCursors = this.currentJobStepsStates.map((it, idx) => {
+          // cursor is used to indicate the last position of the logs
+          // it's only used by backend, frontend just reads it and passes it back, it and can be any type.
+          // for example: make cursor=null means the first time to fetch logs, cursor=eof means no more logs, etc
+          return {stepIndex: idx, cursor: it.cursor, expanded: it.expanded};
+        });
         const reqData = {stepLogCursors};
 
         // const data = await this.fetchJobData();
-        const data = this.fetchMockData(reqData);
+        const respData = this.fetchMockData(reqData);
 
-        console.log('loadJobData', data);
+        // console.log('loadJobData by request', reqData, ', get response ', respData);
 
-        for (const [key, value] of Object.entries(data.stateData)) {
+        // save the stateData to Vue data, then the UI will be updated
+        for (const [key, value] of Object.entries(respData.stateData)) {
           this[key] = value;
         }
+
+        // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJobSteps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
-            this.$set(this.currentJobStepsStates, i, {cursor: null, expanded: false});
+            this.$set(this.currentJobStepsStates, i, {cursor: null, expanded: false}); // array must use $set
           }
         }
-        for (const [_, logs] of data.logsData.streamingLogs.entries()) {
+        // append logs to the UI
+        for (const logs of respData.logsData.streamingLogs) {
+          // save the cursor, it will be passed to backend next time
           this.currentJobStepsStates[logs.stepIndex].cursor = logs.cursor;
           this.appendLogs(logs.stepIndex, logs.lines);
         }
