@@ -42,7 +42,7 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.4
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/go-sql-driver/mysql v1.6.0
-	github.com/go-swagger/go-swagger v0.30.0
+	github.com/go-swagger/go-swagger v0.30.3
 	github.com/go-testfixtures/testfixtures/v3 v3.8.1
 	github.com/gobwas/glob v0.2.3
 	github.com/gogs/chardet v0.0.0-20211120154057-b7413eaefb8f

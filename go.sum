@@ -603,6 +603,8 @@ github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/me
 github.com/go-stack/stack v1.8.1/go.mod h1:dcoOX6HbPZSZptuspn9bctJ+N/CnF5gGygcUP3XYfe4=
 github.com/go-swagger/go-swagger v0.30.0 h1:HakSyutD7Ek9ndkR8Fxy6WAoQtgu7UcAmZCTa6SzawA=
 github.com/go-swagger/go-swagger v0.30.0/go.mod h1:GhZVX/KIBM4VpGp4P7AJOIrlTuBeRVPS+j9kk6rFmfY=
+github.com/go-swagger/go-swagger v0.30.3 h1:HuzvdMRed/9Q8vmzVcfNBQByZVtT79DNZxZ18OprdoI=
+github.com/go-swagger/go-swagger v0.30.3/go.mod h1:neDPes8r8PCz2JPvHRDj8BTULLh4VJUt7n6MpQqxhHM=
 github.com/go-swagger/scan-repo-boundary v0.0.0-20180623220736-973b3573c013 h1:l9rI6sNaZgNC0LnF3MiE+qTmyBA/tZAg1rtyrGbUMK0=
 github.com/go-testfixtures/testfixtures/v3 v3.8.1 h1:uonwvepqRvSgddcrReZQhojTlWlmOlHkYAb9ZaOMWgU=
 github.com/go-testfixtures/testfixtures/v3 v3.8.1/go.mod h1:Kdu7YeMC0KRXVHdaQ91Vmx3pcjoTF63h4f1qTJDdXLA=
