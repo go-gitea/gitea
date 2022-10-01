@@ -17,9 +17,7 @@ export default function initHeatmap() {
       return {date: new Date(v), count: heatmap[v]};
     });
 
-    const View = createApp({
-      render: (createElement) => createElement(ActivityHeatmap, {props: {values}}),
-    });
+    const View = createApp(ActivityHeatmap, {values});
 
     View.mount(el);
   } catch (err) {

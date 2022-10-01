@@ -17,15 +17,12 @@ export default function initContextPopups() {
     if (!owner) return;
 
     const el = document.createElement('div');
-    el.innerHTML = '<div></div>';
     this.parentNode.insertBefore(el, this.nextSibling);
 
-    const view = createApp({
-      render: (createElement) => createElement(ContextPopup),
-    });
+    const view = createApp(ContextPopup);
 
     try {
-      view.mount(el.firstChild);
+      view.mount(el);
     } catch (err) {
       console.error(err);
       el.textContent = 'ContextPopup failed to load';
@@ -35,7 +32,7 @@ export default function initContextPopups() {
       content: el,
       interactive: true,
       onShow: () => {
-        view.$emit('load-context-popup', {owner, repo, index});
+        el.firstChild.dispatchEvent(new CustomEvent('us-load-context-popup', {detail: {owner, repo, index}}));
       }
     });
   });

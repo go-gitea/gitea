@@ -7,6 +7,7 @@ const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 function initVueComponents(app) {
   app.component('repo-search', {
+    template: document.getElementById('dashboard-repo-list-template'),
     delimiters: vueDelimiters,
     props: {
       searchLimit: {
@@ -138,11 +139,12 @@ function initVueComponents(app) {
     },
 
     mounted() {
+      const el = document.getElementById('dashboard-repo-list');
       this.changeReposFilter(this.reposFilter);
-      for (const el of this.$el.querySelectorAll('.tooltip')) {
-        initTooltip(el);
+      for (const elTooltip of el.querySelectorAll('.tooltip')) {
+        initTooltip(elTooltip);
       }
-      $(this.$el).find('.dropdown').dropdown();
+      $(el).find('.dropdown').dropdown();
       this.setCheckboxes();
       nextTick(() => {
         this.$refs.search.focus();
