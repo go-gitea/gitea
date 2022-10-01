@@ -15,11 +15,11 @@ func renameProjectBoardsToColumns(x *xorm.Engine) error {
 		return err
 	}
 
-	if _, err := sess.Exec("ALTER TABLE `project_board` RENAME TO `project_column`;"); err != nil {
+	if err := renameTable(sess, "project_board", "project_column"); err != nil {
 		return err
 	}
 
-	if _, err := sess.Exec("ALTER TABLE `project_issue` RENAME COLUMN `project_board_id` TO `project_column_id`;"); err != nil {
+	if err := renameColumn(sess, "project_issue", "project_board_id", "project_column_id"); err != nil {
 		return err
 	}
 
