@@ -212,6 +212,13 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					}
 				}
 
+				// CommitsBefore* returns commits in reverse order, but it's
+				// more natural for them to be in forward order in notifications
+				for i := 0; i < len(l)/2; i++ {
+					j := len(l) - i - 1
+					l[i], l[j] = l[j], l[i]
+				}
+
 				commits := repo_module.GitToPushCommits(l)
 				commits.HeadCommit = repo_module.CommitToPushCommit(newCommit)
 
