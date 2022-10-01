@@ -4,6 +4,7 @@ tasks:
   - name: Setup
     init: |
       make deps
+      make build
     command: |
       gp sync-done setup
       exit 0
