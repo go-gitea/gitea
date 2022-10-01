@@ -91,16 +91,17 @@ export function initRepoSettingBranches() {
   }
 }
 
-function togglePushMirrorUsernameAndPassword(disable) {
-  $('#push_mirror_password').parent().toggleClass('disabled', disable);
-  $('#push_mirror_username').parent().toggleClass('disabled', disable);
+function togglePushMirrorFields(disable) {
+  const els = document.querySelectorAll('#push_mirror_password, #push_mirror_username');
+  for (const el of els || []) {
+    el.classList.toggle('disabled', disable);
+  }
 }
 export function initRepoSettingMirror() {
-  const $SSHForPushMirror = $('#push_mirror_use_ssh');
-  if ($SSHForPushMirror.length === 0) return;
-
-  togglePushMirrorUsernameAndPassword($SSHForPushMirror.prop('checked'));
-  $SSHForPushMirror.on('change', function () {
-    togglePushMirrorUsernameAndPassword(this.checked);
+  const checkbox = document.getElementById('push_mirror_use_ssh');
+  if (!checkbox) return;
+  togglePushMirrorFields(checkbox.checked);
+  checkbox.addEventListener('change', () => {
+    togglePushMirrorFields(checkbox.checked);
   });
 }

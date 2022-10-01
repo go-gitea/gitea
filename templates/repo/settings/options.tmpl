@@ -220,7 +220,7 @@
 													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 												</div>
 												<div class="inline field {{if .Err_PushMirrorUseSSH}}error{{end}}">
-													<div class="ui checkbox df ac-center">
+													<div class="ui checkbox df ac">
 														<input id="push_mirror_use_ssh" name="push_mirror_use_ssh" type="checkbox" {{if .push_mirror_use_ssh}}checked{{end}}>
 														<label for="push_mirror_use_ssh">{{.locale.Tr "repo.mirror_use_ssh"}}</label>
 														<span class="tooltip" data-content="{{.locale.Tr "repo.mirror_use_ssh_tooltip"}}">{{svg "octicon-question" 16 "ml-3"}}</span>
