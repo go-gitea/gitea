@@ -1,5 +1,5 @@
 <template>
-  <ol class="diff-detail-box diff-stats m-0" id="diff-files" v-if="fileListIsVisible">
+  <ol class="diff-detail-box diff-stats m-0" ref="root" v-if="fileListIsVisible">
     <li v-for="file in files" :key="file.NameHash">
       <div class="bold df ac pull-right">
         <span v-if="file.IsBin" class="ml-1 mr-3">{{ binaryFileMessage }}</span>
@@ -37,7 +37,7 @@ export default {
     fileListIsVisible(newValue) {
       if (newValue === true) {
         this.$nextTick(() => {
-          for (const el of this.$el.querySelectorAll('.tooltip')) {
+          for (const el of this.$refs.root.querySelectorAll('.tooltip')) {
             initTooltip(el);
           }
         });
