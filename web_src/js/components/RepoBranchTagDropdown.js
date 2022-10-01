@@ -37,9 +37,13 @@ export function initRepoBranchTagDropdown(selector) {
       });
     });
     $data.remove();
-    createApp({
+
+    const elRoot = this;
+    const view = createApp({
       delimiters: vueDelimiters,
-      data,
+      data() {
+        return data;
+      },
       computed: {
         filteredItems() {
           const items = this.items.filter((item) => {
@@ -72,10 +76,10 @@ export function initRepoBranchTagDropdown(selector) {
       },
 
       beforeMount() {
-        this.noResults = this.$el.getAttribute('data-no-results');
-        this.canCreateBranch = this.$el.getAttribute('data-can-create-branch') === 'true';
-        this.branchForm = this.$el.getAttribute('data-branch-form');
-        switch (this.$el.getAttribute('data-view-type')) {
+        this.noResults = elRoot.getAttribute('data-no-results');
+        this.canCreateBranch = elRoot.getAttribute('data-can-create-branch') === 'true';
+        this.branchForm = elRoot.getAttribute('data-branch-form');
+        switch (elRoot.getAttribute('data-view-type')) {
           case 'tree':
             this.isViewTree = true;
             break;
@@ -86,17 +90,17 @@ export function initRepoBranchTagDropdown(selector) {
             this.isViewBranch = true;
             break;
         }
-        this.refName = this.$el.getAttribute('data-ref-name');
-        this.branchURLPrefix = this.$el.getAttribute('data-branch-url-prefix');
-        this.branchURLSuffix = this.$el.getAttribute('data-branch-url-suffix');
-        this.tagURLPrefix = this.$el.getAttribute('data-tag-url-prefix');
-        this.tagURLSuffix = this.$el.getAttribute('data-tag-url-suffix');
-        this.setAction = this.$el.getAttribute('data-set-action') === 'true';
-        this.submitForm = this.$el.getAttribute('data-submit-form') === 'true';
+        this.refName = elRoot.getAttribute('data-ref-name');
+        this.branchURLPrefix = elRoot.getAttribute('data-branch-url-prefix');
+        this.branchURLSuffix = elRoot.getAttribute('data-branch-url-suffix');
+        this.tagURLPrefix = elRoot.getAttribute('data-tag-url-prefix');
+        this.tagURLSuffix = elRoot.getAttribute('data-tag-url-suffix');
+        this.setAction = elRoot.getAttribute('data-set-action') === 'true';
+        this.submitForm = elRoot.getAttribute('data-submit-form') === 'true';
 
 
         document.body.addEventListener('click', (event) => {
-          if (this.$el.contains(event.target)) return;
+          if (elRoot.contains(event.target)) return;
           if (this.menuVisible) {
             this.menuVisible = false;
           }
@@ -211,6 +215,7 @@ export function initRepoBranchTagDropdown(selector) {
           }
         }
       }
-    }).mount(this);
+    });
+    view.mount(this);
   });
 }
