@@ -236,6 +236,7 @@ The following configuration set `Content-Type: application/vnd.android.package-a
 - `CUSTOM_URL_SCHEMES`: Use a comma separated list (ftp,git,svn) to indicate additional
   URL hyperlinks to be rendered in Markdown. URLs beginning in http and https are
   always displayed
+- `ENABLE_MATH`: **true**: Enables detection of `\(...\)`, `\[...\]`, `$...$` and `$$...$$` blocks as math blocks.
 
 ## Server (`server`)
 
@@ -851,7 +852,7 @@ Default templates for project boards:
 - `SCHEDULE` accept formats
   - Full crontab specs, e.g. `* * * * * ?`
   - Descriptors, e.g. `@midnight`, `@every 1h30m` ...
-  - See more: [cron decument](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
+  - See more: [cron documentation](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Basic cron tasks - enabled by default
 
@@ -1014,11 +1015,11 @@ Default templates for project boards:
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: Enables /api/swagger, /api/v1/swagger etc. endpoints. True or false; default is true.
+- `ENABLE_SWAGGER`: **true**: Enables the API documentation endpoints (`/api/swagger`, `/api/v1/swagger`, …). True or false.
 - `MAX_RESPONSE_ITEMS`: **50**: Max number of items in a page.
 - `DEFAULT_PAGING_NUM`: **30**: Default paging number of API.
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: Default and maximum number of items per page for Git trees API.
-- `DEFAULT_MAX_BLOB_SIZE`: **10485760**: Default max size of a blob that can be return by the blobs API.
+- `DEFAULT_MAX_BLOB_SIZE`: **10485760** (10MiB): Default max size of a blob that can be returned by the blobs API.
 
 ## OAuth2 (`oauth2`)
 

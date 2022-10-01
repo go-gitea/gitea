@@ -26,7 +26,7 @@ type Metadata struct {
 	RepositoryURL string `json:"repository_url,omitempty"`
 }
 
-// ParseMetadataFromBox parses the metdata of a box file
+// ParseMetadataFromBox parses the metadata of a box file
 func ParseMetadataFromBox(r io.Reader) (*Metadata, error) {
 	gzr, err := gzip.NewReader(r)
 	if err != nil {

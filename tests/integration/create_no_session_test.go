@@ -14,7 +14,6 @@ import (
 
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers"
 	"code.gitea.io/gitea/tests"
 
@@ -70,13 +69,7 @@ func TestSessionFileCreation(t *testing.T) {
 	config.Provider = "file"
 
 	// Now create a temporaryDirectory
-	tmpDir, err := os.MkdirTemp("", "sessions")
-	assert.NoError(t, err)
-	defer func() {
-		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = util.RemoveAll(tmpDir)
-		}
-	}()
+	tmpDir := t.TempDir()
 	config.ProviderConfig = tmpDir
 
 	newConfigBytes, err := json.Marshal(config)

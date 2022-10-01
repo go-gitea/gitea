@@ -95,6 +95,7 @@ cpu.out
 !/web_src/fomantic/build/themes/default/assets/fonts/outline-icons.woff2
 /VERSION
 /.air
+/.go-licenses
 
 # Snapcraft
 snap/.snapcraft/

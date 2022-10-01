@@ -126,6 +126,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(webhook.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(webhook.HookEventPullRequestSync)),
+				Wiki:                 util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true),
 				Repository:           util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true),
 				Release:              util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true),
 			},
@@ -249,6 +250,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.Delete = util.IsStringInSlice(string(webhook.HookEventDelete), form.Events, true)
 	w.Fork = util.IsStringInSlice(string(webhook.HookEventFork), form.Events, true)
 	w.Repository = util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true)
+	w.Wiki = util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
 
