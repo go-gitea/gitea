@@ -147,10 +147,11 @@ const sfc = {
         d = Math.floor(d / unitValues[i]);
       }
       parts.push(d);
-      let res = '';
-      for (let i = parts.length - 1; i >= 0; i--) {
+      let res = '', resCount = 0;
+      for (let i = parts.length - 1; i >= 0 && resCount < 2; i--) {
         if (parts[i] > 0) {
           res += parts[i] + unitNames[i] + ' ';
+          resCount++;
         }
       }
       if (!res) return '0s';
@@ -185,33 +186,36 @@ const sfc = {
       }
     },
 
-    // the respData has the fields
-    // stateData: it's stored into Vue data and used to update the UI state
-    // logsData: the logs in it will be appended to the UI manually, no touch to Vue data
+    // the respData has the following fields:
+    // * stateData: it will be stored into Vue data and used to update the UI state
+    // * logsData: the logs in it will be appended to the UI manually, no touch to Vue data
     fetchMockData(reqData) {
       const stateData = {
         buildInfo: {title: 'The Demo Build'},
         allJobGroups: [
           {
             summary: 'Job Group Foo',
-            jobs: [{id: 1, name: 'Job A', status: 'success'}, {id: 2, name: 'Job B', status: 'error'}]
+            jobs: [
+              {id: 1, name: 'Job A', status: 'success'},
+              {id: 2, name: 'Job B', status: 'error'},
+            ],
           },
           {
             summary: 'Job Group Bar',
-            jobs: [{id: 3, name: 'Job X', status: 'skipped'}, {id: 4, name: 'Job Y', status: 'waiting'}, {
-              id: 5,
-              name: 'Job Z',
-              status: 'running'
-            }]
+            jobs: [
+              {id: 3, name: 'Job X', status: 'skipped'},
+              {id: 4, name: 'Job Y', status: 'waiting'},
+              {id: 5, name: 'Job Z', status: 'running'},
+            ],
           },
         ],
-        currentJobInfo: {title: 'the job title', detail: ' succeeded 3 hours ago in 11s'},
+        currentJobInfo: {title: 'the job title', detail: 'succeeded 3 hours ago in 11s'},
         currentJobSteps: [
           {summary: 'Job Step 1', duration: 0.5, status: 'success'},
           {summary: 'Job Step 2', duration: 2, status: 'error'},
           {summary: 'Job Step 3', duration: 64, status: 'skipped'},
           {summary: 'Job Step 4', duration: 3600 + 60, status: 'waiting'},
-          {summary: 'Job Step 5', duration: 86400 + 1, status: 'running'},
+          {summary: 'Job Step 5', duration: 86400 + 60 + 1, status: 'running'},
         ],
       };
       const logsData = {
@@ -220,11 +224,11 @@ const sfc = {
         ]
       };
 
+      // prepare mock data for logs
       for (const reqCursor of reqData.stepLogCursors) {
-        if (!reqCursor.expanded) continue;
+        if (!reqCursor.expanded) continue; // backend can decide whether send logs for a step
         // if (reqCursor.cursor > 100) continue;
-        const stepIndex = reqCursor.stepIndex;
-        let cursor = reqCursor.cursor;
+        let cursor = reqCursor.cursor; // use cursor to send remaining logs
         const lines = [];
         for (let i = 0; i < 110; i++) {
           lines.push({
@@ -234,8 +238,9 @@ const sfc = {
           });
           cursor++;
         }
-        logsData.streamingLogs.push({stepIndex, cursor, lines});
+        logsData.streamingLogs.push({stepIndex: reqCursor.stepIndex, cursor, lines});
       }
+
       return {stateData, logsData};
     },
 
@@ -414,12 +419,12 @@ export function initRepositoryBuildView() {
       }
       log-time {
         color: #777;
-        margin-left: 16px;
+        margin-left: 10px;
       }
       log-msg {
         flex: 1;
         white-space: pre;
-        margin-left: 16px;
+        margin-left: 10px;
       }
     }
 
