@@ -213,11 +213,11 @@
 											<div class="p-2">
 												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 													<label for="push_mirror_username">{{.locale.Tr "username"}}</label>
-													<input id="push_mirror_username" name="push_mirror_username" value="{{.push_mirror_username}}">
+													<input id="push_mirror_username" class="field" name="push_mirror_username" value="{{.push_mirror_username}}">
 												</div>
 												<div class="inline field {{if .Err_PushMirrorAuth}}error{{end}}">
 													<label for="push_mirror_password">{{.locale.Tr "password"}}</label>
-													<input id="push_mirror_password" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
+													<input id="push_mirror_password" class="field" name="push_mirror_password" type="password" value="{{.push_mirror_password}}" autocomplete="off">
 												</div>
 												<div class="inline field {{if .Err_PushMirrorUseSSH}}error{{end}}">
 													<div class="ui checkbox df ac">
