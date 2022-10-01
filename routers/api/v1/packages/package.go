@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
@@ -40,7 +41,7 @@ func ListPackages(ctx *context.APIContext) {
 	//   in: query
 	//   description: package type filter
 	//   type: string
-	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pypi, rubygems]
+	//   enum: [composer, conan, container, generic, helm, maven, npm, nuget, pub, pypi, rubygems, vagrant]
 	// - name: q
 	//   in: query
 	//   description: name filter
@@ -55,10 +56,11 @@ func ListPackages(ctx *context.APIContext) {
 	query := ctx.FormTrim("q")
 
 	pvs, count, err := packages.SearchVersions(ctx, &packages.PackageSearchOptions{
-		OwnerID:   ctx.Package.Owner.ID,
-		Type:      packages.Type(packageType),
-		Name:      packages.SearchValue{Value: query},
-		Paginator: &listOptions,
+		OwnerID:    ctx.Package.Owner.ID,
+		Type:       packages.Type(packageType),
+		Name:       packages.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
+		Paginator:  &listOptions,
 	})
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "SearchVersions", err)

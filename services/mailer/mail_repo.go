@@ -74,7 +74,7 @@ func sendRepoTransferNotifyMailPerLang(lang string, newOwner, doer *user_model.U
 		"Language":    locale.Language(),
 		"Destination": destination,
 		// helper
-		"i18n":      locale,
+		"locale":    locale,
 		"Str2html":  templates.Str2html,
 		"DotEscape": templates.DotEscape,
 	}

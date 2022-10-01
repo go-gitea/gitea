@@ -82,7 +82,7 @@ var (
 			},
 			cli.BoolFlag{
 				Name:  "no-system",
-				Usage: "Do not show system proceses",
+				Usage: "Do not show system processes",
 			},
 			cli.BoolFlag{
 				Name:  "stacktraces",

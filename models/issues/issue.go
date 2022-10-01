@@ -27,7 +27,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/references"
-	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -223,7 +222,7 @@ func (issue *Issue) GetPullRequest() (pr *PullRequest, err error) {
 		return nil, err
 	}
 	pr.Issue = issue
-	return
+	return pr, err
 }
 
 // LoadLabels loads labels
@@ -255,7 +254,7 @@ func (issue *Issue) loadPoster(ctx context.Context) (err error) {
 			return
 		}
 	}
-	return
+	return err
 }
 
 func (issue *Issue) loadPullRequest(ctx context.Context) (err error) {
@@ -311,7 +310,7 @@ func (issue *Issue) loadReactions(ctx context.Context) (err error) {
 		return err
 	}
 	// Load reaction user data
-	if _, err := ReactionList(reactions).LoadUsers(ctx, issue.Repo); err != nil {
+	if _, err := reactions.LoadUsers(ctx, issue.Repo); err != nil {
 		return err
 	}
 
@@ -1187,6 +1186,7 @@ type IssuesOptions struct { //nolint
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
+	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1298,6 +1298,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	if opts.ReviewRequestedID > 0 {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+	}
+
+	if opts.SubscriberID > 0 {
+		applySubscribedCondition(sess, opts.SubscriberID)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1462,6 +1466,36 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+}
+
+func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
+	return sess.And(
+		builder.
+			NotIn("issue.id",
+				builder.Select("issue_id").
+					From("issue_watch").
+					Where(builder.Eq{"is_watching": false, "user_id": subscriberID}),
+			),
+	).And(
+		builder.Or(
+			builder.In("issue.id", builder.
+				Select("issue_id").
+				From("issue_watch").
+				Where(builder.Eq{"is_watching": true, "user_id": subscriberID}),
+			),
+			builder.In("issue.id", builder.
+				Select("issue_id").
+				From("comment").
+				Where(builder.Eq{"poster_id": subscriberID}),
+			),
+			builder.Eq{"issue.poster_id": subscriberID},
+			builder.In("issue.repo_id", builder.
+				Select("id").
+				From("watch").
+				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+			),
+		),
+	)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -1903,23 +1937,17 @@ func GetRepoIssueStats(repoID, uid int64, filterMode int, isPull bool) (numOpen,
 func SearchIssueIDsByKeyword(ctx context.Context, kw string, repoIDs []int64, limit, start int) (int64, []int64, error) {
 	repoCond := builder.In("repo_id", repoIDs)
 	subQuery := builder.Select("id").From("issue").Where(repoCond)
-	// SQLite's UPPER function only transforms ASCII letters.
-	if setting.Database.UseSQLite3 {
-		kw = util.ToUpperASCII(kw)
-	} else {
-		kw = strings.ToUpper(kw)
-	}
 	cond := builder.And(
 		repoCond,
 		builder.Or(
-			builder.Like{"UPPER(name)", kw},
-			builder.Like{"UPPER(content)", kw},
+			db.BuildCaseInsensitiveLike("name", kw),
+			db.BuildCaseInsensitiveLike("content", kw),
 			builder.In("id", builder.Select("issue_id").
 				From("comment").
 				Where(builder.And(
 					builder.Eq{"type": CommentTypeComment},
 					builder.In("issue_id", subQuery),
-					builder.Like{"UPPER(content)", kw},
+					db.BuildCaseInsensitiveLike("content", kw),
 				)),
 			),
 		),
@@ -2110,7 +2138,7 @@ func updateIssueClosedNum(ctx context.Context, issue *Issue) (err error) {
 	} else {
 		err = repo_model.StatsCorrectNumClosed(ctx, issue.RepoID, false, "num_closed_issues")
 	}
-	return
+	return err
 }
 
 // FindAndUpdateIssueMentions finds users mentioned in the given content string, and saves them in the database.
@@ -2123,7 +2151,7 @@ func FindAndUpdateIssueMentions(ctx context.Context, issue *Issue, doer *user_mo
 	if err = UpdateIssueMentions(ctx, issue.ID, mentions); err != nil {
 		return nil, fmt.Errorf("UpdateIssueMentions [%d]: %v", issue.ID, err)
 	}
-	return
+	return mentions, err
 }
 
 // ResolveIssueMentionsByVisibility returns the users mentioned in an issue, removing those that
@@ -2257,7 +2285,7 @@ func ResolveIssueMentionsByVisibility(ctx context.Context, issue *Issue, doer *u
 		users = append(users, user)
 	}
 
-	return
+	return users, err
 }
 
 // UpdateIssuesMigrationsByType updates all migrated repositories' issues from gitServiceType to replace originalAuthorID to posterID
@@ -2380,7 +2408,7 @@ func DeleteIssuesByRepoID(ctx context.Context, repoID int64) (attachmentPaths []
 		return
 	}
 
-	return
+	return attachmentPaths, err
 }
 
 // RemapExternalUser ExternalUserRemappable interface

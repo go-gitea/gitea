@@ -15,7 +15,8 @@ menu:
 
 # Frequently Asked Questions <!-- omit in toc -->
 
-This page contains some common questions and answers.  
+This page contains some common questions and answers.
+
 For more help resources, check all [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 **Table of Contents**
@@ -24,14 +25,18 @@ For more help resources, check all [Support Options]({{< relref "doc/help/seek-h
 
 ## Difference between 1.x and 1.x.x downloads
 
-Version 1.7.x will be used for this example.  
+Version 1.7.x will be used for this example.
+
 **NOTE:** this example applies to Docker images as well!
 
-On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.  
-The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.  
+On our [downloads page](https://dl.gitea.io/gitea/) you will see a 1.7 directory, as well as directories for 1.7.0, 1.7.1, 1.7.2, 1.7.3, 1.7.4, 1.7.5, and 1.7.6.
+
+The 1.7 and 1.7.0 directories are **not** the same. The 1.7 directory is built on each merged commit to the [`release/v1.7`](https://github.com/go-gitea/gitea/tree/release/v1.7) branch.
+
 The 1.7.0 directory, however, is a build that was created when the [`v1.7.0`](https://github.com/go-gitea/gitea/releases/tag/v1.7.0) tag was created.
 
-This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).  
+This means that 1.x downloads will change as commits are merged to their respective branch (think of it as a separate "main" branch for each release).
+
 On the other hand, 1.x.x downloads should never change.
 
 ## How to migrate from Gogs/GitHub/etc. to Gitea
@@ -41,11 +46,14 @@ To migrate from Gogs to Gitea:
 - [Gogs version 0.9.146 or less]({{< relref "doc/upgrade/from-gogs.en-us.md" >}})
 - [Gogs version 0.11.46.0418](https://github.com/go-gitea/gitea/issues/4286)
 
-To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.  
-In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.  
+To migrate from GitHub to Gitea, you can use Gitea's built-in migration form.
+
+In order to migrate items such as issues, pull requests, etc. you will need to input at least your username.
+
 [Example (requires login)](https://try.gitea.io/repo/migrate)
 
-To migrate from GitLab to Gitea, you can use this non-affiliated tool:  
+To migrate from GitLab to Gitea, you can use this non-affiliated tool:
+
 https://github.com/loganinak/MigrateGitlabToGogs
 
 ## Where does Gitea store what file
@@ -83,9 +91,9 @@ There are a few places that could make this show incorrectly.
 
 If certain clone options aren't showing up (HTTP/S or SSH), the following options can be checked in your `app.ini`
 
-`DISABLE_HTTP_GIT`: if set to true, there will be no HTTP/HTTPS link  
-`DISABLE_SSH`: if set to true, there will be no SSH link  
-`SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users
+- `DISABLE_HTTP_GIT`: if set to true, there will be no HTTP/HTTPS link
+- `DISABLE_SSH`: if set to true, there will be no SSH link
+- `SSH_EXPOSE_ANONYMOUS`: if set to false, SSH links will be hidden for anonymous users
 
 ## File upload fails with: 413 Request Entity Too Large
 
@@ -95,19 +103,21 @@ See the [reverse proxy guide]({{< relref "doc/usage/reverse-proxies.en-us.md" >}
 
 ## Custom Templates not loading or working incorrectly
 
-Gitea's custom templates must be added to the correct location or Gitea will not find and use them.  
+Gitea's custom templates must be added to the correct location or Gitea will not find and use them.
+
 The correct path for the template(s) will be relative to the `CustomPath`
 
 1. To find `CustomPath`, look for Custom File Root Path in Site Administration -> Configuration
 
-- If that doesn't exist, you can try `echo $GITEA_CUSTOM`
+    If that doesn't exist, you can try `echo $GITEA_CUSTOM`
 
-2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-x-file)
+2. If you are still unable to find a path, the default can be [calculated above](#where-does-gitea-store-what-file)
 3. Once you have figured out the correct custom path, you can refer to the [customizing Gitea]({{< relref "doc/advanced/customizing-gitea.en-us.md" >}}) page to add your template to the correct location.
 
 ## Active user vs login prohibited user
 
-In Gitea, an "active" user refers to a user that has activated their account via email.  
+In Gitea, an "active" user refers to a user that has activated their account via email.
+
 A "login prohibited" user is a user that is not allowed to log in to Gitea anymore
 
 ## Setting up logging
@@ -116,11 +126,13 @@ A "login prohibited" user is a user that is not allowed to log in to Gitea anymo
 
 ## What is Swagger?
 
-[Swagger](https://swagger.io/) is what Gitea uses for its API.  
-All Gitea instances have the built-in API, though it can be disabled by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`  
-For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}})
+[Swagger](https://swagger.io/) is what Gitea uses for its API documentation.
 
-[Swagger Example](https://try.gitea.io/api/swagger)
+All Gitea instances have the built-in API and there is no way to disable it completely.
+You can, however, disable showing its documentation by setting `ENABLE_SWAGGER` to `false` in the `api` section of your `app.ini`.
+For more information, refer to Gitea's [API docs]({{< relref "doc/developers/api-usage.en-us.md" >}}).
+
+You can see the latest API (for example) on <https://try.gitea.io/api/swagger>.
 
 ## Adjusting your server for public/private use
 
@@ -139,7 +151,8 @@ You can configure `EMAIL_DOMAIN_WHITELIST` or `EMAIL_DOMAIN_BLOCKLIST` in your a
 
 ### Only allow/block certain OpenID providers
 
-You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`  
+You can configure `WHITELISTED_URIS` or `BLACKLISTED_URIS` under `[openid]` in your `app.ini`
+
 **NOTE:** whitelisted takes precedence, so if it is non-blank then blacklisted is ignored
 
 ### Issue only users
@@ -163,47 +176,58 @@ Use [Fail2Ban]({{< relref "doc/usage/fail2ban-setup.en-us.md" >}}) to monitor an
 Gitea supports three official themes right now, `gitea` (light), `arc-green` (dark), and `auto` (automatically switches between the previous two depending on operating system settings).
 To add your own theme, currently the only way is to provide a complete theme (not just color overrides)
 
-As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))  
-Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`  
+As an example, let's say our theme is `arc-blue` (this is a real theme, and can be found [in this issue](https://github.com/go-gitea/gitea/issues/6011))
+
+Name the `.css` file `theme-arc-blue.css` and add it to your custom folder in `custom/public/css`
+
 Allow users to use it by adding `arc-blue` to the list of `THEMES` in your `app.ini`
 
 ## SSHD vs built-in SSH
 
-SSHD is the built-in SSH server on most Unix systems.  
+SSHD is the built-in SSH server on most Unix systems.
+
 Gitea also provides its own SSH server, for usage when SSHD is not available.
 
 ## Gitea is running slow
 
-The most common culprit for this is loading federated avatars.  
-This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`  
+The most common culprit for this is loading federated avatars.
+
+This can be turned off by setting `ENABLE_FEDERATED_AVATAR` to `false` in your `app.ini`
+
 Another option that may need to be changed is setting `DISABLE_GRAVATAR` to `true` in your `app.ini`
 
 ## Can't create repositories/files
 
-Make sure that Gitea has sufficient permissions to write to its home directory and data directory.  
-See [AppDataPath and RepoRootPath](#where-does-gitea-store-x-file)
+Make sure that Gitea has sufficient permissions to write to its home directory and data directory.
+
+See [AppDataPath and RepoRootPath](#where-does-gitea-store-what-file)
 
 **Note for Arch users:** At the time of writing this, there is an issue with the Arch package's systemd file including this line:
-`ReadWritePaths=/etc/gitea/app.ini`  
+
+`ReadWritePaths=/etc/gitea/app.ini`
+
 Which makes all other paths non-writeable to Gitea.
 
 ## Translation is incorrect/how to add more translations
 
-Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)  
+Our translations are currently crowd-sourced on our [Crowdin project](https://crowdin.com/project/gitea)
+
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+## Push Hook / Webhook aren't running
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.  
-See [SSH Issues](#ssh-issues) for more information.
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
 
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
+2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
+3. If you are using docker, make sure Docker Server (not the client) >= 20.10.6
 
 ## SSH issues
 
 If you cannot reach repositories over `ssh`, but `https` works fine, consider looking into the following.
 
-First, make sure you can access Gitea via SSH.  
+First, make sure you can access Gitea via SSH.
+
 `ssh git@myremote.example`
 
 If the connection is successful, you should receive an error message like the following:
@@ -236,7 +260,8 @@ following things:
 - On the server:
   - Make sure the repository exists and is correctly named.
   - Check the permissions of the `.ssh` directory in the system user's home directory.
-  - Verify that the correct public keys are added to `.ssh/authorized_keys`.  
+  - Verify that the correct public keys are added to `.ssh/authorized_keys`.
+
     Try to run `Rewrite '.ssh/authorized_keys' file (for Gitea SSH keys)` on the
     Gitea admin panel.
   - Read Gitea logs.
@@ -289,7 +314,8 @@ Check that you have proper access to the repository
 error: failed to push some refs to '<GIT_REPO_URL>'
 ```
 
-Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.  
+Check the value of `LFS_HTTP_AUTH_EXPIRY` in your `app.ini` file.
+
 By default, your LFS token will expire after 20 minutes. If you have a slow connection or a large file (or both), it may not finish uploading within the time limit.
 
 You may want to set this value to `60m` or `120m`.
@@ -306,17 +332,21 @@ There is no setting for password resets. It is enabled when a [mail service]({{<
 
 - As an **admin**, you can change any user's password (and optionally force them to change it on next login)...
   - By navigating to your `Site Administration -> User Accounts` page and editing a user.
-  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).  
+  - By using the [admin CLI commands]({{< relref "doc/usage/command-line.en-us.md#admin" >}}).
+
     Keep in mind most commands will also need a [global flag]({{< relref "doc/usage/command-line.en-us.md#global-options" >}}) to point the CLI at the correct configuration.
 - As a **user** you can change it...
   - In your account `Settings -> Account` page (this method **requires** you to know your current password).
-  - By using the `Forgot Password` link.  
+  - By using the `Forgot Password` link.
+
     If the `Forgot Password/Account Recovery` page is disabled, please contact your administrator to configure a [mail service]({{< relref "doc/usage/email-setup.en-us.md" >}}).
 
 ## Why is my markdown broken
 
-In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.  
-If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.  
+In Gitea version `1.11` we moved to [goldmark](https://github.com/yuin/goldmark) for markdown rendering, which is [CommonMark](https://commonmark.org/) compliant.
+
+If you have markdown that worked as you expected prior to version `1.11` and after upgrading it's not working anymore, please look through the CommonMark spec to see whether the problem is due to a bug or non-compliant syntax.
+
 If it is the latter, _usually_ there is a compliant alternative listed in the spec.
 
 ## Upgrade errors with MySQL
@@ -332,8 +362,10 @@ is too small. Gitea requires that the `ROWFORMAT` for its tables is `DYNAMIC`.
 
 If you are receiving an error line containing `Error 1071: Specified key was too long; max key length is 1000 bytes...`
 then you are attempting to run Gitea on tables which use the ISAM engine. While this may have worked by chance in previous versions of Gitea, it has never been officially supported and
-you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.  
+you must use InnoDB. You should run `ALTER TABLE table_name ENGINE=InnoDB;` for each table in the database.
+
 If you are using MySQL 5, another possible fix is
+
 ```mysql
 SET GLOBAL innodb_file_format=Barracuda;
 SET GLOBAL innodb_file_per_table=1;
@@ -360,7 +392,9 @@ Gitea requires the system or browser to have one of the supported Emoji fonts in
 
 Stdout on systemd goes to the journal by default. Try using `journalctl`, `journalctl  -u gitea`, or `journalctl <path-to-gitea-binary>`.
 
-Similarly stdout on docker can be viewed using `docker logs <container>`
+Similarly, stdout on docker can be viewed using `docker logs <container>`.
+
+To collect logs for help and issue report, see [Support Options]({{< relref "doc/help/seek-help.en-us.md" >}}).
 
 ## Initial logging
 
@@ -381,7 +415,7 @@ unchanged in the database schema. This may lead to warning such as:
 2020/08/02 11:32:29 ...rm/session_schema.go:360:Sync2() [W] Table user Column keep_activity_private db default is , struct default is 0
 ```
 
-These can safely be ignored but you may able to stop these warnings by getting Gitea to recreate these tables using:
+These can safely be ignored, but you are able to stop these warnings by getting Gitea to recreate these tables using:
 
 ```
 gitea doctor recreate-table user
@@ -403,3 +437,9 @@ gitea doctor recreate-table
 ```
 
 It is highly recommended to back-up your database before running these commands.
+
+## Why are tabs/indents wrong when viewing files
+
+If you are using Cloudflare, turn off the auto-minify option in the dashboard.
+
+`Speed` -> `Optimization` -> Uncheck `HTML` within the `Auto-Minify` settings.

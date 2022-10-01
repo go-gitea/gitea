@@ -39,8 +39,10 @@ const (
 	TypeMaven     Type = "maven"
 	TypeNpm       Type = "npm"
 	TypeNuGet     Type = "nuget"
+	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
 	TypeRubyGems  Type = "rubygems"
+	TypeVagrant   Type = "vagrant"
 )
 
 // Name gets the name of the package type
@@ -62,10 +64,14 @@ func (pt Type) Name() string {
 		return "npm"
 	case TypeNuGet:
 		return "NuGet"
+	case TypePub:
+		return "Pub"
 	case TypePyPI:
 		return "PyPI"
 	case TypeRubyGems:
 		return "RubyGems"
+	case TypeVagrant:
+		return "Vagrant"
 	}
 	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
@@ -89,10 +95,14 @@ func (pt Type) SVGName() string {
 		return "gitea-npm"
 	case TypeNuGet:
 		return "gitea-nuget"
+	case TypePub:
+		return "gitea-pub"
 	case TypePyPI:
 		return "gitea-python"
 	case TypeRubyGems:
 		return "gitea-rubygems"
+	case TypeVagrant:
+		return "gitea-vagrant"
 	}
 	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
@@ -129,6 +139,12 @@ func TryInsertPackage(ctx context.Context, p *Package) (*Package, error) {
 		return nil, err
 	}
 	return p, nil
+}
+
+// DeletePackageByID deletes a package by id
+func DeletePackageByID(ctx context.Context, packageID int64) error {
+	_, err := db.GetEngine(ctx).ID(packageID).Delete(&Package{})
+	return err
 }
 
 // SetRepositoryLink sets the linked repository
@@ -192,26 +208,32 @@ func GetPackagesByType(ctx context.Context, ownerID int64, packageType Type) ([]
 		Find(&ps)
 }
 
-// DeletePackagesIfUnreferenced deletes a package if there are no associated versions
-func DeletePackagesIfUnreferenced(ctx context.Context) error {
+// FindUnreferencedPackages gets all packages without associated versions
+func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 	in := builder.
 		Select("package.id").
 		From("package").
 		LeftJoin("package_version", "package_version.package_id = package.id").
 		Where(builder.Expr("package_version.id IS NULL"))
 
-	_, err := db.GetEngine(ctx).
+	ps := make([]*Package, 0, 10)
+	return ps, db.GetEngine(ctx).
 		// double select workaround for MySQL
 		// https://stackoverflow.com/questions/4471277/mysql-delete-from-with-subquery-as-condition
 		Where(builder.In("package.id", builder.Select("id").From(in, "temp"))).
-		Delete(&Package{})
-
-	return err
+		Find(&ps)
 }
 
-// HasOwnerPackages tests if a user/org has packages
+// HasOwnerPackages tests if a user/org has accessible packages
 func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
-	return db.GetEngine(ctx).Where("owner_id = ?", ownerID).Exist(&Package{})
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+		}).
+		Exist(&PackageVersion{})
 }
 
 // HasRepositoryPackages tests if a repository has packages

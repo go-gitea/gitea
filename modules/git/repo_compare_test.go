@@ -10,19 +10,16 @@ import (
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/modules/util"
-
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetFormatPatch(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	clonedPath, err := cloneRepo(bareRepo1Path, "repo1_TestGetFormatPatch")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	repo, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
@@ -84,12 +81,11 @@ func TestReadWritePullHead(t *testing.T) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
 
 	// As we are writing we should clone the repository first
-	clonedPath, err := cloneRepo(bareRepo1Path, "TestReadWritePullHead")
+	clonedPath, err := cloneRepo(t, bareRepo1Path)
 	if err != nil {
 		assert.NoError(t, err)
 		return
 	}
-	defer util.RemoveAll(clonedPath)
 
 	repo, err := openRepositoryWithDefaultContext(clonedPath)
 	if err != nil {
@@ -117,8 +113,8 @@ func TestReadWritePullHead(t *testing.T) {
 		return
 	}
 
-	assert.Len(t, string(headContents), 40)
-	assert.True(t, string(headContents) == newCommit)
+	assert.Len(t, headContents, 40)
+	assert.True(t, headContents == newCommit)
 
 	// Remove file after the test
 	err = repo.RemoveReference(PullPrefix + "1/head")

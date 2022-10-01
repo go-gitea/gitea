@@ -92,7 +92,7 @@ func NewClient(user *user_model.User, pubID string) (c *Client, err error) {
 		priv:        privParsed,
 		pubID:       pubID,
 	}
-	return
+	return c, err
 }
 
 // NewRequest function
@@ -110,7 +110,7 @@ func (c *Client) NewRequest(b []byte, to string) (req *http.Request, err error) 
 		return
 	}
 	err = signer.SignRequest(c.priv, c.pubID, req, b)
-	return
+	return req, err
 }
 
 // Post function
@@ -120,5 +120,5 @@ func (c *Client) Post(b []byte, to string) (resp *http.Response, err error) {
 		return
 	}
 	resp, err = c.client.Do(req)
-	return
+	return resp, err
 }

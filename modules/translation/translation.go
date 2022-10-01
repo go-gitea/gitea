@@ -5,13 +5,16 @@
 package translation
 
 import (
+	"context"
 	"sort"
 	"strings"
+	"sync"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/options"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/watcher"
 
 	"golang.org/x/text/language"
 )
@@ -29,6 +32,7 @@ type LangType struct {
 }
 
 var (
+	lock          *sync.RWMutex
 	matcher       language.Matcher
 	allLangs      []*LangType
 	allLangMap    map[string]*LangType
@@ -40,53 +44,61 @@ func AllLangs() []*LangType {
 	return allLangs
 }
 
-// TryTr tries to do the translation, if no translation, it returns (format, false)
-func TryTr(lang, format string, args ...interface{}) (string, bool) {
-	s := i18n.Tr(lang, format, args...)
-	// now the i18n library is not good enough and we can only use this hacky method to detect whether the transaction exists
-	idx := strings.IndexByte(format, '.')
-	defaultText := format
-	if idx > 0 {
-		defaultText = format[idx+1:]
-	}
-	return s, s != defaultText
-}
-
 // InitLocales loads the locales
-func InitLocales() {
-	i18n.ResetDefaultLocales()
-	localeNames, err := options.Dir("locale")
-	if err != nil {
-		log.Fatal("Failed to list locale files: %v", err)
+func InitLocales(ctx context.Context) {
+	if lock != nil {
+		lock.Lock()
+		defer lock.Unlock()
+	} else if !setting.IsProd && lock == nil {
+		lock = &sync.RWMutex{}
 	}
 
-	localFiles := make(map[string][]byte, len(localeNames))
-	for _, name := range localeNames {
-		localFiles[name], err = options.Locale(name)
+	refreshLocales := func() {
+		i18n.ResetDefaultLocales()
+		localeNames, err := options.Dir("locale")
 		if err != nil {
-			log.Fatal("Failed to load %s locale file. %v", name, err)
+			log.Fatal("Failed to list locale files: %v", err)
+		}
+
+		localeData := make(map[string][]byte, len(localeNames))
+		for _, name := range localeNames {
+			localeData[name], err = options.Locale(name)
+			if err != nil {
+				log.Fatal("Failed to load %s locale file. %v", name, err)
+			}
+		}
+
+		supportedTags = make([]language.Tag, len(setting.Langs))
+		for i, lang := range setting.Langs {
+			supportedTags[i] = language.Raw.Make(lang)
+		}
+
+		matcher = language.NewMatcher(supportedTags)
+		for i := range setting.Names {
+			var localeDataBase []byte
+			if i == 0 && setting.Langs[0] != "en-US" {
+				// Only en-US has complete translations. When use other language as default, the en-US should still be used as fallback.
+				localeDataBase = localeData["locale_en-US.ini"]
+				if localeDataBase == nil {
+					log.Fatal("Failed to load locale_en-US.ini file.")
+				}
+			}
+
+			key := "locale_" + setting.Langs[i] + ".ini"
+			if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localeDataBase, localeData[key]); err != nil {
+				log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
+			}
+		}
+		if len(setting.Langs) != 0 {
+			defaultLangName := setting.Langs[0]
+			if defaultLangName != "en-US" {
+				log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
+			}
+			i18n.DefaultLocales.SetDefaultLang(defaultLangName)
 		}
 	}
 
-	supportedTags = make([]language.Tag, len(setting.Langs))
-	for i, lang := range setting.Langs {
-		supportedTags[i] = language.Raw.Make(lang)
-	}
-
-	matcher = language.NewMatcher(supportedTags)
-	for i := range setting.Names {
-		key := "locale_" + setting.Langs[i] + ".ini"
-		if err = i18n.DefaultLocales.AddLocaleByIni(setting.Langs[i], setting.Names[i], localFiles[key]); err != nil {
-			log.Error("Failed to set messages to %s: %v", setting.Langs[i], err)
-		}
-	}
-	if len(setting.Langs) != 0 {
-		defaultLangName := setting.Langs[0]
-		if defaultLangName != "en-US" {
-			log.Info("Use the first locale (%s) in LANGS setting option as default", defaultLangName)
-		}
-		i18n.DefaultLocales.SetDefaultLang(defaultLangName)
-	}
+	refreshLocales()
 
 	langs, descs := i18n.DefaultLocales.ListLangNameDesc()
 	allLangs = make([]*LangType, 0, len(langs))
@@ -101,6 +113,17 @@ func InitLocales() {
 	sort.Slice(allLangs, func(i, j int) bool {
 		return strings.ToLower(allLangs[i].Name) < strings.ToLower(allLangs[j].Name)
 	})
+
+	if !setting.IsProd {
+		watcher.CreateWatcher(ctx, "Locales", &watcher.CreateWatcherOpts{
+			PathsCallback: options.WalkLocales,
+			BetweenCallback: func() {
+				lock.Lock()
+				defer lock.Unlock()
+				refreshLocales()
+			},
+		})
+	}
 }
 
 // Match matches accept languages
@@ -111,16 +134,24 @@ func Match(tags ...language.Tag) language.Tag {
 
 // locale represents the information of localization.
 type locale struct {
+	i18n.Locale
 	Lang, LangName string // these fields are used directly in templates: .i18n.Lang
 }
 
 // NewLocale return a locale
 func NewLocale(lang string) Locale {
+	if lock != nil {
+		lock.RLock()
+		defer lock.RUnlock()
+	}
+
 	langName := "unknown"
 	if l, ok := allLangMap[lang]; ok {
 		langName = l.Name
 	}
+	i18nLocale, _ := i18n.GetLocale(lang)
 	return &locale{
+		Locale:   i18nLocale,
 		Lang:     lang,
 		LangName: langName,
 	}
@@ -128,20 +159,6 @@ func NewLocale(lang string) Locale {
 
 func (l *locale) Language() string {
 	return l.Lang
-}
-
-// Tr translates content to target language.
-func (l *locale) Tr(format string, args ...interface{}) string {
-	if setting.IsProd {
-		return i18n.Tr(l.Lang, format, args...)
-	}
-
-	// in development, we should show an error if a translation key is missing
-	s, ok := TryTr(l.Lang, format, args...)
-	if !ok {
-		log.Error("missing i18n translation key: %q", format)
-	}
-	return s
 }
 
 // Language specific rules for translating plural texts

@@ -37,11 +37,7 @@ type ReverseProxy struct{}
 
 // getUserName extracts the username from the "setting.ReverseProxyAuthUser" header
 func (r *ReverseProxy) getUserName(req *http.Request) string {
-	webAuthUser := strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
-	if len(webAuthUser) == 0 {
-		return ""
-	}
-	return webAuthUser
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthUser))
 }
 
 // Name represents the name of auth method
@@ -49,14 +45,14 @@ func (r *ReverseProxy) Name() string {
 	return ReverseProxyMethodName
 }
 
-// Verify extracts the username from the "setting.ReverseProxyAuthUser" header
+// getUserFromAuthUser extracts the username from the "setting.ReverseProxyAuthUser" header
 // of the request and returns the corresponding user object for that name.
 // Verification of header data is not performed as it should have already been done by
-// the revese proxy.
+// the reverse proxy.
 // If a username is available in the "setting.ReverseProxyAuthUser" header an existing
 // user object is returned (populated with username or email found in header).
 // Returns nil if header is empty.
-func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+func (r *ReverseProxy) getUserFromAuthUser(req *http.Request) *user_model.User {
 	username := r.getUserName(req)
 	if len(username) == 0 {
 		return nil
@@ -70,6 +66,54 @@ func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store Da
 			return nil
 		}
 		user = r.newUser(req)
+	}
+	return user
+}
+
+// getEmail extracts the email from the "setting.ReverseProxyAuthEmail" header
+func (r *ReverseProxy) getEmail(req *http.Request) string {
+	return strings.TrimSpace(req.Header.Get(setting.ReverseProxyAuthEmail))
+}
+
+// getUserFromAuthEmail extracts the username from the "setting.ReverseProxyAuthEmail" header
+// of the request and returns the corresponding user object for that email.
+// Verification of header data is not performed as it should have already been done by
+// the reverse proxy.
+// If an email is available in the "setting.ReverseProxyAuthEmail" header an existing
+// user object is returned (populated with the email found in header).
+// Returns nil if header is empty or if "setting.EnableReverseProxyEmail" is disabled.
+func (r *ReverseProxy) getUserFromAuthEmail(req *http.Request) *user_model.User {
+	if !setting.Service.EnableReverseProxyEmail {
+		return nil
+	}
+	email := r.getEmail(req)
+	if len(email) == 0 {
+		return nil
+	}
+	log.Trace("ReverseProxy Authorization: Found email: %s", email)
+
+	user, err := user_model.GetUserByEmail(email)
+	if err != nil {
+		// Do not allow auto-registration, we don't have a username here
+		if !user_model.IsErrUserNotExist(err) {
+			log.Error("GetUserByEmail: %v", err)
+		}
+		return nil
+	}
+	return user
+}
+
+// Verify attempts to load a user object based on headers sent by the reverse proxy.
+// First it will attempt to load it based on the username (see docs for getUserFromAuthUser),
+// and failing that it will attempt to load it based on the email (see docs for getUserFromAuthEmail).
+// Returns nil if the headers are empty or the user is not found.
+func (r *ReverseProxy) Verify(req *http.Request, w http.ResponseWriter, store DataStore, sess SessionStore) *user_model.User {
+	user := r.getUserFromAuthUser(req)
+	if user == nil {
+		user = r.getUserFromAuthEmail(req)
+		if user == nil {
+			return nil
+		}
 	}
 
 	// Make sure requests to API paths, attachment downloads, git and LFS do not create a new session
@@ -105,9 +149,15 @@ func (r *ReverseProxy) newUser(req *http.Request) *user_model.User {
 		}
 	}
 
+	var fullname string
+	if setting.Service.EnableReverseProxyFullName {
+		fullname = req.Header.Get(setting.ReverseProxyAuthFullName)
+	}
+
 	user := &user_model.User{
-		Name:  username,
-		Email: email,
+		Name:     username,
+		Email:    email,
+		FullName: fullname,
 	}
 
 	overwriteDefault := user_model.CreateUserOverwriteOptions{

@@ -10,6 +10,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -56,6 +57,18 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	uri, err := url.Parse(redirectURI)
+	// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+	if err == nil && uri.Scheme == "http" && uri.Port() != "" {
+		ip := net.ParseIP(uri.Hostname())
+		if ip != nil && ip.IsLoopback() {
+			// strip port
+			uri.Host = uri.Hostname()
+			if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+				return true
+			}
+		}
+	}
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
@@ -123,7 +136,7 @@ func GetOAuth2ApplicationByClientID(ctx context.Context, clientID string) (app *
 	if !has {
 		return nil, ErrOAuthClientIDInvalid{ClientID: clientID}
 	}
-	return
+	return app, err
 }
 
 // GetOAuth2ApplicationByID returns the oauth2 application with the given id. Returns an error if not found.
@@ -143,7 +156,7 @@ func GetOAuth2ApplicationByID(ctx context.Context, id int64) (app *OAuth2Applica
 func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*OAuth2Application, err error) {
 	apps = make([]*OAuth2Application, 0)
 	err = db.GetEngine(ctx).Where("uid = ?", userID).Find(&apps)
-	return
+	return apps, err
 }
 
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
@@ -300,7 +313,7 @@ func (code *OAuth2AuthorizationCode) GenerateRedirectURI(state string) (redirect
 	}
 	q.Set("code", code.Code)
 	redirect.RawQuery = q.Encode()
-	return
+	return redirect, err
 }
 
 // Invalidate deletes the auth code from the database to invalidate this code
@@ -430,7 +443,7 @@ func GetOAuth2GrantByID(ctx context.Context, id int64) (grant *OAuth2Grant, err 
 	} else if !has {
 		return nil, nil
 	}
-	return
+	return grant, err
 }
 
 // GetOAuth2GrantsByUserID lists all grants of a certain user
@@ -512,8 +525,12 @@ func GetActiveOAuth2ProviderSources() ([]*Source, error) {
 func GetActiveOAuth2SourceByName(name string) (*Source, error) {
 	authSource := new(Source)
 	has, err := db.GetEngine(db.DefaultContext).Where("name = ? and type = ? and is_active = ?", name, OAuth2, true).Get(authSource)
-	if !has || err != nil {
+	if err != nil {
 		return nil, err
+	}
+
+	if !has {
+		return nil, fmt.Errorf("oauth2 source not found, name: %q", name)
 	}
 
 	return authSource, nil

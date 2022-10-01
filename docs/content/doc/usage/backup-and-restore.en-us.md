@@ -62,7 +62,7 @@ The SQL dump created by `gitea dump` uses XORM and Gitea admins may prefer to us
 # mysql
 mysqldump -u$USER -p$PASS --database $DATABASE > gitea-db.sql
 # postgres
-pgdump -U $USER $DATABASE > gitea-db.sql
+pg_dump -U $USER $DATABASE > gitea-db.sql
 ```
 
 ### Using Docker (`dump`)
@@ -74,7 +74,7 @@ The command has to be executed with the `RUN_USER = <OS_USERNAME>` specified in 
 Example:
 
 ```none
-docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf 'name=^<NAME_OF_DOCKER_CONTAINER>$') bash -c '/user/local/bin/gitea dump -c </path/to/app.ini>'
+docker exec -u <OS_USERNAME> -it -w <--tempdir> $(docker ps -qf 'name=^<NAME_OF_DOCKER_CONTAINER>$') bash -c '/usr/local/bin/gitea dump -c </path/to/app.ini>'
 ```
 
 \*Note: `--tempdir` refers to the temporary directory of the docker environment used by Gitea; if you have not specified a custom `--tempdir`, then Gitea uses `/tmp` or the `TMPDIR` environment variable of the docker container. For `--tempdir` adjust your `docker exec` command options accordingly.

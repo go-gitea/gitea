@@ -429,14 +429,14 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	ctx.Status(http.StatusCreated)
 }
 
-// DownloadRecipeFile serves the conent of the requested recipe file
+// DownloadRecipeFile serves the content of the requested recipe file
 func DownloadRecipeFile(ctx *context.Context) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	downloadFile(ctx, recipeFileList, rref.AsKey())
 }
 
-// DownloadPackageFile serves the conent of the requested package file
+// DownloadPackageFile serves the content of the requested package file
 func DownloadPackageFile(ctx *context.Context) {
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
@@ -475,7 +475,7 @@ func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // DeleteRecipeV1 deletes the requested recipe(s)
@@ -723,7 +723,7 @@ func listRevisions(ctx *context.Context, revisions []*conan_model.PropertyValue)
 
 	revs := make([]*revisionInfo, 0, len(revisions))
 	for _, rev := range revisions {
-		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: time.Unix(int64(rev.CreatedUnix), 0)})
+		revs = append(revs, &revisionInfo{Revision: rev.Value, Time: rev.CreatedUnix.AsLocalTime()})
 	}
 
 	jsonResponse(ctx, http.StatusOK, &RevisionList{revs})
@@ -743,7 +743,7 @@ func LatestRecipeRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // LatestPackageRevision gets the latest package revision
@@ -760,7 +760,7 @@ func LatestPackageRevision(ctx *context.Context) {
 		return
 	}
 
-	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: time.Unix(int64(revision.CreatedUnix), 0)})
+	jsonResponse(ctx, http.StatusOK, &revisionInfo{Revision: revision.Value, Time: revision.CreatedUnix.AsLocalTime()})
 }
 
 // ListRecipeRevisionFiles gets a list of all recipe revision files

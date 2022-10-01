@@ -1,3 +1,7 @@
+.ui .field:not(:last-child) .EasyMDEContainer .editor-statusbar {
+  margin-bottom: -1em; // when there is a statusbar, the "margin-bottom: 1em" of the "field" is not needed, because the statusbar is likely a blank line
+}
+
 .EasyMDEContainer .CodeMirror {
   color: var(--color-input-text);
   background-color: var(--color-input-background);

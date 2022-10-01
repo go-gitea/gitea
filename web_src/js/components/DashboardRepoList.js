@@ -1,6 +1,7 @@
 import {createApp, nextTick} from 'vue';
 import $ from 'jquery';
 import {initVueSvg, vueDelimiters} from './VueComponentLoader.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
@@ -138,7 +139,9 @@ function initVueComponents(app) {
 
     mounted() {
       this.changeReposFilter(this.reposFilter);
-      $(this.$el).find('.tooltip').popup();
+      for (const el of this.$el.querySelectorAll('.tooltip')) {
+        initTooltip(el);
+      }
       $(this.$el).find('.dropdown').dropdown();
       this.setCheckboxes();
       nextTick(() => {

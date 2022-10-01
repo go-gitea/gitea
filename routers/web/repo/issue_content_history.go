@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/translation/i18n"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -29,14 +28,13 @@ func GetContentHistoryOverview(ctx *context.Context) {
 		return
 	}
 
-	lang := ctx.Locale.Language()
 	editedHistoryCountMap, _ := issues_model.QueryIssueContentHistoryEditedCountMap(ctx, issue.ID)
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"i18n": map[string]interface{}{
-			"textEdited":                   i18n.Tr(lang, "repo.issues.content_history.edited"),
-			"textDeleteFromHistory":        i18n.Tr(lang, "repo.issues.content_history.delete_from_history"),
-			"textDeleteFromHistoryConfirm": i18n.Tr(lang, "repo.issues.content_history.delete_from_history_confirm"),
-			"textOptions":                  i18n.Tr(lang, "repo.issues.content_history.options"),
+			"textEdited":                   ctx.Tr("repo.issues.content_history.edited"),
+			"textDeleteFromHistory":        ctx.Tr("repo.issues.content_history.delete_from_history"),
+			"textDeleteFromHistoryConfirm": ctx.Tr("repo.issues.content_history.delete_from_history_confirm"),
+			"textOptions":                  ctx.Tr("repo.issues.content_history.options"),
 		},
 		"editedHistoryCountMap": editedHistoryCountMap,
 	})
@@ -55,7 +53,6 @@ func GetContentHistoryList(ctx *context.Context) {
 	// render history list to HTML for frontend dropdown items: (name, value)
 	// name is HTML of "avatar + userName + userAction + timeSince"
 	// value is historyId
-	lang := ctx.Locale.Language()
 	var results []map[string]interface{}
 	for _, item := range items {
 		var actionText string
@@ -67,7 +64,7 @@ func GetContentHistoryList(ctx *context.Context) {
 		} else {
 			actionText = ctx.Locale.Tr("repo.issues.content_history.edited")
 		}
-		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, lang)
+		timeSinceText := timeutil.TimeSinceUnix(item.EditedUnix, ctx.Locale)
 
 		username := item.UserName
 		if setting.UI.DefaultShowFullName && strings.TrimSpace(item.UserFullName) != "" {

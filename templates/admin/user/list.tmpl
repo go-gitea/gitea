@@ -4,9 +4,9 @@
 	<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
-			{{.i18n.Tr "admin.users.user_manage_panel"}} ({{.i18n.Tr "admin.total" .Total}})
+			{{.locale.Tr "admin.users.user_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{.i18n.Tr "admin.users.new_account"}}</a>
+				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/users/new">{{.locale.Tr "admin.users.new_account"}}</a>
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -16,47 +16,47 @@
 				<div class="ui right floated secondary filter menu">
 					<!-- Status Filter Menu Item -->
 					<div class="ui dropdown type jump item">
-						<span class="text">{{.i18n.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
+						<span class="text">{{.locale.Tr "admin.users.list_status_filter.menu_text"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}</span>
 						<div class="menu">
-							<a class="item j-reset-status-filter">{{.i18n.Tr "admin.users.list_status_filter.reset"}}</a>
+							<a class="item j-reset-status-filter">{{.locale.Tr "admin.users.list_status_filter.reset"}}</a>
 							<div class="ui divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_admin"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_admin"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_admin]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_admin"}}</label>
 							<div class="ui divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_active"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_active"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_active"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_active]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_active"}}</label>
 							<div class="ui divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_restricted"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_restricted"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_restricted"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_restricted]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_restricted"}}</label>
 							<div class="ui divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_prohibit_login"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_prohibit_login]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_prohibit_login"}}</label>
 							<div class="ui divider"></div>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.i18n.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
-							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.i18n.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="1"> {{.locale.Tr "admin.users.list_status_filter.is_2fa_enabled"}}</label>
+							<label class="item"><input type="radio" name="status_filter[is_2fa_enabled]" value="0"> {{.locale.Tr "admin.users.list_status_filter.not_2fa_enabled"}}</label>
 						</div>
 					</div>
 
 					<!-- Sort Menu Item -->
 					<div class="ui dropdown type jump item">
 						<span class="text">
-							{{.i18n.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
+							{{.locale.Tr "repo.issues.filter_sort"}} {{svg "octicon-triangle-down" 14 "dropdown icon"}}
 						</span>
 						<div class="menu">
-							<button class="item" name="sort" value="oldest">{{.i18n.Tr "repo.issues.filter_sort.oldest"}}</button>
-							<button class="item" name="sort" value="newest">{{.i18n.Tr "repo.issues.filter_sort.latest"}}</button>
-							<button class="item" name="sort" value="alphabetically">{{.i18n.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
-							<button class="item" name="sort" value="reversealphabetically">{{.i18n.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
-							<button class="item" name="sort" value="recentupdate">{{.i18n.Tr "repo.issues.filter_sort.recentupdate"}}</button>
-							<button class="item" name="sort" value="leastupdate">{{.i18n.Tr "repo.issues.filter_sort.leastupdate"}}</button>
+							<button class="item" name="sort" value="oldest">{{.locale.Tr "repo.issues.filter_sort.oldest"}}</button>
+							<button class="item" name="sort" value="newest">{{.locale.Tr "repo.issues.filter_sort.latest"}}</button>
+							<button class="item" name="sort" value="alphabetically">{{.locale.Tr "repo.issues.label.filter_sort.alphabetically"}}</button>
+							<button class="item" name="sort" value="reversealphabetically">{{.locale.Tr "repo.issues.label.filter_sort.reverse_alphabetically"}}</button>
+							<button class="item" name="sort" value="recentupdate">{{.locale.Tr "repo.issues.filter_sort.recentupdate"}}</button>
+							<button class="item" name="sort" value="leastupdate">{{.locale.Tr "repo.issues.filter_sort.leastupdate"}}</button>
 						</div>
 					</div>
 				</div>
 
 				<!-- Search Text -->
 				<div class="ui fluid action input" style="max-width: 70%;">
-					<input name="q" value="{{.Keyword}}" placeholder="{{.i18n.Tr "explore.search"}}..." autofocus>
-					<button class="ui primary button">{{.i18n.Tr "explore.search"}}</button>
+					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+					<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 				</div>
 			</form>
 		</div>
@@ -66,21 +66,21 @@
 					<tr>
 						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID{{SortArrow "oldest" "newest" .SortType false}}</th>
 						<th data-sortt-asc="alphabetically" data-sortt-desc="reversealphabetically" data-sortt-default="true">
-							{{.i18n.Tr "admin.users.name"}}
+							{{.locale.Tr "admin.users.name"}}
 							{{SortArrow "alphabetically" "reversealphabetically" $.SortType true}}
 						</th>
-						<th>{{.i18n.Tr "email"}}</th>
-						<th>{{.i18n.Tr "admin.users.activated"}}</th>
-						<th>{{.i18n.Tr "admin.users.admin"}}</th>
-						<th>{{.i18n.Tr "admin.users.restricted"}}</th>
-						<th>{{.i18n.Tr "admin.users.2fa"}}</th>
-						<th>{{.i18n.Tr "admin.users.repos"}}</th>
-						<th>{{.i18n.Tr "admin.users.created"}}</th>
+						<th>{{.locale.Tr "email"}}</th>
+						<th>{{.locale.Tr "admin.users.activated"}}</th>
+						<th>{{.locale.Tr "admin.users.admin"}}</th>
+						<th>{{.locale.Tr "admin.users.restricted"}}</th>
+						<th>{{.locale.Tr "admin.users.2fa"}}</th>
+						<th>{{.locale.Tr "admin.users.repos"}}</th>
+						<th>{{.locale.Tr "admin.users.created"}}</th>
 						<th data-sortt-asc="leastupdate" data-sortt-desc="recentupdate">
-							{{.i18n.Tr "admin.users.last_login"}}
+							{{.locale.Tr "admin.users.last_login"}}
 							{{SortArrow "leastupdate" "recentupdate" $.SortType false}}
 						</th>
-						<th>{{.i18n.Tr "admin.users.edit"}}</th>
+						<th>{{.locale.Tr "admin.users.edit"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -98,7 +98,7 @@
 							{{if .LastLoginUnix}}
 								<td><span title="{{.LastLoginUnix.FormatLong}}">{{.LastLoginUnix.FormatShort}}</span></td>
 							{{else}}
-								<td><span>{{$.i18n.Tr "admin.users.never_login"}}</span></td>
+								<td><span>{{$.locale.Tr "admin.users.never_login"}}</span></td>
 							{{end}}
 							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
 						</tr>

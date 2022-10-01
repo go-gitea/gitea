@@ -5,7 +5,6 @@
 package base
 
 import (
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -46,9 +45,12 @@ type Notifier interface {
 		issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User)
 	NotifyUpdateComment(*user_model.User, *issues_model.Comment, string)
 	NotifyDeleteComment(*user_model.User, *issues_model.Comment)
-	NotifyNewRelease(rel *models.Release)
-	NotifyUpdateRelease(doer *user_model.User, rel *models.Release)
-	NotifyDeleteRelease(doer *user_model.User, rel *models.Release)
+	NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string)
+	NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string)
+	NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string)
+	NotifyNewRelease(rel *repo_model.Release)
+	NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release)
+	NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release)
 	NotifyPushCommits(pusher *user_model.User, repo *repo_model.Repository, opts *repository.PushUpdateOptions, commits *repository.PushCommits)
 	NotifyCreateRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName, refID string)
 	NotifyDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string)

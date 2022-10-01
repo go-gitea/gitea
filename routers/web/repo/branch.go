@@ -80,7 +80,7 @@ func Branches(ctx *context.Context) {
 	}
 	ctx.Data["Branches"] = branches
 	ctx.Data["DefaultBranchBranch"] = defaultBranchBranch
-	pager := context.NewPagination(int(branchesCount), setting.Git.BranchesRangeSize, page, 5)
+	pager := context.NewPagination(branchesCount, setting.Git.BranchesRangeSize, page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 
@@ -427,5 +427,5 @@ func CreateBranch(ctx *context.Context) {
 	}
 
 	ctx.Flash.Success(ctx.Tr("repo.branch.create_success", form.NewBranchName))
-	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName))
+	ctx.Redirect(ctx.Repo.RepoLink + "/src/branch/" + util.PathEscapeSegments(form.NewBranchName) + "/" + util.PathEscapeSegments(form.CurrentPath))
 }
