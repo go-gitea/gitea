@@ -5,16 +5,13 @@
 package wiki
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -90,11 +87,11 @@ func TestWikiFilenameToName(t *testing.T) {
 	} {
 		_, err := FilenameToName(badFilename)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiInvalidFileName(err))
+		assert.True(t, repo_model.IsErrWikiInvalidFileName(err))
 	}
 	_, err := FilenameToName("badescaping%%.md")
 	assert.Error(t, err)
-	assert.False(t, models.IsErrWikiInvalidFileName(err))
+	assert.False(t, repo_model.IsErrWikiInvalidFileName(err))
 }
 
 func TestWikiNameToFilenameToName(t *testing.T) {
@@ -157,7 +154,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for already-existing wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "Home", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiAlreadyExist(err))
+		assert.True(t, repo_model.IsErrWikiAlreadyExist(err))
 	})
 
 	t.Run("check wiki reserved name", func(t *testing.T) {
@@ -165,7 +162,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for reserved wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "_edit", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiReservedName(err))
+		assert.True(t, repo_model.IsErrWikiReservedName(err))
 	})
 }
 
@@ -274,15 +271,9 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := os.MkdirTemp("", "empty-wiki")
-	assert.NoError(t, err)
-	defer func() {
-		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = util.RemoveAll(tmpDir)
-		}
-	}()
+	tmpDir := t.TempDir()
 
-	err = git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)

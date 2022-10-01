@@ -18,7 +18,8 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
@@ -135,7 +136,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 }
 
 // localizedExtensions prepends the provided language code with and without a
-// regional identifier to the provided extenstion.
+// regional identifier to the provided extension.
 // Note: the language code will always be lower-cased, if a region is present it must be separated with a `-`
 // Note: ext should be prefixed with a `.`
 func localizedExtensions(ext, languageCode string) (localizedExts []string) {
@@ -372,6 +373,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	if ctx.Repo.TreePath == ".editorconfig" {
+		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		ctx.Data["FileError"] = editorconfigErr
+	}
 
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
@@ -666,9 +672,9 @@ func safeURL(address string) string {
 func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
-			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			task, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
-				if models.IsErrTaskDoesNotExist(err) {
+				if admin_model.IsErrTaskDoesNotExist(err) {
 					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true
@@ -694,7 +700,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
+			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}

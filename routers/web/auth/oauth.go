@@ -15,8 +15,8 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/auth"
+	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -296,7 +296,7 @@ func InfoOAuth(ctx *context.Context) {
 // returns a list of "org" and "org:team" strings,
 // that the given user is a part of.
 func getOAuthGroupsForUser(user *user_model.User) ([]string, error) {
-	orgs, err := models.GetUserOrgsList(user)
+	orgs, err := org_model.GetUserOrgsList(user)
 	if err != nil {
 		return nil, fmt.Errorf("GetUserOrgList: %v", err)
 	}
@@ -645,7 +645,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unable to parse refresh token",
 		})
 		return
 	}
@@ -688,14 +688,14 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "invalid client secret",
 		})
 		return
 	}
 	if form.RedirectURI != "" && !app.ContainsRedirectURI(form.RedirectURI) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unexpected redirect URI",
 		})
 		return
 	}
@@ -711,7 +711,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "failed PKCE code challenge",
 		})
 		return
 	}

@@ -7,64 +7,65 @@
 //
 // This documentation describes the Gitea API.
 //
-//     Schemes: http, https
-//     BasePath: /api/v1
-//     Version: {{AppVer | JSEscape | Safe}}
-//     License: MIT http://opensource.org/licenses/MIT
+//	Schemes: http, https
+//	BasePath: /api/v1
+//	Version: {{AppVer | JSEscape | Safe}}
+//	License: MIT http://opensource.org/licenses/MIT
 //
-//     Consumes:
-//     - application/json
-//     - text/plain
+//	Consumes:
+//	- application/json
+//	- text/plain
 //
-//     Produces:
-//     - application/json
-//     - text/html
+//	Produces:
+//	- application/json
+//	- text/html
 //
-//     Security:
-//     - BasicAuth :
-//     - Token :
-//     - AccessToken :
-//     - AuthorizationHeaderToken :
-//     - SudoParam :
-//     - SudoHeader :
-//     - TOTPHeader :
+//	Security:
+//	- BasicAuth :
+//	- Token :
+//	- AccessToken :
+//	- AuthorizationHeaderToken :
+//	- SudoParam :
+//	- SudoHeader :
+//	- TOTPHeader :
 //
-//     SecurityDefinitions:
-//     BasicAuth:
-//          type: basic
-//     Token:
-//          type: apiKey
-//          name: token
-//          in: query
-//     AccessToken:
-//          type: apiKey
-//          name: access_token
-//          in: query
-//     AuthorizationHeaderToken:
-//          type: apiKey
-//          name: Authorization
-//          in: header
-//          description: API tokens must be prepended with "token" followed by a space.
-//     SudoParam:
-//          type: apiKey
-//          name: sudo
-//          in: query
-//          description: Sudo API request as the user provided as the key. Admin privileges are required.
-//     SudoHeader:
-//          type: apiKey
-//          name: Sudo
-//          in: header
-//          description: Sudo API request as the user provided as the key. Admin privileges are required.
-//     TOTPHeader:
-//          type: apiKey
-//          name: X-GITEA-OTP
-//          in: header
-//          description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
+//	SecurityDefinitions:
+//	BasicAuth:
+//	     type: basic
+//	Token:
+//	     type: apiKey
+//	     name: token
+//	     in: query
+//	AccessToken:
+//	     type: apiKey
+//	     name: access_token
+//	     in: query
+//	AuthorizationHeaderToken:
+//	     type: apiKey
+//	     name: Authorization
+//	     in: header
+//	     description: API tokens must be prepended with "token" followed by a space.
+//	SudoParam:
+//	     type: apiKey
+//	     name: sudo
+//	     in: query
+//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
+//	SudoHeader:
+//	     type: apiKey
+//	     name: Sudo
+//	     in: header
+//	     description: Sudo API request as the user provided as the key. Admin privileges are required.
+//	TOTPHeader:
+//	     type: apiKey
+//	     name: X-GITEA-OTP
+//	     in: header
+//	     description: Must be used in combination with BasicAuth if two-factor authentication is enabled.
 //
 // swagger:meta
 package v1
 
 import (
+	gocontext "context"
 	"fmt"
 	"net/http"
 	"reflect"
@@ -605,7 +606,7 @@ func buildAuthGroup() *auth.Group {
 }
 
 // Routes registers all v1 APIs routes to web application.
-func Routes() *web.Route {
+func Routes(ctx gocontext.Context) *web.Route {
 	m := web.NewRoute()
 
 	m.Use(securityHeaders())
@@ -623,7 +624,7 @@ func Routes() *web.Route {
 	m.Use(context.APIContexter())
 
 	group := buildAuthGroup()
-	if err := group.Init(); err != nil {
+	if err := group.Init(ctx); err != nil {
 		log.Error("Could not initialize '%s' auth method, error: %s", group.Name(), err)
 	}
 
@@ -1001,6 +1002,7 @@ func Routes() *web.Route {
 						m.Get(".{diffType:diff|patch}", repo.DownloadPullDiffOrPatch)
 						m.Post("/update", reqToken(), repo.UpdatePullRequest)
 						m.Get("/commits", repo.GetPullRequestCommits)
+						m.Get("/files", repo.GetPullRequestFiles)
 						m.Combo("/merge").Get(repo.IsPullRequestMerged).
 							Post(reqToken(), mustNotBeArchived, bind(forms.MergePullRequestForm{}), repo.MergePullRequest).
 							Delete(reqToken(), mustNotBeArchived, repo.CancelScheduledAutoMerge)

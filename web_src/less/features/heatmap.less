@@ -3,9 +3,15 @@
   text-align: center;
   position: relative;
   min-height: 125px;
-  display: flex;
   align-items: center;
   justify-content: center;
+
+  // for the "Less" and "More" legend
+  .vch__legend .vch__legend div:first-child,
+  .vch__legend .vch__legend div:last-child {
+    display: inline-block;
+    padding: 0 5px;
+  }
 
   > svg {
     width: 100%;

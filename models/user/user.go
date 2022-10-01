@@ -893,14 +893,19 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		if err != nil {
 			return err
 		}
-		if !has {
-			// 1. Update old primary email
-			if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
-				IsPrimary: false,
-			}); err != nil {
-				return err
+		if has && emailAddress.UID != u.ID {
+			return ErrEmailAlreadyUsed{
+				Email: u.Email,
 			}
+		}
+		// 1. Update old primary email
+		if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: false,
+		}); err != nil {
+			return err
+		}
 
+		if !has {
 			emailAddress.Email = u.Email
 			emailAddress.UID = u.ID
 			emailAddress.IsActivated = true
@@ -1267,7 +1272,7 @@ func isUserVisibleToViewerCond(viewer *User) builder.Cond {
 
 // IsUserVisibleToViewer check if viewer is able to see user profile
 func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
-	if viewer != nil && viewer.IsAdmin {
+	if viewer != nil && (viewer.IsAdmin || viewer.ID == u.ID) {
 		return true
 	}
 
@@ -1306,7 +1311,7 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 			return false
 		}
 
-		if count < 0 {
+		if count == 0 {
 			// No common organization
 			return false
 		}
@@ -1315,6 +1320,16 @@ func IsUserVisibleToViewer(ctx context.Context, u, viewer *User) bool {
 		return true
 	}
 	return false
+}
+
+// CountWrongUserType count OrgUser who have wrong type
+func CountWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Count(new(User))
+}
+
+// FixWrongUserType fix OrgUser who have wrong type
+func FixWrongUserType() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.Eq{"type": 0}.And(builder.Neq{"num_teams": 0})).Cols("type").NoAutoTime().Update(&User{Type: 1})
 }
 
 func GetOrderByName() string {

@@ -17,7 +17,6 @@ import (
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 )
 
@@ -53,7 +52,7 @@ func GetSingleCommit(ctx *context.APIContext) {
 	//     "$ref": "#/responses/notFound"
 
 	sha := ctx.Params(":sha")
-	if (validation.GitRefNamePatternInvalid.MatchString(sha) || !validation.CheckGitRefAdditionalRulesValid(sha)) && !git.SHAPattern.MatchString(sha) {
+	if !git.IsValidRefPattern(sha) {
 		ctx.Error(http.StatusUnprocessableEntity, "no valid ref or sha", fmt.Sprintf("no valid ref or sha: %s", sha))
 		return
 	}
