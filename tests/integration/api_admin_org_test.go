@@ -37,7 +37,7 @@ func TestAPIAdminOrgCreate(t *testing.T) {
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, org.UserName, apiOrg.UserName)
+		assert.Equal(t, org.UserName, apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)

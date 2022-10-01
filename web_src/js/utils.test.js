@@ -95,6 +95,9 @@ test('strSubMatch', () => {
   expect(strSubMatch('abc', 'z')).toEqual(['abc']);
   expect(strSubMatch('abc', 'az')).toEqual(['abc']);
 
+  expect(strSubMatch('abc', 'aC')).toEqual(['', 'a', 'b', 'c']);
+  expect(strSubMatch('abC', 'ac')).toEqual(['', 'a', 'b', 'C']);
+
   expect(strSubMatch('aabbcc', 'abc')).toEqual(['', 'a', 'a', 'b', 'b', 'c', 'c']);
   expect(strSubMatch('the/directory', 'hedir')).toEqual(['t', 'he', '/', 'dir', 'ectory']);
 });

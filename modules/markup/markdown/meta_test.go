@@ -56,6 +56,38 @@ func TestExtractMetadata(t *testing.T) {
 	})
 }
 
+func TestExtractMetadataBytes(t *testing.T) {
+	t.Run("ValidFrontAndBody", func(t *testing.T) {
+		var meta structs.IssueTemplate
+		body, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s\n%s", sepTest, frontTest, sepTest, bodyTest)), &meta)
+		assert.NoError(t, err)
+		assert.Equal(t, bodyTest, body)
+		assert.Equal(t, metaTest, meta)
+		assert.True(t, validateMetadata(meta))
+	})
+
+	t.Run("NoFirstSeparator", func(t *testing.T) {
+		var meta structs.IssueTemplate
+		_, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s", frontTest, sepTest, bodyTest)), &meta)
+		assert.Error(t, err)
+	})
+
+	t.Run("NoLastSeparator", func(t *testing.T) {
+		var meta structs.IssueTemplate
+		_, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, bodyTest)), &meta)
+		assert.Error(t, err)
+	})
+
+	t.Run("NoBody", func(t *testing.T) {
+		var meta structs.IssueTemplate
+		body, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, sepTest)), &meta)
+		assert.NoError(t, err)
+		assert.Equal(t, "", body)
+		assert.Equal(t, metaTest, meta)
+		assert.True(t, validateMetadata(meta))
+	})
+}
+
 var (
 	sepTest   = "-----"
 	frontTest = `name: Test

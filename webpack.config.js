@@ -37,6 +37,10 @@ const filterCssImport = (url, ...args) => {
     if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
   }
 
+  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+    return false;
+  }
+
   if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
     return false;
   }
