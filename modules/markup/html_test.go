@@ -24,7 +24,7 @@ import (
 var localMetas = map[string]string{
 	"user":     "gogits",
 	"repo":     "gogs",
-	"repoPath": "../../integrations/gitea-repositories-meta/user13/repo11.git/",
+	"repoPath": "../../tests/gitea-repositories-meta/user13/repo11.git/",
 }
 
 func TestMain(m *testing.M) {

@@ -124,3 +124,15 @@
   repo_id: 24
   mode: 1
 
+-
+  id: 22
+  user_id: 31
+  repo_id: 27
+  mode: 4
+
+-
+  id: 23
+  user_id: 31
+  repo_id: 28
+  mode: 4
+

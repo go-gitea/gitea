@@ -1,0 +1,6 @@
+<div class="field">
+	{{template "repo/issue/fields/header" .}}
+	{{/* FIXME: preview markdown result */}}
+	{{/* FIXME: required validation for markdown editor */}}
+	<textarea name="form-field-{{.ID}}" placeholder="{{.Attributes.placeholder}}" class="edit_area {{if .Attributes.render}}no-easymde{{end}}" {{if and .Validations.required .Attributes.render}}required{{end}}>{{.Attributes.value}}</textarea>
+</div>
