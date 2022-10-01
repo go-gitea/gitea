@@ -157,6 +157,13 @@ func (s *SlackPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, 
 	}}), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (s *SlackPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)

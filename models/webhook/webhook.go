@@ -132,6 +132,7 @@ type HookEvents struct {
 	PullRequestComment   bool `json:"pull_request_comment"`
 	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
+	Wiki                 bool `json:"wiki"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
 	Package              bool `json:"package"`
@@ -328,6 +329,12 @@ func (w *Webhook) HasPullRequestSyncEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestSync)
 }
 
+// HasWikiEvent returns true if hook enabled wiki event.
+func (w *Webhook) HasWikiEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvent.Wiki)
+}
+
 // HasReleaseEvent returns if hook enabled release event.
 func (w *Webhook) HasReleaseEvent() bool {
 	return w.SendEverything ||
@@ -373,6 +380,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
 		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
+		{w.HasWikiEvent, HookEventWiki},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
 		{w.HasPackageEvent, HookEventPackage},
