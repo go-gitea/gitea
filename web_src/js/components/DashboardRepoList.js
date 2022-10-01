@@ -7,7 +7,6 @@ const {appSubUrl, assetUrlPrefix, pageData} = window.config;
 
 function initVueComponents(app) {
   app.component('repo-search', {
-    template: document.getElementById('dashboard-repo-list-template'),
     delimiters: vueDelimiters,
     props: {
       searchLimit: {
@@ -354,7 +353,9 @@ function initVueComponents(app) {
         }
         return 'octicon-repo';
       }
-    }
+    },
+
+    template: document.getElementById('dashboard-repo-list-template'),
   });
 }
 

@@ -38,6 +38,7 @@ export function initRepoBranchTagDropdown(selector) {
     });
     $data.remove();
 
+    // eslint-disable-next-line unicorn/no-this-assignment
     const elRoot = this;
     const view = createApp({
       delimiters: vueDelimiters,
