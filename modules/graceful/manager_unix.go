@@ -61,6 +61,7 @@ const (
 	readyMsg     systemdNotifyMsg = "READY=1"
 	stoppingMsg  systemdNotifyMsg = "STOPPING=1"
 	reloadingMsg systemdNotifyMsg = "RELOADING=1"
+	watchdogMsg  systemdNotifyMsg = "WATCHDOG=1"
 )
 
 func statusMsg(msg string) systemdNotifyMsg {
@@ -167,6 +168,13 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		syscall.SIGTSTP,
 	)
 
+	watchdogTimeout := getWatchdogTimeout()
+	t := &time.Ticker{}
+	if watchdogTimeout != 0 {
+		g.notify(watchdogMsg)
+		t = time.NewTicker(watchdogTimeout / 2)
+	}
+
 	pid := syscall.Getpid()
 	for {
 		select {
@@ -195,6 +203,8 @@ func (g *Manager) handleSignals(ctx context.Context) {
 			default:
 				log.Info("PID %d. Received %v.", pid, sig)
 			}
+		case <-t.C:
+			g.notify(watchdogMsg)
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.DoGracefulShutdown()

@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -25,7 +26,8 @@ const (
 	startFD      = 3
 	unlinkFDsEnv = "GITEA_UNLINK_FDS"
 
-	notifySocketEnv = "NOTIFY_SOCKET"
+	notifySocketEnv    = "NOTIFY_SOCKET"
+	watchdogTimeoutEnv = "WATCHDOG_USEC"
 )
 
 // In order to keep the working directory the same as when we started we record
@@ -42,6 +44,7 @@ var (
 	activeListeners           = []net.Listener{}
 
 	notifySocketAddr string
+	watchdogTimeout  time.Duration
 )
 
 func getProvidedFDs() (savedErr error) {
@@ -89,6 +92,7 @@ func getProvidedFDs() (savedErr error) {
 			return
 		}
 
+		// now handle some additional systemd provided things
 		notifySocketAddr = os.Getenv(notifySocketEnv)
 		if notifySocketAddr != "" {
 			log.Debug("Systemd Notify Socket provided: %s", notifySocketAddr)
@@ -96,6 +100,29 @@ func getProvidedFDs() (savedErr error) {
 			if savedErr != nil {
 				log.Warn("Unable to Unset the NOTIFY_SOCKET environment variable: %v", savedErr)
 				return
+			}
+
+			// We don't handle WATCHDOG_PID
+			timeoutStr := os.Getenv(watchdogTimeoutEnv)
+			if timeoutStr != "" {
+				savedErr = os.Unsetenv(watchdogTimeoutEnv)
+				if savedErr != nil {
+					log.Warn("Unable to Unset the WATCHDOG_USEC environment variable: %v", savedErr)
+					return
+				}
+
+				s, err := strconv.ParseInt(timeoutStr, 10, 64)
+				if err != nil {
+					log.Error("Unable to parse the provided WATCHDOG_USEC: %v", err)
+					savedErr = fmt.Errorf("unable to parse the provided WATCHDOG_USEC: %w", err)
+					return
+				}
+				if s <= 0 {
+					log.Error("Unable to parse the provided WATCHDOG_USEC: %s should be a positive number", timeoutStr)
+					savedErr = fmt.Errorf("unable to parse the provided WATCHDOG_USEC: %s should be a positive number", timeoutStr)
+					return
+				}
+				watchdogTimeout = time.Duration(s) * time.Microsecond
 			}
 		} else {
 			log.Trace("No Systemd Notify Socket provided")
@@ -274,7 +301,8 @@ func getActiveListenersToUnlink() []bool {
 
 func getNotifySocket() (*net.UnixConn, error) {
 	if err := getProvidedFDs(); err != nil {
-		return nil, err
+		// This error will be logged elsewhere
+		return nil, nil
 	}
 
 	if notifySocketAddr == "" {
@@ -293,4 +321,13 @@ func getNotifySocket() (*net.UnixConn, error) {
 	}
 
 	return notifySocket, nil
+}
+
+func getWatchdogTimeout() time.Duration {
+	if err := getProvidedFDs(); err != nil {
+		// This error will be logged elsewhere
+		return 0
+	}
+
+	return watchdogTimeout
 }

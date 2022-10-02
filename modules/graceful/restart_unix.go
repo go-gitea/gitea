@@ -16,6 +16,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 var killParent sync.Once
@@ -78,6 +79,11 @@ func RestartProcess() (int, error) {
 
 	if notifySocketAddr != "" {
 		env = append(env, fmt.Sprintf("%s=%s", notifySocketEnv, notifySocketAddr))
+	}
+
+	if watchdogTimeout != 0 {
+		watchdogStr := strconv.FormatInt(int64(watchdogTimeout/time.Millisecond), 10)
+		env = append(env, fmt.Sprintf("%s=%s", watchdogTimeoutEnv, watchdogStr))
 	}
 
 	sb := &strings.Builder{}
