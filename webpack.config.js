@@ -4,16 +4,17 @@ import AddAssetPlugin from 'add-asset-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-import VueLoader from 'vue-loader';
+import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
 import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
 import {readFileSync} from 'fs';
 
-const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
+const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
+
 const glob = (pattern) => fastGlob.sync(pattern, {
   cwd: dirname(fileURLToPath(new URL(import.meta.url))),
   absolute: true,
@@ -33,6 +34,10 @@ const filterCssImport = (url, ...args) => {
   if (cssFile.includes('fomantic')) {
     if (/brand-icons/.test(importedFile)) return false;
     if (/(eot|ttf|otf|woff|svg)$/.test(importedFile)) return false;
+  }
+
+  if (cssFile.includes('katex') && /(ttf|woff)$/.test(importedFile)) {
+    return false;
   }
 
   if (cssFile.includes('font-awesome') && /(eot|ttf|otf|woff|svg)$/.test(importedFile)) {
@@ -206,10 +211,12 @@ export default {
       outputFilename: 'js/licenses.txt',
       outputWriter: ({dependencies}) => {
         const line = '-'.repeat(80);
-        const goModules = JSON.parse(readFileSync('assets/go-licenses.json', 'utf8'));
+        const goJson = readFileSync('assets/go-licenses.json', 'utf8');
+        const goModules = JSON.parse(goJson).map(({name, licenseText}) => {
+          return {name, body: formatLicenseText(licenseText)};
+        });
         const jsModules = dependencies.map(({name, version, licenseName, licenseText}) => {
-          const body = wrapAnsi(licenseText || '', 80);
-          return {name, version, licenseName, body};
+          return {name, version, licenseName, body: formatLicenseText(licenseText)};
         });
 
         const modules = [...goModules, ...jsModules].sort((a, b) => a.name.localeCompare(b.name));
@@ -234,9 +241,6 @@ export default {
   },
   resolve: {
     symlinks: false,
-    alias: {
-      vue$: 'vue/dist/vue.esm.js', // needed because vue's default export is the runtime only
-    },
   },
   watchOptions: {
     ignored: [

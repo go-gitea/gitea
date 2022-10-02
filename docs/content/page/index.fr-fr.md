@@ -258,7 +258,7 @@ Le but de ce projet est de fournir de la manière la plus simple, la plus rapide
 - Interface graphique :
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
-  - [Vue2](https://vuejs.org)
+  - [Vue3](https://vuejs.org)
   - [CodeMirror](https://codemirror.net)
   - [EasyMDE](https://github.com/Ionaru/easy-markdown-editor)
   - [Monaco Editor](https://microsoft.github.io/monaco-editor)
