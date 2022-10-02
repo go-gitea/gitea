@@ -31,6 +31,7 @@ type CreateAccessTokenOption struct {
 // CreateOAuth2ApplicationOptions holds options to create an oauth2 application
 type CreateOAuth2ApplicationOptions struct {
 	Name         string   `json:"name" binding:"Required"`
+	Confidential bool     `json:"confidential"`
 	RedirectURIs []string `json:"redirect_uris" binding:"Required"`
 }
 
@@ -41,6 +42,7 @@ type OAuth2Application struct {
 	Name         string    `json:"name"`
 	ClientID     string    `json:"client_id"`
 	ClientSecret string    `json:"client_secret"`
+	Confidential bool      `json:"confidential"`
 	RedirectURIs []string  `json:"redirect_uris"`
 	Created      time.Time `json:"created"`
 }

@@ -38,6 +38,7 @@ func OAuthApplicationsPost(ctx *context.Context) {
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.Doer.ID,
+		Confidential: form.Confidential,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -72,6 +73,7 @@ func OAuthApplicationsEdit(ctx *context.Context) {
 		Name:         form.Name,
 		RedirectURIs: []string{form.RedirectURI},
 		UserID:       ctx.Doer.ID,
+		Confidential: form.Confidential,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return

@@ -685,7 +685,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		})
 		return
 	}
-	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+	if app.Confidential && !app.ValidateClientSecret([]byte(form.ClientSecret)) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
 			ErrorDescription: "invalid client secret",

@@ -413,6 +413,8 @@ var migrations = []Migration{
 	NewMigration("Add badges to users", createUserBadgesTable),
 	// v225 -> v226
 	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	// v226 -> v227
+	NewMigration("Add confidential column default true to OAuth2Application table", addConfidentialColumnToOAuth2ApplicationTable),
 }
 
 // GetCurrentDBVersion returns the current db version

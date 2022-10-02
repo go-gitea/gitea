@@ -31,6 +31,8 @@ type OAuth2Application struct {
 	Name         string
 	ClientID     string `xorm:"unique"`
 	ClientSecret string
+	// https://datatracker.ietf.org/doc/html/rfc6749#section-2.1
+	Confidential bool               `xorm:"NOT NULL DEFAULT TRUE"`
 	RedirectURIs []string           `xorm:"redirect_uris JSON TEXT"`
 	CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
 	UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
@@ -57,15 +59,17 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
-	uri, err := url.Parse(redirectURI)
-	// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
-	if err == nil && uri.Scheme == "http" && uri.Port() != "" {
-		ip := net.ParseIP(uri.Hostname())
-		if ip != nil && ip.IsLoopback() {
-			// strip port
-			uri.Host = uri.Hostname()
-			if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
-				return true
+	if !app.Confidential {
+		uri, err := url.Parse(redirectURI)
+		// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+		if err == nil && uri.Scheme == "http" && uri.Port() != "" {
+			ip := net.ParseIP(uri.Hostname())
+			if ip != nil && ip.IsLoopback() {
+				// strip port
+				uri.Host = uri.Hostname()
+				if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+					return true
+				}
 			}
 		}
 	}
@@ -163,6 +167,7 @@ func GetOAuth2ApplicationsByUserID(ctx context.Context, userID int64) (apps []*O
 type CreateOAuth2ApplicationOptions struct {
 	Name         string
 	UserID       int64
+	Confidential bool
 	RedirectURIs []string
 }
 
@@ -174,6 +179,7 @@ func CreateOAuth2Application(ctx context.Context, opts CreateOAuth2ApplicationOp
 		Name:         opts.Name,
 		ClientID:     clientID,
 		RedirectURIs: opts.RedirectURIs,
+		Confidential: opts.Confidential,
 	}
 	if err := db.Insert(ctx, app); err != nil {
 		return nil, err
@@ -186,6 +192,7 @@ type UpdateOAuth2ApplicationOptions struct {
 	ID           int64
 	Name         string
 	UserID       int64
+	Confidential bool
 	RedirectURIs []string
 }
 
@@ -207,6 +214,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 
 	app.Name = opts.Name
 	app.RedirectURIs = opts.RedirectURIs
+	app.Confidential = opts.Confidential
 
 	if err = updateOAuth2Application(ctx, app); err != nil {
 		return nil, err
@@ -217,7 +225,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("Confidential").Update(app); err != nil {
 		return err
 	}
 	return nil

@@ -216,6 +216,7 @@ func CreateOauth2Application(ctx *context.APIContext) {
 		Name:         data.Name,
 		UserID:       ctx.Doer.ID,
 		RedirectURIs: data.RedirectURIs,
+		Confidential: data.Confidential,
 	})
 	if err != nil {
 		ctx.Error(http.StatusBadRequest, "", "error creating oauth2 application")
@@ -367,6 +368,7 @@ func UpdateOauth2Application(ctx *context.APIContext) {
 		UserID:       ctx.Doer.ID,
 		ID:           appID,
 		RedirectURIs: data.RedirectURIs,
+		Confidential: data.Confidential,
 	})
 	if err != nil {
 		if auth_model.IsErrOauthClientIDInvalid(err) || auth_model.IsErrOAuthApplicationNotFound(err) {
