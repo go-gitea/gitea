@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"github.com/yuin/goldmark/ast"
 	"gopkg.in/yaml.v3"
 )

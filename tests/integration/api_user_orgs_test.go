@@ -32,6 +32,7 @@ func TestUserOrgs(t *testing.T) {
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          17,
+			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
 			AvatarURL:   user17.AvatarLink(),
@@ -42,6 +43,7 @@ func TestUserOrgs(t *testing.T) {
 		},
 		{
 			ID:          3,
+			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
 			AvatarURL:   user3.AvatarLink(),
@@ -99,6 +101,7 @@ func TestMyOrgs(t *testing.T) {
 	assert.Equal(t, []*api.Organization{
 		{
 			ID:          17,
+			Name:        user17.Name,
 			UserName:    user17.Name,
 			FullName:    user17.FullName,
 			AvatarURL:   user17.AvatarLink(),
@@ -109,6 +112,7 @@ func TestMyOrgs(t *testing.T) {
 		},
 		{
 			ID:          3,
+			Name:        user3.Name,
 			UserName:    user3.Name,
 			FullName:    user3.FullName,
 			AvatarURL:   user3.AvatarLink(),
