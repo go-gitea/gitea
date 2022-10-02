@@ -102,7 +102,7 @@ func getProvidedFDs() (savedErr error) {
 				return
 			}
 
-			// We don't handle WATCHDOG_PID
+			// FIXME: We don't handle WATCHDOG_PID
 			timeoutStr := os.Getenv(watchdogTimeoutEnv)
 			if timeoutStr != "" {
 				savedErr = os.Unsetenv(watchdogTimeoutEnv)

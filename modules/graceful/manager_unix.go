@@ -72,7 +72,7 @@ func pidMsg() systemdNotifyMsg {
 	return systemdNotifyMsg("MAINPID=" + strconv.Itoa(os.Getpid()))
 }
 
-//  Notify systemd of status via the notify protocol
+// Notify systemd of status via the notify protocol
 func (g *Manager) notify(msg systemdNotifyMsg) {
 	conn, err := getNotifySocket()
 	if err != nil {
