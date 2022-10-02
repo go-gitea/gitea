@@ -69,7 +69,7 @@
 
 <script>
 import {SvgIcon} from '../svg.js';
-import Vue from 'vue';
+import Vue, {createApp} from 'vue';
 import AnsiToHTML from `ansi-to-html`;
 
 const sfc = {
@@ -135,6 +135,9 @@ const sfc = {
     // show/hide the step logs for a step
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
+      if (this.currentJobStepsStates[idx].expanded) {
+        this.loadJobData();
+      }
     },
 
     formatDuration(d) {
@@ -275,7 +278,7 @@ const sfc = {
         // sync the currentJobStepsStates to store the job step states
         for (let i = 0; i < this.currentJobSteps.length; i++) {
           if (!this.currentJobStepsStates[i]) {
-            this.$set(this.currentJobStepsStates, i, {cursor: null, expanded: false}); // array must use $set
+            this.currentJobStepsStates[i] = {cursor: null, expanded: false};
           }
         }
         // append logs to the UI
@@ -298,10 +301,8 @@ export function initRepositoryBuildView() {
   const el = document.getElementById('repo-build-view');
   if (!el) return;
 
-  const View = Vue.extend({
-    render: (createElement) => createElement(sfc),
-  });
-  new View().$mount(el);
+  const view = createApp(sfc);
+  view.mount(el);
 }
 
 </script>
