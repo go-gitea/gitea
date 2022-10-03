@@ -287,7 +287,7 @@ You can try it out using [the online demo](https://try.gitea.io/).
 - UI frameworks:
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
-  - [Vue2](https://vuejs.org)
+  - [Vue3](https://vuejs.org)
   - and various components (see package.json)
 - Editors:
   - [CodeMirror](https://codemirror.net)
