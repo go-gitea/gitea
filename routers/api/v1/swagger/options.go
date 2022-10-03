@@ -172,4 +172,10 @@ type swaggerParameterBodies struct {
 
 	// in:body
 	CreatePushMirrorOption api.CreatePushMirrorOption
+
+	// in:body
+	CreateGitRefOption api.CreateGitRefOption
+
+	// in:body
+	UpdateGitRefOption api.UpdateGitRefOption
 }

@@ -1042,8 +1042,15 @@ func Routes(ctx gocontext.Context) *web.Route {
 						m.Get("/{sha}", repo.GetSingleCommit)
 						m.Get("/{sha}.{diffType:diff|patch}", repo.DownloadCommitDiffOrPatch)
 					})
-					m.Get("/refs", repo.GetGitAllRefs)
-					m.Get("/refs/*", repo.GetGitRefs)
+					m.Group("/refs", func() {
+						m.Get("", repo.GetGitAllRefs)
+						m.Post("", reqToken(), reqRepoWriter(unit.TypeCode), bind(api.CreateGitRefOption{}), repo.CreateGitRef)
+						m.Get("/*", repo.GetGitRefs)
+						m.Group("/*", func() {
+							m.Patch("", bind(api.UpdateGitRefOption{}), repo.UpdateGitRef)
+							m.Delete("", repo.DeleteGitRef)
+						}, reqToken(), reqRepoWriter(unit.TypeCode))
+					})
 					m.Get("/trees/{sha}", repo.GetTree)
 					m.Get("/blobs/{sha}", repo.GetBlob)
 					m.Get("/tags/{sha}", repo.GetAnnotatedTag)

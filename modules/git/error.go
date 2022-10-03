@@ -176,3 +176,69 @@ func IsErrMoreThanOne(err error) bool {
 func (err *ErrMoreThanOne) Error() string {
 	return fmt.Sprintf("ErrMoreThanOne Error: %v: %s\n%s", err.Err, err.StdErr, err.StdOut)
 }
+
+// ErrRefNotFound represents a "RefDoesMotExist" kind of error.
+type ErrRefNotFound struct {
+	RefName string
+}
+
+// IsErrRefNotFound checks if an error is a ErrRefNotFound.
+func IsErrRefNotFound(err error) bool {
+	_, ok := err.(ErrRefNotFound)
+	return ok
+}
+
+func (err ErrRefNotFound) Error() string {
+	return fmt.Sprintf("ref does not exist [ref_name: %s]", err.RefName)
+}
+
+// ErrInvalidRefName represents a "InvalidRefName" kind of error.
+type ErrInvalidRefName struct {
+	RefName string
+	Reason  string
+}
+
+// IsErrInvalidRefName checks if an error is a ErrInvalidRefName.
+func IsErrInvalidRefName(err error) bool {
+	_, ok := err.(ErrInvalidRefName)
+	return ok
+}
+
+func (err ErrInvalidRefName) Error() string {
+	return fmt.Sprintf("ref name is not valid: %s [ref_name: %s]", err.Reason, err.RefName)
+}
+
+// ErrProtectedRefName represents a "ProtectedRefName" kind of error.
+type ErrProtectedRefName struct {
+	RefName string
+	Message string
+}
+
+// IsErrProtectedRefName checks if an error is a ErrProtectedRefName.
+func IsErrProtectedRefName(err error) bool {
+	_, ok := err.(ErrProtectedRefName)
+	return ok
+}
+
+func (err ErrProtectedRefName) Error() string {
+	str := fmt.Sprintf("ref name is protected [ref_name: %s]", err.RefName)
+	if err.Message != "" {
+		str = fmt.Sprintf("%s: %s", str, err.Message)
+	}
+	return str
+}
+
+// ErrRefAlreadyExists represents an error that ref with such name already exists.
+type ErrRefAlreadyExists struct {
+	RefName string
+}
+
+// IsErrRefAlreadyExists checks if an error is an ErrRefAlreadyExists.
+func IsErrRefAlreadyExists(err error) bool {
+	_, ok := err.(ErrRefAlreadyExists)
+	return ok
+}
+
+func (err ErrRefAlreadyExists) Error() string {
+	return fmt.Sprintf("ref already exists [name: %s]", err.RefName)
+}

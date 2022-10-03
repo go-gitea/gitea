@@ -213,7 +213,7 @@ func CreateRelease(ctx *context.APIContext) {
 		}
 	} else {
 		if !rel.IsTag {
-			ctx.Error(http.StatusConflict, "GetRelease", "Release is has no Tag")
+			ctx.Error(http.StatusConflict, "GetRelease", "Release has no Tag")
 			return
 		}
 
