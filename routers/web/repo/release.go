@@ -116,9 +116,17 @@ func releasesOrTags(ctx *context.Context, isTagList bool) {
 	ctx.Data["CanCreateRelease"] = writeAccess && !ctx.Repo.Repository.IsArchived
 
 	opts := models.FindReleasesOptions{
-		ListOptions:   listOptions,
-		IncludeDrafts: writeAccess && !isTagList,
-		IncludeTags:   isTagList,
+		ListOptions: listOptions,
+	}
+	if isTagList {
+		// for the tags list page, show all releases with real tags (having real commit-id),
+		// the drafts should also be included because a real tag might be used as a draft.
+		opts.IncludeDrafts = true
+		opts.IncludeTags = true
+		opts.HasSha1 = util.OptionalBoolTrue
+	} else {
+		// only show draft releases for users who can write, read-only users shouldn't see draft releases.
+		opts.IncludeDrafts = writeAccess
 	}
 
 	releases, err := models.GetReleasesByRepoID(ctx.Repo.Repository.ID, opts)
