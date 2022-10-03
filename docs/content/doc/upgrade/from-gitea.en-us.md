@@ -1,6 +1,8 @@
 ---
 date: "2021-09-02T16:00:00+08:00"
 title: "Upgrade from an old Gitea"
+aliases:
+  - /en-us/upgrade/
 slug: "upgrade-from-gitea"
 weight: 10
 toc: false
