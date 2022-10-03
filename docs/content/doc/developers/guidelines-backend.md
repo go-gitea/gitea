@@ -67,7 +67,7 @@ Some actions should allow for rollback when database record insertion/update/del
 So services must be allowed to create a database transaction. Here is some example,
 
 ```go
-// servcies/repository/repo.go
+// services/repository/repository.go
 func CreateXXXX() error {\
   ctx, committer, err := db.TxContext()
 	if err != nil {
@@ -101,7 +101,7 @@ func UpdateIssue(ctx context.Context, repoID int64) error {
 ### Package Name
 
 For the top level package, use a plural as package name, i.e. `services`, `models`, for sub packages, use singular,
-i.e. `servcies/user`, `models/repository`.
+i.e. `services/user`, `models/repository`.
 
 ### Import Alias
 
