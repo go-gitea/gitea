@@ -66,7 +66,7 @@ func TestPackageNuGet(t *testing.T) {
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate})
+		privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate}).(*user_model.User)
 
 		cases := []struct {
 			Owner        string
