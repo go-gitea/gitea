@@ -37,7 +37,7 @@ func NewInlineBracketParser() parser.InlineParser {
 	return defaultInlineBracketParser
 }
 
-// Trigger triggers this parser on $
+// Trigger returns nil
 func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
@@ -50,30 +50,42 @@ func isAlphanumeric(b byte) bool {
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
-	opener := bytes.Index(line, parser.start)
-	if opener < 0 {
-		return nil
-	}
-	if opener != 0 && isAlphanumeric(line[opener-1]) {
+
+	if !bytes.HasPrefix(line, parser.start) {
+		// We'll catch this one on the next time round
 		return nil
 	}
 
-	opener += len(parser.start)
+	precedingCharacter := block.PrecendingCharacter()
+	if precedingCharacter < 256 && isAlphanumeric(byte(precedingCharacter)) {
+		// need to exclude things like `a$` from being considered a start
+		return nil
+	}
+
+	// move the opener marker point at the start of the text
+	opener := len(parser.start)
+
+	// Now look for an ending line
 	ender := opener
-	for pos := opener; pos < len(line); {
-		ender = bytes.Index(line[pos:], parser.end)
-		if ender < 0 {
+	for {
+		pos := bytes.Index(line[ender:], parser.end)
+		if pos < 0 {
 			return nil
 		}
 
 		ender += pos
-		pos += len(parser.end)
+
+		// Now we want to check the character at the end of our parser section
+		// that is ender + len(parser.end)
+		pos = ender + len(parser.end)
 		if len(line) <= pos {
 			break
 		}
 		if !isAlphanumeric(line[pos]) {
 			break
 		}
+		// move the pointer onwards
+		ender += len(parser.end)
 	}
 
 	block.Advance(opener)
