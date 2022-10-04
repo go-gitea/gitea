@@ -7,6 +7,7 @@ package common
 import (
 	"fmt"
 	"net/http"
+	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -85,27 +86,21 @@ func Middlewares() []func(http.Handler) http.Handler {
 
 func stripSlashesMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		var path string
+		var urlPath string
 		rctx := chi.RouteContext(req.Context())
 		if rctx != nil && rctx.RoutePath != "" {
-			path = rctx.RoutePath
+			urlPath = rctx.RoutePath
 		} else {
-			path = req.URL.Path
+			urlPath = req.URL.Path
 		}
 
-		if len(path) > 1 {
-			var sanitisedPath string
-			splitPath := strings.Split(path, "/")
-			for _, entry := range splitPath {
-				if len(entry) > 0 {
-					sanitisedPath = sanitisedPath + "/" + entry
-				}
-			}
+		if len(urlPath) > 1 {
+			urlPath = path.Clean(urlPath)
 
 			if rctx == nil {
-				req.URL.Path = sanitisedPath
+				req.URL.Path = urlPath
 			} else {
-				rctx.RoutePath = sanitisedPath
+				rctx.RoutePath = urlPath
 			}
 		}
 		next.ServeHTTP(resp, req)
