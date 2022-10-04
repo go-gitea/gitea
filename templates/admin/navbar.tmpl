@@ -26,6 +26,11 @@
 		<a class="{{if .PageIsAdminEmails}}active{{end}} item" href="{{AppSubUrl}}/admin/emails">
 			{{.locale.Tr "admin.emails"}}
 		</a>
+		{{if .EnableOAuth2}}
+			<a class="{{if .PageIsAdminApplications}}active{{end}} item" href="{{AppSubUrl}}/admin/applications">
+				{{.locale.Tr "settings.applications"}}
+			</a>
+		{{end}}
 		<a class="{{if .PageIsAdminConfig}}active{{end}} item" href="{{AppSubUrl}}/admin/config">
 			{{.locale.Tr "admin.config"}}
 		</a>
