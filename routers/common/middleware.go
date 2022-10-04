@@ -16,7 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/web/routing"
 
 	"github.com/chi-middleware/proxy"
-	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/chi"
 )
 
 // Middlewares returns common middlewares
@@ -48,7 +48,8 @@ func Middlewares() []func(http.Handler) http.Handler {
 		handlers = append(handlers, proxy.ForwardedHeaders(opt))
 	}
 
-	handlers = append(handlers, middleware.StripSlashes)
+	// Strip slashes.
+	handlers = append(handlers, stripSlashesMiddleware)
 
 	if !setting.DisableRouterLog {
 		handlers = append(handlers, routing.NewLoggerHandler())
@@ -80,4 +81,33 @@ func Middlewares() []func(http.Handler) http.Handler {
 		})
 	})
 	return handlers
+}
+
+func stripSlashesMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		var path string
+		rctx := chi.RouteContext(req.Context())
+		if rctx != nil && rctx.RoutePath != "" {
+			path = rctx.RoutePath
+		} else {
+			path = req.URL.Path
+		}
+
+		if len(path) > 1 {
+			var sanitisedPath string
+			splitPath := strings.Split(path, "/")
+			for _, entry := range splitPath {
+				if len(entry) > 0 {
+					sanitisedPath = sanitisedPath + "/" + entry
+				}
+			}
+
+			if rctx == nil {
+				req.URL.Path = sanitisedPath
+			} else {
+				rctx.RoutePath = sanitisedPath
+			}
+		}
+		next.ServeHTTP(resp, req)
+	})
 }
