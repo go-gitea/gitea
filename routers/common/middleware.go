@@ -94,13 +94,18 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 			urlPath = req.URL.Path
 		}
 
+		var sanitizedPath string
 		if len(urlPath) > 1 {
-			urlPath = path.Clean(urlPath)
+			sanitizedPath = path.Clean(urlPath)
+
+			if string(urlPath[len(urlPath)-1]) == "/" {
+				sanitizedPath = sanitizedPath + "/"
+			}
 
 			if rctx == nil {
-				req.URL.Path = urlPath
+				req.URL.Path = sanitizedPath
 			} else {
-				rctx.RoutePath = urlPath
+				rctx.RoutePath = sanitizedPath
 			}
 		}
 		next.ServeHTTP(resp, req)
