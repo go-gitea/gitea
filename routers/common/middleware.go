@@ -99,7 +99,7 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 			sanitizedPath = path.Clean(urlPath)
 
 			if string(urlPath[len(urlPath)-1]) == "/" {
-				sanitizedPath = sanitizedPath + "/"
+				sanitizedPath += "/"
 			}
 
 			if rctx == nil {
