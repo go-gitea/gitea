@@ -33,6 +33,7 @@ require (
 	github.com/gliderlabs/ssh v0.3.5
 	github.com/go-ap/activitypub v0.0.0-20220917143152-e4e7018838c0
 	github.com/go-ap/jsonld v0.0.0-20220917142617-76bf51585778
+	github.com/go-chi/chi v1.5.4
 	github.com/go-chi/chi/v5 v5.0.7
 	github.com/go-chi/cors v1.2.1
 	github.com/go-enry/go-enry/v2 v2.8.2
@@ -170,7 +171,6 @@ require (
 	github.com/fxamacker/cbor/v2 v2.4.0 // indirect
 	github.com/go-ap/errors v0.0.0-20220917143055-4283ea5dae18 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.4 // indirect
-	github.com/go-chi/chi v1.5.4 // indirect
 	github.com/go-enry/go-oniguruma v1.2.1 // indirect
 	github.com/go-git/gcfg v1.5.0 // indirect
 	github.com/go-openapi/analysis v0.21.4 // indirect
