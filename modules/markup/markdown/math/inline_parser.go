@@ -37,7 +37,7 @@ func NewInlineBracketParser() parser.InlineParser {
 	return defaultInlineBracketParser
 }
 
-// Trigger triggers this parser on $
+// Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
@@ -50,29 +50,50 @@ func isAlphanumeric(b byte) bool {
 // Parse parses the current line and returns a result of parsing.
 func (parser *inlineParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	line, _ := block.PeekLine()
-	opener := bytes.Index(line, parser.start)
-	if opener < 0 {
-		return nil
-	}
-	if opener != 0 && isAlphanumeric(line[opener-1]) {
+
+	if !bytes.HasPrefix(line, parser.start) {
+		// We'll catch this one on the next time round
 		return nil
 	}
 
-	opener += len(parser.start)
-	ender := bytes.Index(line[opener:], parser.end)
-	if ender < 0 {
+	precedingCharacter := block.PrecendingCharacter()
+	if precedingCharacter < 256 && isAlphanumeric(byte(precedingCharacter)) {
+		// need to exclude things like `a$` from being considered a start
 		return nil
 	}
-	if len(line) > opener+ender+len(parser.end) && isAlphanumeric(line[opener+ender+len(parser.end)]) {
-		return nil
+
+	// move the opener marker point at the start of the text
+	opener := len(parser.start)
+
+	// Now look for an ending line
+	ender := opener
+	for {
+		pos := bytes.Index(line[ender:], parser.end)
+		if pos < 0 {
+			return nil
+		}
+
+		ender += pos
+
+		// Now we want to check the character at the end of our parser section
+		// that is ender + len(parser.end)
+		pos = ender + len(parser.end)
+		if len(line) <= pos {
+			break
+		}
+		if !isAlphanumeric(line[pos]) {
+			break
+		}
+		// move the pointer onwards
+		ender += len(parser.end)
 	}
 
 	block.Advance(opener)
 	_, pos := block.Position()
 	node := NewInline()
-	segment := pos.WithStop(pos.Start + ender)
+	segment := pos.WithStop(pos.Start + ender - opener)
 	node.AppendChild(node, ast.NewRawTextSegment(segment))
-	block.Advance(ender + len(parser.end))
+	block.Advance(ender - opener + len(parser.end))
 
 	trimBlock(node, block)
 	return node
