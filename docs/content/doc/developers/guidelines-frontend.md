@@ -21,7 +21,7 @@ menu:
 
 ## Background
 
-Gitea uses [Less CSS](https://lesscss.org), [Fomantic-UI](https://fomantic-ui.com/introduction/getting-started.html) (based on [jQuery](https://api.jquery.com)) and [Vue2](https://vuejs.org/v2/guide/) for its frontend.
+Gitea uses [Less CSS](https://lesscss.org), [Fomantic-UI](https://fomantic-ui.com/introduction/getting-started.html) (based on [jQuery](https://api.jquery.com)) and [Vue3](https://vuejs.org/) for its frontend.
 
 The HTML pages are rendered by [Go HTML Template](https://pkg.go.dev/html/template).
 
@@ -44,7 +44,7 @@ We recommend [Google HTML/CSS Style Guide](https://google.github.io/styleguide/h
 4. jQuery events across different features could use their own namespaces if there are potential conflicts.
 5. CSS styling for classes provided by frameworks should not be overwritten. Always use new class-names with 2-3 feature related keywords to overwrite framework styles.
 6. The backend can pass complex data to the frontend by using `ctx.PageData["myModuleData"] = map[]{}`
-7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue2 (or Vue3 in future).
+7. Simple pages and SEO-related pages use Go HTML Template render to generate static Fomantic-UI HTML output. Complex pages can use Vue3.
 
 ### Framework Usage
 
@@ -97,6 +97,6 @@ However, there are still some special cases, so the current guideline is:
 
 A lot of legacy code already existed before this document's written. It's recommended to refactor legacy code to follow the guidelines.
 
-### Vue2/Vue3 and JSX
+### Vue3 and JSX
 
-Gitea is using Vue2 now, we plan to upgrade to Vue3. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.
+Gitea is using Vue3 now. We decided not to introduce JSX to keep the HTML and the JavaScript code separated.

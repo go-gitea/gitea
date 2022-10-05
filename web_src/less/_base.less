@@ -158,6 +158,7 @@
   --color-tooltip-bg: #000000f0;
   --color-tooltip-text: #ffffff;
   --color-header-bar: #ffffff;
+  --color-label-active-bg: #d0d0d0;
   /* backgrounds */
   --checkbox-mask-checked: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 18 18" width="16" height="16"><path fill-rule="evenodd" d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"></path></svg>');
   --checkbox-mask-indeterminate: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="16" height="16"><path fill-rule="evenodd" d="M2 7.75A.75.75 0 012.75 7h10a.75.75 0 010 1.5h-10A.75.75 0 012 7.75z"></path></svg>');
@@ -393,6 +394,12 @@ a.commit-statuses-trigger {
   background: var(--color-grey);
 }
 
+.ui.active.label {
+  background: var(--color-label-active-bg);
+  border-color: var(--color-label-active-bg);
+  color: var(--color-text-dark);
+}
+
 .ui.link.menu .item:hover,
 .ui.menu .dropdown.item:hover,
 .ui.menu .link.item:hover,
@@ -478,8 +485,18 @@ a.commit-statuses-trigger {
   color: var(--color-text-light-2);
 }
 
+.ui.list .list > .item .header,
+.ui.list > .item .header {
+  color: var(--color-text-dark);
+}
+
 .ui.list .list > .item > .content,
 .ui.list > .item > .content {
+  color: var(--color-text);
+}
+
+.ui.list .list > .item .description,
+.ui.list > .item .description {
   color: var(--color-text);
 }
 
@@ -704,6 +721,12 @@ a.ui.card:hover,
   border-top-color: var(--color-secondary-alpha-50);
 }
 
+.ui.ui.ui.ui.table tr.active,
+.ui.ui.table td.active {
+  color: var(--color-text);
+  background: var(--color-active);
+}
+
 .ui.ui.selectable.table > tbody > tr:hover,
 .ui.table tbody tr td.selectable:hover {
   color: var(--color-text);
@@ -726,9 +749,20 @@ a.ui.card:hover,
 }
 
 .ui.modal > .header {
+  color: var(--color-text-dark);
+  background: var(--color-secondary-bg);
   border-color: var(--color-secondary);
   border-top-left-radius: var(--border-radius);
   border-top-right-radius: var(--border-radius);
+}
+
+.ui.modal > .content {
+  background: var(--color-body);
+}
+
+.ui.modal > .actions {
+  background: var(--color-secondary-bg);
+  border-color: var(--color-secondary);
 }
 
 .ui.modal > .close.inside,
@@ -1591,6 +1625,7 @@ i.icon.centerlock {
 .ui.labels a.label:hover,
 a.ui.label:hover {
   background: var(--color-hover);
+  border-color: var(--color-hover);
   color: var(--color-text);
 }
 
@@ -1615,7 +1650,7 @@ a.ui.label:hover {
   padding-left: 10px;
   padding-right: 10px;
   text-align: right !important;
-  color: rgba(27, 31, 35, .3);
+  color: var(--color-text-light-1);
   width: 1%;
   font-family: var(--fonts-monospace);
 

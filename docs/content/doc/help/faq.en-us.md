@@ -214,13 +214,13 @@ Our translations are currently crowd-sourced on our [Crowdin project](https://cr
 
 Whether you want to change a translation or add a new one, it will need to be there as all translations are overwritten in our CI via the Crowdin integration.
 
-## Hooks aren't running
+## Push Hook / Webhook aren't running
 
-If Gitea is not running hooks, a common cause is incorrect setup of SSH keys.
+If you can push but can't see push activities on the home dashboard, or the push doesn't trigger webhook, there are a few possibilities:
 
-See [SSH Issues](#ssh-issues) for more information.
-
-You can also try logging into the administration panel and running the `Resynchronize pre-receive, update and post-receive hooks of all repositories.` option.
+1. The git hooks are out of sync: run "Resynchronize pre-receive, update and post-receive hooks of all repositories" on the site admin panel
+2. The git repositories (and hooks) are stored on some filesystems (ex: mounted by NAS) which don't support script execution, make sure the filesystem supports `chmod a+x any-script`
+3. If you are using docker, make sure Docker Server (not the client) >= 20.10.6
 
 ## SSH issues
 
