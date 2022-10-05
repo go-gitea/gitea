@@ -37,7 +37,7 @@ func NewInlineBracketParser() parser.InlineParser {
 	return defaultInlineBracketParser
 }
 
-// Trigger returns nil
+// Trigger triggers this parser on $ or \
 func (parser *inlineParser) Trigger() []byte {
 	return parser.start[0:1]
 }
