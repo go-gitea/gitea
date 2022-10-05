@@ -40,9 +40,10 @@ func getRepoEditOptionFromRepo(repo *repo_model.Repository) *api.EditRepoOption 
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
-			ExternalTrackerURL:    config.ExternalTrackerURL,
-			ExternalTrackerFormat: config.ExternalTrackerFormat,
-			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+			ExternalTrackerURL:           config.ExternalTrackerURL,
+			ExternalTrackerFormat:        config.ExternalTrackerFormat,
+			ExternalTrackerStyle:         config.ExternalTrackerStyle,
+			ExternalTrackerRegexpPattern: config.ExternalTrackerRegexpPattern,
 		}
 	}
 	hasWiki := false
@@ -219,6 +220,17 @@ func TestAPIRepoEdit(t *testing.T) {
 		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
 		assert.Equal(t, *repo1editedOption.HasWiki, true)
 		assert.Equal(t, *repo1editedOption.ExternalWiki, *repoEditOption.ExternalWiki)
+
+		repoEditOption.ExternalTracker.ExternalTrackerStyle = "regexp"
+		repoEditOption.ExternalTracker.ExternalTrackerRegexpPattern = `(\d+)`
+		req = NewRequestWithJSON(t, "PATCH", url, &repoEditOption)
+		resp = session.MakeRequest(t, req, http.StatusOK)
+		DecodeJSON(t, resp, &repo)
+		assert.NotNil(t, repo)
+		repo1edited = unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+		repo1editedOption = getRepoEditOptionFromRepo(repo1edited)
+		assert.Equal(t, *repo1editedOption.HasIssues, true)
+		assert.Equal(t, *repo1editedOption.ExternalTracker, *repoEditOption.ExternalTracker)
 
 		// Do some tests with invalid URL for external tracker and wiki
 		repoEditOption.ExternalTracker.ExternalTrackerURL = "htp://www.somewebsite.com"
