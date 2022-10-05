@@ -33,6 +33,21 @@ func GetAsset(name string) ([]byte, error) {
 	return os.ReadFile(filepath.Join(setting.StaticRootPath, name))
 }
 
+// GetAssetFilename returns the filename of the provided asset
+func GetAssetFilename(name string) (string, error) {
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return filename, err
+	} else if err == nil {
+		return filename, nil
+	}
+
+	filename = filepath.Join(setting.StaticRootPath, name)
+	_, err = os.Stat(filename)
+	return filename, err
+}
+
 // walkTemplateFiles calls a callback for each template asset
 func walkTemplateFiles(callback func(path, name string, d fs.DirEntry, err error) error) error {
 	if err := walkAssetDir(filepath.Join(setting.CustomPath, "templates"), true, callback); err != nil && !os.IsNotExist(err) {
