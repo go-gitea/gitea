@@ -6,6 +6,7 @@ package markdown_test
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -37,6 +38,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	os.Exit(m.Run())
 }
 
 func TestRender_StandardLinks(t *testing.T) {

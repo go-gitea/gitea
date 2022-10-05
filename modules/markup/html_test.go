@@ -7,6 +7,7 @@ package markup_test
 import (
 	"context"
 	"io"
+	"os"
 	"strings"
 	"testing"
 
@@ -32,6 +33,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	os.Exit(m.Run())
 }
 
 func TestRender_Commits(t *testing.T) {
