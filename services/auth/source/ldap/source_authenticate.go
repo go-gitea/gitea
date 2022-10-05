@@ -1,4 +1,4 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -14,7 +14,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/services/mailer"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -104,8 +103,6 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	if err != nil {
 		return user, err
 	}
-
-	mailer.SendRegisterNotifyMail(user)
 
 	if isAttributeSSHPublicKeySet && asymkey_model.AddPublicKeysBySource(user, source.authSource, sr.SSHPublicKey) {
 		err = asymkey_model.RewriteAllPublicKeys()
