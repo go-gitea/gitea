@@ -38,7 +38,7 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 	var basic commonRenderConfig
 	if err := value.Decode(&basic); err != nil {
-		return fmt.Errorf("unable to decode into basicRenderConfig %w", err)
+		return fmt.Errorf("unable to decode into commonRenderConfig %w", err)
 	}
 
 	if basic.Lang != "" {
