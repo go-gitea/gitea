@@ -94,6 +94,9 @@
 						{{.root.CsrfTokenHtml}}
 						<input type="hidden" name="new_branch_name" v-model="searchTerm">
 						<input type="hidden" name="create_tag" v-model="createTag">
+						{{if $.root.TreePath}}
+							<input type="hidden" name="current_path" value="{{.root.TreePath}}">
+						{{end}}
 					</form>
 				</div>
 			</div>
