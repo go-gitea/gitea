@@ -32,12 +32,12 @@ func Dir(name string) ([]string, error) {
 	customDir := path.Join(setting.CustomPath, "options", name)
 	isDir, err := util.IsDir(customDir)
 	if err != nil {
-		return []string{}, fmt.Errorf("Failed to check if custom directory %s is a directory. %w", customDir, err)
+		return []string{}, fmt.Errorf("failed to check if custom directory %s is a directory. %w", customDir, err)
 	}
 	if isDir {
 		files, err := util.StatDir(customDir, true)
 		if err != nil {
-			return []string{}, fmt.Errorf("Failed to read custom directory %s. %w", customDir, err)
+			return []string{}, fmt.Errorf("failed to read custom directory %s. %w", customDir, err)
 		}
 
 		result = append(result, files...)
@@ -45,7 +45,7 @@ func Dir(name string) ([]string, error) {
 
 	files, err := AssetDir(name)
 	if err != nil {
-		return []string{}, fmt.Errorf("Failed to read embedded directory %s. %w", name, err)
+		return []string{}, fmt.Errorf("failed to read embedded directory %s. %w", name, err)
 	}
 
 	result = append(result, files...)
