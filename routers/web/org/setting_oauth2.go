@@ -1,11 +1,11 @@
 package org
 
 import (
-	"code.gitea.io/gitea/modules/base"
 	"fmt"
 	"net/http"
 
 	"code.gitea.io/gitea/models/auth"
+	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	user_setting "code.gitea.io/gitea/routers/web/user/setting"

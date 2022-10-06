@@ -427,8 +427,8 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/{id}", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsEdit)
 			m.Post("/{id}/regenerate_secret", user_setting.OAuthApplicationsRegenerateSecret)
 			m.Post("", bindIgnErr(forms.EditOAuth2ApplicationForm{}), user_setting.OAuthApplicationsPost)
-			m.Post("/delete", user_setting.DeleteOAuth2Application)
-			m.Post("/revoke", user_setting.RevokeOAuth2Grant)
+			m.Post("/{id}/delete", user_setting.DeleteOAuth2Application)
+			m.Post("/{id}/revoke/{grantId}", user_setting.RevokeOAuth2Grant)
 		})
 		m.Combo("/applications").Get(user_setting.Applications).
 			Post(bindIgnErr(forms.NewAccessTokenForm{}), user_setting.ApplicationsPost)
@@ -663,8 +663,8 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/avatar", bindIgnErr(forms.AvatarForm{}), org.SettingsAvatar)
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 				m.Group("/applications", func() {
-					m.Combo("").Get(org.Applications).
-						Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuthApplicationsPost)
+					m.Get("", org.Applications)
+					m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuthApplicationsPost)
 					m.Group("/oauth2/{id}", func() {
 						m.Combo("").Get(org.OAuth2ApplicationShow).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuth2ApplicationEdit)
 						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)

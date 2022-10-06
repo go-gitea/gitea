@@ -129,7 +129,7 @@ func (oa *OAuth2CommonHandlers) RegenerateSecret(ctx *context.Context) {
 
 // DeleteApp deletes the given oauth2 application
 func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
-	if err := auth.DeleteOAuth2Application(ctx.FormInt64("id"), oa.OwnerID); err != nil {
+	if err := auth.DeleteOAuth2Application(ctx.ParamsInt64("id"), oa.OwnerID); err != nil {
 		ctx.ServerError("DeleteOAuth2Application", err)
 		return
 	}
@@ -140,7 +140,7 @@ func (oa *OAuth2CommonHandlers) DeleteApp(ctx *context.Context) {
 
 // RevokeGrant revokes the grant
 func (oa *OAuth2CommonHandlers) RevokeGrant(ctx *context.Context) {
-	if err := auth.RevokeOAuth2Grant(ctx, ctx.FormInt64("id"), oa.OwnerID); err != nil {
+	if err := auth.RevokeOAuth2Grant(ctx, ctx.ParamsInt64("grantId"), oa.OwnerID); err != nil {
 		ctx.ServerError("RevokeOAuth2Grant", err)
 		return
 	}
