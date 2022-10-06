@@ -34,6 +34,21 @@ func TestStripSlashesMiddleware(t *testing.T) {
 			inputPath:    "https://git.data.coop//halfd/new-website.git",
 			expectedPath: "https://git.data.coop/halfd/new-website.git",
 		},
+		{
+			name:         "path with slashes in the middle",
+			inputPath:    "https://git.data.coop//halfd/new-website.git",
+			expectedPath: "https://git.data.coop/halfd/new-website.git",
+		},
+		{
+			name:         "path with slashes in the end",
+			inputPath:    "/user2//repo1/",
+			expectedPath: "/user2/repo1/",
+		},
+		{
+			name:         "path with slashes and query params",
+			inputPath:    "/repo//migrate?service_type=3",
+			expectedPath: "/repo/migrate?service_type=3",
+		},
 	}
 
 	for _, tt := range tests {
