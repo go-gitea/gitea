@@ -90,7 +90,7 @@ func handlePanicError(err error) {
 	wrapFatal(handleGenericTemplateError(err))
 }
 
-func wrapFatal(format string, args ...interface{}) {
+func wrapFatal(format string, args []interface{}) {
 	if format == "" {
 		return
 	}
@@ -180,43 +180,70 @@ func handleExpectedEnd(err error) (string, []interface{}) {
 	return "PANIC: Unable to compile templates due to missing end with unexpected %q in template file %s at line %d:\n%s\nStacktrace:\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
 }
 
-func getLineFromAsset(templateName string, lineNumber int, functionName string) string {
+const dashSeparator = "----------------------------------------------------------------------\n"
+
+func getLineFromAsset(templateName string, targetLineNum int, target string) string {
 	bs, err := GetAsset("templates/" + templateName + ".tmpl")
 	if err != nil {
 		return fmt.Sprintf("(unable to read template file: %v)", err)
 	}
 
 	sb := &strings.Builder{}
-	start := 0
+
+	// Write the header
+	sb.WriteString(dashSeparator)
+
 	var lineBs []byte
-	for i := 0; i < lineNumber && start < len(bs); i++ {
+
+	// Iterate through the lines from the asset file to find the target line
+	for start, currentLineNum := 0, 1; currentLineNum <= targetLineNum && start < len(bs); currentLineNum++ {
+		// Find the next new line
 		end := bytes.IndexByte(bs[start:], '\n')
+
+		// adjust the end to be a direct pointer in to []byte
 		if end < 0 {
 			end = len(bs)
 		} else {
 			end += start
 		}
+
+		// set lineBs to the current line []byte
 		lineBs = bs[start:end]
-		if lineNumber-i < 4 {
+
+		// move start to after the current new line position
+		start = end + 1
+
+		// Write 2 preceding lines + the target line
+		if targetLineNum-currentLineNum < 3 {
 			_, _ = sb.Write(lineBs)
 			_ = sb.WriteByte('\n')
 		}
-		start = end + 1
 	}
 
-	if functionName != "" {
-		idx := strings.Index(string(lineBs), functionName)
-		for i := range lineBs[:idx] {
-			if lineBs[i] != '\t' {
-				lineBs[i] = ' '
-			}
-		}
-		_, _ = sb.Write(lineBs[:idx])
+	// If there is a provided target to look for in the line add a pointer to it
+	// e.g.                                                        ^^^^^^^
+	if target != "" {
+		idx := bytes.Index(lineBs, []byte(target))
+
 		if idx >= 0 {
-			_, _ = sb.WriteString(strings.Repeat("^", len(functionName)))
+			// take the current line and replace preceding text with whitespace (except for tab)
+			for i := range lineBs[:idx] {
+				if lineBs[i] != '\t' {
+					lineBs[i] = ' '
+				}
+			}
+
+			// write the preceding "space"
+			_, _ = sb.Write(lineBs[:idx])
+
+			// Now write the ^^ pointer
+			_, _ = sb.WriteString(strings.Repeat("^", len(target)))
+			_ = sb.WriteByte('\n')
 		}
-		_ = sb.WriteByte('\n')
 	}
 
-	return strings.Repeat("-", 70) + "\n" + sb.String() + strings.Repeat("-", 70)
+	// Finally write the footer
+	sb.WriteString(dashSeparator)
+
+	return sb.String()
 }

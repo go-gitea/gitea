@@ -33,11 +33,12 @@ func GlobalModTime(filename string) time.Time {
 
 // GetAssetFilename returns the filename of the provided asset
 func GetAssetFilename(name string) (string, error) {
-	_, err := os.Stat(filepath.Join(setting.CustomPath, name))
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
 	if err != nil && !os.IsNotExist(err) {
 		return name, err
 	} else if err == nil {
-		return filepath.Join(setting.CustomPath, name), nil
+		return filepath.Join(filename), nil
 	}
 	return "(builtin) " + name, nil
 }
