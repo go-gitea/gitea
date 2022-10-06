@@ -6,6 +6,7 @@ package markdown_test
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -37,6 +38,7 @@ func TestMain(m *testing.M) {
 	if err := git.InitSimple(context.Background()); err != nil {
 		log.Fatal("git init failed, err: %v", err)
 	}
+	os.Exit(m.Run())
 }
 
 func TestRender_StandardLinks(t *testing.T) {
@@ -425,4 +427,52 @@ func TestRenderEmojiInLinks_Issue12331(t *testing.T) {
 	res, err := RenderString(&markup.RenderContext{}, testcase)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, res)
+}
+
+func TestMathBlock(t *testing.T) {
+	const nl = "\n"
+	testcases := []struct {
+		testcase string
+		expected string
+	}{
+		{
+			"$a$",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$ a $",
+			`<p><code class="language-math is-loading">a</code></p>` + nl,
+		},
+		{
+			"$a$ $b$",
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`\(a\) \(b\)`,
+			`<p><code class="language-math is-loading">a</code> <code class="language-math is-loading">b</code></p>` + nl,
+		},
+		{
+			`$a a$b b$`,
+			`<p><code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			`a a$b b`,
+			`<p>a a$b b</p>` + nl,
+		},
+		{
+			`a$b $a a$b b$`,
+			`<p>a$b <code class="language-math is-loading">a a$b b</code></p>` + nl,
+		},
+		{
+			"$$a$$",
+			`<pre class="code-block is-loading"><code class="chroma language-math display">a</code></pre>` + nl,
+		},
+	}
+
+	for _, test := range testcases {
+		res, err := RenderString(&markup.RenderContext{}, test.testcase)
+		assert.NoError(t, err, "Unexpected error in testcase: %q", test.testcase)
+		assert.Equal(t, test.expected, res, "Unexpected result in testcase %q", test.testcase)
+
+	}
 }

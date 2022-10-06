@@ -73,7 +73,7 @@ func ToPayloadCommit(repo *repo_model.Repository, c *git.Commit) *api.PayloadCom
 }
 
 // ToCommit convert a git.Commit to api.Commit
-func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User) (*api.Commit, error) {
+func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.Commit, userCache map[string]*user_model.User, stat bool) (*api.Commit, error) {
 	var apiAuthor, apiCommitter *api.User
 
 	// Retrieve author and committer information
@@ -133,28 +133,7 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 		}
 	}
 
-	// Retrieve files affected by the commit
-	fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
-	if err != nil {
-		return nil, err
-	}
-	affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
-	for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
-		for _, filename := range files {
-			affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
-				Filename: filename,
-			})
-		}
-	}
-
-	diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
-		AfterCommitID: commit.ID.String(),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return &api.Commit{
+	res := &api.Commit{
 		CommitMeta: &api.CommitMeta{
 			URL:     repo.APIURL() + "/git/commits/" + url.PathEscape(commit.ID.String()),
 			SHA:     commit.ID.String(),
@@ -188,11 +167,37 @@ func ToCommit(repo *repo_model.Repository, gitRepo *git.Repository, commit *git.
 		Author:    apiAuthor,
 		Committer: apiCommitter,
 		Parents:   apiParents,
-		Files:     affectedFileList,
-		Stats: &api.CommitStats{
+	}
+
+	// Retrieve files affected by the commit
+	if stat {
+		fileStatus, err := git.GetCommitFileStatus(gitRepo.Ctx, repo.RepoPath(), commit.ID.String())
+		if err != nil {
+			return nil, err
+		}
+		affectedFileList := make([]*api.CommitAffectedFiles, 0, len(fileStatus.Added)+len(fileStatus.Removed)+len(fileStatus.Modified))
+		for _, files := range [][]string{fileStatus.Added, fileStatus.Removed, fileStatus.Modified} {
+			for _, filename := range files {
+				affectedFileList = append(affectedFileList, &api.CommitAffectedFiles{
+					Filename: filename,
+				})
+			}
+		}
+
+		diff, err := gitdiff.GetDiff(gitRepo, &gitdiff.DiffOptions{
+			AfterCommitID: commit.ID.String(),
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		res.Files = affectedFileList
+		res.Stats = &api.CommitStats{
 			Total:     diff.TotalAddition + diff.TotalDeletion,
 			Additions: diff.TotalAddition,
 			Deletions: diff.TotalDeletion,
-		},
-	}, nil
+		}
+	}
+
+	return res, nil
 }

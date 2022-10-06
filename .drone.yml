@@ -573,7 +573,7 @@ steps:
   - name: test-e2e
     image: mcr.microsoft.com/playwright:v1.24.0-focal
     commands:
-      - curl -sLO https://go.dev/dl/go1.18.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.18.linux-amd64.tar.gz
+      - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get -qq update && apt-get -qqy install build-essential
       - export TEST_PGSQL_SCHEMA=''
