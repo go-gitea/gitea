@@ -406,6 +406,7 @@ unit-test-coverage:
 tidy:
 	$(eval MIN_GO_VERSION := $(shell grep -Eo '^go\s+[0-9]+\.[0-9.]+' go.mod | cut -d' ' -f2))
 	$(GO) mod tidy -compat=$(MIN_GO_VERSION)
+	@$(MAKE) --no-print-directory $(GO_LICENSE_FILE)
 
 vendor: go.mod go.sum
 	$(GO) mod vendor
@@ -413,7 +414,7 @@ vendor: go.mod go.sum
 
 .PHONY: tidy-check
 tidy-check: tidy
-	@diff=$$(git diff go.mod go.sum); \
+	@diff=$$(git diff go.mod go.sum $(GO_LICENSE_FILE)); \
 	if [ -n "$$diff" ]; then \
 		echo "Please run 'make tidy' and commit the result:"; \
 		echo "$${diff}"; \
@@ -709,17 +710,14 @@ install: $(wildcard *.go)
 build: frontend backend
 
 .PHONY: frontend
-frontend: generate-frontend $(WEBPACK_DEST)
+frontend: $(WEBPACK_DEST)
 
 .PHONY: backend
 backend: go-check generate-backend $(EXECUTABLE)
 
 # We generate the backend before the frontend in case we in future we want to generate things in the frontend from generated files in backend
 .PHONY: generate
-generate: generate-backend generate-frontend
-
-.PHONY: generate-frontend
-generate-frontend: $(GO_LICENSE_FILE)
+generate: generate-backend
 
 .PHONY: generate-backend
 generate-backend: $(TAGS_PREREQ) generate-go
