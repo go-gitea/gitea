@@ -47,6 +47,36 @@ func UpsertResourceIndex(ctx context.Context, tableName string, groupID int64) (
 	return err
 }
 
+// UpsertDecrResourceIndex the function will not return until it acquires the lock or receives an error.
+func UpsertDecrResourceIndex(ctx context.Context, tableName string, groupID, prevIdx int64) (err error) {
+	// An atomic UPSERT operation (INSERT/UPDATE) is the only operation
+	// that ensures that the key is actually locked.
+	// It will try to decrease the max_index, however if max_index is already higher,
+	// then don't try to decrease the index value.
+	switch {
+	case setting.Database.UseSQLite3 || setting.Database.UsePostgreSQL:
+		_, err = Exec(ctx, fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+			"VALUES (?,1) ON CONFLICT (group_id) DO UPDATE SET max_index = CASE WHEN %s.max_index = %d THEN %s.max_index-1 ELSE %s.max_index END",
+			tableName, tableName, prevIdx, tableName, tableName), groupID)
+	case setting.Database.UseMySQL:
+		_, err = Exec(ctx, fmt.Sprintf("INSERT INTO %s (group_id, max_index) "+
+			"VALUES (?,1) ON DUPLICATE KEY UPDATE max_index = CASE WHEN max_index = %d THEN max_index-1 ELSE max_index END", tableName, prevIdx),
+			groupID)
+	case setting.Database.UseMSSQL:
+		// https://weblogs.sqlteam.com/dang/2009/01/31/upsert-race-condition-with-merge/
+		_, err = Exec(ctx, fmt.Sprintf("MERGE %s WITH (HOLDLOCK) as target "+
+			"USING (SELECT ? AS group_id) AS src "+
+			"ON src.group_id = target.group_id "+
+			"WHEN MATCHED THEN UPDATE SET target.max_index = CASE WHEN target.max_index = %d THEN target.max_index-1 ELSE target.max_index END"+
+			"WHEN NOT MATCHED THEN INSERT (group_id, max_index) "+
+			"VALUES (src.group_id, 1);", tableName, prevIdx),
+			groupID)
+	default:
+		return fmt.Errorf("database type not supported")
+	}
+	return err
+}
+
 var (
 	// ErrResouceOutdated represents an error when request resource outdated
 	ErrResouceOutdated = errors.New("resource outdated")

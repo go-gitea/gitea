@@ -962,6 +962,7 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
+	return fmt.Errorf("getMilestoneByID: %v", err)
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
@@ -1077,12 +1078,27 @@ func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids
 	}
 	defer committer.Close()
 
+	// onFail will try to gracefully revert the update in the resource index.
+	onFail := func() error {
+		// Close commiter.
+		committer.Close()
+		// Try to revert the increase in resource index.
+		if err := db.UpsertDecrResourceIndex(db.DefaultContext, "issue_index", repo.ID, idx); err != nil {
+			return fmt.Errorf("UpsertDecrResourceIndex: %v", err)
+		}
+		return nil
+	}
+
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
 		LabelIDs:    labelIDs,
 		Attachments: uuids,
 	}); err != nil {
+		if err := onFail(); err != nil {
+			return fmt.Errorf("couldn't gracefully handle error: %v", err)
+		}
+
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
@@ -1090,6 +1106,10 @@ func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids
 	}
 
 	if err = committer.Commit(); err != nil {
+		if err := onFail(); err != nil {
+			return fmt.Errorf("couldn't gracefully handle error: %v", err)
+		}
+
 		return fmt.Errorf("Commit: %v", err)
 	}
 

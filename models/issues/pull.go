@@ -504,6 +504,17 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 	defer committer.Close()
 	ctx.WithContext(outerCtx)
 
+	// onFail will try to gracefully revert the update in the resource index.
+	onFail := func() error {
+		// Close commiter.
+		committer.Close()
+		// Try to revert the increase in resource index.
+		if err := db.UpsertDecrResourceIndex(outerCtx, "issue_index", repo.ID, idx); err != nil {
+			return fmt.Errorf("UpsertDecrResourceIndex: %v", err)
+		}
+		return nil
+	}
+
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
 		Issue:       issue,
@@ -511,6 +522,9 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 		Attachments: uuids,
 		IsPull:      true,
 	}); err != nil {
+		if err := onFail(); err != nil {
+			return fmt.Errorf("couldn't gracefully handle error: %v", err)
+		}
 		if repo_model.IsErrUserDoesNotHaveAccessToRepo(err) || IsErrNewIssueInsert(err) {
 			return err
 		}
@@ -521,10 +535,18 @@ func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue
 	pr.BaseRepo = repo
 	pr.IssueID = issue.ID
 	if err = db.Insert(ctx, pr); err != nil {
+		if err := onFail(); err != nil {
+			return fmt.Errorf("couldn't gracefully handle error: %v", err)
+		}
+
 		return fmt.Errorf("insert pull repo: %v", err)
 	}
 
 	if err = committer.Commit(); err != nil {
+		if err := onFail(); err != nil {
+			return fmt.Errorf("couldn't gracefully handle error: %v", err)
+		}
+
 		return fmt.Errorf("Commit: %v", err)
 	}
 
