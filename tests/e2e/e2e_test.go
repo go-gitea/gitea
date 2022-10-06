@@ -8,18 +8,17 @@
 package e2e
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -30,8 +29,6 @@ import (
 var c *web.Route
 
 func TestMain(m *testing.M) {
-	defer log.Close()
-
 	managerCtx, cancel := context.WithCancel(context.Background())
 	graceful.InitManager(managerCtx)
 	defer cancel()
@@ -98,20 +95,29 @@ func TestE2e(t *testing.T) {
 		t.Run(testname, func(t *testing.T) {
 			// Default 2 minute timeout
 			onGiteaRun(t, func(*testing.T, *url.URL) {
+				fmt.Printf("==== Running test %s, cmd: %s\n", testname, strings.Join(runArgs, " "))
 				cmd := exec.Command(runArgs[0], runArgs...)
 				cmd.Env = os.Environ()
 				cmd.Env = append(cmd.Env, fmt.Sprintf("GITEA_URL=%s", setting.AppURL))
-				var stdout, stderr bytes.Buffer
-				cmd.Stdout = &stdout
-				cmd.Stderr = &stderr
-				err := cmd.Run()
+				cmd.Env = append(cmd.Env, "DEBUG=pw:api,pw:browser")
+
+				// Currently colored output is conflicting. Using Printf until that is resolved.
+				/*
+					var stdout, stderr bytes.Buffer
+					cmd.Stdout = &stdout
+					cmd.Stderr = &stderr
+				*/
+				cmd.Stdout = os.Stdout
+				cmd.Stderr = os.Stdout
+				err = cmd.Run()
+				/*
+					fmt.Printf("---- STDOUT:\n")
+					_, _ = io.Copy(os.Stdout, &stdout)
+					fmt.Printf("---- STDERR:\n")
+					_, _ = io.Copy(os.Stdout, &stderr)
+				*/
 				if err != nil {
-					// Currently colored output is conflicting. Using Printf until that is resolved.
-					fmt.Printf("%v", stdout.String())
-					fmt.Printf("%v", stderr.String())
-					log.Fatal("Playwright Failed: %s", err)
-				} else {
-					fmt.Printf("%v", stdout.String())
+					t.Fatalf("playwright cmd error: %v", err)
 				}
 			})
 		})
