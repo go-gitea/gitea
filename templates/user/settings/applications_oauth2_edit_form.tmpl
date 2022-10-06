@@ -25,15 +25,15 @@
 		{{end}}
 		<div class="item">
 			<!-- TODO add regenerate secret functionality */ -->
-			{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
-			<form class="ui form ignore-dirty" action="{{if .PageIsOrgSettings}}{{AppSubUrl}}/org/{{.Org.Name}}/settings/applications/{{.App.ID}}/regenerate_secret{{else if $.PageIsSettingsApplications}}{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}/regenerate_secret{{end}}" method="post">
+			<form class="ui form ignore-dirty" action="{{.FormActionPath}}/regenerate_secret" method="post">
 				{{.CsrfTokenHtml}}
-				<a href="#" onclick="event.target.parentNode.submit()">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</a>
+				{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
+				<button class="ui tertiary button" type="submit">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</button>
 			</form>
 		</div>
 	</div>
 	<div class="ui attached bottom segment">
-		<form class="ui form ignore-dirty" action="{{if .PageIsOrgSettings}}{{AppSubUrl}}/org/{{.Org.Name}}/settings/applications/{{.App.ID}}{{else if $.PageIsSettingsApplications}}{{AppSubUrl}}/user/settings/applications/oauth2/{{.App.ID}}{{end}}" method="post">
+		<form class="ui form ignore-dirty" action="{{.FormActionPath}}" method="post">
 			{{.CsrfTokenHtml}}
 			<div class="field {{if .Err_AppName}}error{{end}}">
 				<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>

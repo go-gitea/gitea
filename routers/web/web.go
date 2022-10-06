@@ -664,11 +664,11 @@ func RegisterRoutes(m *web.Route) {
 				m.Post("/avatar/delete", org.SettingsDeleteAvatar)
 				m.Group("/applications", func() {
 					m.Combo("").Get(org.Applications).
-						Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.ApplicationsPost)
+						Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuthApplicationsPost)
 					m.Group("/{id}", func() {
-						m.Combo("").Get(org.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.EditApplicationPost)
-						m.Post("/regenerate_secret", org.ApplicationsRegenerateSecret)
-						m.Post("/delete", org.DeleteApplication)
+						m.Combo("").Get(org.OAuth2ApplicationShow).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), org.OAuth2ApplicationEdit)
+						m.Post("/regenerate_secret", org.OAuthApplicationsRegenerateSecret)
+						m.Post("/delete", org.DeleteOAuth2Application)
 					})
 				}, func(ctx *context.Context) {
 					if !setting.OAuth2.Enable {
