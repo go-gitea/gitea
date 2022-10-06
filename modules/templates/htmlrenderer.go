@@ -60,7 +60,7 @@ func HTMLRenderer(ctx context.Context) (context.Context, *render.Render) {
 		if ok {
 			handlePanicError(err)
 		}
-		log.Fatal("PANIC: Unable to compile templates: %v\nStacktrace:\n%s", panicked, log.Stack(2))
+		log.Fatal("PANIC: Unable to compile templates!\n%v\n\nStacktrace:\n%s", panicked, log.Stack(2))
 	}()
 
 	renderer := render.New(render.Options{
