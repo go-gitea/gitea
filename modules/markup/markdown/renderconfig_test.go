@@ -5,6 +5,7 @@
 package markdown
 
 import (
+	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
@@ -81,9 +82,9 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 				TOC:  true,
 				Lang: "testlang",
 			}, `
-	include_toc: true
-	lang: testlang
-`,
+				include_toc: true
+				lang: testlang
+				`,
 		},
 		{
 			"complexlang", &RenderConfig{
@@ -91,9 +92,9 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 				Icon: "table",
 				Lang: "testlang",
 			}, `
-	gitea:
-		lang: testlang
-`,
+				gitea:
+					lang: testlang
+				`,
 		},
 		{
 			"complexlang2", &RenderConfig{
@@ -140,8 +141,8 @@ func TestRenderConfig_UnmarshalYAML(t *testing.T) {
 				Icon: "table",
 				Lang: "",
 			}
-			if err := yaml.Unmarshal([]byte(tt.args), got); err != nil {
-				t.Errorf("RenderConfig.UnmarshalYAML() error = %v", err)
+			if err := yaml.Unmarshal([]byte(strings.ReplaceAll(tt.args, "\t", "    ")), got); err != nil {
+				t.Errorf("RenderConfig.UnmarshalYAML() error = %v\n%q", err, tt.args)
 				return
 			}
 

@@ -52,7 +52,7 @@ Gitea的首要目标是创建一个极易安装，运行非常快速，安装和
 - UI 框架：
   - [jQuery](https://jquery.com)
   - [Fomantic UI](https://fomantic-ui.com)
-  - [Vue2](https://vuejs.org)
+  - [Vue3](https://vuejs.org)
   - 更多组件参见 package.json
 - 编辑器：
   - [CodeMirror](https://codemirror.net)
