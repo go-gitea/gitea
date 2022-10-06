@@ -94,7 +94,7 @@ func wrapFatal(format string, args []interface{}) {
 	if format == "" {
 		return
 	}
-	log.Fatal(format, args...)
+	log.FatalWithSkip(1, format, args...)
 }
 
 func handleGenericTemplateError(err error) (string, []interface{}) {
@@ -114,7 +114,7 @@ func handleGenericTemplateError(err error) (string, []interface{}) {
 
 	line := getLineFromAsset(templateName, lineNumber, "")
 
-	return "PANIC: Unable to compile templates due to: %s in template file %s at line %d:\n%s\nStacktrace:\n%s", []interface{}{message, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
+	return "PANIC: Unable to compile templates!\n%s in template file %s at line %d:\n\n%s\nStacktrace:\n\n%s", []interface{}{message, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
 }
 
 func handleNotDefinedPanicError(err error) (string, []interface{}) {
@@ -136,7 +136,7 @@ func handleNotDefinedPanicError(err error) (string, []interface{}) {
 
 	line := getLineFromAsset(templateName, lineNumber, functionName)
 
-	return "PANIC: Unable to compile templates due to undefined function %q in template file %s at line %d:\n%s\nStacktrace:\n%s", []interface{}{functionName, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
+	return "PANIC: Unable to compile templates!\nUndefined function %q in template file %s at line %d:\n\n%s", []interface{}{functionName, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
 
 func handleUnexpected(err error) (string, []interface{}) {
@@ -157,7 +157,7 @@ func handleUnexpected(err error) (string, []interface{}) {
 
 	line := getLineFromAsset(templateName, lineNumber, unexpected)
 
-	return "PANIC: Unable to compile templates due to unexpected %q in template file %s at line %d:\n%s\nStacktrace:\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
+	return "PANIC: Unable to compile templates!\nUnexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
 
 func handleExpectedEnd(err error) (string, []interface{}) {
@@ -177,7 +177,7 @@ func handleExpectedEnd(err error) (string, []interface{}) {
 
 	line := getLineFromAsset(templateName, lineNumber, unexpected)
 
-	return "PANIC: Unable to compile templates due to missing end with unexpected %q in template file %s at line %d:\n%s\nStacktrace:\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset), log.Stack(2)}
+	return "PANIC: Unable to compile templates!\nMissing end with unexpected %q in template file %s at line %d:\n\n%s", []interface{}{unexpected, filename, lineNumber, log.NewColoredValue(line, log.Reset)}
 }
 
 const dashSeparator = "----------------------------------------------------------------------\n"
