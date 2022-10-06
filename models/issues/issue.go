@@ -962,7 +962,6 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 	e := db.GetEngine(ctx)
 	opts.Issue.Title = strings.TrimSpace(opts.Issue.Title)
 
-	return fmt.Errorf("getMilestoneByID: %v", err)
 	if opts.Issue.MilestoneID > 0 {
 		milestone, err := GetMilestoneByRepoID(ctx, opts.Issue.RepoID, opts.Issue.MilestoneID)
 		if err != nil && !IsErrMilestoneNotExist(err) {
