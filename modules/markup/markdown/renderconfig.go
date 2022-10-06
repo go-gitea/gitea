@@ -5,9 +5,8 @@
 package markdown
 
 import (
+	"fmt"
 	"strings"
-
-	"code.gitea.io/gitea/modules/log"
 
 	"github.com/yuin/goldmark/ast"
 	"gopkg.in/yaml.v3"
@@ -33,17 +32,13 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 	rc.yamlNode = value
 
-	type basicRenderConfig struct {
-		Gitea *yaml.Node `yaml:"gitea"`
-		TOC   bool       `yaml:"include_toc"`
-		Lang  string     `yaml:"lang"`
+	type commonRenderConfig struct {
+		TOC  bool   `yaml:"include_toc"`
+		Lang string `yaml:"lang"`
 	}
-
-	var basic basicRenderConfig
-
-	err := value.Decode(&basic)
-	if err != nil {
-		return err
+	var basic commonRenderConfig
+	if err := value.Decode(&basic); err != nil {
+		return fmt.Errorf("unable to decode into commonRenderConfig %w", err)
 	}
 
 	if basic.Lang != "" {
@@ -51,14 +46,48 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 	}
 
 	rc.TOC = basic.TOC
-	if basic.Gitea == nil {
+
+	type controlStringRenderConfig struct {
+		Gitea string `yaml:"gitea"`
+	}
+
+	var stringBasic controlStringRenderConfig
+
+	if err := value.Decode(&stringBasic); err == nil {
+		if stringBasic.Gitea != "" {
+			switch strings.TrimSpace(strings.ToLower(stringBasic.Gitea)) {
+			case "none":
+				rc.Meta = "none"
+			case "table":
+				rc.Meta = "table"
+			default: // "details"
+				rc.Meta = "details"
+			}
+		}
 		return nil
 	}
 
-	var control *string
-	if err := basic.Gitea.Decode(&control); err == nil && control != nil {
-		log.Info("control %v", control)
-		switch strings.TrimSpace(strings.ToLower(*control)) {
+	type giteaControl struct {
+		Meta *string `yaml:"meta"`
+		Icon *string `yaml:"details_icon"`
+		TOC  *bool   `yaml:"include_toc"`
+		Lang *string `yaml:"lang"`
+	}
+
+	type complexGiteaConfig struct {
+		Gitea *giteaControl `yaml:"gitea"`
+	}
+	var complex complexGiteaConfig
+	if err := value.Decode(&complex); err != nil {
+		return fmt.Errorf("unable to decode into complexRenderConfig %w", err)
+	}
+
+	if complex.Gitea == nil {
+		return nil
+	}
+
+	if complex.Gitea.Meta != nil {
+		switch strings.TrimSpace(strings.ToLower(*complex.Gitea.Meta)) {
 		case "none":
 			rc.Meta = "none"
 		case "table":
@@ -66,39 +95,18 @@ func (rc *RenderConfig) UnmarshalYAML(value *yaml.Node) error {
 		default: // "details"
 			rc.Meta = "details"
 		}
-		return nil
 	}
 
-	type giteaControl struct {
-		Meta string     `yaml:"meta"`
-		Icon string     `yaml:"details_icon"`
-		TOC  *yaml.Node `yaml:"include_toc"`
-		Lang string     `yaml:"lang"`
+	if complex.Gitea.Icon != nil {
+		rc.Icon = strings.TrimSpace(strings.ToLower(*complex.Gitea.Icon))
 	}
 
-	var controlStruct *giteaControl
-	if err := basic.Gitea.Decode(controlStruct); err != nil || controlStruct == nil {
-		return err
+	if complex.Gitea.Lang != nil && *complex.Gitea.Lang != "" {
+		rc.Lang = *complex.Gitea.Lang
 	}
 
-	switch strings.TrimSpace(strings.ToLower(controlStruct.Meta)) {
-	case "none":
-		rc.Meta = "none"
-	case "table":
-		rc.Meta = "table"
-	default: // "details"
-		rc.Meta = "details"
-	}
-
-	rc.Icon = strings.TrimSpace(strings.ToLower(controlStruct.Icon))
-
-	if controlStruct.Lang != "" {
-		rc.Lang = controlStruct.Lang
-	}
-
-	var toc bool
-	if err := controlStruct.TOC.Decode(&toc); err == nil {
-		rc.TOC = toc
+	if complex.Gitea.TOC != nil {
+		rc.TOC = *complex.Gitea.TOC
 	}
 
 	return nil
