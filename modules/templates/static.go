@@ -38,7 +38,7 @@ func GetAssetFilename(name string) (string, error) {
 	if err != nil && !os.IsNotExist(err) {
 		return name, err
 	} else if err == nil {
-		return filepath.Join(filename), nil
+		return filename, nil
 	}
 	return "(builtin) " + name, nil
 }
