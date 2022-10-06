@@ -100,8 +100,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
-      - touch go.mod # ensure the 'go-licenses' make target runs
-      - make checks-backend
+      - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
     volumes:
       - name: deps
