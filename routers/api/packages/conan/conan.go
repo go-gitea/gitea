@@ -342,8 +342,7 @@ func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
 			Name:        rref.Name,
 			Version:     rref.Version,
 		},
-		SemverCompatible: true,
-		Creator:          ctx.Doer,
+		Creator: ctx.Doer,
 	}
 	pfci := &packages_service.PackageFileCreationInfo{
 		PackageFileInfo: packages_service.PackageFileInfo{
