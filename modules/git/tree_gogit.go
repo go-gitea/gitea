@@ -57,9 +57,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 	return entries, nil
 }
 
-// ListEntriesRecursive returns all entries of current tree recursively including all subtrees
-// extraArgs takes no effect (for nogogit version, it controls whether getting the blob size)
-func (t *Tree) ListEntriesRecursive(extraArgs ...string) (Entries, error) {
+// ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
+func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	if t.gogitTree == nil {
 		err := t.loadTreeObject()
 		if err != nil {
@@ -92,4 +91,9 @@ func (t *Tree) ListEntriesRecursive(extraArgs ...string) (Entries, error) {
 	}
 
 	return entries, nil
+}
+
+// ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
+func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
+	return t.ListEntriesRecursiveWithSize()
 }

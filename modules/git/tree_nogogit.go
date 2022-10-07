@@ -99,9 +99,9 @@ func (t *Tree) ListEntries() (Entries, error) {
 	return t.entries, err
 }
 
-// ListEntriesRecursive returns all entries of current tree recursively including all subtrees
+// listEntriesRecursive returns all entries of current tree recursively including all subtrees
 // extraArgs could be "-l" to get the size, which is slower
-func (t *Tree) ListEntriesRecursive(extraArgs ...string) (Entries, error) {
+func (t *Tree) listEntriesRecursive(extraArgs ...string) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
@@ -120,4 +120,14 @@ func (t *Tree) ListEntriesRecursive(extraArgs ...string) (Entries, error) {
 	}
 
 	return t.entriesRecursive, err
+}
+
+// ListEntriesRecursiveFast returns all entries of current tree recursively including all subtrees, no size
+func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
+	return t.listEntriesRecursive()
+}
+
+// ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees, with size
+func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
+	return t.listEntriesRecursive("--long")
 }
