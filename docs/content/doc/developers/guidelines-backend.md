@@ -68,21 +68,17 @@ So services must be allowed to create a database transaction. Here is some examp
 
 ```go
 // services/repository/repository.go
-func CreateXXXX() error {\
-  ctx, committer, err := db.TxContext()
-	if err != nil {
-		return err
-	}
-	defer committer.Close()
-
-  // do something, if return err, it will rollback automatically when `committer.Close()` is invoked.
-  if err := issues.UpdateIssue(ctx, repoID); err != nil {
-      // ...
-  }
-
-  // ......
-
-  return committer.Commit()
+func CreateXXXX() error {
+    return db.WithTx(func(ctx context.Context) error {
+        e := db.GetEngine(ctx)
+        // do something, if err is returned, it will rollback automatically
+        if err := issues.UpdateIssue(ctx, repoID); err != nil {
+            // ...
+            return err
+        }
+        // ...
+        return nil
+    })
 }
 ```
 
@@ -94,7 +90,7 @@ If the function will be used in the transaction, just let `context.Context` as t
 func UpdateIssue(ctx context.Context, repoID int64) error {
     e := db.GetEngine(ctx)
 
-    // ......
+    // ...
 }
 ```
 
