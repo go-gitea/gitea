@@ -524,7 +524,9 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 	}
 
 	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		IncludeTags: true,
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
