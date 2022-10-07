@@ -39,6 +39,10 @@ func (s *Session) Verify(req *http.Request, w http.ResponseWriter, store DataSto
 
 // SessionUser returns the user object corresponding to the "uid" session variable.
 func SessionUser(sess SessionStore) *user_model.User {
+	if sess == nil {
+		return nil
+	}
+
 	// Get user ID
 	uid := sess.Get("uid")
 	if uid == nil {
