@@ -97,12 +97,12 @@ chown root:git /etc/gitea
 chmod 770 /etc/gitea
 ```
 
-**NOTE:** `/etc/gitea` is temporarily set with write permissions for user `git` so that the web installer can write the configuration file. After the installation is finished, it is recommended to set permissions to read-only using:
-
-```sh
-chmod 750 /etc/gitea
-chmod 640 /etc/gitea/app.ini
-```
+> **NOTE:** `/etc/gitea` is temporarily set with write permissions for user `git` so that the web installer can write the configuration file. After the installation is finished, it is recommended to set permissions to read-only using:
+>
+> ```sh
+> chmod 750 /etc/gitea
+> chmod 640 /etc/gitea/app.ini
+> ```
 
 If you don't want the web installer to be able to write to the config file, it is possible to make the config file read-only for the Gitea user (owner/group `root:git`, mode `0640`) however you will need to edit your config file manually to:
 

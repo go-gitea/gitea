@@ -414,6 +414,8 @@ var migrations = []Migration{
 	// v225 -> v226
 	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
 	// v226 -> v227
+	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	// v227 -> v228
 	NewMigration("Convert columns from NULL to NOT NULL DEFAULT", convertFromNullToDefault),
 }
 

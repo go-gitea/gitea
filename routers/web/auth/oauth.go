@@ -588,7 +588,8 @@ func OIDCKeys(ctx *context.Context) {
 // AccessTokenOAuth manages all access token requests by the client
 func AccessTokenOAuth(ctx *context.Context) {
 	form := *web.GetForm(ctx).(*forms.AccessTokenForm)
-	if form.ClientID == "" {
+	// if there is no ClientID or ClientSecret in the request body, fill these fields by the Authorization header and ensure the provided field matches the Authorization header
+	if form.ClientID == "" || form.ClientSecret == "" {
 		authHeader := ctx.Req.Header.Get("Authorization")
 		authContent := strings.SplitN(authHeader, " ", 2)
 		if len(authContent) == 2 && authContent[0] == "Basic" {
@@ -608,7 +609,21 @@ func AccessTokenOAuth(ctx *context.Context) {
 				})
 				return
 			}
+			if form.ClientID != "" && form.ClientID != pair[0] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_id in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientID = pair[0]
+			if form.ClientSecret != "" && form.ClientSecret != pair[1] {
+				handleAccessTokenError(ctx, AccessTokenError{
+					ErrorCode:        AccessTokenErrorCodeInvalidRequest,
+					ErrorDescription: "client_secret in request body inconsistent with Authorization header",
+				})
+				return
+			}
 			form.ClientSecret = pair[1]
 		}
 	}
@@ -645,7 +660,7 @@ func handleRefreshToken(ctx *context.Context, form forms.AccessTokenForm, server
 	if err != nil {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unable to parse refresh token",
 		})
 		return
 	}
@@ -686,16 +701,20 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 		return
 	}
 	if !app.ValidateClientSecret([]byte(form.ClientSecret)) {
+		errorDescription := "invalid client secret"
+		if form.ClientSecret == "" {
+			errorDescription = "invalid empty client secret"
+		}
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: errorDescription,
 		})
 		return
 	}
 	if form.RedirectURI != "" && !app.ContainsRedirectURI(form.RedirectURI) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "unexpected redirect URI",
 		})
 		return
 	}
@@ -711,7 +730,7 @@ func handleAuthorizationCode(ctx *context.Context, form forms.AccessTokenForm, s
 	if !authorizationCode.ValidateCodeChallenge(form.CodeVerifier) {
 		handleAccessTokenError(ctx, AccessTokenError{
 			ErrorCode:        AccessTokenErrorCodeUnauthorizedClient,
-			ErrorDescription: "client is not authorized",
+			ErrorDescription: "failed PKCE code challenge",
 		})
 		return
 	}

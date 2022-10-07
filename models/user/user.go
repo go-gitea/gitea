@@ -893,14 +893,19 @@ func UpdateUser(ctx context.Context, u *User, changePrimaryEmail bool, cols ...s
 		if err != nil {
 			return err
 		}
-		if !has {
-			// 1. Update old primary email
-			if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
-				IsPrimary: false,
-			}); err != nil {
-				return err
+		if has && emailAddress.UID != u.ID {
+			return ErrEmailAlreadyUsed{
+				Email: u.Email,
 			}
+		}
+		// 1. Update old primary email
+		if _, err = e.Where("uid=? AND is_primary=?", u.ID, true).Cols("is_primary").Update(&EmailAddress{
+			IsPrimary: false,
+		}); err != nil {
+			return err
+		}
 
+		if !has {
 			emailAddress.Email = u.Email
 			emailAddress.UID = u.ID
 			emailAddress.IsActivated = true

@@ -4,14 +4,13 @@ import AddAssetPlugin from 'add-asset-webpack-plugin';
 import LicenseCheckerWebpackPlugin from 'license-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import MonacoWebpackPlugin from 'monaco-editor-webpack-plugin';
-import VueLoader from 'vue-loader';
+import {VueLoaderPlugin} from 'vue-loader';
 import EsBuildLoader from 'esbuild-loader';
 import {parse, dirname} from 'path';
 import webpack from 'webpack';
 import {fileURLToPath} from 'url';
 import {readFileSync} from 'fs';
 
-const {VueLoaderPlugin} = VueLoader;
 const {ESBuildMinifyPlugin} = EsBuildLoader;
 const {SourceMapDevToolPlugin} = webpack;
 const formatLicenseText = (licenseText) => wrapAnsi(licenseText || '', 80).trim();
@@ -242,9 +241,6 @@ export default {
   },
   resolve: {
     symlinks: false,
-    alias: {
-      vue$: 'vue/dist/vue.esm.js', // needed because vue's default export is the runtime only
-    },
   },
   watchOptions: {
     ignored: [
