@@ -227,11 +227,11 @@ func TestPackageContainer(t *testing.T) {
 
 				t.Run("Cancel", func(t *testing.T) {
 					defer tests.PrintCurrentTest(t)()
-	
+
 					req := NewRequest(t, "POST", fmt.Sprintf("%s/blobs/uploads", url))
 					addTokenAuthHeader(req, userToken)
 					resp := MakeRequest(t, req, http.StatusAccepted)
-	
+
 					uuid := resp.Header().Get("Docker-Upload-Uuid")
 					assert.NotEmpty(t, uuid)
 
