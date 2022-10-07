@@ -22,7 +22,7 @@ func TreeList(ctx *context.Context) {
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursive() // do not need the size, so use the faster arguments
 	if err != nil {
 		ctx.ServerError("ListEntriesRecursive", err)
 		return

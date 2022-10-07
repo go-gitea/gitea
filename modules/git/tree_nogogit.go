@@ -100,12 +100,15 @@ func (t *Tree) ListEntries() (Entries, error) {
 }
 
 // ListEntriesRecursive returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursive() (Entries, error) {
+// extraArgs could be "-l" to get the size, which is slower
+func (t *Tree) ListEntriesRecursive(extraArgs ...string) (Entries, error) {
 	if t.entriesRecursiveParsed {
 		return t.entriesRecursive, nil
 	}
 
-	stdout, _, runErr := NewCommand(t.repo.Ctx, "ls-tree", "-t", "-l", "-r", t.ID.String()).RunStdBytes(&RunOpts{Dir: t.repo.Path})
+	args := append([]string{"ls-tree", "-t", "-r"}, extraArgs...)
+	args = append(args, t.ID.String())
+	stdout, _, runErr := NewCommand(t.repo.Ctx, args...).RunStdBytes(&RunOpts{Dir: t.repo.Path})
 	if runErr != nil {
 		return nil, runErr
 	}
