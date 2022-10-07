@@ -46,6 +46,7 @@ import (
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
 	wiki_service "code.gitea.io/gitea/services/wiki"
+	secret_service "code.gitea.io/gitea/services/secrets"
 )
 
 const (
@@ -1112,6 +1113,13 @@ func DeployKeys(ctx *context.Context) {
 		return
 	}
 	ctx.Data["Deploykeys"] = keys
+
+	tokens, err := secret_service.FindRepoSecrets(ctx, ctx.Repo.Repository.ID)
+	if err != nil {
+		ctx.ServerError("FindRepoSecrets", err)
+		return
+	}
+	ctx.Data["Tokens"] = tokens
 
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
