@@ -36,7 +36,7 @@ func TestPackageNpm(t *testing.T) {
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
 	packageBinName := "cli"
-	packageBinPath := "cli.sh"
+	packageBinPath := "./cli.sh"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
