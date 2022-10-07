@@ -264,11 +264,12 @@ a.blob-excerpt:hover {
 }
 
 .changed-since-last-review {
-  margin: 0 5px;
-  padding: 0 3px;
-  border: 2px var(--color-primary-light-3) solid;
-  background-color: var(--color-primary-alpha-30);
-  border-radius: 7px;
+  border: 1px var(--color-accent) solid;
+  background-color: var(--color-small-accent);
+  border-radius: 15px;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  font-size: .857rem; // just like .ui.tiny.button
 }
 
 .viewed-file-form {
@@ -286,8 +287,8 @@ a.blob-excerpt:hover {
 }
 
 .viewed-file-checked-form {
-  background-color: var(--color-primary-light-6);
-  border: 1px solid var(--color-primary-light-4);
+  background-color: var(--color-small-accent);
+  border: 1px solid var(--color-accent);
 }
 
 #viewed-files-summary {

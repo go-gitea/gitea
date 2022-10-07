@@ -57,8 +57,8 @@ func (t *Tree) ListEntries() (Entries, error) {
 	return entries, nil
 }
 
-// ListEntriesRecursive returns all entries of current tree recursively including all subtrees
-func (t *Tree) ListEntriesRecursive() (Entries, error) {
+// ListEntriesRecursiveWithSize returns all entries of current tree recursively including all subtrees
+func (t *Tree) ListEntriesRecursiveWithSize() (Entries, error) {
 	if t.gogitTree == nil {
 		err := t.loadTreeObject()
 		if err != nil {
@@ -91,4 +91,9 @@ func (t *Tree) ListEntriesRecursive() (Entries, error) {
 	}
 
 	return entries, nil
+}
+
+// ListEntriesRecursiveFast is the alias of ListEntriesRecursiveWithSize for the gogit version
+func (t *Tree) ListEntriesRecursiveFast() (Entries, error) {
+	return t.ListEntriesRecursiveWithSize()
 }
