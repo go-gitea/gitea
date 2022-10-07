@@ -171,6 +171,10 @@
 							{{.locale.Tr "your_starred"}}
 						</a>
 					{{end}}
+					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+						{{svg "octicon-bell"}}
+						{{.locale.Tr "notification.subscriptions"}}<!-- Subscriptions -->
+					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.locale.Tr "your_settings"}}<!-- Your settings -->

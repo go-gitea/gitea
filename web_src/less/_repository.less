@@ -3068,6 +3068,35 @@ td.blob-excerpt {
   padding-left: 8px;
 }
 
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none;
+  }
+}
+
 .ui.message.unicode-escape-prompt {
   margin-bottom: 0;
   border-radius: 0;
