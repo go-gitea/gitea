@@ -269,7 +269,7 @@ func convertFromNullToDefault(x *xorm.Engine) error {
 		&UserBadge{},
 	}
 
-	if setting.Database.UseSQLite3 {
+	if setting.Database.UseSQLite3 || setting.Database.UseMSSQL {
 		sess := x.NewSession()
 		defer sess.Close()
 		if err := sess.Begin(); err != nil {
