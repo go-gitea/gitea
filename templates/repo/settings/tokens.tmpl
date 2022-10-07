@@ -1,8 +1,4 @@
-{{template "base/head" .}}
-<div class="page-content repository settings">
-	{{template "repo/header" .}}
-	{{template "repo/settings/navbar" .}}
-	<div class="ui container">
+<div class="ui container">
 		{{template "base/alert" .}}
 		<h4 class="ui top attached header">
 			{{.locale.Tr "repo.settings.deploy_keys"}}
@@ -75,27 +71,3 @@
 			{{end}}
 		</div>
 	</div>
-
-	{{template "settings/tokens" .}}
-</div>
-
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.settings.deploy_key_deletion"}}
-	</div>
-	<div class="content">
-		<p>{{.locale.Tr "repo.settings.deploy_key_deletion_desc"}}</p>
-	</div>
-	<div class="actions">
-		<div class="ui red basic inverted cancel button">
-			<i class="remove icon"></i>
-			{{.locale.Tr "modal.no"}}
-		</div>
-		<div class="ui green basic inverted ok button">
-			<i class="checkmark icon"></i>
-			{{.locale.Tr "modal.yes"}}
-		</div>
-	</div>
-</div>
-{{template "base/footer" .}}
