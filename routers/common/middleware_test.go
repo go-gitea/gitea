@@ -42,7 +42,7 @@ func TestStripSlashesMiddleware(t *testing.T) {
 		{
 			name:         "path with slashes in the end",
 			inputPath:    "/user2//repo1/",
-			expectedPath: "/user2/repo1/",
+			expectedPath: "/user2/repo1",
 		},
 		{
 			name:         "path with slashes and query params",

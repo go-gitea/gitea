@@ -7,7 +7,6 @@ package common
 import (
 	"fmt"
 	"net/http"
-	"path"
 	"strings"
 
 	"code.gitea.io/gitea/modules/context"
@@ -94,18 +93,31 @@ func stripSlashesMiddleware(next http.Handler) http.Handler {
 			urlPath = req.URL.Path
 		}
 
-		var sanitizedPath string
+		// var sanitizedPath string
 		if len(urlPath) > 1 {
-			sanitizedPath = path.Clean(urlPath)
+			sanitizedPath := make([]rune, 0, len(urlPath))
 
-			if string(urlPath[len(urlPath)-1]) == "/" {
-				sanitizedPath += "/"
+			prevWasSlash := false
+			for _, chr := range urlPath {
+				if chr != '/' {
+					sanitizedPath = append(sanitizedPath, chr)
+					prevWasSlash = false
+					continue
+				}
+				if prevWasSlash {
+					continue
+				}
+				sanitizedPath = append(sanitizedPath, chr)
+				prevWasSlash = true
 			}
 
+			// Always remove the leading slash.
+			modifiedPath := strings.TrimSuffix(string(sanitizedPath), "/")
+
 			if rctx == nil {
-				req.URL.Path = sanitizedPath
+				req.URL.Path = modifiedPath
 			} else {
-				rctx.RoutePath = sanitizedPath
+				rctx.RoutePath = modifiedPath
 			}
 		}
 		next.ServeHTTP(resp, req)
