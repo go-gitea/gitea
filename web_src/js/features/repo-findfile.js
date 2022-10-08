@@ -42,7 +42,7 @@ export function strSubMatch(full, subLower) {
 export function calcMatchedWeight(matchResult) {
   let weight = 0;
   for (let i = 0; i < matchResult.length; i++) {
-    if (i % 2 === 1) {
+    if (i % 2 === 1) { // matches are on odd indices, see strSubMatch
       // use a function f(x+x) > f(x) + f(x) to make the longer matched string has higher weight.
       weight += matchResult[i].length * matchResult[i].length;
     }
@@ -58,7 +58,7 @@ export function filterRepoFilesWeighted(files, filter) {
     // ... && filterResult.length < threshold * 20,  wait for more feedbacks
     for (let i = 0; i < files.length; i++) {
       const res = strSubMatch(files[i], filterLower);
-      if (res.length > 1) {
+      if (res.length > 1) { // length==1 means unmatched, >1 means having matched sub strings
         filterResult.push({matchResult: res, matchWeight: calcMatchedWeight(res)});
       }
     }
