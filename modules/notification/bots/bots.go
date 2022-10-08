@@ -26,7 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
-	bots_service "code.gitea.io/gitea/services/bots"
+
+	"github.com/nektos/act/pkg/jobparser"
 )
 
 type botsNotifier struct {
@@ -72,41 +73,37 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 		return
 	}
 
-	matchedEntries, jobs, err := bots_module.DetectWorkflows(commit, evt)
+	workflows, err := bots_module.DetectWorkflows(commit, evt)
 	if err != nil {
-		log.Error("detectWorkflows: %v", err)
+		log.Error("DetectWorkflows: %v", err)
 		return
 	}
-	log.Trace("detected %s has %d entries", commit.ID, len(matchedEntries))
-	if len(matchedEntries) == 0 {
+
+	if len(workflows) == 0 {
 		log.Trace("repo %s with commit %s couldn't find workflows", repo.RepoPath(), commit.ID)
 		return
 	}
 
-	workflowsStatuses := make(map[string]map[string]core.BuildStatus)
-	for i, entry := range matchedEntries {
-		taskStatuses := make(map[string]core.BuildStatus)
-		for k := range jobs[i] {
-			taskStatuses[k] = core.StatusPending
+	for id, content := range workflows {
+		run := bots_model.Run{
+			Name:          commit.Message(),
+			RepoID:        repo.ID,
+			WorkflowID:    id,
+			TriggerUserID: doer.ID,
+			Ref:           ref,
+			CommitSHA:     commit.ID.String(),
+			Event:         evt,
+			EventPayload:  payload,
+			Status:        core.StatusPending,
 		}
-		workflowsStatuses[entry.Name()] = taskStatuses
-	}
-
-	build := bots_model.Build{
-		Name:          commit.Message(),
-		RepoID:        repo.ID,
-		TriggerUserID: doer.ID,
-		Event:         evt,
-		EventPayload:  payload,
-		Status:        core.StatusPending,
-		Ref:           ref,
-		CommitSHA:     commit.ID.String(),
-	}
-
-	if err := bots_model.InsertBuild(&build, workflowsStatuses); err != nil {
-		log.Error("InsertBotTask: %v", err)
-	} else {
-		bots_service.PushToQueue(&build)
+		jobs, err := jobparser.Parse(content) // TODO: parse with options
+		if err != nil {
+			log.Error("jobparser.Parse: %v", err)
+			continue
+		}
+		if err := bots_model.InsertRun(&run, jobs); err != nil {
+			log.Error("InsertBotTask: %v", err)
+		}
 	}
 }
 

@@ -5,57 +5,75 @@
 package bots
 
 import (
+	"bytes"
+	"io"
 	"strings"
 
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 
 	"github.com/nektos/act/pkg/model"
 )
 
-func DetectWorkflows(commit *git.Commit, event webhook.HookEventType) (git.Entries, []map[string]*model.Job, error) {
-	tree, err := commit.SubTree(".github/workflows")
+func ListWorkflows(commit *git.Commit) (git.Entries, error) {
+	tree, err := commit.SubTree(".gitea/workflows")
 	if _, ok := err.(git.ErrNotExist); ok {
-		tree, err = commit.SubTree(".gitea/workflows")
+		tree, err = commit.SubTree(".github/workflows")
 	}
 	if _, ok := err.(git.ErrNotExist); ok {
-		return nil, nil, nil
+		return nil, nil
 	}
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	entries, err := tree.ListEntriesRecursiveFast()
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	matchedEntries := make(git.Entries, 0, len(entries))
-	jobs := make([]map[string]*model.Job, 0, len(entries))
-
+	idx := 0
 	for _, entry := range entries {
 		if !strings.HasSuffix(entry.Name(), ".yml") && !strings.HasSuffix(entry.Name(), ".yaml") {
 			continue
 		}
+		entries[idx] = entry
+		idx++
+	}
+
+	return entries[:idx], nil
+}
+
+func DetectWorkflows(commit *git.Commit, event webhook.HookEventType) (map[string][]byte, error) {
+	entries, err := ListWorkflows(commit)
+	if err != nil {
+		return nil, err
+	}
+
+	workflows := make(map[string][]byte, len(entries))
+	for _, entry := range entries {
 		f, err := entry.Blob().DataAsync()
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
-		workflow, err := model.ReadWorkflow(f)
+		content, err := io.ReadAll(f)
+		_ = f.Close()
 		if err != nil {
-			f.Close()
-			return nil, nil, err
+			return nil, err
 		}
-
+		workflow, err := model.ReadWorkflow(bytes.NewReader(content))
+		if err != nil {
+			log.Warn("ignore invalid workflow %q: %v", entry.Name(), err)
+			continue
+		}
 		for _, e := range workflow.On() {
 			if e == event.Event() {
-				matchedEntries = append(matchedEntries, entry)
-				jobs = append(jobs, workflow.Jobs)
+				workflows[entry.Name()] = content
 				break
 			}
 		}
-		f.Close()
 	}
 
-	return matchedEntries, jobs, nil
+	return workflows, nil
 }

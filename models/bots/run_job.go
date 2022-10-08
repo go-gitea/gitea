@@ -15,12 +15,13 @@ type RunJob struct {
 	ID              int64
 	RunID           int64
 	Name            string
-	WorkflowPayload string           `xorm:"LONGTEXT"`
+	WorkflowPayload []byte
 	Needs           []int64          `xorm:"JSON TEXT"`
+	RunsOn          []string         `xorm:"JSON TEXT"`
 	TaskID          int64            // the latest task of the job
 	Status          core.BuildStatus `xorm:"index"`
-	StartTime       timeutil.TimeStamp
-	EndTime         timeutil.TimeStamp
+	Started         timeutil.TimeStamp
+	Stopped         timeutil.TimeStamp
 	Created         timeutil.TimeStamp `xorm:"created"`
 	Updated         timeutil.TimeStamp `xorm:"updated"`
 }
