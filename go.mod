@@ -313,3 +313,5 @@ exclude github.com/gofrs/uuid v3.2.0+incompatible
 exclude github.com/gofrs/uuid v4.0.0+incompatible
 
 exclude github.com/goccy/go-json v0.4.11
+
+replace github.com/nektos/act => gitea.com/gitea/act v0.0.0-20220922135643-52a5bba9e7fa
