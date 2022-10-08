@@ -437,11 +437,11 @@ func AuthorizeOAuth(ctx *context.Context) {
 			// https://datatracker.ietf.org/doc/html/rfc7636#section-4.4.1
 			handleAuthorizeError(ctx, AuthorizeError{
 				ErrorCode:        ErrorCodeInvalidRequest,
-				ErrorDescription: "",
+				ErrorDescription: "PKCE is required for public clients",
 				State:            form.State,
 			}, form.RedirectURI)
+			return
 		}
-		return
 	default:
 		// "If the server supporting PKCE does not support the requested transformation, the authorization endpoint MUST return the authorization error response with "error" value set to "invalid_request"."
 		// https://www.rfc-editor.org/rfc/rfc7636#section-4.4.1

@@ -171,15 +171,26 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 func TestAccessTokenExchangeForPublicClient(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
-		"grant_type": "authorization_code",
-		"client_id":  "ce5a1322-42a7-11ed-b878-0242ac120002",
-		// client_secret not required for public client
+		"grant_type":    "authorization_code",
+		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
 		// redirect port may vary
 		"redirect_uri":  "http://127.0.0.1:3456",
 		"code":          "authcodepublic",
-		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
+		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
 	})
 	MakeRequest(t, req, http.StatusOK)
+
+	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
+		"grant_type":    "authorization_code",
+		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
+		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
+		// redirect port may vary
+		"redirect_uri": "http://127.0.0.1:3456",
+		"code":         "authcodepublic",
+		// omit PKCE
+	})
+	MakeRequest(t, req, http.StatusBadRequest)
 }
 
 func TestAccessTokenExchangeWithBasicAuth(t *testing.T) {
