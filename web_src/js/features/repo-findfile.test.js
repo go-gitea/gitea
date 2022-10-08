@@ -1,5 +1,4 @@
 import {strSubMatch, calcMatchedWeight, filterRepoFilesWeighted} from './repo-findfile.js';
-import {expect} from '@playwright/test';
 
 describe('Repo Find Files', () => {
   test('strSubMatch', () => {
