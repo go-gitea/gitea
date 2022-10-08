@@ -10,7 +10,6 @@ import (
 	"fmt"
 
 	"code.gitea.io/gitea/core"
-	"code.gitea.io/gitea/models"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
@@ -219,5 +218,5 @@ func (a *botsNotifier) NotifySyncCreateRef(doer *user_model.User, repo *repo_mod
 func (a *botsNotifier) NotifySyncDeleteRef(doer *user_model.User, repo *repo_model.Repository, refType, refFullName string) {
 }
 
-func (a *botsNotifier) NotifyNewRelease(rel *models.Release) {
+func (a *botsNotifier) NotifyNewRelease(rel *repo_model.Release) {
 }
