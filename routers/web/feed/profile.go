@@ -26,10 +26,12 @@ func ShowUserFeedAtom(ctx *context.Context) {
 
 // showUserFeed show user activity as RSS / Atom feed
 func showUserFeed(ctx *context.Context, formatType string) {
+	includePrivate := ctx.IsSigned && (ctx.Doer.IsAdmin || ctx.Doer.ID == ctx.ContextUser.ID)
+
 	actions, err := activities_model.GetFeeds(ctx, activities_model.GetFeedsOptions{
 		RequestedUser:   ctx.ContextUser,
 		Actor:           ctx.Doer,
-		IncludePrivate:  false,
+		IncludePrivate:  includePrivate,
 		OnlyPerformedBy: !ctx.ContextUser.IsOrganization(),
 		IncludeDeleted:  false,
 		Date:            ctx.FormString("date"),
