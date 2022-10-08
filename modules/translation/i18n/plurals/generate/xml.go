@@ -38,13 +38,13 @@ func (lg *LocaleGroup) SplitLocales() []string {
 
 // Rule is a rule for a single plural form.
 type Rule struct {
-	// Count is one of `zero` | `one` | `two` | `few` | `many` | `other`
+	// Count is one of: `zero` | `one` | `two` | `few` | `many` | `other`
 	Count string `xml:"count,attr"`
 	// Rule looks like:
-	// <condition> (@integer <integer-examples> (…)?)? (@decimal <decimal-examples> (…)?)?
-	// <condition> ">n % 10 = 1 and n % 100 != 11..19"
-	// <integer> "@integer 1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …"
-	// <decimal> "@decimal 1.0, 21.0, 31.0, 41.0, 51.0, 61.0, 71.0, 81.0, 101.0, 1001.0, …"
+	// # <condition> (@integer <integer-examples> (…)?)? (@decimal <decimal-examples> (…)?)?
+	// # <condition> ">n % 10 = 1 and n % 100 != 11..19"
+	// # <integer> "@integer 1, 21, 31, 41, 51, 61, 71, 81, 101, 1001, …"
+	// # <decimal> "@decimal 1.0, 21.0, 31.0, 41.0, 51.0, 61.0, 71.0, 81.0, 101.0, 1001.0, …"
 	Rule string `xml:",innerxml"`
 }
 
@@ -54,35 +54,34 @@ func (r *Rule) CountTitle() string {
 }
 
 // Condition returns the condition where the pluralRule applies.
-// These look like "", ">n % 10 = 1 and n % 100 != 11..19" etc.
+// These look like: "", ">n % 10 = 1 and n % 100 != 11..19" etc.
 //
 // The conditions themselves have the following syntax.
 //
-// condition       = and_condition ('or' and_condition)*
-// and_condition   = relation ('and' relation)*
+// # condition       = and_condition ('or' and_condition)*
+// # and_condition   = relation ('and' relation)*
 //
-// Now the next bit needs some adjustment
+// Now the next bit needs some adjustment:
 //
-// relation        = is_relation | in_relation | within_relation
-// is_relation     = expr 'is' ('not')? value
-//     ^------------ This is not present in plurals.xml/ordinals.xml
-// in_relation     = expr (('not')? 'in' | '=' | '!=') range_list
-//                   ^^^^^^^^^^^^^^^^^^^^^ not in plurals.xml/ordinals.xml
-// within_relation = expr ('not')? 'within' range_list
-//    ^------------- This is not present in plurals.xml/ordinals.xml
+// # relation        = is_relation | in_relation | within_relation
+// # is_relation     = expr 'is' ('not')? value
+// #     ^------------ This is not present in plurals.xml/ordinals.xml
+// # in_relation     = expr (('not')? 'in' | '=' | '!=') range_list
+// #                   ^^^^^^^^^^^^^^^^^^^^^ not in plurals.xml/ordinals.xml
+// # within_relation = expr ('not')? 'within' range_list
+// #    ^------------- This is not present in plurals.xml/ordinals.xml
 //
 // So relation is really:
 //
-// relation        = expr ('=' | '!=') range_list
-//
-// expr            = operand (('mod' | '%') value)?
-//                             ^^^^^ not in plurals.xml/ordinals.xml
-// operand         = 'n' | 'i' | 'f' | 't' | 'v' | 'w' | 'c' | 'e'
-//                     not in plurals.xml/ordinals.xml ^^^^^^^^^^^
-// range_list      = (range | value) (',' range_list)*
-// range           = value'..'value
-// value           = digit+
-// digit           = [0-9]
+// # relation        = expr ('=' | '!=') range_list
+// # expr            = operand (('mod' | '%') value)?
+// #                             ^^^^^ not in plurals.xml/ordinals.xml
+// # operand         = 'n' | 'i' | 'f' | 't' | 'v' | 'w' | 'c' | 'e'
+// #                     not in plurals.xml/ordinals.xml ^^^^^^^^^^^
+// # range_list      = (range | value) (',' range_list)*
+// # range           = value'..'value
+// # value           = digit+
+// # digit           = [0-9]
 func (r *Rule) Condition() string {
 	i := strings.Index(r.Rule, "@")
 	if i >= 0 {
@@ -93,14 +92,14 @@ func (r *Rule) Condition() string {
 
 // Samples returns the integer and decimal samples for the pluralRule
 //
-// samples         = ('@integer' sampleList)?
-//                   ('@decimal' sampleList)?
-// sampleList      = sampleRange (',' sampleRange)* (',' ('…'|'...'))?
-// sampleRange     = sampleValue ('~' sampleValue)?
-// sampleValue     = value ('.' digit+)? ([ce] digitPos digit+)?
-// value           = digit+
-// digit           = [0-9]
-// 1        = [1-9]
+// # samples         = ('@integer' sampleList)?
+// #                   ('@decimal' sampleList)?
+// # sampleList      = sampleRange (',' sampleRange)* (',' ('…'|'...'))?
+// # sampleRange     = sampleValue ('~' sampleValue)?
+// # sampleValue     = value ('.' digit+)? ([ce] digitPos digit+)?
+// # value           = digit+
+// # digit           = [0-9]
+// # 1        = [1-9]
 func (r *Rule) Samples() (integer, decimal []string) {
 	// First of all remove the ellipses as they're not helpful
 	rule := strings.ReplaceAll(r.Rule, ", …", "")

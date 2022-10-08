@@ -17,7 +17,6 @@ import (
 // relation        = expr ('=' | '!=') range_list
 // expr            = operand ('%' value)?
 // operand         = 'n' | 'i' | 'f' | 't' | 'v' | 'w' | 'e'
-//
 var relationRegexp = regexp.MustCompile(`([nieftvw])(?:\s*%\s*([0-9]+))?\s*(!=|=)(.*)`)
 
 // ConditionToGoString converts a CLDR plural rules to Go code.
