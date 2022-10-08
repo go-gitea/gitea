@@ -135,8 +135,7 @@ func init() {
 			}{{end}}{{end}}
 			return Other
 		},
-	}){{end}}
-	{{end}}
+	}){{end}}{{end}}
 }
 `))
 
