@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	nuget_module "code.gitea.io/gitea/modules/packages/nuget"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/routers/api/packages/nuget"
 
 	"github.com/stretchr/testify/assert"
@@ -65,39 +66,58 @@ func TestPackageNuGet(t *testing.T) {
 	t.Run("ServiceIndex", func(t *testing.T) {
 		defer PrintCurrentTest(t)()
 
-		req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
-		req = AddBasicAuthHeader(req, user.Name)
-		MakeRequest(t, req, http.StatusOK)
+		privateUser := unittest.AssertExistsAndLoadBean(t, &user_model.User{Visibility: structs.VisibleTypePrivate}).(*user_model.User)
 
-		req = NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
-		req = addNuGetAPIKeyHeader(req, token)
-		resp := MakeRequest(t, req, http.StatusOK)
+		cases := []struct {
+			Owner        string
+			UseBasicAuth bool
+			UseTokenAuth bool
+		}{
+			{privateUser.Name, false, false},
+			{privateUser.Name, true, false},
+			{privateUser.Name, false, true},
+			{user.Name, false, false},
+			{user.Name, true, false},
+			{user.Name, false, true},
+		}
 
-		var result nuget.ServiceIndexResponse
-		DecodeJSON(t, resp, &result)
+		for _, c := range cases {
+			url := fmt.Sprintf("/api/packages/%s/nuget", c.Owner)
 
-		assert.Equal(t, "3.0.0", result.Version)
-		assert.NotEmpty(t, result.Resources)
+			req := NewRequest(t, "GET", fmt.Sprintf("%s/index.json", url))
+			if c.UseBasicAuth {
+				req = AddBasicAuthHeader(req, user.Name)
+			} else if c.UseTokenAuth {
+				req = addNuGetAPIKeyHeader(req, token)
+			}
+			resp := MakeRequest(t, req, http.StatusOK)
 
-		root := setting.AppURL + url[1:]
-		for _, r := range result.Resources {
-			switch r.Type {
-			case "SearchQueryService":
-				fallthrough
-			case "SearchQueryService/3.0.0-beta":
-				fallthrough
-			case "SearchQueryService/3.0.0-rc":
-				assert.Equal(t, root+"/query", r.ID)
-			case "RegistrationsBaseUrl":
-				fallthrough
-			case "RegistrationsBaseUrl/3.0.0-beta":
-				fallthrough
-			case "RegistrationsBaseUrl/3.0.0-rc":
-				assert.Equal(t, root+"/registration", r.ID)
-			case "PackageBaseAddress/3.0.0":
-				assert.Equal(t, root+"/package", r.ID)
-			case "PackagePublish/2.0.0":
-				assert.Equal(t, root, r.ID)
+			var result nuget.ServiceIndexResponse
+			DecodeJSON(t, resp, &result)
+
+			assert.Equal(t, "3.0.0", result.Version)
+			assert.NotEmpty(t, result.Resources)
+
+			root := setting.AppURL + url[1:]
+			for _, r := range result.Resources {
+				switch r.Type {
+				case "SearchQueryService":
+					fallthrough
+				case "SearchQueryService/3.0.0-beta":
+					fallthrough
+				case "SearchQueryService/3.0.0-rc":
+					assert.Equal(t, root+"/query", r.ID)
+				case "RegistrationsBaseUrl":
+					fallthrough
+				case "RegistrationsBaseUrl/3.0.0-beta":
+					fallthrough
+				case "RegistrationsBaseUrl/3.0.0-rc":
+					assert.Equal(t, root+"/registration", r.ID)
+				case "PackageBaseAddress/3.0.0":
+					assert.Equal(t, root+"/package", r.ID)
+				case "PackagePublish/2.0.0":
+					assert.Equal(t, root, r.ID)
+				}
 			}
 		}
 	})
