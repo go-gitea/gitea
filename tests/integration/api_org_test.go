@@ -38,7 +38,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, org.UserName, apiOrg.UserName)
+		assert.Equal(t, org.UserName, apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
@@ -54,7 +54,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &apiOrg)
-		assert.EqualValues(t, org.UserName, apiOrg.UserName)
+		assert.EqualValues(t, org.UserName, apiOrg.Name)
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -94,7 +94,7 @@ func TestAPIOrgEdit(t *testing.T) {
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, "user3", apiOrg.UserName)
+		assert.Equal(t, "user3", apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)

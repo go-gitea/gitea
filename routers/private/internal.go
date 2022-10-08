@@ -24,6 +24,11 @@ func CheckInternalToken(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		tokens := req.Header.Get("Authorization")
 		fields := strings.SplitN(tokens, " ", 2)
+		if setting.InternalToken == "" {
+			log.Warn(`The INTERNAL_TOKEN setting is missing from the configuration file: %q, internal API can't work.`, setting.CustomConf)
+			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)
+			return
+		}
 		if len(fields) != 2 || fields[0] != "Bearer" || fields[1] != setting.InternalToken {
 			log.Debug("Forbidden attempt to access internal url: Authorization header: %s", tokens)
 			http.Error(w, http.StatusText(http.StatusForbidden), http.StatusForbidden)

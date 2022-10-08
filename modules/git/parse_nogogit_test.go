@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParseTreeEntries(t *testing.T) {
+func TestParseTreeEntriesLong(t *testing.T) {
 	testCases := []struct {
 		Input    string
 		Expected []*TreeEntry
@@ -59,11 +59,47 @@ func TestParseTreeEntries(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, entries, len(testCase.Expected))
 		for i, entry := range entries {
-			assert.EqualValues(t, testCase.Expected[i].ID, entry.ID)
-			assert.EqualValues(t, testCase.Expected[i].name, entry.name)
-			assert.EqualValues(t, testCase.Expected[i].entryMode, entry.entryMode)
-			assert.EqualValues(t, testCase.Expected[i].sized, entry.sized)
-			assert.EqualValues(t, testCase.Expected[i].size, entry.size)
+			assert.EqualValues(t, testCase.Expected[i], entry)
 		}
 	}
+}
+
+func TestParseTreeEntriesShort(t *testing.T) {
+	testCases := []struct {
+		Input    string
+		Expected []*TreeEntry
+	}{
+		{
+			Input: `100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af	README.md
+040000 tree 84b90550547016f73c5dd3f50dea662389e67b6d	assets
+`,
+			Expected: []*TreeEntry{
+				{
+					ID:        MustIDFromString("ea0d83c9081af9500ac9f804101b3fd0a5c293af"),
+					name:      "README.md",
+					entryMode: EntryModeBlob,
+				},
+				{
+					ID:        MustIDFromString("84b90550547016f73c5dd3f50dea662389e67b6d"),
+					name:      "assets",
+					entryMode: EntryModeTree,
+				},
+			},
+		},
+	}
+	for _, testCase := range testCases {
+		entries, err := ParseTreeEntries([]byte(testCase.Input))
+		assert.NoError(t, err)
+		assert.Len(t, entries, len(testCase.Expected))
+		for i, entry := range entries {
+			assert.EqualValues(t, testCase.Expected[i], entry)
+		}
+	}
+}
+
+func TestParseTreeEntriesInvalid(t *testing.T) {
+	// there was a panic: "runtime error: slice bounds out of range" when the input was invalid: #20315
+	entries, err := ParseTreeEntries([]byte("100644 blob ea0d83c9081af9500ac9f804101b3fd0a5c293af"))
+	assert.Error(t, err)
+	assert.Len(t, entries, 0)
 }
