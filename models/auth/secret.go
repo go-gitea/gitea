@@ -36,7 +36,7 @@ type Secret struct {
 	Name            string
 	Data            string
 	PullRequest     bool
-	CreatedUnix timeutil.TimeStamp
+	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
 	// Validate validates the required fields and formats.
