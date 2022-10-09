@@ -475,6 +475,9 @@ func NewFuncMap() []template.FuncMap {
 		"RefShortName": func(ref string) string {
 			return git.RefName(ref).ShortName()
 		},
+		"Shadow": func(s string) string {
+			return "******"
+		},
 	}}
 }
 

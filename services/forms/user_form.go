@@ -351,17 +351,31 @@ func (f *AddOpenIDForm) Validate(req *http.Request, errs binding.Errors) binding
 
 // AddKeyForm form for adding SSH/GPG key
 type AddKeyForm struct {
-	Type        string `binding:"OmitEmpty"`
-	Title       string `binding:"Required;MaxSize(50)"`
-	Content     string `binding:"Required"`
-	Signature   string `binding:"OmitEmpty"`
-	KeyID       string `binding:"OmitEmpty"`
-	Fingerprint string `binding:"OmitEmpty"`
-	IsWritable  bool
+	Type            string `binding:"OmitEmpty"`
+	Title           string `binding:"Required;MaxSize(50)"`
+	Content         string `binding:"Required"`
+	Signature       string `binding:"OmitEmpty"`
+	KeyID           string `binding:"OmitEmpty"`
+	Fingerprint     string `binding:"OmitEmpty"`
+	IsWritable      bool
+	PullRequestRead bool
 }
 
 // Validate validates the fields
 func (f *AddKeyForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
+	ctx := context.GetContext(req)
+	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
+}
+
+// AddSecretForm for adding secrets
+type AddSecretForm struct {
+	Title           string `binding:"Required;MaxSize(50)"`
+	Content         string `binding:"Required"`
+	PullRequestRead bool
+}
+
+// Validate validates the fields
+func (f *AddSecretForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
