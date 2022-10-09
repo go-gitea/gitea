@@ -3265,6 +3265,12 @@
             "in": "query"
           },
           {
+            "type": "boolean",
+            "description": "include diff stats for every commit (disable for speedup, default 'true')",
+            "name": "stat",
+            "in": "query"
+          },
+          {
             "type": "integer",
             "description": "page number of results to return (1-based)",
             "name": "page",
@@ -16009,8 +16015,13 @@
           "type": "string",
           "x-go-name": "ExternalTrackerFormat"
         },
+        "external_tracker_regexp_pattern": {
+          "description": "External Issue Tracker issue regular expression",
+          "type": "string",
+          "x-go-name": "ExternalTrackerRegexpPattern"
+        },
         "external_tracker_style": {
-          "description": "External Issue Tracker Number Format, either `numeric` or `alphanumeric`",
+          "description": "External Issue Tracker Number Format, either `numeric`, `alphanumeric`, or `regexp`",
           "type": "string",
           "x-go-name": "ExternalTrackerStyle"
         },

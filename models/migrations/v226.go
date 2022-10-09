@@ -5,21 +5,11 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
-
+	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-func createSecretsTable(x *xorm.Engine) error {
-	type Secret struct {
-		ID              int64
-		UserID int64 `xorm:"index"`
-		RepoID          int64  `xorm:"index"`
-		Name            string
-		Data            string
-		PullRequest     bool
-		CreatedUnix timeutil.TimeStamp `xorm:"created"`
-	}
-
-	return x.Sync(new(Secret))
+func fixPackageSemverField(x *xorm.Engine) error {
+	_, err := x.Exec(builder.Update(builder.Eq{"semver_compatible": false}).From("`package`").Where(builder.In("`type`", "conan", "generic")))
+	return err
 }
