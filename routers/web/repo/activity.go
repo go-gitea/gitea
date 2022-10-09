@@ -1,4 +1,4 @@
-// Copyright 2017 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
@@ -6,6 +6,7 @@ package repo
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	activities_model "code.gitea.io/gitea/models/activities"
@@ -47,8 +48,8 @@ func Activity(ctx *context.Context) {
 		ctx.Data["Period"] = "weekly"
 		timeFrom = timeUntil.Add(-time.Hour * 168)
 	}
-	ctx.Data["DateFrom"] = timeFrom.Format("January 2, 2006")
-	ctx.Data["DateUntil"] = timeUntil.Format("January 2, 2006")
+	ctx.Data["DateFrom"] = formatDate(ctx, &timeFrom)
+	ctx.Data["DateUntil"] = formatDate(ctx, &timeUntil)
 	ctx.Data["PeriodText"] = ctx.Tr("repo.activity.period." + ctx.Data["Period"].(string))
 
 	var err error
@@ -101,4 +102,21 @@ func ActivityAuthors(ctx *context.Context) {
 	}
 
 	ctx.JSON(http.StatusOK, authors)
+}
+
+func formatDate(ctx *context.Context, t *time.Time) string {
+	r := strings.NewReplacer(
+		"January", ctx.Tr("dates.months.january"),
+		"February", ctx.Tr("dates.months.february"),
+		"March", ctx.Tr("dates.months.march"),
+		"April", ctx.Tr("dates.months.april"),
+		"May", ctx.Tr("dates.months.may"),
+		"June", ctx.Tr("dates.months.june"),
+		"July", ctx.Tr("dates.months.july"),
+		"August", ctx.Tr("dates.months.august"),
+		"September", ctx.Tr("dates.months.september"),
+		"October", ctx.Tr("dates.months.october"),
+		"November", ctx.Tr("dates.months.november"),
+		"December", ctx.Tr("dates.months.december"))
+	return r.Replace(t.Format("January 2, 2006"))
 }
