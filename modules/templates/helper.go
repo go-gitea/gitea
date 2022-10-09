@@ -456,6 +456,9 @@ func NewFuncMap() []template.FuncMap {
 			return items
 		},
 		"HasPrefix": strings.HasPrefix,
+		"Shadow": func(s string) string {
+			return "******"
+		},
 	}}
 }
 

@@ -45,8 +45,8 @@ import (
 	mirror_service "code.gitea.io/gitea/services/mirror"
 	org_service "code.gitea.io/gitea/services/org"
 	repo_service "code.gitea.io/gitea/services/repository"
-	wiki_service "code.gitea.io/gitea/services/wiki"
 	secret_service "code.gitea.io/gitea/services/secrets"
+	wiki_service "code.gitea.io/gitea/services/wiki"
 )
 
 const (
@@ -1105,19 +1105,38 @@ func DeployKeys(ctx *context.Context) {
 	}
 	ctx.Data["Deploykeys"] = keys
 
-	tokens, err := secret_service.FindRepoSecrets(ctx, ctx.Repo.Repository.ID)
+	secrets, err := secret_service.FindRepoSecrets(ctx, ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.ServerError("FindRepoSecrets", err)
 		return
 	}
-	ctx.Data["Tokens"] = tokens
+	ctx.Data["Secrets"] = secrets
 
 	ctx.HTML(http.StatusOK, tplDeployKeys)
 }
 
+// SecretsPost
+func SecretsPost(ctx *context.Context) {
+	form := web.GetForm(ctx).(*forms.AddKeyForm)
+	if err := secret_service.InsertRepoSecret(ctx, ctx.Repo.Repository.ID, form.Title, form.Content, form.PullRequestRead); err != nil {
+		ctx.ServerError("InsertRepoSecret", err)
+		return
+	}
+
+	log.Trace("Secret added: %d", ctx.Repo.Repository.ID)
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", form.Title))
+	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
+}
+
 // DeployKeysPost response for adding a deploy key of a repository
 func DeployKeysPost(ctx *context.Context) {
+	if ctx.FormString("act") == "secret" {
+		SecretsPost(ctx)
+		return
+	}
+
 	form := web.GetForm(ctx).(*forms.AddKeyForm)
+
 	ctx.Data["Title"] = ctx.Tr("repo.settings.deploy_keys")
 	ctx.Data["PageIsSettingsKeys"] = true
 	ctx.Data["DisableSSH"] = setting.SSH.Disabled
@@ -1176,8 +1195,25 @@ func DeployKeysPost(ctx *context.Context) {
 	ctx.Redirect(ctx.Repo.RepoLink + "/settings/keys")
 }
 
+func DeleteSecret(ctx *context.Context) {
+	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
+		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
+	} else {
+		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
+	}
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"redirect": ctx.Repo.RepoLink + "/settings/keys",
+	})
+}
+
 // DeleteDeployKey response for deleting a deploy key
 func DeleteDeployKey(ctx *context.Context) {
+	if ctx.FormString("act") == "secret" {
+		DeleteSecret(ctx)
+		return
+	}
+
 	if err := asymkey_service.DeleteDeployKey(ctx.Doer, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteDeployKey: " + err.Error())
 	} else {
