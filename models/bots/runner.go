@@ -19,6 +19,7 @@ import (
 
 // ErrRunnerNotExist represents an error for bot runner not exist
 type ErrRunnerNotExist struct {
+	ID    int64
 	UUID  string
 	Token string
 }
@@ -79,6 +80,7 @@ type FindRunnerOptions struct {
 	db.ListOptions
 	RepoID  int64
 	OwnerID int64
+	Sort    string
 }
 
 func (opts FindRunnerOptions) toCond() builder.Cond {
@@ -135,6 +137,20 @@ func GetRunnerByUUID(uuid string) (*Runner, error) {
 	} else if !has {
 		return nil, ErrRunnerNotExist{
 			UUID: uuid,
+		}
+	}
+	return &runner, nil
+}
+
+// GetRunnerByID returns a bot runner via id
+func GetRunnerByID(id int64) (*Runner, error) {
+	var runner Runner
+	has, err := db.GetEngine(db.DefaultContext).Where("id=?", id).Get(&runner)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRunnerNotExist{
+			ID: id,
 		}
 	}
 	return &runner, nil

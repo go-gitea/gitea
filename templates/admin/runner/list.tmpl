@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin user">
+<div class="page-content admin runner">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -10,7 +10,7 @@
 			</div>
 		</h4>
 		<div class="ui attached segment">
-			<form class="ui form ignore-dirty" id="user-list-search-form">
+			<form class="ui form ignore-dirty" id="user-list-search-form" action="{{$.Link}}">
 				<!-- Search Text -->
 				<div class="ui fluid action input" style="max-width: 70%;">
 					<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
@@ -22,26 +22,64 @@
 			<table class="ui very basic striped table unstackable">
 				<thead>
 					<tr>
-						<th data-sortt-asc="oldest" data-sortt-desc="newest">ID</th>
+						<th data-sortt-asc="online" data-sortt-desc="offline">{{.locale.Tr "admin.runners.status"}}</th>
 						<th data-sortt-asc="alphabetically">
-							{{.locale.Tr "admin.runners.name"}}
+							{{.locale.Tr "admin.runners.id"}}
 						</th>
 						<th>{{.locale.Tr "admin.runners.own_type"}}</th>
-						<th>{{.locale.Tr "admin.runners.uuid"}}</th>
-						<th>{{.locale.Tr "admin.runners.created"}}</th>
-						<th>{{.locale.Tr "admin.runners.edit"}}</th>
+						<th>{{.locale.Tr "admin.runners.tags"}}</th>
+						<th>{{.locale.Tr "admin.runners.latest_contact"}}</th>
+						<th></th>
 					</tr>
 				</thead>
 				<tbody>
+					<tr>
+						<td>online</td>
+						<td><a href="?">
+								<span class="runner-id">#1</span>
+								<span class="runner-name">focused_mcclintock</span>
+							</a></td>
+						<td>shared</td>
+						<td class="runner-tags">
+							<span>linux</span>
+							<span>amd64</span>
+						</td>
+						<td>3 days ago</td>
+						<td class="runner-ops">
+							<a href="#">{{svg "octicon-pencil"}}</a>
+						</td>
+					</tr>
+					<tr>
+						<td>offline</td>
+						<td><a href="?">
+								<span class="runner-id">#2</span>
+								<span class="runner-name">lucid_khorana</span>
+							</a></td>
+						<td>shared</td>
+						<td class="runner-tags">
+							<span>linux</span>
+							<span>aarch64</span>
+							<span>self-host</span>
+							<span>custom</span>
+						</td>
+						<td>3 minutes ago</td>
+						<td class="runner-ops">
+							<a href="#">{{svg "octicon-pencil"}}</a>
+							<a href="#">{{svg "octicon-x-circle"}}</a>
+						</td>
+					</tr>
 					{{range .Runners}}
-						<tr>
-							<td>{{.ID}}</td>
-							<td>{{.Name}}</td>
-							<td>{{.OwnType}}</td>
-							<td>{{.UUID}}</td>
-							<td>{{.Created}}</td>
-							<td><a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a></td>
-						</tr>
+					<tr>
+						<td>{{.ID}}</td>
+						<td>{{.Name}}</td>
+						<td>{{.OwnType}}</td>
+						<td>{{.UUID}}</td>
+						<td>{{.Created}}</td>
+						<td class="runner-ops">
+							<a href="#">{{svg "octicon-pencil"}}</a>
+							<a href="#">{{svg "octicon-x-circle"}}</a>
+						</td>
+					</tr>
 					{{end}}
 				</tbody>
 			</table>

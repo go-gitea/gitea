@@ -65,43 +65,22 @@ func Runners(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplRunners)
 }
 
-// NewRunner render adding a new runner page
-func NewRunner(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
-
-	ctx.HTML(http.StatusOK, tplRunnerNew)
-}
-
-// NewRunnerPost response for adding a new runner
-func NewRunnerPost(ctx *context.Context) {
-	// form := web.GetForm(ctx).(*forms.AdminCreateRunnerForm)
-	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
-	ctx.Data["PageIsAdmin"] = true
-	ctx.Data["PageIsAdminRunners"] = true
-
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplRunnerNew)
-		return
-	}
-
-	// ctx.Flash.Success(ctx.Tr("admin.runners.new_success", u.Name))
-	// ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
-}
-
 // EditRunner show editing runner page
 func EditRunner(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	prepareUserInfo(ctx)
-	if ctx.Written() {
+	runner, err := bots_model.GetBuildByID(ctx.ParamsInt64(":runnerid"))
+	if err != nil {
+		ctx.ServerError("GetRunnerByID", err)
 		return
 	}
+	ctx.Data["Runner"] = runner
 
-	ctx.HTML(http.StatusOK, tplUserEdit)
+	// TODO: get task list for this runner
+
+	ctx.HTML(http.StatusOK, tplRunnerEdit)
 }
 
 // EditRunnerPost response for editing runner
@@ -127,3 +106,30 @@ func DeleteRunner(ctx *context.Context) {
 		"redirect": setting.AppSubURL + "/admin/runners",
 	})
 }
+
+/**
+// NewRunner render adding a new runner page
+func NewRunner(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminRunners"] = true
+
+	ctx.HTML(http.StatusOK, tplRunnerNew)
+}
+
+// NewRunnerPost response for adding a new runner
+func NewRunnerPost(ctx *context.Context) {
+	// form := web.GetForm(ctx).(*forms.AdminCreateRunnerForm)
+	ctx.Data["Title"] = ctx.Tr("admin.runners.new")
+	ctx.Data["PageIsAdmin"] = true
+	ctx.Data["PageIsAdminRunners"] = true
+
+	if ctx.HasError() {
+		ctx.HTML(http.StatusOK, tplRunnerNew)
+		return
+	}
+
+	// ctx.Flash.Success(ctx.Tr("admin.runners.new_success", u.Name))
+	// ctx.Redirect(setting.AppSubURL + "/admin/users/" + strconv.FormatInt(u.ID, 10))
+}
+**/
