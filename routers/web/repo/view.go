@@ -734,7 +734,7 @@ func Home(ctx *context.Context) {
 	}
 
 	ctx.Data["FeedURL"] = ctx.Repo.Repository.HTMLURL()
-	ctx.Data["CanPin"] = ctx.IsSigned && user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
+	ctx.Data["CanPinRepos"] = ctx.IsSigned && user_service.CanPin(ctx, ctx.Doer, ctx.Repo.Repository)
 
 	checkHomeCodeViewable(ctx)
 	if ctx.Written() {

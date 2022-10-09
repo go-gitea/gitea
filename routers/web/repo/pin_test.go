@@ -85,14 +85,14 @@ func TestUserPinUnpin(t *testing.T) {
 			rid:          4,
 			action:       unpin,
 			endstate:     unpin,
-			failmesssage: "admin can't unpin repos they don't have access to",
+			failmesssage: "admin can't unpin repos",
 		},
 		{
 			uid:          1,
 			rid:          4,
 			action:       pin,
 			endstate:     pin,
-			failmesssage: "admin can't pin repos they don't have access to",
+			failmesssage: "admin can't pin repos",
 		},
 	}
 

@@ -12,10 +12,10 @@ import (
 
 const maxPinnedRepos = 3
 
-// Get all the repositories pinned by a user. If they've never
-// set pinned repositories, an empty array is returned.
-func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
-	pinnedstring, err := GetUserSetting(userID, PinnedRepositories)
+// GetPinnedRepositoryIDs returns all the repository IDs pinned by the given user or org. 
+// If they've never pinned a repository, an empty array is returned.
+func GetPinnedRepositoryIDs(ownerID int64) ([]int64, error) {
+	pinnedstring, err := GetUserSetting(ownerID, PinnedRepositories)
 	if err != nil {
 		return nil, err
 	}
@@ -34,13 +34,13 @@ func GetPinnedRepositoryIDs(userID int64) ([]int64, error) {
 	return parsedValues, nil
 }
 
-func setPinnedRepositories(userID int64, repos []int64) error {
+func setPinnedRepositories(ownerID int64, repos []int64) error {
 	stringed, err := json.Marshal(repos)
 	if err != nil {
 		return err
 	}
 
-	return SetUserSetting(userID, PinnedRepositories, string(stringed))
+	return SetUserSetting(ownerID, PinnedRepositories, string(stringed))
 }
 
 type TooManyPinnedReposError struct {
@@ -51,9 +51,8 @@ func (e *TooManyPinnedReposError) Error() string {
 	return fmt.Sprintf("can pin at most %d repositories, %d pinned repositories is too much", maxPinnedRepos, e.count)
 }
 
-// Add some repos to a user's pinned repositories.
-// The caller must ensure all repos belong to the
-// owner.
+// PinRepos pin the specified repos for the given user or organization.
+// The caller must ensure all repos belong to the owner.
 func PinRepos(ownerID int64, repoIDs ...int64) error {
 	repos, err := GetPinnedRepositoryIDs(ownerID)
 	if err != nil {
@@ -81,7 +80,7 @@ func PinRepos(ownerID int64, repoIDs ...int64) error {
 	return setPinnedRepositories(ownerID, newrepos)
 }
 
-// Remove some repos from a user's pinned repositories.
+// UnpinRepos unpin the given repositories for the given user or organization
 func UnpinRepos(ownerID int64, repoIDs ...int64) error {
 	prevRepos, err := GetPinnedRepositoryIDs(ownerID)
 	if err != nil {
