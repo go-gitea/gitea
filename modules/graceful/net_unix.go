@@ -52,46 +52,6 @@ func getProvidedFDs() (savedErr error) {
 	once.Do(func() {
 		mutex.Lock()
 		defer mutex.Unlock()
-
-		numFDs := os.Getenv(listenFDsEnv)
-		if numFDs == "" {
-			return
-		}
-		n, err := strconv.Atoi(numFDs)
-		if err != nil {
-			savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDsEnv, numFDs, err)
-			return
-		}
-
-		fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
-		providedListenersToUnlink = make([]bool, n)
-		for _, fdStr := range fdsToUnlinkStr {
-			i, err := strconv.Atoi(fdStr)
-			if err != nil || i < 0 || i >= n {
-				continue
-			}
-			providedListenersToUnlink[i] = true
-		}
-
-		for i := startFD; i < n+startFD; i++ {
-			file := os.NewFile(uintptr(i), fmt.Sprintf("listener_FD%d", i))
-
-			l, err := net.FileListener(file)
-			if err == nil {
-				// Close the inherited file if it's a listener
-				if err = file.Close(); err != nil {
-					savedErr = fmt.Errorf("error closing provided socket fd %d: %s", i, err)
-					return
-				}
-				providedListeners = append(providedListeners, l)
-				continue
-			}
-
-			// If needed we can handle packetconns here.
-			savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
-			return
-		}
-
 		// now handle some additional systemd provided things
 		notifySocketAddr = os.Getenv(notifySocketEnv)
 		if notifySocketAddr != "" {
@@ -126,6 +86,43 @@ func getProvidedFDs() (savedErr error) {
 			}
 		} else {
 			log.Trace("No Systemd Notify Socket provided")
+		}
+
+		if numFDs := os.Getenv(listenFDsEnv); numFDs != "" {
+			n, err := strconv.Atoi(numFDs)
+			if err != nil {
+				savedErr = fmt.Errorf("%s is not a number: %s. Err: %v", listenFDsEnv, numFDs, err)
+				return
+			}
+
+			fdsToUnlinkStr := strings.Split(os.Getenv(unlinkFDsEnv), ",")
+			providedListenersToUnlink = make([]bool, n)
+			for _, fdStr := range fdsToUnlinkStr {
+				i, err := strconv.Atoi(fdStr)
+				if err != nil || i < 0 || i >= n {
+					continue
+				}
+				providedListenersToUnlink[i] = true
+			}
+
+			for i := startFD; i < n+startFD; i++ {
+				file := os.NewFile(uintptr(i), fmt.Sprintf("listener_FD%d", i))
+
+				l, err := net.FileListener(file)
+				if err == nil {
+					// Close the inherited file if it's a listener
+					if err = file.Close(); err != nil {
+						savedErr = fmt.Errorf("error closing provided socket fd %d: %s", i, err)
+						return
+					}
+					providedListeners = append(providedListeners, l)
+					continue
+				}
+
+				// If needed we can handle packetconns here.
+				savedErr = fmt.Errorf("Error getting provided socket fd %d: %v", i, err)
+				return
+			}
 		}
 	})
 	return savedErr
