@@ -21,11 +21,12 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		numRepos++
 		runOpts := &git.RunOpts{Dir: repo.RepoPath()}
 
-		head, _, headErr := git.NewCommand(ctx, "rev-parse", "HEAD").RunStdString(runOpts)
-		defaultBranch, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse", repo.DefaultBranch).RunStdString(runOpts)
+		_, _, defaultBranchErr := git.NewCommand(ctx, "rev-parse", repo.DefaultBranch).RunStdString(runOpts)
 
-		// what we expect: both HEAD and default branch point to the same commit
-		if headErr == nil && defaultBranchErr == nil && head == defaultBranch {
+		head, _, headErr := git.NewCommand(ctx, "symbolic-ref", "--short", "HEAD").RunStdString(runOpts)
+
+		// what we expect: default branch is valid, and HEAD points to it
+		if headErr == nil && defaultBranchErr == nil && head == repo.DefaultBranch {
 			return nil
 		}
 
@@ -34,12 +35,6 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		}
 		if defaultBranchErr != nil {
 			numDefaultBranchesBroken++
-		}
-
-		// absolute failure: both HEAD and default branch point to invalid commits
-		if headErr != nil && defaultBranchErr != nil {
-			logger.Critical("Neither HEAD nor the default branch for %s/%s point to a valid commit", repo.OwnerName, repo.Name)
-			return nil
 		}
 
 		// if default branch is broken, let the user fix that in the UI
@@ -54,7 +49,7 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		}
 
 		// otherwise, let's try fixing HEAD
-		err := git.NewCommand(ctx, "switch", repo.DefaultBranch).Run(runOpts)
+		err := git.NewCommand(ctx, "symbolic-ref", "HEAD", repo.DefaultBranch).Run(runOpts)
 		if err != nil {
 			logger.Warn("Failed to fix HEAD for %s/%s: %v", repo.OwnerName, repo.Name, err)
 			return nil
