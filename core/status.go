@@ -2,9 +2,11 @@ package core
 
 // BuildStatus represents a build status
 type BuildStatus string
+type RunnerStatus string
 
 // enumerate all the statuses of bot build
 const (
+	// Build status
 	StatusSkipped  BuildStatus = "skipped"
 	StatusBlocked  BuildStatus = "blocked"
 	StatusDeclined BuildStatus = "declined"
@@ -15,6 +17,11 @@ const (
 	StatusFailing  BuildStatus = "failure"
 	StatusKilled   BuildStatus = "killed"
 	StatusError    BuildStatus = "error"
+
+	// Runner status
+	StatusIdle    RunnerStatus = "idle"
+	StatusActive  RunnerStatus = "active"
+	StatusOffline RunnerStatus = "offline"
 )
 
 func (status BuildStatus) IsPending() bool {

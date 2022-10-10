@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
@@ -44,6 +45,8 @@ type Runner struct {
 	RepoRange   string                 // glob match which repositories could use this runner
 	Token       string
 
+	// instance status (idle)
+	Status core.RunnerStatus
 	// Store OS and Artch.
 	AgentLabels []string
 	// Store custom labes use defined.
