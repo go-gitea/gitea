@@ -265,7 +265,7 @@ func (g *Manager) DoGracefulShutdown() {
 		g.notify(stoppingMsg)
 	} else {
 		g.lock.Unlock()
-		g.notify(statusMsg("shutting down after fork"))
+		g.notify(statusMsg("Shutting down after fork"))
 	}
 	g.doShutdown()
 }
