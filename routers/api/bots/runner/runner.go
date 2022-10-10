@@ -7,9 +7,13 @@ package runner
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strings"
 
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
@@ -31,8 +35,8 @@ func (s *Service) Register(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RegisterRequest],
 ) (*connect.Response[runnerv1.RegisterResponse], error) {
-	if req.Msg.Token == "" || req.Msg.Name == "" {
-		return nil, errors.New("missing runner token or name")
+	if req.Msg.Token == "" || req.Msg.Name == "" || req.Msg.Url == "" {
+		return nil, errors.New("missing runner token, name or URL")
 	}
 
 	runnerToken, err := bots_model.GetRunnerToken(req.Msg.Token)
@@ -42,6 +46,41 @@ func (s *Service) Register(
 
 	if runnerToken.IsActive {
 		return nil, errors.New("runner token has already activated")
+	}
+
+	// valiate user data
+	u, err := url.Parse(req.Msg.Url)
+	if err != nil {
+		return nil, errors.New("can't parse url: " + req.Msg.Url)
+	}
+
+	urls := strings.Split(u.Path, "/")
+	if runnerToken.OwnerID != 0 {
+		if len(urls) < 2 {
+			return nil, errors.New("can't parse owner name")
+		}
+		owner, err := user.GetUserByID(runnerToken.OwnerID)
+		if err != nil {
+			return nil, errors.New("can't get owner name")
+		}
+		if owner.LowerName != strings.ToLower(urls[1]) {
+			return nil, errors.New("wrong owner name")
+		}
+	}
+
+	if runnerToken.RepoID != 0 {
+		if len(urls) < 3 {
+			return nil, errors.New("can't parse repo name")
+		}
+
+		r, err := repo.GetRepositoryByIDCtx(ctx, runnerToken.RepoID)
+		if err != nil {
+			return nil, errors.New("can't get repo name")
+		}
+
+		if r.LowerName != strings.ToLower(urls[2]) {
+			return nil, errors.New("wrong repo name")
+		}
 	}
 
 	// create new runner
