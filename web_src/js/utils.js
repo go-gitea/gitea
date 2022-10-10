@@ -59,36 +59,6 @@ export function parseIssueHref(href) {
   return {owner, repo, type, index};
 }
 
-// return the sub-match result as an array:  [unmatched, matched, unmatched, matched, ...]
-// res[even] is unmatched, res[odd] is matched, see unit tests for examples
-export function strSubMatch(full, sub) {
-  const res = [''];
-  let i = 0, j = 0;
-  const subLower = sub.toLowerCase(), fullLower = full.toLowerCase();
-  while (i < subLower.length && j < fullLower.length) {
-    if (subLower[i] === fullLower[j]) {
-      if (res.length % 2 !== 0) res.push('');
-      res[res.length - 1] += full[j];
-      j++;
-      i++;
-    } else {
-      if (res.length % 2 === 0) res.push('');
-      res[res.length - 1] += full[j];
-      j++;
-    }
-  }
-  if (i !== sub.length) {
-    // if the sub string doesn't match the full, only return the full as unmatched.
-    return [full];
-  }
-  if (j < full.length) {
-    // append remaining chars from full to result as unmatched
-    if (res.length % 2 === 0) res.push('');
-    res[res.length - 1] += full.substring(j);
-  }
-  return res;
-}
-
 // pretty-print a number using locale-specific separators, e.g. 1200 -> 1,200
 export function prettyNumber(num, locale = 'en-US') {
   if (typeof num !== 'number') return '';
