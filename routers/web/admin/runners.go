@@ -38,17 +38,19 @@ func Runners(ctx *context.Context) {
 			Page:     page,
 			PageSize: 100,
 		},
+		Sort:   ctx.Req.URL.Query().Get("sort"),
+		Filter: ctx.Req.URL.Query().Get("q"),
 	}
 
 	count, err := bots_model.CountRunners(opts)
 	if err != nil {
-		ctx.ServerError("SearchUsers", err)
+		ctx.ServerError("AdminRunners", err)
 		return
 	}
 
 	runners, err := bots_model.FindRunners(opts)
 	if err != nil {
-		ctx.ServerError("SearchUsers", err)
+		ctx.ServerError("AdminRunners", err)
 		return
 	}
 	if err := runners.LoadAttributes(ctx); err != nil {
@@ -56,6 +58,7 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
+	ctx.Data["Keyword"] = opts.Filter
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
 
@@ -71,7 +74,7 @@ func EditRunner(ctx *context.Context) {
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	runner, err := bots_model.GetBuildByID(ctx.ParamsInt64(":runnerid"))
+	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
 	if err != nil {
 		ctx.ServerError("GetRunnerByID", err)
 		return

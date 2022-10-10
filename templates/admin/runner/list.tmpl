@@ -1,5 +1,5 @@
 {{template "base/head" .}}
-<div class="page-content admin runner">
+<div class="page-content admin runners">
 	{{template "admin/navbar" .}}
 	<div class="ui container">
 		{{template "base/alert" .}}
@@ -33,51 +33,25 @@
 					</tr>
 				</thead>
 				<tbody>
-					<tr>
-						<td>online</td>
-						<td><a href="?">
-								<span class="runner-id">#1</span>
-								<span class="runner-name">focused_mcclintock</span>
-							</a></td>
-						<td>shared</td>
-						<td class="runner-tags">
-							<span>linux</span>
-							<span>amd64</span>
-						</td>
-						<td>3 days ago</td>
-						<td class="runner-ops">
-							<a href="#">{{svg "octicon-pencil"}}</a>
-						</td>
-					</tr>
-					<tr>
-						<td>offline</td>
-						<td><a href="?">
-								<span class="runner-id">#2</span>
-								<span class="runner-name">lucid_khorana</span>
-							</a></td>
-						<td>shared</td>
-						<td class="runner-tags">
-							<span>linux</span>
-							<span>aarch64</span>
-							<span>self-host</span>
-							<span>custom</span>
-						</td>
-						<td>3 minutes ago</td>
-						<td class="runner-ops">
-							<a href="#">{{svg "octicon-pencil"}}</a>
-							<a href="#">{{svg "octicon-x-circle"}}</a>
-						</td>
-					</tr>
 					{{range .Runners}}
 					<tr>
-						<td>{{.ID}}</td>
-						<td>{{.Name}}</td>
+						<td>status</td>
+						<td>
+							<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
+								<span class="runner-id">#{{.ID}}</span>
+								<span class="runner-name">{{.Name}}</span>
+							</a>
+						</td>
 						<td>{{.OwnType}}</td>
-						<td>{{.UUID}}</td>
-						<td>{{.Created}}</td>
+						<td class="runner-tags">
+							{{range .AllLabels}}
+							<span>{{.}}</span>
+							{{end}}
+						</td>
+						<td>{{TimeSinceUnix .LastOnline $.locale}}</td>
 						<td class="runner-ops">
-							<a href="#">{{svg "octicon-pencil"}}</a>
-							<a href="#">{{svg "octicon-x-circle"}}</a>
+							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
+							<a class="runner-ops-delete" href="{{$.Link}}/{{.ID}}/delete">{{svg "octicon-x-circle"}}</a>
 						</td>
 					</tr>
 					{{end}}

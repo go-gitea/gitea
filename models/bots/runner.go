@@ -72,6 +72,11 @@ func (r *Runner) OwnType() string {
 	return r.Repo.FullName()
 }
 
+// AllLabels returns agent and custom labels
+func (r *Runner) AllLabels() []string {
+	return append(r.AgentLabels, r.CustomLabels...)
+}
+
 func init() {
 	db.RegisterModel(&Runner{})
 }
@@ -81,6 +86,7 @@ type FindRunnerOptions struct {
 	RepoID  int64
 	OwnerID int64
 	Sort    string
+	Filter  string
 }
 
 func (opts FindRunnerOptions) toCond() builder.Cond {
@@ -92,19 +98,36 @@ func (opts FindRunnerOptions) toCond() builder.Cond {
 		cond = cond.And(builder.Eq{"owner_id": opts.OwnerID})
 	}
 	cond = cond.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
+	if opts.Filter != "" {
+		cond = cond.And(builder.Like{"name", opts.Filter})
+	}
 	return cond
+}
+
+func (opts FindRunnerOptions) toOrder() string {
+	switch opts.Sort {
+	case "online":
+		return "last_online DESC"
+	case "offline":
+		return "last_online ASC"
+	case "alphabetically":
+		return "name ASC"
+	}
+	return "last_online DESC"
 }
 
 func CountRunners(opts FindRunnerOptions) (int64, error) {
 	return db.GetEngine(db.DefaultContext).
 		Table("bots_runner").
 		Where(opts.toCond()).
+		OrderBy(opts.toOrder()).
 		Count()
 }
 
 func FindRunners(opts FindRunnerOptions) (runners RunnerList, err error) {
 	sess := db.GetEngine(db.DefaultContext).
-		Where(opts.toCond())
+		Where(opts.toCond()).
+		OrderBy(opts.toOrder())
 	if opts.Page > 0 {
 		sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
