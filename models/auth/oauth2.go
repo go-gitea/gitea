@@ -10,6 +10,7 @@ import (
 	"encoding/base32"
 	"encoding/base64"
 	"fmt"
+	"net"
 	"net/url"
 	"strings"
 
@@ -56,6 +57,18 @@ func (app *OAuth2Application) PrimaryRedirectURI() string {
 
 // ContainsRedirectURI checks if redirectURI is allowed for app
 func (app *OAuth2Application) ContainsRedirectURI(redirectURI string) bool {
+	uri, err := url.Parse(redirectURI)
+	// ignore port for http loopback uris following https://datatracker.ietf.org/doc/html/rfc8252#section-7.3
+	if err == nil && uri.Scheme == "http" && uri.Port() != "" {
+		ip := net.ParseIP(uri.Hostname())
+		if ip != nil && ip.IsLoopback() {
+			// strip port
+			uri.Host = uri.Hostname()
+			if util.IsStringInSlice(uri.String(), app.RedirectURIs, true) {
+				return true
+			}
+		}
+	}
 	return util.IsStringInSlice(redirectURI, app.RedirectURIs, true)
 }
 
