@@ -6,6 +6,7 @@ package integration
 
 import (
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -27,15 +28,35 @@ func TestAPIViewPulls(t *testing.T) {
 	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 
-	session := loginUser(t, "user2")
-	token := getTokenForLoggedInUser(t, session)
-	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+token, owner.Name, repo.Name)
-	resp := session.MakeRequest(t, req, http.StatusOK)
+	ctx := NewAPITestContext(t, "user2", repo.Name)
+
+	req := NewRequestf(t, "GET", "/api/v1/repos/%s/%s/pulls?state=all&token="+ctx.Token, owner.Name, repo.Name)
+	resp := ctx.Session.MakeRequest(t, req, http.StatusOK)
 
 	var pulls []*api.PullRequest
 	DecodeJSON(t, resp, &pulls)
 	expectedLen := unittest.GetCount(t, &issues_model.Issue{RepoID: repo.ID}, unittest.Cond("is_pull = ?", true))
 	assert.Len(t, pulls, expectedLen)
+
+	pull := pulls[0]
+	if assert.EqualValues(t, 5, pull.ID) {
+		resp = ctx.Session.MakeRequest(t, NewRequest(t, "GET", pull.DiffURL), http.StatusOK)
+		_, err := ioutil.ReadAll(resp.Body)
+		assert.NoError(t, err)
+		// TODO: use diff to generate stats to test against
+
+		t.Run(fmt.Sprintf("APIGetPullFiles_%d", pull.ID),
+			doAPIGetPullFiles(ctx, pull, func(t *testing.T, files []*api.ChangedFile) {
+				if assert.Len(t, files, 1) {
+					assert.EqualValues(t, "File-WoW", files[0].Filename)
+					assert.EqualValues(t, "", files[0].PreviousFilename)
+					assert.EqualValues(t, 1, files[0].Additions)
+					assert.EqualValues(t, 1, files[0].Changes)
+					assert.EqualValues(t, 0, files[0].Deletions)
+					assert.EqualValues(t, "added", files[0].Status)
+				}
+			}))
+	}
 }
 
 // TestAPIMergePullWIP ensures that we can't merge a WIP pull request
@@ -182,4 +203,23 @@ func TestAPIEditPull(t *testing.T) {
 		Base: "not-exist",
 	})
 	session.MakeRequest(t, req, http.StatusNotFound)
+}
+
+func doAPIGetPullFiles(ctx APITestContext, pr *api.PullRequest, callback func(*testing.T, []*api.ChangedFile)) func(*testing.T) {
+	return func(t *testing.T) {
+		url := fmt.Sprintf("/api/v1/repos/%s/%s/pulls/%d/files?token=%s", ctx.Username, ctx.Reponame, pr.Index, ctx.Token)
+
+		req := NewRequest(t, http.MethodGet, url)
+		if ctx.ExpectedCode == 0 {
+			ctx.ExpectedCode = http.StatusOK
+		}
+		resp := ctx.Session.MakeRequest(t, req, ctx.ExpectedCode)
+
+		files := make([]*api.ChangedFile, 0, 1)
+		DecodeJSON(t, resp, &files)
+
+		if callback != nil {
+			callback(t, files)
+		}
+	}
 }

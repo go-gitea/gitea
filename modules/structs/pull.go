@@ -95,3 +95,16 @@ type EditPullRequestOption struct {
 	RemoveDeadline      *bool      `json:"unset_due_date"`
 	AllowMaintainerEdit *bool      `json:"allow_maintainer_edit"`
 }
+
+// ChangedFile store information about files affected by the pull request
+type ChangedFile struct {
+	Filename         string `json:"filename"`
+	PreviousFilename string `json:"previous_filename,omitempty"`
+	Status           string `json:"status"`
+	Additions        int    `json:"additions"`
+	Deletions        int    `json:"deletions"`
+	Changes          int    `json:"changes"`
+	HTMLURL          string `json:"html_url,omitempty"`
+	ContentsURL      string `json:"contents_url,omitempty"`
+	RawURL           string `json:"raw_url,omitempty"`
+}

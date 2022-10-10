@@ -218,6 +218,11 @@ func (a *Action) GetRepoLink() string {
 	return path.Join(setting.AppSubURL, "/", url.PathEscape(a.GetRepoUserName()), url.PathEscape(a.GetRepoName()))
 }
 
+// GetRepoAbsoluteLink returns the absolute link to action repository.
+func (a *Action) GetRepoAbsoluteLink() string {
+	return setting.AppURL + url.PathEscape(a.GetRepoUserName()) + "/" + url.PathEscape(a.GetRepoName())
+}
+
 // GetCommentLink returns link to action comment.
 func (a *Action) GetCommentLink() string {
 	return a.getCommentLink(db.DefaultContext)

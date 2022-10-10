@@ -302,8 +302,24 @@ func TestUpdateUser(t *testing.T) {
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
+	newEmail := "new_" + user.Email
+	user.Email = newEmail
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, newEmail, user.Email)
+
 	user.Email = "no mail@mail.org"
 	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
+}
+
+func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	user2.Email = user3.Email
+	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 
 func TestNewUserRedirect(t *testing.T) {
@@ -399,4 +415,57 @@ func TestUnfollowUser(t *testing.T) {
 	testSuccess(2, 2)
 
 	unittest.CheckConsistencyFor(t, &user_model.User{})
+}
+
+func TestIsUserVisibleToViewer(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})   // admin, public
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})   // normal, public
+	user20 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 20}) // public, same team as user31
+	user29 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 29}) // public, is restricted
+	user31 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 31}) // private, same team as user20
+	user33 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 33}) // limited, follows 31
+
+	test := func(u, viewer *user_model.User, expected bool) {
+		name := func(u *user_model.User) string {
+			if u == nil {
+				return "<nil>"
+			}
+			return u.Name
+		}
+		assert.Equal(t, expected, user_model.IsUserVisibleToViewer(db.DefaultContext, u, viewer), "user %v should be visible to viewer %v: %v", name(u), name(viewer), expected)
+	}
+
+	// admin viewer
+	test(user1, user1, true)
+	test(user20, user1, true)
+	test(user31, user1, true)
+	test(user33, user1, true)
+
+	// non admin viewer
+	test(user4, user4, true)
+	test(user20, user4, true)
+	test(user31, user4, false)
+	test(user33, user4, true)
+	test(user4, nil, true)
+
+	// public user
+	test(user4, user20, true)
+	test(user4, user31, true)
+	test(user4, user33, true)
+
+	// limited user
+	test(user33, user33, true)
+	test(user33, user4, true)
+	test(user33, user29, false)
+	test(user33, nil, false)
+
+	// private user
+	test(user31, user31, true)
+	test(user31, user4, false)
+	test(user31, user20, true)
+	test(user31, user29, false)
+	test(user31, user33, true)
+	test(user31, nil, false)
 }

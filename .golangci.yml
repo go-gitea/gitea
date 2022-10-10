@@ -40,7 +40,7 @@ linters-settings:
   stylecheck:
     checks: ["all", "-ST1005", "-ST1003"]
   nakedret:
-    max-func-lines: 0 
+    max-func-lines: 0
   gocritic:
     disabled-checks:
       - ifElseChain
@@ -86,6 +86,8 @@ linters-settings:
       - github.com/unknwon/com: "use gitea's util and replacements"
 
 issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
   exclude-rules:
     # Exclude some linters from running on tests files.
     - path: _test\.go
