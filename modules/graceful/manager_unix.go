@@ -123,12 +123,12 @@ func (g *Manager) start(ctx context.Context) {
 		// Ignore the error here there's not much we can do with it
 		// They're logged in the CloseProvidedListeners function
 		_ = CloseProvidedListeners()
+		g.notify(readyMsg)
 	}()
 	if setting.StartupTimeout > 0 {
 		go func() {
 			select {
 			case <-startupDone:
-				g.notify(readyMsg)
 				return
 			case <-g.IsShutdown():
 				func() {
