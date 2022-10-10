@@ -85,6 +85,8 @@ gitea.com/gitea/act v0.0.0-20221008102131-d89ab14fb580 h1:F/VSl4oP5Gqe0FQ2i6BX/O
 gitea.com/gitea/act v0.0.0-20221008102131-d89ab14fb580/go.mod h1:lpzib6X73FHLSaTqTakan1xcsCAVhlZvPSpLns7jkRo=
 gitea.com/gitea/proto-go v0.0.0-20221010074642-cc3659a7348b h1:BEEgR2+rEOyWGbY3iyGCIrv6wmlaj9dAECWONexibrI=
 gitea.com/gitea/proto-go v0.0.0-20221010074642-cc3659a7348b/go.mod h1:hD8YwSHusjwjEEgubW6XFvnZuNhMZTHz6lwjfltEt/Y=
+gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9 h1:roFxcMnXJrjZvHBfba5Py6Jin9VTTute0WwzRXhJnQs=
+gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9/go.mod h1:hD8YwSHusjwjEEgubW6XFvnZuNhMZTHz6lwjfltEt/Y=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=

@@ -96,7 +96,7 @@ func (s *Service) Register(
 		OwnerID:      runnerToken.OwnerID,
 		RepoID:       runnerToken.RepoID,
 		Token:        req.Msg.Token,
-		Status:       core.StatusOffline,
+		Status:       runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE,
 		AgentLabels:  req.Msg.AgentLabels,
 		CustomLabels: req.Msg.CustomLabels,
 	}
@@ -119,6 +119,7 @@ func (s *Service) Register(
 			Name:         runner.Name,
 			AgentLabels:  runner.AgentLabels,
 			CustomLabels: runner.CustomLabels,
+			Status:       runner.Status,
 		},
 	})
 
