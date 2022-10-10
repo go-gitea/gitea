@@ -54,6 +54,17 @@ func TestRedirectWithExistingGrant(t *testing.T) {
 	assert.Truef(t, len(u.Query().Get("code")) > 30, "authorization code '%s' should be longer then 30", u.Query().Get("code"))
 }
 
+func TestAuthorizePKCERequiredForPublicClient(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+	req := NewRequest(t, "GET", "/login/oauth/authorize?client_id=ce5a1322-42a7-11ed-b878-0242ac120002&redirect_uri=http%3A%2F%2F127.0.0.1&response_type=code&state=thestate")
+	ctx := loginUser(t, "user1")
+	resp := ctx.MakeRequest(t, req, http.StatusSeeOther)
+	u, err := resp.Result().Location()
+	assert.NoError(t, err)
+	assert.Equal(t, "invalid_request", u.Query().Get("error"))
+	assert.Equal(t, "PKCE is required for public clients", u.Query().Get("error_description"))
+}
+
 func TestAccessTokenExchange(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
@@ -164,31 +175,6 @@ func TestAccessTokenExchangeWithInvalidCredentials(t *testing.T) {
 		"redirect_uri":  "a",
 		"code":          "authcode",
 		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt", // test PKCE additionally
-	})
-	MakeRequest(t, req, http.StatusBadRequest)
-}
-
-func TestAccessTokenExchangeForPublicClient(t *testing.T) {
-	defer tests.PrepareTestEnv(t)()
-	req := NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
-		"grant_type":    "authorization_code",
-		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
-		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
-		// redirect port may vary
-		"redirect_uri":  "http://127.0.0.1:3456",
-		"code":          "authcodepublic",
-		"code_verifier": "N1Zo9-8Rfwhkt68r1r29ty8YwIraXR8eh_1Qwxg7yQXsonBt",
-	})
-	MakeRequest(t, req, http.StatusOK)
-
-	req = NewRequestWithValues(t, "POST", "/login/oauth/access_token", map[string]string{
-		"grant_type":    "authorization_code",
-		"client_id":     "ce5a1322-42a7-11ed-b878-0242ac120002",
-		"client_secret": "4MK8Na6R55smdCY0WuCCumZ6hjRPnGY5saWVRHHjJiA=",
-		// redirect port may vary
-		"redirect_uri": "http://127.0.0.1:3456",
-		"code":         "authcodepublic",
-		// omit PKCE
 	})
 	MakeRequest(t, req, http.StatusBadRequest)
 }
