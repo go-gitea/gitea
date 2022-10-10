@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/timeutil"
@@ -21,9 +22,10 @@ import (
 type Run struct {
 	ID            int64
 	Name          string
-	RepoID        int64  `xorm:"index unique(repo_workflow_index)"`
-	WorkflowID    string `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
-	Index         int64  `xorm:"index unique(repo_workflow_index)"` // a unique number for each run of a particular workflow in a repository
+	RepoID        int64                  `xorm:"index unique(repo_workflow_index)"`
+	Repo          *repo_model.Repository `xorm:"-"`
+	WorkflowID    string                 `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
+	Index         int64                  `xorm:"index unique(repo_workflow_index)"` // a unique number for each run of a particular workflow in a repository
 	TriggerUserID int64
 	TriggerUser   *user_model.User `xorm:"-"`
 	Ref           string
@@ -76,12 +78,14 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 
 	runJobs := make([]*RunJob, 0, len(jobs))
 	for _, v := range jobs {
-		_, job := v.Job()
+		id, job := v.Job()
 		payload, _ := v.Marshal()
 		runJobs = append(runJobs, &RunJob{
 			RunID:           run.ID,
 			Name:            job.Name,
+			Ready:           true, // TODO: should be false if there are needs to satisfy
 			WorkflowPayload: payload,
+			JobID:           id,
 			Needs:           nil, // TODO: analyse needs
 			RunsOn:          job.RunsOn(),
 			TaskID:          0,

@@ -7,6 +7,7 @@ package runner
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -14,12 +15,15 @@ import (
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/json"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
 	"github.com/bufbuild/connect-go"
 	gouuid "github.com/google/uuid"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
@@ -121,28 +125,19 @@ func (s *Service) Register(
 	return res, nil
 }
 
-// Request requests the next available build stage for execution.
+// FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
-	log.Debug("manager: request queue item")
+	runner := GetRunner(ctx)
 
-	task, err := s.Scheduler.Request(ctx, core.Filter{
-		OS:   req.Msg.Os,
-		Arch: req.Msg.Arch,
-	})
-	if err != nil && ctx.Err() != nil {
-		log.Debug("manager: context canceled")
-		return nil, err
+	var task *runnerv1.Task
+	if t, ok, err := s.pickTask(ctx, runner); err != nil {
+		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
+	} else if ok {
+		task = t
 	}
-	if err != nil {
-		log.Warn("manager: request queue item error")
-		return nil, err
-	}
-
-	// TODO: update task and check data lock
-	task.Machine = req.Msg.Os
 
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
 		Task: task,
@@ -166,4 +161,45 @@ func (s *Service) UpdateLog(
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 	return res, nil
+}
+
+func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
+	t, job, run, ok, err := bots_model.CreateTask(runner)
+	if err != nil {
+		return nil, false, fmt.Errorf("CreateTask: %w", err)
+	}
+	if !ok {
+		return nil, false, nil
+	}
+
+	event := map[string]interface{}{}
+	_ = json.Unmarshal([]byte(run.EventPayload), &event)
+
+	// TODO: more context in https://docs.github.com/cn/actions/learn-github-actions/contexts#github-context
+	taskContext, _ := structpb.NewStruct(map[string]interface{}{
+		"event":            event,
+		"run_id":           fmt.Sprint(run.ID),
+		"run_number":       fmt.Sprint(run.Index),
+		"run_attempt":      fmt.Sprint(job.Attempt),
+		"actor":            fmt.Sprint(run.TriggerUser.Name),
+		"repository":       fmt.Sprint(run.Repo.Name),
+		"event_name":       fmt.Sprint(run.Event.Event()),
+		"sha":              fmt.Sprint(run.CommitSHA),
+		"ref":              fmt.Sprint(run.Ref),
+		"ref_name":         "",
+		"ref_type":         "",
+		"head_ref":         "",
+		"base_ref":         "",
+		"token":            "",
+		"repository_owner": fmt.Sprint(run.Repo.OwnerName),
+		"retention_days":   "",
+	})
+
+	task := &runnerv1.Task{
+		Id:              t.ID,
+		WorkflowPayload: job.WorkflowPayload,
+		Context:         taskContext,
+		Secrets:         nil, // TODO: query secrets
+	}
+	return task, true, nil
 }
