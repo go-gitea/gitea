@@ -38,6 +38,8 @@ const (
 	tplSettingsHooks base.TplName = "org/settings/hooks"
 	// tplSettingsLabels template path for render labels settings
 	tplSettingsLabels base.TplName = "org/settings/labels"
+	// tplSettingsSecrets template path for render secrets settings
+	tplSettingsSecrets base.TplName = "org/settings/secrets"
 )
 
 // Settings render the main settings page
@@ -246,4 +248,13 @@ func Labels(ctx *context.Context) {
 	ctx.Data["RequireTribute"] = true
 	ctx.Data["LabelTemplates"] = repo_module.LabelTemplates
 	ctx.HTML(http.StatusOK, tplSettingsLabels)
+}
+
+// Secrets render organization secrets page
+func Secrets(ctx *context.Context) {
+	ctx.Data["Title"] = ctx.Tr("repo.secrets")
+	ctx.Data["PageIsOrgSettings"] = true
+	ctx.Data["PageIsOrgSettingsSecrets"] = true
+	ctx.Data["RequireTribute"] = true
+	ctx.HTML(http.StatusOK, tplSettingsSecrets)
 }

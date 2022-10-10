@@ -12,6 +12,9 @@
 		<a class="{{if .PageIsOrgSettingsLabels}}active{{end}} item" href="{{.OrgLink}}/settings/labels">
 			{{.locale.Tr "repo.labels"}}
 		</a>
+		<a class="{{if .PageIsOrgSettingsSecrets}}active{{end}} item" href="{{.OrgLink}}/settings/secrets">
+			{{.locale.Tr "repo.secrets"}}
+		</a>
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>

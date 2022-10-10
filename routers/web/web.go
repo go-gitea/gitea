@@ -701,6 +701,10 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", bindIgnErr(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
+				m.Group("/secrets", func() {
+					m.Get("", org.Secrets)
+				})
+
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 			})
 		}, context.OrgAssignment(true, true))
