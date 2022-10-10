@@ -35,7 +35,9 @@ func (s *Service) Register(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RegisterRequest],
 ) (*connect.Response[runnerv1.RegisterResponse], error) {
-	if req.Msg.Token == "" || req.Msg.Name == "" || req.Msg.Url == "" {
+	token := req.Header().Get("X-Runner-Token")
+
+	if token == "" || req.Msg.Name == "" || req.Msg.Url == "" {
 		return nil, errors.New("missing runner token, name or URL")
 	}
 
