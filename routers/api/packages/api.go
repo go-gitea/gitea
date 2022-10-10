@@ -316,8 +316,10 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			r.Group("/blobs/uploads", func() {
 				r.Post("", container.InitiateUploadBlob)
 				r.Group("/{uuid}", func() {
+					r.Get("", container.GetUploadBlob)
 					r.Patch("", container.UploadBlob)
 					r.Put("", container.EndUploadBlob)
+					r.Delete("", container.CancelUploadBlob)
 				})
 			}, reqPackageAccess(perm.AccessModeWrite))
 			r.Group("/blobs/{digest}", func() {
@@ -377,7 +379,7 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 			}
 
 			m := blobsUploadsPattern.FindStringSubmatch(path)
-			if len(m) == 3 && (isPut || isPatch) {
+			if len(m) == 3 && (isGet || isPut || isPatch || isDelete) {
 				reqPackageAccess(perm.AccessModeWrite)(ctx)
 				if ctx.Written() {
 					return
@@ -391,10 +393,14 @@ func ContainerRoutes(ctx gocontext.Context) *web.Route {
 
 				ctx.SetParams("uuid", m[2])
 
-				if isPatch {
+				if isGet {
+					container.GetUploadBlob(ctx)
+				} else if isPatch {
 					container.UploadBlob(ctx)
-				} else {
+				} else if isPut {
 					container.EndUploadBlob(ctx)
+				} else {
+					container.CancelUploadBlob(ctx)
 				}
 				return
 			}
