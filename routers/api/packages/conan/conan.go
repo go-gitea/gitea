@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	packages_model "code.gitea.io/gitea/models/packages"
 	conan_model "code.gitea.io/gitea/models/packages/conan"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
@@ -33,21 +34,20 @@ const (
 	packageReferenceKey = "PackageReference"
 )
 
-type stringSet map[string]struct{}
+var recipeFileList, packageFileList container.Set[string]
 
-var (
-	recipeFileList = stringSet{
-		conanfileFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_sources.tgz": struct{}{},
-		"conan_export.tgz":  struct{}{},
-	}
-	packageFileList = stringSet{
-		conaninfoFile:       struct{}{},
-		"conanmanifest.txt": struct{}{},
-		"conan_package.tgz": struct{}{},
-	}
-)
+func init() {
+	recipeFileList = make(container.Set[string])
+	recipeFileList.Add(conanfileFile)
+	recipeFileList.Add("conanmanifest.txt")
+	recipeFileList.Add("conan_sources.tgz")
+	recipeFileList.Add("conan_export.tgz")
+
+	packageFileList = make(container.Set[string])
+	packageFileList.Add(conaninfoFile)
+	packageFileList.Add("conanmanifest.txt")
+	packageFileList.Add("conan_package.tgz")
+}
 
 func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	// https://github.com/conan-io/conan/issues/6613
@@ -268,7 +268,7 @@ func PackageUploadURLs(ctx *context.Context) {
 	)
 }
 
-func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL string) {
+func serveUploadURLs(ctx *context.Context, fileFilter container.Set[string], uploadURL string) {
 	defer ctx.Req.Body.Close()
 
 	var files map[string]int64
@@ -279,7 +279,7 @@ func serveUploadURLs(ctx *context.Context, fileFilter stringSet, uploadURL strin
 
 	urls := make(map[string]string)
 	for file := range files {
-		if _, ok := fileFilter[file]; ok {
+		if fileFilter.Contains(file) {
 			urls[file] = fmt.Sprintf("%s/%s", uploadURL, file)
 		}
 	}
@@ -301,12 +301,12 @@ func UploadPackageFile(ctx *context.Context) {
 	uploadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func uploadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func uploadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 	pref := ctx.Data[packageReferenceKey].(*conan_module.PackageReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}
@@ -442,11 +442,11 @@ func DownloadPackageFile(ctx *context.Context) {
 	downloadFile(ctx, packageFileList, pref.AsKey())
 }
 
-func downloadFile(ctx *context.Context, fileFilter stringSet, fileKey string) {
+func downloadFile(ctx *context.Context, fileFilter container.Set[string], fileKey string) {
 	rref := ctx.Data[recipeReferenceKey].(*conan_module.RecipeReference)
 
 	filename := ctx.Params("filename")
-	if _, ok := fileFilter[filename]; !ok {
+	if !fileFilter.Contains(filename) {
 		apiError(ctx, http.StatusBadRequest, nil)
 		return
 	}

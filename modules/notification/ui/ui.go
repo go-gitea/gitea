@@ -10,6 +10,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -123,14 +124,14 @@ func (ns *notificationService) NotifyNewPullRequest(pr *issues_model.PullRequest
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
 		return
 	}
-	toNotify := make(map[int64]struct{}, 32)
+	toNotify := make(container.Set[int64], 32)
 	repoWatchers, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, pr.Issue.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
 	}
 	for _, id := range repoWatchers {
-		toNotify[id] = struct{}{}
+		toNotify.Add(id)
 	}
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(pr.IssueID)
 	if err != nil {
@@ -138,11 +139,11 @@ func (ns *notificationService) NotifyNewPullRequest(pr *issues_model.PullRequest
 		return
 	}
 	for _, id := range issueParticipants {
-		toNotify[id] = struct{}{}
+		toNotify.Add(id)
 	}
 	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
-		toNotify[mention.ID] = struct{}{}
+		toNotify.Add(mention.ID)
 	}
 	for receiverID := range toNotify {
 		_ = ns.issueQueue.Push(issueNotificationOpts{

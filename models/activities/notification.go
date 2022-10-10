@@ -200,7 +200,7 @@ func CreateOrUpdateIssueNotifications(issueID, commentID, notificationAuthorID, 
 
 func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, notificationAuthorID, receiverID int64) error {
 	// init
-	var toNotify map[int64]struct{}
+	var toNotify container.Set[int64]
 	notifications, err := getNotificationsByIssueID(ctx, issueID)
 	if err != nil {
 		return err
@@ -212,16 +212,16 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 	}
 
 	if receiverID > 0 {
-		toNotify = make(map[int64]struct{}, 1)
-		toNotify[receiverID] = struct{}{}
+		toNotify = make(container.Set[int64], 1)
+		toNotify.Add(receiverID)
 	} else {
-		toNotify = make(map[int64]struct{}, 32)
+		toNotify = make(container.Set[int64], 32)
 		issueWatches, err := issues_model.GetIssueWatchersIDs(ctx, issueID, true)
 		if err != nil {
 			return err
 		}
 		for _, id := range issueWatches {
-			toNotify[id] = struct{}{}
+			toNotify.Add(id)
 		}
 		if !(issue.IsPull && issues_model.HasWorkInProgressPrefix(issue.Title)) {
 			repoWatches, err := repo_model.GetRepoWatchersIDs(ctx, issue.RepoID)
@@ -229,7 +229,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 				return err
 			}
 			for _, id := range repoWatches {
-				toNotify[id] = struct{}{}
+				toNotify.Add(id)
 			}
 		}
 		issueParticipants, err := issue.GetParticipantIDsByIssue(ctx)
@@ -237,7 +237,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			return err
 		}
 		for _, id := range issueParticipants {
-			toNotify[id] = struct{}{}
+			toNotify.Add(id)
 		}
 
 		// dont notify user who cause notification
@@ -248,7 +248,7 @@ func createOrUpdateIssueNotifications(ctx context.Context, issueID, commentID, n
 			return err
 		}
 		for _, id := range issueUnWatches {
-			delete(toNotify, id)
+			toNotify.Remove(id)
 		}
 	}
 
@@ -499,16 +499,14 @@ func (nl NotificationList) LoadAttributes() error {
 }
 
 func (nl NotificationList) getPendingRepoIDs() []int64 {
-	ids := make(map[int64]struct{}, len(nl))
+	ids := make(container.Set[int64], len(nl))
 	for _, notification := range nl {
 		if notification.Repository != nil {
 			continue
 		}
-		if _, ok := ids[notification.RepoID]; !ok {
-			ids[notification.RepoID] = struct{}{}
-		}
+		ids.Add(notification.RepoID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 // LoadRepos loads repositories from database
@@ -575,16 +573,14 @@ func (nl NotificationList) LoadRepos() (repo_model.RepositoryList, []int, error)
 }
 
 func (nl NotificationList) getPendingIssueIDs() []int64 {
-	ids := make(map[int64]struct{}, len(nl))
+	ids := make(container.Set[int64], len(nl))
 	for _, notification := range nl {
 		if notification.Issue != nil {
 			continue
 		}
-		if _, ok := ids[notification.IssueID]; !ok {
-			ids[notification.IssueID] = struct{}{}
-		}
+		ids.Add(notification.IssueID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 // LoadIssues loads issues from database
@@ -661,16 +657,14 @@ func (nl NotificationList) Without(failures []int) NotificationList {
 }
 
 func (nl NotificationList) getPendingCommentIDs() []int64 {
-	ids := make(map[int64]struct{}, len(nl))
+	ids := make(container.Set[int64], len(nl))
 	for _, notification := range nl {
 		if notification.CommentID == 0 || notification.Comment != nil {
 			continue
 		}
-		if _, ok := ids[notification.CommentID]; !ok {
-			ids[notification.CommentID] = struct{}{}
-		}
+		ids.Add(notification.CommentID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 // LoadComments loads comments from database
