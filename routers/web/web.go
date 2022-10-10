@@ -754,6 +754,7 @@ func RegisterRoutes(m *web.Route) {
 				})
 			}, ignSignIn, context.PackageAssignment(), reqPackageAccess(perm.AccessModeRead))
 		}
+		m.Get("/code", user.CodeSearch)
 	}, context_service.UserAssignmentWeb())
 
 	// ***** Release Attachment Download without Signin
