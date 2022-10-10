@@ -35,9 +35,6 @@ type Runner struct {
 	ID          int64
 	UUID        string                 `xorm:"CHAR(36) UNIQUE"`
 	Name        string                 `xorm:"VARCHAR(32) UNIQUE"`
-	OS          string                 `xorm:"VARCHAR(16) index"` // the runner running os
-	Arch        string                 `xorm:"VARCHAR(16) index"` // the runner running architecture
-	Type        string                 `xorm:"VARCHAR(16)"`
 	OwnerID     int64                  `xorm:"index"` // org level runner, 0 means system
 	Owner       *user_model.User       `xorm:"-"`
 	RepoID      int64                  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
@@ -46,9 +43,14 @@ type Runner struct {
 	Base        int                    // 0 native 1 docker 2 virtual machine
 	RepoRange   string                 // glob match which repositories could use this runner
 	Token       string
-	Capacity    int64
-	LastOnline  timeutil.TimeStamp `xorm:"index"`
-	Created     timeutil.TimeStamp `xorm:"created"`
+
+	// Store OS and Artch.
+	AgentLabels []string
+	// Store custom labes use defined.
+	CustomLabels []string
+
+	LastOnline timeutil.TimeStamp `xorm:"index"`
+	Created    timeutil.TimeStamp `xorm:"created"`
 }
 
 func (Runner) TableName() string {

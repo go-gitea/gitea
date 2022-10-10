@@ -10,13 +10,14 @@ import (
 
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
-	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/log"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
 	"github.com/bufbuild/connect-go"
 )
+
+var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
 
 type Service struct {
 	Scheduler core.Scheduler
@@ -38,25 +39,24 @@ func (s *Service) Register(
 		return nil, errors.New("missing runner token")
 	}
 
+	// TODO: Get token data from runner_token table
 	runner, err := bots_model.GetRunnerByToken(token)
 	if err != nil {
 		return nil, errors.New("runner not found")
 	}
 
 	// update runner information
-	runner.Arch = req.Msg.Arch
-	runner.OS = req.Msg.Os
-	runner.Capacity = req.Msg.Capacity
-	if err := bots_model.UpdateRunner(ctx, runner, []string{"arch", "os", "capacity"}...); err != nil {
+	runner.AgentLabels = req.Msg.AgentLabels
+	runner.CustomLabels = req.Msg.CustomLabels
+	runner.Name = req.Msg.Name
+	if err := bots_model.UpdateRunner(ctx, runner, []string{"name", "agent_labels", "custom_labels"}...); err != nil {
 		return nil, errors.New("can't update runner")
 	}
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Uuid:     runner.UUID,
-			Os:       req.Msg.Os,
-			Arch:     req.Msg.Arch,
-			Capacity: req.Msg.Capacity,
+			Uuid:  runner.UUID,
+			Token: runner.Token,
 		},
 	})
 
@@ -64,15 +64,13 @@ func (s *Service) Register(
 }
 
 // Request requests the next available build stage for execution.
-func (s *Service) Request(
+func (s *Service) FetchTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.RequestRequest],
-) (*connect.Response[runnerv1.RequestResponse], error) {
+	req *connect.Request[runnerv1.FetchTaskRequest],
+) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	log.Debug("manager: request queue item")
 
-	stage, err := s.Scheduler.Request(ctx, core.Filter{
-		Kind: req.Msg.Kind,
-		Type: req.Msg.Type,
+	task, err := s.Scheduler.Request(ctx, core.Filter{
 		OS:   req.Msg.Os,
 		Arch: req.Msg.Arch,
 	})
@@ -85,86 +83,29 @@ func (s *Service) Request(
 		return nil, err
 	}
 
-	res := connect.NewResponse(&runnerv1.RequestResponse{
-		Stage: stage,
+	// TODO: update task and check data lock
+	task.Machine = req.Msg.Os
+
+	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
+		Task: task,
 	})
 	return res, nil
 }
 
-// Details fetches build details
-func (s *Service) Detail(
+// UpdateTask updates the task status.
+func (s *Service) UpdateTask(
 	ctx context.Context,
-	req *connect.Request[runnerv1.DetailRequest],
-) (*connect.Response[runnerv1.DetailResponse], error) {
-	log.Info("stag id %d", req.Msg.Stage.Id)
-
-	// fetch stage data
-	stage, err := bots_model.GetStageByID(req.Msg.Stage.Id)
-	if err != nil {
-		return nil, err
-	}
-
-	stage.Machine = req.Msg.Stage.Machine
-	stage.Status = core.StatusPending
-
-	count, err := bots_model.UpdateBuildStage(stage, "machine", "status")
-	if err != nil {
-		return nil, err
-	}
-	if count != 1 {
-		return nil, core.ErrDataLock
-	}
-
-	// fetch build data
-	build, err := bots_model.GetBuildByID(stage.BuildID)
-	if err != nil {
-		return nil, err
-	}
-
-	// fetch repo data
-	repo, err := repo_model.GetRepositoryByID(build.RepoID)
-	if err != nil {
-		return nil, err
-	}
-
-	res := connect.NewResponse(&runnerv1.DetailResponse{
-		Stage: &runnerv1.Stage{
-			Id:      stage.ID,
-			BuildId: stage.BuildID,
-			Name:    stage.Name,
-			Kind:    stage.Kind,
-			Type:    stage.Type,
-			Status:  string(stage.Status),
-			Started: int64(stage.Started),
-			Stopped: int64(stage.Stopped),
-			Machine: stage.Machine,
-		},
-		Build: &runnerv1.Build{
-			Id:   build.ID,
-			Name: build.Name,
-		},
-		Repo: &runnerv1.Repo{
-			Id:   repo.ID,
-			Name: repo.Name,
-		},
-	})
+	req *connect.Request[runnerv1.UpdateTaskRequest],
+) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
+	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
 	return res, nil
 }
 
-// Update updates the build stage.
-func (s *Service) Update(
+// UpdateLog uploads log of the task.
+func (s *Service) UpdateLog(
 	ctx context.Context,
-	req *connect.Request[runnerv1.UpdateRequest],
-) (*connect.Response[runnerv1.UpdateResponse], error) {
-	res := connect.NewResponse(&runnerv1.UpdateResponse{})
-	return res, nil
-}
-
-// UpdateStep updates the build step.
-func (s *Service) UpdateStep(
-	ctx context.Context,
-	req *connect.Request[runnerv1.UpdateStepRequest],
-) (*connect.Response[runnerv1.UpdateStepResponse], error) {
-	res := connect.NewResponse(&runnerv1.UpdateStepResponse{})
+	req *connect.Request[runnerv1.UpdateLogRequest],
+) (*connect.Response[runnerv1.UpdateLogResponse], error) {
+	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 	return res, nil
 }

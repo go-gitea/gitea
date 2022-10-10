@@ -20,8 +20,8 @@ type Filter struct {
 // Scheduler schedules Build stages for execution.
 type Scheduler interface {
 	// Schedule schedules the stage for execution.
-	Schedule(context.Context, *runnerv1.Stage) error
+	Schedule(context.Context, *runnerv1.Task) error
 
 	// Request requests the next stage scheduled for execution.
-	Request(context.Context, Filter) (*runnerv1.Stage, error)
+	Request(context.Context, Filter) (*runnerv1.Task, error)
 }

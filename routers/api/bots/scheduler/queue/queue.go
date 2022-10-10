@@ -19,7 +19,7 @@ type worker struct {
 	typ     string
 	os      string
 	arch    string
-	channel chan *runnerv1.Stage
+	channel chan *runnerv1.Task
 }
 
 type queue struct {
@@ -32,7 +32,7 @@ type queue struct {
 	ctx      context.Context
 }
 
-func (q *queue) Schedule(ctx context.Context, stage *runnerv1.Stage) error {
+func (q *queue) Schedule(ctx context.Context, stage *runnerv1.Task) error {
 	select {
 	case q.ready <- struct{}{}:
 	default:
@@ -40,13 +40,13 @@ func (q *queue) Schedule(ctx context.Context, stage *runnerv1.Stage) error {
 	return nil
 }
 
-func (q *queue) Request(ctx context.Context, params core.Filter) (*runnerv1.Stage, error) {
+func (q *queue) Request(ctx context.Context, params core.Filter) (*runnerv1.Task, error) {
 	w := &worker{
 		kind:    params.Kind,
 		typ:     params.Type,
 		os:      params.OS,
 		arch:    params.Arch,
-		channel: make(chan *runnerv1.Stage),
+		channel: make(chan *runnerv1.Task),
 	}
 	q.Lock()
 	q.workers[w] = struct{}{}
@@ -123,15 +123,15 @@ func (q *queue) signal(ctx context.Context) error {
 				}
 			}
 
-			stage := &runnerv1.Stage{
-				Id:      item.ID,
-				BuildId: item.BuildID,
-				Name:    item.Name,
-				Kind:    item.Name,
-				Type:    item.Type,
-				Status:  string(item.Status),
-				Started: int64(item.Started),
-				Stopped: int64(item.Stopped),
+			stage := &runnerv1.Task{
+				Id: item.ID,
+				// BuildId: item.BuildID,
+				// Name:    item.Name,
+				// Kind:    item.Name,
+				// Type:    item.Type,
+				// Status:  string(item.Status),
+				// Started: int64(item.Started),
+				// Stopped: int64(item.Stopped),
 			}
 
 			w.channel <- stage
