@@ -341,7 +341,7 @@ lint: lint-frontend lint-backend
 
 .PHONY: lint-frontend
 lint-frontend: node_modules
-	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e/*.test.e2e.js tests/e2e/utils_e2e.js
+	npx eslint --color --max-warnings=0 --ext js,vue web_src/js build *.config.js docs/assets/js tests/e2e
 	npx stylelint --color --max-warnings=0 web_src/less
 	npx spectral lint -q -F hint $(SWAGGER_SPEC)
 	npx markdownlint docs *.md
