@@ -15,6 +15,7 @@ import (
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
 	"github.com/bufbuild/connect-go"
+	gouuid "github.com/google/uuid"
 )
 
 var _ runnerv1connect.RunnerServiceClient = (*Service)(nil)
@@ -30,33 +31,49 @@ func (s *Service) Register(
 	ctx context.Context,
 	req *connect.Request[runnerv1.RegisterRequest],
 ) (*connect.Response[runnerv1.RegisterResponse], error) {
-	log.Info("Request headers: %v", req.Header())
-
-	token := req.Header().Get("X-Runner-Token")
-	log.Info("token: %v", token)
-
-	if token == "" {
-		return nil, errors.New("missing runner token")
+	if req.Msg.Token == "" || req.Msg.Name == "" {
+		return nil, errors.New("missing runner token or name")
 	}
 
-	// TODO: Get token data from runner_token table
-	runner, err := bots_model.GetRunnerByToken(token)
+	runnerToken, err := bots_model.GetRunnerToken(req.Msg.Token)
 	if err != nil {
-		return nil, errors.New("runner not found")
+		return nil, errors.New("runner token not found")
 	}
 
-	// update runner information
-	runner.AgentLabels = req.Msg.AgentLabels
-	runner.CustomLabels = req.Msg.CustomLabels
-	runner.Name = req.Msg.Name
-	if err := bots_model.UpdateRunner(ctx, runner, []string{"name", "agent_labels", "custom_labels"}...); err != nil {
-		return nil, errors.New("can't update runner")
+	if runnerToken.IsActive {
+		return nil, errors.New("runner token has already activated")
+	}
+
+	// create new runner
+	runner := &bots_model.Runner{
+		UUID:         gouuid.New().String(),
+		Name:         req.Msg.Name,
+		OwnerID:      runnerToken.OwnerID,
+		RepoID:       runnerToken.RepoID,
+		Token:        req.Msg.Token,
+		Status:       core.StatusOffline,
+		AgentLabels:  req.Msg.AgentLabels,
+		CustomLabels: req.Msg.CustomLabels,
+	}
+
+	// create new runner
+	if err := bots_model.NewRunner(ctx, runner); err != nil {
+		return nil, errors.New("can't create new runner")
+	}
+
+	// update token status
+	runnerToken.IsActive = true
+	if err := bots_model.UpdateRunnerToken(ctx, runnerToken, "is_active"); err != nil {
+		return nil, errors.New("can't update runner token status")
 	}
 
 	res := connect.NewResponse(&runnerv1.RegisterResponse{
 		Runner: &runnerv1.Runner{
-			Uuid:  runner.UUID,
-			Token: runner.Token,
+			Uuid:         runner.UUID,
+			Token:        runner.Token,
+			Name:         runner.Name,
+			AgentLabels:  runner.AgentLabels,
+			CustomLabels: runner.CustomLabels,
 		},
 	})
 

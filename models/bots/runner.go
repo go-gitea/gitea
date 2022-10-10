@@ -43,7 +43,7 @@ type Runner struct {
 	Description string                 `xorm:"TEXT"`
 	Base        int                    // 0 native 1 docker 2 virtual machine
 	RepoRange   string                 // glob match which repositories could use this runner
-	Token       string
+	Token       string                 `xorm:"CHAR(36) UNIQUE"`
 
 	// instance status (idle)
 	Status core.RunnerStatus
@@ -148,7 +148,7 @@ func GetRunnerByToken(token string) (*Runner, error) {
 		return nil, err
 	} else if !has {
 		return nil, ErrRunnerNotExist{
-			UUID: "",
+			Token: token,
 		}
 	}
 	return &runner, nil
@@ -176,4 +176,10 @@ func FindRunnersByRepoID(repoID int64) ([]*Runner, error) {
 	}
 	err = db.GetEngine(db.DefaultContext).Join("INNER", "repository", "repository.owner_id = bot_runner.owner_id").Find(&runners)
 	return runners, err
+}
+
+// NewRunner creates new runner.
+func NewRunner(ctx context.Context, t *Runner) error {
+	_, err := db.GetEngine(ctx).Insert(t)
+	return err
 }
