@@ -451,11 +451,17 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
-				if ctx.FormString("go-get") == "1" {
-					EarlyResponseForGoGetMeta(ctx)
-					return
+				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+					RedirectToUser(ctx, userName, redirectUserID)
+				} else if user_model.IsErrUserRedirectNotExist(err) {
+					if ctx.FormString("go-get") == "1" {
+						EarlyResponseForGoGetMeta(ctx)
+						return
+					}
+					ctx.NotFound("GetUserByName", nil)
+				} else {
+					ctx.ServerError("LookupUserRedirect", err)
 				}
-				ctx.NotFound("GetUserByName", nil)
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
