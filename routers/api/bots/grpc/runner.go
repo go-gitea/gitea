@@ -9,6 +9,7 @@ import (
 
 	"code.gitea.io/gitea/routers/api/bots/runner"
 	"code.gitea.io/gitea/routers/api/bots/scheduler/queue"
+
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 )
 
@@ -20,5 +21,6 @@ func RunnerRoute() (string, http.Handler) {
 	return runnerv1connect.NewRunnerServiceHandler(
 		runnerService,
 		compress1KB,
+		withRunner,
 	)
 }
