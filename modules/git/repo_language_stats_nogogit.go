@@ -68,6 +68,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	contentBuf := bytes.Buffer{}
 	var content []byte
 	sizes := make(map[string]int64)
+	keepLanguage := make(map[string]struct{})
 	for _, f := range entries {
 		select {
 		case <-repo.Ctx.Done():
@@ -108,6 +109,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					}
 
 					sizes[language] += f.Size()
+					keepLanguage[language] = struct{}{}
 					continue
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// strip off a ? if present
@@ -122,6 +124,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						}
 
 						sizes[language] += f.Size()
+						keepLanguage[language] = struct{}{}
 						continue
 					}
 				}
@@ -189,7 +192,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		for language := range sizes {
 			langtype := enry.GetLanguageType(language)
 			if langtype != enry.Programming && langtype != enry.Markup {
-				delete(sizes, language)
+				if _, keep := keepLanguage[language]; !keep {
+					delete(sizes, language)
+				}
 			}
 		}
 	}
