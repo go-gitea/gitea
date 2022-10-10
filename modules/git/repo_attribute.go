@@ -191,8 +191,8 @@ func (c *CheckAttributeReader) Run() error {
 // CheckPath check attr for given path
 func (c *CheckAttributeReader) CheckPath(path string) (rs map[string]string, err error) {
 	defer func() {
-		if err != nil {
-			log.Error("CheckPath returns error: %v", err)
+		if err != nil && err != c.ctx.Err() {
+			log.Error("Unexpected error when checking path %s in %s. Error: %v", path, c.Repo.Path, err)
 		}
 	}()
 
