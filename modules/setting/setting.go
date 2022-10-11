@@ -235,7 +235,7 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsLookup          container.Set[string] `ini:"-"`
+		ReactionsLookup       container.Set[string] `ini:"-"`
 		CustomEmojis          []string
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
