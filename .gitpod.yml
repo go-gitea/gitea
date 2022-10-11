@@ -1,0 +1,34 @@
+image: gitpod/workspace-full:latest
+
+tasks:
+  - name: Setup
+    init: |
+      make deps
+      make build
+    command: |
+      gp sync-done setup
+      exit 0
+  - name: Run frontend
+    command: |
+      gp sync-await setup
+      make watch-frontend
+  - name: Run backend
+    command: |
+      gp sync-await setup
+      mkdir -p custom/conf/
+      echo -e "[server]\nROOT_URL=https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/" > custom/conf/app.ini
+      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = /workspace/gitea/data/gitea.db" >> custom/conf/app.ini
+      export TAGS="sqlite sqlite_unlock_notify"
+      make watch-backend
+
+vscode:
+  extensions:
+    - editorconfig.editorconfig
+    - dbaeumer.vscode-eslint
+    - golang.go
+    - stylelint.vscode-stylelint
+    - DavidAnson.vscode-markdownlint
+
+ports:
+  - name: Gitea
+    port: 3000

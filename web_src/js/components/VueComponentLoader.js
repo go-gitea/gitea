@@ -44,6 +44,6 @@ export function initVueApp(el, opts = {}) {
   if (!el) return null;
 
   return createApp(
-    Object.assign({delimiters: vueDelimiters}, opts)
+    {delimiters: vueDelimiters, ...opts}
   ).mount(el);
 }
