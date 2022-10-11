@@ -100,7 +100,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
-      - make checks-backend
+      - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -112,16 +112,11 @@ steps:
       - make test-frontend
     depends_on: [lint-frontend]
 
-  - name: generate-frontend
-    image: golang:1.19
-    commands:
-      - make generate-frontend
-
   - name: build-frontend
     image: node:18
     commands:
       - make frontend
-    depends_on: [deps-frontend, generate-frontend]
+    depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
     image: golang:1.18 # this step is kept as the lowest version of golang that we support
@@ -549,16 +544,11 @@ steps:
     commands:
       - make deps-frontend
 
-  - name: generate-frontend
-    image: golang:1.18
-    commands:
-      - make generate-frontend
-
   - name: build-frontend
     image: node:18
     commands:
       - make frontend
-    depends_on: [deps-frontend, generate-frontend]
+    depends_on: [deps-frontend]
 
   - name: deps-backend
     image: golang:1.18
