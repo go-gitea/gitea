@@ -61,7 +61,7 @@ func TestExtractMetadataBytes(t *testing.T) {
 		var meta structs.IssueTemplate
 		body, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s\n%s", sepTest, frontTest, sepTest, bodyTest)), &meta)
 		assert.NoError(t, err)
-		assert.Equal(t, bodyTest, body)
+		assert.Equal(t, bodyTest, string(body))
 		assert.Equal(t, metaTest, meta)
 		assert.True(t, validateMetadata(meta))
 	})
@@ -82,7 +82,7 @@ func TestExtractMetadataBytes(t *testing.T) {
 		var meta structs.IssueTemplate
 		body, err := ExtractMetadataBytes([]byte(fmt.Sprintf("%s\n%s\n%s", sepTest, frontTest, sepTest)), &meta)
 		assert.NoError(t, err)
-		assert.Equal(t, "", body)
+		assert.Equal(t, "", string(body))
 		assert.Equal(t, metaTest, meta)
 		assert.True(t, validateMetadata(meta))
 	})

@@ -29,7 +29,7 @@ func GetTreeBySHA(ctx context.Context, repo *repo_model.Repository, gitRepo *git
 	tree.URL = repo.APIURL() + "/git/trees/" + url.PathEscape(tree.SHA)
 	var entries git.Entries
 	if recursive {
-		entries, err = gitTree.ListEntriesRecursive()
+		entries, err = gitTree.ListEntriesRecursiveWithSize()
 	} else {
 		entries, err = gitTree.ListEntries()
 	}

@@ -302,8 +302,24 @@ func TestUpdateUser(t *testing.T) {
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
+	newEmail := "new_" + user.Email
+	user.Email = newEmail
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, newEmail, user.Email)
+
 	user.Email = "no mail@mail.org"
 	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
+}
+
+func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	user2.Email = user3.Email
+	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 
 func TestNewUserRedirect(t *testing.T) {

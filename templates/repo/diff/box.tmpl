@@ -63,9 +63,9 @@
 					}
 				})();
 				</script>
-		<div id="diff-file-list-container"></div>
+		<div id="diff-file-list"></div>
 		<div id="diff-container">
-				<div id="diff-file-tree-container"></div>
+				<div id="diff-file-tree"></div>
 				<div id="diff-file-boxes" class="sixteen wide column">
 					{{range $i, $file := .Diff.Files}}
 						{{/*notice: the index of Diff.Files should not be used for element ID, because the index will be restarted from 0 when doing load-more for PRs with a lot of files*/}}
