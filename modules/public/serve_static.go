@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
