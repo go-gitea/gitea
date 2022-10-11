@@ -7,6 +7,7 @@ package bots
 import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
+	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
 // TaskStep represents a step of Task
@@ -14,7 +15,7 @@ type TaskStep struct {
 	ID        int64
 	TaskID    int64
 	Number    int64
-	Result    int64 // TODO: use runnerv1.Result
+	Result    runnerv1.Result
 	LogIndex  int64
 	LogLength int64
 	Started   timeutil.TimeStamp

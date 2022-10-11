@@ -8,9 +8,11 @@ import (
 	"context"
 	"strings"
 
-	"code.gitea.io/gitea/models/bots"
+	bots_model "code.gitea.io/gitea/models/bots"
 
 	"github.com/bufbuild/connect-go"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
@@ -18,12 +20,15 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		if methodName(request) == "Register" {
 			return unaryFunc(ctx, request)
 		}
-		uuid := request.Header().Get("X-Runner-Token") // TODO: shouldn't be X-Runner-Token, maybe X-Runner-UUID
-		// TODO: get runner from db, refuse request if it doesn't exist
-		r := &bots.Runner{
-			UUID: uuid,
+		token := request.Header().Get("X-Runner-Token") // TODO: shouldn't be X-Runner-Token, maybe X-Runner-UUID
+		runner, err := bots_model.GetRunnerByToken(token)
+		if err != nil {
+			if _, ok := err.(*bots_model.ErrRunnerNotExist); ok {
+				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
+			}
+			return nil, status.Error(codes.Internal, err.Error())
 		}
-		ctx = context.WithValue(ctx, runnerCtxKey{}, r)
+		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
 		return unaryFunc(ctx, request)
 	}
 }))
@@ -38,9 +43,9 @@ func methodName(req connect.AnyRequest) string {
 
 type runnerCtxKey struct{}
 
-func GetRunner(ctx context.Context) *bots.Runner {
+func GetRunner(ctx context.Context) *bots_model.Runner {
 	if v := ctx.Value(runnerCtxKey{}); v != nil {
-		if r, ok := v.(*bots.Runner); ok {
+		if r, ok := v.(*bots_model.Runner); ok {
 			return r
 		}
 	}

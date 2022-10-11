@@ -5,6 +5,7 @@
 package bots
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
 
@@ -48,6 +49,34 @@ func init() {
 
 func (Run) TableName() string {
 	return "bots_run"
+}
+
+// LoadAttributes load Repo TriggerUser if not loaded
+func (r *Run) LoadAttributes(ctx context.Context) error {
+	if r == nil {
+		return nil
+	}
+
+	if r.Repo == nil {
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, r.RepoID)
+		if err != nil {
+			return err
+		}
+		r.Repo = repo
+	}
+	if err := r.Repo.LoadAttributes(ctx); err != nil {
+		return err
+	}
+
+	if r.TriggerUser == nil {
+		u, err := user_model.GetUserByIDCtx(ctx, r.TriggerUserID)
+		if err != nil {
+			return err
+		}
+		r.TriggerUser = u
+	}
+
+	return nil
 }
 
 // InsertRun inserts a bot run
@@ -101,6 +130,29 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	}
 
 	return nil
+}
+
+// ErrRunNotExist represents an error for bot run not exist
+type ErrRunNotExist struct {
+	ID int64
+}
+
+func (err ErrRunNotExist) Error() string {
+	return fmt.Sprintf("run [%d] is not exist", err.ID)
+}
+
+func GetRunByID(ctx context.Context, id int64) (*Run, error) {
+	var run Run
+	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&run)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRunNotExist{
+			ID: id,
+		}
+	}
+
+	return &run, nil
 }
 
 type RunIndex db.ResourceIndex

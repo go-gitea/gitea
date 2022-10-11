@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
@@ -140,6 +141,17 @@ func (s *Service) FetchTask(
 		task = t
 	}
 
+	// avoid crazy retry
+	if task == nil {
+		duration := 2 * time.Second
+		if deadline, ok := ctx.Deadline(); ok {
+			if d := time.Until(deadline) - time.Second; d < duration {
+				duration = d
+			}
+		}
+		time.Sleep(duration)
+	}
+
 	res := connect.NewResponse(&runnerv1.FetchTaskResponse{
 		Task: task,
 	})
@@ -165,7 +177,7 @@ func (s *Service) UpdateLog(
 }
 
 func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*runnerv1.Task, bool, error) {
-	t, job, run, ok, err := bots_model.CreateTask(runner)
+	t, ok, err := bots_model.CreateTask(runner)
 	if err != nil {
 		return nil, false, fmt.Errorf("CreateTask: %w", err)
 	}
@@ -174,31 +186,31 @@ func (s *Service) pickTask(ctx context.Context, runner *bots_model.Runner) (*run
 	}
 
 	event := map[string]interface{}{}
-	_ = json.Unmarshal([]byte(run.EventPayload), &event)
+	_ = json.Unmarshal([]byte(t.Job.Run.EventPayload), &event)
 
 	// TODO: more context in https://docs.github.com/cn/actions/learn-github-actions/contexts#github-context
 	taskContext, _ := structpb.NewStruct(map[string]interface{}{
 		"event":            event,
-		"run_id":           fmt.Sprint(run.ID),
-		"run_number":       fmt.Sprint(run.Index),
-		"run_attempt":      fmt.Sprint(job.Attempt),
-		"actor":            fmt.Sprint(run.TriggerUser.Name),
-		"repository":       fmt.Sprint(run.Repo.Name),
-		"event_name":       fmt.Sprint(run.Event.Event()),
-		"sha":              fmt.Sprint(run.CommitSHA),
-		"ref":              fmt.Sprint(run.Ref),
+		"run_id":           fmt.Sprint(t.Job.ID),
+		"run_number":       fmt.Sprint(t.Job.Run.Index),
+		"run_attempt":      fmt.Sprint(t.Job.Attempt),
+		"actor":            fmt.Sprint(t.Job.Run.TriggerUser.Name),
+		"repository":       fmt.Sprint(t.Job.Run.Repo.Name),
+		"event_name":       fmt.Sprint(t.Job.Run.Event.Event()),
+		"sha":              fmt.Sprint(t.Job.Run.CommitSHA),
+		"ref":              fmt.Sprint(t.Job.Run.Ref),
 		"ref_name":         "",
 		"ref_type":         "",
 		"head_ref":         "",
 		"base_ref":         "",
 		"token":            "",
-		"repository_owner": fmt.Sprint(run.Repo.OwnerName),
+		"repository_owner": fmt.Sprint(t.Job.Run.Repo.OwnerName),
 		"retention_days":   "",
 	})
 
 	task := &runnerv1.Task{
 		Id:              t.ID,
-		WorkflowPayload: job.WorkflowPayload,
+		WorkflowPayload: t.Job.WorkflowPayload,
 		Context:         taskContext,
 		Secrets:         nil, // TODO: query secrets
 	}
