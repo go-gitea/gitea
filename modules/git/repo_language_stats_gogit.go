@@ -45,7 +45,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	defer deferable()
 
 	sizes := make(map[string]int64)
-	keepLanguage := make(map[string]struct{})
+	explicitIncludedLanguage := make(map[string]struct{})
 	err = tree.Files().ForEach(func(f *object.File) error {
 		if f.Size == 0 {
 			return nil
@@ -77,7 +77,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					}
 
 					sizes[language] += f.Size
-					keepLanguage[language] = struct{}{}
+					explicitIncludedLanguage[language] = struct{}{}
 					return nil
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// strip off a ? if present
@@ -92,7 +92,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						}
 
 						sizes[language] += f.Size
-						keepLanguage[language] = struct{}{}
+						explicitIncludedLanguage[language] = struct{}{}
 						return nil
 					}
 				}
@@ -139,7 +139,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		for language := range sizes {
 			langtype := enry.GetLanguageType(language)
 			if langtype != enry.Programming && langtype != enry.Markup {
-				if _, keep := keepLanguage[language]; !keep {
+				if _, keep := explicitIncludedLanguage[language]; !keep {
 					delete(sizes, language)
 				}
 			}
