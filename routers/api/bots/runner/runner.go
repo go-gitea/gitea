@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -164,6 +165,10 @@ func (s *Service) UpdateTask(
 	req *connect.Request[runnerv1.UpdateTaskRequest],
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
+
+	// to debug
+	log.Info("task state: %+v", req.Msg.State)
+
 	return res, nil
 }
 
@@ -173,6 +178,13 @@ func (s *Service) UpdateLog(
 	req *connect.Request[runnerv1.UpdateLogRequest],
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
+
+	// to debug
+	for i, row := range req.Msg.Rows {
+		log.Info("log[%v]: %v %v", req.Msg.Index+int64(i), row.Time.AsTime().Local().Format(time.RFC3339), row.Content)
+	}
+	res.Msg.AckIndex = req.Msg.Index + int64(len(req.Msg.Rows))
+
 	return res, nil
 }
 
