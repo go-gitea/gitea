@@ -39,10 +39,10 @@ func (oa *OAuth2CommonHandlers) AddApp(ctx *context.Context) {
 
 	// TODO validate redirect URI
 	app, err := auth.CreateOAuth2Application(ctx, auth.CreateOAuth2ApplicationOptions{
-		Name:         form.Name,
-		RedirectURIs: []string{form.RedirectURI},
-		UserID:       oa.OwnerID,
-		Confidential: form.Confidential,
+		Name:               form.Name,
+		RedirectURIs:       []string{form.RedirectURI},
+		UserID:             oa.OwnerID,
+		ConfidentialClient: form.ConfidentialClient,
 	})
 	if err != nil {
 		ctx.ServerError("CreateOAuth2Application", err)
@@ -91,11 +91,11 @@ func (oa *OAuth2CommonHandlers) EditSave(ctx *context.Context) {
 	// TODO validate redirect URI
 	var err error
 	if ctx.Data["App"], err = auth.UpdateOAuth2Application(auth.UpdateOAuth2ApplicationOptions{
-		ID:           ctx.ParamsInt64("id"),
-		Name:         form.Name,
-		RedirectURIs: []string{form.RedirectURI},
-		UserID:       oa.OwnerID,
-		Confidential: form.Confidential,
+		ID:                 ctx.ParamsInt64("id"),
+		Name:               form.Name,
+		RedirectURIs:       []string{form.RedirectURI},
+		UserID:             oa.OwnerID,
+		ConfidentialClient: form.ConfidentialClient,
 	}); err != nil {
 		ctx.ServerError("UpdateOAuth2Application", err)
 		return

@@ -34,7 +34,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-		Confidential: true,
+		ConfidentialClient: true,
 	}
 
 	req := NewRequestWithJSON(t, "POST", "/api/v1/user/applications/oauth2", &appBody)
@@ -47,7 +47,7 @@ func testAPICreateOAuth2Application(t *testing.T) {
 	assert.EqualValues(t, appBody.Name, createdApp.Name)
 	assert.Len(t, createdApp.ClientSecret, 56)
 	assert.Len(t, createdApp.ClientID, 36)
-	assert.True(t, createdApp.Confidential)
+	assert.True(t, createdApp.ConfidentialClient)
 	assert.NotEmpty(t, createdApp.Created)
 	assert.EqualValues(t, appBody.RedirectURIs[0], createdApp.RedirectURIs[0])
 	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{UID: user.ID, Name: createdApp.Name})
@@ -64,7 +64,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-		Confidential: true,
+		ConfidentialClient: true,
 	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2?token=%s", token)
@@ -77,7 +77,7 @@ func testAPIListOAuth2Applications(t *testing.T) {
 
 	assert.EqualValues(t, existApp.Name, expectedApp.Name)
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
-	assert.Equal(t, existApp.Confidential, expectedApp.Confidential)
+	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.EqualValues(t, existApp.RedirectURIs[0], expectedApp.RedirectURIs[0])
@@ -116,7 +116,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 		RedirectURIs: []string{
 			"http://www.google.com",
 		},
-		Confidential: true,
+		ConfidentialClient: true,
 	})
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d?token=%s", existApp.ID, token)
@@ -129,7 +129,7 @@ func testAPIGetOAuth2Application(t *testing.T) {
 
 	assert.EqualValues(t, existApp.Name, expectedApp.Name)
 	assert.EqualValues(t, existApp.ClientID, expectedApp.ClientID)
-	assert.Equal(t, existApp.Confidential, expectedApp.Confidential)
+	assert.Equal(t, existApp.ConfidentialClient, expectedApp.ConfidentialClient)
 	assert.Len(t, expectedApp.ClientID, 36)
 	assert.Empty(t, expectedApp.ClientSecret)
 	assert.Len(t, expectedApp.RedirectURIs, 1)
@@ -154,7 +154,7 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 			"http://www.google.com/",
 			"http://www.github.com/",
 		},
-		Confidential: true,
+		ConfidentialClient: true,
 	}
 
 	urlStr := fmt.Sprintf("/api/v1/user/applications/oauth2/%d", existApp.ID)
@@ -169,6 +169,6 @@ func testAPIUpdateOAuth2Application(t *testing.T) {
 	assert.Len(t, expectedApp.RedirectURIs, 2)
 	assert.EqualValues(t, expectedApp.RedirectURIs[0], appBody.RedirectURIs[0])
 	assert.EqualValues(t, expectedApp.RedirectURIs[1], appBody.RedirectURIs[1])
-	assert.Equal(t, expectedApp.Confidential, appBody.Confidential)
+	assert.Equal(t, expectedApp.ConfidentialClient, appBody.ConfidentialClient)
 	unittest.AssertExistsAndLoadBean(t, &auth.OAuth2Application{ID: expectedApp.ID, Name: expectedApp.Name})
 }

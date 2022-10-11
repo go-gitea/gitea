@@ -39,9 +39,9 @@
 				<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
 				<input id="application-name" value="{{.App.Name}}" name="application_name" required>
 			</div>
-			<div class="field ui checkbox {{if .Err_Confidential}}error{{end}}">
+			<div class="field ui checkbox {{if .Err_ConfidentialClient}}error{{end}}">
 				<label>{{.locale.Tr "settings.oauth2_confidential_client"}}</label>
-				<input type="checkbox" name="confidential" {{if .App.Confidential}}checked{{end}}>
+				<input type="checkbox" name="confidential_client" {{if .App.ConfidentialClient}}checked{{end}}>
 			</div>
 			<div class="field {{if .Err_RedirectURI}}error{{end}}">
 				<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>

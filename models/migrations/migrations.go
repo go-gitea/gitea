@@ -416,7 +416,7 @@ var migrations = []Migration{
 	// v226 -> v227
 	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
 	// v227 -> v228
-	NewMigration("Add confidential column default true to OAuth2Application table", addConfidentialColumnToOAuth2ApplicationTable),
+	NewMigration("Add ConfidentialClient column (default true) to OAuth2Application table", addConfidentialClientColumnToOAuth2ApplicationTable),
 }
 
 // GetCurrentDBVersion returns the current db version

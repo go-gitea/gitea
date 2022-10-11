@@ -8,10 +8,10 @@ import (
 	"xorm.io/xorm"
 )
 
-// addConfidentialColumnToOAuth2ApplicationTable: add Confidential column, setting existing rows to true
-func addConfidentialColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
+// addConfidentialColumnToOAuth2ApplicationTable: add ConfidentialClient column, setting existing rows to true
+func addConfidentialClientColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
 	type OAuth2Application struct {
-		Confidential bool `xorm:"NOT NULL DEFAULT TRUE"`
+		ConfidentialClient bool `xorm:"NOT NULL DEFAULT TRUE"`
 	}
 
 	return x.Sync(new(OAuth2Application))

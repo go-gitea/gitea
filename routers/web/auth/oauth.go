@@ -432,7 +432,7 @@ func AuthorizeOAuth(ctx *context.Context) {
 	case "":
 		// "Authorization servers SHOULD reject authorization requests from native apps that don't use PKCE by returning an error message"
 		// https://datatracker.ietf.org/doc/html/rfc8252#section-8.1
-		if !app.Confidential {
+		if !app.ConfidentialClient {
 			// "the authorization endpoint MUST return the authorization error response with the "error" value set to "invalid_request""
 			// https://datatracker.ietf.org/doc/html/rfc7636#section-4.4.1
 			handleAuthorizeError(ctx, AuthorizeError{
