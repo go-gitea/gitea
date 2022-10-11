@@ -18,7 +18,6 @@ import (
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -129,29 +128,12 @@ func (s *Service) Register(
 	return res, nil
 }
 
-const runnerOnlineTimeDeltaSecs = 30
-
 // FetchTask assigns a task to the runner
 func (s *Service) FetchTask(
 	ctx context.Context,
 	req *connect.Request[runnerv1.FetchTaskRequest],
 ) (*connect.Response[runnerv1.FetchTaskResponse], error) {
 	runner := GetRunner(ctx)
-
-	// update runner online status
-	if runner.Status == runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE {
-		runner.LastOnline = timeutil.TimeStampNow()
-		runner.Status = runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
-		if err := bots_model.UpdateRunner(ctx, runner, "last_online", "status"); err != nil {
-			log.Error("can't update runner status: %v", err)
-		}
-	}
-	if timeutil.TimeStampNow()-runner.LastOnline >= runnerOnlineTimeDeltaSecs {
-		runner.LastOnline = timeutil.TimeStampNow()
-		if err := bots_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
-			log.Error("can't update runner last_online: %v", err)
-		}
-	}
 
 	var task *runnerv1.Task
 	if t, ok, err := s.pickTask(ctx, runner); err != nil {

@@ -9,11 +9,16 @@ import (
 	"strings"
 
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
+	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 
 	"github.com/bufbuild/connect-go"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+const runnerOnlineTimeDeltaSecs = 30
 
 var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unaryFunc connect.UnaryFunc) connect.UnaryFunc {
 	return func(ctx context.Context, request connect.AnyRequest) (connect.AnyResponse, error) {
@@ -28,6 +33,22 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 			}
 			return nil, status.Error(codes.Internal, err.Error())
 		}
+
+		// update runner online status
+		if runner.Status == runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE {
+			runner.LastOnline = timeutil.TimeStampNow()
+			runner.Status = runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE
+			if err := bots_model.UpdateRunner(ctx, runner, "last_online", "status"); err != nil {
+				log.Error("can't update runner status: %v", err)
+			}
+		}
+		if timeutil.TimeStampNow()-runner.LastOnline >= runnerOnlineTimeDeltaSecs {
+			runner.LastOnline = timeutil.TimeStampNow()
+			if err := bots_model.UpdateRunner(ctx, runner, "last_online"); err != nil {
+				log.Error("can't update runner last_online: %v", err)
+			}
+		}
+
 		ctx = context.WithValue(ctx, runnerCtxKey{}, runner)
 		return unaryFunc(ctx, request)
 	}
