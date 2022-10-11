@@ -1,55 +1,7 @@
 {{template "base/head" .}}
 <div class="page-content admin config">
 	{{template "admin/navbar" .}}
-	<div class="ui container">
-		<div class="twelve wide column content">
-		{{template "base/alert" .}}
-			<h4 class="ui top attached header">
-			{{.locale.Tr "settings.edit_oauth2_application"}}
-			</h4>
-			<div class="ui attached segment form ignore-dirty">
-			{{.CsrfTokenHtml}}
-				<div class="field">
-					<label for="client-id">{{.locale.Tr "settings.oauth2_client_id"}}</label>
-					<input id="client-id" readonly value="{{.App.ClientID}}">
-				</div>
-			{{if .ClientSecret}}
-						<div class="field">
-							<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
-							<input id="client-secret" type="text" readonly value="{{.ClientSecret}}">
-						</div>
-			{{else}}
-						<div class="field">
-							<label for="client-secret">{{.locale.Tr "settings.oauth2_client_secret"}}</label>
-							<input id="client-secret" type="password" readonly value="averysecuresecret">
-						</div>
-			{{end}}
-				<div class="item">
-			{{.locale.Tr "settings.oauth2_regenerate_secret_hint"}}
-					<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/applications/{{.App.ID}}/regenerate_secret" method="post">
-				{{.CsrfTokenHtml}}
-						<a href="#" onclick="event.target.parentNode.submit()">{{.locale.Tr "settings.oauth2_regenerate_secret"}}</a>
-					</form>
-				</div>
-			</div>
-			<div class="ui attached bottom segment">
-				<form class="ui form ignore-dirty" action="{{AppSubUrl}}/admin/applications/{{.App.ID}}" method="post">
-			{{.CsrfTokenHtml}}
-					<div class="field {{if .Err_AppName}}error{{end}}">
-						<label for="application-name">{{.locale.Tr "settings.oauth2_application_name"}}</label>
-						<input id="application-name" value="{{.App.Name}}" name="application_name" required>
-					</div>
-					<div class="field {{if .Err_RedirectURI}}error{{end}}">
-						<label for="redirect-uri">{{.locale.Tr "settings.oauth2_redirect_uri"}}</label>
-						<input type="url" name="redirect_uri" value="{{.App.PrimaryRedirectURI}}" id="redirect-uri">
-					</div>
-					<button class="ui green button">
-				{{.locale.Tr "settings.save_application"}}
-					</button>
-				</form>
-			</div>
-		</div>
 
-	</div>
+	{{template "user/settings/applications_oauth2_edit_form" .}}
 </div>
 {{template "base/footer" .}}
