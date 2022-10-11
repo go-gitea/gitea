@@ -86,8 +86,8 @@ func (f *AdminCreateRunnerForm) Validate(req *http.Request, errs binding.Errors)
 
 // AdminEditRunnerForm form for admin to create runner
 type AdminEditRunnerForm struct {
-	Name string `binding:"Required"`
-	Type string
+	Description  string
+	CustomLabels string
 }
 
 // Validate validates form fields

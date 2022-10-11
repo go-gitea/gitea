@@ -74,6 +74,18 @@ func (r *Runner) OwnType() string {
 	return r.Repo.FullName()
 }
 
+func (r *Runner) StatusType() string {
+	switch r.Status {
+	case runnerv1.RunnerStatus_RUNNER_STATUS_OFFLINE:
+		return "offline"
+	case runnerv1.RunnerStatus_RUNNER_STATUS_IDLE:
+		return "online"
+	case runnerv1.RunnerStatus_RUNNER_STATUS_ACTIVE:
+		return "online"
+	}
+	return "unknown"
+}
+
 // AllLabels returns agent and custom labels
 func (r *Runner) AllLabels() []string {
 	return append(r.AgentLabels, r.CustomLabels...)

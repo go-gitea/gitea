@@ -35,7 +35,7 @@
 				<tbody>
 					{{range .Runners}}
 					<tr>
-						<td>status</td>
+						<td><span class="runner-status-{{.StatusType}}">{{.StatusType}}</span></td>
 						<td>
 							<a href="{{$.Link}}/{{.ID}}" class="tooltip" data-content="{{.Description}}">
 								<span class="runner-id">#{{.ID}}</span>

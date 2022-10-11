@@ -12,6 +12,10 @@
 				{{.CsrfTokenHtml}}
 				<div class="runner-basic-info">
 					<div class="field dib">
+						<label>{{.locale.Tr "admin.runners.status"}}</label>
+						<span class="runner-status-{{.Runner.StatusType}}">{{.Runner.StatusType}}</span>
+					</div>
+					<div class="field dib">
 						<label>{{.locale.Tr "admin.runners.last_online"}}</label>
 						<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
 					</div>
@@ -55,7 +59,7 @@
 			{{.locale.Tr "admin.runner.task_list"}}
 		</h4>
 		<div class="ui attached segment">
-				Comming soon
+			Comming soon
 		</div>
 	</div>
 </div>

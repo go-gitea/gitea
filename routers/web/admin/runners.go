@@ -8,12 +8,16 @@ package admin
 import (
 	"net/http"
 	"net/url"
+	"strings"
 
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/web"
+	"code.gitea.io/gitea/services/forms"
 )
 
 const (
@@ -88,18 +92,33 @@ func EditRunner(ctx *context.Context) {
 
 // EditRunnerPost response for editing runner
 func EditRunnerPost(ctx *context.Context) {
-	// form := web.GetForm(ctx).(*forms.AdminEditRunnerForm)
+	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
+	if err != nil {
+		log.Warn("EditRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.ServerError("EditRunnerPost.GetRunnerByID", err)
+		return
+	}
+
+	form := web.GetForm(ctx).(*forms.AdminEditRunnerForm)
+	runner.Description = form.Description
+	runner.CustomLabels = strings.Split(form.CustomLabels, ",")
+
+	err = bots_model.UpdateRunner(ctx, runner, "description", "custom_labels")
+	if err != nil {
+		log.Warn("EditRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Warning(ctx.Tr("admin.runners.edit_failed"))
+		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
+		return
+	}
+
 	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
-	if ctx.HasError() {
-		ctx.HTML(http.StatusOK, tplUserEdit)
-		return
-	}
+	log.Debug("EditRunnerPost success: %s", ctx.Req.URL)
 
-	ctx.Flash.Success(ctx.Tr("admin.users.update_profile_success"))
-	ctx.Redirect(setting.AppSubURL + "/admin/users/" + url.PathEscape(ctx.Params(":userid")))
+	ctx.Flash.Success(ctx.Tr("admin.runners.edit_success"))
+	ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
 }
 
 // DeleteRunner response for deleting a runner
