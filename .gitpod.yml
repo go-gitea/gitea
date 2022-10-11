@@ -15,7 +15,7 @@ tasks:
       gp sync-await setup
       mkdir -p custom/conf/
       echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
-      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = /workspace/gitea/data/gitea.db" >> custom/conf/app.ini
+      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
       export TAGS="sqlite sqlite_unlock_notify"
       make watch-backend
   - name: Run docs
