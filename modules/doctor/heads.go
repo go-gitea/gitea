@@ -57,7 +57,6 @@ func synchronizeRepoHeads(ctx context.Context, logger log.Logger, autofix bool) 
 		numReposUpdated++
 		return nil
 	})
-
 	if err != nil {
 		logger.Critical("Error when fixing repo HEADs: %v", err)
 	}
