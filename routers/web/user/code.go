@@ -1,8 +1,8 @@
-// Copyright 2021 The Gitea Authors. All rights reserved.
+// Copyright 2022 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package explore
+package user
 
 import (
 	"net/http"
@@ -15,22 +15,20 @@ import (
 )
 
 const (
-	// tplExploreCode explore code page template
-	tplExploreCode base.TplName = "explore/code"
+	tplUserCode base.TplName = "user/code"
 )
 
-// Code render explore code page
-func Code(ctx *context.Context) {
+// CodeSearch render user/organization code search page
+func CodeSearch(ctx *context.Context) {
 	if !setting.Indexer.RepoIndexerEnabled {
-		ctx.Redirect(setting.AppSubURL + "/explore")
+		ctx.Redirect(ctx.ContextUser.HomeLink())
 		return
 	}
 
-	ctx.Data["UsersIsDisabled"] = setting.Service.Explore.DisableUsersPage
+	ctx.Data["IsPackageEnabled"] = setting.Packages.Enabled
 	ctx.Data["IsRepoIndexerEnabled"] = setting.Indexer.RepoIndexerEnabled
-	ctx.Data["Title"] = ctx.Tr("explore")
-	ctx.Data["PageIsExplore"] = true
-	ctx.Data["PageIsExploreCode"] = true
+	ctx.Data["Title"] = ctx.Tr("code.title")
+	ctx.Data["ContextUser"] = ctx.ContextUser
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
@@ -41,34 +39,27 @@ func Code(ctx *context.Context) {
 	ctx.Data["Keyword"] = keyword
 	ctx.Data["Language"] = language
 	ctx.Data["queryType"] = queryType
-	ctx.Data["PageIsViewCode"] = true
+	ctx.Data["IsCodePage"] = true
 
 	if keyword == "" {
-		ctx.HTML(http.StatusOK, tplExploreCode)
+		ctx.HTML(http.StatusOK, tplUserCode)
 		return
 	}
+
+	var (
+		repoIDs []int64
+		err     error
+	)
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
 
-	var (
-		repoIDs []int64
-		err     error
-		isAdmin bool
-	)
-	if ctx.Doer != nil {
-		isAdmin = ctx.Doer.IsAdmin
-	}
-
-	// guest user or non-admin user
-	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
-		if err != nil {
-			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
-			return
-		}
+	repoIDs, err = repo_model.FindUserCodeAccessibleOwnerRepoIDs(ctx, ctx.ContextUser.ID, ctx.Doer)
+	if err != nil {
+		ctx.ServerError("FindUserCodeAccessibleOwnerRepoIDs", err)
+		return
 	}
 
 	var (
@@ -77,7 +68,7 @@ func Code(ctx *context.Context) {
 		searchResultLanguages []*code_indexer.SearchResultLanguages
 	)
 
-	if (len(repoIDs) > 0) || isAdmin {
+	if len(repoIDs) > 0 {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			if code_indexer.IsAvailable() {
@@ -111,7 +102,6 @@ func Code(ctx *context.Context) {
 
 		ctx.Data["RepoMaps"] = repoMaps
 	}
-
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
 
@@ -120,5 +110,5 @@ func Code(ctx *context.Context) {
 	pager.AddParam(ctx, "l", "Language")
 	ctx.Data["Page"] = pager
 
-	ctx.HTML(http.StatusOK, tplExploreCode)
+	ctx.HTML(http.StatusOK, tplUserCode)
 }
