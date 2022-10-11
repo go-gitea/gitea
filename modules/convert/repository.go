@@ -56,9 +56,10 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
-			ExternalTrackerURL:    config.ExternalTrackerURL,
-			ExternalTrackerFormat: config.ExternalTrackerFormat,
-			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+			ExternalTrackerURL:           config.ExternalTrackerURL,
+			ExternalTrackerFormat:        config.ExternalTrackerFormat,
+			ExternalTrackerStyle:         config.ExternalTrackerStyle,
+			ExternalTrackerRegexpPattern: config.ExternalTrackerRegexpPattern,
 		}
 	}
 	hasWiki := false

@@ -67,6 +67,7 @@ func createPackageMetadataVersion(registryURL string, pd *packages_model.Package
 		PeerDependencies:     metadata.PeerDependencies,
 		OptionalDependencies: metadata.OptionalDependencies,
 		Readme:               metadata.Readme,
+		Bin:                  metadata.Bin,
 		Dist: npm_module.PackageDistribution{
 			Shasum:    pd.Files[0].Blob.HashSHA1,
 			Integrity: "sha512-" + base64.StdEncoding.EncodeToString(hashBytes),
