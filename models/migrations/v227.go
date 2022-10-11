@@ -5,22 +5,13 @@
 package migrations
 
 import (
-	"code.gitea.io/gitea/modules/timeutil"
 	"xorm.io/xorm"
 )
 
 // addConfidentialColumnToOAuth2ApplicationTable: add Confidential column, setting existing rows to true
 func addConfidentialColumnToOAuth2ApplicationTable(x *xorm.Engine) error {
 	type OAuth2Application struct {
-		ID           int64 `xorm:"pk autoincr"`
-		UID          int64 `xorm:"INDEX"`
-		Name         string
-		ClientID     string `xorm:"unique"`
-		ClientSecret string
-		Confidential bool               `xorm:"NOT NULL DEFAULT TRUE"`
-		RedirectURIs []string           `xorm:"redirect_uris JSON TEXT"`
-		CreatedUnix  timeutil.TimeStamp `xorm:"INDEX created"`
-		UpdatedUnix  timeutil.TimeStamp `xorm:"INDEX updated"`
+		Confidential bool `xorm:"NOT NULL DEFAULT TRUE"`
 	}
 
 	return x.Sync(new(OAuth2Application))
