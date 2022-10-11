@@ -21,7 +21,7 @@ menu:
 
 ## Quickstart
 
-To get a quick working development environment you may use Gitpod.
+To get a quick working development environment you could use Gitpod.
 
 [![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/go-gitea/gitea)
 
