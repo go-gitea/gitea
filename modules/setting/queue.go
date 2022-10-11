@@ -110,7 +110,7 @@ func NewQueueService() {
 	// Now handle the old issue_indexer configuration
 	// FIXME: DEPRECATED to be removed in v1.18.0
 	section := Cfg.Section("queue.issue_indexer")
-	directlySet := toDirectlySetKeysMap(section)
+	directlySet := toDirectlySetKeysSet(section)
 	if !directlySet.Contains("TYPE") && defaultType == "" {
 		switch typ := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
 		case "levelqueue":
@@ -179,19 +179,19 @@ func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultV
 	}
 
 	section := Cfg.Section("queue." + queueName)
-	directlySet := toDirectlySetKeysMap(section)
+	directlySet := toDirectlySetKeysSet(section)
 	if !directlySet.Contains("LENGTH") {
 		_, _ = section.NewKey("LENGTH", strconv.Itoa(value))
 	}
 }
 
-// toDirectlySetKeysMap returns a bool map of keys directly set by this section
+// toDirectlySetKeysSet returns a set of keys directly set by this section
 // Note: we cannot use section.HasKey(...) as that will immediately set the Key if a parent section has the Key
 // but this section does not.
-func toDirectlySetKeysMap(section *ini.Section) container.Set[string] {
-	sectionMap := make(container.Set[string])
+func toDirectlySetKeysSet(section *ini.Section) container.Set[string] {
+	sections := make(container.Set[string])
 	for _, key := range section.Keys() {
-		sectionMap.Add(key.Name())
+		sections.Add(key.Name())
 	}
-	return sectionMap
+	return sections
 }

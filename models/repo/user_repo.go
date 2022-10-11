@@ -84,19 +84,19 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 		return nil, err
 	}
 
-	uidMap := make(container.Set[int64])
-	uidMap.AddMultiple(userIDs...)
-	uidMap.AddMultiple(additionalUserIDs...)
+	uniqueUserIDs := make(container.Set[int64])
+	uniqueUserIDs.AddMultiple(userIDs...)
+	uniqueUserIDs.AddMultiple(additionalUserIDs...)
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(uidMap)+1)
+	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", uidMap.Values()).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
+		if err = e.In("id", uniqueUserIDs.Values()).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
 			return nil, err
 		}
 	}
-	if !repo.Owner.IsOrganization() && !uidMap.Contains(repo.OwnerID) {
+	if !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
 		users = append(users, repo.Owner)
 	}
 

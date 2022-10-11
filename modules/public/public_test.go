@@ -19,11 +19,11 @@ func TestParseAcceptEncoding(t *testing.T) {
 	}{
 		{
 			Header:   "deflate, gzip;q=1.0, *;q=0.5",
-			Expected: container.NewSet[string]("deflate", "gzip"),
+			Expected: container.SetOf("deflate", "gzip"),
 		},
 		{
 			Header:   " gzip, deflate, br",
-			Expected: container.NewSet[string]("deflate", "gzip", "br"),
+			Expected: container.SetOf("deflate", "gzip", "br"),
 		},
 	}
 

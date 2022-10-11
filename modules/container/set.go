@@ -6,8 +6,8 @@ package container
 
 type Set[T comparable] map[T]struct{}
 
-// NewSet creates a set and adds the specified elements to it.
-func NewSet[T comparable](values ...T) Set[T] {
+// SetOf creates a set and adds the specified elements to it.
+func SetOf[T comparable](values ...T) Set[T] {
 	s := make(Set[T], len(values))
 	s.AddMultiple(values...)
 	return s

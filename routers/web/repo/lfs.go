@@ -177,12 +177,12 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	filemap := make(container.Set[string], len(filelist))
-	filemap.AddMultiple(filelist...)
+	fileset := make(container.Set[string], len(filelist))
+	fileset.AddMultiple(filelist...)
 
 	linkable := make([]bool, len(lfsLocks))
 	for i, lock := range lfsLocks {
-		linkable[i] = filemap.Contains(lock.Path)
+		linkable[i] = fileset.Contains(lock.Path)
 	}
 	ctx.Data["Linkable"] = linkable
 

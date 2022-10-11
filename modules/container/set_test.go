@@ -30,7 +30,7 @@ func TestSet(t *testing.T) {
 	assert.True(t, s.Contains("key4"))
 	assert.True(t, s.Contains("key5"))
 
-	s = NewSet("key6", "key7")
+	s = SetOf("key6", "key7")
 	assert.False(t, s.Contains("key1"))
 	assert.True(t, s.Contains("key6"))
 	assert.True(t, s.Contains("key7"))

@@ -35,13 +35,13 @@ const (
 )
 
 var (
-	recipeFileList = container.NewSet[string](
+	recipeFileList = container.SetOf(
 		conanfileFile,
 		"conanmanifest.txt",
 		"conan_sources.tgz",
 		"conan_export.tgz",
 	)
-	packageFileList = container.NewSet[string](
+	packageFileList = container.SetOf(
 		conaninfoFile,
 		"conanmanifest.txt",
 		"conan_package.tgz",
