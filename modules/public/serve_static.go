@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -60,7 +61,7 @@ func AssetIsDir(name string) (bool, error) {
 // serveContent serve http content
 func serveContent(w http.ResponseWriter, req *http.Request, fi os.FileInfo, modtime time.Time, content io.ReadSeeker) {
 	encodings := parseAcceptEncoding(req.Header.Get("Accept-Encoding"))
-	if encodings["gzip"] {
+	if encodings.Contains("gzip") {
 		if cf, ok := fi.(*vfsgen۰CompressedFileInfo); ok {
 			rdGzip := bytes.NewReader(cf.GzipBytes())
 			// all static files are managed by Gitea, so we can make sure every file has the correct ext name

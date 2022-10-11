@@ -34,20 +34,19 @@ const (
 	packageReferenceKey = "PackageReference"
 )
 
-var recipeFileList, packageFileList container.Set[string]
-
-func init() {
-	recipeFileList = make(container.Set[string])
-	recipeFileList.Add(conanfileFile)
-	recipeFileList.Add("conanmanifest.txt")
-	recipeFileList.Add("conan_sources.tgz")
-	recipeFileList.Add("conan_export.tgz")
-
-	packageFileList = make(container.Set[string])
-	packageFileList.Add(conaninfoFile)
-	packageFileList.Add("conanmanifest.txt")
-	packageFileList.Add("conan_package.tgz")
-}
+var (
+	recipeFileList = container.NewSet[string](
+		conanfileFile,
+		"conanmanifest.txt",
+		"conan_sources.tgz",
+		"conan_export.tgz",
+	)
+	packageFileList = container.NewSet[string](
+		conaninfoFile,
+		"conanmanifest.txt",
+		"conan_package.tgz",
+	)
+)
 
 func jsonResponse(ctx *context.Context, status int, obj interface{}) {
 	// https://github.com/conan-io/conan/issues/6613

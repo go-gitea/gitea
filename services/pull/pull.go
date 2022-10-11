@@ -20,6 +20,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/json"
@@ -640,7 +641,7 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 
 	posterSig := pr.Issue.Poster.NewGitSig().String()
 
-	authorsMap := map[string]bool{}
+	uniqueAuthors := make(container.Set[string])
 	authors := make([]string, 0, len(commits))
 	stringBuilder := strings.Builder{}
 
@@ -687,9 +688,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 		}
 
 		authorString := commit.Author.String()
-		if !authorsMap[authorString] && authorString != posterSig {
+		if uniqueAuthors.Add(authorString) && authorString != posterSig {
 			authors = append(authors, authorString)
-			authorsMap[authorString] = true
 		}
 	}
 
@@ -709,9 +709,8 @@ func GetSquashMergeCommitMessages(ctx context.Context, pr *issues_model.PullRequ
 			}
 			for _, commit := range commits {
 				authorString := commit.Author.String()
-				if !authorsMap[authorString] && authorString != posterSig {
+				if uniqueAuthors.Add(authorString) && authorString != posterSig {
 					authors = append(authors, authorString)
-					authorsMap[authorString] = true
 				}
 			}
 			skip += limit

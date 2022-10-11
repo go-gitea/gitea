@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 
 	ini "gopkg.in/ini.v1"
@@ -110,7 +111,7 @@ func NewQueueService() {
 	// FIXME: DEPRECATED to be removed in v1.18.0
 	section := Cfg.Section("queue.issue_indexer")
 	directlySet := toDirectlySetKeysMap(section)
-	if !directlySet["TYPE"] && defaultType == "" {
+	if !directlySet.Contains("TYPE") && defaultType == "" {
 		switch typ := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_TYPE").MustString(""); typ {
 		case "levelqueue":
 			_, _ = section.NewKey("TYPE", "level")
@@ -124,25 +125,25 @@ func NewQueueService() {
 			log.Fatal("Unsupported indexer queue type: %v", typ)
 		}
 	}
-	if !directlySet["LENGTH"] {
+	if !directlySet.Contains("LENGTH") {
 		length := Cfg.Section("indexer").Key("UPDATE_BUFFER_LEN").MustInt(0)
 		if length != 0 {
 			_, _ = section.NewKey("LENGTH", strconv.Itoa(length))
 		}
 	}
-	if !directlySet["BATCH_LENGTH"] {
+	if !directlySet.Contains("BATCH_LENGTH") {
 		fallback := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_BATCH_NUMBER").MustInt(0)
 		if fallback != 0 {
 			_, _ = section.NewKey("BATCH_LENGTH", strconv.Itoa(fallback))
 		}
 	}
-	if !directlySet["DATADIR"] {
+	if !directlySet.Contains("DATADIR") {
 		queueDir := filepath.ToSlash(Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_DIR").MustString(""))
 		if queueDir != "" {
 			_, _ = section.NewKey("DATADIR", queueDir)
 		}
 	}
-	if !directlySet["CONN_STR"] {
+	if !directlySet.Contains("CONN_STR") {
 		connStr := Cfg.Section("indexer").Key("ISSUE_INDEXER_QUEUE_CONN_STR").MustString("")
 		if connStr != "" {
 			_, _ = section.NewKey("CONN_STR", connStr)
@@ -179,7 +180,7 @@ func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultV
 
 	section := Cfg.Section("queue." + queueName)
 	directlySet := toDirectlySetKeysMap(section)
-	if !directlySet["LENGTH"] {
+	if !directlySet.Contains("LENGTH") {
 		_, _ = section.NewKey("LENGTH", strconv.Itoa(value))
 	}
 }
@@ -187,10 +188,10 @@ func handleOldLengthConfiguration(queueName, oldSection, oldKey string, defaultV
 // toDirectlySetKeysMap returns a bool map of keys directly set by this section
 // Note: we cannot use section.HasKey(...) as that will immediately set the Key if a parent section has the Key
 // but this section does not.
-func toDirectlySetKeysMap(section *ini.Section) map[string]bool {
-	sectionMap := map[string]bool{}
+func toDirectlySetKeysMap(section *ini.Section) container.Set[string] {
+	sectionMap := make(container.Set[string])
 	for _, key := range section.Keys() {
-		sectionMap[key.Name()] = true
+		sectionMap.Add(key.Name())
 	}
 	return sectionMap
 }

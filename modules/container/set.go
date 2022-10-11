@@ -6,6 +6,13 @@ package container
 
 type Set[T comparable] map[T]struct{}
 
+// NewSet creates a set and adds the specified elements to it.
+func NewSet[T comparable](values ...T) Set[T] {
+	s := make(Set[T], len(values))
+	s.AddMultiple(values...)
+	return s
+}
+
 // Add adds the specified element to a set.
 // Returns true if the element is added; false if the element is already present.
 func (s Set[T]) Add(value T) bool {
@@ -14,6 +21,13 @@ func (s Set[T]) Add(value T) bool {
 		return true
 	}
 	return false
+}
+
+// AddMultiple adds the specified elements to a set.
+func (s Set[T]) AddMultiple(values ...T) {
+	for _, value := range values {
+		s.Add(value)
+	}
 }
 
 // Contains determines whether a set contains the specified element.
