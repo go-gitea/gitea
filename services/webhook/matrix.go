@@ -195,7 +195,7 @@ func (m *MatrixPayloadUnsafe) PullRequest(p *api.PullRequestPayload) (api.Payloa
 func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
+	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
@@ -206,7 +206,7 @@ func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event webhook_mo
 			return nil, err
 		}
 
-		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, action, titleLink, senderLink)
 	}
 
 	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
