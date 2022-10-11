@@ -2,7 +2,7 @@
 <div class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header"><time data-format-text-according-to-datetime datetime="{{.DateFrom}}"></time> - <time data-format-text-according-to-datetime datetime="{{.DateUntil}}"></time>
+		<h2 class="ui header"><time data-date-format datetime="{{.DateFrom}}"></time> - <time data-date-format datetime="{{.DateUntil}}"></time>
 			<div class="ui right">
 				<!-- Period -->
 				<div class="ui floating dropdown jump filter">
