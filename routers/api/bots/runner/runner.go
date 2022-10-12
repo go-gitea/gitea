@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/json"
-	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -180,11 +180,31 @@ func (s *Service) UpdateLog(
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 
-	// to debug
-	for i, row := range req.Msg.Rows {
-		log.Info("log[%v]: %v %v", req.Msg.Index+int64(i), row.Time.AsTime().Local().Format(time.RFC3339), row.Content)
+	if len(req.Msg.Rows) == 0 {
+		// TODO: should be 1 + the max id of stored log
+		res.Msg.AckIndex = req.Msg.Index
+		return res, nil
 	}
-	res.Msg.AckIndex = req.Msg.Index + int64(len(req.Msg.Rows))
+
+	rowIndex := req.Msg.Index
+	rows := make([]*bots_model.TaskLog, len(req.Msg.Rows))
+	for i, v := range req.Msg.Rows {
+		rows[i] = &bots_model.TaskLog{
+			ID:        rowIndex + int64(i),
+			Timestamp: timeutil.TimeStamp(v.Time.AsTime().Unix()),
+			Content:   v.Content,
+		}
+	}
+
+	ack, err := bots_model.InsertTaskLogs(req.Msg.TaskId, rows)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "insert task log: %v", err)
+	}
+	res.Msg.AckIndex = ack
+
+	if req.Msg.NoMore {
+		// TODO: transfer logs to storage from db
+	}
 
 	return res, nil
 }
