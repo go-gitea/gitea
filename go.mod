@@ -64,7 +64,7 @@ require (
 	github.com/klauspost/compress v1.15.11
 	github.com/klauspost/cpuid/v2 v2.1.1
 	github.com/lib/pq v1.10.7
-	github.com/markbates/goth v1.73.0
+	github.com/markbates/goth v1.74.1
 	github.com/mattn/go-isatty v0.0.16
 	github.com/mattn/go-sqlite3 v1.14.15
 	github.com/mholt/archiver/v3 v3.5.1
@@ -95,8 +95,8 @@ require (
 	go.jolheiser.com/hcaptcha v0.0.4
 	go.jolheiser.com/pwn v0.0.3
 	golang.org/x/crypto v0.0.0-20220926161630-eccd6366d1be
-	golang.org/x/net v0.0.0-20220927171203-f486391704dc
-	golang.org/x/oauth2 v0.0.0-20220909003341-f21342109be1
+	golang.org/x/net v0.0.0-20221012135044-0b7e1fb9d458
+	golang.org/x/oauth2 v0.0.0-20221006150949-b44042a4b9c1
 	golang.org/x/sys v0.0.0-20220928140112-f11e5e49a4ec
 	golang.org/x/text v0.3.8
 	golang.org/x/tools v0.1.12
