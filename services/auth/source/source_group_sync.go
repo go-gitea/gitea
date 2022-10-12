@@ -1,0 +1,96 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package source
+
+import (
+	"context"
+	"fmt"
+
+	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/log"
+)
+
+type syncType int
+
+const (
+	syncAdd syncType = iota
+	syncRemove
+)
+
+// SyncGroupsToTeams maps authentication source groups to organization and team memberships
+func SyncGroupsToTeams(ctx context.Context, user *user_model.User, teamAdd, teamRemove map[string][]string, performRemoval bool) error {
+	orgCache := make(map[string]*organization.Organization)
+	teamCache := make(map[string]*organization.Team)
+	return SyncGroupsToTeamsCached(ctx, user, teamAdd, teamRemove, performRemoval, orgCache, teamCache)
+}
+
+// SyncGroupsToTeamsCached maps authentication source groups to organization and team memberships
+func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, teamAdd, teamRemove map[string][]string, performRemoval bool, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
+	if performRemoval {
+		if err := syncGroupsToTeamsCached(ctx, user, teamRemove, syncRemove, orgCache, teamCache); err != nil {
+			return fmt.Errorf("could not sync[remove] user groups: %w", err)
+		}
+	}
+
+	if err := syncGroupsToTeamsCached(ctx, user, teamAdd, syncAdd, orgCache, teamCache); err != nil {
+		return fmt.Errorf("could not sync[add] user groups: %w", err)
+	}
+
+	return nil
+}
+
+func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeamMap map[string][]string, action syncType, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
+	for orgName, teamNames := range orgTeamMap {
+		var err error
+		org, ok := orgCache[orgName]
+		if !ok {
+			org, err = organization.GetOrgByName(ctx, orgName)
+			if err != nil {
+				if organization.IsErrOrgNotExist(err) {
+					// organization must be created before group sync
+					log.Warn("group sync: Could not find organisation %s: %v", orgName, err)
+					continue
+				}
+				return err
+			}
+			orgCache[orgName] = org
+		}
+		for _, teamName := range teamNames {
+			team, ok := teamCache[orgName+teamName]
+			if !ok {
+				team, err = org.GetTeam(ctx, teamName)
+				if err != nil {
+					if organization.IsErrTeamNotExist(err) {
+						// team must be created before group sync
+						log.Warn("group sync: Could not find team %s: %v", teamName, err)
+						continue
+					}
+					return err
+				}
+				teamCache[orgName+teamName] = team
+			}
+
+			isMember, err := organization.IsTeamMember(ctx, org.ID, team.ID, user.ID)
+			if err != nil {
+				return err
+			}
+
+			if action == syncAdd && !isMember {
+				if err := models.AddTeamMember(team, user.ID); err != nil {
+					log.Error("group sync: Could not add user to team: %v", err)
+					return err
+				}
+			} else if action == syncRemove && isMember {
+				if err := models.RemoveTeamMember(team, user.ID); err != nil {
+					log.Error("group sync: Could not remove user from team: %v", err)
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}

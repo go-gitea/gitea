@@ -16,6 +16,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
+	source_service "code.gitea.io/gitea/services/auth/source"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -174,7 +175,9 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		// Synchronize LDAP groups with organization and team memberships
 		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			source.SyncLdapGroupsToTeams(usr, su.LdapTeamAdd, su.LdapTeamRemove, orgCache, teamCache)
+			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.LdapTeamAdd, su.LdapTeamRemove, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
+				log.Error("SyncGroupsToTeamsCached: %v", err)
+			}
 		}
 	}
 
