@@ -1,9 +1,10 @@
-// This script is for critical JS that needs to run as soon as possible.
+// This script is for critical JS that needs to perform DOM mutations
+// before the initial browser paint.
 
 let attempts = 0;
-requestAnimationFrame(function wait() {
+window.requestAnimationFrame(function wait() {
   if (document.querySelector('script[src*="index.js"]') || ++attempts > 100) return init();
-  requestAnimationFrame(wait);
+  window.requestAnimationFrame(wait);
 });
 
 // This function runs before DOMContentLoaded and checks if most of the page
