@@ -200,7 +200,7 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Put("/symbolpackage", nuget.UploadSymbolPackage)
 					r.Delete("/{id}/{version}", nuget.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
-				r.Get("/symbols/{filename}/{guid:[0-9a-f]{32}}FFFFFFFF/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
 				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
 				r.Get("/Packages()", nuget.SearchServiceV2)
 				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)

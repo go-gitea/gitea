@@ -21,14 +21,27 @@ func Search(ctx *context.Context) {
 		ctx.Redirect(ctx.Repo.RepoLink)
 		return
 	}
+
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
+
+	queryType := ctx.FormTrim("t")
+	isMatch := queryType == "match"
+
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
+	ctx.Data["PageIsViewCode"] = true
+
+	if keyword == "" {
+		ctx.HTML(http.StatusOK, tplSearch)
+		return
+	}
+
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
 
 	total, searchResults, searchResultLanguages, err := code_indexer.PerformSearch(ctx, []int64{ctx.Repo.Repository.ID},
 		language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
@@ -41,13 +54,10 @@ func Search(ctx *context.Context) {
 	} else {
 		ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
 	}
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
+
 	ctx.Data["SourcePath"] = ctx.Repo.Repository.HTMLURL()
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

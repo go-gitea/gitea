@@ -53,7 +53,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_label"}}">
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_label"}}">
 							</div>
 							<span class="info">{{.locale.Tr "repo.issues.filter_label_exclude" | Safe}}</span>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&assignee={{$.AssigneeID}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_label_no_select"}}</a>
@@ -88,7 +88,7 @@
 						<div class="menu">
 							<div class="ui icon search input">
 								<i class="icon df ac jc">{{svg "octicon-search" 16}}</i>
-								<input type="text" placeholder="{{.i18n.Tr "repo.issues.filter_assignee"}}">
+								<input type="text" placeholder="{{.locale.Tr "repo.issues.filter_assignee"}}">
 							</div>
 							<a class="item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state={{$.State}}&labels={{.SelectLabels}}&poster={{$.PosterID}}">{{.locale.Tr "repo.issues.filter_assginee_no_select"}}</a>
 							{{range .Assignees}}

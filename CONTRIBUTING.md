@@ -170,16 +170,21 @@ import (
 
 To maintain understandable code and avoid circular dependencies it is important to have a good structure of the code. The Gitea code is divided into the following parts:
 
-- **integration:** Integration tests
 - **models:** Contains the data structures used by xorm to construct database tables. It also contains supporting functions to query and update the database. Dependencies to other code in Gitea should be avoided although some modules might be needed (for example for logging).
 - **models/fixtures:** Sample model data used in integration tests.
 - **models/migrations:** Handling of database migrations between versions. PRs that changes a database structure shall also have a migration step.
-- **modules:** Different modules to handle specific functionality in Gitea.
+- **modules:** Different modules to handle specific functionality in Gitea. Shall only depend on other modules but not other packages (models, services).
 - **public:** Frontend files (javascript, images, css, etc.)
-- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers
+- **routers:** Handling of server requests. As it uses other Gitea packages to serve the request, other packages (models, modules or services) shall not depend on routers.
 - **services:** Support functions for common routing operations. Uses models and modules to handle the request.
 - **templates:** Golang templates for generating the html output.
+- **tests/e2e:** End to end tests
+- **tests/integration:** Integration tests
 - **vendor:** External code that Gitea depends on.
+
+## Documentation
+
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated.
 
 ## API v1
 
@@ -228,27 +233,6 @@ An endpoint which changes/edits an object expects all fields to be optional (exc
 
 - support pagination (`page` & `limit` options in query)
 - set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
-
-## Large Character Comments
-
-Throughout the codebase there are large-text comments for sections of code, e.g.:
-
-```go
-// __________            .__               
-// \______   \ _______  _|__| ______  _  __
-//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
-//  |    |   \  ___/\   /|  \  ___/\     / 
-//  |____|_  /\___  >\_/ |__|\___  >\/\_/  
-//         \/     \/             \/        
-```
-
-These were created using the `figlet` tool with the `graffiti` font.
-
-A simple way of creating these is to use the following:
-
-```bash
-figlet -f graffiti Review | sed  -e's+^+// +' - | xclip -sel clip -in
-```
 
 ## Backports and Frontports
 

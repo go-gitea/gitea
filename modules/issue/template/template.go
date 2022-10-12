@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"gitea.com/go-chi/binding"
@@ -43,7 +44,7 @@ func validateYaml(template *api.IssueTemplate) error {
 	if len(template.Fields) == 0 {
 		return fmt.Errorf("'body' is required")
 	}
-	ids := map[string]struct{}{}
+	ids := make(container.Set[string])
 	for idx, field := range template.Fields {
 		if err := validateID(field, idx, ids); err != nil {
 			return err
@@ -125,7 +126,7 @@ func validateRequired(field *api.IssueFormField, idx int) error {
 	return validateBoolItem(newErrorPosition(idx, field.Type), field.Validations, "required")
 }
 
-func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) error {
+func validateID(field *api.IssueFormField, idx int, ids container.Set[string]) error {
 	if field.Type == api.IssueFormFieldTypeMarkdown {
 		// The ID is not required for a markdown field
 		return nil
@@ -139,10 +140,9 @@ func validateID(field *api.IssueFormField, idx int, ids map[string]struct{}) err
 	if binding.AlphaDashPattern.MatchString(field.ID) {
 		return position.Errorf("'id' should contain only alphanumeric, '-' and '_'")
 	}
-	if _, ok := ids[field.ID]; ok {
+	if !ids.Add(field.ID) {
 		return position.Errorf("'id' should be unique")
 	}
-	ids[field.ID] = struct{}{}
 	return nil
 }
 
