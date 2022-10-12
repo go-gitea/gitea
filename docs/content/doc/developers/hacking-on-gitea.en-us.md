@@ -19,6 +19,12 @@ menu:
 
 {{< toc >}}
 
+## Quickstart
+
+To get a quick working development environment you could use Gitpod.
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/go-gitea/gitea)
+
 ## Installing go
 
 You should [install go](https://golang.org/doc/install) and set up your go
