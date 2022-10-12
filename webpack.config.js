@@ -50,6 +50,9 @@ const filterCssImport = (url, ...args) => {
 export default {
   mode: isProduction ? 'production' : 'development',
   entry: {
+    init: [
+      fileURLToPath(new URL('web_src/js/init.js', import.meta.url)),
+    ],
     index: [
       fileURLToPath(new URL('web_src/js/jquery.js', import.meta.url)),
       fileURLToPath(new URL('web_src/fomantic/build/semantic.js', import.meta.url)),

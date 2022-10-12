@@ -128,7 +128,6 @@
 								<a class="item js-clone-url-vsc" href="vscode://vscode.git/clone?url={{.CloneButtonOriginLink.HTTPS}}">{{svg "gitea-vscode" 16 "mr-3"}}{{.locale.Tr "repo.clone_in_vsc"}}</a>
 							</div>
 						</button>
-						{{template "repo/clone_script" .}}{{/* the script will update `.js-clone-url` and related elements */}}
 					</div>
 				{{end}}
 				{{if and (ne $n 0) (not .IsViewFile) (not .IsBlame)}}
