@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 
 	"github.com/go-enry/go-enry/v2"
@@ -68,7 +69,9 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	contentBuf := bytes.Buffer{}
 	var content []byte
 	sizes := make(map[string]int64)
-	explicitIncludedLanguage := make(map[string]struct{})
+	// Languages explicit specifiyed with linguist-language or gitlab-language are always displayed
+	// even if they are not of type programming or markup.
+	explicitIncludedLanguage := make(container.Set[string])
 	for _, f := range entries {
 		select {
 		case <-repo.Ctx.Done():
@@ -109,7 +112,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 					}
 
 					sizes[language] += f.Size()
-					explicitIncludedLanguage[language] = struct{}{}
+					explicitIncludedLanguage.Add(language)
 					continue
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					// strip off a ? if present
@@ -124,7 +127,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 						}
 
 						sizes[language] += f.Size()
-						explicitIncludedLanguage[language] = struct{}{}
+						explicitIncludedLanguage.Add(language)
 						continue
 					}
 				}
@@ -191,10 +194,8 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 	if len(sizes) > 1 {
 		for language := range sizes {
 			langtype := enry.GetLanguageType(language)
-			if langtype != enry.Programming && langtype != enry.Markup {
-				if _, keep := explicitIncludedLanguage[language]; !keep {
-					delete(sizes, language)
-				}
+			if langtype != enry.Programming && langtype != enry.Markup && !explicitIncludedLanguage.Contains(language) {
+				delete(sizes, language)
 			}
 		}
 	}
