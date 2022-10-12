@@ -51,7 +51,7 @@
 						<td>{{TimeSinceUnix .LastOnline $.locale}}</td>
 						<td class="runner-ops">
 							<a href="{{$.Link}}/{{.ID}}">{{svg "octicon-pencil"}}</a>
-							<a class="runner-ops-delete" href="{{$.Link}}/{{.ID}}/delete">{{svg "octicon-x-circle"}}</a>
+							<!--<a class="runner-ops-delete show-modal" data-modal="#runner-delete-modal">{{svg "octicon-x-circle"}}</a>-->
 						</td>
 					</tr>
 					{{end}}

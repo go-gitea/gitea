@@ -48,9 +48,9 @@
 				<div class="ui divider"></div>
 
 				<div class="field">
-					<button class="ui green button">{{.locale.Tr "admin.runners.update_runner"}}</button>
-					<div class="ui red button delete-button" data-url="{{$.Link}}/delete" data-id="{{.Runner.ID}}">
-						{{.locale.Tr "admin.runners.delete_runner"}}</div>
+					<button type="submit" class="ui green button">{{.locale.Tr "admin.runners.update_runner"}}</button>
+					<button type="button" class="ui red button delete-button show-modal" data-modal="#runner-delete-modal">
+						{{.locale.Tr "admin.runners.delete_runner"}}</button>
 				</div>
 			</form>
 		</div>
@@ -64,14 +64,22 @@
 	</div>
 </div>
 
-<div class="ui small basic delete modal">
-	<div class="ui icon header">
-		{{svg "octicon-trash"}}
-		{{.locale.Tr "settings.delete_account_title"}}
+<div class="ui small modal" id="runner-delete-modal">
+	<div class="header">
+		{{.locale.Tr "admin.runners.delete_header"}}
 	</div>
 	<div class="content">
-		<p>{{.locale.Tr "settings.delete_account_desc"}}</p>
+		<div class="ui warning message text left">
+			{{.locale.Tr "admin.runnners.delete_notice" | Safe}}
+		</div>
+		<form class="ui form" action="{{.Link}}/delete" method="post">
+			{{.CsrfTokenHtml}}
+			<input type="hidden" name="action" value="delete">
+			<div class="text right actions">
+				<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
+				<button class="ui red button">{{.locale.Tr "admin.runners.delete_confirm"}}</button>
+			</div>
+		</form>
 	</div>
-	{{template "base/delete_modal_actions" .}}
 </div>
 {{template "base/footer" .}}

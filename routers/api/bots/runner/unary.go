@@ -28,7 +28,7 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		token := request.Header().Get("X-Runner-Token") // TODO: shouldn't be X-Runner-Token, maybe X-Runner-UUID
 		runner, err := bots_model.GetRunnerByToken(token)
 		if err != nil {
-			if _, ok := err.(*bots_model.ErrRunnerNotExist); ok {
+			if _, ok := err.(bots_model.ErrRunnerNotExist); ok {
 				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
 			}
 			return nil, status.Error(codes.Internal, err.Error())

@@ -42,8 +42,9 @@ func Runners(ctx *context.Context) {
 			Page:     page,
 			PageSize: 100,
 		},
-		Sort:   ctx.Req.URL.Query().Get("sort"),
-		Filter: ctx.Req.URL.Query().Get("q"),
+		Sort:        ctx.Req.URL.Query().Get("sort"),
+		Filter:      ctx.Req.URL.Query().Get("q"),
+		WithDeleted: false,
 	}
 
 	count, err := bots_model.CountRunners(opts)
@@ -122,11 +123,26 @@ func EditRunnerPost(ctx *context.Context) {
 }
 
 // DeleteRunner response for deleting a runner
-func DeleteRunner(ctx *context.Context) {
+func DeleteRunnerPost(ctx *context.Context) {
+	runner, err := bots_model.GetRunnerByID(ctx.ParamsInt64(":runnerid"))
+	if err != nil {
+		log.Warn("DeleteRunnerPost.GetRunnerByID failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.ServerError("DeleteRunnerPost.GetRunnerByID", err)
+		return
+	}
+
+	err = bots_model.DeleteRunner(ctx, runner)
+	if err != nil {
+		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
+		ctx.Flash.Warning(ctx.Tr("admin.runners.delete_failed"))
+		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
+		return
+	}
+
+	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
+
 	ctx.Flash.Success(ctx.Tr("admin.runners.deletion_success"))
-	ctx.JSON(http.StatusOK, map[string]interface{}{
-		"redirect": setting.AppSubURL + "/admin/runners",
-	})
+	ctx.Redirect(setting.AppSubURL + "/admin/runners/")
 }
 
 /**

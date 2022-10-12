@@ -97,10 +97,11 @@ func init() {
 
 type FindRunnerOptions struct {
 	db.ListOptions
-	RepoID  int64
-	OwnerID int64
-	Sort    string
-	Filter  string
+	RepoID      int64
+	OwnerID     int64
+	Sort        string
+	Filter      string
+	WithDeleted bool
 }
 
 func (opts FindRunnerOptions) toCond() builder.Cond {
@@ -114,6 +115,9 @@ func (opts FindRunnerOptions) toCond() builder.Cond {
 	cond = cond.Or(builder.Eq{"repo_id": 0, "owner_id": 0})
 	if opts.Filter != "" {
 		cond = cond.And(builder.Like{"name", opts.Filter})
+	}
+	if !opts.WithDeleted {
+		cond = cond.And(builder.IsNull{"deleted"})
 	}
 	return cond
 }
@@ -208,14 +212,20 @@ func GetRunnerByToken(token string) (*Runner, error) {
 }
 
 // UpdateRunner updates runner's information.
-func UpdateRunner(ctx context.Context, r *Runner, cols ...string) (err error) {
+func UpdateRunner(ctx context.Context, r *Runner, cols ...string) error {
 	e := db.GetEngine(ctx)
-
+	var err error
 	if len(cols) == 0 {
 		_, err = e.ID(r.ID).AllCols().Update(r)
 	} else {
 		_, err = e.ID(r.ID).Cols(cols...).Update(r)
 	}
+	return err
+}
+
+func DeleteRunner(ctx context.Context, r *Runner) error {
+	e := db.GetEngine(ctx)
+	_, err := e.Delete(r)
 	return err
 }
 
