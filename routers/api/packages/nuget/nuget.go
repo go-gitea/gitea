@@ -351,7 +351,7 @@ func processUploadedFile(ctx *context.Context, expectedType nuget_module.Package
 // DownloadSymbolFile https://github.com/dotnet/symstore/blob/main/docs/specs/Simple_Symbol_Query_Protocol.md#request
 func DownloadSymbolFile(ctx *context.Context) {
 	filename := ctx.Params("filename")
-	guid := ctx.Params("guid")
+	guid := ctx.Params("guid")[:32]
 	filename2 := ctx.Params("filename2")
 
 	if filename != filename2 {

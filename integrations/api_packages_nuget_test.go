@@ -286,7 +286,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFFFFF/%s", url, symbolFilename, symbolID, symbolFilename))
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/symbols/%s/%sFFFFffff/%s", url, symbolFilename, symbolID, symbolFilename))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusOK)
 
