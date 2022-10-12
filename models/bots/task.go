@@ -21,7 +21,7 @@ type Task struct {
 	Attempt   int64
 	RunnerID  int64  `xorm:"index"`
 	LogToFile bool   // read log from database or from storage
-	LogUrl    string // url of the log file in storage
+	LogURL    string // url of the log file in storage
 	Result    runnerv1.Result
 	Started   timeutil.TimeStamp
 	Stopped   timeutil.TimeStamp
@@ -50,11 +50,8 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 		}
 		task.Job = job
 	}
-	if err := task.Job.LoadAttributes(ctx); err != nil {
-		return err
-	}
 
-	return nil
+	return task.Job.LoadAttributes(ctx)
 }
 
 func CreateTask(runner *Runner) (*Task, bool, error) {
@@ -71,7 +68,7 @@ func CreateTask(runner *Runner) (*Task, bool, error) {
 
 	// TODO: a more efficient way to filter labels
 	var job *RunJob
-	labels := append(runner.AgentLabels, runner.CustomLabels...)
+	labels := append([]string{}, append(runner.AgentLabels, runner.CustomLabels...)...)
 	for _, v := range jobs {
 		if isSubset(labels, v.RunsOn) {
 			job = v

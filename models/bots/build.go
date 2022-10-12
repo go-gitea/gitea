@@ -226,7 +226,7 @@ func GetBuildByRepoAndIndex(repoID, index int64) (*Build, error) {
 }
 
 // AssignBuildToRunner assign a build to a runner
-func AssignBuildToRunner(buildID int64, runnerID int64) error {
+func AssignBuildToRunner(buildID, runnerID int64) error {
 	cnt, err := db.GetEngine(db.DefaultContext).
 		Where("runner_id=0").
 		And("id=?", buildID).

@@ -36,8 +36,9 @@ type RunnerToken struct {
 	Repo     *repo_model.Repository `xorm:"-"`
 	IsActive bool
 
-	CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
-	UpdatedUnix timeutil.TimeStamp `xorm:"INDEX updated"`
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated"`
+	Deleted timeutil.TimeStamp `xorm:"deleted"`
 }
 
 func (RunnerToken) TableName() string {

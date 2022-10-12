@@ -54,11 +54,8 @@ func (job *RunJob) LoadAttributes(ctx context.Context) error {
 		}
 		job.Run = run
 	}
-	if err := job.Run.LoadAttributes(ctx); err != nil {
-		return err
-	}
 
-	return nil
+	return job.Run.LoadAttributes(ctx)
 }
 
 // ErrRunJobNotExist represents an error for bot run job not exist

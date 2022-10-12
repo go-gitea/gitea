@@ -81,15 +81,15 @@ func (r *Run) LoadAttributes(ctx context.Context) error {
 
 // InsertRun inserts a bot run
 func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
-	var groupId int64
+	var groupID int64
 	{
 		// tricky way to get resource group id
 		h := fnv.New64()
 		_, _ = h.Write([]byte(fmt.Sprintf("%d_%s", run.RepoID, run.WorkflowID)))
-		groupId = int64(h.Sum64())
+		groupID = int64(h.Sum64())
 	}
 
-	index, err := db.GetNextResourceIndex("bots_run_index", groupId)
+	index, err := db.GetNextResourceIndex("bots_run_index", groupID)
 	if err != nil {
 		return err
 	}
