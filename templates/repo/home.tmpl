@@ -3,7 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
-		{{if and (not .IsViewFile) (not .IsBlame)}}
+		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
 				{{$description := .Repository.DescriptionHTML $.Context}}

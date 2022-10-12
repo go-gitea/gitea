@@ -22,9 +22,9 @@ import (
 func TestViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
-	req := NewRequest(t, "GET", "/user2/repo1")
-
 	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1")
 	resp := session.MakeRequest(t, req, http.StatusOK)
 
 	htmlDoc := NewHTMLParser(t, resp.Body)
@@ -230,6 +230,32 @@ func TestBlameFileInRepo(t *testing.T) {
 	description := htmlDoc.doc.Find("#repo-desc")
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
+
+	assert.EqualValues(t, 0, description.Length())
+	assert.EqualValues(t, 0, repoTopics.Length())
+	assert.EqualValues(t, 0, repoSummary.Length())
+}
+
+// TestViewRepoDirectory repo description, topics and summary should not be displayed when within a directory
+func TestViewRepoDirectory(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo20/src/branch/master/a")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	description := htmlDoc.doc.Find("#repo-desc")
+	repoTopics := htmlDoc.doc.Find("#repo-topics")
+	repoSummary := htmlDoc.doc.Find(".repository-summary")
+
+	directoryBody := htmlDoc.doc.Find("tbody").Children()
+	assert.True(t, directoryBody.HasClass("has-parent"))
+	assert.Len(t, directoryBody.Nodes, 4)
+	assert.Equal(t, "b", directoryBody.Nodes[1].Attr[0].Val)
+	assert.Equal(t, "c", directoryBody.Nodes[2].Attr[0].Val)
+	assert.Equal(t, "link_annex", directoryBody.Nodes[3].Attr[0].Val)
 
 	assert.EqualValues(t, 0, description.Length())
 	assert.EqualValues(t, 0, repoTopics.Length())
