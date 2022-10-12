@@ -455,7 +455,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.ServerError("GetTreePathLock", err)
 			return
 		}
-		ctx.Data["LFSLockOwner"] = u.DisplayName()
+		ctx.Data["LFSLockOwner"] = u.Name
 		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
