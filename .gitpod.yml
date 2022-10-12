@@ -1,5 +1,3 @@
-image: gitpod/workspace-full:latest
-
 tasks:
   - name: Setup
     init: |
@@ -16,10 +14,13 @@ tasks:
     command: |
       gp sync-await setup
       mkdir -p custom/conf/
-      echo -e "[server]\nROOT_URL=https://3000-$GITPOD_WORKSPACE_ID.${GITPOD_WORKSPACE_CLUSTER_HOST}/" > custom/conf/app.ini
-      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = /workspace/gitea/data/gitea.db" >> custom/conf/app.ini
+      echo -e "[server]\nROOT_URL=$(gp url 3000)/" > custom/conf/app.ini
+      echo -e "\n[database]\nDB_TYPE = sqlite3\nPATH = $GITPOD_REPO_ROOT/data/gitea.db" >> custom/conf/app.ini
       export TAGS="sqlite sqlite_unlock_notify"
       make watch-backend
+  - name: Run docs
+    before: sudo bash -c "$(grep 'https://github.com/gohugoio/hugo/releases/download' Makefile | tr -d '\')" # install hugo
+    command: cd docs && make clean update && hugo server -D -F --baseUrl $(gp url 1313) --liveReloadPort=443 --appendPort=false --bind=0.0.0.0
 
 vscode:
   extensions:
@@ -28,7 +29,11 @@ vscode:
     - golang.go
     - stylelint.vscode-stylelint
     - DavidAnson.vscode-markdownlint
+    - johnsoncodehk.volar
+    - ms-azuretools.vscode-docker
 
 ports:
   - name: Gitea
     port: 3000
+  - name: Docs
+    port: 1313
