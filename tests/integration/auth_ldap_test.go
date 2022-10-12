@@ -319,7 +319,7 @@ func TestLDAPGroupTeamSyncAddMember(t *testing.T) {
 	}
 	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "on", `{"cn=ship_crew,ou=people,dc=planetexpress,dc=com":{"org26": ["team11"]},"cn=admin_staff,ou=people,dc=planetexpress,dc=com": {"non-existent": ["non-existent"]}}`)
-	org, err := organization.GetOrgByName("org26")
+	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
@@ -364,7 +364,7 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	}
 	defer tests.PrepareTestEnv(t)()
 	addAuthSourceLDAP(t, "", "on", `{"cn=dispatch,ou=people,dc=planetexpress,dc=com": {"org26": ["team11"]}}`)
-	org, err := organization.GetOrgByName("org26")
+	org, err := organization.GetOrgByName(db.DefaultContext, "org26")
 	assert.NoError(t, err)
 	team, err := organization.GetTeam(db.DefaultContext, org.ID, "team11")
 	assert.NoError(t, err)
