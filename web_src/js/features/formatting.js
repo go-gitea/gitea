@@ -1,6 +1,7 @@
 import {prettyNumber} from '../utils.js';
 
 const {lang} = document.documentElement;
+const dateFormatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'long', day: 'numeric'});
 
 export function initFormattingReplacements() {
   // replace english formatted numbers with locale-specific separators
@@ -14,8 +15,7 @@ export function initFormattingReplacements() {
 
   // for each <time></time> tag, if it has the data-format="date" attribute, format
   // the text according to the user's chosen locale
-  const formatter = new Intl.DateTimeFormat(lang, {year: 'numeric', month: 'long', day: 'numeric'});
   for (const timeElement of document.querySelectorAll('time[data-format="date"]')) {
-    timeElement.innerText = formatter.format(new Date(timeElement.dateTime));
+    timeElement.innerText = dateFormatter.format(new Date(timeElement.dateTime));
   }
 }
