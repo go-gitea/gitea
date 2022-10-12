@@ -228,7 +228,7 @@ func UpdateOAuth2Application(opts UpdateOAuth2ApplicationOptions) (*OAuth2Applic
 }
 
 func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error {
-	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("ConfidentialClient").Update(app); err != nil {
+	if _, err := db.GetEngine(ctx).ID(app.ID).UseBool("confidential_client").Update(app); err != nil {
 		return err
 	}
 	return nil
