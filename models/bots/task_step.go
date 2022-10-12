@@ -5,6 +5,8 @@
 package bots
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
@@ -31,4 +33,9 @@ func (TaskStep) TableName() string {
 
 func init() {
 	db.RegisterModel(new(TaskStep))
+}
+
+func GetTaskStepsByTaskID(ctx context.Context, taskID int64) ([]*TaskStep, error) {
+	var steps []*TaskStep
+	return steps, db.GetEngine(ctx).Where("task_id=?", taskID).OrderBy("number").Find(&steps)
 }

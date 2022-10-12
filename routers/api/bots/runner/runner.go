@@ -166,8 +166,9 @@ func (s *Service) UpdateTask(
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
 
-	// to debug
-	log.Info("task state: %+v", req.Msg.State)
+	if err := bots_model.UpdateTask(req.Msg.State); err != nil {
+		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+	}
 
 	return res, nil
 }

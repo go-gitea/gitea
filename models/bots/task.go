@@ -20,7 +20,8 @@ import (
 type Task struct {
 	ID        int64
 	JobID     int64
-	Job       *RunJob `xorm:"-"`
+	Job       *RunJob     `xorm:"-"`
+	Steps     []*TaskStep `xorm:"-"`
 	Attempt   int64
 	RunnerID  int64  `xorm:"index"`
 	LogToFile bool   // read log from database or from storage
@@ -40,7 +41,7 @@ func (Task) TableName() string {
 	return "bots_task"
 }
 
-// LoadAttributes load Job if not loaded
+// LoadAttributes load Job Steps if not loaded
 func (task *Task) LoadAttributes(ctx context.Context) error {
 	if task == nil {
 		return nil
@@ -53,8 +54,19 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 		}
 		task.Job = job
 	}
+	if err := task.Job.LoadAttributes(ctx); err != nil {
+		return err
+	}
 
-	return task.Job.LoadAttributes(ctx)
+	if task.Steps == nil { // be careful, an empty slice (not nil) also means loaded
+		steps, err := GetTaskStepsByTaskID(ctx, task.ID)
+		if err != nil {
+			return err
+		}
+		task.Steps = steps
+	}
+
+	return nil
 }
 
 func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
@@ -71,7 +83,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 
 	// TODO: a more efficient way to filter labels
 	var job *RunJob
-	labels := append([]string{}, append(runner.AgentLabels, runner.CustomLabels...)...)
+	labels := append(runner.AgentLabels, runner.CustomLabels...)
 	for _, v := range jobs {
 		if isSubset(labels, v.RunsOn) {
 			job = v
@@ -118,6 +130,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	if err := db.Insert(ctx, steps); err != nil {
 		return nil, false, err
 	}
+	task.Steps = steps
 
 	job.TaskID = task.ID
 	if _, err := db.GetEngine(ctx).ID(job.ID).Update(job); err != nil {
@@ -137,17 +150,48 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 }
 
 func UpdateTask(state *runnerv1.TaskState) error {
-	//ctx, commiter, err := db.TxContext()
-	//if err != nil {
-	//	return err
-	//}
-	//defer commiter.Close()
-	//
-	//task := &Task{
-	//	ID:      state.Id,
-	//	Result:  state.Result,
-	//	Stopped: timeutil.TimeStamp(state.StoppedAt.AsTime().Unix()),
-	//}
+	stepStates := map[int64]*runnerv1.StepState{}
+	for _, v := range state.Steps {
+		stepStates[v.Id] = v
+	}
+
+	ctx, commiter, err := db.TxContext()
+	if err != nil {
+		return err
+	}
+	defer commiter.Close()
+
+	task := &Task{}
+	if _, err := db.GetEngine(ctx).ID(state.Id).Get(task); err != nil {
+		return err
+	}
+
+	task.Result = state.Result
+	task.Stopped = timeutil.TimeStamp(state.StoppedAt.AsTime().Unix())
+
+	if _, err := db.GetEngine(ctx).ID(task.ID).Update(task); err != nil {
+		return err
+	}
+
+	if err := task.LoadAttributes(ctx); err != nil {
+		return err
+	}
+
+	for _, step := range task.Steps {
+		if v, ok := stepStates[step.Number]; ok {
+			step.Result = v.Result
+			step.LogIndex = v.LogIndex
+			step.LogLength = v.LogLength
+			if _, err := db.GetEngine(ctx).ID(step.ID).Update(step); err != nil {
+				return err
+			}
+		}
+	}
+
+	if err := commiter.Commit(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
