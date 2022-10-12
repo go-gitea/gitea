@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -275,7 +276,7 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 		return pullMirrorReleaseSync(repo, gitRepo)
 	}
 
-	existingRelTags := make(map[string]struct{})
+	existingRelTags := make(container.Set[string])
 	opts := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
@@ -303,14 +304,14 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
-				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
+				existingRelTags.Add(strings.ToLower(rel.TagName))
 			}
 		}
 	}
 
 	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
 		tagName := strings.TrimPrefix(refname, git.TagPrefix)
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+		if existingRelTags.Contains(strings.ToLower(tagName)) {
 			return nil
 		}
 

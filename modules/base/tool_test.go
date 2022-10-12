@@ -214,16 +214,7 @@ func TestInt64sToStrings(t *testing.T) {
 	)
 }
 
-func TestInt64sToMap(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
-	assert.Equal(t,
-		map[int64]bool{1: true, 4: true, 16: true},
-		Int64sToMap([]int64{1, 4, 16}),
-	)
-}
-
 func TestInt64sContains(t *testing.T) {
-	assert.Equal(t, map[int64]bool{}, Int64sToMap([]int64{}))
 	assert.True(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 1))
 	assert.True(t, Int64sContains([]int64{2323}, 2323))
 	assert.False(t, Int64sContains([]int64{6, 44324, 4324, 32, 1, 2323}, 232))
