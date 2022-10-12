@@ -81,8 +81,8 @@ contrib.go.opencensus.io/resource v0.1.1/go.mod h1:F361eGI91LCmW1I/Saf+rX0+OFcig
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4HHsCo6xi2oWZYKWW4bly/Ory9FuTpFPRxj/mAg=
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
-gitea.com/gitea/act v0.0.0-20221008102131-d89ab14fb580 h1:F/VSl4oP5Gqe0FQ2i6BX/ODIhBc/cxfp5p5yA8pOSb4=
-gitea.com/gitea/act v0.0.0-20221008102131-d89ab14fb580/go.mod h1:lpzib6X73FHLSaTqTakan1xcsCAVhlZvPSpLns7jkRo=
+gitea.com/gitea/act v0.0.0-20221012054755-c2c76e19a725 h1:H5lZ5fqSXAZ082wBKfqaME070sw5DeNwT8Bwyfa5mcc=
+gitea.com/gitea/act v0.0.0-20221012054755-c2c76e19a725/go.mod h1:lpzib6X73FHLSaTqTakan1xcsCAVhlZvPSpLns7jkRo=
 gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9 h1:roFxcMnXJrjZvHBfba5Py6Jin9VTTute0WwzRXhJnQs=
 gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9/go.mod h1:hD8YwSHusjwjEEgubW6XFvnZuNhMZTHz6lwjfltEt/Y=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=

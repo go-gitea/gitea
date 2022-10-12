@@ -319,4 +319,4 @@ exclude github.com/gofrs/uuid v4.0.0+incompatible
 
 exclude github.com/goccy/go-json v0.4.11
 
-replace github.com/nektos/act => gitea.com/gitea/act v0.0.0-20221008102131-d89ab14fb580
+replace github.com/nektos/act => gitea.com/gitea/act v0.0.0-20221012054755-c2c76e19a725

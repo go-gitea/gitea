@@ -6,11 +6,14 @@ package bots
 
 import (
 	"context"
+	"fmt"
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
+
+	"github.com/nektos/act/pkg/jobparser"
 )
 
 // Task represents a distribution of job
@@ -54,7 +57,7 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 	return task.Job.LoadAttributes(ctx)
 }
 
-func CreateTask(runner *Runner) (*Task, bool, error) {
+func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	ctx, commiter, err := db.TxContext()
 	if err != nil {
 		return nil, false, err
@@ -91,7 +94,28 @@ func CreateTask(runner *Runner) (*Task, bool, error) {
 		Started:  now,
 	}
 
+	var wolkflowJob *jobparser.Job
+	if gots, err := jobparser.Parse(job.WorkflowPayload); err != nil {
+		return nil, false, fmt.Errorf("parse workflow of job %d: %w", job.ID, err)
+	} else if len(gots) != 1 {
+		return nil, false, fmt.Errorf("workflow of job %d: not signle workflow", job.ID)
+	} else {
+		_, wolkflowJob = gots[0].Job()
+	}
+
 	if err := db.Insert(ctx, task); err != nil {
+		return nil, false, err
+	}
+
+	steps := make([]*TaskStep, len(wolkflowJob.Steps))
+	for i, v := range wolkflowJob.Steps {
+		steps[i] = &TaskStep{
+			Name:   v.String(),
+			TaskID: task.ID,
+			Number: int64(i),
+		}
+	}
+	if err := db.Insert(ctx, steps); err != nil {
 		return nil, false, err
 	}
 
@@ -110,6 +134,21 @@ func CreateTask(runner *Runner) (*Task, bool, error) {
 	}
 
 	return task, true, nil
+}
+
+func UpdateTask(state *runnerv1.TaskState) error {
+	//ctx, commiter, err := db.TxContext()
+	//if err != nil {
+	//	return err
+	//}
+	//defer commiter.Close()
+	//
+	//task := &Task{
+	//	ID:      state.Id,
+	//	Result:  state.Result,
+	//	Stopped: timeutil.TimeStamp(state.StoppedAt.AsTime().Unix()),
+	//}
+	return nil
 }
 
 func isSubset(set, subset []string) bool {

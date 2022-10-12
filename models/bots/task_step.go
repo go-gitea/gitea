@@ -13,8 +13,9 @@ import (
 // TaskStep represents a step of Task
 type TaskStep struct {
 	ID        int64
-	TaskID    int64
-	Number    int64
+	Name      string
+	TaskID    int64 `xorm:"index unique(task_number)"`
+	Number    int64 `xorm:"index unique(task_number)"`
 	Result    runnerv1.Result
 	LogIndex  int64
 	LogLength int64
