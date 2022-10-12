@@ -229,27 +229,6 @@ An endpoint which changes/edits an object expects all fields to be optional (exc
 - support pagination (`page` & `limit` options in query)
 - set `X-Total-Count` header via **SetTotalCountHeader** ([example](https://github.com/go-gitea/gitea/blob/7aae98cc5d4113f1e9918b7ee7dd09f67c189e3e/routers/api/v1/repo/issue.go#L444))
 
-## Large Character Comments
-
-Throughout the codebase there are large-text comments for sections of code, e.g.:
-
-```go
-// __________            .__               
-// \______   \ _______  _|__| ______  _  __
-//  |       _// __ \  \/ /  |/ __ \ \/ \/ /
-//  |    |   \  ___/\   /|  \  ___/\     / 
-//  |____|_  /\___  >\_/ |__|\___  >\/\_/  
-//         \/     \/             \/        
-```
-
-These were created using the `figlet` tool with the `graffiti` font.
-
-A simple way of creating these is to use the following:
-
-```bash
-figlet -f graffiti Review | sed  -e's+^+// +' - | xclip -sel clip -in
-```
-
 ## Backports and Frontports
 
 Occasionally backports of PRs are required.
