@@ -988,6 +988,12 @@
         .comment-form-reply .footer {
           padding-bottom: 1em;
         }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
+        }
       }
 
       .ui.comments {
@@ -1164,6 +1170,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
