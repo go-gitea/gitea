@@ -16,6 +16,7 @@ function init() {
   // TODO: This localStorage setting should be moved to backend user config.
   (window.updateCloneStates = function() {
     const httpsBtn = document.getElementById('repo-clone-https');
+    if (!httpsBtn) return;
     const sshBtn = document.getElementById('repo-clone-ssh');
     const value = localStorage.getItem('repo-clone-protocol') || 'https';
     const isSSH = value === 'ssh' && sshBtn || value !== 'ssh' && !httpsBtn;
