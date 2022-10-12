@@ -16,18 +16,16 @@ import (
 )
 
 var (
-	// tplSettingsLabels template path for render application settings
-	tplSettingsApplications base.TplName = "admin/applications/list"
-	// tplSettingsLabels template path for render application edit settings
-	tplSettingsEditApplication base.TplName = "admin/applications/edit"
+	tplSettingsApplications          base.TplName = "admin/applications/list"
+	tplSettingsOauth2ApplicationEdit base.TplName = "admin/applications/oauth2_edit"
 )
 
 func newOAuth2CommonHandlers() *user_setting.OAuth2CommonHandlers {
 	return &user_setting.OAuth2CommonHandlers{
 		OwnerID:            0,
 		BasePathList:       fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
-		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications", setting.AppSubURL),
-		TplAppEdit:         tplSettingsEditApplication,
+		BasePathEditPrefix: fmt.Sprintf("%s/admin/applications/oauth2", setting.AppSubURL),
+		TplAppEdit:         tplSettingsOauth2ApplicationEdit,
 	}
 }
 

@@ -571,9 +571,9 @@ func RegisterRoutes(m *web.Route) {
 		})
 
 		m.Group("/applications", func() {
-			m.Combo("").Get(admin.Applications).
-				Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
-			m.Group("/{id}", func() {
+			m.Get("", admin.Applications)
+			m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
+			m.Group("/oauth2/{id}", func() {
 				m.Combo("").Get(admin.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
 				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
 				m.Post("/delete", admin.DeleteApplication)
