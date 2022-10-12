@@ -68,10 +68,10 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(map[int64]struct{})
+	set := make(container.Set[int64])
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set[repos[i].OwnerID] = struct{}{}
+		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
@@ -79,7 +79,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", container.KeysInt64(set)).
+		In("id", set.Values()).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
