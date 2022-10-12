@@ -1,12 +1,14 @@
 // This script is for critical JS that needs to run as soon as possible.
-// Do not import any dependencies and keep to vanilla JS only.
+
+let attempts = 0;
+requestAnimationFrame(function wait() {
+  if (document.querySelector('script[src*="index.js"]') || ++attempts > 100) return init();
+  requestAnimationFrame(wait);
+});
 
 // This function runs before DOMContentLoaded and checks if most of the page
 // has loaded so we can do DOM mutations before anything is painted on the screen.
-requestAnimationFrame(function init(elapsed) {
-  if (elapsed > 10000) return;
-  if (!document.querySelector('script[src*="index.js"]')) return requestAnimationFrame(init);
-
+function init() {
   // Synchronously set clone button states and urls here to avoid flickering
   // on page load. initRepoCloneLink calls this when proto changes.
   // this applies the protocol-dependant clone url to all elements with the
@@ -32,4 +34,4 @@ requestAnimationFrame(function init(elapsed) {
       el.href = `vscode://vscode.git/clone?url=${encodeURIComponent(link)}`;
     }
   })();
-});
+}
