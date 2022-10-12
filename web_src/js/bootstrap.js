@@ -7,9 +7,18 @@ import {joinPaths} from './utils.js';
 // This file must be imported before any lazy-loading is being attempted.
 __webpack_public_path__ = joinPaths(window?.config?.assetUrlPrefix ?? '/', '/');
 
+const ignoreErrors = [
+  /vs\.editor\.nullLanguage/, // https://github.com/microsoft/monaco-editor/issues/2962
+];
+
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
   if (!pageContent) return;
+
+  for (const re of ignoreErrors) {
+    if (re.test(msg)) return;
+  }
+
   const el = document.createElement('div');
   el.innerHTML = `<div class="ui container negative message center aligned js-global-error" style="white-space: pre-line;"></div>`;
   el.childNodes[0].textContent = msg;
