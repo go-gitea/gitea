@@ -182,6 +182,10 @@ To maintain understandable code and avoid circular dependencies it is important 
 - **tests/integration:** Integration tests
 - **vendor:** External code that Gitea depends on.
 
+## Documentation
+
+If you add a new feature or change an existing aspect of Gitea, the documentation for that feature must be created or updated.
+
 ## API v1
 
 The API is documented by [swagger](http://try.gitea.io/api/swagger) and is based on [GitHub API v3](https://developer.github.com/v3/).
