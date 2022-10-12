@@ -23,12 +23,23 @@ func TestViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
 	req := NewRequest(t, "GET", "/user2/repo1")
-	MakeRequest(t, req, http.StatusOK)
+
+	session := loginUser(t, "user2")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
+	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
+
+	assert.True(t, noDescription.HasClass("no-description"))
+	assert.True(t, repoTopics.HasClass("repo-topic"))
+	assert.True(t, repoSummary.HasClass("repository-menu"))
 
 	req = NewRequest(t, "GET", "/user3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
-	session := loginUser(t, "user1")
+	session = loginUser(t, "user1")
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -178,8 +189,12 @@ func TestViewAsRepoAdmin(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
+		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
 		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
+		assert.True(t, repoTopics.HasClass("repo-topic"))
+		assert.True(t, repoSummary.HasClass("repository-menu"))
 	}
 }
 
