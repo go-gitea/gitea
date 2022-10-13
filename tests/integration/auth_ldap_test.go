@@ -103,16 +103,8 @@ func getLDAPServerHost() string {
 	return host
 }
 
-func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...string) {
-	groupTeamMapRemoval := "off"
-	groupTeamMap := ""
-	if len(groupMapParams) == 2 {
-		groupTeamMapRemoval = groupMapParams[0]
-		groupTeamMap = groupMapParams[1]
-	}
-	session := loginUser(t, "user1")
-	csrf := GetCSRF(t, session, "/admin/auths/new")
-	req := NewRequestWithValues(t, "POST", "/admin/auths/new", map[string]string{
+func buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupTeamMap, groupTeamMapRemoval string) map[string]string {
+	return map[string]string{
 		"_csrf":                    csrf,
 		"type":                     "2",
 		"name":                     "ldap",
@@ -137,7 +129,19 @@ func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...s
 		"group_team_map":           groupTeamMap,
 		"group_team_map_removal":   groupTeamMapRemoval,
 		"user_uid":                 "DN",
-	})
+	}
+}
+
+func addAuthSourceLDAP(t *testing.T, sshKeyAttribute string, groupMapParams ...string) {
+	groupTeamMapRemoval := "off"
+	groupTeamMap := ""
+	if len(groupMapParams) == 2 {
+		groupTeamMapRemoval = groupMapParams[0]
+		groupTeamMap = groupMapParams[1]
+	}
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, sshKeyAttribute, groupTeamMap, groupTeamMapRemoval))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 }
 
@@ -185,26 +189,7 @@ func TestLDAPAuthChange(t *testing.T) {
 	binddn, _ := doc.Find(`input[name="bind_dn"]`).Attr("value")
 	assert.Equal(t, binddn, "uid=gitea,ou=service,dc=planetexpress,dc=com")
 
-	req = NewRequestWithValues(t, "POST", href, map[string]string{
-		"_csrf":                    csrf,
-		"type":                     "2",
-		"name":                     "ldap",
-		"host":                     getLDAPServerHost(),
-		"port":                     "389",
-		"bind_dn":                  "uid=gitea,ou=service,dc=planetexpress,dc=com",
-		"bind_password":            "password",
-		"user_base":                "ou=people,dc=planetexpress,dc=com",
-		"filter":                   "(&(objectClass=inetOrgPerson)(memberOf=cn=git,ou=people,dc=planetexpress,dc=com)(uid=%s))",
-		"admin_filter":             "(memberOf=cn=admin_staff,ou=people,dc=planetexpress,dc=com)",
-		"restricted_filter":        "(uid=leela)",
-		"attribute_username":       "uid",
-		"attribute_name":           "givenName",
-		"attribute_surname":        "sn",
-		"attribute_mail":           "mail",
-		"attribute_ssh_public_key": "",
-		"is_sync_enabled":          "on",
-		"is_active":                "on",
-	})
+	req = NewRequestWithValues(t, "POST", href, buildAuthSourceLDAPPayload(csrf, "", "", "off"))
 	session.MakeRequest(t, req, http.StatusSeeOther)
 
 	req = NewRequest(t, "GET", href)
@@ -392,24 +377,15 @@ func TestLDAPGroupTeamSyncRemoveMember(t *testing.T) {
 	assert.False(t, isMember, "User membership should have been removed from team")
 }
 
-// Login should work even if Team Group Map contains a broken JSON
-func TestBrokenLDAPMapUserSignin(t *testing.T) {
+func TestLDAPPreventInvalidGroupTeamMap(t *testing.T) {
 	if skipLDAPTests() {
 		t.Skip()
 		return
 	}
 	defer tests.PrepareTestEnv(t)()
-	addAuthSourceLDAP(t, "", "on", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`)
 
-	u := gitLDAPUsers[0]
-
-	session := loginUserWithPassword(t, u.UserName, u.Password)
-	req := NewRequest(t, "GET", "/user/settings")
-	resp := session.MakeRequest(t, req, http.StatusOK)
-
-	htmlDoc := NewHTMLParser(t, resp.Body)
-
-	assert.Equal(t, u.UserName, htmlDoc.GetInputValueByName("name"))
-	assert.Equal(t, u.FullName, htmlDoc.GetInputValueByName("full_name"))
-	assert.Equal(t, u.Email, htmlDoc.Find(`label[for="email"]`).Siblings().First().Text())
+	session := loginUser(t, "user1")
+	csrf := GetCSRF(t, session, "/admin/auths/new")
+	req := NewRequestWithValues(t, "POST", "/admin/auths/new", buildAuthSourceLDAPPayload(csrf, "", `{"NOT_A_VALID_JSON"["MISSING_DOUBLE_POINT"]}`, "off"))
+	session.MakeRequest(t, req, http.StatusOK) // StatusOK = failed, StatusSeeOther = ok
 }

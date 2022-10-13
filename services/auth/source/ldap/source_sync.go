@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
@@ -67,7 +68,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
 
-	groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
 	if err != nil {
 		return err
 	}

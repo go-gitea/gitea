@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	org_model "code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
@@ -923,7 +924,7 @@ func SignInOAuthCallback(ctx *context.Context) {
 			}
 
 			if source.GroupTeamMap != "" || source.GroupTeamMapRemoval {
-				groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+				groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
 				if err != nil {
 					ctx.ServerError("UnmarshalGroupTeamMapping", err)
 					return
@@ -1034,7 +1035,7 @@ func handleOAuth2SignIn(ctx *context.Context, source *auth.Source, u *user_model
 	}
 
 	oauth2Source := source.Cfg.(*oauth2.Source)
-	groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
+	groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(oauth2Source.GroupTeamMap)
 	if err != nil {
 		ctx.ServerError("UnmarshalGroupTeamMapping", err)
 		return

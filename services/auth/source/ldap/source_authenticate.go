@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	auth_module "code.gitea.io/gitea/modules/auth"
 	"code.gitea.io/gitea/modules/util"
 	source_service "code.gitea.io/gitea/services/auth/source"
 	"code.gitea.io/gitea/services/mailer"
@@ -115,7 +116,7 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-		groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		groupTeamMapping, err := auth_module.UnmarshalGroupTeamMapping(source.GroupTeamMap)
 		if err != nil {
 			return user, err
 		}

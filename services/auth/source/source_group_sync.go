@@ -12,7 +12,6 @@ import (
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/container"
-	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -22,19 +21,6 @@ const (
 	syncAdd syncType = iota
 	syncRemove
 )
-
-func UnmarshalGroupTeamMapping(raw string) (map[string]map[string][]string, error) {
-	groupTeamMapping := make(map[string]map[string][]string)
-	if raw == "" {
-		return groupTeamMapping, nil
-	}
-	err := json.Unmarshal([]byte(raw), &groupTeamMapping)
-	if err != nil {
-		log.Error("Failed to unmarshal group team mapping: %v", err)
-		return nil, err
-	}
-	return groupTeamMapping, nil
-}
 
 // SyncGroupsToTeams maps authentication source groups to organization and team memberships
 func SyncGroupsToTeams(ctx context.Context, user *user_model.User, sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string, performRemoval bool) error {
