@@ -14,6 +14,7 @@ import (
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -89,11 +90,11 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 		unfiltered = append(ids, unfiltered...)
 	}
 
-	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
+	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
 	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn {
-		visited[ctx.Doer.ID] = true
+		visited.Add(ctx.Doer.ID)
 	}
 
 	// =========== Mentions ===========
@@ -106,9 +107,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
-	for _, i := range ids {
-		visited[i] = true
-	}
+	visited.AddMultiple(ids...)
 
 	unfilteredUsers, err := user_model.GetMaileableUsersByIDs(unfiltered, false)
 	if err != nil {
@@ -121,7 +120,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited map[int64]bool, fromMention bool) error {
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
 	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
@@ -142,12 +141,9 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		}
 
 		// if we have already visited this user we exclude them
-		if _, ok := visited[user.ID]; ok {
+		if !visited.Add(user.ID) {
 			continue
 		}
-
-		// now mark them as visited
-		visited[user.ID] = true
 
 		// test if this user is allowed to see the issue/pull
 		if !access_model.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {

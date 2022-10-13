@@ -45,6 +45,7 @@ func (err ErrEmailCharIsNotSupported) Unwrap() error {
 }
 
 // ErrEmailInvalid represents an error where the email address does not comply with RFC 5322
+// or has a leading '-' character
 type ErrEmailInvalid struct {
 	Email string
 }
@@ -154,9 +155,7 @@ func ValidateEmail(email string) error {
 		return ErrEmailCharIsNotSupported{email}
 	}
 
-	if !(email[0] >= 'a' && email[0] <= 'z') &&
-		!(email[0] >= 'A' && email[0] <= 'Z') &&
-		!(email[0] >= '0' && email[0] <= '9') {
+	if email[0] == '-' {
 		return ErrEmailInvalid{email}
 	}
 

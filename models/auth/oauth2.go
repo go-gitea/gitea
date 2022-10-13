@@ -225,7 +225,8 @@ func updateOAuth2Application(ctx context.Context, app *OAuth2Application) error 
 
 func deleteOAuth2Application(ctx context.Context, id, userid int64) error {
 	sess := db.GetEngine(ctx)
-	if deleted, err := sess.Delete(&OAuth2Application{ID: id, UID: userid}); err != nil {
+	// the userid could be 0 if the app is instance-wide
+	if deleted, err := sess.Where(builder.Eq{"id": id, "uid": userid}).Delete(&OAuth2Application{}); err != nil {
 		return err
 	} else if deleted == 0 {
 		return ErrOAuthApplicationNotFound{ID: id}
@@ -476,7 +477,7 @@ func GetOAuth2GrantsByUserID(ctx context.Context, uid int64) ([]*OAuth2Grant, er
 
 // RevokeOAuth2Grant deletes the grant with grantID and userID
 func RevokeOAuth2Grant(ctx context.Context, grantID, userID int64) error {
-	_, err := db.DeleteByBean(ctx, &OAuth2Grant{ID: grantID, UserID: userID})
+	_, err := db.GetEngine(ctx).Where(builder.Eq{"id": grantID, "user_id": userID}).Delete(&OAuth2Grant{})
 	return err
 }
 

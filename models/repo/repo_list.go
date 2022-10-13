@@ -68,10 +68,10 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 		return nil
 	}
 
-	set := make(map[int64]struct{})
+	set := make(container.Set[int64])
 	repoIDs := make([]int64, len(repos))
 	for i := range repos {
-		set[repos[i].OwnerID] = struct{}{}
+		set.Add(repos[i].OwnerID)
 		repoIDs[i] = repos[i].ID
 	}
 
@@ -79,7 +79,7 @@ func (repos RepositoryList) loadAttributes(ctx context.Context) error {
 	users := make(map[int64]*user_model.User, len(set))
 	if err := db.GetEngine(ctx).
 		Where("id > 0").
-		In("id", container.KeysInt64(set)).
+		In("id", set.Values()).
 		Find(&users); err != nil {
 		return fmt.Errorf("find users: %v", err)
 	}
@@ -593,6 +593,16 @@ func searchRepositoryByCondition(ctx context.Context, opts *SearchRepoOptions, c
 	return sess, count, nil
 }
 
+// SearchRepositoryIDsByCondition search repository IDs by given condition.
+func SearchRepositoryIDsByCondition(ctx context.Context, cond builder.Cond) ([]int64, error) {
+	repoIDs := make([]int64, 0, 10)
+	return repoIDs, db.GetEngine(ctx).
+		Table("repository").
+		Cols("id").
+		Where(cond).
+		Find(&repoIDs)
+}
+
 // AccessibleRepositoryCondition takes a user a returns a condition for checking if a repository is accessible
 func AccessibleRepositoryCondition(user *user_model.User, unitType unit.Type) builder.Cond {
 	cond := builder.NewCond()
@@ -680,16 +690,16 @@ func AccessibleRepoIDsQuery(user *user_model.User) *builder.Builder {
 }
 
 // FindUserCodeAccessibleRepoIDs finds all at Code level accessible repositories' ID by the user's id
-func FindUserCodeAccessibleRepoIDs(user *user_model.User) ([]int64, error) {
-	repoIDs := make([]int64, 0, 10)
-	if err := db.GetEngine(db.DefaultContext).
-		Table("repository").
-		Cols("id").
-		Where(AccessibleRepositoryCondition(user, unit.TypeCode)).
-		Find(&repoIDs); err != nil {
-		return nil, fmt.Errorf("FindUserCodeAccesibleRepoIDs: %v", err)
-	}
-	return repoIDs, nil
+func FindUserCodeAccessibleRepoIDs(ctx context.Context, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, AccessibleRepositoryCondition(user, unit.TypeCode))
+}
+
+// FindUserCodeAccessibleOwnerRepoIDs finds all repository IDs for the given owner whose code the user can see.
+func FindUserCodeAccessibleOwnerRepoIDs(ctx context.Context, ownerID int64, user *user_model.User) ([]int64, error) {
+	return SearchRepositoryIDsByCondition(ctx, builder.NewCond().And(
+		builder.Eq{"owner_id": ownerID},
+		AccessibleRepositoryCondition(user, unit.TypeCode),
+	))
 }
 
 // GetUserRepositories returns a list of repositories of given user.

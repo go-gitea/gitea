@@ -21,6 +21,7 @@ import (
 	"text/template"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/user"
@@ -234,7 +235,7 @@ var (
 		DefaultTheme          string
 		Themes                []string
 		Reactions             []string
-		ReactionsMap          map[string]bool `ini:"-"`
+		ReactionsLookup       container.Set[string] `ini:"-"`
 		CustomEmojis          []string
 		CustomEmojisMap       map[string]string `ini:"-"`
 		SearchRepoDescription bool
@@ -1100,9 +1101,9 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 
 	newMarkup()
 
-	UI.ReactionsMap = make(map[string]bool)
+	UI.ReactionsLookup = make(container.Set[string])
 	for _, reaction := range UI.Reactions {
-		UI.ReactionsMap[reaction] = true
+		UI.ReactionsLookup.Add(reaction)
 	}
 	UI.CustomEmojisMap = make(map[string]string)
 	for _, emoji := range UI.CustomEmojis {
