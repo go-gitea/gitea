@@ -180,15 +180,19 @@ func Routes(ctx gocontext.Context) *web.Route {
 			r.Get("/*", maven.DownloadPackageFile)
 		}, reqPackageAccess(perm.AccessModeRead))
 		r.Group("/nuget", func() {
-			r.Get("/index.json", nuget.ServiceIndex) // Needs to be unauthenticated for the NuGet client.
+			r.Group("", func() { // Needs to be unauthenticated for the NuGet client.
+				r.Get("/", nuget.ServiceIndexV2)
+				r.Get("/index.json", nuget.ServiceIndexV3)
+				r.Get("/$metadata", nuget.FeedCapabilityResource)
+			})
 			r.Group("", func() {
-				r.Get("/query", nuget.SearchService)
+				r.Get("/query", nuget.SearchServiceV3)
 				r.Group("/registration/{id}", func() {
 					r.Get("/index.json", nuget.RegistrationIndex)
-					r.Get("/{version}", nuget.RegistrationLeaf)
+					r.Get("/{version}", nuget.RegistrationLeafV3)
 				})
 				r.Group("/package/{id}", func() {
-					r.Get("/index.json", nuget.EnumeratePackageVersions)
+					r.Get("/index.json", nuget.EnumeratePackageVersionsV3)
 					r.Get("/{version}/{filename}", nuget.DownloadPackageFile)
 				})
 				r.Group("", func() {
@@ -197,6 +201,10 @@ func Routes(ctx gocontext.Context) *web.Route {
 					r.Delete("/{id}/{version}", nuget.DeletePackage)
 				}, reqPackageAccess(perm.AccessModeWrite))
 				r.Get("/symbols/{filename}/{guid:[0-9a-fA-F]{32}[fF]{8}}/{filename2}", nuget.DownloadSymbolFile)
+				r.Get("/Packages(Id='{id:[^']+}',Version='{version:[^']+}')", nuget.RegistrationLeafV2)
+				r.Get("/Packages()", nuget.SearchServiceV2)
+				r.Get("/FindPackagesById()", nuget.EnumeratePackageVersionsV2)
+				r.Get("/Search()", nuget.SearchServiceV2)
 			}, reqPackageAccess(perm.AccessModeRead))
 		})
 		r.Group("/npm", func() {

@@ -55,12 +55,13 @@ type Package struct {
 
 // Metadata represents the metadata of a Nuget package
 type Metadata struct {
-	Description   string                  `json:"description,omitempty"`
-	ReleaseNotes  string                  `json:"release_notes,omitempty"`
-	Authors       string                  `json:"authors,omitempty"`
-	ProjectURL    string                  `json:"project_url,omitempty"`
-	RepositoryURL string                  `json:"repository_url,omitempty"`
-	Dependencies  map[string][]Dependency `json:"dependencies,omitempty"`
+	Description              string                  `json:"description,omitempty"`
+	ReleaseNotes             string                  `json:"release_notes,omitempty"`
+	Authors                  string                  `json:"authors,omitempty"`
+	ProjectURL               string                  `json:"project_url,omitempty"`
+	RepositoryURL            string                  `json:"repository_url,omitempty"`
+	RequireLicenseAcceptance bool                    `json:"require_license_acceptance"`
+	Dependencies             map[string][]Dependency `json:"dependencies,omitempty"`
 }
 
 // Dependency represents a dependency of a Nuget package
@@ -155,12 +156,13 @@ func ParseNuspecMetaData(r io.Reader) (*Package, error) {
 	}
 
 	m := &Metadata{
-		Description:   p.Metadata.Description,
-		ReleaseNotes:  p.Metadata.ReleaseNotes,
-		Authors:       p.Metadata.Authors,
-		ProjectURL:    p.Metadata.ProjectURL,
-		RepositoryURL: p.Metadata.Repository.URL,
-		Dependencies:  make(map[string][]Dependency),
+		Description:              p.Metadata.Description,
+		ReleaseNotes:             p.Metadata.ReleaseNotes,
+		Authors:                  p.Metadata.Authors,
+		ProjectURL:               p.Metadata.ProjectURL,
+		RepositoryURL:            p.Metadata.Repository.URL,
+		RequireLicenseAcceptance: p.Metadata.RequireLicenseAcceptance,
+		Dependencies:             make(map[string][]Dependency),
 	}
 
 	for _, group := range p.Metadata.Dependencies.Group {
