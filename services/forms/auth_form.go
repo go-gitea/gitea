@@ -73,6 +73,8 @@ type AuthenticationForm struct {
 	Oauth2GroupClaimName          string
 	Oauth2AdminGroup              string
 	Oauth2RestrictedGroup         string
+	Oauth2GroupTeamMap            string
+	Oauth2GroupTeamMapRemoval     bool
 	SkipLocalTwoFA                bool
 	SSPIAutoCreateUsers           bool
 	SSPIAutoActivateUsers         bool

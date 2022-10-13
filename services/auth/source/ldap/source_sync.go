@@ -67,6 +67,11 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
 
+	groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+	if err != nil {
+		return err
+	}
+
 	for _, su := range sr {
 		select {
 		case <-ctx.Done():
@@ -175,7 +180,7 @@ func (source *Source) Sync(ctx context.Context, updateExisting bool) error {
 		}
 		// Synchronize LDAP groups with organization and team memberships
 		if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.LdapTeamAdd, su.LdapTeamRemove, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
+			if err := source_service.SyncGroupsToTeamsCached(ctx, usr, su.Groups, groupTeamMapping, source.GroupTeamMapRemoval, orgCache, teamCache); err != nil {
 				log.Error("SyncGroupsToTeamsCached: %v", err)
 			}
 		}

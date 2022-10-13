@@ -11,6 +11,8 @@ import (
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/organization"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 )
 
@@ -21,26 +23,59 @@ const (
 	syncRemove
 )
 
+func UnmarshalGroupTeamMapping(raw string) (map[string]map[string][]string, error) {
+	groupTeamMapping := make(map[string]map[string][]string)
+	if raw == "" {
+		return groupTeamMapping, nil
+	}
+	err := json.Unmarshal([]byte(raw), &groupTeamMapping)
+	if err != nil {
+		log.Error("Failed to unmarshal group team mapping: %v", err)
+		return nil, err
+	}
+	return groupTeamMapping, nil
+}
+
 // SyncGroupsToTeams maps authentication source groups to organization and team memberships
-func SyncGroupsToTeams(ctx context.Context, user *user_model.User, teamAdd, teamRemove map[string][]string, performRemoval bool) error {
+func SyncGroupsToTeams(ctx context.Context, user *user_model.User, sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string, performRemoval bool) error {
 	orgCache := make(map[string]*organization.Organization)
 	teamCache := make(map[string]*organization.Team)
-	return SyncGroupsToTeamsCached(ctx, user, teamAdd, teamRemove, performRemoval, orgCache, teamCache)
+	return SyncGroupsToTeamsCached(ctx, user, sourceUserGroups, sourceGroupTeamMapping, performRemoval, orgCache, teamCache)
 }
 
 // SyncGroupsToTeamsCached maps authentication source groups to organization and team memberships
-func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, teamAdd, teamRemove map[string][]string, performRemoval bool, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
+func SyncGroupsToTeamsCached(ctx context.Context, user *user_model.User, sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string, performRemoval bool, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {
+	membershipsToAdd, membershipsToRemove := resolveMappedMemberships(sourceUserGroups, sourceGroupTeamMapping)
+
 	if performRemoval {
-		if err := syncGroupsToTeamsCached(ctx, user, teamRemove, syncRemove, orgCache, teamCache); err != nil {
+		if err := syncGroupsToTeamsCached(ctx, user, membershipsToRemove, syncRemove, orgCache, teamCache); err != nil {
 			return fmt.Errorf("could not sync[remove] user groups: %w", err)
 		}
 	}
 
-	if err := syncGroupsToTeamsCached(ctx, user, teamAdd, syncAdd, orgCache, teamCache); err != nil {
+	if err := syncGroupsToTeamsCached(ctx, user, membershipsToAdd, syncAdd, orgCache, teamCache); err != nil {
 		return fmt.Errorf("could not sync[add] user groups: %w", err)
 	}
 
 	return nil
+}
+
+func resolveMappedMemberships(sourceUserGroups container.Set[string], sourceGroupTeamMapping map[string]map[string][]string) (map[string][]string, map[string][]string) {
+	membershipsToAdd := map[string][]string{}
+	membershipsToRemove := map[string][]string{}
+	for group, memberships := range sourceGroupTeamMapping {
+		isUserInGroup := sourceUserGroups.Contains(group)
+		if isUserInGroup {
+			for org, teams := range memberships {
+				membershipsToAdd[org] = teams
+			}
+		} else {
+			for org, teams := range memberships {
+				membershipsToRemove[org] = teams
+			}
+		}
+	}
+	return membershipsToAdd, membershipsToRemove
 }
 
 func syncGroupsToTeamsCached(ctx context.Context, user *user_model.User, orgTeamMap map[string][]string, action syncType, orgCache map[string]*organization.Organization, teamCache map[string]*organization.Team) error {

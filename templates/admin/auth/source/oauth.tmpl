@@ -98,4 +98,12 @@
 		<label for="oauth2_restricted_group">{{.locale.Tr "admin.auths.oauth2_restricted_group"}}</label>
 		<input id="oauth2_restricted_group" name="oauth2_restricted_group" value="{{.oauth2_group_claim_name}}">
 	</div>
+	<div class="field">
+		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team"}}</label>
+		<input name="oauth2_group_team_map" value="{{.group_team_map}}" placeholder='e.g. {"Developer": {"MyGiteaOrganization": ["MyGiteaTeam1", "MyGiteaTeam2"]}}'>
+	</div>
+	<div class="ui checkbox">
+		<label>{{.locale.Tr "admin.auths.oauth2_map_group_to_team_removal"}}</label>
+		<input name="oauth2_group_team_map_removal" type="checkbox" {{if .group_team_map_removal}}checked{{end}}>
+	</div>
 </div>

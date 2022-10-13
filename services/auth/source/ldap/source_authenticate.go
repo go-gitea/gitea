@@ -115,7 +115,11 @@ func (source *Source) Authenticate(user *user_model.User, userName, password str
 	}
 
 	if source.GroupsEnabled && (source.GroupTeamMap != "" || source.GroupTeamMapRemoval) {
-		if err := source_service.SyncGroupsToTeams(db.DefaultContext, user, sr.LdapTeamAdd, sr.LdapTeamRemove, source.GroupTeamMapRemoval); err != nil {
+		groupTeamMapping, err := source_service.UnmarshalGroupTeamMapping(source.GroupTeamMap)
+		if err != nil {
+			return user, err
+		}
+		if err := source_service.SyncGroupsToTeams(db.DefaultContext, user, sr.Groups, groupTeamMapping, source.GroupTeamMapRemoval); err != nil {
 			return user, err
 		}
 	}
