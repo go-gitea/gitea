@@ -10,7 +10,6 @@ __webpack_public_path__ = joinPaths(window?.config?.assetUrlPrefix ?? '/', '/');
 export function showGlobalErrorMessage(msg) {
   const pageContent = document.querySelector('.page-content');
   if (!pageContent) return;
-
   const el = document.createElement('div');
   el.innerHTML = `<div class="ui container negative message center aligned js-global-error" style="white-space: pre-line;"></div>`;
   el.childNodes[0].textContent = msg;
