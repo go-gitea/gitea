@@ -698,6 +698,9 @@ func Contexter(ctx context.Context) func(next http.Handler) http.Handler {
 			ctx.Req = WithContext(req, &ctx)
 			ctx.csrf = PrepareCSRFProtector(csrfOpts, &ctx)
 
+			browserSyncJson := ctx.GetCookie("_gitea_bsj")
+			ctx.PageData["browserSyncJson"] = browserSyncJson
+
 			// Get flash.
 			flashCookie := ctx.GetCookie("macaron_flash")
 			vals, _ := url.ParseQuery(flashCookie)
