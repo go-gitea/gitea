@@ -463,7 +463,13 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 
 				assert.EqualValues(t, 3, result.TotalHits)
 				assert.Len(t, result.Data, 2)
-				assert.Len(t, result.Data[0].Versions, 2)
+				for _, sr := range result.Data {
+					if sr.ID == packageName {
+						assert.Len(t, sr.Versions, 2)
+					} else {
+						assert.Len(t, sr.Versions, 1)
+					}
+				}
 
 				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
 				req = AddBasicAuthHeader(req, user.Name)
