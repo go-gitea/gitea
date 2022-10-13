@@ -48,9 +48,15 @@ type ErrNotExist struct {
 	ID int64
 }
 
+type errNotExist interface {
+	isErrNotExist()
+}
+
+func (err ErrNotExist) isErrNotExist() {}
+
 // IsErrNotExist checks if an error is an ErrNotExist
 func IsErrNotExist(err error) bool {
-	_, ok := err.(ErrNotExist)
+	_, ok := err.(errNotExist)
 	return ok
 }
 
