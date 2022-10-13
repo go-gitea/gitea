@@ -446,7 +446,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			t.Run("EnforceGrouped", func(t *testing.T) {
 				defer tests.PrintCurrentTest(t)()
 
-				req := NewRequestWithBody(t, "PUT", url, createPackage(packageName + ".dummy", "1.0.0"))
+				req := NewRequestWithBody(t, "PUT", url, createPackage(packageName+".dummy", "1.0.0"))
 				req = AddBasicAuthHeader(req, user.Name)
 				MakeRequest(t, req, http.StatusCreated)
 
@@ -465,7 +465,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				assert.Len(t, result.Data, 2)
 				assert.Len(t, result.Data[0].Versions, 2)
 
-				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName + ".dummy", "1.0.0"))
+				req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
 				req = AddBasicAuthHeader(req, user.Name)
 				MakeRequest(t, req, http.StatusNoContent)
 
