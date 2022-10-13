@@ -250,14 +250,10 @@ func TestViewRepoDirectory(t *testing.T) {
 	repoTopics := htmlDoc.doc.Find("#repo-topics")
 	repoSummary := htmlDoc.doc.Find(".repository-summary")
 
-	directoryBody := htmlDoc.doc.Find("tbody").Children()
-	assert.True(t, directoryBody.HasClass("has-parent"))
-	assert.Len(t, directoryBody.Nodes, 4)
-	assert.Equal(t, "b", directoryBody.Nodes[1].Attr[0].Val)
-	assert.Equal(t, "c", directoryBody.Nodes[2].Attr[0].Val)
-	assert.Equal(t, "link_annex", directoryBody.Nodes[3].Attr[0].Val)
+	repoFilesTable := htmlDoc.doc.Find("#repo-files-table")
+	assert.NotZero(t, len(repoFilesTable.Nodes))
 
-	assert.EqualValues(t, 0, description.Length())
-	assert.EqualValues(t, 0, repoTopics.Length())
-	assert.EqualValues(t, 0, repoSummary.Length())
+	assert.Zero(t, description.Length())
+	assert.Zero(t, repoTopics.Length())
+	assert.Zero(t, repoSummary.Length())
 }
