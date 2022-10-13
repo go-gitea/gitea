@@ -569,6 +569,23 @@ func RegisterRoutes(m *web.Route) {
 			m.Post("/delete", admin.DeleteNotices)
 			m.Post("/empty", admin.EmptyNotices)
 		})
+
+		m.Group("/applications", func() {
+			m.Get("", admin.Applications)
+			m.Post("/oauth2", bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.ApplicationsPost)
+			m.Group("/oauth2/{id}", func() {
+				m.Combo("").Get(admin.EditApplication).Post(bindIgnErr(forms.EditOAuth2ApplicationForm{}), admin.EditApplicationPost)
+				m.Post("/regenerate_secret", admin.ApplicationsRegenerateSecret)
+				m.Post("/delete", admin.DeleteApplication)
+			})
+		}, func(ctx *context.Context) {
+			if !setting.OAuth2.Enable {
+				ctx.Error(http.StatusForbidden)
+				return
+			}
+		})
+	}, func(ctx *context.Context) {
+		ctx.Data["EnableOAuth2"] = setting.OAuth2.Enable
 	}, adminReq)
 	// ***** END: Admin *****
 
