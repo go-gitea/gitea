@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/web"
 
 	"gitea.com/go-chi/binding"
+	chi_middleware "github.com/go-chi/chi/v5/middleware"
 )
 
 // CheckInternalToken check internal token is set
@@ -57,6 +58,9 @@ func Routes() *web.Route {
 	r := web.NewRoute()
 	r.Use(context.PrivateContexter())
 	r.Use(CheckInternalToken)
+	// Log the real ip address of the request from SSH is really helpful for diagnosing sometimes.
+	// Since internal API will be sent only from Gitea sub commands and it's under control (checked by InternalToken), we can trust the headers.
+	r.Use(chi_middleware.RealIP)
 
 	r.Post("/ssh/authorized_keys", AuthorizedPublicKeyByContent)
 	r.Post("/ssh/{id}/update/{repoid}", UpdatePublicKeyInRepo)

@@ -16,36 +16,19 @@ import (
 	"github.com/hashicorp/go-version"
 )
 
-// ServiceIndexResponse https://docs.microsoft.com/en-us/nuget/api/service-index#resources
-type ServiceIndexResponse struct {
+// https://docs.microsoft.com/en-us/nuget/api/service-index#resources
+type ServiceIndexResponseV3 struct {
 	Version   string            `json:"version"`
 	Resources []ServiceResource `json:"resources"`
 }
 
-// ServiceResource https://docs.microsoft.com/en-us/nuget/api/service-index#resource
+// https://docs.microsoft.com/en-us/nuget/api/service-index#resource
 type ServiceResource struct {
 	ID   string `json:"@id"`
 	Type string `json:"@type"`
 }
 
-func createServiceIndexResponse(root string) *ServiceIndexResponse {
-	return &ServiceIndexResponse{
-		Version: "3.0.0",
-		Resources: []ServiceResource{
-			{ID: root + "/query", Type: "SearchQueryService"},
-			{ID: root + "/query", Type: "SearchQueryService/3.0.0-beta"},
-			{ID: root + "/query", Type: "SearchQueryService/3.0.0-rc"},
-			{ID: root + "/registration", Type: "RegistrationsBaseUrl"},
-			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-beta"},
-			{ID: root + "/registration", Type: "RegistrationsBaseUrl/3.0.0-rc"},
-			{ID: root + "/package", Type: "PackageBaseAddress/3.0.0"},
-			{ID: root, Type: "PackagePublish/2.0.0"},
-			{ID: root + "/symbolpackage", Type: "SymbolPackagePublish/4.9.0"},
-		},
-	}
-}
-
-// RegistrationIndexResponse https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#response
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#response
 type RegistrationIndexResponse struct {
 	RegistrationIndexURL string                   `json:"@id"`
 	Type                 []string                 `json:"@type"`
@@ -53,7 +36,7 @@ type RegistrationIndexResponse struct {
 	Pages                []*RegistrationIndexPage `json:"items"`
 }
 
-// RegistrationIndexPage https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-page-object
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-page-object
 type RegistrationIndexPage struct {
 	RegistrationPageURL string                       `json:"@id"`
 	Lower               string                       `json:"lower"`
@@ -62,14 +45,14 @@ type RegistrationIndexPage struct {
 	Items               []*RegistrationIndexPageItem `json:"items"`
 }
 
-// RegistrationIndexPageItem https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf-object-in-a-page
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf-object-in-a-page
 type RegistrationIndexPageItem struct {
 	RegistrationLeafURL string        `json:"@id"`
 	PackageContentURL   string        `json:"packageContent"`
 	CatalogEntry        *CatalogEntry `json:"catalogEntry"`
 }
 
-// CatalogEntry https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#catalog-entry
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#catalog-entry
 type CatalogEntry struct {
 	CatalogLeafURL           string                    `json:"@id"`
 	PackageContentURL        string                    `json:"packageContent"`
@@ -83,13 +66,13 @@ type CatalogEntry struct {
 	DependencyGroups         []*PackageDependencyGroup `json:"dependencyGroups"`
 }
 
-// PackageDependencyGroup https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#package-dependency-group
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#package-dependency-group
 type PackageDependencyGroup struct {
 	TargetFramework string               `json:"targetFramework"`
 	Dependencies    []*PackageDependency `json:"dependencies"`
 }
 
-// PackageDependency https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#package-dependency
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#package-dependency
 type PackageDependency struct {
 	ID    string `json:"id"`
 	Range string `json:"range"`
@@ -162,7 +145,7 @@ func createDependencyGroups(pd *packages_model.PackageDescriptor) []*PackageDepe
 	return dependencyGroups
 }
 
-// RegistrationLeafResponse https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
+// https://docs.microsoft.com/en-us/nuget/api/registration-base-url-resource#registration-leaf
 type RegistrationLeafResponse struct {
 	RegistrationLeafURL  string    `json:"@id"`
 	Type                 []string  `json:"@type"`
@@ -183,7 +166,7 @@ func createRegistrationLeafResponse(l *linkBuilder, pd *packages_model.PackageDe
 	}
 }
 
-// PackageVersionsResponse https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#response
+// https://docs.microsoft.com/en-us/nuget/api/package-base-address-resource#response
 type PackageVersionsResponse struct {
 	Versions []string `json:"versions"`
 }
@@ -199,13 +182,13 @@ func createPackageVersionsResponse(pds []*packages_model.PackageDescriptor) *Pac
 	}
 }
 
-// SearchResultResponse https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#response
+// https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#response
 type SearchResultResponse struct {
 	TotalHits int64           `json:"totalHits"`
 	Data      []*SearchResult `json:"data"`
 }
 
-// SearchResult https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
+// https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
 type SearchResult struct {
 	ID                   string                 `json:"id"`
 	Version              string                 `json:"version"`
@@ -216,7 +199,7 @@ type SearchResult struct {
 	RegistrationIndexURL string                 `json:"registration"`
 }
 
-// SearchResultVersion https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
+// https://docs.microsoft.com/en-us/nuget/api/search-query-service-resource#search-result
 type SearchResultVersion struct {
 	RegistrationLeafURL string `json:"@id"`
 	Version             string `json:"version"`

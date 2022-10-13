@@ -6,6 +6,8 @@ package sync
 
 import (
 	"sync"
+
+	"code.gitea.io/gitea/modules/container"
 )
 
 // StatusTable is a table maintains true/false values.
@@ -14,13 +16,13 @@ import (
 // in different goroutines.
 type StatusTable struct {
 	lock sync.RWMutex
-	pool map[string]struct{}
+	pool container.Set[string]
 }
 
 // NewStatusTable initializes and returns a new StatusTable object.
 func NewStatusTable() *StatusTable {
 	return &StatusTable{
-		pool: make(map[string]struct{}),
+		pool: make(container.Set[string]),
 	}
 }
 
@@ -28,32 +30,29 @@ func NewStatusTable() *StatusTable {
 // Returns whether set value was set to true
 func (p *StatusTable) StartIfNotRunning(name string) bool {
 	p.lock.Lock()
-	_, ok := p.pool[name]
-	if !ok {
-		p.pool[name] = struct{}{}
-	}
+	added := p.pool.Add(name)
 	p.lock.Unlock()
-	return !ok
+	return added
 }
 
 // Start sets value of given name to true in the pool.
 func (p *StatusTable) Start(name string) {
 	p.lock.Lock()
-	p.pool[name] = struct{}{}
+	p.pool.Add(name)
 	p.lock.Unlock()
 }
 
 // Stop sets value of given name to false in the pool.
 func (p *StatusTable) Stop(name string) {
 	p.lock.Lock()
-	delete(p.pool, name)
+	p.pool.Remove(name)
 	p.lock.Unlock()
 }
 
 // IsRunning checks if value of given name is set to true in the pool.
 func (p *StatusTable) IsRunning(name string) bool {
 	p.lock.RLock()
-	_, ok := p.pool[name]
+	exists := p.pool.Contains(name)
 	p.lock.RUnlock()
-	return ok
+	return exists
 }
