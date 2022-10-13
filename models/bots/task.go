@@ -69,6 +69,29 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+// ErrTaskNotExist represents an error for bot task not exist
+type ErrTaskNotExist struct {
+	ID int64
+}
+
+func (err ErrTaskNotExist) Error() string {
+	return fmt.Sprintf("task [%d] is not exist", err.ID)
+}
+
+func GetTaskByID(ctx context.Context, id int64) (*Task, error) {
+	var task Task
+	has, err := db.GetEngine(ctx).Where("id=?", id).Get(&task)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrTaskNotExist{
+			ID: id,
+		}
+	}
+
+	return &task, nil
+}
+
 func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	ctx, commiter, err := db.TxContext()
 	if err != nil {

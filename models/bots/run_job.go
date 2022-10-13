@@ -80,3 +80,11 @@ func GetRunJobByID(ctx context.Context, id int64) (*RunJob, error) {
 
 	return &job, nil
 }
+
+func GetRunJobsByRunID(ctx context.Context, runID int64) ([]*RunJob, error) {
+	var jobs []*RunJob
+	if err := db.GetEngine(ctx).Where("run_id=?", runID).Find(&jobs); err != nil {
+		return nil, err
+	}
+	return jobs, nil
+}
