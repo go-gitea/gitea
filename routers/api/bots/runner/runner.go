@@ -36,6 +36,27 @@ type Service struct {
 	runnerv1connect.UnimplementedRunnerServiceHandler
 }
 
+// UpdateRunner update runner status or other data.
+func (s *Service) UpdateRunner(
+	ctx context.Context,
+	req *connect.Request[runnerv1.UpdateRunnerRequest],
+) (*connect.Response[runnerv1.UpdateRunnerResponse], error) {
+	runner := GetRunner(ctx)
+
+	// check status
+	if runner.Status == req.Msg.Status {
+		return connect.NewResponse(&runnerv1.UpdateRunnerResponse{}), nil
+	}
+
+	// update status
+	runner.Status = req.Msg.Status
+	if err := bots_model.UpdateRunner(ctx, runner, "status"); err != nil {
+		return nil, connect.NewError(connect.CodeInternal, err)
+	}
+
+	return connect.NewResponse(&runnerv1.UpdateRunnerResponse{}), nil
+}
+
 // Register for new runner.
 func (s *Service) Register(
 	ctx context.Context,
