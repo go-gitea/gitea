@@ -83,8 +83,8 @@ git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078 h1:cliQ4H
 git.sr.ht/~mariusor/go-xsd-duration v0.0.0-20220703122237-02e73435a078/go.mod h1:g/V2Hjas6Z1UHUp4yIx6bATpNzJ7DYtD0FG3+xARWxs=
 gitea.com/gitea/act v0.0.0-20221012054755-c2c76e19a725 h1:H5lZ5fqSXAZ082wBKfqaME070sw5DeNwT8Bwyfa5mcc=
 gitea.com/gitea/act v0.0.0-20221012054755-c2c76e19a725/go.mod h1:lpzib6X73FHLSaTqTakan1xcsCAVhlZvPSpLns7jkRo=
-gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9 h1:roFxcMnXJrjZvHBfba5Py6Jin9VTTute0WwzRXhJnQs=
-gitea.com/gitea/proto-go v0.0.0-20221010094818-eedee304e2b9/go.mod h1:hD8YwSHusjwjEEgubW6XFvnZuNhMZTHz6lwjfltEt/Y=
+gitea.com/gitea/proto-go v0.0.0-20221013073523-69d53451957a h1:WHNPcbDR2vw2a17Ml06+n4MC0UwsyD/F3WeVteaXWMI=
+gitea.com/gitea/proto-go v0.0.0-20221013073523-69d53451957a/go.mod h1:hD8YwSHusjwjEEgubW6XFvnZuNhMZTHz6lwjfltEt/Y=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb h1:Yy0Bxzc8R2wxiwXoG/rECGplJUSpXqCsog9PuJFgiHs=
 gitea.com/go-chi/binding v0.0.0-20220309004920-114340dabecb/go.mod h1:77TZu701zMXWJFvB8gvTbQ92zQ3DQq/H7l5wAEjQRKc=
 gitea.com/go-chi/cache v0.0.0-20210110083709-82c4c9ce2d5e/go.mod h1:k2V/gPDEtXGjjMGuBJiapffAXTv76H4snSmlJRLUhH0=

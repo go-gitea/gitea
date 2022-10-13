@@ -125,11 +125,7 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 		return err
 	}
 
-	if err := commiter.Commit(); err != nil {
-		return err
-	}
-
-	return nil
+	return commiter.Commit()
 }
 
 // ErrRunNotExist represents an error for bot run not exist
