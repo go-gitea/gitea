@@ -65,7 +65,7 @@ func InsertTaskLogs(taskID int64, logs []*TaskLog) (int64, error) {
 	if len(logs) == 0 {
 		return 0, fmt.Errorf("no logs")
 	}
-	ack := logs[0].ID - 1
+	ack := logs[0].ID
 
 	sess := db.GetEngine(db.DefaultContext)
 	for _, v := range logs {
@@ -74,7 +74,7 @@ func InsertTaskLogs(taskID int64, logs []*TaskLog) (int64, error) {
 			log.Error("insert log %d of task %d: %v", v.ID, taskID, err)
 			break
 		}
-		ack = v.ID
+		ack = v.ID + 1
 	}
 
 	return ack, nil
