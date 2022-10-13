@@ -119,6 +119,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	if ctx.Repo.TreePath != "" {
+		ctx.Data["HideRepoInfo"] = true
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
@@ -360,6 +361,7 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
+	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()
 	if err != nil {
