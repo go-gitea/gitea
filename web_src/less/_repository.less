@@ -988,6 +988,12 @@
         .comment-form-reply .footer {
           padding-bottom: 1em;
         }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
+        }
       }
 
       .ui.comments {
@@ -1164,6 +1170,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1934,16 +1944,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }

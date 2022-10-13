@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"code.gitea.io/gitea/modules/container"
 )
 
 // CodeActivityStats represents git statistics data
@@ -80,7 +82,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 			stats.Additions = 0
 			stats.Deletions = 0
 			authors := make(map[string]*CodeActivityAuthor)
-			files := make(map[string]bool)
+			files := make(container.Set[string])
 			var author string
 			p := 0
 			for scanner.Scan() {
@@ -119,9 +121,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 								stats.Deletions += c
 							}
 						}
-						if _, ok := files[parts[2]]; !ok {
-							files[parts[2]] = true
-						}
+						files.Add(parts[2])
 					}
 				}
 			}
