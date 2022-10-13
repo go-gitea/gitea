@@ -2,14 +2,14 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build gogit
+//go:build gogit
 
 package git
 
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
+	"strings"
 
 	"code.gitea.io/gitea/modules/analyze"
 
@@ -41,9 +41,63 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		return nil, err
 	}
 
+	checker, deferable := repo.CheckAttributeReader(commitID)
+	defer deferable()
+
 	sizes := make(map[string]int64)
 	err = tree.Files().ForEach(func(f *object.File) error {
-		if f.Size == 0 || analyze.IsVendor(f.Name) || enry.IsDotFile(f.Name) ||
+		if f.Size == 0 {
+			return nil
+		}
+
+		notVendored := false
+		notGenerated := false
+
+		if checker != nil {
+			attrs, err := checker.CheckPath(f.Name)
+			if err == nil {
+				if vendored, has := attrs["linguist-vendored"]; has {
+					if vendored == "set" || vendored == "true" {
+						return nil
+					}
+					notVendored = vendored == "false"
+				}
+				if generated, has := attrs["linguist-generated"]; has {
+					if generated == "set" || generated == "true" {
+						return nil
+					}
+					notGenerated = generated == "false"
+				}
+				if language, has := attrs["linguist-language"]; has && language != "unspecified" && language != "" {
+					// group languages, such as Pug -> HTML; SCSS -> CSS
+					group := enry.GetLanguageGroup(language)
+					if len(group) != 0 {
+						language = group
+					}
+
+					sizes[language] += f.Size
+
+					return nil
+				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
+					// strip off a ? if present
+					if idx := strings.IndexByte(language, '?'); idx >= 0 {
+						language = language[:idx]
+					}
+					if len(language) != 0 {
+						// group languages, such as Pug -> HTML; SCSS -> CSS
+						group := enry.GetLanguageGroup(language)
+						if len(group) != 0 {
+							language = group
+						}
+
+						sizes[language] += f.Size
+						return nil
+					}
+				}
+			}
+		}
+
+		if (!notVendored && analyze.IsVendor(f.Name)) || enry.IsDotFile(f.Name) ||
 			enry.IsDocumentation(f.Name) || enry.IsConfiguration(f.Name) {
 			return nil
 		}
@@ -53,7 +107,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 		if f.Size <= bigFileSize {
 			content, _ = readFile(f, fileSizeLimit)
 		}
-		if enry.IsGenerated(f.Name, content) {
+		if !notGenerated && enry.IsGenerated(f.Name, content) {
 			return nil
 		}
 
@@ -99,7 +153,7 @@ func readFile(f *object.File, limit int64) ([]byte, error) {
 	defer r.Close()
 
 	if limit <= 0 {
-		return ioutil.ReadAll(r)
+		return io.ReadAll(r)
 	}
 
 	size := f.Size

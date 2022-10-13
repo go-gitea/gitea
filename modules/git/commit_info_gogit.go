@@ -2,11 +2,12 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build gogit
+//go:build gogit
 
 package git
 
 import (
+	"context"
 	"path"
 
 	"github.com/emirpasic/gods/trees/binaryheap"
@@ -16,7 +17,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -34,28 +35,25 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 		return nil, nil, err
 	}
 
-	var revs map[string]*object.Commit
-	if cache != nil {
+	var revs map[string]*Commit
+	if commit.repo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(c, treePath, unHitPaths)
+			revs2, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, c, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
 
 			for k, v := range revs2 {
-				if err := cache.Put(commit.ID.String(), path.Join(treePath, k), v.ID().String()); err != nil {
-					return nil, nil, err
-				}
 				revs[k] = v
 			}
 		}
 	} else {
-		revs, err = GetLastCommitForPaths(c, treePath, entryPaths)
+		revs, err = GetLastCommitForPaths(ctx, nil, c, treePath, entryPaths)
 	}
 	if err != nil {
 		return nil, nil, err
@@ -68,25 +66,28 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 		commitsInfo[i] = CommitInfo{
 			Entry: entry,
 		}
-		if rev, ok := revs[entry.Name()]; ok {
-			entryCommit := convertCommit(rev)
+
+		// Check if we have found a commit for this entry in time
+		if entryCommit, ok := revs[entry.Name()]; ok {
 			commitsInfo[i].Commit = entryCommit
-			if entry.IsSubModule() {
-				subModuleURL := ""
-				var fullPath string
-				if len(treePath) > 0 {
-					fullPath = treePath + "/" + entry.Name()
-				} else {
-					fullPath = entry.Name()
-				}
-				if subModule, err := commit.GetSubModule(fullPath); err != nil {
-					return nil, nil, err
-				} else if subModule != nil {
-					subModuleURL = subModule.URL
-				}
-				subModuleFile := NewSubModuleFile(entryCommit, subModuleURL, entry.ID.String())
-				commitsInfo[i].SubModuleFile = subModuleFile
+		}
+
+		// If the entry if a submodule add a submodule file for this
+		if entry.IsSubModule() {
+			subModuleURL := ""
+			var fullPath string
+			if len(treePath) > 0 {
+				fullPath = treePath + "/" + entry.Name()
+			} else {
+				fullPath = entry.Name()
 			}
+			if subModule, err := commit.GetSubModule(fullPath); err != nil {
+				return nil, nil, err
+			} else if subModule != nil {
+				subModuleURL = subModule.URL
+			}
+			subModuleFile := NewSubModuleFile(commitsInfo[i].Commit, subModuleURL, entry.ID.String())
+			commitsInfo[i].SubModuleFile = subModuleFile
 		}
 	}
 
@@ -94,10 +95,10 @@ func (tes Entries) GetCommitsInfo(commit *Commit, treePath string, cache *LastCo
 	// get it for free during the tree traversal and it's used for listing
 	// pages to display information about newest commit for a given path.
 	var treeCommit *Commit
+	var ok bool
 	if treePath == "" {
 		treeCommit = commit
-	} else if rev, ok := revs[""]; ok {
-		treeCommit = convertCommit(rev)
+	} else if treeCommit, ok = revs[""]; ok {
 		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
@@ -153,16 +154,16 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*object.Commit, []string, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
-	var results = make(map[string]*object.Commit)
+	results := make(map[string]*Commit)
 	for _, p := range paths {
 		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
 		if err != nil {
 			return nil, nil, err
 		}
 		if lastCommit != nil {
-			results[p] = lastCommit.(*object.Commit)
+			results[p] = lastCommit
 			continue
 		}
 
@@ -173,7 +174,9 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
+	refSha := c.ID().String()
+
 	// We do a tree traversal with nodes sorted by commit time
 	heap := binaryheap.NewWith(func(a, b interface{}) int {
 		if a.(*commitAndPaths).commit.CommitTime().Before(b.(*commitAndPaths).commit.CommitTime()) {
@@ -190,8 +193,16 @@ func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []strin
 
 	// Start search from the root commit and with full set of paths
 	heap.Push(&commitAndPaths{c, paths, initialHashes})
-
+heaploop:
 	for {
+		select {
+		case <-ctx.Done():
+			if ctx.Err() == context.DeadlineExceeded {
+				break heaploop
+			}
+			return nil, ctx.Err()
+		default:
+		}
 		cIn, ok := heap.Pop()
 		if !ok {
 			break
@@ -226,14 +237,14 @@ func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []strin
 		}
 
 		var remainingPaths []string
-		for i, path := range current.paths {
+		for i, pth := range current.paths {
 			// The results could already contain some newer change for the same path,
 			// so don't override that and bail out on the file early.
-			if resultNodes[path] == nil {
+			if resultNodes[pth] == nil {
 				if pathUnchanged[i] {
 					// The path existed with the same hash in at least one parent so it could
 					// not have been changed in this commit directly.
-					remainingPaths = append(remainingPaths, path)
+					remainingPaths = append(remainingPaths, pth)
 				} else {
 					// There are few possible cases how can we get here:
 					// - The path didn't exist in any parent, so it must have been created by
@@ -243,7 +254,10 @@ func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []strin
 					// - We are looking at a merge commit and the hash of the file doesn't
 					//   match any of the hashes being merged. This is more common for directories,
 					//   but it can also happen if a file is changed through conflict resolution.
-					resultNodes[path] = current.commit
+					resultNodes[pth] = current.commit
+					if err := cache.Put(refSha, path.Join(treePath, pth), current.commit.ID().String()); err != nil {
+						return nil, err
+					}
 				}
 			}
 		}
@@ -278,13 +292,13 @@ func GetLastCommitForPaths(c cgobject.CommitNode, treePath string, paths []strin
 	}
 
 	// Post-processing
-	result := make(map[string]*object.Commit)
+	result := make(map[string]*Commit)
 	for path, commitNode := range resultNodes {
-		var err error
-		result[path], err = commitNode.Commit()
+		commit, err := commitNode.Commit()
 		if err != nil {
 			return nil, err
 		}
+		result[path] = convertCommit(commit)
 	}
 
 	return result, nil

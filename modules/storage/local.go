@@ -7,18 +7,17 @@ package storage
 import (
 	"context"
 	"io"
-	"io/ioutil"
 	"net/url"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/util"
 )
 
-var (
-	_ ObjectStorage = &LocalStorage{}
-)
+var _ ObjectStorage = &LocalStorage{}
 
 // LocalStorageType is the type descriptor for local storage
 const LocalStorageType Type = "local"
@@ -60,14 +59,18 @@ func NewLocalStorage(ctx context.Context, cfg interface{}) (ObjectStorage, error
 	}, nil
 }
 
+func (l *LocalStorage) buildLocalPath(p string) string {
+	return filepath.Join(l.dir, path.Clean("/" + strings.ReplaceAll(p, "\\", "/"))[1:])
+}
+
 // Open a file
 func (l *LocalStorage) Open(path string) (Object, error) {
-	return os.Open(filepath.Join(l.dir, path))
+	return os.Open(l.buildLocalPath(path))
 }
 
 // Save a file
 func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error) {
-	p := filepath.Join(l.dir, path)
+	p := l.buildLocalPath(path)
 	if err := os.MkdirAll(filepath.Dir(p), os.ModePerm); err != nil {
 		return 0, err
 	}
@@ -76,7 +79,7 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 	if err := os.MkdirAll(l.tmpdir, os.ModePerm); err != nil {
 		return 0, err
 	}
-	tmp, err := ioutil.TempFile(l.tmpdir, "upload-*")
+	tmp, err := os.CreateTemp(l.tmpdir, "upload-*")
 	if err != nil {
 		return 0, err
 	}
@@ -96,7 +99,11 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 		return 0, err
 	}
 
-	if err := os.Rename(tmp.Name(), p); err != nil {
+	if err := util.Rename(tmp.Name(), p); err != nil {
+		return 0, err
+	}
+	// Golang's tmp file (os.CreateTemp) always have 0o600 mode, so we need to change the file to follow the umask (as what Create/MkDir does)
+	if err := util.ApplyUmask(p, os.ModePerm); err != nil {
 		return 0, err
 	}
 
@@ -107,13 +114,12 @@ func (l *LocalStorage) Save(path string, r io.Reader, size int64) (int64, error)
 
 // Stat returns the info of the file
 func (l *LocalStorage) Stat(path string) (os.FileInfo, error) {
-	return os.Stat(filepath.Join(l.dir, path))
+	return os.Stat(l.buildLocalPath(path))
 }
 
 // Delete delete a file
 func (l *LocalStorage) Delete(path string) error {
-	p := filepath.Join(l.dir, path)
-	return util.Remove(p)
+	return util.Remove(l.buildLocalPath(path))
 }
 
 // URL gets the redirect URL to a file

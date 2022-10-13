@@ -7,6 +7,7 @@ package log
 // LoggerProvider represents behaviors of a logger provider.
 type LoggerProvider interface {
 	Init(config string) error
+	Content() (string, error)
 	EventLogger
 }
 

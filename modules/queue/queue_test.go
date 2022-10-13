@@ -7,7 +7,8 @@ package queue
 import (
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/json"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -29,8 +30,6 @@ func TestToConfig(t *testing.T) {
 	assert.True(t, ok)
 	assert.NotEqual(t, cfg2, exemplar)
 	assert.Equal(t, &cfg, &cfg2)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	cfgString, err := json.Marshal(cfg)
 	assert.NoError(t, err)
 

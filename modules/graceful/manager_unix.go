@@ -1,8 +1,8 @@
-// +build !windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build !windows
 
 package graceful
 
@@ -11,11 +11,13 @@ import (
 	"errors"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"sync"
 	"syscall"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 )
 
@@ -25,13 +27,21 @@ type Manager struct {
 	forked                 bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	managerCtx             context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	managerCtxCancel       context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -45,15 +55,25 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start(ctx context.Context) {
-	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
+	// Make contexts
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(ctx)
+	g.managerCtx, g.managerCtxCancel = context.WithCancel(ctx)
+
+	// Next add pprof labels to these contexts
+	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
+	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
+	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+
+	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
+	pprof.SetGoroutineLabels(g.managerCtx)
+	defer pprof.SetGoroutineLabels(ctx)
 
 	// Set the running state & handle signals
 	g.setState(stateRunning)
-	go g.handleSignals(ctx)
+	go g.handleSignals(g.managerCtx)
 
 	// Handle clean up of unused provided listeners	and delayed start-up
 	startupDone := make(chan struct{})
@@ -92,6 +112,9 @@ func (g *Manager) start(ctx context.Context) {
 }
 
 func (g *Manager) handleSignals(ctx context.Context) {
+	ctx, _, finished := process.GetManager().AddTypedContext(ctx, "Graceful: HandleSignals", process.SystemProcessType, true)
+	defer finished()
+
 	signalChannel := make(chan os.Signal, 1)
 
 	signal.Notify(
@@ -134,6 +157,7 @@ func (g *Manager) handleSignals(ctx context.Context) {
 		case <-ctx.Done():
 			log.Warn("PID: %d. Background context for manager closed - %v - Shutting down...", pid, ctx.Err())
 			g.DoGracefulShutdown()
+			return
 		}
 	}
 }
@@ -159,8 +183,12 @@ func (g *Manager) DoGracefulRestart() {
 	if setting.GracefulRestartable {
 		log.Info("PID: %d. Forking...", os.Getpid())
 		err := g.doFork()
-		if err != nil && err.Error() != "another process already forked. Ignoring this one" {
-			log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+		if err != nil {
+			if err.Error() == "another process already forked. Ignoring this one" {
+				g.DoImmediateHammer()
+			} else {
+				log.Error("Error whilst forking from PID: %d : %v", os.Getpid(), err)
+			}
 		}
 	} else {
 		log.Info("PID: %d. Not set restartable. Shutting down...", os.Getpid())

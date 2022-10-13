@@ -8,9 +8,9 @@ import (
 	"fmt"
 	"strings"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	jsoniter "github.com/json-iterator/go"
 )
 
 func validType(t string) (Type, error) {
@@ -22,13 +22,11 @@ func validType(t string) (Type, error) {
 			return typ, nil
 		}
 	}
-	return PersistableChannelQueueType, fmt.Errorf("Unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
+	return PersistableChannelQueueType, fmt.Errorf("unknown queue type: %s defaulting to %s", t, string(PersistableChannelQueueType))
 }
 
 func getQueueSettings(name string) (setting.QueueSettings, []byte) {
 	q := setting.GetQueueSettings(name)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	cfg, err := json.Marshal(q)
 	if err != nil {
 		log.Error("Unable to marshall generic options: %v Error: %v", q, err)
@@ -67,6 +65,16 @@ func CreateQueue(name string, handle HandlerFunc, exemplar interface{}) Queue {
 		log.Error("Unable to create queue for %s: %v", name, err)
 		return nil
 	}
+
+	// Sanity check configuration
+	if q.Workers == 0 && (q.BoostTimeout == 0 || q.BoostWorkers == 0 || q.MaxWorkers == 0) {
+		log.Warn("Queue: %s is configured to be non-scaling and have no workers\n - this configuration is likely incorrect and could cause Gitea to block", q.Name)
+		if pausable, ok := returnable.(Pausable); ok {
+			log.Warn("Queue: %s is being paused to prevent data-loss, add workers manually and unpause.", q.Name)
+			pausable.Pause()
+		}
+	}
+
 	return returnable
 }
 
@@ -77,7 +85,7 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 		return nil
 	}
 
-	if len(q.Type) > 0 && q.Type != "dummy" && !strings.HasPrefix(q.Type, "unique-") {
+	if len(q.Type) > 0 && q.Type != "dummy" && q.Type != "immediate" && !strings.HasPrefix(q.Type, "unique-") {
 		q.Type = "unique-" + q.Type
 	}
 
@@ -105,5 +113,15 @@ func CreateUniqueQueue(name string, handle HandlerFunc, exemplar interface{}) Un
 		log.Error("Unable to create unique queue for %s: %v", name, err)
 		return nil
 	}
+
+	// Sanity check configuration
+	if q.Workers == 0 && (q.BoostTimeout == 0 || q.BoostWorkers == 0 || q.MaxWorkers == 0) {
+		log.Warn("Queue: %s is configured to be non-scaling and have no workers\n - this configuration is likely incorrect and could cause Gitea to block", q.Name)
+		if pausable, ok := returnable.(Pausable); ok {
+			log.Warn("Queue: %s is being paused to prevent data-loss, add workers manually and unpause.", q.Name)
+			pausable.Pause()
+		}
+	}
+
 	return returnable.(UniqueQueue)
 }

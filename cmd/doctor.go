@@ -5,29 +5,28 @@
 package cmd
 
 import (
-	"context"
+	"errors"
 	"fmt"
 	golog "log"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/migrations"
 	"code.gitea.io/gitea/modules/doctor"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 
-	"xorm.io/xorm"
-
 	"github.com/urfave/cli"
+	"xorm.io/xorm"
 )
 
 // CmdDoctor represents the available doctor sub-command.
 var CmdDoctor = cli.Command{
 	Name:        "doctor",
-	Usage:       "Diagnose problems",
-	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration.",
+	Usage:       "Diagnose and optionally fix problems",
+	Description: "A command to diagnose problems with the current Gitea instance according to the given configuration. Some problems can optionally be fixed by modifying the database or data storage.",
 	Action:      runDoctor,
 	Flags: []cli.Flag{
 		cli.BoolFlag{
@@ -88,7 +87,7 @@ func runRecreateTable(ctx *cli.Context) error {
 	golog.SetPrefix("")
 	golog.SetOutput(log.NewLoggerAsWriter("INFO", log.GetLogger(log.DEFAULT)))
 
-	setting.NewContext()
+	setting.LoadFromExisting()
 	setting.InitDBConfig()
 
 	setting.EnableXORMLog = ctx.Bool("debug")
@@ -96,7 +95,10 @@ func runRecreateTable(ctx *cli.Context) error {
 	setting.Cfg.Section("log").Key("XORM").SetValue(",")
 
 	setting.NewXORMLogService(!ctx.Bool("debug"))
-	if err := models.SetEngine(); err != nil {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	if err := db.InitEngine(stdCtx); err != nil {
 		fmt.Println(err)
 		fmt.Println("Check if you are using the right config file. You can use a --config directive to specify one.")
 		return nil
@@ -108,33 +110,25 @@ func runRecreateTable(ctx *cli.Context) error {
 		names = append(names, args.Get(i))
 	}
 
-	beans, err := models.NamesToBean(names...)
+	beans, err := db.NamesToBean(names...)
 	if err != nil {
 		return err
 	}
 	recreateTables := migrations.RecreateTables(beans...)
 
-	return models.NewEngine(context.Background(), func(x *xorm.Engine) error {
+	return db.InitEngineWithMigration(stdCtx, func(x *xorm.Engine) error {
 		if err := migrations.EnsureUpToDate(x); err != nil {
 			return err
 		}
 		return recreateTables(x)
 	})
-
 }
 
-func runDoctor(ctx *cli.Context) error {
-
-	// Silence the default loggers
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
-
-	// Now setup our own
+func setDoctorLogger(ctx *cli.Context) {
 	logFile := ctx.String("log-file")
 	if !ctx.IsSet("log-file") {
 		logFile = "doctor.log"
 	}
-
 	colorize := log.CanColorStdout
 	if ctx.IsSet("color") {
 		colorize = ctx.Bool("color")
@@ -142,10 +136,49 @@ func runDoctor(ctx *cli.Context) error {
 
 	if len(logFile) == 0 {
 		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))
-	} else if logFile == "-" {
+		return
+	}
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+
+		err, ok := recovered.(error)
+		if !ok {
+			panic(recovered)
+		}
+		if errors.Is(err, os.ErrPermission) {
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file due to permissions error: %s\n       %v\n", logFile, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file: %s\n       %v\n", logFile, err)
+		}
+		fmt.Fprintf(os.Stderr, "WARN: Logging will be disabled\n       Use `--log-file` to configure log file location\n")
+		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))
+	}()
+
+	if logFile == "-" {
 		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"trace","stacktracelevel":"NONE","colorize":%t}`, colorize))
 	} else {
 		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
+	}
+}
+
+func runDoctor(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	// Silence the default loggers
+	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
+
+	// Now setup our own
+	setDoctorLogger(ctx)
+
+	colorize := log.CanColorStdout
+	if ctx.IsSet("color") {
+		colorize = ctx.Bool("color")
 	}
 
 	// Finally redirect the default golog to here
@@ -201,7 +234,7 @@ func runDoctor(ctx *cli.Context) error {
 
 	// Now we can set up our own logger to return information about what the doctor is doing
 	if err := log.NewNamedLogger("doctorouter",
-		1000,
+		0,
 		"console",
 		"console",
 		fmt.Sprintf(`{"level":"INFO","stacktracelevel":"NONE","colorize":%t,"flags":-1}`, colorize)); err != nil {
@@ -211,5 +244,5 @@ func runDoctor(ctx *cli.Context) error {
 
 	logger := log.GetLogger("doctorouter")
 	defer logger.Close()
-	return doctor.RunChecks(logger, ctx.Bool("fix"), checks)
+	return doctor.RunChecks(stdCtx, logger, ctx.Bool("fix"), checks)
 }

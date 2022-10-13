@@ -6,7 +6,7 @@ package git
 
 import (
 	"context"
-	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -84,7 +84,7 @@ e2aa991e10ffd924a828ec149951f2f20eecead2 7 7
 `
 
 func TestReadingBlameOutput(t *testing.T) {
-	tempFile, err := ioutil.TempFile("", ".txt")
+	tempFile, err := os.CreateTemp("", ".txt")
 	if err != nil {
 		panic(err)
 	}

@@ -16,6 +16,9 @@
 
       .item {
         text-align: left;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
 
         .text {
           height: 16px;
@@ -65,7 +68,7 @@
 
   .dashboard-repos,
   .dashboard-orgs {
-    margin: 0 1px; /* Accomodate for Semantic's 1px hacks on .attached elements */
+    margin: 0 1px; /* Accommodate for Semantic's 1px hacks on .attached elements */
   }
 
   .dashboard-navbar {
@@ -78,6 +81,12 @@
 
     .ui.dropdown {
       max-width: 100%;
+
+      @media @mediaSm {
+        > .menu {
+          position: static;
+        }
+      }
     }
   }
 }
@@ -156,7 +165,7 @@
         }
 
         &.private {
-          background-color: #fcf8e9;
+          background-color: var(--color-box-body-highlight);
         }
 
         .repo-list-link {

@@ -18,12 +18,12 @@
 								{{svg "octicon-mail"}}
 								<a href="mailto:{{.Email}}" rel="nofollow">{{.Email}}</a>
 							{{end}}
-							{{svg "octicon-clock"}} {{$.i18n.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
+							{{svg "octicon-clock"}} {{$.locale.Tr "user.join_on"}} {{.CreatedUnix.FormatShort}}
 						</div>
 					</div>
 				</div>
 			{{else}}
-				<div>{{$.i18n.Tr "explore.user_no_results"}}</div>
+				<div>{{$.locale.Tr "explore.user_no_results"}}</div>
 			{{end}}
 		</div>
 

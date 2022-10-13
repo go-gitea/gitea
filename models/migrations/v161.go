@@ -5,6 +5,8 @@
 package migrations
 
 import (
+	"context"
+
 	"xorm.io/xorm"
 )
 
@@ -19,18 +21,20 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 		MSTEAMS
 		FEISHU
 		MATRIX
+		WECHATWORK
 	)
 
 	hookTaskTypes := map[int]string{
-		GITEA:    "gitea",
-		GOGS:     "gogs",
-		SLACK:    "slack",
-		DISCORD:  "discord",
-		DINGTALK: "dingtalk",
-		TELEGRAM: "telegram",
-		MSTEAMS:  "msteams",
-		FEISHU:   "feishu",
-		MATRIX:   "matrix",
+		GITEA:      "gitea",
+		GOGS:       "gogs",
+		SLACK:      "slack",
+		DISCORD:    "discord",
+		DINGTALK:   "dingtalk",
+		TELEGRAM:   "telegram",
+		MSTEAMS:    "msteams",
+		FEISHU:     "feishu",
+		MATRIX:     "matrix",
+		WECHATWORK: "wechatwork",
 	}
 
 	type HookTask struct {
@@ -40,8 +44,17 @@ func convertTaskTypeToString(x *xorm.Engine) error {
 		return err
 	}
 
+	// to keep the migration could be rerun
+	exist, err := x.Dialect().IsColumnExist(x.DB(), context.Background(), "hook_task", "type")
+	if err != nil {
+		return err
+	}
+	if !exist {
+		return nil
+	}
+
 	for i, s := range hookTaskTypes {
-		if _, err := x.Exec("UPDATE hook_task set typ = ? where type=?", s, i); err != nil {
+		if _, err := x.Exec("UPDATE hook_task set typ = ? where `type`=?", s, i); err != nil {
 			return err
 		}
 	}

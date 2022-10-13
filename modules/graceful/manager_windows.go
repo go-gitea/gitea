@@ -1,15 +1,16 @@
-// +build windows
-
 // Copyright 2019 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 // This code is heavily inspired by the archived gofacebook/gracenet/net.go handler
+
+//go:build windows
 
 package graceful
 
 import (
 	"context"
 	"os"
+	"runtime/pprof"
 	"strconv"
 	"sync"
 	"time"
@@ -36,14 +37,22 @@ type Manager struct {
 	isChild                bool
 	lock                   *sync.RWMutex
 	state                  state
-	shutdown               chan struct{}
-	hammer                 chan struct{}
-	terminate              chan struct{}
-	done                   chan struct{}
+	shutdownCtx            context.Context
+	hammerCtx              context.Context
+	terminateCtx           context.Context
+	managerCtx             context.Context
+	shutdownCtxCancel      context.CancelFunc
+	hammerCtxCancel        context.CancelFunc
+	terminateCtxCancel     context.CancelFunc
+	managerCtxCancel       context.CancelFunc
 	runningServerWaitGroup sync.WaitGroup
 	createServerWaitGroup  sync.WaitGroup
 	terminateWaitGroup     sync.WaitGroup
 	shutdownRequested      chan struct{}
+
+	toRunAtShutdown  []func()
+	toRunAtHammer    []func()
+	toRunAtTerminate []func()
 }
 
 func newGracefulManager(ctx context.Context) *Manager {
@@ -58,11 +67,23 @@ func newGracefulManager(ctx context.Context) *Manager {
 }
 
 func (g *Manager) start() {
+	// Make contexts
+	g.terminateCtx, g.terminateCtxCancel = context.WithCancel(g.ctx)
+	g.shutdownCtx, g.shutdownCtxCancel = context.WithCancel(g.ctx)
+	g.hammerCtx, g.hammerCtxCancel = context.WithCancel(g.ctx)
+	g.managerCtx, g.managerCtxCancel = context.WithCancel(g.ctx)
+
+	// Next add pprof labels to these contexts
+	g.terminateCtx = pprof.WithLabels(g.terminateCtx, pprof.Labels("graceful-lifecycle", "with-terminate"))
+	g.shutdownCtx = pprof.WithLabels(g.shutdownCtx, pprof.Labels("graceful-lifecycle", "with-shutdown"))
+	g.hammerCtx = pprof.WithLabels(g.hammerCtx, pprof.Labels("graceful-lifecycle", "with-hammer"))
+	g.managerCtx = pprof.WithLabels(g.managerCtx, pprof.Labels("graceful-lifecycle", "with-manager"))
+
+	// Now label this and all goroutines created by this goroutine with the graceful-lifecycle manager
+	pprof.SetGoroutineLabels(g.managerCtx)
+	defer pprof.SetGoroutineLabels(g.ctx)
+
 	// Make channels
-	g.terminate = make(chan struct{})
-	g.shutdown = make(chan struct{})
-	g.hammer = make(chan struct{})
-	g.done = make(chan struct{})
 	g.shutdownRequested = make(chan struct{})
 
 	// Set the running state
@@ -74,12 +95,14 @@ func (g *Manager) start() {
 
 	// Make SVC process
 	run := svc.Run
-	isWindowsService, err := svc.IsWindowsService()
+
+	//lint:ignore SA1019 We use IsAnInteractiveSession because IsWindowsService has a different permissions profile
+	isAnInteractiveSession, err := svc.IsAnInteractiveSession()
 	if err != nil {
 		log.Error("Unable to ascertain if running as an Windows Service: %v", err)
 		return
 	}
-	if !isWindowsService {
+	if isAnInteractiveSession {
 		log.Trace("Not running a service ... using the debug SVC manager")
 		run = debug.Run
 	}
@@ -91,9 +114,9 @@ func (g *Manager) start() {
 // Execute makes Manager implement svc.Handler
 func (g *Manager) Execute(args []string, changes <-chan svc.ChangeRequest, status chan<- svc.Status) (svcSpecificEC bool, exitCode uint32) {
 	if setting.StartupTimeout > 0 {
-		status <- svc.Status{State: svc.StartPending}
-	} else {
 		status <- svc.Status{State: svc.StartPending, WaitHint: uint32(setting.StartupTimeout / time.Millisecond)}
+	} else {
+		status <- svc.Status{State: svc.StartPending}
 	}
 
 	log.Trace("Awaiting server start-up")
@@ -169,7 +192,7 @@ hammerLoop:
 			default:
 				log.Debug("Unexpected control request: %v", change.Cmd)
 			}
-		case <-g.hammer:
+		case <-g.hammerCtx.Done():
 			break hammerLoop
 		}
 	}

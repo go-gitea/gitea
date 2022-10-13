@@ -8,6 +8,6 @@ draft: false
 menu:
   sidebar:
     name: "開發人員"
-    weight: 50
+    weight: 55
     identifier: "developers"
 ---

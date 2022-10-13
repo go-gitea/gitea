@@ -27,7 +27,7 @@ COMPUTERNAME is whatever the response is from `echo %COMPUTERNAME%` on the comma
 
 ## Use absolute paths
 
-If you use sqlite3, change the `PATH` to include the full path:
+If you use SQLite3, change the `PATH` to include the full path:
 
 ```
 [database]
@@ -48,6 +48,16 @@ Do not forget to replace `C:\gitea` with the correct Gitea directory.
 Open "Windows Services", search for the service named "gitea", right-click it and click on
 "Run". If everything is OK, Gitea will be reachable on `http://localhost:3000` (or the port
 that was configured).
+
+## Adding startup dependencies
+
+To add a startup dependency to the Gitea Windows service (eg Mysql, Mariadb), as an Administrator, then run the following command:
+
+```
+sc.exe config gitea depend= mariadb
+```
+
+This will ensure that when the Windows machine restarts, the automatic starting of Gitea is postponed until the database is ready and thus mitigate failed startups.
 
 ## Unregister as a service
 

@@ -5,6 +5,7 @@
 package log
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -19,7 +20,7 @@ var statusToColor = map[int][]byte{
 	500: ColorBytes(Bold, BgRed),
 }
 
-// ColoredStatus addes colors for HTTP status
+// ColoredStatus adds colors for HTTP status
 func ColoredStatus(status int, s ...string) *ColoredValue {
 	color, ok := statusToColor[status]
 	if !ok {
@@ -43,7 +44,7 @@ var methodToColor = map[string][]byte{
 	"HEAD":   ColorBytes(FgBlue, Faint),
 }
 
-// ColoredMethod addes colors for HtTP methos on log
+// ColoredMethod adds colors for HTTP methods on log
 func ColoredMethod(method string) *ColoredValue {
 	color, ok := methodToColor[method]
 	if !ok {
@@ -72,12 +73,16 @@ var (
 	wayTooLong = ColorBytes(BgMagenta)
 )
 
-// ColoredTime addes colors for time on log
+// ColoredTime converts the provided time to a ColoredValue for logging. The duration is always formatted in milliseconds.
 func ColoredTime(duration time.Duration) *ColoredValue {
+	// the output of duration in Millisecond is more readable:
+	// * before: "100.1ms" "100.1μs" "100.1s"
+	// * better: "100.1ms" "0.1ms"   "100100.0ms", readers can compare the values at first glance.
+	str := fmt.Sprintf("%.1fms", float64(duration.Microseconds())/1000)
 	for i, k := range durations {
 		if duration < k {
-			return NewColoredValueBytes(duration, &durationColors[i])
+			return NewColoredValueBytes(str, &durationColors[i])
 		}
 	}
-	return NewColoredValueBytes(duration, &wayTooLong)
+	return NewColoredValueBytes(str, &wayTooLong)
 }

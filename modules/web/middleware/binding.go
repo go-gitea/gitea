@@ -10,10 +10,10 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/translation"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/validation"
 
 	"gitea.com/go-chi/binding"
-	"github.com/unknwon/com"
 )
 
 // Form form binding interface
@@ -22,7 +22,7 @@ type Form interface {
 }
 
 func init() {
-	binding.SetNameMapper(com.ToSnakeCase)
+	binding.SetNameMapper(util.ToSnakeCase)
 }
 
 // AssignForm assign form values back to the template data.
@@ -43,7 +43,7 @@ func AssignForm(form interface{}, data map[string]interface{}) {
 		if fieldName == "-" {
 			continue
 		} else if len(fieldName) == 0 {
-			fieldName = com.ToSnakeCase(field.Name)
+			fieldName = util.ToSnakeCase(field.Name)
 		}
 
 		data[fieldName] = val.Field(i).Interface()
@@ -93,11 +93,9 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 	AssignForm(f, data)
 
 	typ := reflect.TypeOf(f)
-	val := reflect.ValueOf(f)
 
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
-		val = val.Elem()
 	}
 
 	if field, ok := typ.FieldByName(errs[0].FieldNames[0]); ok {
@@ -130,13 +128,24 @@ func Validate(errs binding.Errors, data map[string]interface{}, f Form, l transl
 			case binding.ERR_EMAIL:
 				data["ErrorMsg"] = trName + l.Tr("form.email_error")
 			case binding.ERR_URL:
-				data["ErrorMsg"] = trName + l.Tr("form.url_error")
+				data["ErrorMsg"] = trName + l.Tr("form.url_error", errs[0].Message)
 			case binding.ERR_INCLUDE:
 				data["ErrorMsg"] = trName + l.Tr("form.include_error", GetInclude(field))
 			case validation.ErrGlobPattern:
 				data["ErrorMsg"] = trName + l.Tr("form.glob_pattern_error", errs[0].Message)
+			case validation.ErrRegexPattern:
+				data["ErrorMsg"] = trName + l.Tr("form.regex_pattern_error", errs[0].Message)
 			default:
-				data["ErrorMsg"] = l.Tr("form.unknown_error") + " " + errs[0].Classification
+				msg := errs[0].Classification
+				if msg != "" && errs[0].Message != "" {
+					msg += ": "
+				}
+
+				msg += errs[0].Message
+				if msg == "" {
+					msg = l.Tr("form.unknown_error")
+				}
+				data["ErrorMsg"] = trName + ": " + msg
 			}
 			return errs
 		}

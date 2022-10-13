@@ -20,8 +20,7 @@ import (
 
 var wwwURLRegxp = regexp.MustCompile(`^www\.[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}((?:/|[#?])[-a-zA-Z0-9@:%_\+.~#!?&//=\(\);,'">\^{}\[\]` + "`" + `]*)?`)
 
-type linkifyParser struct {
-}
+type linkifyParser struct{}
 
 var defaultLinkifyParser = &linkifyParser{}
 
@@ -36,10 +35,12 @@ func (s *linkifyParser) Trigger() []byte {
 	return []byte{' ', '*', '_', '~', '('}
 }
 
-var protoHTTP = []byte("http:")
-var protoHTTPS = []byte("https:")
-var protoFTP = []byte("ftp:")
-var domainWWW = []byte("www.")
+var (
+	protoHTTP  = []byte("http:")
+	protoHTTPS = []byte("https:")
+	protoFTP   = []byte("ftp:")
+	domainWWW  = []byte("www.")
+)
 
 func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Context) ast.Node {
 	if pc.IsInLinkLabel() {
@@ -58,7 +59,7 @@ func (s *linkifyParser) Parse(parent ast.Node, block text.Reader, pc parser.Cont
 
 	var m []int
 	var protocol []byte
-	var typ ast.AutoLinkType = ast.AutoLinkURL
+	typ := ast.AutoLinkURL
 	if bytes.HasPrefix(line, protoHTTP) || bytes.HasPrefix(line, protoHTTPS) || bytes.HasPrefix(line, protoFTP) {
 		m = LinkRegex.FindSubmatchIndex(line)
 	}
@@ -139,8 +140,7 @@ func (s *linkifyParser) CloseBlock(parent ast.Node, pc parser.Context) {
 	// nothing to do
 }
 
-type linkify struct {
-}
+type linkify struct{}
 
 // Linkify is an extension that allow you to parse text that seems like a URL.
 var Linkify = &linkify{}

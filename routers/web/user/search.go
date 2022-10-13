@@ -1,0 +1,44 @@
+// Copyright 2022 The Gitea Authors. All rights reserved.
+// Use of this source code is governed by a MIT-style
+// license that can be found in the LICENSE file.
+
+package user
+
+import (
+	"net/http"
+
+	"code.gitea.io/gitea/models/db"
+	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/convert"
+)
+
+// Search search users
+func Search(ctx *context.Context) {
+	listOptions := db.ListOptions{
+		Page:     ctx.FormInt("page"),
+		PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
+	}
+
+	users, maxResults, err := user_model.SearchUsers(&user_model.SearchUserOptions{
+		Actor:       ctx.Doer,
+		Keyword:     ctx.FormTrim("q"),
+		UID:         ctx.FormInt64("uid"),
+		Type:        user_model.UserTypeIndividual,
+		ListOptions: listOptions,
+	})
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, map[string]interface{}{
+			"ok":    false,
+			"error": err.Error(),
+		})
+		return
+	}
+
+	ctx.SetTotalCountHeader(maxResults)
+
+	ctx.JSON(http.StatusOK, map[string]interface{}{
+		"ok":   true,
+		"data": convert.ToUsers(ctx.Doer, users),
+	})
+}

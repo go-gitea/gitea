@@ -8,14 +8,16 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/perm"
+	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
-	"code.gitea.io/gitea/services/webhook"
+	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
 // ListHooks list all hooks of a repository
@@ -48,9 +50,20 @@ func ListHooks(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/HookList"
 
-	hooks, err := models.GetWebhooksByRepoID(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	opts := &webhook.ListWebhookOptions{
+		ListOptions: utils.GetListOptions(ctx),
+		RepoID:      ctx.Repo.Repository.ID,
+	}
+
+	count, err := webhook.CountWebhooksByOpts(opts)
 	if err != nil {
-		ctx.Error(http.StatusInternalServerError, "GetWebhooksByRepoID", err)
+		ctx.InternalServerError(err)
+		return
+	}
+
+	hooks, err := webhook.ListWebhooksByOpts(ctx, opts)
+	if err != nil {
+		ctx.InternalServerError(err)
 		return
 	}
 
@@ -58,6 +71,8 @@ func ListHooks(ctx *context.APIContext) {
 	for i := range hooks {
 		apiHooks[i] = convert.ToHook(ctx.Repo.RepoLink, hooks[i])
 	}
+
+	ctx.SetTotalCountHeader(count)
 	ctx.JSON(http.StatusOK, &apiHooks)
 }
 
@@ -124,6 +139,11 @@ func TestHook(ctx *context.APIContext) {
 	//   type: integer
 	//   format: int64
 	//   required: true
+	// - name: ref
+	//   in: query
+	//   description: "The name of the commit/branch/tag, indicates which commit will be loaded to the webhook payload."
+	//   type: string
+	//   required: false
 	// responses:
 	//   "204":
 	//     "$ref": "#/responses/empty"
@@ -134,22 +154,30 @@ func TestHook(ctx *context.APIContext) {
 		return
 	}
 
+	ref := git.BranchPrefix + ctx.Repo.Repository.DefaultBranch
+	if r := ctx.FormTrim("ref"); r != "" {
+		ref = r
+	}
+
 	hookID := ctx.ParamsInt64(":id")
 	hook, err := utils.GetRepoHook(ctx, ctx.Repo.Repository.ID, hookID)
 	if err != nil {
 		return
 	}
 
-	if err := webhook.PrepareWebhook(hook, ctx.Repo.Repository, models.HookEventPush, &api.PushPayload{
-		Ref:    git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before: ctx.Repo.Commit.ID.String(),
-		After:  ctx.Repo.Commit.ID.String(),
-		Commits: []*api.PayloadCommit{
-			convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit),
-		},
-		Repo:   convert.ToRepo(ctx.Repo.Repository, models.AccessModeNone),
-		Pusher: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
-		Sender: convert.ToUserWithAccessMode(ctx.User, models.AccessModeNone),
+	commit := convert.ToPayloadCommit(ctx.Repo.Repository, ctx.Repo.Commit)
+
+	commitID := ctx.Repo.Commit.ID.String()
+	if err := webhook_service.PrepareWebhook(hook, ctx.Repo.Repository, webhook.HookEventPush, &api.PushPayload{
+		Ref:        ref,
+		Before:     commitID,
+		After:      commitID,
+		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
+		Commits:    []*api.PayloadCommit{commit},
+		HeadCommit: commit,
+		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:     convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
+		Sender:     convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return
@@ -258,8 +286,8 @@ func DeleteHook(ctx *context.APIContext) {
 	//     "$ref": "#/responses/empty"
 	//   "404":
 	//     "$ref": "#/responses/notFound"
-	if err := models.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
-		if models.IsErrWebhookNotExist(err) {
+	if err := webhook.DeleteWebhookByRepoID(ctx.Repo.Repository.ID, ctx.ParamsInt64(":id")); err != nil {
+		if webhook.IsErrWebhookNotExist(err) {
 			ctx.NotFound()
 		} else {
 			ctx.Error(http.StatusInternalServerError, "DeleteWebhookByRepoID", err)

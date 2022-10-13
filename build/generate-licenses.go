@@ -1,4 +1,4 @@
-// +build ignore
+//go:build ignore
 
 package main
 
@@ -8,7 +8,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -33,13 +32,20 @@ func main() {
 	flag.StringVar(&githubApiToken, "token", "", "github api token")
 	flag.Parse()
 
-	file, err := ioutil.TempFile(os.TempDir(), prefix)
-
+	file, err := os.CreateTemp(os.TempDir(), prefix)
 	if err != nil {
 		log.Fatalf("Failed to create temp file. %s", err)
 	}
 
 	defer util.Remove(file.Name())
+
+	if err := os.RemoveAll(destination); err != nil {
+		log.Fatalf("Cannot clean destination folder: %v", err)
+	}
+
+	if err := os.MkdirAll(destination, 0o755); err != nil {
+		log.Fatalf("Cannot create destination: %v", err)
+	}
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -66,7 +72,6 @@ func main() {
 	}
 
 	gz, err := gzip.NewReader(file)
-
 	if err != nil {
 		log.Fatalf("Failed to gunzip the archive. %s", err)
 	}
@@ -100,7 +105,6 @@ func main() {
 			continue
 		}
 		out, err := os.Create(path.Join(destination, strings.TrimSuffix(filepath.Base(hdr.Name), ".txt")))
-
 		if err != nil {
 			log.Fatalf("Failed to create new file. %s", err)
 		}

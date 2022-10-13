@@ -54,7 +54,7 @@ func TestComplexity_Generate(t *testing.T) {
 		for i := 0; i < maxCount; i++ {
 			pwd, err := Generate(pwdLen)
 			assert.NoError(t, err)
-			assert.Equal(t, pwdLen, len(pwd))
+			assert.Len(t, pwd, pwdLen)
 			assert.True(t, IsComplexEnough(pwd), "Failed complexities with modes %+v for generated: %s", modes, pwd)
 		}
 	}

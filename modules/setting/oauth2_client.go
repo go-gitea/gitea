@@ -71,10 +71,10 @@ func newOAuth2Client() {
 		OAuth2Client.Username = OAuth2UsernameNickname
 	}
 	OAuth2Client.UpdateAvatar = sec.Key("UPDATE_AVATAR").MustBool()
-	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingDisabled)))
+	OAuth2Client.AccountLinking = OAuth2AccountLinkingType(sec.Key("ACCOUNT_LINKING").MustString(string(OAuth2AccountLinkingLogin)))
 	if !OAuth2Client.AccountLinking.isValid() {
-		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingDisabled)
-		OAuth2Client.AccountLinking = OAuth2AccountLinkingDisabled
+		log.Warn("Account linking setting is not valid: '%s', will fallback to '%s'", OAuth2Client.AccountLinking, OAuth2AccountLinkingLogin)
+		OAuth2Client.AccountLinking = OAuth2AccountLinkingLogin
 	}
 }
 

@@ -15,7 +15,14 @@ menu:
 
 # 配置说明
 
-这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+这是针对Gitea配置文件的说明，你可以了解Gitea的强大配置。需要说明的是，你的所有改变请修改 `custom/conf/app.ini` 文件而不是源文件。
+所有默认值可以通过 [app.example.ini](https://github.com/go-gitea/gitea/blob/master/custom/conf/app.example.ini) 查看到。
+如果你发现 `%(X)s` 这样的内容，请查看 [ini](https://github.com/go-ini/ini/#recursive-values) 这里的说明。
+标注了 :exclamation: 的配置项表明除非你真的理解这个配置项的意义，否则最好使用默认值。
+
+## ⚠️时效性警告⚠️
+
+此文档的内容可能过于陈旧或者错误，请参考英文文档。
 
 {{< toc >}}
 
@@ -35,6 +42,11 @@ menu:
 - `DEFAULT_PUSH_CREATE_PRIVATE`: **true**:  通过 ``push-to-create`` 方式创建的仓库是否默认为私有仓库.
 - `MAX_CREATION_LIMIT`: 全局最大每个用户创建的git工程数目， `-1` 表示没限制。
 - `PULL_REQUEST_QUEUE_LENGTH`: 小心：合并请求测试队列的长度，尽量放大。
+
+### Repository - Release (`repository.release`)
+
+- `ALLOWED_TYPES`: **\<empty\>**: 允许扩展名的列表，用逗号分隔 (`.zip`), mime 类型 (`text/plain`) 或者匹配符号 (`image/*`, `audio/*`, `video/*`). 空值或者 `*/*` 允许所有类型。
+- `DEFAULT_PAGING_NUM`: **10**: 默认的发布版本页面分页。
 
 ## UI (`ui`)
 
@@ -75,18 +87,18 @@ menu:
 
 - `LFS_START_SERVER`: 是否启用 git-lfs 支持. 可以为 `true` 或 `false`， 默认是 `false`。
 - `LFS_JWT_SECRET`: LFS 认证密钥，改成自己的。
-- `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。
+- `LFS_CONTENT_PATH`: **已废弃**, 存放 lfs 命令上传的文件的地方，默认是 `data/lfs`。**废弃** 请使用 `[lfs]` 的设置。
 
 ## Database (`database`)
 
-- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql`, `tidb` 或 `sqlite3`。
+- `DB_TYPE`: 数据库类型，可选 `mysql`, `postgres`, `mssql` 或 `sqlite3`。
 - `HOST`: 数据库服务器地址和端口。
 - `NAME`: 数据库名称。
 - `USER`: 数据库用户名。
 - `PASSWD`: 数据库用户密码。
 - `SSL_MODE`: MySQL 或 PostgreSQL数据库是否启用SSL模式。
 - `CHARSET`: **utf8mb4**: 仅当数据库为 MySQL 时有效, 可以为 "utf8" 或 "utf8mb4"。注意：如果使用 "utf8mb4"，你的 MySQL InnoDB 版本必须在 5.6 以上。
-- `PATH`: Tidb 或者 SQLite3 数据文件存放路径。
+- `PATH`: SQLite3 数据文件存放路径。
 - `LOG_SQL`: **true**: 显示生成的SQL，默认为真。
 - `MAX_IDLE_CONNS` **0**: 最大空闲数据库连接
 - `CONN_MAX_LIFETIME` **3s**: 数据库连接最大存活时间
@@ -168,14 +180,14 @@ menu:
 - `ADAPTER`: **memory**: 缓存引擎，可以为 `memory`, `redis` 或 `memcache`。
 - `INTERVAL`: **60**: 只对内存缓存有效，GC间隔，单位秒。
 - `HOST`: **\<empty\>**: 针对redis和memcache有效，主机地址和端口。
-    - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
-    - Memache: `127.0.0.1:9090;127.0.0.1:9091`
-- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+  - Redis: `network=tcp,addr=127.0.0.1:6379,password=macaron,db=0,pool_size=100,idle_timeout=180`
+  - Memache: `127.0.0.1:9090;127.0.0.1:9091`
+- `ITEM_TTL`: **16h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 
 ## Cache - LastCommitCache settings (`cache.last_commit`)
 
 - `ENABLED`: **true**: 是否启用。
-- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 0 则禁用缓存。
+- `ITEM_TTL`: **8760h**: 缓存项目失效时间，设置为 -1 则禁用缓存。
 - `COMMITS_COUNT`: **1000**: 仅当仓库的提交数大于时才启用缓存。
 
 ## Session (`session`)
@@ -234,7 +246,6 @@ file -I test01.xls
 test01.xls: application/vnd.ms-excel; charset=binary
 ```
 
-
 ## Log (`log`)
 
 - `ROOT_PATH`: 日志文件根目录。
@@ -245,6 +256,10 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 - `ENABLED`: 是否在后台运行定期任务。
 - `RUN_AT_START`: 是否启动时自动运行。
+- `SCHEDULE` 所接受的格式
+  - 完整 crontab 控制, 例如 `* * * * * ?`
+  - 描述符, 例如 `@midnight`, `@every 1h30m` ...
+  - 更多细节参见 [cron api文档](https://pkg.go.dev/github.com/gogs/cron@v0.0.0-20171120032916-9f6c956d3e14)
 
 ### Cron - Update Mirrors (`cron.update_mirrors`)
 
@@ -252,18 +267,18 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ### Cron - Repository Health Check (`cron.repo_health_check`)
 
-- `SCHEDULE`: 仓库健康监测的Cron语法，比如：`@every 24h`。
+- `SCHEDULE`: 仓库健康监测的Cron语法，比如：`@midnight`。
 - `TIMEOUT`: 仓库健康监测的超时时间，比如：`60s`.
 - `ARGS`: 执行 `git fsck` 命令的参数，比如：`--unreachable --tags`。
 
 ### Cron - Repository Statistics Check (`cron.check_repo_stats`)
 
 - `RUN_AT_START`: 是否启动时自动运行仓库统计。
-- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@every 24h`.
+- `SCHEDULE`: 仓库统计时的Cron 语法，比如：`@midnight`.
 
 ### Cron - Update Migration Poster ID (`cron.update_migration_poster_id`)
 
-- `SCHEDULE`: **@every 24h** : 每次同步的间隔时间。此任务总是在启动时自动进行。
+- `SCHEDULE`: **@midnight** : 每次同步的间隔时间。此任务总是在启动时自动进行。
 
 ## Git (`git`)
 
@@ -284,7 +299,7 @@ test01.xls: application/vnd.ms-excel; charset=binary
 
 ## API (`api`)
 
-- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false; 默认是  true.
+- `ENABLE_SWAGGER`: **true**: 是否启用swagger路由 /api/swagger, /api/v1/swagger etc. endpoints. True 或 false.
 - `MAX_RESPONSE_ITEMS`: **50**: 一个页面最大的项目数。
 - `DEFAULT_PAGING_NUM`: **30**: API中默认分页条数。
 - `DEFAULT_GIT_TREES_PER_PAGE`: **1000**: GIT TREES API每页的默认最大项数.
@@ -308,6 +323,36 @@ IS_INPUT_FILE = false
 - FILE_EXTENSIONS: 关联的文档的扩展名，多个扩展名用都好分隔。
 - RENDER_COMMAND: 工具的命令行命令及参数。
 - IS_INPUT_FILE: 输入方式是最后一个参数为文件路径还是从标准输入读取。
+- RENDER_CONTENT_MODE: **sanitized** 内容如何被渲染。
+  - sanitized: 对内容进行净化并渲染到当前页面中，仅有一部分 HTML 标签和属性是被允许的。
+  - no-sanitizer: 禁用净化器，把内容渲染到当前页面中。此模式是**不安全**的，如果内容中含有恶意代码，可能会导致 XSS 攻击。
+  - iframe: 把内容渲染在一个独立的页面中并使用 iframe 嵌入到当前页面中。使用的 iframe 工作在沙箱模式并禁用了同源请求，JS 代码被安全的从父页面中隔离出去。
+
+以下两个环境变量将会被传递给渲染命令：
+
+- `GITEA_PREFIX_SRC`：包含当前的`src`路径的URL前缀，可以被用于链接的前缀。
+- `GITEA_PREFIX_RAW`：包含当前的`raw`路径的URL前缀，可以被用于图片的前缀。
+
+如果 `RENDER_CONTENT_MODE` 为 `sanitized`，则 Gitea 支持自定义渲染 HTML 的净化策略。以下例子将用 pandoc 支持 KaTeX 输出。
+
+```ini
+[markup.sanitizer.TeX]
+; Pandoc renders TeX segments as <span>s with the "math" class, optionally
+; with "inline" or "display" classes depending on context.
+ELEMENT = span
+ALLOW_ATTR = class
+REGEXP = ^\s*((math(\s+|$)|inline(\s+|$)|display(\s+|$)))+
+ALLOW_DATA_URI_IMAGES = true
+```
+
+- `ELEMENT`: 将要被应用到该策略的 HTML 元素，不能为空。
+- `ALLOW_ATTR`: 将要被应用到该策略的属性，不能为空。
+- `REGEXP`: 正则表达式，用来匹配属性的内容。如果为空，则跟属性内容无关。
+- `ALLOW_DATA_URI_IMAGES`: **false** 允许 data uri 图片 (`<img src="data:image/png;base64,..."/>`)。
+
+多个净化规则可以被同时定义，只要section名称最后一位不重复即可。如： `[markup.sanitizer.TeX-2]`。
+为了针对一种渲染类型进行一个特殊的净化策略，必须使用形如 `[markup.sanitizer.asciidoc.rule-1]` 的方式来命名 section。
+如果此规则没有匹配到任何渲染类型，它将会被应用到所有的渲染类型。
 
 ## Time (`time`)
 
@@ -325,8 +370,9 @@ IS_INPUT_FILE = false
 - `MAX_ATTEMPTS`: **3**: 在迁移过程中的 http/https 请求重试次数。
 - `RETRY_BACKOFF`: **3**: 等待下一次重试的时间，单位秒。
 - `ALLOWED_DOMAINS`: **\<empty\>**: 迁移仓库的域名白名单，默认为空，表示允许从任意域名迁移仓库，多个域名用逗号分隔。
-- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项将会被忽略。
+- `BLOCKED_DOMAINS`: **\<empty\>**: 迁移仓库的域名黑名单，默认为空，多个域名用逗号分隔。如果 `ALLOWED_DOMAINS` 不为空，此选项有更高的优先级拒绝这里的域名。
 - `ALLOW_LOCALNETWORKS`: **false**: Allow private addresses defined by RFC 1918
+- `SKIP_TLS_VERIFY`: **false**: 允许忽略 TLS 认证
 
 ## LFS (`lfs`)
 
@@ -376,6 +422,35 @@ MINIO_USE_SSL = false
 ```
 
 然后你在 `[attachment]`, `[lfs]` 等中可以把这个名字用作 `STORAGE_TYPE` 的值。
+
+## Repository Archive Storage (`storage.repo-archive`)
+
+Repository archive 的存储配置。 如果 `STORAGE_TYPE` 为空，则此配置将从 `[storage]` 继承。如果不为 `local` 或者 `minio` 而为 `xxx`， 则从 `[storage.xxx]` 继承。当继承时， `PATH` 默认为 `data/repo-archive`，`MINIO_BASE_PATH` 默认为 `repo-archive/`。
+
+- `STORAGE_TYPE`: **local**: Repository archive 的存储类型，`local` 将存储到磁盘，`minio` 将存储到 s3 兼容的对象服务。
+- `SERVE_DIRECT`: **false**: 允许直接重定向到存储系统。当前，仅 Minio/S3 是支持的。
+- `PATH`: 存放 Repository archive 上传的文件的地方，默认是 `data/repo-archive`。
+- `MINIO_ENDPOINT`: **localhost:9000**: Minio 地址，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_ACCESS_KEY_ID`: Minio accessKeyID，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_SECRET_ACCESS_KEY`: Minio secretAccessKey，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BUCKET`: **gitea**: Minio bucket，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_LOCATION`: **us-east-1**: Minio location ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_BASE_PATH`: **repo-archive/**: Minio base path ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+- `MINIO_USE_SSL`: **false**: Minio 是否启用 ssl ，仅当 `STORAGE_TYPE` 为 `minio` 时有效。
+
+## Proxy (`proxy`)
+
+- `PROXY_ENABLED`: **false**: 是否启用全局代理。如果为否，则不使用代理，环境变量中的代理也不使用
+- `PROXY_URL`: **\<empty\>**: 代理服务器地址，支持 http://, https//, socks://，为空则不启用代理而使用环境变量中的 http_proxy/https_proxy
+- `PROXY_HOSTS`: **\<empty\>**: 逗号分隔的多个需要代理的网址，支持 * 号匹配符号， ** 表示匹配所有网站
+
+i.e.
+
+```ini
+PROXY_ENABLED = true
+PROXY_URL = socks://127.0.0.1:1080
+PROXY_HOSTS = *.github.com
+```
 
 ## Other (`other`)
 

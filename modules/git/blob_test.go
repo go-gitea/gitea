@@ -6,7 +6,7 @@
 package git
 
 import (
-	"io/ioutil"
+	"io"
 	"path/filepath"
 	"testing"
 
@@ -17,7 +17,7 @@ import (
 func TestBlob_Data(t *testing.T) {
 	output := "file2\n"
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(bareRepo1Path)
+	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	if !assert.NoError(t, err) {
 		t.Fatal()
 	}
@@ -29,16 +29,17 @@ func TestBlob_Data(t *testing.T) {
 	r, err := testBlob.DataAsync()
 	assert.NoError(t, err)
 	require.NotNil(t, r)
-	defer r.Close()
 
-	data, err := ioutil.ReadAll(r)
+	data, err := io.ReadAll(r)
+	assert.NoError(t, r.Close())
+
 	assert.NoError(t, err)
 	assert.Equal(t, output, string(data))
 }
 
 func Benchmark_Blob_Data(b *testing.B) {
 	bareRepo1Path := filepath.Join(testReposDir, "repo1_bare")
-	repo, err := OpenRepository(bareRepo1Path)
+	repo, err := openRepositoryWithDefaultContext(bareRepo1Path)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -54,7 +55,7 @@ func Benchmark_Blob_Data(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		defer r.Close()
-		ioutil.ReadAll(r)
+		io.ReadAll(r)
+		_ = r.Close()
 	}
 }

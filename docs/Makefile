@@ -31,4 +31,4 @@ update: $(THEME)
 $(THEME): $(THEME)/theme.toml
 $(THEME)/theme.toml:
 	mkdir -p $$(dirname $@)
-	curl -s $(ARCHIVE) | tar xz -C $$(dirname $@)
+	curl -L -s $(ARCHIVE) | tar xz -C $$(dirname $@)

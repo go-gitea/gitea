@@ -13,16 +13,18 @@ import (
 	"strings"
 	"sync"
 
+	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	jsoniter "github.com/json-iterator/go"
+	"code.gitea.io/gitea/modules/util"
 
 	ini "gopkg.in/ini.v1"
 )
 
-var filenameSuffix = ""
-
-var descriptionLock = sync.RWMutex{}
-var logDescriptions = make(map[string]*LogDescription)
+var (
+	filenameSuffix  = ""
+	descriptionLock = sync.RWMutex{}
+	logDescriptions = make(map[string]*LogDescription)
+)
 
 // GetLogDescriptions returns a race safe set of descriptions
 func GetLogDescriptions() map[string]*LogDescription {
@@ -31,9 +33,8 @@ func GetLogDescriptions() map[string]*LogDescription {
 	descs := make(map[string]*LogDescription, len(logDescriptions))
 	for k, v := range logDescriptions {
 		subLogDescriptions := make([]SubLogDescription, len(v.SubLogDescriptions))
-		for i, s := range v.SubLogDescriptions {
-			subLogDescriptions[i] = s
-		}
+		copy(subLogDescriptions, v.SubLogDescriptions)
+
 		descs[k] = &LogDescription{
 			Name:               v.Name,
 			SubLogDescriptions: subLogDescriptions,
@@ -68,7 +69,7 @@ func AddSubLogDescription(key string, subLogDescription SubLogDescription) bool 
 }
 
 // RemoveSubLogDescription removes a sub log description
-func RemoveSubLogDescription(key string, name string) bool {
+func RemoveSubLogDescription(key, name string) bool {
 	descriptionLock.Lock()
 	defer descriptionLock.Unlock()
 	desc, ok := logDescriptions[key]
@@ -87,7 +88,7 @@ func RemoveSubLogDescription(key string, name string) bool {
 type defaultLogOptions struct {
 	levelName      string // LogLevel
 	flags          string
-	filename       string //path.Join(LogRootPath, "gitea.log")
+	filename       string // path.Join(LogRootPath, "gitea.log")
 	bufferLength   int64
 	disableConsole bool
 }
@@ -120,13 +121,14 @@ func getLogLevel(section *ini.Section, key string, defaultValue log.Level) log.L
 	return log.FromString(value)
 }
 
-func getStacktraceLogLevel(section *ini.Section, key string, defaultValue string) string {
-	value := section.Key(key).MustString("none")
+func getStacktraceLogLevel(section *ini.Section, key, defaultValue string) string {
+	value := section.Key(key).MustString(defaultValue)
 	return log.FromString(value).String()
 }
 
 func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions) (mode, jsonConfig, levelName string) {
 	level := getLogLevel(sec, "LEVEL", LogLevel)
+	levelName = level.String()
 	stacktraceLevelName := getStacktraceLogLevel(sec, "STACKTRACE_LEVEL", StacktraceLogLevel)
 	stacktraceLevel := log.FromString(stacktraceLevelName)
 	mode = name
@@ -203,15 +205,13 @@ func generateLogConfig(sec *ini.Section, name string, defaults defaultLogOptions
 	}
 
 	logConfig["colorize"] = sec.Key("COLORIZE").MustBool(false)
-
-	json := jsoniter.ConfigCompatibleWithStandardLibrary
 	byteConfig, err := json.Marshal(logConfig)
 	if err != nil {
 		log.Error("Failed to marshal log configuration: %v %v", logConfig, err)
 		return
 	}
 	jsonConfig = string(byteConfig)
-	return
+	return mode, jsonConfig, levelName
 }
 
 func generateNamedLogger(key string, options defaultLogOptions) *LogDescription {
@@ -246,7 +246,7 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("%s Log: %s(%s:%s)", strings.Title(key), strings.Title(name), provider, levelName)
+		log.Info("%s Log: %s(%s:%s)", util.ToTitleCase(key), util.ToTitleCase(name), provider, levelName)
 	}
 
 	AddLogDescription(key, &description)
@@ -257,8 +257,10 @@ func generateNamedLogger(key string, options defaultLogOptions) *LogDescription 
 func newAccessLogService() {
 	EnableAccessLog = Cfg.Section("log").Key("ENABLE_ACCESS_LOG").MustBool(false)
 	AccessLogTemplate = Cfg.Section("log").Key("ACCESS_LOG_TEMPLATE").MustString(
-		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`)
-	Cfg.Section("log").Key("ACCESS").MustString("file")
+		`{{.Ctx.RemoteAddr}} - {{.Identity}} {{.Start.Format "[02/Jan/2006:15:04:05 -0700]" }} "{{.Ctx.Req.Method}} {{.Ctx.Req.URL.RequestURI}} {{.Ctx.Req.Proto}}" {{.ResponseWriter.Status}} {{.ResponseWriter.Size}} "{{.Ctx.Req.Referer}}\" \"{{.Ctx.Req.UserAgent}}"`,
+	)
+	// the `MustString` updates the default value, and `log.ACCESS` is used by `generateNamedLogger("access")` later
+	_ = Cfg.Section("log").Key("ACCESS").MustString("file")
 	if EnableAccessLog {
 		options := newDefaultLogOptions()
 		options.filename = filepath.Join(LogRootPath, "access.log")
@@ -287,6 +289,7 @@ func newLogService() {
 
 	options := newDefaultLogOptions()
 	options.bufferLength = Cfg.Section("log").Key("BUFFER_LEN").MustInt64(10000)
+	EnableSSHLog = Cfg.Section("log").Key("ENABLE_SSH_LOG").MustBool(false)
 
 	description := LogDescription{
 		Name: log.DEFAULT,
@@ -329,7 +332,7 @@ func newLogService() {
 			Provider: provider,
 			Config:   config,
 		})
-		log.Info("Gitea Log Mode: %s(%s:%s)", strings.Title(name), strings.Title(provider), levelName)
+		log.Info("Gitea Log Mode: %s(%s:%s)", util.ToTitleCase(name), util.ToTitleCase(provider), levelName)
 	}
 
 	AddLogDescription(log.DEFAULT, &description)

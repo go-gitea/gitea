@@ -9,9 +9,10 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
-	api "code.gitea.io/gitea/modules/structs"
+	org_service "code.gitea.io/gitea/services/org"
 )
 
 // ListTeams list a repository's teams
@@ -41,20 +42,16 @@ func ListTeams(ctx *context.APIContext) {
 		return
 	}
 
-	teams, err := ctx.Repo.Repository.GetRepoTeams()
+	teams, err := organization.GetRepoTeams(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	apiTeams := make([]*api.Team, len(teams))
-	for i := range teams {
-		if err := teams[i].GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
-			return
-		}
-
-		apiTeams[i] = convert.ToTeam(teams[i])
+	apiTeams, err := convert.ToTeams(teams, false)
+	if err != nil {
+		ctx.InternalServerError(err)
+		return
 	}
 
 	ctx.JSON(http.StatusOK, apiTeams)
@@ -101,12 +98,12 @@ func IsTeam(ctx *context.APIContext) {
 		return
 	}
 
-	if team.HasRepository(ctx.Repo.Repository.ID) {
-		if err := team.GetUnits(); err != nil {
-			ctx.Error(http.StatusInternalServerError, "GetUnits", err)
+	if models.HasRepository(team, ctx.Repo.Repository.ID) {
+		apiTeam, err := convert.ToTeam(team)
+		if err != nil {
+			ctx.InternalServerError(err)
 			return
 		}
-		apiTeam := convert.ToTeam(team)
 		ctx.JSON(http.StatusOK, apiTeam)
 		return
 	}
@@ -196,20 +193,20 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 		return
 	}
 
-	repoHasTeam := team.HasRepository(ctx.Repo.Repository.ID)
+	repoHasTeam := models.HasRepository(team, ctx.Repo.Repository.ID)
 	var err error
 	if add {
 		if repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "alreadyAdded", fmt.Errorf("team '%s' is already added to repo", team.Name))
 			return
 		}
-		err = team.AddRepository(ctx.Repo.Repository)
+		err = org_service.TeamAddRepository(team, ctx.Repo.Repository)
 	} else {
 		if !repoHasTeam {
 			ctx.Error(http.StatusUnprocessableEntity, "notAdded", fmt.Errorf("team '%s' was not added to repo", team.Name))
 			return
 		}
-		err = team.RemoveRepository(ctx.Repo.Repository.ID)
+		err = models.RemoveRepository(team, ctx.Repo.Repository.ID)
 	}
 	if err != nil {
 		ctx.InternalServerError(err)
@@ -219,10 +216,10 @@ func changeRepoTeam(ctx *context.APIContext, add bool) {
 	ctx.Status(http.StatusNoContent)
 }
 
-func getTeamByParam(ctx *context.APIContext) *models.Team {
-	team, err := models.GetTeam(ctx.Repo.Owner.ID, ctx.Params(":team"))
+func getTeamByParam(ctx *context.APIContext) *organization.Team {
+	team, err := organization.GetTeam(ctx, ctx.Repo.Owner.ID, ctx.Params(":team"))
 	if err != nil {
-		if models.IsErrTeamNotExist(err) {
+		if organization.IsErrTeamNotExist(err) {
 			ctx.Error(http.StatusNotFound, "TeamNotExit", err)
 			return nil
 		}

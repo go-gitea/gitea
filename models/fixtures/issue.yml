@@ -152,7 +152,7 @@
 -
   id: 13
   repo_id: 50
-  index: 0
+  index: 1
   poster_id: 2
   name: issue in active repo
   content: we'll be testing github issue 13171 with this.
@@ -164,10 +164,46 @@
 -
   id: 14
   repo_id: 51
-  index: 0
+  index: 1
   poster_id: 2
   name: issue in archived repo
   content: we'll be testing github issue 13171 with this.
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+-
+  id: 15
+  repo_id: 5
+  index: 1
+  poster_id: 2
+  name: issue in repo not linked to team1
+  content: content
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+-
+  id: 16
+  repo_id: 32
+  index: 1
+  poster_id: 2
+  name: just a normal issue
+  content: content
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+-
+  id: 17
+  repo_id: 32
+  index: 2
+  poster_id: 15
+  name: a issue with a assignment
+  content: content
   is_closed: false
   is_pull: false
   created_unix: 1602935696

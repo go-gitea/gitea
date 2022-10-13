@@ -34,7 +34,7 @@ _Symbols used in table:_
 ## General Features
 
 | Feature                             | Gitea                                              | Gogs | GitHub EE | GitLab CE | GitLab EE | BitBucket      | RhodeCode CE |
-| ----------------------------------- | -------------------------------------------------- | ---- | --------- | --------- | --------- | -------------- | ------------ |
+| ----------------------------------- | ---------------------------------------------------| ---- | --------- | --------- | --------- | -------------- | ------------ |
 | Open source and free                | ✓                                                  | ✓    | ✘         | ✓         | ✘         | ✘              | ✓            |
 | Low resource usage (RAM/CPU)        | ✓                                                  | ✓    | ✘         | ✘         | ✘         | ✘              | ✘            |
 | Multiple database support           | ✓                                                  | ✓    | ✘         | ⁄         | ⁄         | ✓              | ✓            |
@@ -48,11 +48,13 @@ _Symbols used in table:_
 | Integrated Git-powered wiki         | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓ (cloud only) | ✘            |
 | Deploy Tokens                       | ✓                                                  | ✓    | ✓         | ✓         | ✓         | ✓              | ✓            |
 | Repository Tokens with write rights | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✓            |
-| Built-in Container Registry         | [✘](https://github.com/go-gitea/gitea/issues/2316) | ✘    | ✘         | ✓         | ✓         | ✘              | ✘            |
+| Built-in Package/Container Registry | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 | External git mirroring              | ✓                                                  | ✓    | ✘         | ✘         | ✓         | ✓              | ✓            |
-| FIDO U2F (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ✘            |
+| WebAuthn (2FA)                      | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✓              | ?            |
 | Built-in CI/CD                      | ✘                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
-| Subgroups: groups within groups     | ✘                                                  | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Subgroups: groups within groups     | [✘](https://github.com/go-gitea/gitea/issues/1872) | ✘    | ✘         | ✓         | ✓         | ✘              | ✓            |
+| Mermaid diagrams in Markdown        | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
+| Math syntax in Markdown             | ✓                                                  | ✘    | ✓         | ✓         | ✓         | ✘              | ✘            |
 
 ## Code management
 
@@ -66,6 +68,7 @@ _Symbols used in table:_
 | Granular user roles (Code, Issues, Wiki etc) | ✓                                                | ✘    | ✘         | ✓         | ✓         | ✘         | ✘            |
 | Verified Committer                           | ⁄                                                | ✘    | ?         | ✓         | ✓         | ✓         | ✘            |
 | GPG Signed Commits                           | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SSH Signed Commits                           | ✓                                                | ✘    | ✘         | ✘         | ✘         | ?         | ?            |
 | Reject unsigned commits                      | [✓](https://github.com/go-gitea/gitea/pull/9708) | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Repository Activity page                     | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Branch manager                               | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
@@ -121,6 +124,7 @@ _Symbols used in table:_
 | AD / LDAP integration                          | ✓                                                | ✓    | ✓         | ✓         | ✓         | ✓         | ✓            |
 | Multiple LDAP / AD server support              | ✓                                                | ✓    | ✘         | ✘         | ✓         | ✓         | ✓            |
 | LDAP user synchronization                      | ✓                                                | ✘    | ✓         | ✓         | ✓         | ✓         | ✓            |
+| SAML 2.0 service provider                      | [✘](https://github.com/go-gitea/gitea/issues/5512) | [✘](https://github.com/gogs/gogs/issues/1221) | ✓         | ✓         | ✓         | ✓         | ✘            |
 | OpenId Connect support                         | ✓                                                | ✘    | ✓         | ✓         | ✓         | ?         | ✘            |
 | OAuth 2.0 integration (external authorization) | ✓                                                | ✘    | ⁄         | ✓         | ✓         | ?         | ✓            |
 | Act as OAuth 2.0 provider                      | [✓](https://github.com/go-gitea/gitea/pull/5378) | ✘    | ✓         | ✓         | ✓         | ✓         | ✘            |

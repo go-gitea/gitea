@@ -8,22 +8,26 @@ package git
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+	"unsafe"
 
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/process"
+	"code.gitea.io/gitea/modules/util"
 )
 
 var (
-	// GlobalCommandArgs global command args for external package setting
-	GlobalCommandArgs []string
+	// globalCommandArgs global command args for external package setting
+	globalCommandArgs []string
 
-	// DefaultCommandExecutionTimeout default command execution timeout duration
-	DefaultCommandExecutionTimeout = 360 * time.Second
+	// defaultCommandExecutionTimeout default command execution timeout duration
+	defaultCommandExecutionTimeout = 360 * time.Second
 )
 
 // DefaultLocale is the default LC_ALL to run git commands in.
@@ -31,10 +35,11 @@ const DefaultLocale = "C"
 
 // Command represents a command with its subcommands or arguments.
 type Command struct {
-	name          string
-	args          []string
-	parentContext context.Context
-	desc          string
+	name             string
+	args             []string
+	parentContext    context.Context
+	desc             string
+	globalArgsLength int
 }
 
 func (c *Command) String() string {
@@ -45,19 +50,15 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
-func NewCommand(args ...string) *Command {
-	return NewCommandContext(DefaultContext, args...)
-}
-
-// NewCommandContext creates and returns a new Git Command based on given command and arguments.
-func NewCommandContext(ctx context.Context, args ...string) *Command {
-	// Make an explicit copy of GlobalCommandArgs, otherwise append might overwrite it
-	cargs := make([]string, len(GlobalCommandArgs))
-	copy(cargs, GlobalCommandArgs)
+func NewCommand(ctx context.Context, args ...string) *Command {
+	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
+	cargs := make([]string, len(globalCommandArgs))
+	copy(cargs, globalCommandArgs)
 	return &Command{
-		name:          GitExecutable,
-		args:          append(cargs, args...),
-		parentContext: ctx,
+		name:             GitExecutable,
+		args:             append(cargs, args...),
+		parentContext:    ctx,
+		globalArgsLength: len(globalCommandArgs),
 	}
 }
 
@@ -94,63 +95,113 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
-// RunInDirTimeoutEnvPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutEnvPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutEnvFullPipeline(env, timeout, dir, stdout, stderr, nil)
+// RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
+type RunOpts struct {
+	Env               []string
+	Timeout           time.Duration
+	UseContextTimeout bool
+	Dir               string
+	Stdout, Stderr    io.Writer
+	Stdin             io.Reader
+	PipelineFunc      func(context.Context, context.CancelFunc) error
 }
 
-// RunInDirTimeoutEnvFullPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin.
-func (c *Command) RunInDirTimeoutEnvFullPipeline(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutEnvFullPipelineFunc(env, timeout, dir, stdout, stderr, stdin, nil)
+func commonBaseEnvs() []string {
+	// at the moment, do not set "GIT_CONFIG_NOSYSTEM", users may have put some configs like "receive.certNonceSeed" in it
+	envs := []string{
+		"HOME=" + HomeDir(),        // make Gitea use internal git config only, to prevent conflicts with user's git config
+		"GIT_NO_REPLACE_OBJECTS=1", // ignore replace references (https://git-scm.com/docs/git-replace)
+	}
+
+	// some environment variables should be passed to git command
+	passThroughEnvKeys := []string{
+		"GNUPGHOME", // git may call gnupg to do commit signing
+	}
+	for _, key := range passThroughEnvKeys {
+		if val, ok := os.LookupEnv(key); ok {
+			envs = append(envs, key+"="+val)
+		}
+	}
+	return envs
 }
 
-// RunInDirTimeoutEnvFullPipelineFunc executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer and passes in an io.Reader as stdin. Between cmd.Start and cmd.Wait the passed in function is run.
-func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader, fn func(context.Context, context.CancelFunc) error) error {
-	if timeout == -1 {
-		timeout = DefaultCommandExecutionTimeout
+// CommonGitCmdEnvs returns the common environment variables for a "git" command.
+func CommonGitCmdEnvs() []string {
+	return append(commonBaseEnvs(), []string{
+		"LC_ALL=" + DefaultLocale,
+		"GIT_TERMINAL_PROMPT=0", // avoid prompting for credentials interactively, supported since git v2.3
+	}...)
+}
+
+// CommonCmdServEnvs is like CommonGitCmdEnvs but it only returns minimal required environment variables for the "gitea serv" command
+func CommonCmdServEnvs() []string {
+	return commonBaseEnvs()
+}
+
+// Run runs the command with the RunOpts
+func (c *Command) Run(opts *RunOpts) error {
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+	if opts.Timeout <= 0 {
+		opts.Timeout = defaultCommandExecutionTimeout
 	}
 
-	if len(dir) == 0 {
-		log(c.String())
+	if len(opts.Dir) == 0 {
+		log.Debug("%s", c)
 	} else {
-		log("%s: %v", dir, c)
-	}
-
-	ctx, cancel := context.WithTimeout(c.parentContext, timeout)
-	defer cancel()
-
-	cmd := exec.CommandContext(ctx, c.name, c.args...)
-	if env == nil {
-		cmd.Env = append(os.Environ(), fmt.Sprintf("LC_ALL=%s", DefaultLocale))
-	} else {
-		cmd.Env = env
-		cmd.Env = append(cmd.Env, fmt.Sprintf("LC_ALL=%s", DefaultLocale))
-	}
-
-	// TODO: verify if this is still needed in golang 1.15
-	if goVersionLessThan115 {
-		cmd.Env = append(cmd.Env, "GODEBUG=asyncpreemptoff=1")
-	}
-	cmd.Dir = dir
-	cmd.Stdout = stdout
-	cmd.Stderr = stderr
-	cmd.Stdin = stdin
-	if err := cmd.Start(); err != nil {
-		return err
+		log.Debug("%s: %v", opts.Dir, c)
 	}
 
 	desc := c.desc
 	if desc == "" {
-		desc = fmt.Sprintf("%s %s %s [repo_path: %s]", GitExecutable, c.name, strings.Join(c.args, " "), dir)
+		args := c.args[c.globalArgsLength:]
+		var argSensitiveURLIndexes []int
+		for i, arg := range c.args {
+			if strings.Contains(arg, "://") && strings.Contains(arg, "@") {
+				argSensitiveURLIndexes = append(argSensitiveURLIndexes, i)
+			}
+		}
+		if len(argSensitiveURLIndexes) > 0 {
+			args = make([]string, len(c.args))
+			copy(args, c.args)
+			for _, urlArgIndex := range argSensitiveURLIndexes {
+				args[urlArgIndex] = util.SanitizeCredentialURLs(args[urlArgIndex])
+			}
+		}
+		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
-	pid := process.GetManager().Add(desc, cancel)
-	defer process.GetManager().Remove(pid)
 
-	if fn != nil {
-		err := fn(ctx, cancel)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var finished context.CancelFunc
+
+	if opts.UseContextTimeout {
+		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+	} else {
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	}
+	defer finished()
+
+	cmd := exec.CommandContext(ctx, c.name, c.args...)
+	if opts.Env == nil {
+		cmd.Env = os.Environ()
+	} else {
+		cmd.Env = opts.Env
+	}
+
+	process.SetSysProcAttribute(cmd)
+	cmd.Env = append(cmd.Env, CommonGitCmdEnvs()...)
+	cmd.Dir = opts.Dir
+	cmd.Stdout = opts.Stdout
+	cmd.Stderr = opts.Stderr
+	cmd.Stdin = opts.Stdin
+	if err := cmd.Start(); err != nil {
+		return err
+	}
+
+	if opts.PipelineFunc != nil {
+		err := opts.PipelineFunc(ctx, cancel)
 		if err != nil {
 			cancel()
 			_ = cmd.Wait()
@@ -165,85 +216,93 @@ func (c *Command) RunInDirTimeoutEnvFullPipelineFunc(env []string, timeout time.
 	return ctx.Err()
 }
 
-// RunInDirTimeoutPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirTimeoutPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirTimeoutEnvPipeline(nil, timeout, dir, stdout, stderr)
+type RunStdError interface {
+	error
+	Unwrap() error
+	Stderr() string
+	IsExitCode(code int) bool
 }
 
-// RunInDirTimeoutFullPipeline executes the command in given directory with given timeout,
-// it pipes stdout and stderr to given io.Writer, and stdin from the given io.Reader
-func (c *Command) RunInDirTimeoutFullPipeline(timeout time.Duration, dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutEnvFullPipeline(nil, timeout, dir, stdout, stderr, stdin)
+type runStdError struct {
+	err    error
+	stderr string
+	errMsg string
 }
 
-// RunInDirTimeout executes the command in given directory with given timeout,
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirTimeout(timeout time.Duration, dir string) ([]byte, error) {
-	return c.RunInDirTimeoutEnv(nil, timeout, dir)
-}
-
-// RunInDirTimeoutEnv executes the command in given directory with given timeout,
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirTimeoutEnv(env []string, timeout time.Duration, dir string) ([]byte, error) {
-	stdout := new(bytes.Buffer)
-	stderr := new(bytes.Buffer)
-	if err := c.RunInDirTimeoutEnvPipeline(env, timeout, dir, stdout, stderr); err != nil {
-		return nil, ConcatenateError(err, stderr.String())
+func (r *runStdError) Error() string {
+	// the stderr must be in the returned error text, some code only checks `strings.Contains(err.Error(), "git error")`
+	if r.errMsg == "" {
+		r.errMsg = ConcatenateError(r.err, r.stderr).Error()
 	}
+	return r.errMsg
+}
 
-	if stdout.Len() > 0 {
-		log("stdout:\n%s", stdout.Bytes()[:1024])
+func (r *runStdError) Unwrap() error {
+	return r.err
+}
+
+func (r *runStdError) Stderr() string {
+	return r.stderr
+}
+
+func (r *runStdError) IsExitCode(code int) bool {
+	var exitError *exec.ExitError
+	if errors.As(r.err, &exitError) {
+		return exitError.ExitCode() == code
 	}
-	return stdout.Bytes(), nil
+	return false
 }
 
-// RunInDirPipeline executes the command in given directory,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirPipeline(dir string, stdout, stderr io.Writer) error {
-	return c.RunInDirFullPipeline(dir, stdout, stderr, nil)
+func bytesToString(b []byte) string {
+	return *(*string)(unsafe.Pointer(&b)) // that's what Golang's strings.Builder.String() does (go/src/strings/builder.go)
 }
 
-// RunInDirFullPipeline executes the command in given directory,
-// it pipes stdout and stderr to given io.Writer.
-func (c *Command) RunInDirFullPipeline(dir string, stdout, stderr io.Writer, stdin io.Reader) error {
-	return c.RunInDirTimeoutFullPipeline(-1, dir, stdout, stderr, stdin)
-}
-
-// RunInDirBytes executes the command in given directory
-// and returns stdout in []byte and error (combined with stderr).
-func (c *Command) RunInDirBytes(dir string) ([]byte, error) {
-	return c.RunInDirTimeout(-1, dir)
-}
-
-// RunInDir executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDir(dir string) (string, error) {
-	return c.RunInDirWithEnv(dir, nil)
-}
-
-// RunInDirWithEnv executes the command in given directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunInDirWithEnv(dir string, env []string) (string, error) {
-	stdout, err := c.RunInDirTimeoutEnv(env, -1, dir)
+// RunStdString runs the command with options and returns stdout/stderr as string. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdString(opts *RunOpts) (stdout, stderr string, runErr RunStdError) {
+	stdoutBytes, stderrBytes, err := c.RunStdBytes(opts)
+	stdout = bytesToString(stdoutBytes)
+	stderr = bytesToString(stderrBytes)
 	if err != nil {
-		return "", err
+		return stdout, stderr, &runStdError{err: err, stderr: stderr}
 	}
-	return string(stdout), nil
+	// even if there is no err, there could still be some stderr output, so we just return stdout/stderr as they are
+	return stdout, stderr, nil
 }
 
-// RunTimeout executes the command in default working directory with given timeout,
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) RunTimeout(timeout time.Duration) (string, error) {
-	stdout, err := c.RunInDirTimeout(timeout, "")
+// RunStdBytes runs the command with options and returns stdout/stderr as bytes. and store stderr to returned error (err combined with stderr).
+func (c *Command) RunStdBytes(opts *RunOpts) (stdout, stderr []byte, runErr RunStdError) {
+	if opts == nil {
+		opts = &RunOpts{}
+	}
+	if opts.Stdout != nil || opts.Stderr != nil {
+		// we must panic here, otherwise there would be bugs if developers set Stdin/Stderr by mistake, and it would be very difficult to debug
+		panic("stdout and stderr field must be nil when using RunStdBytes")
+	}
+	stdoutBuf := &bytes.Buffer{}
+	stderrBuf := &bytes.Buffer{}
+	opts.Stdout = stdoutBuf
+	opts.Stderr = stderrBuf
+	err := c.Run(opts)
+	stderr = stderrBuf.Bytes()
 	if err != nil {
-		return "", err
+		return nil, stderr, &runStdError{err: err, stderr: bytesToString(stderr)}
 	}
-	return string(stdout), nil
+	// even if there is no err, there could still be some stderr output
+	return stdoutBuf.Bytes(), stderr, nil
 }
 
-// Run executes the command in default working directory
-// and returns stdout in string and error (combined with stderr).
-func (c *Command) Run() (string, error) {
-	return c.RunTimeout(-1)
+// AllowLFSFiltersArgs return globalCommandArgs with lfs filter, it should only be used for tests
+func AllowLFSFiltersArgs() []string {
+	// Now here we should explicitly allow lfs filters to run
+	filteredLFSGlobalArgs := make([]string, len(globalCommandArgs))
+	j := 0
+	for _, arg := range globalCommandArgs {
+		if strings.Contains(arg, "lfs") {
+			j--
+		} else {
+			filteredLFSGlobalArgs[j] = arg
+			j++
+		}
+	}
+	return filteredLFSGlobalArgs[:j]
 }

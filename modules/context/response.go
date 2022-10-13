@@ -17,9 +17,7 @@ type ResponseWriter interface {
 	Size() int
 }
 
-var (
-	_ ResponseWriter = &Response{}
-)
+var _ ResponseWriter = &Response{}
 
 // Response represents a response
 type Response struct {
@@ -49,7 +47,7 @@ func (r *Response) Write(bs []byte) (int, error) {
 		return size, err
 	}
 	if r.status == 0 {
-		r.WriteHeader(200)
+		r.status = http.StatusOK
 	}
 	return size, nil
 }

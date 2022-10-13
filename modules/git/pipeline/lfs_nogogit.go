@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !gogit
+//go:build !gogit
 
 package pipeline
 
@@ -43,8 +43,6 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	basePath := repo.Path
 
-	hashStr := hash.String()
-
 	// Use rev-list to provide us with all commits in order
 	revListReader, revListWriter := io.Pipe()
 	defer func() {
@@ -54,7 +52,11 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	go func() {
 		stderr := strings.Builder{}
-		err := git.NewCommand("rev-list", "--all").RunInDirPipeline(repo.Path, revListWriter, &stderr)
+		err := git.NewCommand(repo.Ctx, "rev-list", "--all").Run(&git.RunOpts{
+			Dir:    repo.Path,
+			Stdout: revListWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = revListWriter.CloseWithError(git.ConcatenateError(err, (&stderr).String()))
 		} else {
@@ -64,7 +66,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	// Next feed the commits in order into cat-file --batch, followed by their trees and sub trees as necessary.
 	// so let's create a batch stdin and stdout
-	batchStdinWriter, batchReader, cancel := git.CatFileBatch(repo.Path)
+	batchStdinWriter, batchReader, cancel := repo.CatFileBatch(repo.Ctx)
 	defer cancel()
 
 	// We'll use a scanner for the revList because it's simpler than a bufio.Reader
@@ -74,7 +76,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 
 	fnameBuf := make([]byte, 4096)
 	modeBuf := make([]byte, 40)
-	workingShaBuf := make([]byte, 40)
+	workingShaBuf := make([]byte, 20)
 
 	for scan.Scan() {
 		// Get the next commit ID
@@ -114,8 +116,11 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 				continue
 			case "commit":
 				// Read in the commit to get its tree and in case this is one of the last used commits
-				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, int64(size)))
+				curCommit, err = git.CommitFromReader(repo, git.MustIDFromString(string(commitID)), io.LimitReader(batchReader, size))
 				if err != nil {
+					return nil, err
+				}
+				if _, err := batchReader.Discard(1); err != nil {
 					return nil, err
 				}
 
@@ -132,8 +137,7 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						return nil, err
 					}
 					n += int64(count)
-					sha := git.To40ByteSHA(sha20byte)
-					if bytes.Equal(sha, []byte(hashStr)) {
+					if bytes.Equal(sha20byte, hash[:]) {
 						result := LFSResult{
 							Name:         curPath + string(fname),
 							SHA:          curCommit.ID.String(),
@@ -143,9 +147,14 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 						}
 						resultsMap[curCommit.ID.String()+":"+curPath+string(fname)] = &result
 					} else if string(mode) == git.EntryModeTree.String() {
-						trees = append(trees, sha)
+						sha40Byte := make([]byte, 40)
+						git.To40ByteSHA(sha20byte, sha40Byte)
+						trees = append(trees, sha40Byte)
 						paths = append(paths, curPath+string(fname)+"/")
 					}
+				}
+				if _, err := batchReader.Discard(1); err != nil {
+					return nil, err
 				}
 				if len(trees) > 0 {
 					_, err := batchStdinWriter.Write(trees[len(trees)-1])
@@ -206,29 +215,20 @@ func FindLFSFile(repo *git.Repository, hash git.SHA1) ([]*LFSResult, error) {
 			i++
 		}
 	}()
-	go NameRevStdin(shasToNameReader, nameRevStdinWriter, &wg, basePath)
+	go NameRevStdin(repo.Ctx, shasToNameReader, nameRevStdinWriter, &wg, basePath)
 	go func() {
 		defer wg.Done()
 		defer shasToNameWriter.Close()
 		for _, result := range results {
-			i := 0
-			if i < len(result.SHA) {
-				n, err := shasToNameWriter.Write([]byte(result.SHA)[i:])
-				if err != nil {
-					errChan <- err
-					break
-				}
-				i += n
+			_, err := shasToNameWriter.Write([]byte(result.SHA))
+			if err != nil {
+				errChan <- err
+				break
 			}
-			var err error
-			n := 0
-			for n < 1 {
-				n, err = shasToNameWriter.Write([]byte{'\n'})
-				if err != nil {
-					errChan <- err
-					break
-				}
-
+			_, err = shasToNameWriter.Write([]byte{'\n'})
+			if err != nil {
+				errChan <- err
+				break
 			}
 
 		}

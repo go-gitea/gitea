@@ -5,6 +5,7 @@
 package migrations
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
@@ -86,21 +87,23 @@ func setDefaultPasswordToArgon2(x *xorm.Engine) error {
 		}
 		return x.Sync2(new(User))
 	}
+
+	tempTableName := "tmp_recreate__user"
+	column.Default = "'argon2'"
+
+	createTableSQL, _, err := x.Dialect().CreateTableSQL(context.Background(), x.DB(), table, tempTableName)
+	if err != nil {
+		return err
+	}
+
 	sess := x.NewSession()
 	defer sess.Close()
 	if err := sess.Begin(); err != nil {
 		return err
 	}
-
-	tempTableName := "tmp_recreate__user"
-	column.Default = "'argon2'"
-
-	createTableSQL, _ := x.Dialect().CreateTableSQL(table, tempTableName)
-	for _, sql := range createTableSQL {
-		if _, err := sess.Exec(sql); err != nil {
-			log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
-			return err
-		}
+	if _, err := sess.Exec(createTableSQL); err != nil {
+		log.Error("Unable to create table %s. Error: %v\n", tempTableName, err, createTableSQL)
+		return err
 	}
 	for _, index := range table.Indexes {
 		if _, err := sess.Exec(x.Dialect().CreateIndexSQL(tempTableName, index)); err != nil {

@@ -10,7 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/go-chi/chi"
+	chi "github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +67,7 @@ func TestRoute2(t *testing.T) {
 				route = 1
 			})
 		}, func(resp http.ResponseWriter, req *http.Request) {
-			resp.WriteHeader(200)
+			resp.WriteHeader(http.StatusOK)
 		})
 
 		r.Group("/issues/{index}", func() {

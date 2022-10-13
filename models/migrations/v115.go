@@ -7,12 +7,13 @@ package migrations
 import (
 	"crypto/md5"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,7 +40,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	}
 	log.Info("%d User Avatar(s) to migrate ...", count)
 
-	deleteList := make(map[string]struct{})
+	deleteList := make(container.Set[string])
 	start := 0
 	migrated := 0
 	for {
@@ -86,7 +87,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 				return fmt.Errorf("[user: %s] user table update: %v", user.LowerName, err)
 			}
 
-			deleteList[filepath.Join(setting.Avatar.Path, oldAvatar)] = struct{}{}
+			deleteList.Add(filepath.Join(setting.Avatar.Path, oldAvatar))
 			migrated++
 			select {
 			case <-ticker.C:
@@ -141,9 +142,9 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 	}
 	defer fr.Close()
 
-	data, err := ioutil.ReadAll(fr)
+	data, err := io.ReadAll(fr)
 	if err != nil {
-		return "", fmt.Errorf("ioutil.ReadAll: %v", err)
+		return "", fmt.Errorf("io.ReadAll: %v", err)
 	}
 
 	newAvatar := fmt.Sprintf("%x", md5.Sum([]byte(fmt.Sprintf("%d-%x", userID, md5.Sum(data)))))
@@ -151,8 +152,8 @@ func copyOldAvatarToNewLocation(userID int64, oldAvatar string) (string, error) 
 		return newAvatar, nil
 	}
 
-	if err := ioutil.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0o666); err != nil {
-		return "", fmt.Errorf("ioutil.WriteFile: %v", err)
+	if err := os.WriteFile(filepath.Join(setting.Avatar.Path, newAvatar), data, 0o666); err != nil {
+		return "", fmt.Errorf("os.WriteFile: %v", err)
 	}
 
 	return newAvatar, nil

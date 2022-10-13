@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 
 	// register supported doc types
+	_ "code.gitea.io/gitea/modules/markup/console"
 	_ "code.gitea.io/gitea/modules/markup/csv"
 	_ "code.gitea.io/gitea/modules/markup/markdown"
 	_ "code.gitea.io/gitea/modules/markup/orgmode"
@@ -170,9 +171,9 @@ func setAppHelpTemplates() {
 }
 
 func adjustHelpTemplate(originalTemplate string) string {
-	overrided := ""
+	overridden := ""
 	if _, ok := os.LookupEnv("GITEA_CUSTOM"); ok {
-		overrided = "(GITEA_CUSTOM)"
+		overridden = "(GITEA_CUSTOM)"
 	}
 
 	return fmt.Sprintf(`%s
@@ -182,11 +183,11 @@ DEFAULT CONFIGURATION:
      AppPath:     %s
      AppWorkPath: %s
 
-`, originalTemplate, setting.CustomPath, overrided, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
+`, originalTemplate, setting.CustomPath, overridden, setting.CustomConf, setting.AppPath, setting.AppWorkPath)
 }
 
 func formatBuiltWith() string {
-	var version = runtime.Version()
+	version := runtime.Version()
 	if len(MakeVersion) > 0 {
 		version = MakeVersion + ", " + runtime.Version()
 	}

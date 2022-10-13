@@ -7,8 +7,9 @@ package convert
 import (
 	"testing"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/stretchr/testify/assert"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func TestToCorrectPageSize(t *testing.T) {

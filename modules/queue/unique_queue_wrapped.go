@@ -73,7 +73,7 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 
 	// wrapped.handle is passed to the delayedStarting internal queue and is run to handle
 	// data passed to
-	wrapped.handle = func(data ...Data) {
+	wrapped.handle = func(data ...Data) (unhandled []Data) {
 		for _, datum := range data {
 			wrapped.tlock.Lock()
 			if !wrapped.ready {
@@ -87,8 +87,11 @@ func NewWrappedUniqueQueue(handle HandlerFunc, cfg, exemplar interface{}) (Queue
 				}
 			}
 			wrapped.tlock.Unlock()
-			handle(datum)
+			if u := handle(datum); u != nil {
+				unhandled = append(unhandled, u...)
+			}
 		}
+		return unhandled
 	}
 	_ = GetManager().Add(queue, WrappedUniqueQueueType, config, exemplar)
 	return wrapped, nil
@@ -102,7 +105,7 @@ func (q *WrappedUniqueQueue) Push(data Data) error {
 // PushFunc will push the data to the internal channel checking it against the exemplar
 func (q *WrappedUniqueQueue) PushFunc(data Data, fn func() error) error {
 	if !assignableTo(data, q.exemplar) {
-		return fmt.Errorf("Unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
+		return fmt.Errorf("unable to assign data: %v to same type as exemplar: %v in %s", data, q.exemplar, q.name)
 	}
 
 	q.tlock.Lock()

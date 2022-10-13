@@ -1,4 +1,40 @@
-export default async function initImageDiff() {
+import $ from 'jquery';
+
+function getDefaultSvgBoundsIfUndefined(svgXml, src) {
+  const DefaultSize = 300;
+  const MaxSize = 99999;
+
+  const svg = svgXml.documentElement;
+  const width = svg?.width?.baseVal;
+  const height = svg?.height?.baseVal;
+  if (width === undefined || height === undefined) {
+    return null; // in case some svg is invalid or doesn't have the width/height
+  }
+  if (width.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE || height.unitType === SVGLength.SVG_LENGTHTYPE_PERCENTAGE) {
+    const img = new Image();
+    img.src = src;
+    if (img.width > 1 && img.width < MaxSize && img.height > 1 && img.height < MaxSize) {
+      return {
+        width: img.width,
+        height: img.height
+      };
+    }
+    if (svg.hasAttribute('viewBox')) {
+      const viewBox = svg.viewBox.baseVal;
+      return {
+        width: DefaultSize,
+        height: DefaultSize * viewBox.width / viewBox.height
+      };
+    }
+    return {
+      width: DefaultSize,
+      height: DefaultSize
+    };
+  }
+  return null;
+}
+
+export default function initImageDiff() {
   function createContext(image1, image2) {
     const size1 = {
       width: image1 && image1.width || 0,
@@ -30,33 +66,54 @@ export default async function initImageDiff() {
 
   $('.image-diff').each(function() {
     const $container = $(this);
+
+    // the container may be hidden by "viewed" checkbox, so use the parent's width for reference
+    const diffContainerWidth = Math.max($container.closest('.diff-file-box').width() - 300, 100);
     const pathAfter = $container.data('path-after');
     const pathBefore = $container.data('path-before');
 
     const imageInfos = [{
       loaded: false,
       path: pathAfter,
-      $image: $container.find('img.image-after')
+      $image: $container.find('img.image-after'),
+      $boundsInfo: $container.find('.bounds-info-after')
     }, {
       loaded: false,
       path: pathBefore,
-      $image: $container.find('img.image-before')
+      $image: $container.find('img.image-before'),
+      $boundsInfo: $container.find('.bounds-info-before')
     }];
 
     for (const info of imageInfos) {
       if (info.$image.length > 0) {
-        info.$image.on('load', () => {
-          info.loaded = true;
-          setReadyIfLoaded();
+        $.ajax({
+          url: info.path,
+          success: (data, _, jqXHR) => {
+            info.$image.on('load', () => {
+              info.loaded = true;
+              setReadyIfLoaded();
+            }).on('error', () => {
+              info.loaded = true;
+              setReadyIfLoaded();
+              info.$boundsInfo.text('(image error)');
+            });
+            info.$image.attr('src', info.path);
+
+            if (jqXHR.getResponseHeader('Content-Type') === 'image/svg+xml') {
+              const bounds = getDefaultSvgBoundsIfUndefined(data, info.path);
+              if (bounds) {
+                info.$image.attr('width', bounds.width);
+                info.$image.attr('height', bounds.height);
+                info.$boundsInfo.hide();
+              }
+            }
+          }
         });
-        info.$image.attr('src', info.path);
       } else {
         info.loaded = true;
         setReadyIfLoaded();
       }
     }
-
-    const diffContainerWidth = $container.width() - 300;
 
     function setReadyIfLoaded() {
       if (imageInfos[0].loaded && imageInfos[1].loaded) {
@@ -79,6 +136,17 @@ export default async function initImageDiff() {
       let factor = 1;
       if (sizes.max.width > (diffContainerWidth - 24) / 2) {
         factor = (diffContainerWidth - 24) / 2 / sizes.max.width;
+      }
+
+      const widthChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalWidth !== sizes.image2[0].naturalWidth;
+      const heightChanged = sizes.image1.length !== 0 && sizes.image2.length !== 0 && sizes.image1[0].naturalHeight !== sizes.image2[0].naturalHeight;
+      if (sizes.image1.length !== 0) {
+        $container.find('.bounds-info-after .bounds-info-width').text(`${sizes.image1[0].naturalWidth}px`).addClass(widthChanged ? 'green' : '');
+        $container.find('.bounds-info-after .bounds-info-height').text(`${sizes.image1[0].naturalHeight}px`).addClass(heightChanged ? 'green' : '');
+      }
+      if (sizes.image2.length !== 0) {
+        $container.find('.bounds-info-before .bounds-info-width').text(`${sizes.image2[0].naturalWidth}px`).addClass(widthChanged ? 'red' : '');
+        $container.find('.bounds-info-before .bounds-info-height').text(`${sizes.image2[0].naturalHeight}px`).addClass(heightChanged ? 'red' : '');
       }
 
       sizes.image1.css({

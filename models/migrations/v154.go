@@ -30,7 +30,7 @@ func addTimeStamps(x *xorm.Engine) error {
 		return err
 	}
 
-	// Follow represents relations of user and his/her followers.
+	// Follow represents relations of user and their followers.
 	type Follow struct {
 		CreatedUnix timeutil.TimeStamp `xorm:"INDEX created"`
 	}

@@ -1,23 +1,27 @@
-import Vue from 'vue';
-
+import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 
-export default async function initHeatmap() {
+export default function initHeatmap() {
   const el = document.getElementById('user-heatmap');
   if (!el) return;
 
   try {
-    const values = JSON.parse(el.dataset.heatmapData).map(({contributions, timestamp}) => {
-      return {date: new Date(timestamp * 1000), count: contributions};
+    const heatmap = {};
+    for (const {contributions, timestamp} of JSON.parse(el.getAttribute('data-heatmap-data'))) {
+      // Convert to user timezone and sum contributions by date
+      const dateStr = new Date(timestamp * 1000).toDateString();
+      heatmap[dateStr] = (heatmap[dateStr] || 0) + contributions;
+    }
+
+    const values = Object.keys(heatmap).map((v) => {
+      return {date: new Date(v), count: heatmap[v]};
     });
 
-    const View = Vue.extend({
-      render: (createElement) => createElement(ActivityHeatmap, {props: {values}}),
-    });
+    const View = createApp(ActivityHeatmap, {values});
 
-    new View().$mount(el);
+    View.mount(el);
   } catch (err) {
-    console.error(err);
+    console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';
   }
 }

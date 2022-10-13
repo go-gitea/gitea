@@ -3,7 +3,7 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-// +build !gogit
+//go:build !gogit
 
 package git
 
@@ -58,5 +58,5 @@ func NewHasher(t ObjectType, size int64) Hasher {
 // Sum generates a SHA1 for the provided hash
 func (h Hasher) Sum() (sha1 SHA1) {
 	copy(sha1[:], h.Hash.Sum(nil))
-	return
+	return sha1
 }

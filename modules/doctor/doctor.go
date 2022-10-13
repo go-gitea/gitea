@@ -5,11 +5,13 @@
 package doctor
 
 import (
+	"context"
 	"fmt"
 	"sort"
 	"strings"
 
-	"code.gitea.io/gitea/models"
+	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -19,7 +21,7 @@ type Check struct {
 	Title                      string
 	Name                       string
 	IsDefault                  bool
-	Run                        func(logger log.Logger, autofix bool) error
+	Run                        func(ctx context.Context, logger log.Logger, autofix bool) error
 	AbortIfFailed              bool
 	SkipDatabaseInitialization bool
 	Priority                   int
@@ -42,13 +44,17 @@ func (w *wrappedLevelLogger) Log(skip int, level log.Level, format string, v ...
 			}, v...)...)
 }
 
-func initDBDisableConsole(disableConsole bool) error {
-	setting.NewContext()
+func initDBDisableConsole(ctx context.Context, disableConsole bool) error {
+	setting.LoadFromExisting()
 	setting.InitDBConfig()
 
 	setting.NewXORMLogService(disableConsole)
-	if err := models.SetEngine(); err != nil {
-		return fmt.Errorf("models.SetEngine: %v", err)
+	if err := db.InitEngine(ctx); err != nil {
+		return fmt.Errorf("db.InitEngine: %w", err)
+	}
+	// some doctor sub-commands need to use git command
+	if err := git.InitFull(ctx); err != nil {
+		return fmt.Errorf("git.InitFull: %w", err)
 	}
 	return nil
 }
@@ -57,7 +63,7 @@ func initDBDisableConsole(disableConsole bool) error {
 var Checks []*Check
 
 // RunChecks runs the doctor checks for the provided list
-func RunChecks(logger log.Logger, autofix bool, checks []*Check) error {
+func RunChecks(ctx context.Context, logger log.Logger, autofix bool, checks []*Check) error {
 	wrappedLogger := log.LevelLoggerLogger{
 		LevelLogger: &wrappedLevelLogger{logger},
 	}
@@ -67,7 +73,7 @@ func RunChecks(logger log.Logger, autofix bool, checks []*Check) error {
 		if !dbIsInit && !check.SkipDatabaseInitialization {
 			// Only open database after the most basic configuration check
 			setting.EnableXORMLog = false
-			if err := initDBDisableConsole(true); err != nil {
+			if err := initDBDisableConsole(ctx, true); err != nil {
 				logger.Error("Error whilst initializing the database: %v", err)
 				logger.Error("Check if you are using the right config file. You can use a --config directive to specify one.")
 				return nil
@@ -76,7 +82,7 @@ func RunChecks(logger log.Logger, autofix bool, checks []*Check) error {
 		}
 		logger.Info("[%d] %s", log.NewColoredIDValue(i+1), check.Title)
 		logger.Flush()
-		if err := check.Run(&wrappedLogger, autofix); err != nil {
+		if err := check.Run(ctx, &wrappedLogger, autofix); err != nil {
 			if check.AbortIfFailed {
 				logger.Critical("FAIL")
 				return err

@@ -1,0 +1,82 @@
+{{if eq .PackageDescriptor.Package.Type "container"}}
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
+	<div class="ui attached segment">
+		<div class="ui form">
+			<div class="field">
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.container.pull"}}</label>
+				{{if eq .PackageDescriptor.Metadata.Type "helm"}}
+				<div class="markup"><pre class="code-block"><code>helm pull oci://{{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}} --version {{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+				{{else}}
+					{{$separator := ":"}}
+					{{if not .PackageDescriptor.Metadata.IsTagged}}
+						{{$separator = "@"}}
+					{{end}}
+					<div class="markup"><pre class="code-block"><code>docker pull {{.RegistryHost}}/{{.PackageDescriptor.Owner.LowerName}}/{{.PackageDescriptor.Package.LowerName}}{{$separator}}{{.PackageDescriptor.Version.LowerVersion}}</code></pre></div>
+				{{end}}
+			</div>
+			<div class="field">
+				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.container.digest"}}</label>
+				<div class="markup"><pre class="code-block"><code>{{range .PackageDescriptor.Files}}{{if eq .File.LowerName "manifest.json"}}{{.Properties.GetByName "container.digest"}}{{end}}{{end}}</code></pre></div>
+			</div>
+			<div class="field">
+				<label>{{.locale.Tr "packages.container.documentation" | Safe}}</label>
+			</div>
+		</div>
+	</div>
+	{{if .PackageDescriptor.Metadata.MultiArch}}
+		<h4 class="ui top attached header">{{.locale.Tr "packages.container.multi_arch"}}</h4>
+		<div class="ui attached segment">
+			<div class="ui form">
+			{{range $arch, $digest := .PackageDescriptor.Metadata.MultiArch}}
+				<div class="field">
+					<label>{{svg "octicon-terminal"}} {{$arch}}</label>
+					{{if eq $.PackageDescriptor.Metadata.Type "oci"}}
+					<div class="markup"><pre class="code-block"><code>docker pull {{$.RegistryHost}}/{{$.PackageDescriptor.Owner.LowerName}}/{{$.PackageDescriptor.Package.LowerName}}@{{$digest}}</code></pre></div>
+					{{end}}
+				</div>
+			{{end}}
+			</div>
+		</div>
+	{{end}}
+	{{if .PackageDescriptor.Metadata.Description}}
+		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
+		<div class="ui attached segment">
+			{{.PackageDescriptor.Metadata.Description}}
+		</div>
+	{{end}}
+	{{if .PackageDescriptor.Metadata.ImageLayers}}
+		<h4 class="ui top attached header">{{.locale.Tr "packages.container.layers"}}</h4>
+		<div class="ui attached segment">
+			<table class="ui very basic compact table">
+				<tbody>
+					{{range .PackageDescriptor.Metadata.ImageLayers}}
+						<tr>
+							<td>{{.}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{end}}
+	{{if .PackageDescriptor.Metadata.Labels}}
+		<h4 class="ui top attached header">{{.locale.Tr "packages.container.labels"}}</h4>
+		<div class="ui attached segment">
+			<table class="ui very basic compact table container-labels">
+				<thead>
+					<tr>
+						<th>{{.locale.Tr "packages.container.labels.key"}}</th>
+						<th>{{.locale.Tr "packages.container.labels.value"}}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{{range $key, $value := .PackageDescriptor.Metadata.Labels}}
+						<tr>
+							<td>{{$key}}</td>
+							<td>{{$value}}</td>
+						</tr>
+					{{end}}
+				</tbody>
+			</table>
+		</div>
+	{{end}}
+{{end}}

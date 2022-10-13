@@ -6,21 +6,27 @@ package ssh
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"io"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"syscall"
 
-	"code.gitea.io/gitea/models"
+	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 
@@ -65,11 +71,24 @@ func sessionHandler(session ssh.Session) {
 
 	args := []string{"serv", "key-" + keyID, "--config=" + setting.CustomConf}
 	log.Trace("SSH: Arguments: %v", args)
-	cmd := exec.Command(setting.AppPath, args...)
+
+	ctx, cancel := context.WithCancel(session.Context())
+	defer cancel()
+
+	gitProtocol := ""
+	for _, env := range session.Environ() {
+		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
+			_, gitProtocol, _ = strings.Cut(env, "=")
+			break
+		}
+	}
+
+	cmd := exec.CommandContext(ctx, setting.AppPath, args...)
 	cmd.Env = append(
 		os.Environ(),
 		"SSH_ORIGINAL_COMMAND="+command,
 		"SKIP_MINWINSVC=1",
+		"GIT_PROTOCOL="+gitProtocol,
 	)
 
 	stdout, err := cmd.StdoutPipe()
@@ -77,16 +96,23 @@ func sessionHandler(session ssh.Session) {
 		log.Error("SSH: StdoutPipe: %v", err)
 		return
 	}
+	defer stdout.Close()
+
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		log.Error("SSH: StderrPipe: %v", err)
 		return
 	}
+	defer stderr.Close()
+
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		log.Error("SSH: StdinPipe: %v", err)
 		return
 	}
+	defer stdin.Close()
+
+	process.SetSysProcAttribute(cmd)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(2)
@@ -105,6 +131,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stdout.Close()
 		if _, err := io.Copy(session, stdout); err != nil {
 			log.Error("Failed to write stdout to session. %s", err)
 		}
@@ -112,6 +139,7 @@ func sessionHandler(session ssh.Session) {
 
 	go func() {
 		defer wg.Done()
+		defer stderr.Close()
 		if _, err := io.Copy(session.Stderr(), stderr); err != nil {
 			log.Error("Failed to write stderr to session. %s", err)
 		}
@@ -124,10 +152,14 @@ func sessionHandler(session ssh.Session) {
 	// Wait for the command to exit and log any errors we get
 	err = cmd.Wait()
 	if err != nil {
-		log.Error("SSH: Wait: %v", err)
+		// Cannot use errors.Is here because ExitError doesn't implement Is
+		// Thus errors.Is will do equality test NOT type comparison
+		if _, ok := err.(*exec.ExitError); !ok {
+			log.Error("SSH: Wait: %v", err)
+		}
 	}
 
-	if err := session.Exit(getExitStatusFromError(err)); err != nil {
+	if err := session.Exit(getExitStatusFromError(err)); err != nil && !errors.Is(err, io.EOF) {
 		log.Error("Session failed to exit. %s", err)
 	}
 }
@@ -158,9 +190,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		// look for the exact principal
 	principalLoop:
 		for _, principal := range cert.ValidPrincipals {
-			pkey, err := models.SearchPublicKeyByContentExact(principal)
+			pkey, err := asymkey_model.SearchPublicKeyByContentExact(ctx, principal)
 			if err != nil {
-				if models.IsErrKeyNotExist(err) {
+				if asymkey_model.IsErrKeyNotExist(err) {
 					log.Debug("Principal Rejected: %s Unknown Principal: %s", ctx.RemoteAddr(), principal)
 					continue principalLoop
 				}
@@ -170,8 +202,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 
 			c := &gossh.CertChecker{
 				IsUserAuthority: func(auth gossh.PublicKey) bool {
+					marshaled := auth.Marshal()
 					for _, k := range setting.SSH.TrustedUserCAKeysParsed {
-						if bytes.Equal(auth.Marshal(), k.Marshal()) {
+						if bytes.Equal(marshaled, k.Marshal()) {
 							return true
 						}
 					}
@@ -218,9 +251,9 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 		log.Debug("Handle Public Key: %s Fingerprint: %s is not a certificate", ctx.RemoteAddr(), gossh.FingerprintSHA256(key))
 	}
 
-	pkey, err := models.SearchPublicKeyByContent(strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
+	pkey, err := asymkey_model.SearchPublicKeyByContent(ctx, strings.TrimSpace(string(gossh.MarshalAuthorizedKey(key))))
 	if err != nil {
-		if models.IsErrKeyNotExist(err) {
+		if asymkey_model.IsErrKeyNotExist(err) {
 			if log.IsWarn() {
 				log.Warn("Unknown public key: %s from %s", gossh.FingerprintSHA256(key), ctx.RemoteAddr())
 				log.Warn("Failed authentication attempt from %s", ctx.RemoteAddr())
@@ -239,10 +272,19 @@ func publicKeyHandler(ctx ssh.Context, key ssh.PublicKey) bool {
 	return true
 }
 
+// sshConnectionFailed logs a failed connection
+// -  this mainly exists to give a nice function name in logging
+func sshConnectionFailed(conn net.Conn, err error) {
+	// Log the underlying error with a specific message
+	log.Warn("Failed connection from %s with error: %v", conn.RemoteAddr(), err)
+	// Log with the standard failed authentication from message for simpler fail2ban configuration
+	log.Warn("Failed authentication attempt from %s", conn.RemoteAddr())
+}
+
 // Listen starts a SSH server listens on given port.
-func Listen(host string, port int, ciphers []string, keyExchanges []string, macs []string) {
+func Listen(host string, port int, ciphers, keyExchanges, macs []string) {
 	srv := ssh.Server{
-		Addr:             fmt.Sprintf("%s:%d", host, port),
+		Addr:             net.JoinHostPort(host, strconv.Itoa(port)),
 		PublicKeyHandler: publicKeyHandler,
 		Handler:          sessionHandler,
 		ServerConfigCallback: func(ctx ssh.Context) *gossh.ServerConfig {
@@ -252,6 +294,7 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 			config.Ciphers = ciphers
 			return config
 		},
+		ConnectionFailedCallback: sshConnectionFailed,
 		// We need to explicitly disable the PtyCallback so text displays
 		// properly.
 		PtyCallback: func(ctx ssh.Context, pty ssh.Pty) bool {
@@ -293,8 +336,11 @@ func Listen(host string, port int, ciphers []string, keyExchanges []string, macs
 		}
 	}
 
-	go listen(&srv)
-
+	go func() {
+		_, _, finished := process.GetManager().AddTypedContext(graceful.GetManager().HammerContext(), "Service: Built-in SSH server", process.SystemProcessType, true)
+		defer finished()
+		listen(&srv)
+	}()
 }
 
 // GenKeyPair make a pair of public and private keys for SSH access.
@@ -307,7 +353,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	privateKeyPEM := &pem.Block{Type: "RSA PRIVATE KEY", Bytes: x509.MarshalPKCS1PrivateKey(privateKey)}
-	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	f, err := os.OpenFile(keyPath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}
@@ -328,7 +374,7 @@ func GenKeyPair(keyPath string) error {
 	}
 
 	public := gossh.MarshalAuthorizedKey(pub)
-	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	p, err := os.OpenFile(keyPath+".pub", os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
 		return err
 	}

@@ -1,7 +1,7 @@
 <a
 	class="ui label item {{if not .label.IsChecked}}hide{{end}}"
 	id="label_{{.label.ID}}"
-	href="{{.root.RepoLink}}/{{if or .root.IsPull .root.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.label.ID}}"
+	href="{{.root.RepoLink}}/{{if or .root.IsPull .root.Issue.IsPull}}pulls{{else}}issues{{end}}?labels={{.label.ID}}"{{/* FIXME: use .root.Issue.Link or create .root.Link */}}
 	style="color: {{.label.ForegroundColor}}; background-color: {{.label.Color}}"
 	title="{{.label.Description | RenderEmojiPlain}}"
 >

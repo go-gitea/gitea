@@ -18,13 +18,15 @@ var (
 	Avatar = struct {
 		Storage
 
-		MaxWidth    int
-		MaxHeight   int
-		MaxFileSize int64
+		MaxWidth           int
+		MaxHeight          int
+		MaxFileSize        int64
+		RenderedSizeFactor int
 	}{
-		MaxWidth:    4096,
-		MaxHeight:   3072,
-		MaxFileSize: 1048576,
+		MaxWidth:           4096,
+		MaxHeight:          3072,
+		MaxFileSize:        1048576,
+		RenderedSizeFactor: 3,
 	}
 
 	GravatarSource        string
@@ -55,6 +57,7 @@ func newPictureService() {
 	Avatar.MaxWidth = sec.Key("AVATAR_MAX_WIDTH").MustInt(4096)
 	Avatar.MaxHeight = sec.Key("AVATAR_MAX_HEIGHT").MustInt(3072)
 	Avatar.MaxFileSize = sec.Key("AVATAR_MAX_FILE_SIZE").MustInt64(1048576)
+	Avatar.RenderedSizeFactor = sec.Key("AVATAR_RENDERED_SIZE_FACTOR").MustInt(3)
 
 	switch source := sec.Key("GRAVATAR_SOURCE").MustString("gravatar"); source {
 	case "duoshuo":

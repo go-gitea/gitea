@@ -1,23 +1,19 @@
-// +build !bindata
-
 // Copyright 2016 The Gitea Authors. All rights reserved.
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
+
+//go:build !bindata
 
 package templates
 
 import (
 	"html/template"
-	"io/ioutil"
+	"io/fs"
 	"os"
-	"path"
 	"path/filepath"
-	"strings"
 	texttmpl "text/template"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -27,89 +23,67 @@ var (
 
 // GetAsset returns asset content via name
 func GetAsset(name string) ([]byte, error) {
-	bs, err := ioutil.ReadFile(filepath.Join(setting.CustomPath, name))
+	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))
 	if err != nil && !os.IsNotExist(err) {
 		return nil, err
 	} else if err == nil {
 		return bs, nil
 	}
 
-	return ioutil.ReadFile(filepath.Join(setting.StaticRootPath, name))
+	return os.ReadFile(filepath.Join(setting.StaticRootPath, name))
 }
 
-// GetAssetNames returns assets list
-func GetAssetNames() []string {
-	tmpls := getDirAssetNames(filepath.Join(setting.CustomPath, "templates"))
-	tmpls2 := getDirAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
+// GetAssetFilename returns the filename of the provided asset
+func GetAssetFilename(name string) (string, error) {
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return filename, err
+	} else if err == nil {
+		return filename, nil
+	}
+
+	filename = filepath.Join(setting.StaticRootPath, name)
+	_, err = os.Stat(filename)
+	return filename, err
+}
+
+// walkTemplateFiles calls a callback for each template asset
+func walkTemplateFiles(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "templates"), true, callback); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "templates"), true, callback); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// GetTemplateAssetNames returns list of template names
+func GetTemplateAssetNames() []string {
+	tmpls := getDirTemplateAssetNames(filepath.Join(setting.CustomPath, "templates"))
+	tmpls2 := getDirTemplateAssetNames(filepath.Join(setting.StaticRootPath, "templates"))
 	return append(tmpls, tmpls2...)
 }
 
-// Mailer provides the templates required for sending notification mails.
-func Mailer() (*texttmpl.Template, *template.Template) {
-	for _, funcs := range NewTextFuncMap() {
-		subjectTemplates.Funcs(funcs)
+func walkMailerTemplates(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.StaticRootPath, "templates", "mail"), false, callback); err != nil && !os.IsNotExist(err) {
+		return err
 	}
-	for _, funcs := range NewFuncMap() {
-		bodyTemplates.Funcs(funcs)
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "templates", "mail"), false, callback); err != nil && !os.IsNotExist(err) {
+		return err
 	}
+	return nil
+}
 
-	staticDir := path.Join(setting.StaticRootPath, "templates", "mail")
+// BuiltinAsset will read the provided asset from the embedded assets
+// (This always returns os.ErrNotExist)
+func BuiltinAsset(name string) ([]byte, error) {
+	return nil, os.ErrNotExist
+}
 
-	isDir, err := util.IsDir(staticDir)
-	if err != nil {
-		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", staticDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(staticDir)
-
-		if err != nil {
-			log.Warn("Failed to read %s templates dir. %v", staticDir, err)
-		} else {
-			for _, filePath := range files {
-				if !strings.HasSuffix(filePath, ".tmpl") {
-					continue
-				}
-
-				content, err := ioutil.ReadFile(path.Join(staticDir, filePath))
-
-				if err != nil {
-					log.Warn("Failed to read static %s template. %v", filePath, err)
-					continue
-				}
-
-				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
-			}
-		}
-	}
-
-	customDir := path.Join(setting.CustomPath, "templates", "mail")
-
-	isDir, err = util.IsDir(customDir)
-	if err != nil {
-		log.Warn("Unable to check if templates dir %s is a directory. Error: %v", customDir, err)
-	}
-	if isDir {
-		files, err := util.StatDir(customDir)
-
-		if err != nil {
-			log.Warn("Failed to read %s templates dir. %v", customDir, err)
-		} else {
-			for _, filePath := range files {
-				if !strings.HasSuffix(filePath, ".tmpl") {
-					continue
-				}
-
-				content, err := ioutil.ReadFile(path.Join(customDir, filePath))
-
-				if err != nil {
-					log.Warn("Failed to read custom %s template. %v", filePath, err)
-					continue
-				}
-
-				buildSubjectBodyTemplate(subjectTemplates, bodyTemplates, strings.TrimSuffix(filePath, ".tmpl"), content)
-			}
-		}
-	}
-
-	return subjectTemplates, bodyTemplates
+// BuiltinAssetNames returns the names of the embedded assets
+// (This always returns nil)
+func BuiltinAssetNames() []string {
+	return nil
 }

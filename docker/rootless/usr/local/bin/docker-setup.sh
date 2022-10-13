@@ -5,7 +5,7 @@ mkdir -p ${HOME} && chmod 0700 ${HOME}
 if [ ! -w ${HOME} ]; then echo "${HOME} is not writable"; exit 1; fi
 
 # Prepare custom folder
-mkdir -p ${GITEA_CUSTOM} && chmod 0500 ${GITEA_CUSTOM}
+mkdir -p ${GITEA_CUSTOM} && chmod 0700 ${GITEA_CUSTOM}
 
 # Prepare temp folder
 mkdir -p ${GITEA_TEMP} && chmod 0700 ${GITEA_TEMP}
@@ -25,7 +25,7 @@ if [ ! -f ${GITEA_APP_INI} ]; then
         INSTALL_LOCK=true
     fi
 
-    # Substitude the environment variables in the template
+    # Substitute the environment variables in the template
     APP_NAME=${APP_NAME:-"Gitea: Git with a cup of tea"} \
     RUN_MODE=${RUN_MODE:-"prod"} \
     RUN_USER=${USER:-"git"} \

@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -19,6 +20,9 @@ const (
 	RepoCreatingPublic             = "public"
 )
 
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+const ItemsPerPage = 40
+
 // Repository settings
 var (
 	Repository = struct {
@@ -29,8 +33,6 @@ var (
 		DefaultPrivate                          string
 		DefaultPushCreatePrivate                bool
 		MaxCreationLimit                        int
-		MirrorQueueLength                       int
-		PullRequestQueueLength                  int
 		PreferredLicenses                       []string
 		DisableHTTPGit                          bool
 		AccessControlAllowOrigin                string
@@ -41,12 +43,12 @@ var (
 		DisabledRepoUnits                       []string
 		DefaultRepoUnits                        []string
 		PrefixArchiveFiles                      bool
-		DisableMirrors                          bool
 		DisableMigrations                       bool
 		DisableStars                            bool `ini:"DISABLE_STARS"`
 		DefaultBranch                           string
 		AllowAdoptionOfUnadoptedRepositories    bool
 		AllowDeleteOfUnadoptedRepositories      bool
+		DisableDownloadSourceArchives           bool
 
 		// Repository editor settings
 		Editor struct {
@@ -73,11 +75,14 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
+			AddCoCommitterTrailers                   bool
 		} `ini:"repository.pull-request"`
 
 		// Issue Setting
@@ -86,7 +91,8 @@ var (
 		} `ini:"repository.issue"`
 
 		Release struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		} `ini:"repository.release"`
 
 		Signing struct {
@@ -141,8 +147,6 @@ var (
 		DefaultPrivate:                          RepoCreatingLastUserVisibility,
 		DefaultPushCreatePrivate:                true,
 		MaxCreationLimit:                        -1,
-		MirrorQueueLength:                       1000,
-		PullRequestQueueLength:                  1000,
 		PreferredLicenses:                       []string{"Apache License 2.0", "MIT License"},
 		DisableHTTPGit:                          false,
 		AccessControlAllowOrigin:                "",
@@ -153,10 +157,9 @@ var (
 		DisabledRepoUnits:                       []string{},
 		DefaultRepoUnits:                        []string{},
 		PrefixArchiveFiles:                      true,
-		DisableMirrors:                          false,
 		DisableMigrations:                       false,
 		DisableStars:                            false,
-		DefaultBranch:                           "master",
+		DefaultBranch:                           "main",
 
 		// Repository editor settings
 		Editor: struct {
@@ -194,22 +197,28 @@ var (
 			WorkInProgressPrefixes                   []string
 			CloseKeywords                            []string
 			ReopenKeywords                           []string
+			DefaultMergeStyle                        string
 			DefaultMergeMessageCommitsLimit          int
 			DefaultMergeMessageSize                  int
 			DefaultMergeMessageAllAuthors            bool
 			DefaultMergeMessageMaxApprovers          int
 			DefaultMergeMessageOfficialApproversOnly bool
+			PopulateSquashCommentWithCommitMessages  bool
+			AddCoCommitterTrailers                   bool
 		}{
 			WorkInProgressPrefixes: []string{"WIP:", "[WIP]"},
 			// Same as GitHub. See
 			// https://help.github.com/articles/closing-issues-via-commit-messages
 			CloseKeywords:                            strings.Split("close,closes,closed,fix,fixes,fixed,resolve,resolves,resolved", ","),
 			ReopenKeywords:                           strings.Split("reopen,reopens,reopened", ","),
+			DefaultMergeStyle:                        "merge",
 			DefaultMergeMessageCommitsLimit:          50,
 			DefaultMergeMessageSize:                  5 * 1024,
 			DefaultMergeMessageAllAuthors:            false,
 			DefaultMergeMessageMaxApprovers:          10,
 			DefaultMergeMessageOfficialApproversOnly: true,
+			PopulateSquashCommentWithCommitMessages:  false,
+			AddCoCommitterTrailers:                   true,
 		},
 
 		// Issue settings
@@ -220,9 +229,11 @@ var (
 		},
 
 		Release: struct {
-			AllowedTypes string
+			AllowedTypes     string
+			DefaultPagingNum int
 		}{
-			AllowedTypes: "",
+			AllowedTypes:     "",
+			DefaultPagingNum: 10,
 		},
 
 		// Signing settings
@@ -248,6 +259,10 @@ var (
 	}
 	RepoRootPath string
 	ScriptType   = "bash"
+
+	RepoArchive = struct {
+		Storage
+	}{}
 )
 
 func newRepository() {
@@ -271,6 +286,10 @@ func newRepository() {
 	}
 	ScriptType = sec.Key("SCRIPT_TYPE").MustString("bash")
 
+	if _, err := exec.LookPath(ScriptType); err != nil {
+		log.Warn("SCRIPT_TYPE %q is not on the current PATH. Are you sure that this is the correct SCRIPT_TYPE?", ScriptType)
+	}
+
 	if err = Cfg.Section("repository").MapTo(&Repository); err != nil {
 		log.Fatal("Failed to map Repository settings: %v", err)
 	} else if err = Cfg.Section("repository.editor").MapTo(&Repository.Editor); err != nil {
@@ -281,6 +300,10 @@ func newRepository() {
 		log.Fatal("Failed to map Repository.Local settings: %v", err)
 	} else if err = Cfg.Section("repository.pull-request").MapTo(&Repository.PullRequest); err != nil {
 		log.Fatal("Failed to map Repository.PullRequest settings: %v", err)
+	}
+
+	if !Cfg.Section("packages").Key("ENABLED").MustBool(true) {
+		Repository.DisabledRepoUnits = append(Repository.DisabledRepoUnits, "repo.packages")
 	}
 
 	// Handle default trustmodel settings
@@ -325,4 +348,6 @@ func newRepository() {
 	if !filepath.IsAbs(Repository.Upload.TempPath) {
 		Repository.Upload.TempPath = path.Join(AppWorkPath, Repository.Upload.TempPath)
 	}
+
+	RepoArchive.Storage = getStorage("repo-archive", "", nil)
 }

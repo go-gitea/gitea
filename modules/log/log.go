@@ -288,4 +288,8 @@ func (l *LoggerAsWriter) Log(msg string) {
 func init() {
 	_, filename, _, _ := runtime.Caller(0)
 	prefix = strings.TrimSuffix(filename, "modules/log/log.go")
+	if prefix == filename {
+		// in case the source code file is moved, we can not trim the suffix, the code above should also be updated.
+		panic("unable to detect correct package prefix, please update file: " + filename)
+	}
 }

@@ -13,32 +13,10 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 )
 
-var loopbackIPBlocks []*net.IPNet
-
 var externalTrackerRegex = regexp.MustCompile(`({?)(?:user|repo|index)+?(}?)`)
 
-func init() {
-	for _, cidr := range []string{
-		"127.0.0.0/8", // IPv4 loopback
-		"::1/128",     // IPv6 loopback
-	} {
-		if _, block, err := net.ParseCIDR(cidr); err == nil {
-			loopbackIPBlocks = append(loopbackIPBlocks, block)
-		}
-	}
-}
-
 func isLoopbackIP(ip string) bool {
-	pip := net.ParseIP(ip)
-	if pip == nil {
-		return false
-	}
-	for _, block := range loopbackIPBlocks {
-		if block.Contains(pip) {
-			return true
-		}
-	}
-	return false
+	return net.ParseIP(ip).IsLoopback()
 }
 
 // IsValidURL checks if URL is valid
@@ -50,6 +28,25 @@ func IsValidURL(uri string) bool {
 	}
 
 	return true
+}
+
+// IsValidSiteURL checks if URL is valid
+func IsValidSiteURL(uri string) bool {
+	u, err := url.ParseRequestURI(uri)
+	if err != nil {
+		return false
+	}
+
+	if !validPort(portOnly(u.Host)) {
+		return false
+	}
+
+	for _, scheme := range setting.Service.ValidSiteURLSchemes {
+		if scheme == u.Scheme {
+			return true
+		}
+	}
+	return false
 }
 
 // IsAPIURL checks if URL is current Gitea instance API URL
@@ -73,7 +70,7 @@ func IsValidExternalURL(uri string) bool {
 		return false
 	}
 
-	// TODO: Later it should be added to allow local network IP addreses
+	// TODO: Later it should be added to allow local network IP addresses
 	//       only if allowed by special setting
 
 	return true

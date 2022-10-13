@@ -6,7 +6,7 @@
 		</div>
 		<div class="mr-4">
 			{{if not .result.UpdatedUnix.IsZero}}
-					<span class="ui grey text">{{.root.i18n.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix .root.i18n.Lang) | Safe}}</span>
+					<span class="ui grey text">{{.root.locale.Tr "explore.code_last_indexed_at" (TimeSinceUnix .result.UpdatedUnix .root.locale) | Safe}}</span>
 			{{end}}
 		</div>
 </div>
