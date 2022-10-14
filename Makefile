@@ -372,7 +372,7 @@ test-backend:
 
 .PHONY: test-frontend
 test-frontend: node_modules
-	npx vitest run
+	npx vitest
 
 .PHONY: test-check
 test-check:

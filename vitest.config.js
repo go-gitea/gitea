@@ -25,7 +25,7 @@ export default defineConfig({
     allowOnly: true,
     passWithNoTests: true,
     globals: true,
-    threads: false,
+    watch: false,
   },
   plugins: [
     stringPlugin(),
