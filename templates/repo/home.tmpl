@@ -3,6 +3,7 @@
 	{{template "repo/header" .}}
 	<div class="ui container {{if .IsBlame}}fluid padded{{end}}">
 		{{template "base/alert" .}}
+		{{if and (not .HideRepoInfo) (not .IsBlame)}}
 		<div class="ui repo-description">
 			<div id="repo-desc">
 				{{$description := .Repository.DescriptionHTML $.Context}}
@@ -31,6 +32,7 @@
 		{{range .Topics}}<a class="ui repo-topic large label topic" href="{{AppSubUrl}}/explore/repos?q={{.Name}}&topic=1">{{.Name}}</a>{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}<a id="manage_topic" class="muted">{{.locale.Tr "repo.topic.manage_topics"}}</a>{{end}}
 		</div>
+		{{end}}
 		{{if and .Permission.IsAdmin (not .Repository.IsArchived)}}
 		<div class="ui repo-topic-edit grid form" id="topic_edit" style="display:none">
 			<div class="fourteen wide column">
