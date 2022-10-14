@@ -2,15 +2,11 @@
 
 {{$createdStr:= TimeSinceUnix .CreatedUnix $.root.locale}}
 <div class="comment" id="{{.HashTag}}">
-	{{if .OriginalAuthor}}
-		<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
-	{{else}}
-		{{template "shared/user/avatarlink" .Poster}}
-	{{end}}
 	<div class="content comment-container">
 		<div class="ui top attached header comment-header df ac sb">
 			<div class="comment-header-left df ac">
 				{{if .OriginalAuthor}}
+					<span class="avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 					<span class="text black mr-2">
 						{{svg (MigrationIcon $.root.Repository.GetOriginalURLHostname)}}
 						{{.OriginalAuthor}}
@@ -24,6 +20,7 @@
 						{{end}}
 					</span>
 				{{else}}
+					{{template "shared/user/avatarlink" .Poster}}
 					<span class="text grey">
 						{{template "shared/user/namelink" .Poster}}
 						{{$.root.locale.Tr "repo.issues.commented_at" (.HashTag|Escape) $createdStr | Safe}}
