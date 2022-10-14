@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
@@ -39,7 +40,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 	}
 	log.Info("%d User Avatar(s) to migrate ...", count)
 
-	deleteList := make(map[string]struct{})
+	deleteList := make(container.Set[string])
 	start := 0
 	migrated := 0
 	for {
@@ -86,7 +87,7 @@ func renameExistingUserAvatarName(x *xorm.Engine) error {
 				return fmt.Errorf("[user: %s] user table update: %v", user.LowerName, err)
 			}
 
-			deleteList[filepath.Join(setting.Avatar.Path, oldAvatar)] = struct{}{}
+			deleteList.Add(filepath.Join(setting.Avatar.Path, oldAvatar))
 			migrated++
 			select {
 			case <-ticker.C:

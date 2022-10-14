@@ -22,13 +22,24 @@ import (
 func TestViewRepo(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
+	session := loginUser(t, "user2")
+
 	req := NewRequest(t, "GET", "/user2/repo1")
-	MakeRequest(t, req, http.StatusOK)
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+	repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
+	repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
+
+	assert.True(t, noDescription.HasClass("no-description"))
+	assert.True(t, repoTopics.HasClass("repo-topic"))
+	assert.True(t, repoSummary.HasClass("repository-menu"))
 
 	req = NewRequest(t, "GET", "/user3/repo3")
 	MakeRequest(t, req, http.StatusNotFound)
 
-	session := loginUser(t, "user1")
+	session = loginUser(t, "user1")
 	session.MakeRequest(t, req, http.StatusNotFound)
 }
 
@@ -178,7 +189,71 @@ func TestViewAsRepoAdmin(t *testing.T) {
 
 		htmlDoc := NewHTMLParser(t, resp.Body)
 		noDescription := htmlDoc.doc.Find("#repo-desc").Children()
+		repoTopics := htmlDoc.doc.Find("#repo-topics").Children()
+		repoSummary := htmlDoc.doc.Find(".repository-summary").Children()
 
 		assert.Equal(t, expectedNoDescription, noDescription.HasClass("no-description"))
+		assert.True(t, repoTopics.HasClass("repo-topic"))
+		assert.True(t, repoSummary.HasClass("repository-menu"))
 	}
+}
+
+// TestViewFileInRepo repo description, topics and summary should not be displayed when viewing a file
+func TestViewFileInRepo(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/src/branch/master/README.md")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	description := htmlDoc.doc.Find("#repo-desc")
+	repoTopics := htmlDoc.doc.Find("#repo-topics")
+	repoSummary := htmlDoc.doc.Find(".repository-summary")
+
+	assert.EqualValues(t, 0, description.Length())
+	assert.EqualValues(t, 0, repoTopics.Length())
+	assert.EqualValues(t, 0, repoSummary.Length())
+}
+
+// TestBlameFileInRepo repo description, topics and summary should not be displayed when running blame on a file
+func TestBlameFileInRepo(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo1/blame/branch/master/README.md")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	description := htmlDoc.doc.Find("#repo-desc")
+	repoTopics := htmlDoc.doc.Find("#repo-topics")
+	repoSummary := htmlDoc.doc.Find(".repository-summary")
+
+	assert.EqualValues(t, 0, description.Length())
+	assert.EqualValues(t, 0, repoTopics.Length())
+	assert.EqualValues(t, 0, repoSummary.Length())
+}
+
+// TestViewRepoDirectory repo description, topics and summary should not be displayed when within a directory
+func TestViewRepoDirectory(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+
+	req := NewRequest(t, "GET", "/user2/repo20/src/branch/master/a")
+	resp := session.MakeRequest(t, req, http.StatusOK)
+
+	htmlDoc := NewHTMLParser(t, resp.Body)
+	description := htmlDoc.doc.Find("#repo-desc")
+	repoTopics := htmlDoc.doc.Find("#repo-topics")
+	repoSummary := htmlDoc.doc.Find(".repository-summary")
+
+	repoFilesTable := htmlDoc.doc.Find("#repo-files-table")
+	assert.NotZero(t, len(repoFilesTable.Nodes))
+
+	assert.Zero(t, description.Length())
+	assert.Zero(t, repoTopics.Length())
+	assert.Zero(t, repoSummary.Length())
 }
