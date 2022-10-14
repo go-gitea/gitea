@@ -9,7 +9,7 @@ function stringPlugin() {
     enforce: 'pre',
     async load(id) {
       const path = id.split('?')[0];
-      if (!['.svg'].includes(extname(path))) return null;
+      if (extname(path) !== '.svg') return null;
       return dataToEsm(await readFile(path, 'utf8'));
     }
   };
