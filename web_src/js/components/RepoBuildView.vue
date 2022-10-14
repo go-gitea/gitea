@@ -140,7 +140,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        // this.loadJobData(); // FIXME: cannot call loadJobData more than once
+        this.loadJobData();
       }
     },
 
@@ -261,8 +261,8 @@ const sfc = {
     },
 
     async loadJobData() {
+      if (this.loading) return;
       try {
-        if (this.loading) return;
         this.loading = true;
 
         const stepLogCursors = this.currentJobStepsStates.map((it, idx) => {
