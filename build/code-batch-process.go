@@ -13,6 +13,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -206,6 +207,21 @@ Example:
 `, "file-batch-exec")
 }
 
+func getGoVersion() string {
+	goModFile, err := os.ReadFile("go.mod")
+	if err != nil {
+		buildInfo, ok := debug.ReadBuildInfo()
+		if !ok {
+			log.Fatalf("Failed to read build info")
+			os.Exit(1)
+		}
+		return strings.TrimPrefix(buildInfo.GoVersion, "go")
+	}
+	goModVersionRegex := regexp.MustCompile(`go \d+\.\d+`)
+	goModVersionLine := goModVersionRegex.Find(goModFile)
+	return string(goModVersionLine[3:])
+}
+
 func newFileCollectorFromMainOptions(mainOptions map[string]string) (fc *fileCollector, err error) {
 	fileFilter := mainOptions["file-filter"]
 	if fileFilter == "" {
@@ -270,7 +286,7 @@ func main() {
 				log.Print("the -d option is not supported by gitea-fmt")
 			}
 			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-l"), containsString(subArgs, "-w")))
-			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", "1.17"}, substArgs...)))
+			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", getGoVersion()}, substArgs...)))
 		case "misspell":
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("MISSPELL_PACKAGE")}, substArgs...)))
 		default:
