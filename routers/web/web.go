@@ -660,7 +660,9 @@ func RegisterRoutes(m *web.Route) {
 	m.Post("/{username}", reqSignIn, context_service.UserAssignmentWeb(), user.Action)
 
 	if !setting.IsProd {
+		m.Any("/dev/termdemo", dev.TermDemo)
 		m.Get("/dev/buildview", dev.BuildView)
+		m.Post("/dev/buildview", bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()
@@ -1185,10 +1187,8 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("/builds", func() {
 			m.Get("", builds.List)
 			m.Group("/{index}", func() {
-				//m.Get("", builds.ViewBuild)
-				//m.Get("/{workflow}/job/{jobname}/logs", builds.GetBuildJobLogs)
-				m.Get("", builds.GetRunState)
-				m.Get("/job/{jobid}", builds.GetRunState)
+				m.Get("", builds.ViewBuild)
+				m.Get("/{workflow}/job/{jobname}/logs", builds.GetBuildJobLogs)
 			})
 		}, reqRepoBuildsReader, builds.MustEnableBuilds)
 

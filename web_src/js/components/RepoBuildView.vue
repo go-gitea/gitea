@@ -80,6 +80,8 @@ const sfc = {
 
   data() {
     return {
+      jobId: 120, // TODO: read job id
+
       // internal state
       loading: false,
       currentJobStepsStates: [],
@@ -248,7 +250,11 @@ const sfc = {
     },
 
     async fetchJobData(reqData) {
-      const resp = await fetch(`?job_id=${this.jobId}`, {method: 'POST', body: JSON.stringify(reqData)});
+      const resp = await fetch(`?job_id=${this.jobId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(reqData),
+      });
       return await resp.json();
     },
 
@@ -265,8 +271,8 @@ const sfc = {
         });
         const reqData = {stepLogCursors};
 
-        // const respData = await this.fetchJobData();
-        const respData = this.fetchMockData(reqData);
+        const respData = await this.fetchJobData(reqData);
+        // const respData = this.fetchMockData(reqData);
 
         // console.log('loadJobData by request', reqData, ', get response ', respData);
 

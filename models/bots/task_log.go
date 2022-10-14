@@ -14,7 +14,7 @@ import (
 
 // TaskLog represents a task's log, every task has a standalone table
 type TaskLog struct {
-	ID        int64
+	ID        int64 `xorm:"pk"`
 	Timestamp timeutil.TimeStamp
 	Content   string `xorm:"LONGTEXT"`
 }
@@ -35,10 +35,10 @@ func CreateTaskLog(taskID int64) error {
 }
 
 func GetTaskLogs(taskID, index, length int64) (logs []*TaskLog, err error) {
-	sess := db.GetEngine(db.DefaultContext).Table(GetBuildLogTableName(taskID)).
+	sess := db.GetEngine(db.DefaultContext).Table(GetTaskLogTableName(taskID)).
 		Where("id>=?", index).OrderBy("id")
 
-	if length > 0 {
+	if length >= 0 {
 		sess.Limit(int(length))
 	}
 

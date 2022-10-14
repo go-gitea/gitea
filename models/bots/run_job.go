@@ -73,7 +73,7 @@ func GetRunJobByID(ctx context.Context, id int64) (*RunJob, error) {
 	if err != nil {
 		return nil, err
 	} else if !has {
-		return nil, ErrRunNotExist{
+		return nil, ErrRunJobNotExist{
 			ID: id,
 		}
 	}
