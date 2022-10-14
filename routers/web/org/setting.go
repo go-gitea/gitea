@@ -279,16 +279,16 @@ func SecretsPost(ctx *context.Context) {
 	}
 
 	log.Trace("Secret added: %d", ctx.Org.Organization.ID)
-	ctx.Flash.Success(ctx.Tr("repo.settings.add_key_success", form.Title))
+	ctx.Flash.Success(ctx.Tr("repo.settings.add_secret_success", form.Title))
 	ctx.Redirect(ctx.Org.OrgLink + "/settings/secrets")
 }
 
 // SecretsDelete delete secrets
 func SecretsDelete(ctx *context.Context) {
-	if err := secret_service.DeleteSecretByID(ctx, ctx.ParamsInt64("id")); err != nil {
+	if err := secret_service.DeleteSecretByID(ctx, ctx.FormInt64("id")); err != nil {
 		ctx.Flash.Error("DeleteSecretByID: " + err.Error())
 	} else {
-		ctx.Flash.Success(ctx.Tr("repo.settings.deploy_key_deletion_success"))
+		ctx.Flash.Success(ctx.Tr("repo.settings.secret_deletion_success"))
 	}
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
