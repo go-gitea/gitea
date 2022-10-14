@@ -26,3 +26,8 @@ func (l *linkBuilder) GetRegistrationLeafURL(id, version string) string {
 func (l *linkBuilder) GetPackageDownloadURL(id, version string) string {
 	return fmt.Sprintf("%s/package/%s/%s/%s.%s.nupkg", l.Base, id, version, id, version)
 }
+
+// GetPackageMetadataURL builds the package metadata url
+func (l *linkBuilder) GetPackageMetadataURL(id, version string) string {
+	return fmt.Sprintf("%s/Packages(Id='%s',Version='%s')", l.Base, id, version)
+}

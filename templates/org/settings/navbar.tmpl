@@ -15,6 +15,11 @@
 		<a class="{{if .PageIsOrgSettingsSecrets}}active{{end}} item" href="{{.OrgLink}}/settings/secrets">
 			{{.locale.Tr "org.settings.secrets"}}
 		</a>
+		{{if .EnableOAuth2}}
+		<a class="{{if .PageIsSettingsApplications}}active{{end}} item" href="{{.OrgLink}}/settings/applications">
+			{{.locale.Tr "settings.applications"}}
+		</a>
+		{{end}}
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>
