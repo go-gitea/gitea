@@ -211,9 +211,11 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(repo.Ctx, "rev-list", revision,
+		err := NewCommand(repo.Ctx, "rev-list",
 			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
-			"--skip="+strconv.Itoa(skip), "--", file).
+			"--skip="+strconv.Itoa(skip),
+			"--end-of-options", revision,
+			"--", file).
 			Run(&RunOpts{
 				Dir:    repo.Path,
 				Stdout: stdoutWriter,
