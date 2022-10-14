@@ -11,12 +11,13 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Update bluemonday (#21281) (#21287)
 * ENHANCEMENTS
   * Fix empty container layer history and UI (#21251) (#21278)
-  *  Use en-US as fallback when using other default language (#21200) (#21256)
+  * Use en-US as fallback when using other default language (#21200) (#21256)
   * Make the vscode clone link respect transport protocol (#20557) (#21128)
 * BUGFIXES
   * Do DB update after merge in hammer context (#21401) (#21416)
   * Add Num{Issues,Pulls} stats checks (#21404) (#21414)
   * Stop logging CheckPath returns error: context canceled (#21064) (#21405)
+  * Parse OAuth Authorization header when request omits client secret (#21351) (#21374)
   * Ignore port for loopback redirect URIs (#21293) (#21373)
   * Set SemverCompatible to false for Conan packages (#21275) (#21366)
   * Tag list should include draft releases with existing tags (#21263) (#21365)
@@ -37,9 +38,6 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
   * Fix missing m.Run() in TestMain (#21341)
 * BUILD
   * Use Go 1.19 fmt for Gitea 1.17, sync emoji data (#21239)
-* MISC
-  * Parse OAuth Authorization header when request omits client secret (#21351) (#21374)
-  * Add MD5 back to template helper functions to avoid breaking (#21102)
 
 ## [1.17.2](https://github.com/go-gitea/gitea/releases/tag/v1.17.2) - 2022-09-06
 
