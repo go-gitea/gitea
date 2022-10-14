@@ -619,15 +619,15 @@ steps:
     image: appleboy/drone-git-push
     pull: always
     settings:
-      author_email: &author_email "teabot@gitea.io"
-      author_name: &author_name GiteaBot
+      author_email: "teabot@gitea.io"
+      author_name: GiteaBot
       branch: main
       commit: true
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
-      DRONE_COMMIT_AUTHOR_EMAIL: *author_email
-      DRONE_COMMIT_AUTHOR: *author_name
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: GiteaBot
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
@@ -671,15 +671,15 @@ steps:
     image: appleboy/drone-git-push
     pull: always
     settings:
-      author_email: *author_email
-      author_name: *author_name
+      author_email: "teabot@gitea.io"
+      author_name: "GiteaBot"
       branch: main
       commit: true
       commit_message: "[skip ci] Updated licenses and gitignores"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
-      DRONE_COMMIT_AUTHOR_EMAIL: *author_email
-      DRONE_COMMIT_AUTHOR: *author_name
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: "GiteaBot"
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
