@@ -161,6 +161,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderCodeBlock":                RenderCodeBlock,
 		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
@@ -793,6 +794,13 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+var codeMatcher = regexp.MustCompile("`([^`]+)`") // capture strings of the format `code-like text`
+
+func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
+	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
+	return template.HTML(htmlWithCodeTags)
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors
