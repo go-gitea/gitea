@@ -65,7 +65,7 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 	if len(branch) == 0 {
 		args = append(args, "--branches=*")
 	} else {
-		args = append(args, "--first-parent", branch)
+		args = append(args, "--first-parent", "--", branch)
 	}
 
 	stderr := new(strings.Builder)
