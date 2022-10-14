@@ -334,7 +334,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check swagger-validate fmt-check
 
 .PHONY: lint
 lint: lint-frontend lint-backend
