@@ -19,6 +19,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/metrics"
 	"code.gitea.io/gitea/modules/public"
+	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/structs"
@@ -44,8 +45,6 @@ import (
 	context_service "code.gitea.io/gitea/services/context"
 	"code.gitea.io/gitea/services/forms"
 	"code.gitea.io/gitea/services/lfs"
-
-	_ "code.gitea.io/gitea/modules/session" // to registers all internal adapters
 
 	"gitea.com/go-chi/captcha"
 	"gitea.com/go-chi/session"
@@ -661,8 +660,12 @@ func RegisterRoutes(m *web.Route) {
 
 	if !setting.IsProd {
 		m.Any("/dev/termdemo", dev.TermDemo)
-		m.Get("/dev/buildview", dev.BuildView)
-		m.Post("/dev/buildview", bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
+		m.Combo("/dev/buildview/runs/{runid}").
+			Get(dev.BuildView).
+			Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
+		m.Combo("/dev/buildview/runs/{runid}/jobs/{jobid}").
+			Get(dev.BuildView).
+			Post(bindIgnErr(dev.BuildViewRequest{}), dev.BuildViewPost)
 	}
 
 	reqRepoAdmin := context.RequireRepoAdmin()

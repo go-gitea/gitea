@@ -69,6 +69,40 @@ func (task *Task) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+// FullSteps returns steps with "Set up job" and "Complete job"
+func (task *Task) FullSteps() []*TaskStep {
+	var firstStep, lastStep *TaskStep
+	if l := len(task.Steps); l > 0 {
+		firstStep = task.Steps[0]
+		lastStep = task.Steps[l-1]
+	}
+	headStep := &TaskStep{
+		Name:      "Set up job",
+		LogIndex:  0,
+		LogLength: -1, // no limit
+		Started:   task.Started,
+	}
+	if firstStep != nil {
+		headStep.LogLength = firstStep.LogIndex
+		headStep.Stopped = firstStep.Started
+	}
+	tailStep := &TaskStep{
+		Name:    "Complete job",
+		Stopped: task.Stopped,
+	}
+	if lastStep != nil {
+		tailStep.LogIndex = lastStep.LogIndex + lastStep.LogLength
+		tailStep.LogLength = -1 // no limit
+		tailStep.Started = lastStep.Stopped
+	}
+	steps := make([]*TaskStep, 0, len(task.Steps)+2)
+	steps = append(steps, headStep)
+	steps = append(steps, task.Steps...)
+	steps = append(steps, tailStep)
+
+	return steps
+}
+
 // ErrTaskNotExist represents an error for bot task not exist
 type ErrTaskNotExist struct {
 	ID int64

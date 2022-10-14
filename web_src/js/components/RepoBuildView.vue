@@ -10,7 +10,7 @@
           {{ jobGroup.summary }}
         </div>
         <div class="job-brief-list">
-          <a class="job-brief-item" v-for="job in jobGroup.jobs" :key="job.id">
+          <a class="job-brief-item" v-for="job in jobGroup.jobs" :key="job.id" v-bind:href="'/dev/buildview/runs/'+runId+'/jobs/'+job.id">
             <SvgIcon name="octicon-check-circle-fill" class="green" v-if="job.status === 'success'"/>
             <SvgIcon name="octicon-skip" class="ui text grey" v-else-if="job.status === 'skipped'"/>
             <SvgIcon name="octicon-clock" class="ui text yellow" v-else-if="job.status === 'waiting'"/>
@@ -77,11 +77,13 @@ const sfc = {
   components: {
     SvgIcon,
   },
+  props: {
+    runId: Number,
+    jobId: Number,
+  },
 
   data() {
     return {
-      jobId: 120, // TODO: read job id
-
       // internal state
       loading: false,
       currentJobStepsStates: [],
@@ -138,7 +140,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJobData();
+        // this.loadJobData(); // FIXME: cannot call loadJobData more than once
       }
     },
 
@@ -250,7 +252,7 @@ const sfc = {
     },
 
     async fetchJobData(reqData) {
-      const resp = await fetch(`?job_id=${this.jobId}`, {
+      const resp = await fetch(`/dev/buildview/runs/${this.runId}/jobs/${this.jobId}`, { // FIXME: hard code path
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(reqData),
@@ -307,7 +309,10 @@ export function initRepositoryBuildView() {
   const el = document.getElementById('repo-build-view');
   if (!el) return;
 
-  const view = createApp(sfc);
+  const view = createApp(sfc, {
+    jobId: el.getAttribute("job-id"),
+    runId: el.getAttribute("run-id"),
+  });
   view.mount(el);
 }
 

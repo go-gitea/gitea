@@ -1,16 +1,19 @@
 package dev
 
 import (
+	"fmt"
+	"net/http"
+
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
-	"code.gitea.io/gitea/modules/web"
-	"net/http"
-	"strconv"
-
 	"code.gitea.io/gitea/modules/context"
+	"code.gitea.io/gitea/modules/web"
 )
 
 func BuildView(ctx *context.Context) {
+	ctx.Data["RunID"] = ctx.Params("runid")
+	ctx.Data["JobID"] = ctx.Params("jobid")
+
 	ctx.HTML(http.StatusOK, "dev/buildview")
 }
 
@@ -70,38 +73,34 @@ type BuildViewStepLogLine struct {
 
 func BuildViewPost(ctx *context.Context) {
 	req := web.GetForm(ctx).(*BuildViewRequest)
-	currentJobID, _ := strconv.ParseInt(ctx.Req.URL.Query().Get("job_id"), 10, 64)
+	runID := ctx.ParamsInt64("runid")
+	jobID := ctx.ParamsInt64("jobid")
 
-	job, err := bots_model.GetRunJobByID(ctx, currentJobID)
+	run, err := bots_model.GetRunByID(ctx, runID)
 	if err != nil {
-		if _, ok := err.(bots_model.ErrRunJobNotExist); ok {
+		if _, ok := err.(bots_model.ErrRunNotExist); ok {
 			ctx.Error(http.StatusNotFound, err.Error())
 			return
 		}
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	if err := job.LoadAttributes(ctx); err != nil {
-		ctx.Error(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	run := job.Run
 	jobs, err := bots_model.GetRunJobsByRunID(ctx, run.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
-	var task *bots_model.Task
-	if job.TaskID > 0 {
-		task, err = bots_model.GetTaskByID(ctx, job.TaskID)
-		if err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
-			return
+
+	var job *bots_model.RunJob
+	if jobID != 0 {
+		for _, v := range jobs {
+			if v.ID == jobID {
+				job = v
+				break
+			}
 		}
-		task.Job = job
-		if err := task.LoadAttributes(ctx); err != nil {
-			ctx.Error(http.StatusInternalServerError, err.Error())
+		if job == nil {
+			ctx.Error(http.StatusNotFound, fmt.Sprintf("run %v has no job %v", runID, jobID))
 			return
 		}
 	}
@@ -125,75 +124,64 @@ func BuildViewPost(ctx *context.Context) {
 		},
 	}
 
-	resp.StateData.CurrentJobInfo.Title = job.Name
-	resp.LogsData.StreamingLogs = make([]BuildViewStepLog, 0, len(req.StepLogCursors))
-	if job.TaskID == 0 {
-		resp.StateData.CurrentJobInfo.Detail = "wait to be pick up by a runner"
-	} else {
-		resp.StateData.CurrentJobInfo.Detail = "TODO: more detail info" // TODO: more detail info
-
-		var firstStep, lastStep *bots_model.TaskStep
-		if l := len(task.Steps); l > 0 {
-			firstStep = task.Steps[0]
-			lastStep = task.Steps[l-1]
-		}
-		headStep := &bots_model.TaskStep{
-			Name:      "Set up job",
-			LogIndex:  0,
-			LogLength: -1, // no limit
-			Started:   task.Started,
-		}
-		if firstStep != nil {
-			headStep.LogLength = firstStep.LogIndex
-			headStep.Stopped = firstStep.Started
-		}
-		tailStep := &bots_model.TaskStep{
-			Name:    "Complete job",
-			Stopped: task.Stopped,
-		}
-		if lastStep != nil {
-			tailStep.LogIndex = lastStep.LogIndex + lastStep.LogLength
-			tailStep.LogLength = -1 // no limit
-			tailStep.Started = lastStep.Stopped
-		}
-		steps := make([]*bots_model.TaskStep, 0, len(task.Steps)+2)
-		steps = append(steps, headStep)
-		steps = append(steps, task.Steps...)
-		steps = append(steps, tailStep)
-
-		resp.StateData.CurrentJobSteps = make([]BuildViewJobStep, len(steps))
-		for i, v := range steps {
-			resp.StateData.CurrentJobSteps[i] = BuildViewJobStep{
-				Summary:  v.Name,
-				Duration: float64(v.Stopped - v.Started),
-				Status:   core.StatusRunning, // TODO: add status to step,
+	if job != nil {
+		var task *bots_model.Task
+		if job.TaskID > 0 {
+			task, err = bots_model.GetTaskByID(ctx, job.TaskID)
+			if err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
+			}
+			task.Job = job
+			if err := task.LoadAttributes(ctx); err != nil {
+				ctx.Error(http.StatusInternalServerError, err.Error())
+				return
 			}
 		}
 
-		for _, cursor := range req.StepLogCursors {
-			if cursor.Expanded {
-				step := steps[cursor.StepIndex]
-				var logRows []*bots_model.TaskLog
-				if cursor.Cursor < step.LogLength || step.LogLength < 0 {
-					logRows, err = bots_model.GetTaskLogs(task.ID, step.LogIndex+cursor.Cursor, step.LogLength-cursor.Cursor)
-					if err != nil {
-						ctx.Error(http.StatusInternalServerError, err.Error())
-						return
-					}
+		resp.StateData.CurrentJobInfo.Title = job.Name
+		resp.LogsData.StreamingLogs = make([]BuildViewStepLog, 0, len(req.StepLogCursors))
+		if job.TaskID == 0 {
+			resp.StateData.CurrentJobInfo.Detail = "wait to be pick up by a runner"
+		} else {
+			resp.StateData.CurrentJobInfo.Detail = "TODO: more detail info" // TODO: more detail info
+
+			steps := task.FullSteps()
+
+			resp.StateData.CurrentJobSteps = make([]BuildViewJobStep, len(steps))
+			for i, v := range steps {
+				resp.StateData.CurrentJobSteps[i] = BuildViewJobStep{
+					Summary:  v.Name,
+					Duration: float64(v.Stopped - v.Started),
+					Status:   core.StatusRunning, // TODO: add status to step,
 				}
-				logLines := make([]BuildViewStepLogLine, len(logRows))
-				for i, row := range logRows {
-					logLines[i] = BuildViewStepLogLine{
-						Ln: i,
-						M:  row.Content,
-						T:  float64(row.Timestamp),
+			}
+
+			for _, cursor := range req.StepLogCursors {
+				if cursor.Expanded {
+					step := steps[cursor.StepIndex]
+					var logRows []*bots_model.TaskLog
+					if cursor.Cursor < step.LogLength || step.LogLength < 0 {
+						logRows, err = bots_model.GetTaskLogs(task.ID, step.LogIndex+cursor.Cursor, step.LogLength-cursor.Cursor)
+						if err != nil {
+							ctx.Error(http.StatusInternalServerError, err.Error())
+							return
+						}
 					}
+					logLines := make([]BuildViewStepLogLine, len(logRows))
+					for i, row := range logRows {
+						logLines[i] = BuildViewStepLogLine{
+							Ln: i,
+							M:  row.Content,
+							T:  float64(row.Timestamp),
+						}
+					}
+					resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, BuildViewStepLog{
+						StepIndex: cursor.StepIndex,
+						Cursor:    cursor.Cursor + int64(len(logLines)),
+						Lines:     logLines,
+					})
 				}
-				resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, BuildViewStepLog{
-					StepIndex: cursor.StepIndex,
-					Cursor:    cursor.Cursor + int64(len(logLines)),
-					Lines:     logLines,
-				})
 			}
 		}
 	}
