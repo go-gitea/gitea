@@ -29,17 +29,18 @@ func (err ErrSecretDataInvalid) Error() string {
 
 var nameRE = regexp.MustCompile("[^a-zA-Z0-9-_.]+")
 
+// Secret represents a secret
 type Secret struct {
-	ID              int64
-	UserID int64 `xorm:"index"`
-	RepoID          int64  `xorm:"index"`
-	Name            string
-	Data            string
-	PullRequest     bool
+	ID          int64
+	UserID      int64 `xorm:"index"`
+	RepoID      int64 `xorm:"index"`
+	Name        string
+	Data        string
+	PullRequest bool
 	CreatedUnix timeutil.TimeStamp `xorm:"created"`
 }
 
-	// Validate validates the required fields and formats.
+// Validate validates the required fields and formats.
 func (s *Secret) Validate() error {
 	switch {
 	case len(s.Name) == 0:

@@ -12,12 +12,12 @@ import (
 
 func createSecretsTable(x *xorm.Engine) error {
 	type Secret struct {
-		ID              int64
-		UserID int64 `xorm:"index"`
-		RepoID          int64  `xorm:"index"`
-		Name            string
-		Data            string
-		PullRequest     bool
+		ID          int64
+		UserID      int64 `xorm:"index"`
+		RepoID      int64 `xorm:"index"`
+		Name        string
+		Data        string
+		PullRequest bool
 		CreatedUnix timeutil.TimeStamp `xorm:"created"`
 	}
 

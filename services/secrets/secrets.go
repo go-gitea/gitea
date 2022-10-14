@@ -103,16 +103,16 @@ func DecryptString(enc string) (string, error) {
 }
 
 func InsertRepoSecret(ctx context.Context, repoID int64, key, data string, pullRequest bool) error {
-	v, err := EncryptString( data)
+	v, err := EncryptString(data)
 	if err != nil {
 		return err
 	}
-return db.Insert(ctx, &auth_model.Secret{
-	RepoID: repoID,
-	Name: key,
-	Data: v,
-	PullRequest: pullRequest,
-})
+	return db.Insert(ctx, &auth_model.Secret{
+		RepoID:      repoID,
+		Name:        key,
+		Data:        v,
+		PullRequest: pullRequest,
+	})
 }
 
 func InsertOrgSecret(ctx context.Context, userID int64, key, data string, pullRequest bool) error {
@@ -120,26 +120,25 @@ func InsertOrgSecret(ctx context.Context, userID int64, key, data string, pullRe
 	if err != nil {
 		return err
 	}
-return db.Insert(ctx, &auth_model.Secret{
-	UserID: userID,
-	Name: key,
-	Data: v,
-	PullRequest: pullRequest,
-})
+	return db.Insert(ctx, &auth_model.Secret{
+		UserID:      userID,
+		Name:        key,
+		Data:        v,
+		PullRequest: pullRequest,
+	})
 }
 
 func DeleteSecretByID(ctx context.Context, id int64) error {
-_, err := db.DeleteByBean(ctx, &auth_model.Secret{ID: id})
-return err
+	_, err := db.DeleteByBean(ctx, &auth_model.Secret{ID: id})
+	return err
 }
 
-
-func FindRepoSecrets(ctx context.Context,repoID int64) ([]*auth_model.Secret, error) {
+func FindRepoSecrets(ctx context.Context, repoID int64) ([]*auth_model.Secret, error) {
 	var res []*auth_model.Secret
-	return res, db.FindObjects(ctx, builder.Eq{"repo_id": repoID}, nil,&res)
+	return res, db.FindObjects(ctx, builder.Eq{"repo_id": repoID}, nil, &res)
 }
 
 func FindUserSecrets(ctx context.Context, userID int64) ([]*auth_model.Secret, error) {
 	var res []*auth_model.Secret
-	return res, db.FindObjects(ctx, builder.Eq{"user_id": userID}, nil,&res)
+	return res, db.FindObjects(ctx, builder.Eq{"user_id": userID}, nil, &res)
 }

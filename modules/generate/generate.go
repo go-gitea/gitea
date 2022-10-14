@@ -9,7 +9,6 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"io"
-	"math/big"
 	"time"
 
 	"code.gitea.io/gitea/modules/util"
@@ -78,13 +77,4 @@ func NewMasterKey() ([]byte, error) {
 	}
 
 	return secretBytes, nil
-}
-
-func randomInt(max *big.Int) (int, error) {
-	rand, err := rand.Int(rand.Reader, max)
-	if err != nil {
-		return 0, err
-	}
-
-	return int(rand.Int64()), nil
 }

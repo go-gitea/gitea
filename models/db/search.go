@@ -41,7 +41,7 @@ func FindObjects[Object any](ctx context.Context, cond builder.Cond, opts *ListO
 		if opts.Page < 1 {
 			opts.Page = 1
 		}
-		sess.Limit(opts.PageSize, opts.PageSize * (opts.Page - 1))
+		sess.Limit(opts.PageSize, opts.PageSize*(opts.Page-1))
 	}
 	return sess.Find(objects)
 }

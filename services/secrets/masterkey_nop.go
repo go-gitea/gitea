@@ -4,8 +4,7 @@
 
 package secrets
 
-type nopMasterKeyProvider struct {
-}
+type nopMasterKeyProvider struct{}
 
 // NewNopMasterKeyProvider returns master key provider that holds no master key and is always unsealed
 func NewNopMasterKeyProvider() MasterKeyProvider {
