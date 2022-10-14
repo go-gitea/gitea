@@ -228,9 +228,9 @@ func containsString(a []string, s string) bool {
 	return false
 }
 
-func giteaFormatGoImports(files []string, hasChangedFiles, doWriteFile bool) error {
+func giteaFormatGoImports(files []string, doWriteFile bool) error {
 	for _, file := range files {
-		if err := codeformat.FormatGoImports(file, hasChangedFiles, doWriteFile); err != nil {
+		if err := codeformat.FormatGoImports(file, doWriteFile); err != nil {
 			log.Printf("failed to format go imports: %s, err=%v", file, err)
 			return err
 		}
@@ -269,7 +269,7 @@ func main() {
 			if containsString(subArgs, "-d") {
 				log.Print("the -d option is not supported by gitea-fmt")
 			}
-			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-l"), containsString(subArgs, "-w")))
+			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", "1.17"}, substArgs...)))
 		case "misspell":
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("MISSPELL_PACKAGE")}, substArgs...)))

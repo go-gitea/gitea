@@ -268,6 +268,15 @@ fmt:
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
 
+.PHONY: fmt-check
+fmt-check: fmt
+	@diff=$$(git diff $(GO_SOURCES) templates); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fmt' and commit the result:"; \
+	  echo "$${diff}"; \
+	  exit 1; \
+	fi
+
 .PHONY: vet
 vet:
 	@echo "Running go vet..."
@@ -311,22 +320,6 @@ errcheck:
 	@echo "Running errcheck..."
 	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
 
-.PHONY: fmt-check
-fmt-check:
-	@# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$(MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -l '{file-list}'); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff}"; \
-		exit 1; \
-	fi
-	@diff2=$$(git diff templates); \
-	if [ -n "$$diff2" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff2}"; \
-		exit 1; \
-	fi
-
 .PHONY: checks
 checks: checks-frontend checks-backend
 
@@ -334,7 +327,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check fmt-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
