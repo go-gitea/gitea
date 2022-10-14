@@ -215,8 +215,8 @@ var (
 		HMACKey   string `ini:"HMAC_KEY"`
 		Allways   bool
 	}{}
-	MasterKeyProvider                  string
-	MasterKey                          []byte
+	MasterKeyProvider string
+	MasterKey         []byte
 
 	// UI settings
 	UI = struct {

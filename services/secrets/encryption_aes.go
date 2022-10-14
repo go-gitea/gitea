@@ -13,8 +13,7 @@ import (
 	"io"
 )
 
-type aesEncryptionProvider struct {
-}
+type aesEncryptionProvider struct{}
 
 func NewAesEncryptionProvider() EncryptionProvider {
 	return &aesEncryptionProvider{}
