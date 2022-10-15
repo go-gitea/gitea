@@ -40,7 +40,7 @@ type Command struct {
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
-	broken           bool
+	brokenArgs       []string
 }
 
 func (c *Command) String() string {
@@ -105,9 +105,11 @@ func (c *Command) AddArguments(args ...string) *Command {
 func (c *Command) AddDynamicArguments(args ...string) *Command {
 	for _, arg := range args {
 		if arg != "" && arg[0] == '-' {
-			c.broken = true
-			return c
+			c.brokenArgs = append(c.brokenArgs, arg)
 		}
+	}
+	if len(c.brokenArgs) != 0 {
+		return c
 	}
 	c.args = append(c.args, args...)
 	return c
@@ -160,8 +162,8 @@ var ErrBrokenCommand = errors.New("git command is command")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
-	if c.broken {
-		log.Error("git command is broken: %s", c.String())
+	if len(c.brokenArgs) != 0 {
+		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
 		return ErrBrokenCommand
 	}
 	if opts == nil {
