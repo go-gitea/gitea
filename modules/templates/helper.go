@@ -796,7 +796,8 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 	return template.HTML(renderedMessage)
 }
 
-var codeMatcher = regexp.MustCompile("`([^`]+)`") // capture strings of the format `code-like text`
+// Match text that is between back ticks. 
+var codeMatcher = regexp.MustCompile("`([^`]+)`")
 
 func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
