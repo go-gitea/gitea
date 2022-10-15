@@ -20,7 +20,7 @@ import (
 )
 
 // Windows has a limitation for command line arguments, the size can not exceed 32KB.
-// So we have to feed the files to some tools (like gofmt/misspell) batch by batch
+// So we have to feed the files to some tools (like gofmt) batch by batch
 
 // We also introduce a `gitea-fmt` command, it does better import formatting than gofmt/goimports. `gitea-fmt` calls `gofmt` internally.
 
@@ -195,7 +195,6 @@ Options:
 
 Commands:
   %[1]s gofmt ...
-  %[1]s misspell ...
 
 Arguments:
   {file-list}     the file list
@@ -271,8 +270,6 @@ func main() {
 			}
 			cmdErrors = append(cmdErrors, giteaFormatGoImports(files, containsString(subArgs, "-w")))
 			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("GOFUMPT_PACKAGE"), "-extra", "-lang", "1.17"}, substArgs...)))
-		case "misspell":
-			cmdErrors = append(cmdErrors, passThroughCmd("go", append([]string{"run", os.Getenv("MISSPELL_PACKAGE")}, substArgs...)))
 		default:
 			log.Fatalf("unknown cmd: %s %v", subCmd, subArgs)
 		}

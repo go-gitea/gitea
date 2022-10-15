@@ -130,6 +130,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
+WEB_DIRS := web_src/js web_src/less
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -263,10 +264,11 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@MISSPELL_PACKAGE=$(MISSPELL_PACKAGE) GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
+	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+	go run $(MISSPELL_PACKAGE) -w -i unknwon $(GO_DIRS) $(WEB_DIRS)
 
 .PHONY: fmt-check
 fmt-check: fmt
