@@ -158,7 +158,7 @@ func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }
 
-var ErrBrokenCommand = errors.New("git command is command")
+var ErrBrokenCommand = errors.New("git command is broken")
 
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
