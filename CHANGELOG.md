@@ -7,6 +7,7 @@ been added to each release, please refer to the [blog](https://blog.gitea.io).
 ## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-14
 
 * SECURITY
+  * Sanitize and Escape refs in git backend (#21464)
   * Bump `golang.org/x/text` (#21412) (#21413)
   * Update bluemonday (#21281) (#21287)
 * ENHANCEMENTS
