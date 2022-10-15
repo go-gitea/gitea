@@ -152,8 +152,8 @@ the base branch into yours. Don't worry about merge commits messing up your tree
 the final merge process squashes all commits into one, with the visible commit message (first
 line) being the PR title + PR index and description being the PR's first comment.
 
-Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking builds.
-It is the maintainer team's responsibility from this point to get it merged.
+Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking builds (unless there's a merge conflict or a request is made by a maintainer to make
+modifications). It is the maintainer team's responsibility from this point to get it merged.
 
 ## Styleguide
 
