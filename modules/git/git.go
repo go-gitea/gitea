@@ -25,7 +25,7 @@ import (
 )
 
 // GitVersionRequired is the minimum Git version required
-const GitVersionRequired = "2.20.0"
+const GitVersionRequired = "2.0.0"
 
 var (
 	// GitExecutable is the command name of git
