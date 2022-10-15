@@ -250,15 +250,15 @@ func NewSearchCommitsOptions(searchString string, forAllRefs bool) SearchCommits
 	for _, k := range fields {
 		switch {
 		case strings.HasPrefix(k, "author:"):
-			authors = append(authors, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(k, "author:")), "'", ""))
+			authors = append(authors, strings.TrimPrefix(k, "author:"))
 		case strings.HasPrefix(k, "committer:"):
-			committers = append(committers, strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(k, "committer:")), "'", ""))
+			committers = append(committers, strings.TrimPrefix(k, "committer:"))
 		case strings.HasPrefix(k, "after:"):
-			after = strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(k, "after:")), "'", "")
+			after = strings.TrimPrefix(k, "after:")
 		case strings.HasPrefix(k, "before:"):
-			before = strings.ReplaceAll(strings.TrimSpace(strings.TrimPrefix(k, "before:")), "'", "")
+			before = strings.TrimPrefix(k, "before:")
 		default:
-			keywords = append(keywords, strings.ReplaceAll(strings.TrimSpace(k), "'", ""))
+			keywords = append(keywords, k)
 		}
 	}
 
