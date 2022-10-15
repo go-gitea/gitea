@@ -146,7 +146,7 @@ If your PR could cause a breaking change you must add a BREAKING section to this
 
 To explain how this could affect users and how to mitigate these changes.
 
-Once code review starts on your PR, do not rebase or squash your branch as it makes it
+Once code review starts on your PR, do not rebase nor squash your branch as it makes it
 difficult to review the new changes. Only if there is a need, sync your branch by merging
 the base branch into yours. Don't worry about merge commits messing up your tree as
 the final merge process squashes all commits into one, using the description of the PR's first comment.
