@@ -4,6 +4,42 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-15
+
+* SECURITY
+  * Sanitize and Escape refs in git backend (#21464) (#21463)
+  * Bump `golang.org/x/text` (#21412) (#21413)
+  * Update bluemonday (#21281) (#21287)
+* ENHANCEMENTS
+  * Fix empty container layer history and UI (#21251) (#21278)
+  * Use en-US as fallback when using other default language (#21200) (#21256)
+  * Make the vscode clone link respect transport protocol (#20557) (#21128)
+* BUGFIXES
+  * Do DB update after merge in hammer context (#21401) (#21416)
+  * Add Num{Issues,Pulls} stats checks (#21404) (#21414)
+  * Stop logging CheckPath returns error: context canceled (#21064) (#21405)
+  * Parse OAuth Authorization header when request omits client secret (#21351) (#21374)
+  * Ignore port for loopback redirect URIs (#21293) (#21373)
+  * Set SemverCompatible to false for Conan packages (#21275) (#21366)
+  * Tag list should include draft releases with existing tags (#21263) (#21365)
+  * Fix linked account translation (#21331) (#21334)
+  * Make NuGet service index publicly accessible (#21242) (#21277)
+  * Foreign ID conflicts if ID is 0 for each item (#21271) (#21272)
+  * Use absolute links in feeds (#21229) (#21265)
+  * Prevent invalid behavior for file reviewing when loading more files (#21230) (#21234)
+  * Respect `REQUIRE_SIGNIN_VIEW` for packages (#20873) (#21232)
+  * Treat git object mode 40755 as directory (#21195) (#21218)
+  * Allow uppercase ASCII alphabet in PyPI package names (#21095) (#21217)
+  * Fix limited user cannot view himself's profile (#21212)
+  * Fix template bug of admin monitor (#21209)
+  * Fix reaction of issues (#21185) (#21196)
+  * Fix CSV diff for added/deleted files (#21189) (#21193)
+  * Fix pagination limit parameter problem (#21111)
+* TESTING
+  * Fix missing m.Run() in TestMain (#21341)
+* BUILD
+  * Use Go 1.19 fmt for Gitea 1.17, sync emoji data (#21239)
+
 ## [1.17.2](https://github.com/go-gitea/gitea/releases/tag/v1.17.2) - 2022-09-06
 
 * SECURITY
