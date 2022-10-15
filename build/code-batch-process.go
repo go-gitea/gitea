@@ -13,7 +13,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime/debug"
 	"strconv"
 	"strings"
 
@@ -210,12 +209,8 @@ Example:
 func getGoVersion() string {
 	goModFile, err := os.ReadFile("go.mod")
 	if err != nil {
-		buildInfo, ok := debug.ReadBuildInfo()
-		if !ok {
-			log.Fatalf("Failed to read build info")
-			os.Exit(1)
-		}
-		return strings.TrimPrefix(buildInfo.GoVersion, "go")
+		log.Fatalf(`Faild to read "go.mod": %v`, err)
+		os.Exit(1)
 	}
 	goModVersionRegex := regexp.MustCompile(`go \d+\.\d+`)
 	goModVersionLine := goModVersionRegex.Find(goModFile)
