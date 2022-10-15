@@ -4,7 +4,7 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
-## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-14
+## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-15
 
 * SECURITY
   * Sanitize and Escape refs in git backend (#21464)
