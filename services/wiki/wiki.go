@@ -30,6 +30,11 @@ var (
 	wikiWorkingPool = sync.NewExclusivePool()
 )
 
+const (
+	DefaultRemote = "origin"
+	DefaultBranch = "master"
+)
+
 func nameAllowed(name string) error {
 	if util.IsStringInSlice(name, reservedWikiNames) {
 		return repo_model.ErrWikiReservedName{
@@ -81,7 +86,7 @@ func InitWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return fmt.Errorf("InitRepository: %v", err)
 	} else if err = repo_module.CreateDelegateHooks(repo.WikiPath()); err != nil {
 		return fmt.Errorf("createDelegateHooks: %v", err)
-	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+"master").RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
+	} else if _, _, err = git.NewCommand(ctx, "symbolic-ref", "HEAD", git.BranchPrefix+DefaultBranch).RunStdString(&git.RunOpts{Dir: repo.WikiPath()}); err != nil {
 		return fmt.Errorf("unable to set default wiki branch to master: %v", err)
 	}
 	return nil
@@ -94,7 +99,7 @@ func prepareWikiFileName(gitRepo *git.Repository, wikiName string) (bool, string
 	escaped := NameToFilename(wikiName)
 
 	// Look for both files
-	filesInIndex, err := gitRepo.LsTree("master", unescaped, escaped)
+	filesInIndex, err := gitRepo.LsTree(DefaultBranch, unescaped, escaped)
 	if err != nil {
 		if strings.Contains(err.Error(), "Not a valid object name master") {
 			return false, escaped, nil
@@ -130,7 +135,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 		return fmt.Errorf("InitWiki: %v", err)
 	}
 
-	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), "master")
+	hasMasterBranch := git.IsBranchExist(ctx, repo.WikiPath(), DefaultBranch)
 
 	basePath, err := repo_module.CreateTemporaryPath("update-wiki")
 	if err != nil {
@@ -148,7 +153,7 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 
 	if hasMasterBranch {
-		cloneOpts.Branch = "master"
+		cloneOpts.Branch = DefaultBranch
 	}
 
 	if err := git.Clone(ctx, repo.WikiPath(), basePath, cloneOpts); err != nil {
@@ -246,8 +251,8 @@ func updateWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: "origin",
-		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Remote: DefaultRemote,
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, DefaultBranch),
 		Env: repo_module.FullPushingEnvironment(
 			doer,
 			doer,
@@ -299,7 +304,7 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	if err := git.Clone(ctx, repo.WikiPath(), basePath, git.CloneRepoOptions{
 		Bare:   true,
 		Shared: true,
-		Branch: "master",
+		Branch: DefaultBranch,
 	}); err != nil {
 		log.Error("Failed to clone repository: %s (%v)", repo.FullName(), err)
 		return fmt.Errorf("Failed to clone repository: %s (%v)", repo.FullName(), err)
@@ -360,8 +365,8 @@ func DeleteWikiPage(ctx context.Context, doer *user_model.User, repo *repo_model
 	}
 
 	if err := git.Push(gitRepo.Ctx, basePath, git.PushOptions{
-		Remote: "origin",
-		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, "master"),
+		Remote: DefaultRemote,
+		Branch: fmt.Sprintf("%s:%s%s", commitHash.String(), git.BranchPrefix, DefaultBranch),
 		Env:    repo_module.PushingEnvironment(doer, repo),
 	}); err != nil {
 		if git.IsErrPushOutOfDate(err) || git.IsErrPushRejected(err) {
