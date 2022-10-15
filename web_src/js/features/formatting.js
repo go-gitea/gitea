@@ -22,8 +22,8 @@ export function initFormattingReplacements() {
 }
 
 function formatAllTimeElements() {
-  const allTimeElements = document.querySelectorAll('time[data-format]');
-  for (const timeElement of allTimeElements) {
+  const timeElements = document.querySelectorAll('time[data-format]');
+  for (const timeElement of timeElements) {
     const formatter = getFormatter(timeElement.dataset.format);
     timeElement.textContent = formatter.format(new Date(timeElement.dateTime));
   }
