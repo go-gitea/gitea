@@ -26,4 +26,19 @@ func TestRunWithContextStd(t *testing.T) {
 		assert.Contains(t, err.Error(), "exit status 129 - unknown option:")
 		assert.Empty(t, stdout)
 	}
+
+	cmd = NewCommand(context.Background())
+	cmd.AddDynamicArguments("-test")
+	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
+
+	cmd = NewCommand(context.Background())
+	cmd.AddDynamicArguments("--test")
+	assert.ErrorIs(t, cmd.Run(&RunOpts{}), ErrBrokenCommand)
+
+	subCmd := "version"
+	cmd = NewCommand(context.Background()).AddDynamicArguments(subCmd) // for test purpose only, the sub-command should never be dynamic for production
+	stdout, stderr, err = cmd.RunStdString(&RunOpts{})
+	assert.NoError(t, err)
+	assert.Empty(t, stderr)
+	assert.Contains(t, stdout, "git version")
 }
