@@ -35,6 +35,7 @@ const (
 	SearchOrderByForksReverse          SearchOrderBy = "num_forks DESC"
 )
 
+// FindObjects represents a common function to find Objects from database according cond and ListOptions
 func FindObjects[Object any](ctx context.Context, cond builder.Cond, opts *ListOptions, objects *[]*Object) error {
 	sess := GetEngine(ctx).Where(cond)
 	if opts != nil && opts.PageSize > 0 {
