@@ -22,28 +22,22 @@ export function initFormattingReplacements() {
 }
 
 function formatAllTimeElements() {
-  const formats = ['date', 'short-date', 'date-time'];
-  for (const f of formats) {
-    formatTimeElements(f);
+  const allTimeElements = document.querySelectorAll('time[data-format]');
+  for (const timeElement of allTimeElements) {
+    const formatter = getFormatter(timeElement.dataset.format);
+    timeElement.textContent = formatter.format(new Date(timeElement.dateTime));
   }
 }
 
-function formatTimeElements(format) {
-  let formatter;
+function getFormatter(format) {
   switch (format) {
     case 'date':
-      formatter = dateFormatter;
-      break;
+      return dateFormatter;
     case 'short-date':
-      formatter = shortDateFormatter;
-      break;
+      return shortDateFormatter;
     case 'date-time':
-      formatter = dateTimeFormatter;
-      break;
+      return dateTimeFormatter;
     default:
       throw new Error('Unknown format');
-  }
-  for (const timeElement of document.querySelectorAll(`time[data-format="${format}"]`)) {
-    timeElement.textContent = formatter.format(new Date(timeElement.dateTime));
   }
 }
