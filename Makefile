@@ -268,7 +268,6 @@ fmt:
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
-	go run $(MISSPELL_PACKAGE) -w -i unknwon $(GO_DIRS) $(WEB_DIRS)
 
 .PHONY: fmt-check
 fmt-check: fmt
@@ -278,6 +277,10 @@ fmt-check: fmt
 	  echo "$${diff}"; \
 	  exit 1; \
 	fi
+
+.PHONY: misspell-check
+misspell-check:
+	go run $(MISSPELL_PACKAGE) -error -i unknwon $(GO_DIRS) $(WEB_DIRS)
 
 .PHONY: vet
 vet:
@@ -329,7 +332,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check fmt-check swagger-validate
+checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
