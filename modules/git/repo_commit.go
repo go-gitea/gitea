@@ -158,7 +158,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 				// add previous arguments except for --grep and --all
 				hashCmd.AddArguments(args...)
 				// add keyword as <commit>
-				hashCmd.AddArguments("--end-of-options", ""+v+"")
+				hashCmd.AddArguments("--end-of-options", v)
 
 				// search with given constraints for commit matching sha hash of v
 				hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
@@ -210,7 +210,7 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 		stderr := strings.Builder{}
 		err := NewCommand(repo.Ctx, "log", prettyLogFormat, "--follow",
 			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
-			"--end-of-options", "'"+revision+"'",
+			"--end-of-options", revision,
 			"--", file).
 			Run(&RunOpts{
 				Dir:    repo.Path,
