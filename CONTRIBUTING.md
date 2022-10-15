@@ -149,7 +149,8 @@ To explain how this could affect users and how to mitigate these changes.
 Once code review starts on your PR, do not rebase nor squash your branch as it makes it
 difficult to review the new changes. Only if there is a need, sync your branch by merging
 the base branch into yours. Don't worry about merge commits messing up your tree as
-the final merge process squashes all commits into one, using the description of the PR.
+the final merge process squashes all commits into one, with the visible commit message (first
+line) being the PR title + PR index and description being the PR's first comment.
 
 Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking builds.
 It is the maintainer team's responsibility from this point to get it merged.
