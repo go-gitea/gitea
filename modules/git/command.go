@@ -90,7 +90,7 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new argument(s) to the command. Each argument must be safe trusted.
+// AddArguments adds new argument(s) to the command. Each argument must be safe to be trusted.
 func (c *Command) AddArguments(args ...string) *Command {
 	c.args = append(c.args, args...)
 	return c
