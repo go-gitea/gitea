@@ -151,7 +151,8 @@ difficult to review your code. Only if there is a need, sync your branch by merg
 the base branch into yours. Don't worry about merge commits messing up your tree as
 the final merge process squashes all commits into one, using the description of the PR's first comment.
 
-Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking builds. It is the maintainer team's responsability from this point to get it merged.
+Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking builds.
+It is the maintainer team's responsability from this point to get it merged.
 
 ## Styleguide
 
