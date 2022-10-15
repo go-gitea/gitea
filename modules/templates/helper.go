@@ -799,6 +799,8 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 // Match text that is between back ticks. 
 var codeMatcher = regexp.MustCompile("`([^`]+)`")
 
+// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
+// Intended for issue and PR titles, these containers should have styles for "<code>" elements
 func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
 	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
 	return template.HTML(htmlWithCodeTags)
