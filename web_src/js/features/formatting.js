@@ -17,7 +17,7 @@ export function initFormattingReplacements() {
   }
 
   // for each <time></time> tag, if it has the data-format attribute, format
-  // the text according to the user's chosen locale and formatter
+  // the text according to the user's chosen locale and formatter.
   formatAllTimeElements();
 }
 
