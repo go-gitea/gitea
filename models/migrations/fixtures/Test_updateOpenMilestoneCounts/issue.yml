@@ -1,0 +1,21 @@
+# type Issue struct {
+#   ID               int64 `xorm:"pk autoincr"`
+#   RepoID           int64 `xorm:"INDEX UNIQUE(repo_index)"`
+#   MilestoneID      int64 `xorm:"INDEX"`
+#   IsClosed         bool  `xorm:"INDEX"`
+# }
+-
+  id: 1
+  repo_id: 1
+  milestone_id: 1
+  is_closed: false
+-
+  id: 2
+  repo_id: 1
+  milestone_id: 1
+  is_closed: true
+-
+  id: 4
+  repo_id: 1
+  milestone_id: 1
+  is_closed: false
