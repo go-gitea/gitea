@@ -796,7 +796,7 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 	return template.HTML(renderedMessage)
 }
 
-// Match text that is between back ticks. 
+// Match text that is between back ticks.
 var codeMatcher = regexp.MustCompile("`([^`]+)`")
 
 // RenderCodeBlock renders "`…`" as highlighted "<code>" block.
