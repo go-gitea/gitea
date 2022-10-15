@@ -158,7 +158,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 				// add previous arguments except for --grep and --all
 				hashCmd.AddArguments(args...)
 				// add keyword as <commit>
-				hashCmd.AddArguments(v)
+				hashCmd.AddDynamicArguments(v)
 
 				// search with given constraints for commit matching sha hash of v
 				hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
@@ -208,14 +208,15 @@ func (repo *Repository) CommitsByFileAndRange(revision, file string, page int) (
 	}()
 	go func() {
 		stderr := strings.Builder{}
-		err := NewCommand(repo.Ctx, "log", revision, "--follow",
-			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page),
-			prettyLogFormat, "--", file).
-			Run(&RunOpts{
-				Dir:    repo.Path,
-				Stdout: stdoutWriter,
-				Stderr: &stderr,
-			})
+		gitCmd := NewCommand(repo.Ctx, "log", prettyLogFormat, "--follow",
+			"--max-count="+strconv.Itoa(setting.Git.CommitsRangeSize*page))
+		gitCmd.AddDynamicArguments(revision)
+		gitCmd.AddArguments("--", file)
+		err := gitCmd.Run(&RunOpts{
+			Dir:    repo.Path,
+			Stdout: stdoutWriter,
+			Stderr: &stderr,
+		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
 		} else {
