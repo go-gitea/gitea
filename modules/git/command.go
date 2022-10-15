@@ -95,6 +95,18 @@ func (c *Command) AddArguments(args ...string) *Command {
 	return c
 }
 
+// AddDynamicArguments adds new dynamic argument(s) to the command.
+// If the argument is invalid (it shouldn't happen in real life), it panics to caller
+func (c *Command) AddDynamicArguments(args ...string) *Command {
+	for _, arg := range args {
+		if arg != "" && arg[0] == '-' {
+			panic("invalid argument: " + arg)
+		}
+	}
+	c.args = append(c.args, args...)
+	return c
+}
+
 // RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
 type RunOpts struct {
 	Env               []string
