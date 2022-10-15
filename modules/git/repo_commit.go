@@ -106,23 +106,23 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	// add authors if present in search query
 	if len(opts.Authors) > 0 {
 		for _, v := range opts.Authors {
-			args = append(args, "--author='"+v+"'")
+			args = append(args, "--author="+v)
 		}
 	}
 
 	// add committers if present in search query
 	if len(opts.Committers) > 0 {
 		for _, v := range opts.Committers {
-			args = append(args, "--committer='"+v+"'")
+			args = append(args, "--committer="+v)
 		}
 	}
 
 	// add time constraints if present in search query
 	if len(opts.After) > 0 {
-		args = append(args, "--after='"+opts.After+"'")
+		args = append(args, "--after="+opts.After)
 	}
 	if len(opts.Before) > 0 {
-		args = append(args, "--before='"+opts.Before+"'")
+		args = append(args, "--before="+opts.Before)
 	}
 
 	// pretend that all refs along with HEAD were listed on command line as <commis>
@@ -136,7 +136,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 	// note this is done only for command created above
 	if len(opts.Keywords) > 0 {
 		for _, v := range opts.Keywords {
-			cmd.AddArguments("--grep='" + v + "'")
+			cmd.AddArguments("--grep=" + v)
 		}
 	}
 
@@ -161,7 +161,7 @@ func (repo *Repository) searchCommits(id SHA1, opts SearchCommitsOptions) ([]*Co
 				// add previous arguments except for --grep and --all
 				hashCmd.AddArguments(args...)
 				// add keyword as <commit>
-				hashCmd.AddArguments("--end-of-options", "'"+v+"'")
+				hashCmd.AddArguments("--end-of-options", ""+v+"")
 
 				// search with given constraints for commit matching sha hash of v
 				hashMatching, _, err := hashCmd.RunStdBytes(&RunOpts{Dir: repo.Path})
