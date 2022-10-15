@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/common"
 	"code.gitea.io/gitea/modules/setting"
@@ -198,7 +199,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 }
 
 type prefixedIDs struct {
-	values map[string]bool
+	values container.Set[string]
 }
 
 // Generate generates a new element id.
@@ -219,14 +220,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 	if !bytes.HasPrefix(result, []byte("user-content-")) {
 		result = append([]byte("user-content-"), result...)
 	}
-	if _, ok := p.values[util.BytesToReadOnlyString(result)]; !ok {
-		p.values[util.BytesToReadOnlyString(result)] = true
+	if p.values.Add(util.BytesToReadOnlyString(result)) {
 		return result
 	}
 	for i := 1; ; i++ {
 		newResult := fmt.Sprintf("%s-%d", result, i)
-		if _, ok := p.values[newResult]; !ok {
-			p.values[newResult] = true
+		if p.values.Add(newResult) {
 			return []byte(newResult)
 		}
 	}
@@ -234,12 +233,12 @@ func (p *prefixedIDs) GenerateWithDefault(value, dft []byte) []byte {
 
 // Put puts a given element id to the used ids table.
 func (p *prefixedIDs) Put(value []byte) {
-	p.values[util.BytesToReadOnlyString(value)] = true
+	p.values.Add(util.BytesToReadOnlyString(value))
 }
 
 func newPrefixedIDs() *prefixedIDs {
 	return &prefixedIDs{
-		values: map[string]bool{},
+		values: make(container.Set[string]),
 	}
 }
 

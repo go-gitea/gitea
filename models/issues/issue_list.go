@@ -22,16 +22,16 @@ type IssueList []*Issue
 
 // get the repo IDs to be loaded later, these IDs are for issue.Repo and issue.PullRequest.HeadRepo
 func (issues IssueList) getRepoIDs() []int64 {
-	repoIDs := make(map[int64]struct{}, len(issues))
+	repoIDs := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
 		if issue.Repo == nil {
-			repoIDs[issue.RepoID] = struct{}{}
+			repoIDs.Add(issue.RepoID)
 		}
 		if issue.PullRequest != nil && issue.PullRequest.HeadRepo == nil {
-			repoIDs[issue.PullRequest.HeadRepoID] = struct{}{}
+			repoIDs.Add(issue.PullRequest.HeadRepoID)
 		}
 	}
-	return container.KeysInt64(repoIDs)
+	return repoIDs.Values()
 }
 
 func (issues IssueList) loadRepositories(ctx context.Context) ([]*repo_model.Repository, error) {
@@ -79,13 +79,11 @@ func (issues IssueList) LoadRepositories() ([]*repo_model.Repository, error) {
 }
 
 func (issues IssueList) getPosterIDs() []int64 {
-	posterIDs := make(map[int64]struct{}, len(issues))
+	posterIDs := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
-		if _, ok := posterIDs[issue.PosterID]; !ok {
-			posterIDs[issue.PosterID] = struct{}{}
-		}
+		posterIDs.Add(issue.PosterID)
 	}
-	return container.KeysInt64(posterIDs)
+	return posterIDs.Values()
 }
 
 func (issues IssueList) loadPosters(ctx context.Context) error {
@@ -185,13 +183,11 @@ func (issues IssueList) loadLabels(ctx context.Context) error {
 }
 
 func (issues IssueList) getMilestoneIDs() []int64 {
-	ids := make(map[int64]struct{}, len(issues))
+	ids := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
-		if _, ok := ids[issue.MilestoneID]; !ok {
-			ids[issue.MilestoneID] = struct{}{}
-		}
+		ids.Add(issue.MilestoneID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (issues IssueList) loadMilestones(ctx context.Context) error {
@@ -224,14 +220,11 @@ func (issues IssueList) loadMilestones(ctx context.Context) error {
 }
 
 func (issues IssueList) getProjectIDs() []int64 {
-	ids := make(map[int64]struct{}, len(issues))
+	ids := make(container.Set[int64], len(issues))
 	for _, issue := range issues {
-		projectID := issue.ProjectID()
-		if _, ok := ids[projectID]; !ok {
-			ids[projectID] = struct{}{}
-		}
+		ids.Add(issue.ProjectID())
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (issues IssueList) loadProjects(ctx context.Context) error {
