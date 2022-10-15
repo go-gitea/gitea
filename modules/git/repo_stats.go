@@ -59,15 +59,15 @@ func (repo *Repository) GetCodeActivityStats(fromTime time.Time, branch string) 
 		_ = stdoutWriter.Close()
 	}()
 
-	args := []string{"log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since)}
+	gitCmd := NewCommand(repo.Ctx, "log", "--numstat", "--no-merges", "--pretty=format:---%n%h%n%aN%n%aE%n", "--date=iso", fmt.Sprintf("--since='%s'", since))
 	if len(branch) == 0 {
-		args = append(args, "--branches=*")
+		gitCmd.AddArguments("--branches=*")
 	} else {
-		args = append(args, "--first-parent", branch)
+		gitCmd.AddArguments("--first-parent").AddDynamicArguments(branch)
 	}
 
 	stderr := new(strings.Builder)
-	err = NewCommand(repo.Ctx, args...).Run(&RunOpts{
+	err = gitCmd.Run(&RunOpts{
 		Env:    []string{},
 		Dir:    repo.Path,
 		Stdout: stdoutWriter,
