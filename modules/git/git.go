@@ -25,7 +25,7 @@ import (
 )
 
 // GitVersionRequired is the minimum Git version required
-const GitVersionRequired = "2.24.0"
+const GitVersionRequired = "2.20.0"
 
 var (
 	// GitExecutable is the command name of git
@@ -117,7 +117,8 @@ func VersionInfo() string {
 	}
 	format := "%s"
 	args := []interface{}{gitVersion.Original()}
-	if setting.Git.EnableAutoGitWireProtocol {
+	// Since git wire protocol has been released from git v2.18
+	if setting.Git.EnableAutoGitWireProtocol && CheckGitVersionAtLeast("2.18") == nil {
 		format += ", Wire Protocol %s Enabled"
 		args = append(args, "Version 2") // for focus color
 	}
