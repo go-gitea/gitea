@@ -11,6 +11,7 @@ import (
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"gitea.com/gitea/act_runner/core"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 
 	"github.com/bufbuild/connect-go"
@@ -25,8 +26,8 @@ var WithRunner = connect.WithInterceptors(connect.UnaryInterceptorFunc(func(unar
 		if methodName(request) == "Register" {
 			return unaryFunc(ctx, request)
 		}
-		token := request.Header().Get("X-Runner-Token") // TODO: shouldn't be X-Runner-Token, maybe X-Runner-UUID
-		runner, err := bots_model.GetRunnerByToken(token)
+		uuid := request.Header().Get(core.UUIDHeader)
+		runner, err := bots_model.GetRunnerByUUID(uuid)
 		if err != nil {
 			if _, ok := err.(bots_model.ErrRunnerNotExist); ok {
 				return nil, status.Error(codes.Unauthenticated, "unregistered runner")
