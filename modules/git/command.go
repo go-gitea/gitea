@@ -40,6 +40,7 @@ type Command struct {
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
+	broken           bool
 }
 
 func (c *Command) String() string {
@@ -89,18 +90,19 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new argument(s) to the command.
+// AddArguments adds new argument(s) to the command. Each argument must be safe trusted.
 func (c *Command) AddArguments(args ...string) *Command {
 	c.args = append(c.args, args...)
 	return c
 }
 
 // AddDynamicArguments adds new dynamic argument(s) to the command.
-// If the argument is invalid (it shouldn't happen in real life), it panics to caller
+// The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options
 func (c *Command) AddDynamicArguments(args ...string) *Command {
 	for _, arg := range args {
 		if arg != "" && arg[0] == '-' {
-			panic("invalid argument: " + arg)
+			c.broken = true
+			return c
 		}
 	}
 	c.args = append(c.args, args...)
@@ -150,8 +152,14 @@ func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }
 
+var ErrBrokenCommand = errors.New("git command is command")
+
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	if c.broken {
+		log.Error("git command is broken: %s", c.String())
+		return ErrBrokenCommand
+	}
 	if opts == nil {
 		opts = &RunOpts{}
 	}
