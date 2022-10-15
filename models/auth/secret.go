@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"regexp"
 
+	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/timeutil"
 )
 
@@ -38,6 +39,10 @@ type Secret struct {
 	Data        string             `xorm:"TEXT"`
 	PullRequest bool               `xorm:"NOTNULL"`
 	CreatedUnix timeutil.TimeStamp `xorm:"created NOTNULL"`
+}
+
+func init() {
+	db.RegisterModel(new(Secret))
 }
 
 // Validate validates the required fields and formats.
