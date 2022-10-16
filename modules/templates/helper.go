@@ -44,6 +44,7 @@ import (
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
+	secret_service "code.gitea.io/gitea/services/secrets"
 
 	"github.com/editorconfig/editorconfig-core-go/v2"
 )
@@ -458,6 +459,10 @@ func NewFuncMap() []template.FuncMap {
 		"HasPrefix": strings.HasPrefix,
 		"Shadow": func(s string) string {
 			return "******"
+		},
+		"DecryptSecret": func(s string) string {
+			v, _ := secret_service.DecryptString(s)
+			return v
 		},
 	}}
 }

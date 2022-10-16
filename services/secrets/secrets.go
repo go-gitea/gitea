@@ -40,6 +40,10 @@ func Init() error {
 		return fmt.Errorf("invalid master key provider %v", setting.MasterKeyProvider)
 	}
 
+	if err := masterKey.Init(); err != nil {
+		return err
+	}
+
 	encProvider = NewAesEncryptionProvider()
 
 	return nil
