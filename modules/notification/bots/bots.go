@@ -86,7 +86,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 
 	for id, content := range workflows {
 		run := bots_model.Run{
-			Name:          commit.Message(),
+			Title:         commit.Message(),
 			RepoID:        repo.ID,
 			WorkflowID:    id,
 			TriggerUserID: doer.ID,
@@ -95,6 +95,9 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 			Event:         evt,
 			EventPayload:  payload,
 			Status:        core.StatusPending,
+		}
+		if len(run.Title) > 255 {
+			run.Title = run.Title[:255]
 		}
 		jobs, err := jobparser.Parse(content) // TODO: parse with options
 		if err != nil {

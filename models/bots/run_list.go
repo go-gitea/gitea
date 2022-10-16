@@ -16,10 +16,10 @@ import (
 type RunList []*Run
 
 // GetUserIDs returns a slice of user's id
-func (builds RunList) GetUserIDs() []int64 {
+func (runs RunList) GetUserIDs() []int64 {
 	userIDsMap := make(map[int64]struct{})
-	for _, build := range builds {
-		userIDsMap[build.TriggerUserID] = struct{}{}
+	for _, run := range runs {
+		userIDsMap[run.TriggerUserID] = struct{}{}
 	}
 	userIDs := make([]int64, 0, len(userIDsMap))
 	for userID := range userIDsMap {
@@ -28,14 +28,14 @@ func (builds RunList) GetUserIDs() []int64 {
 	return userIDs
 }
 
-func (builds RunList) LoadTriggerUser() error {
-	userIDs := builds.GetUserIDs()
+func (runs RunList) LoadTriggerUser() error {
+	userIDs := runs.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(db.DefaultContext).In("id", userIDs).Find(&users); err != nil {
 		return err
 	}
-	for _, task := range builds {
-		task.TriggerUser = users[task.TriggerUserID]
+	for _, run := range runs {
+		run.TriggerUser = users[run.TriggerUserID]
 	}
 	return nil
 }
@@ -52,16 +52,14 @@ func (opts FindRunOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	if opts.IsClosed.IsFalse() {
-
 	} else if opts.IsClosed.IsTrue() {
-
 	}
 	return cond
 }
 
 func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) {
 	e := db.GetEngine(ctx).Where(opts.toConds())
-	if opts.PageSize>0&&opts.Page >=1 {
+	if opts.PageSize > 0 && opts.Page >= 1 {
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var runs RunList

@@ -106,7 +106,7 @@ func BuildViewPost(ctx *context.Context) {
 	}
 
 	resp := &BuildViewResponse{}
-	resp.StateData.BuildInfo.Title = run.Name
+	resp.StateData.BuildInfo.Title = run.Title
 
 	respJobs := make([]*BuildViewJob, len(jobs))
 	for i, v := range jobs {

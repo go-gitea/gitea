@@ -23,7 +23,7 @@ import (
 // Run represents a run of a workflow file
 type Run struct {
 	ID            int64
-	Name          string
+	Title         string
 	RepoID        int64                  `xorm:"index unique(repo_workflow_index)"`
 	Repo          *repo_model.Repository `xorm:"-"`
 	WorkflowID    string                 `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
@@ -50,6 +50,10 @@ func init() {
 
 func (Run) TableName() string {
 	return "bots_run"
+}
+
+func (run *Run) HTMLURL() string {
+	return fmt.Sprintf("%s/builds/run/%d", run.Repo.HTMLURL(), run.Index)
 }
 
 // LoadAttributes load Repo TriggerUser if not loaded

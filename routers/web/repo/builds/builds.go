@@ -57,18 +57,22 @@ func List(ctx *context.Context) {
 	} else {
 		opts.IsClosed = util.OptionalBoolFalse
 	}
-	builds, total, err := bots_model.FindRuns(ctx, opts)
+	runs, total, err := bots_model.FindRuns(ctx, opts)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	if err := builds.LoadTriggerUser(); err != nil {
+	for _, run := range runs {
+		run.Repo = ctx.Repo.Repository
+	}
+
+	if err := runs.LoadTriggerUser(); err != nil {
 		ctx.Error(http.StatusInternalServerError, err.Error())
 		return
 	}
 
-	ctx.Data["Builds"] = builds
+	ctx.Data["Builds"] = runs
 
 	pager := context.NewPagination(int(total), opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)

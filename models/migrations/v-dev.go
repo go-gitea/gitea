@@ -50,7 +50,7 @@ func addBotTables(x *xorm.Engine) error {
 
 	type BotsRun struct {
 		ID            int64
-		Name          string
+		Title         string
 		RepoID        int64  `xorm:"index unique(repo_workflow_index)"`
 		WorkflowID    string `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
 		Index         int64  `xorm:"index unique(repo_workflow_index)"` // a unique number for each run of a particular workflow in a repository
