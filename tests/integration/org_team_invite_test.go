@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
 	"code.gitea.io/gitea/tests"
@@ -29,6 +30,11 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 
 	org := unittest.AssertExistsAndLoadBean(t, &organization.Organization{ID: 3})
 	team := unittest.AssertExistsAndLoadBean(t, &organization.Team{ID: 2})
+	user := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 5})
+
+	isMember, err := organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	assert.NoError(t, err)
+	assert.False(t, isMember)
 
 	session := loginUser(t, "user1")
 
@@ -37,7 +43,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	req := NewRequestWithValues(t, "POST", url+"/action/add", map[string]string{
 		"_csrf": csrf,
 		"uid":   "1",
-		"uname": "user5@example.com",
+		"uname": user.Email,
 	})
 	resp := session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
@@ -48,7 +54,7 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, invites, 1)
 
-	session = loginUser(t, "user5")
+	session = loginUser(t, user.Name)
 
 	// join the team
 	url = fmt.Sprintf("/org/invite/%s", invites[0].Token)
@@ -59,4 +65,8 @@ func TestOrgTeamEmailInvite(t *testing.T) {
 	resp = session.MakeRequest(t, req, http.StatusSeeOther)
 	req = NewRequest(t, "GET", test.RedirectURL(resp))
 	session.MakeRequest(t, req, http.StatusOK)
+
+	isMember, err = organization.IsTeamMember(db.DefaultContext, team.OrgID, team.ID, user.ID)
+	assert.NoError(t, err)
+	assert.True(t, isMember)
 }
