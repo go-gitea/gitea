@@ -11,6 +11,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
+	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	"code.gitea.io/gitea/modules/util"
@@ -39,6 +40,25 @@ func MustEnableBuilds(ctx *context.Context) {
 func List(ctx *context.Context) {
 	ctx.Data["Title"] = ctx.Tr("repo.builds")
 	ctx.Data["PageIsBuildList"] = true
+
+	defaultBranch, err := ctx.Repo.GitRepo.GetDefaultBranch()
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	commit, err := ctx.Repo.GitRepo.GetBranchCommit(defaultBranch)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	workflows, err := bots.ListWorkflows(commit)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	ctx.Data["workflows"] = workflows
 
 	page := ctx.FormInt("page")
 	if page <= 0 {

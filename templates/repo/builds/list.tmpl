@@ -1,6 +1,11 @@
 {{template "base/head" .}}
 <div class="page-content repository">
 	{{template "repo/header" .}}
+	<div>
+	{{range .workflows}}
+	<li>{{.Name}}</li>
+	{{end}}
+	</div>
 	<div class="ui container">
 		<div id="issue-filters" class="ui stackable grid">
 			<div class="six wide column">

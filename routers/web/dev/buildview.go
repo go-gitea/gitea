@@ -11,8 +11,20 @@ import (
 )
 
 func BuildView(ctx *context.Context) {
-	ctx.Data["RunID"] = ctx.Params("runid")
-	ctx.Data["JobID"] = ctx.Params("jobid")
+	runID := ctx.ParamsInt64("runid")
+	ctx.Data["RunID"] = runID
+	jobID := ctx.ParamsInt64("jobid")
+	if jobID <= 0 {
+		runJobs, err := bots_model.GetRunJobsByRunID(ctx, runID)
+		if err != nil {
+			return
+		}
+		if len(runJobs) <= 0 {
+			return
+		}
+		jobID = runJobs[0].ID
+	}
+	ctx.Data["JobID"] = jobID
 
 	ctx.HTML(http.StatusOK, "dev/buildview")
 }
