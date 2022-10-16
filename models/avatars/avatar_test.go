@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package avatars
+package avatars_test
 
 import (
-	"net/url"
 	"testing"
 
+	avatars_model "code.gitea.io/gitea/models/avatars"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
@@ -15,40 +16,43 @@ import (
 
 const gravatarSource = "https://secure.gravatar.com/avatar/"
 
-func disableGravatar() {
-	setting.EnableFederatedAvatar = false
-	setting.LibravatarService = nil
-	setting.DisableGravatar = true
+func disableGravatar(t *testing.T) {
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureEnableFederatedAvatar, "false")
+	assert.NoError(t, err)
+	err = system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "true")
+	assert.NoError(t, err)
+	system_model.LibravatarService = nil
 }
 
 func enableGravatar(t *testing.T) {
-	setting.DisableGravatar = false
-	var err error
-	setting.GravatarSourceURL, err = url.Parse(gravatarSource)
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "false")
+	assert.NoError(t, err)
+	setting.GravatarSource = gravatarSource
+	err = system_model.Init()
 	assert.NoError(t, err)
 }
 
 func TestHashEmail(t *testing.T) {
 	assert.Equal(t,
 		"d41d8cd98f00b204e9800998ecf8427e",
-		HashEmail(""),
+		avatars_model.HashEmail(""),
 	)
 	assert.Equal(t,
 		"353cbad9b58e69c96154ad99f92bedc7",
-		HashEmail("gitea@example.com"),
+		avatars_model.HashEmail("gitea@example.com"),
 	)
 }
 
 func TestSizedAvatarLink(t *testing.T) {
 	setting.AppSubURL = "/testsuburl"
 
-	disableGravatar()
+	disableGravatar(t)
 	assert.Equal(t, "/testsuburl/assets/img/avatar_default.png",
-		GenerateEmailAvatarFastLink("gitea@example.com", 100))
+		avatars_model.GenerateEmailAvatarFastLink("gitea@example.com", 100))
 
 	enableGravatar(t)
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/353cbad9b58e69c96154ad99f92bedc7?d=identicon&s=100",
-		GenerateEmailAvatarFastLink("gitea@example.com", 100),
+		avatars_model.GenerateEmailAvatarFastLink("gitea@example.com", 100),
 	)
 }
