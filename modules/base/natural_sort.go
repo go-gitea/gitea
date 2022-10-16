@@ -55,7 +55,7 @@ func isDecimal(r rune) bool {
 }
 
 func compareByNumbers(str1 string, pos1 int, str2 string, pos2 int) (i1, i2 int, less, equal bool) {
-	var d1, d2 bool = true, true
+	d1, d2 := true, true
 	var dec1, dec2 string
 	for d1 || d2 {
 		if d1 {

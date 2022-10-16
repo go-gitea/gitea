@@ -2,8 +2,9 @@ import $ from 'jquery';
 import {htmlEscape} from 'escape-goat';
 import attachTribute from './tribute.js';
 import {createCommentEasyMDE, getAttachedEasyMDE} from './comp/EasyMDE.js';
-import {initCompImagePaste} from './comp/ImagePaste.js';
+import {initEasyMDEImagePaste} from './comp/ImagePaste.js';
 import {initCompMarkupContentPreviewTab} from './comp/MarkupContentPreview.js';
+import {initTooltip, showTemporaryTooltip} from '../modules/tippy.js';
 
 const {appSubUrl, csrfToken} = window.config;
 
@@ -160,6 +161,16 @@ export function initRepoIssueCommentDelete() {
         _csrf: csrfToken,
       }).done(() => {
         const $conversationHolder = $this.closest('.conversation-holder');
+
+        // Check if this was a pending comment.
+        if ($conversationHolder.find('.pending-label').length) {
+          const $counter = $('#review-box .review-comments-counter');
+          let num = parseInt($counter.attr('data-pending-comment-number')) - 1 || 0;
+          num = Math.max(num, 0);
+          $counter.attr('data-pending-comment-number', num);
+          $counter.text(num);
+        }
+
         $(`#${$this.data('comment-id')}`).remove();
         if ($conversationHolder.length && !$conversationHolder.find('.comment').length) {
           const path = $conversationHolder.data('path');
@@ -224,32 +235,6 @@ export function initRepoIssueStatusButton() {
   });
 }
 
-export function initRepoPullRequestMerge() {
-  // Pull Request merge button
-  const $mergeButton = $('.merge-button > button');
-  $mergeButton.on('click', function (e) {
-    e.preventDefault();
-    $(`.${$(this).data('do')}-fields`).show();
-    $(this).parent().hide();
-    $('.instruct-toggle').hide();
-    $('.instruct-content').hide();
-  });
-  $('.merge-button > .dropdown').dropdown({
-    onChange(_text, _value, $choice) {
-      if ($choice.data('do')) {
-        $mergeButton.find('.button-text').text($choice.text());
-        $mergeButton.data('do', $choice.data('do'));
-      }
-    }
-  });
-  $('.merge-cancel').on('click', function (e) {
-    e.preventDefault();
-    $(this).closest('.form').hide();
-    $mergeButton.parent().show();
-    $('.instruct-toggle').show();
-  });
-}
-
 export function initRepoPullRequestUpdate() {
   // Pull Request update button
   const $pullUpdateButton = $('.update-button > button');
@@ -285,6 +270,33 @@ export function initRepoPullRequestUpdate() {
 export function initRepoPullRequestMergeInstruction() {
   $('.show-instruction').on('click', () => {
     $('.instruct-content').toggle();
+  });
+}
+
+export function initRepoPullRequestAllowMaintainerEdit() {
+  const $checkbox = $('#allow-edits-from-maintainers');
+  if (!$checkbox.length) return;
+
+  const promptTip = $checkbox.attr('data-prompt-tip');
+  const promptError = $checkbox.attr('data-prompt-error');
+
+  initTooltip($checkbox[0], {content: promptTip});
+  $checkbox.checkbox({
+    'onChange': () => {
+      const checked = $checkbox.checkbox('is checked');
+      let url = $checkbox.attr('data-url');
+      url += '/set_allow_maintainer_edit';
+      $checkbox.checkbox('set disabled');
+      $.ajax({url, type: 'POST',
+        data: {_csrf: csrfToken, allow_maintainer_edit: checked},
+        error: () => {
+          showTemporaryTooltip($checkbox[0], promptError);
+        },
+        complete: () => {
+          $checkbox.checkbox('set enabled');
+        },
+      });
+    },
   });
 }
 
@@ -463,8 +475,9 @@ export function initRepoPullRequestReview() {
       // the editor's height is too large in some cases, and the panel cannot be scrolled with page now because there is `.repository .diff-detail-box.sticky { position: sticky; }`
       // the temporary solution is to make the editor's height smaller (about 4 lines). GitHub also only show 4 lines for default. We can improve the UI (including Dropzone area) in future
       // EasyMDE's options can not handle minHeight & maxHeight together correctly, we have to set max-height for .CodeMirror-scroll in CSS.
-      await createCommentEasyMDE($reviewBox.find('textarea'), {minHeight: '80px'});
-      initCompImagePaste($reviewBox);
+      const $reviewTextarea = $reviewBox.find('textarea');
+      const easyMDE = await createCommentEasyMDE($reviewTextarea, {minHeight: '80px'});
+      initEasyMDEImagePaste(easyMDE, $reviewBox.find('.dropzone'));
     })();
   }
 

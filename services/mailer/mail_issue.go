@@ -8,25 +8,28 @@ import (
 	"context"
 	"fmt"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	issues_model "code.gitea.io/gitea/models/issues"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
 
-func fallbackMailSubject(issue *models.Issue) string {
+func fallbackMailSubject(issue *issues_model.Issue) string {
 	return fmt.Sprintf("[%s] %s (#%d)", issue.Repo.FullName(), issue.Title, issue.Index)
 }
 
 type mailCommentContext struct {
 	context.Context
-	Issue      *models.Issue
+	Issue      *issues_model.Issue
 	Doer       *user_model.User
-	ActionType models.ActionType
+	ActionType activities_model.ActionType
 	Content    string
-	Comment    *models.Comment
+	Comment    *issues_model.Comment
 }
 
 const (
@@ -57,21 +60,21 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	unfiltered[0] = ctx.Issue.PosterID
 
 	// =========== Assignees ===========
-	ids, err := models.GetAssigneeIDsByIssue(ctx.Issue.ID)
+	ids, err := issues_model.GetAssigneeIDsByIssue(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetAssigneeIDsByIssue(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Participants (i.e. commenters, reviewers) ===========
-	ids, err = models.GetParticipantsIDsByIssueID(ctx.Issue.ID)
+	ids, err = issues_model.GetParticipantsIDsByIssueID(ctx.Issue.ID)
 	if err != nil {
 		return fmt.Errorf("GetParticipantsIDsByIssueID(%d): %v", ctx.Issue.ID, err)
 	}
 	unfiltered = append(unfiltered, ids...)
 
 	// =========== Issue watchers ===========
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, true)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, true)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
@@ -79,7 +82,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 
 	// =========== Repo watchers ===========
 	// Make repo watchers last, since it's likely the list with the most users
-	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != models.ActionCreatePullRequest) {
+	if !(ctx.Issue.IsPull && ctx.Issue.PullRequest.IsWorkInProgress() && ctx.ActionType != activities_model.ActionCreatePullRequest) {
 		ids, err = repo_model.GetRepoWatchersIDs(ctx, ctx.Issue.RepoID)
 		if err != nil {
 			return fmt.Errorf("GetRepoWatchersIDs(%d): %v", ctx.Issue.RepoID, err)
@@ -87,10 +90,12 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 		unfiltered = append(ids, unfiltered...)
 	}
 
-	visited := make(map[int64]bool, len(unfiltered)+len(mentions)+1)
+	visited := make(container.Set[int64], len(unfiltered)+len(mentions)+1)
 
 	// Avoid mailing the doer
-	visited[ctx.Doer.ID] = true
+	if ctx.Doer.EmailNotificationsPreference != user_model.EmailNotificationsAndYourOwn {
+		visited.Add(ctx.Doer.ID)
+	}
 
 	// =========== Mentions ===========
 	if err = mailIssueCommentBatch(ctx, mentions, visited, true); err != nil {
@@ -98,13 +103,11 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	}
 
 	// Avoid mailing explicit unwatched
-	ids, err = models.GetIssueWatchersIDs(ctx.Issue.ID, false)
+	ids, err = issues_model.GetIssueWatchersIDs(ctx, ctx.Issue.ID, false)
 	if err != nil {
 		return fmt.Errorf("GetIssueWatchersIDs(%d): %v", ctx.Issue.ID, err)
 	}
-	for _, i := range ids {
-		visited[i] = true
-	}
+	visited.AddMultiple(ids...)
 
 	unfilteredUsers, err := user_model.GetMaileableUsersByIDs(unfiltered, false)
 	if err != nil {
@@ -117,7 +120,7 @@ func mailIssueCommentToParticipants(ctx *mailCommentContext, mentions []*user_mo
 	return nil
 }
 
-func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited map[int64]bool, fromMention bool) error {
+func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, visited container.Set[int64], fromMention bool) error {
 	checkUnit := unit.TypeIssues
 	if ctx.Issue.IsPull {
 		checkUnit = unit.TypePullRequests
@@ -132,20 +135,18 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 		// At this point we exclude:
 		// user that don't have all mails enabled or users only get mail on mention and this is one ...
 		if !(user.EmailNotificationsPreference == user_model.EmailNotificationsEnabled ||
+			user.EmailNotificationsPreference == user_model.EmailNotificationsAndYourOwn ||
 			fromMention && user.EmailNotificationsPreference == user_model.EmailNotificationsOnMention) {
 			continue
 		}
 
 		// if we have already visited this user we exclude them
-		if _, ok := visited[user.ID]; ok {
+		if !visited.Add(user.ID) {
 			continue
 		}
 
-		// now mark them as visited
-		visited[user.ID] = true
-
 		// test if this user is allowed to see the issue/pull
-		if !models.CheckRepoUnitUser(ctx.Issue.Repo, user, checkUnit) {
+		if !access_model.CheckRepoUnitUser(ctx, ctx.Issue.Repo, user, checkUnit) {
 			continue
 		}
 
@@ -171,16 +172,16 @@ func mailIssueCommentBatch(ctx *mailCommentContext, users []*user_model.User, vi
 
 // MailParticipants sends new issue thread created emails to repository watchers
 // and mentioned people.
-func MailParticipants(issue *models.Issue, doer *user_model.User, opType models.ActionType, mentions []*user_model.User) error {
+func MailParticipants(issue *issues_model.Issue, doer *user_model.User, opType activities_model.ActionType, mentions []*user_model.User) error {
 	if setting.MailService == nil {
 		// No mail service configured
 		return nil
 	}
 
 	content := issue.Content
-	if opType == models.ActionCloseIssue || opType == models.ActionClosePullRequest ||
-		opType == models.ActionReopenIssue || opType == models.ActionReopenPullRequest ||
-		opType == models.ActionMergePullRequest {
+	if opType == activities_model.ActionCloseIssue || opType == activities_model.ActionClosePullRequest ||
+		opType == activities_model.ActionReopenIssue || opType == activities_model.ActionReopenPullRequest ||
+		opType == activities_model.ActionMergePullRequest {
 		content = ""
 	}
 	if err := mailIssueCommentToParticipants(

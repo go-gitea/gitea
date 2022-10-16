@@ -15,7 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -24,13 +23,14 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/translation/i18n"
+	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/typesniffer"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/agit"
 	"code.gitea.io/gitea/services/forms"
+	container_service "code.gitea.io/gitea/services/packages/container"
 	user_service "code.gitea.io/gitea/services/user"
 )
 
@@ -91,6 +91,11 @@ func HandleUsernameChange(ctx *context.Context, user *user_model.User, newName s
 		return err
 	}
 
+	if err := container_service.UpdateRepositoryNames(ctx, user, newName); err != nil {
+		ctx.ServerError("UpdateRepositoryNames", err)
+		return err
+	}
+
 	log.Trace("User name changed: %s -> %s", user.Name, newName)
 	return nil
 }
@@ -137,7 +142,7 @@ func ProfilePost(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_profile_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_profile_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings")
 }
 
@@ -180,7 +185,7 @@ func UpdateAvatarSetting(ctx *context.Context, form *forms.AvatarForm, ctxUser *
 	} else if ctxUser.UseCustomAvatar && ctxUser.Avatar == "" {
 		// No avatar is uploaded but setting has been changed to enable,
 		// generate a random one when needed.
-		if err := user_model.GenerateRandomAvatar(ctxUser); err != nil {
+		if err := user_model.GenerateRandomAvatar(ctx, ctxUser); err != nil {
 			log.Error("GenerateRandomAvatar[%d]: %v", ctxUser.ID, err)
 		}
 	}
@@ -304,7 +309,7 @@ func Repos(ctx *context.Context) {
 			return
 		}
 
-		userRepos, _, err := models.GetUserRepositories(&models.SearchRepoOptions{
+		userRepos, _, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{
 			Actor:   ctxUser,
 			Private: true,
 			ListOptions: db.ListOptions{
@@ -329,7 +334,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Dirs"] = repoNames
 		ctx.Data["ReposMap"] = repos
 	} else {
-		repos, count64, err := models.GetUserRepositories(&models.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
+		repos, count64, err := repo_model.GetUserRepositories(&repo_model.SearchRepoOptions{Actor: ctxUser, Private: true, ListOptions: opts})
 		if err != nil {
 			ctx.ServerError("GetUserRepositories", err)
 			return
@@ -348,7 +353,7 @@ func Repos(ctx *context.Context) {
 		ctx.Data["Repos"] = repos
 	}
 	ctx.Data["Owner"] = ctxUser
-	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
+	pager := context.NewPagination(count, opts.PageSize, opts.Page, 5)
 	pager.SetDefaultParams(ctx)
 	ctx.Data["Page"] = pager
 	ctx.HTML(http.StatusOK, tplSettingsRepositories)
@@ -426,7 +431,7 @@ func UpdateUserLang(ctx *context.Context) {
 	middleware.SetLocaleCookie(ctx.Resp, ctx.Doer.Language, 0)
 
 	log.Trace("User settings updated: %s", ctx.Doer.Name)
-	ctx.Flash.Success(i18n.Tr(ctx.Doer.Language, "settings.update_language_success"))
+	ctx.Flash.Success(translation.NewLocale(ctx.Doer.Language).Tr("settings.update_language_success"))
 	ctx.Redirect(setting.AppSubURL + "/user/settings/appearance")
 }
 

@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -39,11 +38,6 @@ func Home(ctx *context.Context) {
 	}
 
 	org := ctx.Org.Organization
-
-	if !organization.HasOrgOrUserVisible(ctx, org.AsUser(), ctx.Doer) {
-		ctx.NotFound("HasOrgOrUserVisible", nil)
-		return
-	}
 
 	ctx.Data["PageIsUserProfile"] = true
 	ctx.Data["Title"] = org.DisplayName()
@@ -105,7 +99,7 @@ func Home(ctx *context.Context) {
 		count int64
 		err   error
 	)
-	repos, count, err = models.SearchRepository(&models.SearchRepoOptions{
+	repos, count, err = repo_model.SearchRepository(&repo_model.SearchRepoOptions{
 		ListOptions: db.ListOptions{
 			PageSize: setting.UI.User.RepoPagingNum,
 			Page:     page,

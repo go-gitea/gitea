@@ -34,6 +34,7 @@ Gitea supports acting as an OAuth2 provider to allow third party applications to
 ## Supported OAuth2 Grants
 
 At the moment Gitea only supports the [**Authorization Code Grant**](https://tools.ietf.org/html/rfc6749#section-1.3.1) standard with additional support of the following extensions:
+
 - [Proof Key for Code Exchange (PKCE)](https://tools.ietf.org/html/rfc7636)
 - [OpenID Connect (OIDC)](https://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth)
 
@@ -41,13 +42,13 @@ To use the Authorization Code Grant as a third party application it is required 
 
 ## Scopes
 
-Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and his/her organizations.
+Currently Gitea does not support scopes (see [#4300](https://github.com/go-gitea/gitea/issues/4300)) and all third party applications will be granted access to all resources of the user and their organizations.
 
 ## Example
 
 **Note:** This example does not use PKCE.
 
-1. Redirect to user to the authorization endpoint in order to get his/her consent for accessing the resources:
+1. Redirect to user to the authorization endpoint in order to get their consent for accessing the resources:
 
    ```curl
    https://[YOUR-GITEA-URL]/login/oauth/authorize?client_id=CLIENT_ID&redirect_uri=REDIRECT_URI& response_type=code&state=STATE

@@ -73,6 +73,7 @@ func toUser(user *user_model.User, signed, authed bool) *api.User {
 	// only site admin will get these information and possibly user himself
 	if authed {
 		result.IsAdmin = user.IsAdmin
+		result.LoginName = user.LoginName
 		result.LastLogin = user.LastLoginUnix.AsTime()
 		result.Language = user.Language
 		result.IsActive = user.IsActive
@@ -93,5 +94,14 @@ func User2UserSettings(user *user_model.User) api.UserSettings {
 		HideEmail:     user.KeepEmailPrivate,
 		HideActivity:  user.KeepActivityPrivate,
 		DiffViewStyle: user.DiffViewStyle,
+	}
+}
+
+// ToUserAndPermission return User and its collaboration permission for a repository
+func ToUserAndPermission(user, doer *user_model.User, accessMode perm.AccessMode) api.RepoCollaboratorPermission {
+	return api.RepoCollaboratorPermission{
+		User:       ToUser(user, doer),
+		Permission: accessMode.String(),
+		RoleName:   accessMode.String(),
 	}
 }

@@ -82,7 +82,7 @@ func TestDingTalkPayload(t *testing.T) {
 
 		assert.Equal(t, "[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1\r\n[2020558](http://localhost:3000/test/repo/commit/2020558fe2e34debb818a514715839cabd25e778) commit message - user1", pl.(*DingtalkPayload).ActionCard.Text)
 		assert.Equal(t, "[test/repo:test] 2 new commits", pl.(*DingtalkPayload).ActionCard.Title)
-		assert.Equal(t, "view commit 2020558...2020558", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "view commits", pl.(*DingtalkPayload).ActionCard.SingleTitle)
 		assert.Equal(t, "http://localhost:3000/test/repo/src/test", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
@@ -187,6 +187,44 @@ func TestDingTalkPayload(t *testing.T) {
 		assert.Equal(t, "[test/repo] Repository created", pl.(*DingtalkPayload).ActionCard.Title)
 		assert.Equal(t, "view repository", pl.(*DingtalkPayload).ActionCard.SingleTitle)
 		assert.Equal(t, "http://localhost:3000/test/repo", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+	})
+
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(DingtalkPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] New wiki page 'index' (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' edited (Wiki change comment) by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.NotNil(t, pl)
+		require.IsType(t, &DingtalkPayload{}, pl)
+
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Text)
+		assert.Equal(t, "[test/repo] Wiki page 'index' deleted by user1", pl.(*DingtalkPayload).ActionCard.Title)
+		assert.Equal(t, "view wiki", pl.(*DingtalkPayload).ActionCard.SingleTitle)
+		assert.Equal(t, "http://localhost:3000/test/repo/wiki/index", parseRealSingleURL(pl.(*DingtalkPayload).ActionCard.SingleURL))
 	})
 
 	t.Run("Release", func(t *testing.T) {

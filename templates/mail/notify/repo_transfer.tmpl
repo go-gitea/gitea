@@ -8,11 +8,11 @@
 {{$url := printf "<a href='%[1]s'>%[2]s</a>" (Escape .Link) (Escape .Repo)}}
 <body>
 	<p>{{.Subject}}.
-		{{.i18n.Tr "mail.repo.transfer.body" $url | Str2html}}
+		{{.locale.Tr "mail.repo.transfer.body" $url | Str2html}}
 	<p>
 		---
 		<br>
-		<a href="{{.Link}}">{{.i18n.Tr "mail.view_it_on" AppName}}</a>.
+		<a href="{{.Link}}">{{.locale.Tr "mail.view_it_on" AppName}}</a>.
 	</p>
 </body>
 </html>

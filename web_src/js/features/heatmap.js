@@ -1,4 +1,4 @@
-import Vue from 'vue';
+import {createApp} from 'vue';
 import ActivityHeatmap from '../components/ActivityHeatmap.vue';
 
 export default function initHeatmap() {
@@ -17,11 +17,9 @@ export default function initHeatmap() {
       return {date: new Date(v), count: heatmap[v]};
     });
 
-    const View = Vue.extend({
-      render: (createElement) => createElement(ActivityHeatmap, {props: {values}}),
-    });
+    const View = createApp(ActivityHeatmap, {values});
 
-    new View().$mount(el);
+    View.mount(el);
   } catch (err) {
     console.error('Heatmap failed to load', err);
     el.textContent = 'Heatmap failed to load';

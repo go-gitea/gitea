@@ -14,7 +14,7 @@ import (
 // GetUserByParamsName get user by name
 func GetUserByParamsName(ctx *context.APIContext, name string) *user_model.User {
 	username := ctx.Params(name)
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(ctx, username)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			if redirectUserID, err2 := user_model.LookupUserRedirect(username); err2 == nil {

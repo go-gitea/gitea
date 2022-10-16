@@ -48,5 +48,5 @@ func recalculateStars(x *xorm.Engine) (err error) {
 
 	log.Debug("recalculate Stars number for all user finished")
 
-	return
+	return err
 }

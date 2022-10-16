@@ -6,7 +6,6 @@ package repo
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"code.gitea.io/gitea/models"
@@ -19,7 +18,6 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/test"
-	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/services/forms"
 
@@ -27,18 +25,13 @@ import (
 )
 
 func createSSHAuthorizedKeysTmpPath(t *testing.T) func() {
-	tmpDir, err := os.MkdirTemp("", "tmp-ssh")
-	if err != nil {
-		assert.Fail(t, "Unable to create temporary directory: %v", err)
-		return nil
-	}
+	tmpDir := t.TempDir()
 
 	oldPath := setting.SSH.RootPath
 	setting.SSH.RootPath = tmpDir
 
 	return func() {
 		setting.SSH.RootPath = oldPath
-		util.RemoveAll(tmpDir)
 	}
 }
 
@@ -130,7 +123,7 @@ func TestCollaborationPost(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 
-	exists, err := models.IsCollaborator(re.ID, 4)
+	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 }
@@ -188,7 +181,7 @@ func TestCollaborationPost_AddCollaboratorTwice(t *testing.T) {
 
 	assert.EqualValues(t, http.StatusSeeOther, ctx.Resp.Status())
 
-	exists, err := models.IsCollaborator(re.ID, 4)
+	exists, err := repo_model.IsCollaborator(ctx, re.ID, 4)
 	assert.NoError(t, err)
 	assert.True(t, exists)
 

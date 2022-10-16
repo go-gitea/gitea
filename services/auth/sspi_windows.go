@@ -5,6 +5,7 @@
 package auth
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"strings"
@@ -16,6 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/templates"
+	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web/middleware"
 	"code.gitea.io/gitea/services/auth/source/sspi"
 	"code.gitea.io/gitea/services/mailer"
@@ -51,21 +53,14 @@ type SSPI struct {
 }
 
 // Init creates a new global websspi.Authenticator object
-func (s *SSPI) Init() error {
+func (s *SSPI) Init(ctx context.Context) error {
 	config := websspi.NewConfig()
 	var err error
 	sspiAuth, err = websspi.New(config)
 	if err != nil {
 		return err
 	}
-	s.rnd = render.New(render.Options{
-		Extensions:    []string{".tmpl"},
-		Directory:     "templates",
-		Funcs:         templates.NewFuncMap(),
-		Asset:         templates.GetAsset,
-		AssetNames:    templates.GetAssetNames,
-		IsDevelopment: !setting.IsProd,
-	})
+	_, s.rnd = templates.HTMLRenderer(ctx)
 	return nil
 }
 
@@ -126,7 +121,7 @@ func (s *SSPI) Verify(req *http.Request, w http.ResponseWriter, store DataStore,
 	}
 	log.Info("Authenticated as %s\n", username)
 
-	user, err := user_model.GetUserByName(username)
+	user, err := user_model.GetUserByName(req.Context(), username)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			log.Error("GetUserByName: %v", err)
@@ -179,7 +174,7 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 	} else if middleware.IsAPIPath(req) || isAttachmentDownload(req) {
 		shouldAuth = true
 	}
-	return
+	return shouldAuth
 }
 
 // newUser creates a new user object for the purpose of automatic registration
@@ -187,17 +182,20 @@ func (s *SSPI) shouldAuthenticate(req *http.Request) (shouldAuth bool) {
 func (s *SSPI) newUser(username string, cfg *sspi.Source) (*user_model.User, error) {
 	email := gouuid.New().String() + "@localhost.localdomain"
 	user := &user_model.User{
-		Name:                         username,
-		Email:                        email,
-		KeepEmailPrivate:             true,
-		Passwd:                       gouuid.New().String(),
-		IsActive:                     cfg.AutoActivateUsers,
-		Language:                     cfg.DefaultLanguage,
-		UseCustomAvatar:              true,
-		Avatar:                       avatars.DefaultAvatarLink(),
-		EmailNotificationsPreference: user_model.EmailNotificationsDisabled,
+		Name:            username,
+		Email:           email,
+		Passwd:          gouuid.New().String(),
+		Language:        cfg.DefaultLanguage,
+		UseCustomAvatar: true,
+		Avatar:          avatars.DefaultAvatarLink(),
 	}
-	if err := user_model.CreateUser(user); err != nil {
+	emailNotificationPreference := user_model.EmailNotificationsDisabled
+	overwriteDefault := &user_model.CreateUserOverwriteOptions{
+		IsActive:                     util.OptionalBoolOf(cfg.AutoActivateUsers),
+		KeepEmailPrivate:             util.OptionalBoolTrue,
+		EmailNotificationsPreference: &emailNotificationPreference,
+	}
+	if err := user_model.CreateUser(user, overwriteDefault); err != nil {
 		return nil, err
 	}
 

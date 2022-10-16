@@ -2,37 +2,37 @@
 	{{avatar .SignedUser 48 "commit-avatar"}}
 	<div class="commit-form">
 		<h3>{{- if .CanCommitToBranch.WillSign}}
-			<span title="{{.i18n.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>
-			{{.i18n.Tr "repo.editor.commit_signed_changes"}}
+			<span title="{{.locale.Tr "repo.signing.will_sign" .CanCommitToBranch.SigningKey}}">{{svg "octicon-lock" 24}}</span>
+			{{.locale.Tr "repo.editor.commit_signed_changes"}}
 		{{- else}}
-			<span title="{{.i18n.Tr (printf "repo.signing.wont_sign.%s" .CanCommitToBranch.WontSignReason)}}">{{svg "octicon-unlock" 24}}</span>
-			{{.i18n.Tr "repo.editor.commit_changes"}}
+			<span title="{{.locale.Tr (printf "repo.signing.wont_sign.%s" .CanCommitToBranch.WontSignReason)}}">{{svg "octicon-unlock" 24}}</span>
+			{{.locale.Tr "repo.editor.commit_changes"}}
 		{{- end}}</h3>
 		<div class="field">
-			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{.i18n.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{.i18n.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{.i18n.Tr "repo.editor.add_tmpl"}}{{else}}{{.i18n.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
+			<input name="commit_summary" placeholder="{{if .PageIsDelete}}{{.locale.Tr "repo.editor.delete" .TreePath}}{{else if .PageIsUpload}}{{.locale.Tr "repo.editor.upload_files_to_dir" .TreePath}}{{else if .IsNewFile}}{{.locale.Tr "repo.editor.add_tmpl"}}{{else}}{{.locale.Tr "repo.editor.update" .TreePath}}{{end}}" value="{{.commit_summary}}" autofocus>
 		</div>
 		<div class="field">
-			<textarea name="commit_message" placeholder="{{.i18n.Tr "repo.editor.commit_message_desc"}}" rows="5">{{.commit_message}}</textarea>
+			<textarea name="commit_message" placeholder="{{.locale.Tr "repo.editor.commit_message_desc"}}" rows="5">{{.commit_message}}</textarea>
 		</div>
 		<div class="inline field">
 			<div class="ui checkbox">
 				<input name="signoff" type="checkbox" tabindex="0" class="hidden">
-				<label>{{.i18n.Tr "repo.editor.signoff_desc"}}</label>
+				<label>{{.locale.Tr "repo.editor.signoff_desc"}}</label>
 			</div>
 		</div>
 		<div class="quick-pull-choice js-quick-pull-choice">
 			<div class="field">
 				<div class="ui radio checkbox {{if not .CanCommitToBranch.CanCommitToBranch}}disabled{{end}}">
-					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
+					<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="direct" button_text="{{.locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "direct"}}checked{{end}}>
 					<label>
 						{{svg "octicon-git-commit"}}
-						{{.i18n.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
+						{{.locale.Tr "repo.editor.commit_directly_to_this_branch" (.BranchName|Escape) | Safe}}
 						{{if not .CanCommitToBranch.CanCommitToBranch}}
 						<div class="ui visible small warning message">
-							{{.i18n.Tr "repo.editor.no_commit_to_branch"}}
+							{{.locale.Tr "repo.editor.no_commit_to_branch"}}
 							<ul>
-								{{if not .CanCommitToBranch.UserCanPush}}<li>{{.i18n.Tr "repo.editor.user_no_push_to_branch"}}</li>{{end}}
-								{{if and .CanCommitToBranch.RequireSigned (not .CanCommitToBranch.WillSign)}}<li>{{.i18n.Tr "repo.editor.require_signed_commit"}}</li>{{end}}
+								{{if not .CanCommitToBranch.UserCanPush}}<li>{{.locale.Tr "repo.editor.user_no_push_to_branch"}}</li>{{end}}
+								{{if and .CanCommitToBranch.RequireSigned (not .CanCommitToBranch.WillSign)}}<li>{{.locale.Tr "repo.editor.require_signed_commit"}}</li>{{end}}
 							</ul>
 						</div>
 						{{end}}
@@ -44,16 +44,16 @@
 				{{$prUnit := .Repository.MustGetUnit $.UnitTypePullRequests}}
 				<div class="ui radio checkbox">
 					{{if $pullRequestEnabled}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.propose_file_change"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{else}}
-						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.i18n.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
+						<input type="radio" class="js-quick-pull-choice-option" name="commit_choice" value="commit-to-new-branch" button_text="{{.locale.Tr "repo.editor.commit_changes"}}" {{if eq .commit_choice "commit-to-new-branch"}}checked{{end}}>
 					{{end}}
 					<label>
 						{{svg "octicon-git-pull-request"}}
 						{{if $pullRequestEnabled}}
-							{{.i18n.Tr "repo.editor.create_new_branch" | Safe}}
+							{{.locale.Tr "repo.editor.create_new_branch" | Safe}}
 						{{else}}
-							{{.i18n.Tr "repo.editor.create_new_branch_np" | Safe}}
+							{{.locale.Tr "repo.editor.create_new_branch_np" | Safe}}
 						{{end}}
 					</label>
 				</div>
@@ -61,14 +61,14 @@
 			<div class="quick-pull-branch-name {{if not (eq .commit_choice "commit-to-new-branch")}}hide{{end}}">
 				<div class="new-branch-name-input field {{if .Err_NewBranchName}}error{{end}}">
 					{{svg "octicon-git-branch"}}
-					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.i18n.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}}>
+					<input type="text" name="new_branch_name" value="{{.new_branch_name}}" class="input-contrast mr-2 js-quick-pull-new-branch-name" placeholder="{{.locale.Tr "repo.editor.new_branch_name_desc"}}" {{if eq .commit_choice "commit-to-new-branch"}}required{{end}}>
 					<span class="text-muted js-quick-pull-normalization-info"></span>
 				</div>
 			</div>
 		</div>
 	</div>
 	<button id="commit-button" type="submit" class="ui green button">
-		{{if eq .commit_choice "commit-to-new-branch"}}{{.i18n.Tr "repo.editor.propose_file_change"}}{{else}}{{.i18n.Tr "repo.editor.commit_changes"}}{{end}}
+		{{if eq .commit_choice "commit-to-new-branch"}}{{.locale.Tr "repo.editor.propose_file_change"}}{{else}}{{.locale.Tr "repo.editor.commit_changes"}}{{end}}
 	</button>
-	<a class="ui button red" href="{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}">{{.i18n.Tr "repo.editor.cancel"}}</a>
+	<a class="ui button red" href="{{$.BranchLink}}/{{PathEscapeSegments .TreePath}}">{{.locale.Tr "repo.editor.cancel"}}</a>
 </div>

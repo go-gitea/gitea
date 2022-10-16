@@ -8,7 +8,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	"code.gitea.io/gitea/models/db"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 )
@@ -40,7 +42,7 @@ func GetThread(ctx *context.APIContext) {
 	if n == nil {
 		return
 	}
-	if err := n.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
+	if err := n.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
@@ -84,25 +86,25 @@ func ReadThread(ctx *context.APIContext) {
 
 	targetStatus := statusStringToNotificationStatus(ctx.FormString("to-status"))
 	if targetStatus == 0 {
-		targetStatus = models.NotificationStatusRead
+		targetStatus = activities_model.NotificationStatusRead
 	}
 
-	notif, err := models.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
+	notif, err := activities_model.SetNotificationStatus(n.ID, ctx.Doer, targetStatus)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
-	if err = notif.LoadAttributes(); err != nil && !models.IsErrCommentNotExist(err) {
+	if err = notif.LoadAttributes(); err != nil && !issues_model.IsErrCommentNotExist(err) {
 		ctx.InternalServerError(err)
 		return
 	}
 	ctx.JSON(http.StatusResetContent, convert.ToNotificationThread(notif))
 }
 
-func getThread(ctx *context.APIContext) *models.Notification {
-	n, err := models.GetNotificationByID(ctx.ParamsInt64(":id"))
+func getThread(ctx *context.APIContext) *activities_model.Notification {
+	n, err := activities_model.GetNotificationByID(ctx.ParamsInt64(":id"))
 	if err != nil {
-		if models.IsErrNotExist(err) {
+		if db.IsErrNotExist(err) {
 			ctx.Error(http.StatusNotFound, "GetNotificationByID", err)
 		} else {
 			ctx.InternalServerError(err)

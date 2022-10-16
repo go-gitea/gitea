@@ -17,6 +17,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
@@ -89,7 +90,7 @@ func GitGcRepos(ctx context.Context, timeout time.Duration, args ...string) erro
 			}
 
 			// Now update the size of the repository
-			if err := models.UpdateRepoSize(ctx, repo); err != nil {
+			if err := repo_module.UpdateRepoSize(ctx, repo); err != nil {
 				log.Error("Updating size as part of garbage collection failed for %v. Stdout: %s\nError: %v", repo, stdout, err)
 				desc := fmt.Sprintf("Updating size as part of garbage collection failed for %s. Stdout: %s\nError: %v", repo.RepoPath(), stdout, err)
 				if err = admin_model.CreateRepositoryNotice(desc); err != nil {

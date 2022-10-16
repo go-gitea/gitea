@@ -19,6 +19,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	asymkey_service "code.gitea.io/gitea/services/asymkey"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -34,7 +35,7 @@ type TemporaryUploadRepository struct {
 
 // NewTemporaryUploadRepository creates a new temporary upload repository
 func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Repository) (*TemporaryUploadRepository, error) {
-	basePath, err := models.CreateTemporaryPath("upload")
+	basePath, err := repo_module.CreateTemporaryPath("upload")
 	if err != nil {
 		return nil, err
 	}
@@ -45,7 +46,7 @@ func NewTemporaryUploadRepository(ctx context.Context, repo *repo_model.Reposito
 // Close the repository cleaning up all files
 func (t *TemporaryUploadRepository) Close() {
 	defer t.gitRepo.Close()
-	if err := models.RemoveTemporaryPath(t.basePath); err != nil {
+	if err := repo_module.RemoveTemporaryPath(t.basePath); err != nil {
 		log.Error("Failed to remove temporary path %s: %v", t.basePath, err)
 	}
 }
@@ -228,11 +229,6 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 	authorSig := author.NewGitSig()
 	committerSig := committer.NewGitSig()
 
-	err := git.LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Unable to get git version: %v", err)
-	}
-
 	// Because this may call hooks we should pass in the environment
 	env := append(os.Environ(),
 		"GIT_AUTHOR_NAME="+authorSig.Name,
@@ -252,34 +248,31 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 		args = []string{"commit-tree", treeHash}
 	}
 
-	// Determine if we should sign
-	if git.CheckGitVersionAtLeast("1.7.9") == nil {
-		var sign bool
-		var keyID string
-		var signer *git.Signature
-		if parent != "" {
-			sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
-		} else {
-			sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
-		}
-		if sign {
-			args = append(args, "-S"+keyID)
-			if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
-				if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
-					// Add trailers
-					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-authored-by: ")
-					_, _ = messageBytes.WriteString(committerSig.String())
-					_, _ = messageBytes.WriteString("\n")
-					_, _ = messageBytes.WriteString("Co-committed-by: ")
-					_, _ = messageBytes.WriteString(committerSig.String())
-					_, _ = messageBytes.WriteString("\n")
-				}
-				committerSig = signer
+	var sign bool
+	var keyID string
+	var signer *git.Signature
+	if parent != "" {
+		sign, keyID, signer, _ = asymkey_service.SignCRUDAction(t.ctx, t.repo.RepoPath(), author, t.basePath, parent)
+	} else {
+		sign, keyID, signer, _ = asymkey_service.SignInitialCommit(t.ctx, t.repo.RepoPath(), author)
+	}
+	if sign {
+		args = append(args, "-S"+keyID)
+		if t.repo.GetTrustModel() == repo_model.CommitterTrustModel || t.repo.GetTrustModel() == repo_model.CollaboratorCommitterTrustModel {
+			if committerSig.Name != authorSig.Name || committerSig.Email != authorSig.Email {
+				// Add trailers
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-authored-by: ")
+				_, _ = messageBytes.WriteString(committerSig.String())
+				_, _ = messageBytes.WriteString("\n")
+				_, _ = messageBytes.WriteString("Co-committed-by: ")
+				_, _ = messageBytes.WriteString(committerSig.String())
+				_, _ = messageBytes.WriteString("\n")
 			}
-		} else if git.CheckGitVersionAtLeast("2.0.0") == nil {
-			args = append(args, "--no-gpg-sign")
+			committerSig = signer
 		}
+	} else {
+		args = append(args, "--no-gpg-sign")
 	}
 
 	if signoff {
@@ -315,7 +308,7 @@ func (t *TemporaryUploadRepository) CommitTreeWithDate(parent string, author, co
 // Push the provided commitHash to the repository branch by the provided user
 func (t *TemporaryUploadRepository) Push(doer *user_model.User, commitHash, branch string) error {
 	// Because calls hooks we need to pass in the environment
-	env := models.PushingEnvironment(doer, t.repo)
+	env := repo_module.PushingEnvironment(doer, t.repo)
 	if err := git.Push(t.ctx, t.basePath, git.PushOptions{
 		Remote: t.repo.RepoPath(),
 		Branch: strings.TrimSpace(commitHash) + ":" + git.BranchPrefix + strings.TrimSpace(branch),

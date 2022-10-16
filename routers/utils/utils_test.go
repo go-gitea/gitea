@@ -18,23 +18,6 @@ func TestRemoveUsernameParameterSuffix(t *testing.T) {
 	assert.Equal(t, "", RemoveUsernameParameterSuffix(""))
 }
 
-func TestIsValidSlackChannel(t *testing.T) {
-	tt := []struct {
-		channelName string
-		expected    bool
-	}{
-		{"gitea", true},
-		{"  ", false},
-		{"#", false},
-		{"gitea   ", true},
-		{"  gitea", true},
-	}
-
-	for _, v := range tt {
-		assert.Equal(t, v.expected, IsValidSlackChannel(v.channelName))
-	}
-}
-
 func TestIsExternalURL(t *testing.T) {
 	setting.AppURL = "https://try.gitea.io/"
 	type test struct {

@@ -4,6 +4,9 @@ import {mqBinarySearch} from '../utils.js';
 import createDropzone from './dropzone.js';
 import {initCompColorPicker} from './comp/ColorPicker.js';
 import {showGlobalErrorMessage} from '../bootstrap.js';
+import {attachDropdownAria} from './aria.js';
+import {handleGlobalEnterQuickSubmit} from './comp/QuickSubmit.js';
+import {initTooltip} from '../modules/tippy.js';
 
 const {appUrl, csrfToken} = window.config;
 
@@ -44,9 +47,10 @@ export function initFootLanguageMenu() {
 
 
 export function initGlobalEnterQuickSubmit() {
-  $('.js-quick-submit').on('keydown', function (e) {
-    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.keyCode === 13 || e.keyCode === 10)) {
-      $(this).closest('form').trigger('submit');
+  $(document).on('keydown', '.js-quick-submit', (e) => {
+    if (((e.ctrlKey && !e.altKey) || e.metaKey) && (e.key === 'Enter')) {
+      handleGlobalEnterQuickSubmit(e.target);
+      return false;
     }
   });
 }
@@ -59,15 +63,13 @@ export function initGlobalButtonClickOnEnter() {
   });
 }
 
-export function initGlobalCommon() {
-  // Show exact time
-  $('.time-since').each(function () {
-    $(this)
-      .addClass('tooltip')
-      .attr('data-content', $(this).attr('title'))
-      .attr('title', '');
-  });
+export function initGlobalTooltips() {
+  for (const el of document.getElementsByClassName('tooltip')) {
+    initTooltip(el);
+  }
+}
 
+export function initGlobalCommon() {
   // Undo Safari emoji glitch fix at high enough zoom levels
   if (navigator.userAgent.match('Safari')) {
     $(window).resize(() => {
@@ -82,45 +84,34 @@ export function initGlobalCommon() {
   }
 
   // Semantic UI modules.
-  $('.dropdown:not(.custom)').dropdown({
+  const $uiDropdowns = $('.ui.dropdown');
+  $uiDropdowns.filter(':not(.custom)').dropdown({
     fullTextSearch: 'exact'
   });
-  $('.jump.dropdown').dropdown({
+  $uiDropdowns.filter('.jump').dropdown({
     action: 'hide',
     onShow() {
-      $('.tooltip').popup('hide');
+      // hide associated tooltip while dropdown is open
+      this._tippy?.hide();
+      this._tippy?.disable();
+    },
+    onHide() {
+      this._tippy?.enable();
     },
     fullTextSearch: 'exact'
   });
-  $('.slide.up.dropdown').dropdown({
+  $uiDropdowns.filter('.slide.up').dropdown({
     transition: 'slide up',
     fullTextSearch: 'exact'
   });
-  $('.upward.dropdown').dropdown({
+  $uiDropdowns.filter('.upward').dropdown({
     direction: 'upward',
     fullTextSearch: 'exact'
   });
+  attachDropdownAria($uiDropdowns);
+
   $('.ui.checkbox').checkbox();
-  $('.ui.progress').progress({
-    showActivity: false
-  });
 
-  // init popups
-  $('.tooltip').each((_, el) => {
-    const $el = $(el);
-    const attr = $el.attr('data-variation');
-    const attrs = attr ? attr.split(' ') : [];
-    const variations = new Set([...attrs, 'inverted', 'tiny']);
-    $el.attr('data-variation', [...variations].join(' ')).popup();
-  });
-
-  $('.top.menu .tooltip').popup({
-    onShow() {
-      if ($('.top.menu .menu.transition').hasClass('visible')) {
-        return false;
-      }
-    }
-  });
   $('.tabular.menu .item').tab();
   $('.tabable.menu .item').tab();
 
@@ -141,6 +132,14 @@ export function initGlobalCommon() {
     } else {
       window.location = href;
     }
+  });
+
+  // prevent multiple form submissions on forms containing .loading-button
+  document.addEventListener('submit', (e) => {
+    const btn = e.target.querySelector('.loading-button');
+    if (!btn) return;
+    if (btn.classList.contains('loading')) return e.preventDefault();
+    btn.classList.add('loading');
   });
 }
 
@@ -164,7 +163,8 @@ export function initGlobalDropzone() {
       thumbnailWidth: 480,
       thumbnailHeight: 480,
       init() {
-        this.on('success', (_file, data) => {
+        this.on('success', (file, data) => {
+          file.uuid = data.uuid;
           const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
           $dropzone.find('.files').append(input);
         });
@@ -355,7 +355,8 @@ export function initGlobalButtons() {
  */
 export function checkAppUrl() {
   const curUrl = window.location.href;
-  if (curUrl.startsWith(appUrl)) {
+  // some users visit "https://domain/gitea" while appUrl is "https://domain/gitea/", there should be no warning
+  if (curUrl.startsWith(appUrl) || `${curUrl}/` === appUrl) {
     return;
   }
   if (document.querySelector('.page-content.install')) {

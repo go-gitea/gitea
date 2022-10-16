@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build !gogit
-// +build !gogit
 
 package git
 
@@ -33,7 +32,8 @@ type Repository struct {
 	checkReader *bufio.Reader
 	checkWriter WriteCloserError
 
-	Ctx context.Context
+	Ctx             context.Context
+	LastCommitCache *LastCommitCache
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
@@ -102,5 +102,7 @@ func (repo *Repository) Close() (err error) {
 		repo.checkReader = nil
 		repo.checkWriter = nil
 	}
-	return
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
+	return err
 }

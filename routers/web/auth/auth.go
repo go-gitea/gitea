@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/password"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
@@ -64,7 +65,7 @@ func AutoSignIn(ctx *context.Context) (bool, error) {
 		}
 	}()
 
-	u, err := user_model.GetUserByName(uname)
+	u, err := user_model.GetUserByName(ctx, uname)
 	if err != nil {
 		if !user_model.IsErrUserNotExist(err) {
 			return false, fmt.Errorf("GetUserByName: %v", err)
@@ -266,7 +267,7 @@ func SignInPost(ctx *context.Context) {
 	}
 
 	if hasTOTPtwofa {
-		// User will need to use U2F, save data
+		// User will need to use WebAuthn, save data
 		if err := ctx.Session.Set("totpEnrolled", u.ID); err != nil {
 			ctx.ServerError("UserSignIn: Unable to set WebAuthn Enrolled in session", err)
 			return
@@ -278,7 +279,7 @@ func SignInPost(ctx *context.Context) {
 		return
 	}
 
-	// If we have U2F redirect there first
+	// If we have WebAuthn redirect there first
 	if hasWebAuthnTwofa {
 		ctx.Redirect(setting.AppSubURL + "/user/webauthn")
 		return
@@ -317,7 +318,6 @@ func handleSignInFull(ctx *context.Context, u *user_model.User, remember, obeyRe
 	_ = ctx.Session.Delete("openid_determined_username")
 	_ = ctx.Session.Delete("twofaUid")
 	_ = ctx.Session.Delete("twofaRemember")
-	_ = ctx.Session.Delete("u2fChallenge")
 	_ = ctx.Session.Delete("linkAccount")
 	if err := ctx.Session.Set("uid", u.ID); err != nil {
 		log.Error("Error setting uid %d in session: %v", u.ID, err)
@@ -415,6 +415,8 @@ func SignUp(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["PageIsSignUp"] = true
 
 	// Show Disabled Registration message if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -436,6 +438,8 @@ func SignUpPost(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["PageIsSignUp"] = true
 
 	// Permission denied if DisableRegistration or AllowOnlyExternalRegistration options are true
@@ -459,6 +463,8 @@ func SignUpPost(ctx *context.Context) {
 			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+		case setting.MCaptcha:
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -507,14 +513,12 @@ func SignUpPost(ctx *context.Context) {
 	}
 
 	u := &user_model.User{
-		Name:         form.UserName,
-		Email:        form.Email,
-		Passwd:       form.Password,
-		IsActive:     !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
-		IsRestricted: setting.Service.DefaultUserIsRestricted,
+		Name:   form.UserName,
+		Email:  form.Email,
+		Passwd: form.Password,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, false) {
+	if !createAndHandleCreatedUser(ctx, tplSignUp, form, u, nil, nil, false) {
 		// error already handled
 		return
 	}
@@ -525,8 +529,8 @@ func SignUpPost(ctx *context.Context) {
 
 // createAndHandleCreatedUser calls createUserInContext and
 // then handleUserCreated.
-func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, gothUser *goth.User, allowLink bool) bool {
-	if !createUserInContext(ctx, tpl, form, u, gothUser, allowLink) {
+func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) bool {
+	if !createUserInContext(ctx, tpl, form, u, overwrites, gothUser, allowLink) {
 		return false
 	}
 	return handleUserCreated(ctx, u, gothUser)
@@ -534,8 +538,8 @@ func createAndHandleCreatedUser(ctx *context.Context, tpl base.TplName, form int
 
 // createUserInContext creates a user and handles errors within a given context.
 // Optionally a template can be specified.
-func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, gothUser *goth.User, allowLink bool) (ok bool) {
-	if err := user_model.CreateUser(u); err != nil {
+func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{}, u *user_model.User, overwrites *user_model.CreateUserOverwriteOptions, gothUser *goth.User, allowLink bool) (ok bool) {
+	if err := user_model.CreateUser(u, overwrites); err != nil {
 		if allowLink && (user_model.IsErrUserAlreadyExist(err) || user_model.IsErrEmailAlreadyUsed(err)) {
 			if setting.OAuth2Client.AccountLinking == setting.OAuth2AccountLinkingAuto {
 				var user *user_model.User
@@ -602,7 +606,7 @@ func createUserInContext(ctx *context.Context, tpl base.TplName, form interface{
 // sends a confirmation email if required.
 func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.User) (ok bool) {
 	// Auto-set admin for the only user.
-	if user_model.CountUsers() == 1 {
+	if user_model.CountUsers(nil) == 1 {
 		u.IsAdmin = true
 		u.IsActive = true
 		u.SetLastLogin()
@@ -631,11 +635,13 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 
 		ctx.Data["IsSendRegisterMail"] = true
 		ctx.Data["Email"] = u.Email
-		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+		ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 		ctx.HTML(http.StatusOK, TplActivate)
 
-		if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
-			log.Error("Set cache(MailResendLimit) fail: %v", err)
+		if setting.CacheService.Enabled {
+			if err := ctx.Cache.Put("MailResendLimit_"+u.LowerName, u.LowerName, 180); err != nil {
+				log.Error("Set cache(MailResendLimit) fail: %v", err)
+			}
 		}
 		return
 	}
@@ -655,14 +661,16 @@ func Activate(ctx *context.Context) {
 		}
 		// Resend confirmation email.
 		if setting.Service.RegisterEmailConfirm {
-			if ctx.Cache.IsExist("MailResendLimit_" + ctx.Doer.LowerName) {
+			if setting.CacheService.Enabled && ctx.Cache.IsExist("MailResendLimit_"+ctx.Doer.LowerName) {
 				ctx.Data["ResendLimited"] = true
 			} else {
-				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale.Language())
+				ctx.Data["ActiveCodeLives"] = timeutil.MinutesToFriendly(setting.Service.ActiveCodeLives, ctx.Locale)
 				mailer.SendActivateAccountMail(ctx.Locale, ctx.Doer)
 
-				if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
-					log.Error("Set cache(MailResendLimit) fail: %v", err)
+				if setting.CacheService.Enabled {
+					if err := ctx.Cache.Put("MailResendLimit_"+ctx.Doer.LowerName, ctx.Doer.LowerName, 180); err != nil {
+						log.Error("Set cache(MailResendLimit) fail: %v", err)
+					}
 				}
 			}
 		} else {
@@ -791,7 +799,7 @@ func ActivateEmail(ctx *context.Context) {
 
 		if u, err := user_model.GetUserByID(email.UID); err != nil {
 			log.Warn("GetUserByID: %d", email.UID)
-		} else {
+		} else if setting.CacheService.Enabled {
 			// Allow user to validate more emails
 			_ = ctx.Cache.Delete("MailResendLimit_" + u.LowerName)
 		}

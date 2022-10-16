@@ -3,7 +3,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build vendor
-// +build vendor
 
 package main
 

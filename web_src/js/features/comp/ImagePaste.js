@@ -1,4 +1,5 @@
 import $ from 'jquery';
+
 const {csrfToken} = window.config;
 
 async function uploadFile(file, uploadUrl) {
@@ -21,72 +22,104 @@ function clipboardPastedImages(e) {
     if (!item.type || !item.type.startsWith('image/')) continue;
     files.push(item.getAsFile());
   }
-
-  if (files.length) {
-    e.preventDefault();
-    e.stopPropagation();
-  }
   return files;
 }
 
+class TextareaEditor {
+  constructor(editor) {
+    this.editor = editor;
+  }
 
-function insertAtCursor(field, value) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.substring(0, startPos) + value + field.value.substring(endPos, field.value.length);
-    field.selectionStart = startPos + value.length;
-    field.selectionEnd = startPos + value.length;
-  } else {
-    field.value += value;
+  insertPlaceholder(value) {
+    const editor = this.editor;
+    const startPos = editor.selectionStart;
+    const endPos = editor.selectionEnd;
+    editor.value = editor.value.substring(0, startPos) + value + editor.value.substring(endPos);
+    editor.selectionStart = startPos;
+    editor.selectionEnd = startPos + value.length;
+    editor.focus();
+  }
+
+  replacePlaceholder(oldVal, newVal) {
+    const editor = this.editor;
+    const startPos = editor.selectionStart;
+    const endPos = editor.selectionEnd;
+    if (editor.value.substring(startPos, endPos) === oldVal) {
+      editor.value = editor.value.substring(0, startPos) + newVal + editor.value.substring(endPos);
+      editor.selectionEnd = startPos + newVal.length;
+    } else {
+      editor.value = editor.value.replace(oldVal, newVal);
+      editor.selectionEnd -= oldVal.length;
+      editor.selectionEnd += newVal.length;
+    }
+    editor.selectionStart = editor.selectionEnd;
+    editor.focus();
   }
 }
 
-function replaceAndKeepCursor(field, oldval, newval) {
-  if (field.selectionStart || field.selectionStart === 0) {
-    const startPos = field.selectionStart;
-    const endPos = field.selectionEnd;
-    field.value = field.value.replace(oldval, newval);
-    field.selectionStart = startPos + newval.length - oldval.length;
-    field.selectionEnd = endPos + newval.length - oldval.length;
-  } else {
-    field.value = field.value.replace(oldval, newval);
+class CodeMirrorEditor {
+  constructor(editor) {
+    this.editor = editor;
+  }
+
+  insertPlaceholder(value) {
+    const editor = this.editor;
+    const startPoint = editor.getCursor('start');
+    const endPoint = editor.getCursor('end');
+    editor.replaceSelection(value);
+    endPoint.ch = startPoint.ch + value.length;
+    editor.setSelection(startPoint, endPoint);
+    editor.focus();
+  }
+
+  replacePlaceholder(oldVal, newVal) {
+    const editor = this.editor;
+    const endPoint = editor.getCursor('end');
+    if (editor.getSelection() === oldVal) {
+      editor.replaceSelection(newVal);
+    } else {
+      editor.setValue(editor.getValue().replace(oldVal, newVal));
+    }
+    endPoint.ch -= oldVal.length;
+    endPoint.ch += newVal.length;
+    editor.setSelection(endPoint, endPoint);
+    editor.focus();
   }
 }
 
-export function initCompImagePaste($target) {
-  $target.each(function () {
-    const dropzone = this.querySelector('.dropzone');
-    if (!dropzone) {
+
+export function initEasyMDEImagePaste(easyMDE, $dropzone) {
+  const uploadUrl = $dropzone.attr('data-upload-url');
+  const $files = $dropzone.find('.files');
+
+  if (!uploadUrl || !$files.length) return;
+
+  const uploadClipboardImage = async (editor, e) => {
+    const pastedImages = clipboardPastedImages(e);
+    if (!pastedImages || pastedImages.length === 0) {
       return;
     }
-    const uploadUrl = dropzone.getAttribute('data-upload-url');
-    const dropzoneFiles = dropzone.querySelector('.files');
-    for (const textarea of this.querySelectorAll('textarea')) {
-      textarea.addEventListener('paste', async (e) => {
-        for (const img of clipboardPastedImages(e)) {
-          const name = img.name.slice(0, img.name.lastIndexOf('.'));
-          insertAtCursor(textarea, `![${name}]()`);
-          const data = await uploadFile(img, uploadUrl);
-          replaceAndKeepCursor(textarea, `![${name}]()`, `![${name}](/attachments/${data.uuid})`);
-          const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-          dropzoneFiles.appendChild(input[0]);
-        }
-      }, false);
-    }
-  });
-}
+    e.preventDefault();
+    e.stopPropagation();
 
-export function initEasyMDEImagePaste(easyMDE, dropzone, files) {
-  const uploadUrl = dropzone.getAttribute('data-upload-url');
-  easyMDE.codemirror.on('paste', async (_, e) => {
-    for (const img of clipboardPastedImages(e)) {
+    for (const img of pastedImages) {
       const name = img.name.slice(0, img.name.lastIndexOf('.'));
+
+      const placeholder = `![${name}](uploading ...)`;
+      editor.insertPlaceholder(placeholder);
       const data = await uploadFile(img, uploadUrl);
-      const pos = easyMDE.codemirror.getCursor();
-      easyMDE.codemirror.replaceRange(`![${name}](/attachments/${data.uuid})`, pos);
-      const input = $(`<input id="${data.uuid}" name="files" type="hidden">`).val(data.uuid);
-      files.append(input);
+      editor.replacePlaceholder(placeholder, `![${name}](/attachments/${data.uuid})`);
+
+      const $input = $(`<input name="files" type="hidden">`).attr('id', data.uuid).val(data.uuid);
+      $files.append($input);
     }
+  };
+
+  easyMDE.codemirror.on('paste', async (_, e) => {
+    return uploadClipboardImage(new CodeMirrorEditor(easyMDE.codemirror), e);
+  });
+
+  $(easyMDE.element).on('paste', async (e) => {
+    return uploadClipboardImage(new TextareaEditor(easyMDE.element), e.originalEvent);
   });
 }

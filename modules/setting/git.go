@@ -5,6 +5,7 @@
 package setting
 
 import (
+	"path/filepath"
 	"time"
 
 	"code.gitea.io/gitea/modules/log"
@@ -13,6 +14,7 @@ import (
 // Git settings
 var Git = struct {
 	Path                      string
+	HomePath                  string
 	DisableDiffHighlight      bool
 	MaxGitDiffLines           int
 	MaxGitDiffLineCharacters  int
@@ -67,7 +69,16 @@ var Git = struct {
 }
 
 func newGit() {
-	if err := Cfg.Section("git").MapTo(&Git); err != nil {
+	sec := Cfg.Section("git")
+
+	if err := sec.MapTo(&Git); err != nil {
 		log.Fatal("Failed to map Git settings: %v", err)
+	}
+
+	Git.HomePath = sec.Key("HOME_PATH").MustString("home")
+	if !filepath.IsAbs(Git.HomePath) {
+		Git.HomePath = filepath.Join(AppDataPath, Git.HomePath)
+	} else {
+		Git.HomePath = filepath.Clean(Git.HomePath)
 	}
 }

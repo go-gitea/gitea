@@ -4,7 +4,6 @@
 // license that can be found in the LICENSE file.
 
 //go:build gogit
-// +build gogit
 
 package git
 
@@ -32,7 +31,8 @@ type Repository struct {
 	gogitStorage *filesystem.Storage
 	gpgSettings  *GPGSettings
 
-	Ctx context.Context
+	Ctx             context.Context
+	LastCommitCache *LastCommitCache
 }
 
 // openRepositoryWithDefaultContext opens the repository at the given path with DefaultContext.
@@ -80,6 +80,8 @@ func (repo *Repository) Close() (err error) {
 	if err := repo.gogitStorage.Close(); err != nil {
 		gitealog.Error("Error closing storage: %v", err)
 	}
+	repo.LastCommitCache = nil
+	repo.tagCache = nil
 	return
 }
 

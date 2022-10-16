@@ -64,7 +64,7 @@ func (repo *Repository) ReadTreeToTemporaryIndex(treeish string) (filename, tmpD
 		defer cancel()
 		return "", "", func() {}, err
 	}
-	return
+	return filename, tmpDir, cancel, err
 }
 
 // EmptyIndex empties the index

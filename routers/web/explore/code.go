@@ -7,9 +7,7 @@ package explore
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
-	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
@@ -36,13 +34,24 @@ func Code(ctx *context.Context) {
 
 	language := ctx.FormTrim("l")
 	keyword := ctx.FormTrim("q")
+
+	queryType := ctx.FormTrim("t")
+	isMatch := queryType == "match"
+
+	ctx.Data["Keyword"] = keyword
+	ctx.Data["Language"] = language
+	ctx.Data["queryType"] = queryType
+	ctx.Data["PageIsViewCode"] = true
+
+	if keyword == "" {
+		ctx.HTML(http.StatusOK, tplExploreCode)
+		return
+	}
+
 	page := ctx.FormInt("page")
 	if page <= 0 {
 		page = 1
 	}
-
-	queryType := ctx.FormTrim("t")
-	isMatch := queryType == "match"
 
 	var (
 		repoIDs []int64
@@ -55,9 +64,9 @@ func Code(ctx *context.Context) {
 
 	// guest user or non-admin user
 	if ctx.Doer == nil || !isAdmin {
-		repoIDs, err = models.FindUserAccessibleRepoIDs(ctx.Doer)
+		repoIDs, err = repo_model.FindUserCodeAccessibleRepoIDs(ctx, ctx.Doer)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
+			ctx.ServerError("FindUserCodeAccessibleRepoIDs", err)
 			return
 		}
 	}
@@ -68,37 +77,7 @@ func Code(ctx *context.Context) {
 		searchResultLanguages []*code_indexer.SearchResultLanguages
 	)
 
-	// if non-admin login user, we need check UnitTypeCode at first
-	if ctx.Doer != nil && len(repoIDs) > 0 {
-		repoMaps, err := repo_model.GetRepositoriesMapByIDs(repoIDs)
-		if err != nil {
-			ctx.ServerError("SearchResults", err)
-			return
-		}
-
-		rightRepoMap := make(map[int64]*repo_model.Repository, len(repoMaps))
-		repoIDs = make([]int64, 0, len(repoMaps))
-		for id, repo := range repoMaps {
-			if models.CheckRepoUnitUser(repo, ctx.Doer, unit.TypeCode) {
-				rightRepoMap[id] = repo
-				repoIDs = append(repoIDs, id)
-			}
-		}
-
-		ctx.Data["RepoMaps"] = rightRepoMap
-
-		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
-		if err != nil {
-			if code_indexer.IsAvailable() {
-				ctx.ServerError("SearchResults", err)
-				return
-			}
-			ctx.Data["CodeIndexerUnavailable"] = true
-		} else {
-			ctx.Data["CodeIndexerUnavailable"] = !code_indexer.IsAvailable()
-		}
-		// if non-login user or isAdmin, no need to check UnitTypeCode
-	} else if (ctx.Doer == nil && len(repoIDs) > 0) || isAdmin {
+	if (len(repoIDs) > 0) || isAdmin {
 		total, searchResults, searchResultLanguages, err = code_indexer.PerformSearch(ctx, repoIDs, language, keyword, page, setting.UI.RepoSearchPagingNum, isMatch)
 		if err != nil {
 			if code_indexer.IsAvailable() {
@@ -126,20 +105,15 @@ func Code(ctx *context.Context) {
 
 		repoMaps, err := repo_model.GetRepositoriesMapByIDs(loadRepoIDs)
 		if err != nil {
-			ctx.ServerError("SearchResults", err)
+			ctx.ServerError("GetRepositoriesMapByIDs", err)
 			return
 		}
 
 		ctx.Data["RepoMaps"] = repoMaps
 	}
 
-	ctx.Data["Keyword"] = keyword
-	ctx.Data["Language"] = language
-	ctx.Data["queryType"] = queryType
 	ctx.Data["SearchResults"] = searchResults
 	ctx.Data["SearchResultLanguages"] = searchResultLanguages
-	ctx.Data["RequireHighlightJS"] = true
-	ctx.Data["PageIsViewCode"] = true
 
 	pager := context.NewPagination(total, setting.UI.RepoSearchPagingNum, page, 5)
 	pager.SetDefaultParams(ctx)

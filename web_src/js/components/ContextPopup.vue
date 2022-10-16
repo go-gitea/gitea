@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="root">
     <div v-if="loading" class="ui active centered inline loader"/>
     <div v-if="!loading && issue !== null">
       <p><small>{{ issue.repository.full_name }} on {{ createdAt }}</small></p>
@@ -109,15 +109,16 @@ export default {
   },
 
   mounted() {
-    this.$root.$on('load-context-popup', (data, callback) => {
+    this.$refs.root.addEventListener('us-load-context-popup', (e) => {
+      const data = e.detail;
       if (!this.loading && this.issue === null) {
-        this.load(data, callback);
+        this.load(data);
       }
     });
   },
 
   methods: {
-    load(data, callback) {
+    load(data) {
       this.loading = true;
       this.i18nErrorMessage = null;
       $.get(`${appSubUrl}/${data.owner}/${data.repo}/issues/${data.index}/info`).done((issue) => {
@@ -130,9 +131,6 @@ export default {
         }
       }).always(() => {
         this.loading = false;
-        if (callback) {
-          this.$nextTick(callback);
-        }
       });
     }
   }

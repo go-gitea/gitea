@@ -70,6 +70,13 @@ class Source {
 self.addEventListener('connect', (e) => {
   for (const port of e.ports) {
     port.addEventListener('message', (event) => {
+      if (!self.EventSource) {
+        // some browsers (like PaleMoon, Firefox<53) don't support EventSource in SharedWorkerGlobalScope.
+        // this event handler needs EventSource when doing "new Source(url)", so just post a message back to the caller,
+        // in case the caller would like to use a fallback method to do its work.
+        port.postMessage({type: 'no-event-source'});
+        return;
+      }
       if (event.data.type === 'start') {
         const url = event.data.url;
         if (sourcesByUrl[url]) {

@@ -7,10 +7,10 @@ package admin
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/api/v1/utils"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -85,7 +85,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -96,7 +96,7 @@ func AdoptRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
@@ -110,7 +110,7 @@ func AdoptRepository(ctx *context.APIContext) {
 		ctx.NotFound()
 		return
 	}
-	if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+	if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 		Name:      repoName,
 		IsPrivate: true,
 	}); err != nil {
@@ -147,7 +147,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	ownerName := ctx.Params(":username")
 	repoName := ctx.Params(":reponame")
 
-	ctxUser, err := user_model.GetUserByName(ownerName)
+	ctxUser, err := user_model.GetUserByName(ctx, ownerName)
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.NotFound()
@@ -158,7 +158,7 @@ func DeleteUnadoptedRepository(ctx *context.APIContext) {
 	}
 
 	// check not a repo
-	has, err := repo_model.IsRepositoryExist(ctxUser, repoName)
+	has, err := repo_model.IsRepositoryExist(ctx, ctxUser, repoName)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return

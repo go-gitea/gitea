@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	api "code.gitea.io/gitea/modules/structs"
@@ -77,8 +78,8 @@ func ApplyDiffPatch(ctx *context.APIContext) {
 		opts.Message = "apply-patch"
 	}
 
-	if !canWriteFiles(ctx.Repo) {
-		ctx.Error(http.StatusInternalServerError, "ApplyPatch", models.ErrUserDoesNotHaveAccessToRepo{
+	if !canWriteFiles(ctx, apiOpts.BranchName) {
+		ctx.Error(http.StatusInternalServerError, "ApplyPatch", repo_model.ErrUserDoesNotHaveAccessToRepo{
 			UserID:   ctx.Doer.ID,
 			RepoName: ctx.Repo.Repository.LowerName,
 		})

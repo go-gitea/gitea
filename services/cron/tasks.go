@@ -94,7 +94,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			doerName = doer.Name
 		}
 
-		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage("en-US", t.Name, "process", doerName))
+		ctx, _, finished := pm.AddContext(baseCtx, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "process", doerName))
 		defer finished()
 
 		if err := t.fun(ctx, doer, config); err != nil {
@@ -114,7 +114,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			t.LastDoer = doerName
 			t.lock.Unlock()
 
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "cancelled", doerName, message)); err != nil {
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
@@ -127,7 +127,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		t.lock.Unlock()
 
 		if config.DoNoticeOnSuccess() {
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage("en-US", t.Name, "finished", doerName)); err != nil {
+			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}
@@ -148,7 +148,7 @@ func RegisterTask(name string, config Config, fun func(context.Context, *user_mo
 	log.Debug("Registering task: %s", name)
 
 	i18nKey := "admin.dashboard." + name
-	if _, ok := translation.TryTr("en-US", i18nKey); !ok {
+	if value := translation.NewLocale("en-US").Tr(i18nKey); value == i18nKey {
 		return fmt.Errorf("translation is missing for task %q, please add translation for %q", name, i18nKey)
 	}
 

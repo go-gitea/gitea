@@ -21,8 +21,8 @@ const (
 	TestRepoURL = TestAppURL + TestOrgRepo + "/"
 )
 
-// alphanumLink an HTML link to an alphanumeric-style issue
-func alphanumIssueLink(baseURL, class, name string) string {
+// externalIssueLink an HTML link to an alphanumeric-style issue
+func externalIssueLink(baseURL, class, name string) string {
 	return link(util.URLJoin(baseURL, name), class, name)
 }
 
@@ -52,6 +52,13 @@ var alphanumericMetas = map[string]string{
 	"user":   "someUser",
 	"repo":   "someRepo",
 	"style":  IssueNameStyleAlphanumeric,
+}
+
+var regexpMetas = map[string]string{
+	"format": "https://someurl.com/{user}/{repo}/{index}",
+	"user":   "someUser",
+	"repo":   "someRepo",
+	"style":  IssueNameStyleRegexp,
 }
 
 // these values should match the TestOrgRepo const above
@@ -184,7 +191,7 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test := func(s, expectedFmt string, names ...string) {
 		links := make([]interface{}, len(names))
 		for i, name := range names {
-			links[i] = alphanumIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
+			links[i] = externalIssueLink("https://someurl.com/someUser/someRepo/", "ref-issue ref-external-issue", name)
 		}
 		expected := fmt.Sprintf(expectedFmt, links...)
 		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: alphanumericMetas})
@@ -192,6 +199,43 @@ func TestRender_IssueIndexPattern4(t *testing.T) {
 	test("OTT-1234 test", "%s test", "OTT-1234")
 	test("test T-12 issue", "test %s issue", "T-12")
 	test("test issue ABCDEFGHIJ-1234567890", "test issue %s", "ABCDEFGHIJ-1234567890")
+}
+
+func TestRender_IssueIndexPattern5(t *testing.T) {
+	setting.AppURL = TestAppURL
+
+	// regexp: render inputs without valid mentions
+	test := func(s, expectedFmt, pattern string, ids, names []string) {
+		metas := regexpMetas
+		metas["regexp"] = pattern
+		links := make([]interface{}, len(ids))
+		for i, id := range ids {
+			links[i] = link(util.URLJoin("https://someurl.com/someUser/someRepo/", id), "ref-issue ref-external-issue", names[i])
+		}
+
+		expected := fmt.Sprintf(expectedFmt, links...)
+		testRenderIssueIndexPattern(t, s, expected, &RenderContext{Metas: metas})
+	}
+
+	test("abc ISSUE-123 def", "abc %s def",
+		"ISSUE-(\\d+)",
+		[]string{"123"},
+		[]string{"ISSUE-123"},
+	)
+
+	test("abc (ISSUE 123) def", "abc %s def",
+		"\\(ISSUE (\\d+)\\)",
+		[]string{"123"},
+		[]string{"(ISSUE 123)"},
+	)
+
+	test("abc ISSUE-123 def", "abc %s def",
+		"(ISSUE-(\\d+))",
+		[]string{"ISSUE-123"},
+		[]string{"ISSUE-123"},
+	)
+
+	testRenderIssueIndexPattern(t, "will not match", "will not match", &RenderContext{Metas: regexpMetas})
 }
 
 func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *RenderContext) {
@@ -202,7 +246,7 @@ func testRenderIssueIndexPattern(t *testing.T, input, expected string, ctx *Rend
 	var buf strings.Builder
 	err := postProcess(ctx, []processor{issueIndexPatternProcessor}, strings.NewReader(input), &buf)
 	assert.NoError(t, err)
-	assert.Equal(t, expected, buf.String())
+	assert.Equal(t, expected, buf.String(), "input=%q", input)
 }
 
 func TestRender_AutoLink(t *testing.T) {

@@ -12,14 +12,15 @@ import (
 	"strconv"
 	"sync"
 
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
+	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/modules/git/pipeline"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 )
 
 // LFSPush pushes lfs objects referred to in new commits in the head repository from the base repository
-func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *models.PullRequest) error {
+func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string, pr *issues_model.PullRequest) error {
 	// Now we have to implement git lfs push
 	// git rev-list --objects --filter=blob:limit=1k HEAD --not base
 	// pass blob shas in to git cat-file --batch-check (possibly unnecessary)
@@ -67,7 +68,7 @@ func LFSPush(ctx context.Context, tmpBasePath, mergeHeadSHA, mergeBaseSHA string
 	return nil
 }
 
-func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *models.PullRequest) {
+func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg *sync.WaitGroup, pr *issues_model.PullRequest) {
 	defer wg.Done()
 	defer catFileBatchReader.Close()
 
@@ -115,8 +116,8 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		}
 
 		// Then we need to check that this pointer is in the db
-		if _, err := models.GetLFSMetaObjectByOid(pr.HeadRepo.ID, pointer.Oid); err != nil {
-			if err == models.ErrLFSObjectNotExist {
+		if _, err := git_model.GetLFSMetaObjectByOid(pr.HeadRepo.ID, pointer.Oid); err != nil {
+			if err == git_model.ErrLFSObjectNotExist {
 				log.Warn("During merge of: %d in %-v, there is a pointer to LFS Oid: %s which although present in the LFS store is not associated with the head repo %-v", pr.Index, pr.BaseRepo, pointer.Oid, pr.HeadRepo)
 				continue
 			}
@@ -126,9 +127,9 @@ func createLFSMetaObjectsFromCatFileBatch(catFileBatchReader *io.PipeReader, wg 
 		// OK we have a pointer that is associated with the head repo
 		// and is actually a file in the LFS
 		// Therefore it should be associated with the base repo
-		meta := &models.LFSMetaObject{Pointer: pointer}
+		meta := &git_model.LFSMetaObject{Pointer: pointer}
 		meta.RepositoryID = pr.BaseRepoID
-		if _, err := models.NewLFSMetaObject(meta); err != nil {
+		if _, err := git_model.NewLFSMetaObject(meta); err != nil {
 			_ = catFileBatchReader.CloseWithError(err)
 			break
 		}

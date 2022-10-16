@@ -73,7 +73,7 @@ func NewByteFIFOQueue(typ Type, byteFIFO ByteFIFO, handle HandlerFunc, cfg, exem
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil
@@ -401,7 +401,7 @@ func NewByteFIFOUniqueQueue(typ Type, byteFIFO UniqueByteFIFO, handle HandlerFun
 				failed = append(failed, fail)
 			}
 		}
-		return
+		return failed
 	}, config.WorkerPoolConfiguration)
 
 	return q, nil

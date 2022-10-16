@@ -56,11 +56,15 @@ type Version struct {
 	Version int64
 }
 
+// Use noopMigration when there is a migration that has been no-oped
+var noopMigration = func(_ *xorm.Engine) error { return nil }
+
 // This is a sequence of migrations. Add new migrations to the bottom of the list.
 // If you want to "retire" a migration, remove it from the top of the list and
 // update minDBVersion accordingly
 var migrations = []Migration{
 	// Gitea 1.5.0 ends at v69
+
 	// v70 -> v71
 	NewMigration("add issue_dependencies", addIssueDependencies),
 	// v71 -> v72
@@ -350,7 +354,7 @@ var migrations = []Migration{
 	// v198 -> v199
 	NewMigration("Add issue content history table", addTableIssueContentHistory),
 	// v199 -> v200
-	NewMigration("No-op (remote version is using AppState now)", addRemoteVersionTableNoop),
+	NewMigration("No-op (remote version is using AppState now)", noopMigration),
 	// v200 -> v201
 	NewMigration("Add table app_state", addTableAppState),
 	// v201 -> v202
@@ -380,6 +384,37 @@ var migrations = []Migration{
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),
 	// v212 -> v213
 	NewMigration("Add package tables", addPackageTables),
+	// v213 -> v214
+	NewMigration("Add allow edits from maintainers to PullRequest table", addAllowMaintainerEdit),
+	// v214 -> v215
+	NewMigration("Add auto merge table", addAutoMergeTable),
+	// v215 -> v216
+	NewMigration("allow to view files in PRs", addReviewViewedFiles),
+	// v216 -> v217
+	NewMigration("No-op (Improve Action table indices v1)", noopMigration),
+	// v217 -> v218
+	NewMigration("Alter hook_task table TEXT fields to LONGTEXT", alterHookTaskTextFieldsToLongText),
+	// v218 -> v219
+	NewMigration("Improve Action table indices v2", improveActionTableIndices),
+	// v219 -> v220
+	NewMigration("Add sync_on_commit column to push_mirror table", addSyncOnCommitColForPushMirror),
+	// v220 -> v221
+	NewMigration("Add container repository property", addContainerRepositoryProperty),
+	// v221 -> v222
+	NewMigration("Store WebAuthentication CredentialID as bytes and increase size to at least 1024", storeWebauthnCredentialIDAsBytes),
+	// v222 -> v223
+	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
+	// v223 -> v224
+	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+
+	// Gitea 1.17.0 ends at v224
+
+	// v224 -> v225
+	NewMigration("Add badges to users", createUserBadgesTable),
+	// v225 -> v226
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	// v226 -> v227
+	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
 }
 
 // GetCurrentDBVersion returns the current db version
@@ -412,7 +447,7 @@ func EnsureUpToDate(x *xorm.Engine) error {
 	}
 
 	if currentDB < 0 {
-		return fmt.Errorf("Database has not been initialised")
+		return fmt.Errorf("Database has not been initialized")
 	}
 
 	if minDBVersion > currentDB {
@@ -946,7 +981,7 @@ func dropTableColumns(sess *xorm.Session, tableName string, columnNames ...strin
 	return nil
 }
 
-// modifyColumn will modify column's type or other propertity. SQLITE is not supported
+// modifyColumn will modify column's type or other property. SQLITE is not supported
 func modifyColumn(x *xorm.Engine, tableName string, col *schemas.Column) error {
 	var indexes map[string]*schemas.Index
 	var err error

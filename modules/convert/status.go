@@ -5,13 +5,13 @@
 package convert
 
 import (
-	"code.gitea.io/gitea/models"
+	git_model "code.gitea.io/gitea/models/git"
 	user_model "code.gitea.io/gitea/models/user"
 	api "code.gitea.io/gitea/modules/structs"
 )
 
-// ToCommitStatus converts models.CommitStatus to api.CommitStatus
-func ToCommitStatus(status *models.CommitStatus) *api.CommitStatus {
+// ToCommitStatus converts git_model.CommitStatus to api.CommitStatus
+func ToCommitStatus(status *git_model.CommitStatus) *api.CommitStatus {
 	apiStatus := &api.CommitStatus{
 		Created:     status.CreatedUnix.AsTime(),
 		Updated:     status.CreatedUnix.AsTime(),
@@ -32,7 +32,7 @@ func ToCommitStatus(status *models.CommitStatus) *api.CommitStatus {
 }
 
 // ToCombinedStatus converts List of CommitStatus to a CombinedStatus
-func ToCombinedStatus(statuses []*models.CommitStatus, repo *api.Repository) *api.CombinedStatus {
+func ToCombinedStatus(statuses []*git_model.CommitStatus, repo *api.Repository) *api.CombinedStatus {
 	if len(statuses) == 0 {
 		return nil
 	}

@@ -9,6 +9,8 @@ import (
 	"regexp"
 	"strings"
 
+	"code.gitea.io/gitea/modules/git"
+
 	"gitea.com/go-chi/binding"
 	"github.com/gobwas/glob"
 )
@@ -23,30 +25,6 @@ const (
 	// ErrRegexPattern is returned when a regex pattern is invalid
 	ErrRegexPattern = "RegexPattern"
 )
-
-// GitRefNamePatternInvalid is regular expression with unallowed characters in git reference name
-// They cannot have ASCII control characters (i.e. bytes whose values are lower than \040, or \177 DEL), space, tilde ~, caret ^, or colon : anywhere.
-// They cannot have question-mark ?, asterisk *, or open bracket [ anywhere
-var GitRefNamePatternInvalid = regexp.MustCompile(`[\000-\037\177 \\~^:?*[]+`)
-
-// CheckGitRefAdditionalRulesValid check name is valid on additional rules
-func CheckGitRefAdditionalRulesValid(name string) bool {
-	// Additional rules as described at https://www.kernel.org/pub/software/scm/git/docs/git-check-ref-format.html
-	if strings.HasPrefix(name, "/") || strings.HasSuffix(name, "/") ||
-		strings.HasSuffix(name, ".") || strings.Contains(name, "..") ||
-		strings.Contains(name, "//") || strings.Contains(name, "@{") ||
-		name == "@" {
-		return false
-	}
-	parts := strings.Split(name, "/")
-	for _, part := range parts {
-		if strings.HasSuffix(part, ".lock") || strings.HasPrefix(part, ".") {
-			return false
-		}
-	}
-
-	return true
-}
 
 // AddBindingRules adds additional binding rules
 func AddBindingRules() {
@@ -67,16 +45,10 @@ func addGitRefNameBindingRule() {
 		IsValid: func(errs binding.Errors, name string, val interface{}) (bool, binding.Errors) {
 			str := fmt.Sprintf("%v", val)
 
-			if GitRefNamePatternInvalid.MatchString(str) {
+			if !git.IsValidRefPattern(str) {
 				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
 				return false, errs
 			}
-
-			if !CheckGitRefAdditionalRulesValid(str) {
-				errs.Add([]string{name}, ErrGitRefName, "GitRefName")
-				return false, errs
-			}
-
 			return true, errs
 		},
 	})

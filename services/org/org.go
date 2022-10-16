@@ -26,7 +26,7 @@ func DeleteOrganization(org *organization.Organization) error {
 	defer commiter.Close()
 
 	// Check ownership of repository.
-	count, err := repo_model.GetRepositoryCount(ctx, org.ID)
+	count, err := repo_model.CountRepositories(ctx, repo_model.CountRepositoryOptions{OwnerID: org.ID})
 	if err != nil {
 		return fmt.Errorf("GetRepositoryCount: %v", err)
 	} else if count > 0 {

@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Commit represents a git commit.
@@ -79,6 +80,9 @@ func (c *Commit) ParentCount() int {
 
 // GetCommitByPath return the commit of relative path object.
 func (c *Commit) GetCommitByPath(relpath string) (*Commit, error) {
+	if c.repo.LastCommitCache != nil {
+		return c.repo.LastCommitCache.GetCommitByPath(c.ID.String(), relpath)
+	}
 	return c.repo.getCommitByPathWithID(c.ID, relpath)
 }
 
@@ -162,7 +166,7 @@ func AllCommitsCount(ctx context.Context, repoPath string, hidePRRefs bool, file
 // CommitsCountFiles returns number of total commits of until given revision.
 func CommitsCountFiles(ctx context.Context, repoPath string, revision, relpath []string) (int64, error) {
 	cmd := NewCommand(ctx, "rev-list", "--count")
-	cmd.AddArguments(revision...)
+	cmd.AddDynamicArguments(revision...)
 	if len(relpath) > 0 {
 		cmd.AddArguments("--")
 		cmd.AddArguments(relpath...)
@@ -205,26 +209,17 @@ func (c *Commit) HasPreviousCommit(commitHash SHA1) (bool, error) {
 		return false, nil
 	}
 
-	if err := CheckGitVersionAtLeast("1.8"); err == nil {
-		_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
-		if err == nil {
-			return true, nil
-		}
-		var exitError *exec.ExitError
-		if errors.As(err, &exitError) {
-			if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
-				return false, nil
-			}
-		}
-		return false, err
+	_, _, err := NewCommand(c.repo.Ctx, "merge-base", "--is-ancestor", that, this).RunStdString(&RunOpts{Dir: c.repo.Path})
+	if err == nil {
+		return true, nil
 	}
-
-	result, _, err := NewCommand(c.repo.Ctx, "rev-list", "--ancestry-path", "-n1", that+".."+this, "--").RunStdString(&RunOpts{Dir: c.repo.Path})
-	if err != nil {
-		return false, err
+	var exitError *exec.ExitError
+	if errors.As(err, &exitError) {
+		if exitError.ProcessState.ExitCode() == 1 && len(exitError.Stderr) == 0 {
+			return false, nil
+		}
 	}
-
-	return len(strings.TrimSpace(result)) > 0, nil
+	return false, err
 }
 
 // CommitsBeforeLimit returns num commits before current revision
@@ -306,6 +301,35 @@ func (c *Commit) HasFile(filename string) (bool, error) {
 	return true, nil
 }
 
+// GetFileContent reads a file content as a string or returns false if this was not possible
+func (c *Commit) GetFileContent(filename string, limit int) (string, error) {
+	entry, err := c.GetTreeEntryByPath(filename)
+	if err != nil {
+		return "", err
+	}
+
+	r, err := entry.Blob().DataAsync()
+	if err != nil {
+		return "", err
+	}
+	defer r.Close()
+
+	if limit > 0 {
+		bs := make([]byte, limit)
+		n, err := util.ReadAtMost(r, bs)
+		if err != nil {
+			return "", err
+		}
+		return string(bs[:n]), nil
+	}
+
+	bytes, err := io.ReadAll(r)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
 // GetSubModules get all the sub modules of current revision git tree
 func (c *Commit) GetSubModules() (*ObjectCache, error) {
 	if c.submoduleCache != nil {
@@ -368,11 +392,6 @@ func (c *Commit) GetSubModule(entryname string) (*SubModule, error) {
 
 // GetBranchName gets the closest branch name (as returned by 'git name-rev --name-only')
 func (c *Commit) GetBranchName() (string, error) {
-	err := LoadGitVersion()
-	if err != nil {
-		return "", fmt.Errorf("Git version missing: %v", err)
-	}
-
 	args := []string{
 		"name-rev",
 	}
@@ -402,7 +421,7 @@ func (c *Commit) LoadBranchName() (err error) {
 	}
 
 	c.Branch, err = c.GetBranchName()
-	return
+	return err
 }
 
 // GetTagName gets the current tag name for given commit

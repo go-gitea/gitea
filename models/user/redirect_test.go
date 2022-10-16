@@ -2,12 +2,13 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package user
+package user_test
 
 import (
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+	user_model "code.gitea.io/gitea/models/user"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -15,10 +16,10 @@ import (
 func TestLookupUserRedirect(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	userID, err := LookupUserRedirect("olduser1")
+	userID, err := user_model.LookupUserRedirect("olduser1")
 	assert.NoError(t, err)
 	assert.EqualValues(t, 1, userID)
 
-	_, err = LookupUserRedirect("doesnotexist")
-	assert.True(t, IsErrUserRedirectNotExist(err))
+	_, err = user_model.LookupUserRedirect("doesnotexist")
+	assert.True(t, user_model.IsErrUserRedirectNotExist(err))
 }

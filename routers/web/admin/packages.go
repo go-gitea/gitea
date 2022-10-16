@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 	packages_service "code.gitea.io/gitea/services/packages"
 )
 
@@ -31,9 +32,10 @@ func Packages(ctx *context.Context) {
 	sort := ctx.FormTrim("sort")
 
 	pvs, total, err := packages_model.SearchVersions(ctx, &packages_model.PackageSearchOptions{
-		Type: packages_model.Type(packageType),
-		Name: packages_model.SearchValue{Value: query},
-		Sort: sort,
+		Type:       packages_model.Type(packageType),
+		Name:       packages_model.SearchValue{Value: query},
+		Sort:       sort,
+		IsInternal: util.OptionalBoolFalse,
 		Paginator: &db.ListOptions{
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,

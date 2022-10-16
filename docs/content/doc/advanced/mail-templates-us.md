@@ -251,7 +251,7 @@ This template produces something along these lines:
 >
 > \_********************************\_********************************
 >
-> Mike, I think we should tone down the blues a little.  
+> Mike, I think we should tone down the blues a little.
 > \_********************************\_********************************
 >
 > [View it on Gitea](#).

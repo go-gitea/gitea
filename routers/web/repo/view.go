@@ -15,25 +15,27 @@ import (
 	"net/http"
 	"net/url"
 	"path"
-	"strconv"
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
+	admin_model "code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
+	git_model "code.gitea.io/gitea/models/git"
 	repo_model "code.gitea.io/gitea/models/repo"
 	unit_model "code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
-	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/highlight"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/typesniffer"
@@ -56,17 +58,8 @@ type namedBlob struct {
 	blob      *git.Blob
 }
 
-func linesBytesCount(s []byte) int {
-	nl := []byte{'\n'}
-	n := bytes.Count(s, nl)
-	if len(s) > 0 && !bytes.HasSuffix(s, nl) {
-		n++
-	}
-	return n
-}
-
 // FIXME: There has to be a more efficient way of doing this
-func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, error) {
+func getReadmeFileFromPath(ctx *context.Context, commit *git.Commit, treePath string) (*namedBlob, error) {
 	tree, err := commit.SubTree(treePath)
 	if err != nil {
 		return nil, err
@@ -77,50 +70,33 @@ func getReadmeFileFromPath(commit *git.Commit, treePath string) (*namedBlob, err
 		return nil, err
 	}
 
-	var readmeFiles [4]*namedBlob
-	exts := []string{".md", ".txt", ""} // sorted by priority
+	// Create a list of extensions in priority order
+	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
+	// 2. Txt files - e.g. README.txt
+	// 3. No extension - e.g. README
+	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	extCount := len(exts)
+	readmeFiles := make([]*namedBlob, extCount+1)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			continue
 		}
-		for i, ext := range exts {
-			if markup.IsReadmeFile(entry.Name(), ext) {
-				if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
-					name := entry.Name()
-					isSymlink := entry.IsLink()
-					target := entry
-					if isSymlink {
-						target, err = entry.FollowLinks()
-						if err != nil && !git.IsErrBadLink(err) {
-							return nil, err
-						}
-					}
-					if target != nil && (target.IsExecutable() || target.IsRegular()) {
-						readmeFiles[i] = &namedBlob{
-							name,
-							isSymlink,
-							target.Blob(),
-						}
-					}
-				}
-			}
-		}
-
-		if markup.IsReadmeFile(entry.Name()) {
-			if readmeFiles[3] == nil || base.NaturalSortLess(readmeFiles[3].name, entry.Blob().Name()) {
+		if i, ok := markup.IsReadmeFileExtension(entry.Name(), exts...); ok {
+			if readmeFiles[i] == nil || base.NaturalSortLess(readmeFiles[i].name, entry.Blob().Name()) {
 				name := entry.Name()
 				isSymlink := entry.IsLink()
+				target := entry
 				if isSymlink {
-					entry, err = entry.FollowLinks()
+					target, err = entry.FollowLinks()
 					if err != nil && !git.IsErrBadLink(err) {
 						return nil, err
 					}
 				}
-				if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
-					readmeFiles[3] = &namedBlob{
+				if target != nil && (target.IsExecutable() || target.IsRegular()) {
+					readmeFiles[i] = &namedBlob{
 						name,
 						isSymlink,
-						entry.Blob(),
+						target.Blob(),
 					}
 				}
 			}
@@ -143,6 +119,7 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	}
 
 	if ctx.Repo.TreePath != "" {
+		ctx.Data["HideRepoInfo"] = true
 		ctx.Data["Title"] = ctx.Tr("repo.file.title", ctx.Repo.Repository.Name+"/"+path.Base(ctx.Repo.TreePath), ctx.Repo.RefName)
 	}
 
@@ -160,13 +137,38 @@ func renderDirectory(ctx *context.Context, treeLink string) {
 	renderReadmeFile(ctx, readmeFile, readmeTreelink)
 }
 
+// localizedExtensions prepends the provided language code with and without a
+// regional identifier to the provided extension.
+// Note: the language code will always be lower-cased, if a region is present it must be separated with a `-`
+// Note: ext should be prefixed with a `.`
+func localizedExtensions(ext, languageCode string) (localizedExts []string) {
+	if len(languageCode) < 1 {
+		return []string{ext}
+	}
+
+	lowerLangCode := "." + strings.ToLower(languageCode)
+
+	if strings.Contains(lowerLangCode, "-") {
+		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
+		indexOfDash := strings.Index(lowerLangCode, "-")
+		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, .md]
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, ext}
+	}
+
+	// e.g. [.en.md, .md]
+	return []string{lowerLangCode + ext, ext}
+}
+
 func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) (*namedBlob, string) {
-	// 3 for the extensions in exts[] in order
-	// the last one is for a readme that doesn't
-	// strictly match an extension
-	var readmeFiles [4]*namedBlob
-	var docsEntries [3]*git.TreeEntry
-	exts := []string{".md", ".txt", ""} // sorted by priority
+	// Create a list of extensions in priority order
+	// 1. Markdown files - with and without localisation - e.g. README.en-us.md or README.md
+	// 2. Txt files - e.g. README.txt
+	// 3. No extension - e.g. README
+	exts := append(localizedExtensions(".md", ctx.Language()), ".txt", "") // sorted by priority
+	extCount := len(exts)
+	readmeFiles := make([]*namedBlob, extCount+1)
+
+	docsEntries := make([]*git.TreeEntry, 3) // (one of docs/, .gitea/ or .github/)
 	for _, entry := range entries {
 		if entry.IsDir() {
 			lowerName := strings.ToLower(entry.Name())
@@ -187,47 +189,24 @@ func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) 
 			continue
 		}
 
-		for i, ext := range exts {
-			if markup.IsReadmeFile(entry.Name(), ext) {
-				log.Debug("%s", entry.Name())
-				name := entry.Name()
-				isSymlink := entry.IsLink()
-				target := entry
-				if isSymlink {
-					var err error
-					target, err = entry.FollowLinks()
-					if err != nil && !git.IsErrBadLink(err) {
-						ctx.ServerError("FollowLinks", err)
-						return nil, ""
-					}
-				}
-				log.Debug("%t", target == nil)
-				if target != nil && (target.IsExecutable() || target.IsRegular()) {
-					readmeFiles[i] = &namedBlob{
-						name,
-						isSymlink,
-						target.Blob(),
-					}
-				}
-			}
-		}
-
-		if markup.IsReadmeFile(entry.Name()) {
+		if i, ok := markup.IsReadmeFileExtension(entry.Name(), exts...); ok {
+			log.Debug("Potential readme file: %s", entry.Name())
 			name := entry.Name()
 			isSymlink := entry.IsLink()
+			target := entry
 			if isSymlink {
 				var err error
-				entry, err = entry.FollowLinks()
+				target, err = entry.FollowLinks()
 				if err != nil && !git.IsErrBadLink(err) {
 					ctx.ServerError("FollowLinks", err)
 					return nil, ""
 				}
 			}
-			if entry != nil && (entry.IsExecutable() || entry.IsRegular()) {
-				readmeFiles[3] = &namedBlob{
+			if target != nil && (target.IsExecutable() || target.IsRegular()) {
+				readmeFiles[i] = &namedBlob{
 					name,
 					isSymlink,
-					entry.Blob(),
+					target.Blob(),
 				}
 			}
 		}
@@ -248,7 +227,7 @@ func findReadmeFile(ctx *context.Context, entries git.Entries, treeLink string) 
 				continue
 			}
 			var err error
-			readmeFile, err = getReadmeFileFromPath(ctx.Repo.Commit, entry.GetSubJumpablePathName())
+			readmeFile, err = getReadmeFileFromPath(ctx, ctx.Repo.Commit, entry.GetSubJumpablePathName())
 			if err != nil {
 				ctx.ServerError("getReadmeFileFromPath", err)
 				return nil, ""
@@ -293,8 +272,8 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -351,41 +330,38 @@ func renderReadmeFile(ctx *context.Context, readmeFile *namedBlob, readmeTreelin
 
 	if markupType := markup.Type(readmeFile.name); markupType != "" {
 		ctx.Data["IsMarkup"] = true
-		ctx.Data["MarkupType"] = string(markupType)
-		var result strings.Builder
-		err := markup.Render(&markup.RenderContext{
-			Ctx:       ctx,
-			Filename:  readmeFile.name,
-			URLPrefix: readmeTreelink,
-			Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-			GitRepo:   ctx.Repo.GitRepo,
-		}, rd, &result)
+		ctx.Data["MarkupType"] = markupType
+
+		ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+			Ctx:          ctx,
+			RelativePath: path.Join(ctx.Repo.TreePath, readmeFile.name), // ctx.Repo.TreePath is the directory not the Readme so we must append the Readme filename (and path).
+			URLPrefix:    readmeTreelink,
+			Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+			GitRepo:      ctx.Repo.GitRepo,
+		}, rd)
 		if err != nil {
-			log.Error("Render failed: %v then fallback", err)
+			log.Error("Render failed for %s in %-v: %v Falling back to rendering source", readmeFile.name, ctx.Repo.Repository, err)
 			buf := &bytes.Buffer{}
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
-		} else {
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	} else {
 		ctx.Data["IsRenderedHTML"] = true
 		buf := &bytes.Buffer{}
-		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, buf)
+		ctx.Data["EscapeStatus"], err = charset.EscapeControlReader(rd, &charset.BreakWriter{Writer: buf}, ctx.Locale, charset.RuneNBSP)
 		if err != nil {
 			log.Error("Read failed: %v", err)
 		}
 
-		ctx.Data["FileContent"] = strings.ReplaceAll(
-			gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
-		)
+		ctx.Data["FileContent"] = buf.String()
 	}
 }
 
 func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink string) {
 	ctx.Data["IsViewFile"] = true
+	ctx.Data["HideRepoInfo"] = true
 	blob := entry.Blob()
 	dataRc, err := blob.DataAsync()
 	if err != nil {
@@ -400,6 +376,11 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["FileIsSymlink"] = entry.IsLink()
 	ctx.Data["FileName"] = blob.Name()
 	ctx.Data["RawFileLink"] = rawLink + "/" + util.PathEscapeSegments(ctx.Repo.TreePath)
+
+	if ctx.Repo.TreePath == ".editorconfig" {
+		_, editorconfigErr := ctx.Repo.GetEditorconfig(ctx.Repo.Commit)
+		ctx.Data["FileError"] = editorconfigErr
+	}
 
 	buf := make([]byte, 1024)
 	n, _ := util.ReadAtMost(dataRc, buf)
@@ -416,8 +397,8 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	if isTextFile && setting.LFS.StartServer {
 		pointer, _ := lfs.ReadPointerFromBuffer(buf)
 		if pointer.IsValid() {
-			meta, err := models.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
-			if err != nil && err != models.ErrLFSObjectNotExist {
+			meta, err := git_model.GetLFSMetaObjectByOid(ctx.Repo.Repository.ID, pointer.Oid)
+			if err != nil && err != git_model.ErrLFSObjectNotExist {
 				ctx.ServerError("GetLFSMetaObject", err)
 				return
 			}
@@ -465,7 +446,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 	ctx.Data["IsTextSource"] = isTextFile || isDisplayingSource
 
 	// Check LFS Lock
-	lfsLock, err := models.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
+	lfsLock, err := git_model.GetTreePathLock(ctx.Repo.Repository.ID, ctx.Repo.TreePath)
 	ctx.Data["LFSLock"] = lfsLock
 	if err != nil {
 		ctx.ServerError("GetTreePathLock", err)
@@ -477,7 +458,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			ctx.ServerError("GetTreePathLock", err)
 			return
 		}
-		ctx.Data["LFSLockOwner"] = u.DisplayName()
+		ctx.Data["LFSLockOwner"] = u.Name
 		ctx.Data["LFSLockOwnerHomeLink"] = u.HomeLink()
 		ctx.Data["LFSLockHint"] = ctx.Tr("repo.editor.this_file_locked")
 	}
@@ -508,6 +489,13 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		ctx.Data["ReadmeExist"] = readmeExist
 
 		markupType := markup.Type(blob.Name())
+		// If the markup is detected by custom markup renderer it should not be reset later on
+		// to not pass it down to the render context.
+		detected := false
+		if markupType == "" {
+			detected = true
+			markupType = markup.DetectRendererType(blob.Name(), bytes.NewReader(buf))
+		}
 		if markupType != "" {
 			ctx.Data["HasSourceRenderedToggle"] = true
 		}
@@ -515,32 +503,44 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		if markupType != "" && !shouldRenderSource {
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			var result strings.Builder
-			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
-			}, rd, &result)
+			if !detected {
+				markupType = ""
+			}
+			metas := ctx.Repo.Repository.ComposeDocumentMetas()
+			metas["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+				Ctx:          ctx,
+				Type:         markupType,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        metas,
+				GitRepo:      ctx.Repo.GitRepo,
+			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
+			// to prevent iframe load third-party url
+			ctx.Resp.Header().Add("Content-Security-Policy", "frame-src 'self'")
 		} else if readmeExist && !shouldRenderSource {
 			buf := &bytes.Buffer{}
 			ctx.Data["IsRenderedHTML"] = true
 
-			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf)
+			ctx.Data["EscapeStatus"], _ = charset.EscapeControlReader(rd, buf, ctx.Locale)
 
 			ctx.Data["FileContent"] = strings.ReplaceAll(
 				gotemplate.HTMLEscapeString(buf.String()), "\n", `<br>`,
 			)
 		} else {
 			buf, _ := io.ReadAll(rd)
-			lineNums := linesBytesCount(buf)
-			ctx.Data["NumLines"] = strconv.Itoa(lineNums)
+
+			// empty: 0 lines; "a": one line; "a\n": two lines; "a\nb": two lines;
+			// the NumLines is only used for the display on the UI: "xxx lines"
+			if len(buf) == 0 {
+				ctx.Data["NumLines"] = 0
+			} else {
+				ctx.Data["NumLines"] = bytes.Count(buf, []byte{'\n'}) + 1
+			}
 			ctx.Data["NumLinesSet"] = true
 
 			language := ""
@@ -568,18 +568,23 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 					language = ""
 				}
 			}
-			fileContent := highlight.File(lineNums, blob.Name(), language, buf)
-			status, _ := charset.EscapeControlReader(bytes.NewReader(buf), io.Discard)
-			ctx.Data["EscapeStatus"] = status
-			statuses := make([]charset.EscapeStatus, len(fileContent))
-			for i, line := range fileContent {
-				statuses[i], fileContent[i] = charset.EscapeControlString(line)
+			fileContent, err := highlight.File(blob.Name(), language, buf)
+			if err != nil {
+				log.Error("highlight.File failed, fallback to plain text: %v", err)
+				fileContent = highlight.PlainText(buf)
 			}
+			status := &charset.EscapeStatus{}
+			statuses := make([]*charset.EscapeStatus, len(fileContent))
+			for i, line := range fileContent {
+				statuses[i], fileContent[i] = charset.EscapeControlHTML(line, ctx.Locale)
+				status = status.Or(statuses[i])
+			}
+			ctx.Data["EscapeStatus"] = status
 			ctx.Data["FileContent"] = fileContent
 			ctx.Data["LineEscapeStatus"] = statuses
 		}
 		if !isLFSFile {
-			if ctx.Repo.CanEnableEditor() {
+			if ctx.Repo.CanEnableEditor(ctx.Doer) {
 				if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 					ctx.Data["CanEditFile"] = false
 					ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
@@ -589,7 +594,7 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 				}
 			} else if !ctx.Repo.IsViewBranch {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-			} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
+			} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
 				ctx.Data["EditFileTooltip"] = ctx.Tr("repo.editor.fork_before_edit")
 			}
 		}
@@ -612,24 +617,21 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 			rd := io.MultiReader(bytes.NewReader(buf), dataRc)
 			ctx.Data["IsMarkup"] = true
 			ctx.Data["MarkupType"] = markupType
-			var result strings.Builder
-			err := markup.Render(&markup.RenderContext{
-				Ctx:       ctx,
-				Filename:  blob.Name(),
-				URLPrefix: path.Dir(treeLink),
-				Metas:     ctx.Repo.Repository.ComposeDocumentMetas(),
-				GitRepo:   ctx.Repo.GitRepo,
-			}, rd, &result)
+			ctx.Data["EscapeStatus"], ctx.Data["FileContent"], err = markupRender(ctx, &markup.RenderContext{
+				Ctx:          ctx,
+				RelativePath: ctx.Repo.TreePath,
+				URLPrefix:    path.Dir(treeLink),
+				Metas:        ctx.Repo.Repository.ComposeDocumentMetas(),
+				GitRepo:      ctx.Repo.GitRepo,
+			}, rd)
 			if err != nil {
 				ctx.ServerError("Render", err)
 				return
 			}
-
-			ctx.Data["EscapeStatus"], ctx.Data["FileContent"] = charset.EscapeControlString(result.String())
 		}
 	}
 
-	if ctx.Repo.CanEnableEditor() {
+	if ctx.Repo.CanEnableEditor(ctx.Doer) {
 		if lfsLock != nil && lfsLock.OwnerID != ctx.Doer.ID {
 			ctx.Data["CanDeleteFile"] = false
 			ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.this_file_locked")
@@ -639,9 +641,26 @@ func renderFile(ctx *context.Context, entry *git.TreeEntry, treeLink, rawLink st
 		}
 	} else if !ctx.Repo.IsViewBranch {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_be_on_a_branch")
-	} else if !ctx.Repo.CanWrite(unit_model.TypeCode) {
+	} else if !ctx.Repo.CanWriteToBranch(ctx.Doer, ctx.Repo.BranchName) {
 		ctx.Data["DeleteFileTooltip"] = ctx.Tr("repo.editor.must_have_write_access")
 	}
+}
+
+func markupRender(ctx *context.Context, renderCtx *markup.RenderContext, input io.Reader) (escaped *charset.EscapeStatus, output string, err error) {
+	markupRd, markupWr := io.Pipe()
+	defer markupWr.Close()
+	done := make(chan struct{})
+	go func() {
+		sb := &strings.Builder{}
+		// We allow NBSP here this is rendered
+		escaped, _ = charset.EscapeControlReader(markupRd, sb, ctx.Locale, charset.RuneNBSP)
+		output = sb.String()
+		close(done)
+	}()
+	err = markup.Render(renderCtx, input, markupWr)
+	_ = markupWr.CloseWithError(err)
+	<-done
+	return escaped, output, err
 }
 
 func safeURL(address string) string {
@@ -656,9 +675,9 @@ func safeURL(address string) string {
 func checkHomeCodeViewable(ctx *context.Context) {
 	if len(ctx.Repo.Units) > 0 {
 		if ctx.Repo.Repository.IsBeingCreated() {
-			task, err := models.GetMigratingTask(ctx.Repo.Repository.ID)
+			task, err := admin_model.GetMigratingTask(ctx.Repo.Repository.ID)
 			if err != nil {
-				if models.IsErrTaskDoesNotExist(err) {
+				if admin_model.IsErrTaskDoesNotExist(err) {
 					ctx.Data["Repo"] = ctx.Repo
 					ctx.Data["CloneAddr"] = ""
 					ctx.Data["Failed"] = true
@@ -684,7 +703,7 @@ func checkHomeCodeViewable(ctx *context.Context) {
 
 		if ctx.IsSigned {
 			// Set repo notification-status read if unread
-			if err := models.SetRepoReadBy(ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
+			if err := activities_model.SetRepoReadBy(ctx, ctx.Repo.Repository.ID, ctx.Doer.ID); err != nil {
 				ctx.ServerError("ReadBy", err)
 				return
 			}
@@ -795,28 +814,21 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		defer cancel()
 	}
 
-	var c *git.LastCommitCache
-	if setting.CacheService.LastCommit.Enabled && ctx.Repo.CommitsCount >= setting.CacheService.LastCommit.CommitsCount {
-		c = git.NewLastCommitCache(ctx.Repo.Repository.FullName(), ctx.Repo.GitRepo, setting.LastCommitCacheTTLSeconds, cache.GetCache())
-	}
-
-	selected := map[string]bool{}
-	for _, pth := range ctx.FormStrings("f[]") {
-		selected[pth] = true
-	}
+	selected := make(container.Set[string])
+	selected.AddMultiple(ctx.FormStrings("f[]")...)
 
 	entries := allEntries
 	if len(selected) > 0 {
 		entries = make(git.Entries, 0, len(selected))
 		for _, entry := range allEntries {
-			if selected[entry.Name()] {
+			if selected.Contains(entry.Name()) {
 				entries = append(entries, entry)
 			}
 		}
 	}
 
 	var latestCommit *git.Commit
-	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath, c)
+	ctx.Data["Files"], latestCommit, err = entries.GetCommitsInfo(commitInfoCtx, ctx.Repo.Commit, ctx.Repo.TreePath)
 	if err != nil {
 		ctx.ServerError("GetCommitsInfo", err)
 		return nil
@@ -830,22 +842,22 @@ func renderDirectoryFiles(ctx *context.Context, timeout time.Duration) git.Entri
 		verification := asymkey_model.ParseCommitWithSignature(latestCommit)
 
 		if err := asymkey_model.CalculateTrustStatus(verification, ctx.Repo.Repository.GetTrustModel(), func(user *user_model.User) (bool, error) {
-			return models.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
+			return repo_model.IsOwnerMemberCollaborator(ctx.Repo.Repository, user.ID)
 		}, nil); err != nil {
 			ctx.ServerError("CalculateTrustStatus", err)
 			return nil
 		}
 		ctx.Data["LatestCommitVerification"] = verification
 		ctx.Data["LatestCommitUser"] = user_model.ValidateCommitWithEmail(latestCommit)
-	}
 
-	statuses, _, err := models.GetLatestCommitStatus(ctx.Repo.Repository.ID, ctx.Repo.Commit.ID.String(), db.ListOptions{})
-	if err != nil {
-		log.Error("GetLatestCommitStatus: %v", err)
-	}
+		statuses, _, err := git_model.GetLatestCommitStatus(ctx, ctx.Repo.Repository.ID, latestCommit.ID.String(), db.ListOptions{})
+		if err != nil {
+			log.Error("GetLatestCommitStatus: %v", err)
+		}
 
-	ctx.Data["LatestCommitStatus"] = models.CalcCommitStatus(statuses)
-	ctx.Data["LatestCommitStatuses"] = statuses
+		ctx.Data["LatestCommitStatus"] = git_model.CalcCommitStatus(statuses)
+		ctx.Data["LatestCommitStatuses"] = statuses
+	}
 
 	branchLink := ctx.Repo.RepoLink + "/src/" + ctx.Repo.BranchNameSubURL()
 	treeLink := branchLink
@@ -885,10 +897,14 @@ func renderCode(ctx *context.Context) {
 	ctx.Data["PageIsViewCode"] = true
 
 	if ctx.Repo.Repository.IsEmpty {
-		reallyEmpty, err := ctx.Repo.GitRepo.IsEmpty()
-		if err != nil {
-			ctx.ServerError("GitRepo.IsEmpty", err)
-			return
+		reallyEmpty := true
+		var err error
+		if ctx.Repo.GitRepo != nil {
+			reallyEmpty, err = ctx.Repo.GitRepo.IsEmpty()
+			if err != nil {
+				ctx.ServerError("GitRepo.IsEmpty", err)
+				return
+			}
 		}
 		if reallyEmpty {
 			ctx.HTML(http.StatusOK, tplRepoEMPTY)
@@ -901,11 +917,11 @@ func renderCode(ctx *context.Context) {
 		// it's possible for a repository to be non-empty by that flag but still 500
 		// because there are no branches - only tags -or the default branch is non-extant as it has been 0-pushed.
 		ctx.Repo.Repository.IsEmpty = false
-		if err = repo_model.UpdateRepositoryCols(ctx.Repo.Repository, "is_empty"); err != nil {
+		if err = repo_model.UpdateRepositoryCols(ctx, ctx.Repo.Repository, "is_empty"); err != nil {
 			ctx.ServerError("UpdateRepositoryCols", err)
 			return
 		}
-		if err = models.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
+		if err = repo_module.UpdateRepoSize(ctx, ctx.Repo.Repository); err != nil {
 			ctx.ServerError("UpdateRepoSize", err)
 			return
 		}
@@ -979,12 +995,12 @@ func RenderUserCards(ctx *context.Context, total int, getter func(opts db.ListOp
 	if page <= 0 {
 		page = 1
 	}
-	pager := context.NewPagination(total, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(total, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	items, err := getter(db.ListOptions{
 		Page:     pager.Paginater.Current(),
-		PageSize: models.ItemsPerPage,
+		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
 		ctx.ServerError("getter", err)
@@ -1025,12 +1041,12 @@ func Forks(ctx *context.Context) {
 		page = 1
 	}
 
-	pager := context.NewPagination(ctx.Repo.Repository.NumForks, models.ItemsPerPage, page, 5)
+	pager := context.NewPagination(ctx.Repo.Repository.NumForks, setting.ItemsPerPage, page, 5)
 	ctx.Data["Page"] = pager
 
 	forks, err := repo_model.GetForks(ctx.Repo.Repository, db.ListOptions{
 		Page:     pager.Paginater.Current(),
-		PageSize: models.ItemsPerPage,
+		PageSize: setting.ItemsPerPage,
 	})
 	if err != nil {
 		ctx.ServerError("GetForks", err)

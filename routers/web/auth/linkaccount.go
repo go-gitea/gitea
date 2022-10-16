@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/hcaptcha"
 	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/mcaptcha"
 	"code.gitea.io/gitea/modules/recaptcha"
 	"code.gitea.io/gitea/modules/session"
 	"code.gitea.io/gitea/modules/setting"
@@ -40,6 +41,8 @@ func LinkAccount(ctx *context.Context) {
 	ctx.Data["RecaptchaURL"] = setting.Service.RecaptchaURL
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["AllowOnlyInternalRegistration"] = setting.Service.AllowOnlyInternalRegistration
 	ctx.Data["ShowRegistrationButton"] = false
@@ -70,7 +73,7 @@ func LinkAccount(ctx *context.Context) {
 			ctx.Data["user_exists"] = true
 		}
 	} else if len(uname) != 0 {
-		u, err := user_model.GetUserByName(uname)
+		u, err := user_model.GetUserByName(ctx, uname)
 		if err != nil && !user_model.IsErrUserNotExist(err) {
 			ctx.ServerError("UserSignIn", err)
 			return
@@ -96,6 +99,8 @@ func LinkAccountPostSignIn(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -195,6 +200,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 	ctx.Data["CaptchaType"] = setting.Service.CaptchaType
 	ctx.Data["RecaptchaSitekey"] = setting.Service.RecaptchaSitekey
 	ctx.Data["HcaptchaSitekey"] = setting.Service.HcaptchaSitekey
+	ctx.Data["McaptchaSitekey"] = setting.Service.McaptchaSitekey
+	ctx.Data["McaptchaURL"] = setting.Service.McaptchaURL
 	ctx.Data["DisableRegistration"] = setting.Service.DisableRegistration
 	ctx.Data["ShowRegistrationButton"] = false
 
@@ -233,6 +240,8 @@ func LinkAccountPostRegister(ctx *context.Context) {
 			valid, err = recaptcha.Verify(ctx, form.GRecaptchaResponse)
 		case setting.HCaptcha:
 			valid, err = hcaptcha.Verify(ctx, form.HcaptchaResponse)
+		case setting.MCaptcha:
+			valid, err = mcaptcha.Verify(ctx, form.McaptchaResponse)
 		default:
 			ctx.ServerError("Unknown Captcha Type", fmt.Errorf("Unknown Captcha Type: %s", setting.Service.CaptchaType))
 			return
@@ -283,13 +292,12 @@ func LinkAccountPostRegister(ctx *context.Context) {
 		Name:        form.UserName,
 		Email:       form.Email,
 		Passwd:      form.Password,
-		IsActive:    !(setting.Service.RegisterEmailConfirm || setting.Service.RegisterManualConfirm),
 		LoginType:   auth.OAuth2,
 		LoginSource: authSource.ID,
 		LoginName:   gothUser.UserID,
 	}
 
-	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, &gothUser, false) {
+	if !createAndHandleCreatedUser(ctx, tplLinkAccount, form, u, nil, &gothUser, false) {
 		// error already handled
 		return
 	}

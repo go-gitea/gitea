@@ -2,26 +2,20 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package user
+package user_test
 
 import (
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/unittest"
+
+	_ "code.gitea.io/gitea/models"
+	_ "code.gitea.io/gitea/models/user"
 )
 
 func TestMain(m *testing.M) {
 	unittest.MainTest(m, &unittest.TestOptions{
 		GiteaRootPath: filepath.Join("..", ".."),
-		FixtureFiles: []string{
-			"email_address.yml",
-			"user_redirect.yml",
-			"follow.yml",
-			"user_open_id.yml",
-			"two_factor.yml",
-			"oauth2_application.yml",
-			"user.yml",
-		},
 	})
 }

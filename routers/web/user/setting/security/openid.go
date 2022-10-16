@@ -90,7 +90,7 @@ func settingsOpenIDVerify(ctx *context.Context) {
 	log.Trace("Verified ID: " + id)
 
 	oid := &user_model.UserOpenID{UID: ctx.Doer.ID, URI: id}
-	if err = user_model.AddUserOpenID(oid); err != nil {
+	if err = user_model.AddUserOpenID(ctx, oid); err != nil {
 		if user_model.IsErrOpenIDAlreadyUsed(err) {
 			ctx.RenderWithErr(ctx.Tr("form.openid_been_used", id), tplSettingsSecurity, &forms.AddOpenIDForm{Openid: id})
 			return

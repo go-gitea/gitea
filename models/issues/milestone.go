@@ -124,6 +124,11 @@ func NewMilestone(m *Milestone) (err error) {
 	return committer.Commit()
 }
 
+// HasMilestoneByRepoID returns if the milestone exists in the repository.
+func HasMilestoneByRepoID(ctx context.Context, repoID, id int64) (bool, error) {
+	return db.GetEngine(ctx).ID(id).Where("repo_id=?", repoID).Exist(new(Milestone))
+}
+
 // GetMilestoneByRepoID returns the milestone in a repository.
 func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, error) {
 	m := new(Milestone)
@@ -292,11 +297,17 @@ func DeleteMilestoneByRepoID(repoID, id int64) error {
 		return err
 	}
 
-	numMilestones, err := countRepoMilestones(sess, repo.ID)
+	numMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateAll,
+	})
 	if err != nil {
 		return err
 	}
-	numClosedMilestones, err := countRepoClosedMilestones(sess, repo.ID)
+	numClosedMilestones, err := CountMilestones(ctx, GetMilestonesOption{
+		RepoID: repo.ID,
+		State:  api.StateClosed,
+	})
 	if err != nil {
 		return err
 	}
@@ -350,7 +361,7 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	}
 
 	if len(opts.Name) != 0 {
-		cond = cond.And(builder.Like{"name", opts.Name})
+		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
 	}
 
 	return cond
@@ -428,13 +439,6 @@ func GetMilestonesByRepoIDs(repoIDs []int64, page int, isClosed bool, sortType s
 	)
 }
 
-//  ____  _        _
-// / ___|| |_ __ _| |_ ___
-// \___ \| __/ _` | __/ __|
-//  ___) | || (_| | |_\__ \
-// |____/ \__\__,_|\__|___/
-//
-
 // MilestonesStats represents milestone statistic information.
 type MilestonesStats struct {
 	OpenCount, ClosedCount int64
@@ -503,21 +507,11 @@ func GetMilestonesStatsByRepoCondAndKw(repoCond builder.Cond, keyword string) (*
 	return stats, nil
 }
 
-func countRepoMilestones(e db.Engine, repoID int64) (int64, error) {
-	return e.
-		Where("repo_id=?", repoID).
+// CountMilestones returns number of milestones in given repository with other options
+func CountMilestones(ctx context.Context, opts GetMilestonesOption) (int64, error) {
+	return db.GetEngine(ctx).
+		Where(opts.toCond()).
 		Count(new(Milestone))
-}
-
-func countRepoClosedMilestones(e db.Engine, repoID int64) (int64, error) {
-	return e.
-		Where("repo_id=? AND is_closed=?", repoID, true).
-		Count(new(Milestone))
-}
-
-// CountRepoClosedMilestones returns number of closed milestones in given repository.
-func CountRepoClosedMilestones(repoID int64) (int64, error) {
-	return countRepoClosedMilestones(db.GetEngine(db.DefaultContext), repoID)
 }
 
 // CountMilestonesByRepoCond map from repo conditions to number of milestones matching the options`
@@ -590,7 +584,7 @@ func updateRepoMilestoneNum(ctx context.Context, repoID int64) error {
 //   |_||_|  \__,_|\___|_|\_\___|\__,_| |_| |_|_| |_| |_|\___||___/
 //
 
-func (milestones MilestoneList) loadTotalTrackedTimes(e db.Engine) error {
+func (milestones MilestoneList) loadTotalTrackedTimes(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
@@ -601,7 +595,7 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e db.Engine) error {
 	trackedTimes := make(map[int64]int64, len(milestones))
 
 	// Get total tracked time by milestone_id
-	rows, err := e.Table("issue").
+	rows, err := db.GetEngine(ctx).Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Where("tracked_time.deleted = ?", false).
@@ -630,13 +624,13 @@ func (milestones MilestoneList) loadTotalTrackedTimes(e db.Engine) error {
 	return nil
 }
 
-func (m *Milestone) loadTotalTrackedTime(e db.Engine) error {
+func (m *Milestone) loadTotalTrackedTime(ctx context.Context) error {
 	type totalTimesByMilestone struct {
 		MilestoneID int64
 		Time        int64
 	}
 	totalTime := &totalTimesByMilestone{MilestoneID: m.ID}
-	has, err := e.Table("issue").
+	has, err := db.GetEngine(ctx).Table("issue").
 		Join("INNER", "milestone", "issue.milestone_id = milestone.id").
 		Join("LEFT", "tracked_time", "tracked_time.issue_id = issue.id").
 		Where("tracked_time.deleted = ?", false).
@@ -655,10 +649,10 @@ func (m *Milestone) loadTotalTrackedTime(e db.Engine) error {
 
 // LoadTotalTrackedTimes loads for every milestone in the list the TotalTrackedTime by a batch request
 func (milestones MilestoneList) LoadTotalTrackedTimes() error {
-	return milestones.loadTotalTrackedTimes(db.GetEngine(db.DefaultContext))
+	return milestones.loadTotalTrackedTimes(db.DefaultContext)
 }
 
 // LoadTotalTrackedTime loads the tracked time for the milestone
 func (m *Milestone) LoadTotalTrackedTime() error {
-	return m.loadTotalTrackedTime(db.GetEngine(db.DefaultContext))
+	return m.loadTotalTrackedTime(db.DefaultContext)
 }

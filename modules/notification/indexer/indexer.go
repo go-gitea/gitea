@@ -5,7 +5,7 @@
 package indexer
 
 import (
-	"code.gitea.io/gitea/models"
+	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -30,9 +30,9 @@ func NewNotifier() base.Notifier {
 }
 
 func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *repo_model.Repository,
-	issue *models.Issue, comment *models.Comment, mentions []*user_model.User,
+	issue *issues_model.Issue, comment *issues_model.Comment, mentions []*user_model.User,
 ) {
-	if comment.Type == models.CommentTypeComment {
+	if comment.Type == issues_model.CommentTypeComment {
 		if issue.Comments == nil {
 			if err := issue.LoadDiscussComments(); err != nil {
 				log.Error("LoadComments failed: %v", err)
@@ -46,16 +46,16 @@ func (r *indexerNotifier) NotifyCreateIssueComment(doer *user_model.User, repo *
 	}
 }
 
-func (r *indexerNotifier) NotifyNewIssue(issue *models.Issue, mentions []*user_model.User) {
+func (r *indexerNotifier) NotifyNewIssue(issue *issues_model.Issue, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyNewPullRequest(pr *models.PullRequest, mentions []*user_model.User) {
+func (r *indexerNotifier) NotifyNewPullRequest(pr *issues_model.PullRequest, mentions []*user_model.User) {
 	issue_indexer.UpdateIssueIndexer(pr.Issue)
 }
 
-func (r *indexerNotifier) NotifyUpdateComment(doer *user_model.User, c *models.Comment, oldContent string) {
-	if c.Type == models.CommentTypeComment {
+func (r *indexerNotifier) NotifyUpdateComment(doer *user_model.User, c *issues_model.Comment, oldContent string) {
+	if c.Type == issues_model.CommentTypeComment {
 		var found bool
 		if c.Issue.Comments != nil {
 			for i := 0; i < len(c.Issue.Comments); i++ {
@@ -78,8 +78,8 @@ func (r *indexerNotifier) NotifyUpdateComment(doer *user_model.User, c *models.C
 	}
 }
 
-func (r *indexerNotifier) NotifyDeleteComment(doer *user_model.User, comment *models.Comment) {
-	if comment.Type == models.CommentTypeComment {
+func (r *indexerNotifier) NotifyDeleteComment(doer *user_model.User, comment *issues_model.Comment) {
+	if comment.Type == issues_model.CommentTypeComment {
 		if err := comment.LoadIssue(); err != nil {
 			log.Error("LoadIssue: %v", err)
 			return
@@ -142,14 +142,14 @@ func (r *indexerNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *r
 	}
 }
 
-func (r *indexerNotifier) NotifyIssueChangeContent(doer *user_model.User, issue *models.Issue, oldContent string) {
+func (r *indexerNotifier) NotifyIssueChangeContent(doer *user_model.User, issue *issues_model.Issue, oldContent string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *models.Issue, oldTitle string) {
+func (r *indexerNotifier) NotifyIssueChangeTitle(doer *user_model.User, issue *issues_model.Issue, oldTitle string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }
 
-func (r *indexerNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *models.Issue, oldRef string) {
+func (r *indexerNotifier) NotifyIssueChangeRef(doer *user_model.User, issue *issues_model.Issue, oldRef string) {
 	issue_indexer.UpdateIssueIndexer(issue)
 }

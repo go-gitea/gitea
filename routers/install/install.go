@@ -6,6 +6,7 @@
 package install
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
@@ -51,37 +52,41 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 }
 
 // Init prepare for rendering installation page
-func Init(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	dbTypeNames := getSupportedDbTypeNames()
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if setting.InstallLock {
-			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
-			return
-		}
-		locale := middleware.Locale(resp, req)
-		startTime := time.Now()
-		ctx := context.Context{
-			Resp:    context.NewResponse(resp),
-			Flash:   &middleware.Flash{},
-			Locale:  locale,
-			Render:  rnd,
-			Session: session.GetSession(req),
-			Data: map[string]interface{}{
-				"i18n":          locale,
-				"Title":         locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
-				"PageStartTime": startTime,
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.InstallLock {
+				resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+				_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
+				return
+			}
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			ctx := context.Context{
+				Resp:    context.NewResponse(resp),
+				Flash:   &middleware.Flash{},
+				Locale:  locale,
+				Render:  rnd,
+				Session: session.GetSession(req),
+				Data: map[string]interface{}{
+					"locale":        locale,
+					"Title":         locale.Tr("install.install"),
+					"PageIsInstall": true,
+					"DbTypeNames":   dbTypeNames,
+					"AllLangs":      translation.AllLangs(),
+					"PageStartTime": startTime,
 
-				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
-			},
-		}
-		ctx.Req = context.WithContext(req, &ctx)
-		next.ServeHTTP(resp, ctx.Req)
-	})
+					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+				},
+			}
+			defer ctx.Close()
+
+			ctx.Req = context.WithContext(req, &ctx)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
 }
 
 // Install render installation page
@@ -131,9 +136,11 @@ func Install(ctx *context.Context) {
 
 	// E-mail service settings
 	if setting.MailService != nil {
-		form.SMTPHost = setting.MailService.Host
+		form.SMTPAddr = setting.MailService.SMTPAddr
+		form.SMTPPort = setting.MailService.SMTPPort
 		form.SMTPFrom = setting.MailService.From
 		form.SMTPUser = setting.MailService.User
+		form.SMTPPasswd = setting.MailService.Passwd
 	}
 	form.RegisterConfirm = setting.Service.RegisterEmailConfirm
 	form.MailNotify = setting.Service.EnableNotifyMail
@@ -418,9 +425,10 @@ func SubmitInstall(ctx *context.Context) {
 		cfg.Section("server").Key("LFS_START_SERVER").SetValue("false")
 	}
 
-	if len(strings.TrimSpace(form.SMTPHost)) > 0 {
+	if len(strings.TrimSpace(form.SMTPAddr)) > 0 {
 		cfg.Section("mailer").Key("ENABLED").SetValue("true")
-		cfg.Section("mailer").Key("HOST").SetValue(form.SMTPHost)
+		cfg.Section("mailer").Key("SMTP_ADDR").SetValue(form.SMTPAddr)
+		cfg.Section("mailer").Key("SMTP_PORT").SetValue(form.SMTPPort)
 		cfg.Section("mailer").Key("FROM").SetValue(form.SMTPFrom)
 		cfg.Section("mailer").Key("USER").SetValue(form.SMTPUser)
 		cfg.Section("mailer").Key("PASSWD").SetValue(form.SMTPPasswd)
@@ -452,6 +460,8 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("log").Key("LEVEL").SetValue(setting.LogLevel.String())
 	cfg.Section("log").Key("ROOT_PATH").SetValue(form.LogRootPath)
 	cfg.Section("log").Key("ROUTER").SetValue("console")
+
+	cfg.Section("repository.pull-request").Key("DEFAULT_MERGE_STYLE").SetValue("merge")
 
 	cfg.Section("repository.signing").Key("DEFAULT_TRUST_MODEL").SetValue("committer")
 
@@ -499,13 +509,17 @@ func SubmitInstall(ctx *context.Context) {
 	// Create admin account
 	if len(form.AdminName) > 0 {
 		u := &user_model.User{
-			Name:     form.AdminName,
-			Email:    form.AdminEmail,
-			Passwd:   form.AdminPasswd,
-			IsAdmin:  true,
-			IsActive: true,
+			Name:    form.AdminName,
+			Email:   form.AdminEmail,
+			Passwd:  form.AdminPasswd,
+			IsAdmin: true,
 		}
-		if err = user_model.CreateUser(u); err != nil {
+		overwriteDefault := &user_model.CreateUserOverwriteOptions{
+			IsRestricted: util.OptionalBoolFalse,
+			IsActive:     util.OptionalBoolTrue,
+		}
+
+		if err = user_model.CreateUser(u, overwriteDefault); err != nil {
 			if !user_model.IsErrUserAlreadyExist(err) {
 				setting.InstallLock = false
 				ctx.Data["Err_AdminName"] = true
@@ -514,7 +528,7 @@ func SubmitInstall(ctx *context.Context) {
 				return
 			}
 			log.Info("Admin account already exist")
-			u, _ = user_model.GetUserByName(u.Name)
+			u, _ = user_model.GetUserByName(ctx, u.Name)
 		}
 
 		days := 86400 * setting.LogInRememberDays

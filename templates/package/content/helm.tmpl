@@ -1,37 +1,37 @@
 {{if eq .PackageDescriptor.Package.Type "helm"}}
-	<h4 class="ui top attached header">{{.i18n.Tr "packages.installation"}}</h4>
+	<h4 class="ui top attached header">{{.locale.Tr "packages.installation"}}</h4>
 	<div class="ui attached segment">
 		<div class="ui form">
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.helm.registry"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.registry"}}</label>
 				<div class="markup"><pre class="code-block"><code>helm repo add gitea {{AppUrl}}api/packages/{{.PackageDescriptor.Owner.Name}}/helm
 helm repo update</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{svg "octicon-terminal"}} {{.i18n.Tr "packages.helm.install"}}</label>
+				<label>{{svg "octicon-terminal"}} {{.locale.Tr "packages.helm.install"}}</label>
 				<div class="markup"><pre class="code-block"><code>helm install {{.PackageDescriptor.Package.Name}} gitea/{{.PackageDescriptor.Package.Name}}</code></pre></div>
 			</div>
 			<div class="field">
-				<label>{{.i18n.Tr "packages.helm.documentation" | Safe}}</label>
+				<label>{{.locale.Tr "packages.helm.documentation" | Safe}}</label>
 			</div>
 		</div>
 	</div>
 
 	{{if .PackageDescriptor.Metadata.Description}}
-		<h4 class="ui top attached header">{{.i18n.Tr "packages.about"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "packages.about"}}</h4>
 		<div class="ui attached segment">
 			{{.PackageDescriptor.Metadata.Description}}
 		</div>
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Dependencies}}
-		<h4 class="ui top attached header">{{.i18n.Tr "packages.dependencies"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "packages.dependencies"}}</h4>
 		<div class="ui attached segment">
 			<table class="ui single line very basic table">
 				<thead>
 					<tr>
-						<th class="ten wide">{{.i18n.Tr "packages.dependency.id"}}</th>
-						<th class="six wide">{{.i18n.Tr "packages.dependency.version"}}</th>
+						<th class="ten wide">{{.locale.Tr "packages.dependency.id"}}</th>
+						<th class="six wide">{{.locale.Tr "packages.dependency.version"}}</th>
 					</tr>
 				</thead>
 				<tbody>
@@ -47,7 +47,7 @@ helm repo update</code></pre></div>
 	{{end}}
 
 	{{if .PackageDescriptor.Metadata.Keywords}}
-		<h4 class="ui top attached header">{{.i18n.Tr "packages.keywords"}}</h4>
+		<h4 class="ui top attached header">{{.locale.Tr "packages.keywords"}}</h4>
 		<div class="ui attached segment">
 			{{range .PackageDescriptor.Metadata.Keywords}}
 				{{.}}

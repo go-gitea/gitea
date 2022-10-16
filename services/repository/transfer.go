@@ -11,14 +11,17 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/organization"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/sync"
 )
 
 // repoWorkingPool represents a working pool to order the parallel changes to the same repository
+// TODO: use clustered lock (unique queue? or *abuse* cache)
 var repoWorkingPool = sync.NewExclusivePool()
 
 // TransferOwnership transfers all corresponding setting from old user to new one.
@@ -47,7 +50,7 @@ func TransferOwnership(doer, newOwner *user_model.User, repo *repo_model.Reposit
 	}
 
 	for _, team := range teams {
-		if err := models.AddRepository(team, newRepo); err != nil {
+		if err := models.AddRepository(db.DefaultContext, team, newRepo); err != nil {
 			return err
 		}
 	}
@@ -104,15 +107,15 @@ func StartRepositoryTransfer(doer, newOwner *user_model.User, repo *repo_model.R
 	}
 
 	// In case the new owner would not have sufficient access to the repo, give access rights for read
-	hasAccess, err := models.HasAccess(newOwner.ID, repo)
+	hasAccess, err := access_model.HasAccess(db.DefaultContext, newOwner.ID, repo)
 	if err != nil {
 		return err
 	}
 	if !hasAccess {
-		if err := models.AddCollaborator(repo, newOwner); err != nil {
+		if err := repo_module.AddCollaborator(repo, newOwner); err != nil {
 			return err
 		}
-		if err := models.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(repo, newOwner.ID, perm.AccessModeRead); err != nil {
 			return err
 		}
 	}

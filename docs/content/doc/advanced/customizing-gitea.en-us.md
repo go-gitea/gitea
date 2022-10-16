@@ -60,14 +60,15 @@ the url `http://gitea.domain.tld/assets/image.png`.
 
 ## Changing the logo
 
-To build a custom logo clone the Gitea source repository, replace `assets/logo.svg` and run
-`make generate-images`. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
+To build a custom logo and/or favicon clone the Gitea source repository, replace `assets/logo.svg` and/or `assets/favicon.svg` and run
+`make generate-images`. `assets/favicon.svg` is used for the favicon only. This will update below output files which you can then place in `$GITEA_CUSTOM/public/img` on your server:
 
-- `public/img/logo.svg` - Used for favicon, site icon, app icon
+- `public/img/logo.svg` - Used for site icon, app icon
 - `public/img/logo.png` - Used for Open Graph
-- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 - `public/img/avatar_default.png` - Used as the default avatar image
 - `public/img/apple-touch-icon.png` - Used on iOS devices for bookmarks
+- `public/img/favicon.svg` - Used for favicon
+- `public/img/favicon.png` - Used as fallback for browsers that don't support SVG favicons
 
 In case the source image is not in vector format, you can attempt to convert a raster image using tools like [this](https://www.aconvert.com/image/png-to-svg/).
 
@@ -120,7 +121,7 @@ Apart from `extra_links.tmpl` and `extra_tabs.tmpl`, there are other useful temp
 - `body_inner_pre.tmpl`, before the top navigation bar, but already inside the main container `<div class="full height">`.
 - `body_inner_post.tmpl`, before the end of the main container.
 - `body_outer_post.tmpl`, before the bottom `<footer>` element.
-- `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional Javascript.
+- `footer.tmpl`, right before the end of the `<body>` tag, a good place for additional JavaScript.
 
 #### Example: PlantUML
 
@@ -128,30 +129,33 @@ You can add [PlantUML](https://plantuml.com/) support to Gitea's markdown by usi
 The data is encoded and sent to the PlantUML server which generates the picture. There is an online
 demo server at http://www.plantuml.com/plantuml, but if you (or your users) have sensitive data you
 can set up your own [PlantUML server](https://plantuml.com/server) instead. To set up PlantUML rendering,
-copy javascript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
+copy JavaScript files from https://gitea.com/davidsvantesson/plantuml-code-highlight and put them in your
 `$GITEA_CUSTOM/public` folder. Then add the following to `custom/footer.tmpl`:
 
 ```html
-{{if .RequireHighlightJS}}
-<script src="https://your-server.com/deflate.js"></script>
-<script src="https://your-server.com/encode.js"></script>
-<script src="https://your-server.com/plantuml_codeblock_parse.js"></script>
 <script>
-  <!-- Replace call with address to your plantuml server-->
-  parsePlantumlCodeBlocks("http://www.plantuml.com/plantuml");
+  $(async () => {
+    if (!$('.language-plantuml').length) return;
+    await Promise.all([
+      $.getScript('https://your-gitea-server.com/assets/deflate.js'),
+      $.getScript('https://your-gitea-server.com/assets/encode.js'),
+      $.getScript('https://your-gitea-server.com/assets/plantuml_codeblock_parse.js'),
+    ]);
+    // Replace call with address to your plantuml server
+    parsePlantumlCodeBlocks("https://www.plantuml.com/plantuml");
+  });
 </script>
-{{end}}
 ```
 
 You can then add blocks like the following to your markdown:
 
-    ```plantuml
-        Alice -> Bob: Authentication Request
-        Bob --> Alice: Authentication Response
+```plantuml
+Alice -> Bob: Authentication Request
+Bob --> Alice: Authentication Response
 
-        Alice -> Bob: Another authentication Request
-        Alice <-- Bob: Another authentication Response
-    ```
+Alice -> Bob: Another authentication Request
+Alice <-- Bob: Another authentication Response
+```
 
 The script will detect tags with `class="language-plantuml"`, but you can change this by providing a second argument to `parsePlantumlCodeBlocks`.
 
@@ -198,7 +202,7 @@ You can display STL file directly in Gitea by adding:
 
 to the file `templates/custom/footer.tmpl`
 
-You also need to download the content of the library [Madeleine.js](https://jinjunho.github.io/Madeleine.js/) and place it under `$GITEA_CUSTOM/public/` folder.
+You also need to download the content of the library [Madeleine.js](https://github.com/beige90/Madeleine.js) and place it under `$GITEA_CUSTOM/public/` folder.
 
 You should end-up with a folder structure similar to:
 
@@ -331,8 +335,8 @@ The list of themes a user can choose from can be configured with the `THEMES` va
 
 To make a custom theme available to all users:
 
-1. Add a CSS file to `$GITEA_PUBLIC/public/css/theme-<theme-name>.css`.
-  The value of `$GITEA_PUBLIC` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
+1. Add a CSS file to `$GITEA_CUSTOM/public/css/theme-<theme-name>.css`.
+  The value of `$GITEA_CUSTOM` of your instance can be queried by calling `gitea help` and looking up the value of "CustomPath".
 2. Add `<theme-name>` to the comma-separated list of setting `THEMES` in `app.ini`
 
 Community themes are listed in [gitea/awesome-gitea#themes](https://gitea.com/gitea/awesome-gitea#themes).

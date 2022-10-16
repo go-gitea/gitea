@@ -364,7 +364,7 @@ NB: Gitea must be running for this command to succeed.
 
 ### migrate
 
-Migrates the database. This command can be used to run other commands before starting the server for the first time.  
+Migrates the database. This command can be used to run other commands before starting the server for the first time.
 This command is idempotent.
 
 ### convert
@@ -522,7 +522,7 @@ Dump-repo dumps repository data from Git/GitHub/Gitea/GitLab:
 
 - Options:
   - `--git_service service` : Git service, it could be `git`, `github`, `gitea`, `gitlab`, If clone_addr could be recognized, this could be ignored.
-  - `--repo_dir dir`, `-r dir`: Repository dir path to store the data 
+  - `--repo_dir dir`, `-r dir`: Repository dir path to store the data
   - `--clone_addr addr`: The URL will be clone, currently could be a git/github/gitea/gitlab http/https URL. i.e. https://github.com/lunny/tango.git
   - `--auth_username lunny`: The username to visit the clone_addr
   - `--auth_password <password>`: The password to visit the clone_addr

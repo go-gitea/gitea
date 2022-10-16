@@ -8,9 +8,10 @@ import (
 	"context"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/admin"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/updatechecker"
@@ -26,7 +27,7 @@ func registerDeleteInactiveUsers() {
 			RunAtStart: false,
 			Schedule:   "@annually",
 		},
-		OlderThan: 0 * time.Second,
+		OlderThan: time.Minute * time.Duration(setting.Service.ActiveCodeLives),
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
 		return user_service.DeleteInactiveUsers(ctx, olderThanConfig.OlderThan)
@@ -79,7 +80,7 @@ func registerRewriteAllPrincipalKeys() {
 		RunAtStart: false,
 		Schedule:   "@every 72h",
 	}, func(_ context.Context, _ *user_model.User, _ Config) error {
-		return asymkey_model.RewriteAllPrincipalKeys()
+		return asymkey_model.RewriteAllPrincipalKeys(db.DefaultContext)
 	})
 }
 
@@ -133,7 +134,7 @@ func registerDeleteOldActions() {
 		OlderThan: 365 * 24 * time.Hour,
 	}, func(ctx context.Context, _ *user_model.User, config Config) error {
 		olderThanConfig := config.(*OlderThanConfig)
-		return models.DeleteOldActions(olderThanConfig.OlderThan)
+		return activities_model.DeleteOldActions(olderThanConfig.OlderThan)
 	})
 }
 

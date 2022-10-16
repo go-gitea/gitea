@@ -8,10 +8,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"errors"
 	"io"
 	"path"
 	"sort"
 	"strings"
+
+	"code.gitea.io/gitea/modules/container"
 
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
@@ -62,9 +65,10 @@ func LogNameStatusRepo(ctx context.Context, repository, head, treepath string, p
 		})
 		if err != nil {
 			_ = stdoutWriter.CloseWithError(ConcatenateError(err, (&stderr).String()))
-		} else {
-			_ = stdoutWriter.Close()
+			return
 		}
+
+		_ = stdoutWriter.Close()
 	}()
 
 	// For simplicities sake we'll us a buffered reader to read from the cat-file --batch
@@ -279,7 +283,7 @@ func (g *LogNameStatusRepoParser) Close() {
 }
 
 // WalkGitLog walks the git log --name-status for the head commit in the provided treepath and files
-func WalkGitLog(ctx context.Context, cache *LastCommitCache, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
+func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath string, paths ...string) (map[string]string, error) {
 	headRef := head.ID.String()
 
 	tree, err := head.SubTree(treepath)
@@ -337,7 +341,7 @@ func WalkGitLog(ctx context.Context, cache *LastCommitCache, repo *Repository, h
 	lastEmptyParent := head.ID.String()
 	commitSinceLastEmptyParent := uint64(0)
 	commitSinceNextRestart := uint64(0)
-	parentRemaining := map[string]bool{}
+	parentRemaining := make(container.Set[string])
 
 	changed := make([]bool, len(paths))
 
@@ -354,7 +358,7 @@ heaploop:
 		}
 		current, err := g.Next(treepath, path2idx, changed, maxpathlen)
 		if err != nil {
-			if err == context.DeadlineExceeded {
+			if errors.Is(err, context.DeadlineExceeded) {
 				break heaploop
 			}
 			g.Close()
@@ -363,7 +367,7 @@ heaploop:
 		if current == nil {
 			break heaploop
 		}
-		delete(parentRemaining, current.CommitID)
+		parentRemaining.Remove(current.CommitID)
 		if current.Paths != nil {
 			for i, found := range current.Paths {
 				if !found {
@@ -372,14 +376,14 @@ heaploop:
 				changed[i] = false
 				if results[i] == "" {
 					results[i] = current.CommitID
-					if err := cache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
+					if err := repo.LastCommitCache.Put(headRef, path.Join(treepath, paths[i]), current.CommitID); err != nil {
 						return nil, err
 					}
 					delete(path2idx, paths[i])
 					remaining--
 					if results[0] == "" {
 						results[0] = current.CommitID
-						if err := cache.Put(headRef, treepath, current.CommitID); err != nil {
+						if err := repo.LastCommitCache.Put(headRef, treepath, current.CommitID); err != nil {
 							return nil, err
 						}
 						delete(path2idx, "")
@@ -408,14 +412,12 @@ heaploop:
 					}
 				}
 				g = NewLogNameStatusRepoParser(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
-				parentRemaining = map[string]bool{}
+				parentRemaining = make(container.Set[string])
 				nextRestart = (remaining * 3) / 4
 				continue heaploop
 			}
 		}
-		for _, parent := range current.ParentIDs {
-			parentRemaining[parent] = true
-		}
+		parentRemaining.AddMultiple(current.ParentIDs...)
 	}
 	g.Close()
 

@@ -7,6 +7,7 @@ package context
 
 import (
 	"net/http"
+	"strings"
 
 	"code.gitea.io/gitea/models/auth"
 	"code.gitea.io/gitea/modules/log"
@@ -41,6 +42,10 @@ func Toggle(options *ToggleOptions) func(ctx *Context) {
 
 			if ctx.Doer.MustChangePassword {
 				if ctx.Req.URL.Path != "/user/settings/change_password" {
+					if strings.HasPrefix(ctx.Req.UserAgent(), "git") {
+						ctx.Error(http.StatusUnauthorized, ctx.Tr("auth.must_change_password"))
+						return
+					}
 					ctx.Data["Title"] = ctx.Tr("auth.must_change_password")
 					ctx.Data["ChangePasscodeLink"] = setting.AppSubURL + "/user/change_password"
 					if ctx.Req.URL.Path != "/user/events" {

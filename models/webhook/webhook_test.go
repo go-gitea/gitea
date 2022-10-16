@@ -31,14 +31,14 @@ func TestIsValidHookContentType(t *testing.T) {
 
 func TestWebhook_History(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
+	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1})
 	tasks, err := webhook.History(0)
 	assert.NoError(t, err)
 	if assert.Len(t, tasks, 1) {
 		assert.Equal(t, int64(1), tasks[0].ID)
 	}
 
-	webhook = unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2}).(*Webhook)
+	webhook = unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2})
 	tasks, err = webhook.History(0)
 	assert.NoError(t, err)
 	assert.Len(t, tasks, 0)
@@ -46,7 +46,7 @@ func TestWebhook_History(t *testing.T) {
 
 func TestWebhook_UpdateEvent(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1}).(*Webhook)
+	webhook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 1})
 	hookEvent := &HookEvent{
 		PushOnly:       true,
 		SendEverything: false,
@@ -71,7 +71,7 @@ func TestWebhook_EventsArray(t *testing.T) {
 		"issues", "issue_assign", "issue_label", "issue_milestone", "issue_comment",
 		"pull_request", "pull_request_assign", "pull_request_label", "pull_request_milestone",
 		"pull_request_comment", "pull_request_review_approved", "pull_request_review_rejected",
-		"pull_request_review_comment", "pull_request_sync", "repository", "release",
+		"pull_request_review_comment", "pull_request_sync", "wiki", "repository", "release",
 		"package",
 	},
 		(&Webhook{
@@ -122,7 +122,7 @@ func TestGetWebhookByOrgID(t *testing.T) {
 
 func TestGetActiveWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: 1, IsActive: util.OptionalBoolTrue})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{RepoID: 1, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -132,7 +132,7 @@ func TestGetActiveWebhooksByRepoID(t *testing.T) {
 
 func TestGetWebhooksByRepoID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{RepoID: 1})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{RepoID: 1})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 2) {
 		assert.Equal(t, int64(1), hooks[0].ID)
@@ -142,7 +142,7 @@ func TestGetWebhooksByRepoID(t *testing.T) {
 
 func TestGetActiveWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{OrgID: 3, IsActive: util.OptionalBoolTrue})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3, IsActive: util.OptionalBoolTrue})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -152,7 +152,7 @@ func TestGetActiveWebhooksByOrgID(t *testing.T) {
 
 func TestGetWebhooksByOrgID(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hooks, err := ListWebhooksByOpts(&ListWebhookOptions{OrgID: 3})
+	hooks, err := ListWebhooksByOpts(db.DefaultContext, &ListWebhookOptions{OrgID: 3})
 	assert.NoError(t, err)
 	if assert.Len(t, hooks, 1) {
 		assert.Equal(t, int64(3), hooks[0].ID)
@@ -162,7 +162,7 @@ func TestGetWebhooksByOrgID(t *testing.T) {
 
 func TestUpdateWebhook(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2}).(*Webhook)
+	hook := unittest.AssertExistsAndLoadBean(t, &Webhook{ID: 2})
 	hook.IsActive = true
 	hook.ContentType = ContentTypeForm
 	unittest.AssertNotExistsBean(t, hook)
@@ -220,7 +220,7 @@ func TestCreateHookTask(t *testing.T) {
 func TestUpdateHookTask(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	hook := unittest.AssertExistsAndLoadBean(t, &HookTask{ID: 1}).(*HookTask)
+	hook := unittest.AssertExistsAndLoadBean(t, &HookTask{ID: 1})
 	hook.PayloadContent = "new payload content"
 	hook.DeliveredString = "new delivered string"
 	hook.IsDelivered = true

@@ -145,6 +145,13 @@ func (f *FeishuPayload) Repository(p *api.RepositoryPayload) (api.Payloader, err
 	return nil, nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (f *FeishuPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, noneLinkFormatter, true)
+
+	return newFeishuTextPayload(text), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (f *FeishuPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, noneLinkFormatter, true)

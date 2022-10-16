@@ -112,7 +112,7 @@ func NewAuthSource(ctx *context.Context) {
 	ctx.Data["SSPIDefaultLanguage"] = ""
 
 	// only the first as default
-	ctx.Data["oauth2_provider"] = oauth2providers[0].Name
+	ctx.Data["oauth2_provider"] = oauth2providers[0].Name()
 
 	ctx.HTML(http.StatusOK, tplAuthNew)
 }
@@ -159,7 +159,7 @@ func parseLDAPConfig(form forms.AuthenticationForm) *ldap.Source {
 func parseSMTPConfig(form forms.AuthenticationForm) *smtp.Source {
 	return &smtp.Source{
 		Auth:           form.SMTPAuth,
-		Host:           form.SMTPHost,
+		Addr:           form.SMTPAddr,
 		Port:           form.SMTPPort,
 		AllowedDomains: form.AllowedDomains,
 		ForceSMTPS:     form.ForceSMTPS,

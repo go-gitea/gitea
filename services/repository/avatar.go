@@ -44,7 +44,7 @@ func UploadAvatar(repo *repo_model.Repository, data []byte) error {
 	// Users can upload the same image to other repo - prefix it with ID
 	// Then repo will be removed - only it avatar file will be removed
 	repo.Avatar = newAvatar
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("UploadAvatar: Update repository avatar: %v", err)
 	}
 
@@ -83,7 +83,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 	defer committer.Close()
 
 	repo.Avatar = ""
-	if err := repo_model.UpdateRepositoryColsCtx(ctx, repo, "avatar"); err != nil {
+	if err := repo_model.UpdateRepositoryCols(ctx, repo, "avatar"); err != nil {
 		return fmt.Errorf("DeleteAvatar: Update repository avatar: %v", err)
 	}
 
@@ -96,7 +96,7 @@ func DeleteAvatar(repo *repo_model.Repository) error {
 
 // RemoveRandomAvatars removes the randomly generated avatars that were created for repositories
 func RemoveRandomAvatars(ctx context.Context) error {
-	return repo_model.IterateRepository(func(repository *repo_model.Repository) error {
+	return db.IterateObjects(ctx, func(repository *repo_model.Repository) error {
 		select {
 		case <-ctx.Done():
 			return db.ErrCancelledf("before random avatars removed for %s", repository.FullName())
@@ -117,5 +117,5 @@ func generateAvatar(ctx context.Context, templateRepo, generateRepo *repo_model.
 		return err
 	}
 
-	return repo_model.UpdateRepositoryColsCtx(ctx, generateRepo, "avatar")
+	return repo_model.UpdateRepositoryCols(ctx, generateRepo, "avatar")
 }

@@ -184,3 +184,27 @@
   is_pull: false
   created_unix: 1602935696
   updated_unix: 1602935696
+
+-
+  id: 16
+  repo_id: 32
+  index: 1
+  poster_id: 2
+  name: just a normal issue
+  content: content
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696
+
+-
+  id: 17
+  repo_id: 32
+  index: 2
+  poster_id: 15
+  name: a issue with a assignment
+  content: content
+  is_closed: false
+  is_pull: false
+  created_unix: 1602935696
+  updated_unix: 1602935696

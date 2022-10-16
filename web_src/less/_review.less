@@ -90,10 +90,10 @@
         float: none;
         margin: 0 .5rem 0 0;
         flex-shrink: 0;
+      }
 
-        &.image {
-          margin: 0 !important;
-        }
+      img.avatar {
+        margin: 0 !important;
       }
 
       .comment-content {
@@ -242,10 +242,56 @@ a.blob-excerpt:hover {
   border: none !important;
 }
 
+#review-box .review-comments-counter {
+  background-color: var(--color-primary-light-4);
+  color: #fff;
+}
+
+#review-box:hover .review-comments-counter {
+  background-color: var(--color-primary-light-5);
+}
+
+#review-box .review-comments-counter[data-pending-comment-number="0"] {
+  display: none;
+}
+
 .pull.files.diff [id] {
   scroll-margin-top: 99px;
 
   @media @mediaMdAndDown {
     scroll-margin-top: 130px;
   }
+}
+
+.changed-since-last-review {
+  border: 1px var(--color-accent) solid;
+  background-color: var(--color-small-accent);
+  border-radius: 15px;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  font-size: .857rem; // just like .ui.tiny.button
+}
+
+.viewed-file-form {
+  display: flex;
+  align-items: center;
+  border: 1px none;
+  padding: 4px 8px;
+  margin: -8px 0; // just like other buttons in the diff box header
+  border-radius: .285rem; // just like .ui.tiny.button
+  font-size: .857rem; // just like .ui.tiny.button
+}
+
+.viewed-file-form input {
+  margin-right: 4px;
+}
+
+.viewed-file-checked-form {
+  background-color: var(--color-small-accent);
+  border: 1px solid var(--color-accent);
+}
+
+#viewed-files-summary {
+  width: 72px;
+  height: 10px;
 }

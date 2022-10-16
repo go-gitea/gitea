@@ -11,9 +11,12 @@ import (
 
 	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/perm"
+	access_model "code.gitea.io/gitea/models/perm/access"
+	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web"
 	"code.gitea.io/gitea/routers/api/v1/utils"
@@ -49,13 +52,13 @@ func ListCollaborators(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	count, err := models.CountCollaborators(ctx.Repo.Repository.ID)
+	count, err := repo_model.CountCollaborators(ctx.Repo.Repository.ID)
 	if err != nil {
 		ctx.InternalServerError(err)
 		return
 	}
 
-	collaborators, err := models.GetCollaborators(ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
+	collaborators, err := repo_model.GetCollaborators(ctx, ctx.Repo.Repository.ID, utils.GetListOptions(ctx))
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -101,7 +104,7 @@ func IsCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	user, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	user, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -110,7 +113,7 @@ func IsCollaborator(ctx *context.APIContext) {
 		}
 		return
 	}
-	isColab, err := models.IsCollaborator(ctx.Repo.Repository.ID, user.ID)
+	isColab, err := repo_model.IsCollaborator(ctx, ctx.Repo.Repository.ID, user.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "IsCollaborator", err)
 		return
@@ -157,7 +160,7 @@ func AddCollaborator(ctx *context.APIContext) {
 
 	form := web.GetForm(ctx).(*api.AddCollaboratorOption)
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -172,13 +175,13 @@ func AddCollaborator(ctx *context.APIContext) {
 		return
 	}
 
-	if err := models.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
+	if err := repo_module.AddCollaborator(ctx.Repo.Repository, collaborator); err != nil {
 		ctx.Error(http.StatusInternalServerError, "AddCollaborator", err)
 		return
 	}
 
 	if form.Permission != nil {
-		if err := models.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
+		if err := repo_model.ChangeCollaborationAccessMode(ctx.Repo.Repository, collaborator.ID, perm.ParseAccessMode(*form.Permission)); err != nil {
 			ctx.Error(http.StatusInternalServerError, "ChangeCollaborationAccessMode", err)
 			return
 		}
@@ -216,7 +219,7 @@ func DeleteCollaborator(ctx *context.APIContext) {
 	//   "422":
 	//     "$ref": "#/responses/validationError"
 
-	collaborator, err := user_model.GetUserByName(ctx.Params(":collaborator"))
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
 	if err != nil {
 		if user_model.IsErrUserNotExist(err) {
 			ctx.Error(http.StatusUnprocessableEntity, "", err)
@@ -231,6 +234,61 @@ func DeleteCollaborator(ctx *context.APIContext) {
 		return
 	}
 	ctx.Status(http.StatusNoContent)
+}
+
+// GetRepoPermissions gets repository permissions for a user
+func GetRepoPermissions(ctx *context.APIContext) {
+	// swagger:operation GET /repos/{owner}/{repo}/collaborators/{collaborator}/permission repository repoGetRepoPermissions
+	// ---
+	// summary: Get repository permissions for a user
+	// produces:
+	// - application/json
+	// parameters:
+	// - name: owner
+	//   in: path
+	//   description: owner of the repo
+	//   type: string
+	//   required: true
+	// - name: repo
+	//   in: path
+	//   description: name of the repo
+	//   type: string
+	//   required: true
+	// - name: collaborator
+	//   in: path
+	//   description: username of the collaborator
+	//   type: string
+	//   required: true
+	// responses:
+	//   "200":
+	//     "$ref": "#/responses/RepoCollaboratorPermission"
+	//   "404":
+	//     "$ref": "#/responses/notFound"
+	//   "403":
+	//     "$ref": "#/responses/forbidden"
+
+	if !ctx.Doer.IsAdmin && ctx.Doer.LoginName != ctx.Params(":collaborator") && !ctx.IsUserRepoAdmin() {
+		ctx.Error(http.StatusForbidden, "User", "Only admins can query all permissions, repo admins can query all repo permissions, collaborators can query only their own")
+		return
+	}
+
+	collaborator, err := user_model.GetUserByName(ctx, ctx.Params(":collaborator"))
+	if err != nil {
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Error(http.StatusNotFound, "GetUserByName", err)
+		} else {
+			ctx.Error(http.StatusInternalServerError, "GetUserByName", err)
+		}
+		return
+	}
+
+	permission, err := access_model.GetUserRepoPermission(ctx, ctx.Repo.Repository, collaborator)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, "GetUserRepoPermission", err)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, convert.ToUserAndPermission(collaborator, ctx.ContextUser, permission.AccessMode))
 }
 
 // GetReviewers return all users that can be requested to review in this repo
@@ -255,7 +313,7 @@ func GetReviewers(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	reviewers, err := models.GetReviewers(ctx.Repo.Repository, ctx.Doer.ID, 0)
+	reviewers, err := repo_model.GetReviewers(ctx, ctx.Repo.Repository, ctx.Doer.ID, 0)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return
@@ -285,7 +343,7 @@ func GetAssignees(ctx *context.APIContext) {
 	//   "200":
 	//     "$ref": "#/responses/UserList"
 
-	assignees, err := models.GetRepoAssignees(ctx.Repo.Repository)
+	assignees, err := repo_model.GetRepoAssignees(ctx, ctx.Repo.Repository)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "ListCollaborators", err)
 		return

@@ -141,7 +141,7 @@ func getPullRequestPayloadInfo(p *api.PullRequestPayload, linkFormatter linkForm
 
 func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, withSender bool) (text string, color int) {
 	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
-	refLink := linkFormatter(p.Repository.HTMLURL+"/src/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
+	refLink := linkFormatter(p.Repository.HTMLURL+"/releases/tag/"+util.PathEscapeSegments(p.Release.TagName), p.Release.TagName)
 
 	switch p.Action {
 	case api.HookReleasePublished:
@@ -159,6 +159,35 @@ func getReleasePayloadInfo(p *api.ReleasePayload, linkFormatter linkFormatter, w
 	}
 
 	return text, color
+}
+
+func getWikiPayloadInfo(p *api.WikiPayload, linkFormatter linkFormatter, withSender bool) (string, int, string) {
+	repoLink := linkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
+	pageLink := linkFormatter(p.Repository.HTMLURL+"/wiki/"+url.PathEscape(p.Page), p.Page)
+
+	var text string
+	color := greenColor
+
+	switch p.Action {
+	case api.HookWikiCreated:
+		text = fmt.Sprintf("[%s] New wiki page '%s'", repoLink, pageLink)
+	case api.HookWikiEdited:
+		text = fmt.Sprintf("[%s] Wiki page '%s' edited", repoLink, pageLink)
+		color = yellowColor
+	case api.HookWikiDeleted:
+		text = fmt.Sprintf("[%s] Wiki page '%s' deleted", repoLink, pageLink)
+		color = redColor
+	}
+
+	if p.Action != api.HookWikiDeleted && p.Comment != "" {
+		text += fmt.Sprintf(" (%s)", p.Comment)
+	}
+
+	if withSender {
+		text += fmt.Sprintf(" by %s", linkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName))
+	}
+
+	return text, color, pageLink
 }
 
 func getIssueCommentPayloadInfo(p *api.IssueCommentPayload, linkFormatter linkFormatter, withSender bool) (string, string, int) {
