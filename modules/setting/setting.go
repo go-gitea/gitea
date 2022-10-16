@@ -967,12 +967,12 @@ func loadFromConf(allowEmpty bool, extraConfig string) {
 	SuccessfulTokensCacheSize = sec.Key("SUCCESSFUL_TOKENS_CACHE_SIZE").MustInt(20)
 
 	// Master key provider configuration
-	MasterKeyProvider = sec.Key("MASTER_KEY_PROVIDER").MustString("none")
+	MasterKeyProvider = sec.Key("MASTER_KEY_PROVIDER").MustString("plain")
 	switch MasterKeyProvider {
 	case "plain":
-		if MasterKey, err = base64.StdEncoding.DecodeString(sec.Key("MASTER_KEY").MustString("")); err != nil {
-			log.Fatal("error loading master key: %v", err)
-			return
+		MasterKey = []byte(sec.Key("MASTER_KEY").MustString(SecretKey))
+		if len(MasterKey) > 32 {
+			MasterKey = MasterKey[:32]
 		}
 	case "none":
 	default:

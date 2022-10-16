@@ -79,7 +79,7 @@ func (e *aesEncryptionProvider) DecryptString(enc string, key []byte) (string, e
 		return "", err
 	}
 
-	out, err := e.Encrypt(encb, key)
+	out, err := e.Decrypt(encb, key)
 	if err != nil {
 		return "", err
 	}
