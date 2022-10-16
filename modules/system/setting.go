@@ -26,6 +26,8 @@ func GetSetting(key string) (string, error) {
 	})
 }
 
+// GetSettingBool return bool value of setting,
+// none existing keys and errors are ignored and result in false
 func GetSettingBool(key string) bool {
 	s, _ := GetSetting(key)
 	b, _ := strconv.ParseBool(s)
