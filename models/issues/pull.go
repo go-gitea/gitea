@@ -490,19 +490,19 @@ func (pr *PullRequest) SetMerged(ctx context.Context) (bool, error) {
 
 // NewPullRequest creates new pull request with labels for repository.
 func NewPullRequest(outerCtx context.Context, repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string, pr *PullRequest) (err error) {
-	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate pull request index failed: %v", err)
-	}
-
-	issue.Index = idx
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
 	ctx.WithContext(outerCtx)
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate pull request index failed: %v", err)
+	}
+
+	issue.Index = idx
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
