@@ -161,6 +161,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderCodeBlock":                RenderCodeBlock,
 		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
@@ -793,6 +794,16 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+// Match text that is between back ticks.
+var codeMatcher = regexp.MustCompile("`([^`]+)`")
+
+// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
+// Intended for issue and PR titles, these containers should have styles for "<code>" elements
+func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
+	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
+	return template.HTML(htmlWithCodeTags)
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors

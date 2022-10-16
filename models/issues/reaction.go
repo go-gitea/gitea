@@ -211,7 +211,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsMap[opts.Type] {
+	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
@@ -316,16 +316,14 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(list))
+	userIDs := make(container.Set[int64], len(list))
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
 			continue
 		}
-		if _, ok := userIDs[reaction.UserID]; !ok {
-			userIDs[reaction.UserID] = struct{}{}
-		}
+		userIDs.Add(reaction.UserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {

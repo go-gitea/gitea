@@ -136,6 +136,7 @@
   --color-label-active-bg: #4c525e;
   --color-small-accent: var(--color-primary-light-5);
   --color-accent: var(--color-primary-light-3);
+  --color-active-line: #534d1b;
 }
 
 ::-webkit-calendar-picker-indicator {
@@ -231,10 +232,6 @@ a.ui.basic.green.label:hover {
   background-color: #a0cc75;
 }
 
-.repository .diff-stats li {
-  border-color: var(--color-secondary);
-}
-
 .ui.red.button,
 .ui.red.buttons .button {
   background-color: #7d3434;
@@ -243,24 +240,6 @@ a.ui.basic.green.label:hover {
 .ui.red.button:hover,
 .ui.red.buttons .button:hover {
   background-color: #984646;
-}
-
-.lines-code.active,
-.lines-code .active {
-  background: #534d1b !important;
-}
-
-.ui.header .sub.header {
-  color: var(--color-secondary-dark-6);
-}
-
-.ui.dividing.header {
-  border-bottom: 1px solid var(--color-secondary);
-}
-
-.minicolors-panel {
-  background: var(--color-secondary) !important;
-  border-color: #6a737d !important;
 }
 
 /* invert emojis that are hard to read otherwise */
@@ -287,34 +266,8 @@ a.ui.basic.green.label:hover {
   filter: invert(100%) hue-rotate(180deg);
 }
 
-.edit-diff > div > .ui.table {
-  border-left-color: var(--color-secondary) !important;
-  border-right-color: var(--color-secondary) !important;
-}
-
-footer .container .links > * {
-  border-left-color: #888;
-}
-
-.repository.release #release-list > li .detail .dot {
-  background-color: #505667;
-  border-color: #383c4a;
-}
-
-.tribute-container {
-  box-shadow: 0 .25rem .5rem rgba(0, 0, 0, .6);
-}
-
-.repository .repo-header .ui.huge.breadcrumb.repo-title .repo-header-icon .avatar {
-  color: #2a2e3a;
-}
-
 img[src$="/img/matrix.svg"] {
   filter: invert(80%);
-}
-
-.is-loading::after {
-  border-color: #4a4c58 #4a4c58 #d7d7da #d7d7da;
 }
 
 .markup-block-error {
