@@ -10,15 +10,8 @@ package main
 // These libraries will not be included in a normal compilation.
 
 import (
-	// for embed
-	_ "github.com/shurcooL/vfsgen"
-
-	// for cover merge
-	_ "golang.org/x/tools/cover"
-
-	// for vet
-	_ "code.gitea.io/gitea-vet"
-
-	// for swagger
-	_ "github.com/go-swagger/go-swagger/cmd/swagger"
+	_ "code.gitea.io/gitea-vet"                      // for vet
+	_ "github.com/go-swagger/go-swagger/cmd/swagger" // for swagger
+	_ "github.com/shurcooL/vfsgen"                   // for embed
+	_ "golang.org/x/tools/cover"                     // for cover merge
 )

@@ -19,6 +19,8 @@ var importPackageGroupOrders = map[string]int{
 	"code.gitea.io/gitea/": 2,
 }
 
+// if comments are put between imports, the imports will be separated into different sorting groups,
+// which is incorrect for most cases, so we forbid putting comments between imports
 var errInvalidCommentBetweenImports = errors.New("comments between imported packages are invalid, please move comments to the end of the package line")
 
 var (
@@ -159,7 +161,7 @@ func formatGoImports(contentBytes []byte) ([]byte, error) {
 }
 
 // FormatGoImports format the imports by our rules (see unit tests)
-func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
+func FormatGoImports(file string, doListFile, doWriteFile bool) error {
 	f, err := os.Open(file)
 	if err != nil {
 		return err
@@ -183,7 +185,7 @@ func FormatGoImports(file string, doChangedFiles, doWriteFile bool) error {
 		return nil
 	}
 
-	if doChangedFiles {
+	if doListFile {
 		fmt.Println(file)
 	}
 
