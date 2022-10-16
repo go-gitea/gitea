@@ -13,6 +13,7 @@ import (
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
 	"code.gitea.io/gitea/modules/json"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
@@ -118,6 +119,7 @@ func (s *Service) FetchTask(
 
 	var task *runnerv1.Task
 	if t, ok, err := s.pickTask(ctx, runner); err != nil {
+		log.Error("pick task failed: %v", err)
 		return nil, status.Errorf(codes.Internal, "pick task: %v", err)
 	} else if ok {
 		task = t

@@ -5,14 +5,18 @@
 package bots
 
 import (
+	"context"
+
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/util"
+	"xorm.io/builder"
 )
 
-type BuildList []*Build
+type RunList []*Run
 
 // GetUserIDs returns a slice of user's id
-func (builds BuildList) GetUserIDs() []int64 {
+func (builds RunList) GetUserIDs() []int64 {
 	userIDsMap := make(map[int64]struct{})
 	for _, build := range builds {
 		userIDsMap[build.TriggerUserID] = struct{}{}
@@ -24,7 +28,7 @@ func (builds BuildList) GetUserIDs() []int64 {
 	return userIDs
 }
 
-func (builds BuildList) LoadTriggerUser() error {
+func (builds RunList) LoadTriggerUser() error {
 	userIDs := builds.GetUserIDs()
 	users := make(map[int64]*user_model.User, len(userIDs))
 	if err := db.GetEngine(db.DefaultContext).In("id", userIDs).Find(&users); err != nil {
@@ -34,4 +38,33 @@ func (builds BuildList) LoadTriggerUser() error {
 		task.TriggerUser = users[task.TriggerUserID]
 	}
 	return nil
+}
+
+type FindRunOptions struct {
+	db.ListOptions
+	RepoID   int64
+	IsClosed util.OptionalBool
+}
+
+func (opts FindRunOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.IsClosed.IsFalse() {
+
+	} else if opts.IsClosed.IsTrue() {
+
+	}
+	return cond
+}
+
+func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) {
+	e := db.GetEngine(ctx).Where(opts.toConds())
+	if opts.PageSize>0&&opts.Page >=1 {
+		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
+	}
+	var runs RunList
+	total, err := e.FindAndCount(&runs)
+	return runs, total, err
 }

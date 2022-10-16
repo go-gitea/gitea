@@ -102,7 +102,7 @@ func notify(repo *repo_model.Repository, doer *user_model.User, payload, ref str
 			continue
 		}
 		if err := bots_model.InsertRun(&run, jobs); err != nil {
-			log.Error("InsertBotTask: %v", err)
+			log.Error("InsertRun: %v", err)
 		}
 	}
 }

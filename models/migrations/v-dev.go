@@ -16,46 +16,119 @@ func addBotTables(x *xorm.Engine) error {
 		ID          int64
 		UUID        string `xorm:"CHAR(36) UNIQUE"`
 		Name        string `xorm:"VARCHAR(32) UNIQUE"`
-		OS          string `xorm:"VARCHAR(16) index"` // the runner running os
-		Arch        string `xorm:"VARCHAR(16) index"` // the runner running architecture
-		Type        string `xorm:"VARCHAR(16)"`
 		OwnerID     int64  `xorm:"index"` // org level runner, 0 means system
 		RepoID      int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
 		Description string `xorm:"TEXT"`
 		Base        int    // 0 native 1 docker 2 virtual machine
 		RepoRange   string // glob match which repositories could use this runner
-		Token       string
-		LastOnline  timeutil.TimeStamp `xorm:"index"`
-		Created     timeutil.TimeStamp `xorm:"created"`
+		Token       string `xorm:"CHAR(36) UNIQUE"`
+
+		// instance status (idle, active, offline)
+		Status int32
+		// Store OS and Artch.
+		AgentLabels []string
+		// Store custom labes use defined.
+		CustomLabels []string
+
+		LastOnline timeutil.TimeStamp `xorm:"index"`
+		Created    timeutil.TimeStamp `xorm:"created"`
+		Updated    timeutil.TimeStamp `xorm:"updated"`
+		Deleted    timeutil.TimeStamp `xorm:"deleted"`
 	}
 
-	type BotsBuild struct {
+	type BotsRunnerToken struct {
+		ID       int64
+		Token    string `xorm:"CHAR(36) UNIQUE"`
+		OwnerID  int64  `xorm:"index"` // org level runner, 0 means system
+		RepoID   int64  `xorm:"index"` // repo level runner, if orgid also is zero, then it's a global
+		IsActive bool
+
+		Created timeutil.TimeStamp `xorm:"created"`
+		Updated timeutil.TimeStamp `xorm:"updated"`
+		Deleted timeutil.TimeStamp `xorm:"deleted"`
+	}
+
+	type BotsRun struct {
 		ID            int64
-		Title         string
-		UUID          string `xorm:"CHAR(36)"`
-		Index         int64  `xorm:"index unique(repo_index)"`
-		RepoID        int64  `xorm:"index unique(repo_index)"`
+		Name          string
+		RepoID        int64  `xorm:"index unique(repo_workflow_index)"`
+		WorkflowID    string `xorm:"index unique(repo_workflow_index)"` // the name of workflow file
+		Index         int64  `xorm:"index unique(repo_workflow_index)"` // a unique number for each run of a particular workflow in a repository
 		TriggerUserID int64
 		Ref           string
 		CommitSHA     string
 		Event         string
-		Token         string             // token for this task
-		Grant         string             // permissions for this task
-		EventPayload  string             `xorm:"LONGTEXT"`
-		RunnerID      int64              `xorm:"index"`
-		Status        int                `xorm:"index"`
-		Created       timeutil.TimeStamp `xorm:"created"`
+		Token         string // token for this task
+		Grant         string // permissions for this task
+		EventPayload  string `xorm:"LONGTEXT"`
+		Status        int32  `xorm:"index"`
 		StartTime     timeutil.TimeStamp
 		EndTime       timeutil.TimeStamp
+		Created       timeutil.TimeStamp `xorm:"created"`
 		Updated       timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	type Repository struct {
-		NumBuilds       int `xorm:"NOT NULL DEFAULT 0"`
-		NumClosedBuilds int `xorm:"NOT NULL DEFAULT 0"`
+	type BotsRunJob struct {
+		ID              int64
+		RunID           int64 `xorm:"index"`
+		Name            string
+		Ready           bool // ready to be executed
+		Attempt         int64
+		WorkflowPayload []byte
+		JobID           string   // job id in workflow, not job's id
+		Needs           []int64  `xorm:"JSON TEXT"`
+		RunsOn          []string `xorm:"JSON TEXT"`
+		TaskID          int64    // the latest task of the job
+		Status          int32    `xorm:"index"`
+		Started         timeutil.TimeStamp
+		Stopped         timeutil.TimeStamp
+		Created         timeutil.TimeStamp `xorm:"created"`
+		Updated         timeutil.TimeStamp `xorm:"updated"`
 	}
 
-	type BotsBuildIndex db.ResourceIndex
+	type Repository struct {
+		NumRuns       int `xorm:"NOT NULL DEFAULT 0"`
+		NumClosedRuns int `xorm:"NOT NULL DEFAULT 0"`
+	}
 
-	return x.Sync2(new(BotsRunner), new(BotsBuild), new(Repository), new(BotsBuildIndex))
+	type BotsRunIndex db.ResourceIndex
+
+	type BotsTask struct {
+		ID        int64
+		JobID     int64
+		Attempt   int64
+		RunnerID  int64  `xorm:"index"`
+		LogToFile bool   // read log from database or from storage
+		LogURL    string // url of the log file in storage
+		Result    int32
+		Started   timeutil.TimeStamp
+		Stopped   timeutil.TimeStamp
+		Created   timeutil.TimeStamp `xorm:"created"`
+		Updated   timeutil.TimeStamp `xorm:"updated"`
+	}
+
+	type BotsTaskStep struct {
+		ID        int64
+		Name      string
+		TaskID    int64 `xorm:"index unique(task_number)"`
+		Number    int64 `xorm:"index unique(task_number)"`
+		Result    int32
+		LogIndex  int64
+		LogLength int64
+		Started   timeutil.TimeStamp
+		Stopped   timeutil.TimeStamp
+		Created   timeutil.TimeStamp `xorm:"created"`
+		Updated   timeutil.TimeStamp `xorm:"updated"`
+	}
+
+	return x.Sync2(
+		new(BotsRunner),
+		new(BotsRunnerToken),
+		new(BotsRun),
+		new(BotsRunJob),
+		new(Repository),
+		new(BotsRunIndex),
+		new(BotsTask),
+		new(BotsTaskStep),
+	)
 }

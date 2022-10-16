@@ -16,8 +16,8 @@ import (
 // RunJob represents a job of a run
 type RunJob struct {
 	ID              int64
-	RunID           int64
-	Run             *Run `xorm:"-"`
+	RunID           int64 `xorm:"index"`
+	Run             *Run  `xorm:"-"`
 	Name            string
 	Ready           bool // ready to be executed
 	Attempt         int64

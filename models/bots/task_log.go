@@ -19,10 +19,6 @@ type TaskLog struct {
 	Content   string `xorm:"LONGTEXT"`
 }
 
-func init() {
-	db.RegisterModel(new(TaskLog))
-}
-
 func GetTaskLogTableName(taskID int64) string {
 	return fmt.Sprintf("bots_task_log_%d", taskID)
 }

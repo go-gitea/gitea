@@ -40,7 +40,6 @@ import (
 	"code.gitea.io/gitea/services/auth"
 	"code.gitea.io/gitea/services/auth/source/oauth2"
 	"code.gitea.io/gitea/services/automerge"
-	bots_service "code.gitea.io/gitea/services/bots"
 	"code.gitea.io/gitea/services/cron"
 	"code.gitea.io/gitea/services/mailer"
 	markup_service "code.gitea.io/gitea/services/markup"
@@ -162,7 +161,6 @@ func GlobalInitInstalled(ctx context.Context) {
 	mustInit(pull_service.Init)
 	mustInit(automerge.Init)
 	mustInit(task.Init)
-	mustInit(bots_service.Init)
 	mustInit(repo_migrations.Init)
 	eventsource.GetManager().Init()
 

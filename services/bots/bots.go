@@ -4,16 +4,9 @@
 
 package bots
 
-import (
-	"fmt"
+//"code.gitea.io/gitea/modules/json"
 
-	bots_model "code.gitea.io/gitea/models/bots"
-	"code.gitea.io/gitea/modules/graceful"
-	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/queue"
-	//"code.gitea.io/gitea/modules/json"
-)
-
+/*
 // buildQueue is a global queue of bot build
 var buildQueue queue.Queue
 
@@ -59,4 +52,4 @@ func handle(data ...queue.Data) []queue.Data {
 		}
 	}
 	return unhandled
-}
+}*/

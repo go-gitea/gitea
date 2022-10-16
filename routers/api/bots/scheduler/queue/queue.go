@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/core"
-	"code.gitea.io/gitea/models/bots"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
@@ -92,7 +91,7 @@ func (q *queue) signal(ctx context.Context) error {
 	if count == 0 {
 		return nil
 	}
-	items, err := bots.FindStages(ctx, bots.FindStageOptions{})
+	/*items, err := bots.FindStages(ctx, bots.FindStageOptions{})
 	if err != nil {
 		return err
 	}
@@ -138,7 +137,7 @@ func (q *queue) signal(ctx context.Context) error {
 			delete(q.workers, w)
 			break loop
 		}
-	}
+	}*/
 	return nil
 }
 

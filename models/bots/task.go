@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 
@@ -141,6 +142,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	// TODO: a more efficient way to filter labels
 	var job *RunJob
 	labels := append(runner.AgentLabels, runner.CustomLabels...)
+	log.Trace("runner labels: %v", labels)
 	for _, v := range jobs {
 		if isSubset(labels, v.RunsOn) {
 			job = v

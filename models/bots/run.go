@@ -15,6 +15,7 @@ import (
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
 	"code.gitea.io/gitea/modules/timeutil"
+	"xorm.io/builder"
 
 	"github.com/nektos/act/pkg/jobparser"
 )
@@ -79,6 +80,30 @@ func (r *Run) LoadAttributes(ctx context.Context) error {
 	return nil
 }
 
+func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {
+	_, err := db.GetEngine(ctx).ID(repo.ID).
+		SetExpr("num_runs",
+			builder.Select("count(*)").From("bots_run").
+				Where(builder.Eq{"repo_id": repo.ID}),
+		).
+		SetExpr("num_closed_runs",
+			builder.Select("count(*)").From("bots_run").
+				Where(builder.Eq{
+					"repo_id": repo.ID,
+				}.And(
+					builder.In("status",
+						core.StatusFailing,
+						core.StatusKilled,
+						core.StatusPassing,
+						core.StatusError,
+					),
+				),
+				),
+		).
+		Update(repo)
+	return err
+}
+
 // InsertRun inserts a bot run
 func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	var groupID int64
@@ -102,6 +127,18 @@ func InsertRun(run *Run, jobs []*jobparser.SingleWorkflow) error {
 	defer commiter.Close()
 
 	if err := db.Insert(ctx, run); err != nil {
+		return err
+	}
+
+	if run.Repo == nil {
+		repo, err := repo_model.GetRepositoryByIDCtx(ctx, run.RepoID)
+		if err != nil {
+			return err
+		}
+		run.Repo = repo
+	}
+
+	if err := updateRepoRunsNumbers(ctx, run.Repo); err != nil {
 		return err
 	}
 
