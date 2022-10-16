@@ -146,6 +146,16 @@ If your PR could cause a breaking change you must add a BREAKING section to this
 
 To explain how this could affect users and how to mitigate these changes.
 
+Once code review starts on your PR, do not rebase nor squash your branch as it makes it
+difficult to review the new changes. Only if there is a need, sync your branch by merging
+the base branch into yours. Don't worry about merge commits messing up your tree as
+the final merge process squashes all commits into one, with the visible commit message (first
+line) being the PR title + PR index and description being the PR's first comment.
+
+Once your PR gets the `lgtm/done` label, don't worry about keeping it up-to-date or breaking
+builds (unless there's a merge conflict or a request is made by a maintainer to make
+modifications). It is the maintainer team's responsibility from this point to get it merged.
+
 ## Styleguide
 
 For imports you should use the following format (*without* the comments)
