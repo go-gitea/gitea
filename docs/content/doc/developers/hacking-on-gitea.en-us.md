@@ -19,6 +19,12 @@ menu:
 
 {{< toc >}}
 
+## Quickstart
+
+To get a quick working development environment you could use Gitpod.
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/go-gitea/gitea)
+
 ## Installing go
 
 You should [install go](https://golang.org/doc/install) and set up your go
@@ -171,7 +177,7 @@ server as mentioned above.
 
 ### Working on JS and CSS
 
-Frontend development should follow [Guidelines for Frontend Development](./guidelines-frontend.md)
+Frontend development should follow [Guidelines for Frontend Development]({{< relref "doc/developers/guidelines-frontend.en-us.md" >}})
 
 To build with frontend resources, either use the `watch-frontend` target mentioned above or just build once:
 
@@ -309,7 +315,7 @@ will run the integration tests in an SQLite environment. Integration tests
 require `git lfs` to be installed. Other database tests are available but
 may need adjustment to the local environment.
 
-Take a look at [`integrations/README.md`](https://github.com/go-gitea/gitea/blob/main/integrations/README.md)
+Take a look at [`tests/integration/README.md`](https://github.com/go-gitea/gitea/blob/main/tests/integration/README.md)
 for more information and how to run a single test.
 
 ### Testing for a PR

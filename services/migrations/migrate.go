@@ -198,19 +198,25 @@ func migrateRepository(doer *user_model.User, downloader base.Downloader, upload
 		return err
 	}
 
-	// If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
+	// SECURITY: If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
 	if _, ok := downloader.(*RepositoryRestorer); !ok {
 		// Now the clone URL can be rewritten by the downloader so we must recheck
 		if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {
 			return err
 		}
 
-		// And so can the original URL too so again we must recheck
-		if repo.OriginalURL != "" {
-			if err := IsMigrateURLAllowed(repo.OriginalURL, doer); err != nil {
-				return err
+		// SECURITY: Ensure that we haven't been redirected from an external to a local filesystem
+		// Now we know all of these must parse
+		cloneAddrURL, _ := url.Parse(opts.CloneAddr)
+		cloneURL, _ := url.Parse(repo.CloneURL)
+
+		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
+			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {
+				return fmt.Errorf("repo info has changed from external to local filesystem")
 			}
 		}
+
+		// We don't actually need to check the OriginalURL as it isn't used anywhere
 	}
 
 	log.Trace("migrating git data from %s", repo.CloneURL)

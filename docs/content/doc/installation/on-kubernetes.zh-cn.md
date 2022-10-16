@@ -30,8 +30,8 @@ helm install gitea gitea/gitea
 您也可以通过 `helm show` 命令导出 `README.md` 和配置文件 `values.yaml` 进行学习和编辑，例如：
 
 ```bash
-helm show values gitea > values.yaml
-helm show readme gitea > README.md
+helm show values gitea/gitea > values.yaml
+helm show readme gitea/gitea > README.md
 
 # 使用自定义的配置文件 values.yaml
 helm install gitea -f values.yaml gitea/gitea

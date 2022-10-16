@@ -25,8 +25,13 @@
 	<input type="hidden" name="sort" value="{{$.SortType}}">
 	<input type="hidden" name="language" value="{{$.Language}}">
 	<div class="ui fluid action input">
-		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}..." autofocus>
+		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
 		<button class="ui primary button">{{.locale.Tr "explore.search"}}</button>
 	</div>
 </form>
+{{if .OnlyShowRelevant}}
+	<div class="ui blue attached message explore-relevancy-note">
+		<span class="ui tooltip" data-content="{{.locale.Tr "explore.relevant_repositories_tooltip"}}">{{.locale.Tr "explore.relevant_repositories" ((printf "%s%s" $.Link "?no_filter=1")|Escape) | Safe}}</span>
+	</div>
+{{end}}
 <div class="ui divider"></div>

@@ -168,7 +168,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete issue index
-	if err := db.DeleteResouceIndex(ctx, "issue_index", repoID); err != nil {
+	if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
 		return err
 	}
 
@@ -223,8 +223,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	archivePaths := make([]string, 0, len(archives))
 	for _, v := range archives {
-		p, _ := v.RelativePath()
-		archivePaths = append(archivePaths, p)
+		archivePaths = append(archivePaths, v.RelativePath())
 	}
 
 	if _, err := db.DeleteByBean(ctx, &repo_model.RepoArchiver{RepoID: repoID}); err != nil {
@@ -444,15 +443,27 @@ func CheckRepoStats(ctx context.Context) error {
 			repoStatsCorrectNumStars,
 			"repository count 'num_stars'",
 		},
+		// Repository.NumIssues
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, false),
+			repoStatsCorrectNumIssues,
+			"repository count 'num_issues'",
+		},
 		// Repository.NumClosedIssues
 		{
 			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, false),
 			repoStatsCorrectNumClosedIssues,
 			"repository count 'num_closed_issues'",
 		},
+		// Repository.NumPulls
+		{
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", false, true),
+			repoStatsCorrectNumPulls,
+			"repository count 'num_pulls'",
+		},
 		// Repository.NumClosedPulls
 		{
-			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_issues!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
+			statsQuery("SELECT repo.id FROM `repository` repo WHERE repo.num_closed_pulls!=(SELECT COUNT(*) FROM `issue` WHERE repo_id=repo.id AND is_closed=? AND is_pull=?)", true, true),
 			repoStatsCorrectNumClosedPulls,
 			"repository count 'num_closed_pulls'",
 		},

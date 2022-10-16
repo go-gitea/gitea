@@ -157,6 +157,13 @@ func (s *SlackPayload) IssueComment(p *api.IssueCommentPayload) (api.Payloader, 
 	}}), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (s *SlackPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, SlackLinkFormatter, true)
+
+	return s.createPayload(text, nil), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (s *SlackPayload) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, SlackLinkFormatter, true)
@@ -172,10 +179,10 @@ func (s *SlackPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 		commitString string
 	)
 
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 	}
 	if len(p.CompareURL) > 0 {
 		commitString = SlackLinkFormatter(p.CompareURL, commitDesc)

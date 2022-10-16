@@ -1,23 +1,31 @@
-<div class="ui dropdown tiny basic button">
-	{{.locale.Tr "repo.diff.whitespace_button"}}
+<div class="ui dropdown tiny basic button icon-button tooltip" data-content="{{.locale.Tr "repo.diff.whitespace_button"}}">
+	{{svg "gitea-whitespace"}}
 	{{svg "octicon-triangle-down" 14 "dropdown icon"}}
 	<div class="menu">
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=show-all">
-			<i class="circle {{ if eq .WhitespaceBehavior "show-all" }}dot{{else}}outline{{end}} icon"></i>
-			{{.locale.Tr "repo.diff.whitespace_show_everything"}}
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "show-all"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_show_everything"}}
+			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-all">
-			<i class="circle {{ if eq .WhitespaceBehavior "ignore-all" }}dot{{else}}outline{{end}} icon"></i>
-			{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-all"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_all_whitespace"}}
+				<label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-change">
-			<i class="circle {{ if eq .WhitespaceBehavior "ignore-change" }}dot{{else}}outline{{end}} icon"></i>
-			{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-change"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_amount_changes"}}
+			</label>
 		</a>
 		<a class="item" href="?style={{if .IsSplitStyle}}split{{else}}unified{{end}}&whitespace=ignore-eol">
-			<i class="circle {{ if eq .WhitespaceBehavior "ignore-eol" }}dot{{else}}outline{{end}} icon"></i>
-			{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
+			<label class="pointer-events-none">
+				<input class="mr-3 pointer-events-none" type="radio"{{if eq .WhitespaceBehavior "ignore-eol"}} checked{{end}}>
+				{{.locale.Tr "repo.diff.whitespace_ignore_at_eol"}}
+			</label>
 		</a>
 	</div>
 </div>
-<a class="ui tiny basic toggle button" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}">{{ if .IsSplitStyle }}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}</a>
+<a class="ui tiny basic toggle button icon-button tooltip" href="?style={{if .IsSplitStyle}}unified{{else}}split{{end}}&whitespace={{$.WhitespaceBehavior}}" data-content="{{if .IsSplitStyle}}{{.locale.Tr "repo.diff.show_unified_view"}}{{else}}{{.locale.Tr "repo.diff.show_split_view"}}{{end}}">{{if .IsSplitStyle}}{{svg "gitea-join"}}{{else}}{{svg "gitea-split"}}{{end}}</a>

@@ -25,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/markup"
 	"code.gitea.io/gitea/modules/markup/markdown"
+	"code.gitea.io/gitea/modules/notification"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
@@ -98,7 +99,7 @@ func findWikiRepoCommit(ctx *context.Context) (*git.Repository, *git.Commit, err
 		return nil, nil, err
 	}
 
-	commit, err := wikiRepo.GetBranchCommit("master")
+	commit, err := wikiRepo.GetBranchCommit(wiki_service.DefaultBranch)
 	if err != nil {
 		return wikiRepo, nil, err
 	}
@@ -301,7 +302,7 @@ func renderViewPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) {
 	ctx.Data["toc"] = rctx.TableOfContents
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	return wikiRepo, entry
@@ -350,7 +351,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	ctx.Data["footerContent"] = ""
 
 	// get commit count - wiki revisions
-	commitsCount, _ := wikiRepo.FileCommitsCount("master", pageFilename)
+	commitsCount, _ := wikiRepo.FileCommitsCount(wiki_service.DefaultBranch, pageFilename)
 	ctx.Data["CommitCount"] = commitsCount
 
 	// get page
@@ -360,7 +361,7 @@ func renderRevisionPage(ctx *context.Context) (*git.Repository, *git.TreeEntry) 
 	}
 
 	// get Commit Count
-	commitsHistory, err := wikiRepo.CommitsByFileAndRange("master", pageFilename, page)
+	commitsHistory, err := wikiRepo.CommitsByFileAndRange(wiki_service.DefaultBranch, pageFilename, page)
 	if err != nil {
 		if wikiRepo != nil {
 			wikiRepo.Close()
@@ -705,6 +706,8 @@ func NewWikiPost(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyNewWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName, form.Message)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(wikiName))
 }
 
@@ -747,6 +750,8 @@ func EditWikiPost(ctx *context.Context) {
 		return
 	}
 
+	notification.NotifyEditWikiPage(ctx.Doer, ctx.Repo.Repository, newWikiName, form.Message)
+
 	ctx.Redirect(ctx.Repo.RepoLink + "/wiki/" + wiki_service.NameToSubURL(newWikiName))
 }
 
@@ -761,6 +766,8 @@ func DeleteWikiPagePost(ctx *context.Context) {
 		ctx.ServerError("DeleteWikiPage", err)
 		return
 	}
+
+	notification.NotifyDeleteWikiPage(ctx.Doer, ctx.Repo.Repository, wikiName)
 
 	ctx.JSON(http.StatusOK, map[string]interface{}{
 		"redirect": ctx.Repo.RepoLink + "/wiki/",

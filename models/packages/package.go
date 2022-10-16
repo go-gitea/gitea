@@ -42,6 +42,7 @@ const (
 	TypePub       Type = "pub"
 	TypePyPI      Type = "pypi"
 	TypeRubyGems  Type = "rubygems"
+	TypeVagrant   Type = "vagrant"
 )
 
 // Name gets the name of the package type
@@ -69,6 +70,8 @@ func (pt Type) Name() string {
 		return "PyPI"
 	case TypeRubyGems:
 		return "RubyGems"
+	case TypeVagrant:
+		return "Vagrant"
 	}
 	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
@@ -98,6 +101,8 @@ func (pt Type) SVGName() string {
 		return "gitea-python"
 	case TypeRubyGems:
 		return "gitea-rubygems"
+	case TypeVagrant:
+		return "gitea-vagrant"
 	}
 	panic(fmt.Sprintf("unknown package type: %s", string(pt)))
 }
@@ -219,9 +224,16 @@ func FindUnreferencedPackages(ctx context.Context) ([]*Package, error) {
 		Find(&ps)
 }
 
-// HasOwnerPackages tests if a user/org has packages
+// HasOwnerPackages tests if a user/org has accessible packages
 func HasOwnerPackages(ctx context.Context, ownerID int64) (bool, error) {
-	return db.GetEngine(ctx).Where("owner_id = ?", ownerID).Exist(&Package{})
+	return db.GetEngine(ctx).
+		Table("package_version").
+		Join("INNER", "package", "package.id = package_version.package_id").
+		Where(builder.Eq{
+			"package_version.is_internal": false,
+			"package.owner_id":            ownerID,
+		}).
+		Exist(&PackageVersion{})
 }
 
 // HasRepositoryPackages tests if a repository has packages

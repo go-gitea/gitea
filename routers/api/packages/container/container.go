@@ -248,6 +248,27 @@ func InitiateUploadBlob(ctx *context.Context) {
 	})
 }
 
+// https://docs.docker.com/registry/spec/api/#get-blob-upload
+func GetUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	upload, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Range:      fmt.Sprintf("0-%d", upload.BytesReceived),
+		UploadUUID: upload.ID,
+		Status:     http.StatusNoContent,
+	})
+}
+
 // https://github.com/opencontainers/distribution-spec/blob/main/spec.md#pushing-a-blob-in-chunks
 func UploadBlob(ctx *context.Context) {
 	image := ctx.Params("image")
@@ -351,6 +372,30 @@ func EndUploadBlob(ctx *context.Context) {
 		Location:      fmt.Sprintf("/v2/%s/%s/blobs/%s", ctx.Package.Owner.LowerName, image, digest),
 		ContentDigest: digest,
 		Status:        http.StatusCreated,
+	})
+}
+
+// https://docs.docker.com/registry/spec/api/#delete-blob-upload
+func CancelUploadBlob(ctx *context.Context) {
+	uuid := ctx.Params("uuid")
+
+	_, err := packages_model.GetBlobUploadByID(ctx, uuid)
+	if err != nil {
+		if err == packages_model.ErrPackageBlobUploadNotExist {
+			apiErrorDefined(ctx, errBlobUploadUnknown)
+		} else {
+			apiError(ctx, http.StatusInternalServerError, err)
+		}
+		return
+	}
+
+	if err := container_service.RemoveBlobUploadByID(ctx, uuid); err != nil {
+		apiError(ctx, http.StatusInternalServerError, err)
+		return
+	}
+
+	setResponseHeaders(ctx.Resp, &containerHeaders{
+		Status: http.StatusNoContent,
 	})
 }
 

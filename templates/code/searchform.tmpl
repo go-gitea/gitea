@@ -1,0 +1,14 @@
+<form class="ui form ignore-dirty" style="max-width: 100%">
+	<div class="ui fluid action input">
+		<input name="q" value="{{.Keyword}}"{{if .CodeIndexerUnavailable}} disabled{{end}} placeholder="{{.locale.Tr "explore.search"}}…" autofocus>
+		<div class="ui dropdown selection tooltip{{if .CodeIndexerUnavailable}} disabled{{end}}" data-content="{{.locale.Tr "explore.search.type.tooltip"}}">
+			<input name="t" type="hidden" value="{{.queryType}}"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{svg "octicon-triangle-down" 14 "dropdown icon"}}
+			<div class="text">{{.locale.Tr (printf "explore.search.%s" (or .queryType "fuzzy"))}}</div>
+			<div class="menu transition hidden" tabindex="-1" style="display: block !important;">
+				<div class="item tooltip" data-value="" data-content="{{.locale.Tr "explore.search.fuzzy.tooltip"}}">{{.locale.Tr "explore.search.fuzzy"}}</div>
+				<div class="item tooltip" data-value="match" data-content="{{.locale.Tr "explore.search.match.tooltip"}}">{{.locale.Tr "explore.search.match"}}</div>
+			</div>
+		</div>
+		<button class="ui primary button"{{if .CodeIndexerUnavailable}} disabled{{end}}>{{.locale.Tr "explore.search"}}</button>
+	</div>
+</form>

@@ -27,7 +27,7 @@ import (
 	"xorm.io/builder"
 )
 
-// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
+// ErrUserDoesNotHaveAccessToRepo represents an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
 	RepoName string

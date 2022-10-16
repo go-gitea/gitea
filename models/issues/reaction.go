@@ -181,6 +181,10 @@ func createReaction(ctx context.Context, opts *ReactionOptions) (*Reaction, erro
 		Reaction:  opts.Type,
 		UserID:    opts.DoerID,
 	}
+	if findOpts.CommentID == 0 {
+		// explicit search of Issue Reactions where CommentID = 0
+		findOpts.CommentID = -1
+	}
 
 	existingR, _, err := FindReactions(ctx, findOpts)
 	if err != nil {
@@ -207,7 +211,7 @@ type ReactionOptions struct {
 
 // CreateReaction creates reaction for issue or comment.
 func CreateReaction(opts *ReactionOptions) (*Reaction, error) {
-	if !setting.UI.ReactionsMap[opts.Type] {
+	if !setting.UI.ReactionsLookup.Contains(opts.Type) {
 		return nil, ErrForbiddenIssueReaction{opts.Type}
 	}
 
@@ -256,16 +260,23 @@ func DeleteReaction(ctx context.Context, opts *ReactionOptions) error {
 		CommentID: opts.CommentID,
 	}
 
-	_, err := db.GetEngine(ctx).Where("original_author_id = 0").Delete(reaction)
+	sess := db.GetEngine(ctx).Where("original_author_id = 0")
+	if opts.CommentID == -1 {
+		reaction.CommentID = 0
+		sess.MustCols("comment_id")
+	}
+
+	_, err := sess.Delete(reaction)
 	return err
 }
 
 // DeleteIssueReaction deletes a reaction on issue.
 func DeleteIssueReaction(doerID, issueID int64, content string) error {
 	return DeleteReaction(db.DefaultContext, &ReactionOptions{
-		Type:    content,
-		DoerID:  doerID,
-		IssueID: issueID,
+		Type:      content,
+		DoerID:    doerID,
+		IssueID:   issueID,
+		CommentID: -1,
 	})
 }
 
@@ -305,16 +316,14 @@ func (list ReactionList) GroupByType() map[string]ReactionList {
 }
 
 func (list ReactionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(list))
+	userIDs := make(container.Set[int64], len(list))
 	for _, reaction := range list {
 		if reaction.OriginalAuthor != "" {
 			continue
 		}
-		if _, ok := userIDs[reaction.UserID]; !ok {
-			userIDs[reaction.UserID] = struct{}{}
-		}
+		userIDs.Add(reaction.UserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func valuesUser(m map[int64]*user_model.User) []*user_model.User {

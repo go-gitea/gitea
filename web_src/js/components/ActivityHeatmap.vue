@@ -15,7 +15,7 @@
   </div>
 </template>
 <script>
-import {CalendarHeatmap} from 'vue-calendar-heatmap';
+import {CalendarHeatmap} from 'vue3-calendar-heatmap';
 
 export default {
   name: 'ActivityHeatmap',
