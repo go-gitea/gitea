@@ -82,12 +82,13 @@ func pushTestPayload() *api.PushPayload {
 	}
 
 	return &api.PushPayload{
-		Ref:        "refs/heads/test",
-		Before:     "2020558fe2e34debb818a514715839cabd25e777",
-		After:      "2020558fe2e34debb818a514715839cabd25e778",
-		CompareURL: "",
-		HeadCommit: commit,
-		Commits:    []*api.PayloadCommit{commit, commit},
+		Ref:          "refs/heads/test",
+		Before:       "2020558fe2e34debb818a514715839cabd25e777",
+		After:        "2020558fe2e34debb818a514715839cabd25e778",
+		CompareURL:   "",
+		HeadCommit:   commit,
+		Commits:      []*api.PayloadCommit{commit, commit},
+		TotalCommits: 2,
 		Repo: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
 			Name:     "repo",

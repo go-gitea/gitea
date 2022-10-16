@@ -1273,15 +1273,16 @@ func TestWebhook(ctx *context.Context) {
 
 	commitID := commit.ID.String()
 	p := &api.PushPayload{
-		Ref:        git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
-		Before:     commitID,
-		After:      commitID,
-		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
-		Commits:    []*api.PayloadCommit{apiCommit},
-		HeadCommit: apiCommit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
-		Pusher:     apiUser,
-		Sender:     apiUser,
+		Ref:          git.BranchPrefix + ctx.Repo.Repository.DefaultBranch,
+		Before:       commitID,
+		After:        commitID,
+		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
+		Commits:      []*api.PayloadCommit{apiCommit},
+		TotalCommits: 1,
+		HeadCommit:   apiCommit,
+		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:       apiUser,
+		Sender:       apiUser,
 	}
 	if err := webhook_service.PrepareWebhook(w, ctx.Repo.Repository, webhook.HookEventPush, p); err != nil {
 		ctx.Flash.Error("PrepareWebhook: " + err.Error())
