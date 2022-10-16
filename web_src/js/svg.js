@@ -26,8 +26,6 @@ import octiconSidebarExpand from '../../public/img/svg/octicon-sidebar-expand.sv
 import octiconSidebarCollapse from '../../public/img/svg/octicon-sidebar-collapse.svg';
 
 
-import Vue from 'vue';
-
 export const svgs = {
   'octicon-chevron-down': octiconChevronDown,
   'octicon-chevron-right': octiconChevronRight,
@@ -74,7 +72,8 @@ export function svg(name, size = 16, className = '') {
   return serializer.serializeToString(svgNode);
 }
 
-export const SvgIcon = Vue.component('SvgIcon', {
+export const SvgIcon = {
+  name: 'SvgIcon',
   props: {
     name: {type: String, required: true},
     size: {type: Number, default: 16},
@@ -88,4 +87,4 @@ export const SvgIcon = Vue.component('SvgIcon', {
   },
 
   template: `<span v-html="svg" />`
-});
+};

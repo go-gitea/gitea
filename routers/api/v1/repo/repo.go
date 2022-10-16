@@ -755,9 +755,10 @@ func updateRepoUnits(ctx *context.APIContext, opts api.EditRepoOption) error {
 				RepoID: repo.ID,
 				Type:   unit_model.TypeExternalTracker,
 				Config: &repo_model.ExternalTrackerConfig{
-					ExternalTrackerURL:    opts.ExternalTracker.ExternalTrackerURL,
-					ExternalTrackerFormat: opts.ExternalTracker.ExternalTrackerFormat,
-					ExternalTrackerStyle:  opts.ExternalTracker.ExternalTrackerStyle,
+					ExternalTrackerURL:           opts.ExternalTracker.ExternalTrackerURL,
+					ExternalTrackerFormat:        opts.ExternalTracker.ExternalTrackerFormat,
+					ExternalTrackerStyle:         opts.ExternalTracker.ExternalTrackerStyle,
+					ExternalTrackerRegexpPattern: opts.ExternalTracker.ExternalTrackerRegexpPattern,
 				},
 			})
 			deleteUnitTypes = append(deleteUnitTypes, unit_model.TypeIssues)

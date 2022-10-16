@@ -12,8 +12,7 @@
 			{{end}}
 			{{if and .TemplateLoadTimes ShowFooterTemplateLoadTime}}
 				{{.locale.Tr "page"}}: <strong>{{LoadTimes .PageStartTime}}</strong>
-				{{.locale.Tr "template"}}
-				{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
+				{{.locale.Tr "template"}}{{if .TemplateName}} {{.TemplateName}}{{end}}: <strong>{{call .TemplateLoadTimes}}</strong>
 			{{end}}
 		</div>
 		<div class="ui right links">

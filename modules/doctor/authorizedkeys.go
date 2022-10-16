@@ -14,6 +14,7 @@ import (
 	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 )
@@ -40,7 +41,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 	}
 	defer f.Close()
 
-	linesInAuthorizedKeys := map[string]bool{}
+	linesInAuthorizedKeys := make(container.Set[string])
 
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
@@ -48,7 +49,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		linesInAuthorizedKeys[line] = true
+		linesInAuthorizedKeys.Add(line)
 	}
 	f.Close()
 
@@ -64,7 +65,7 @@ func checkAuthorizedKeys(ctx context.Context, logger log.Logger, autofix bool) e
 		if strings.HasPrefix(line, tplCommentPrefix) {
 			continue
 		}
-		if ok := linesInAuthorizedKeys[line]; ok {
+		if linesInAuthorizedKeys.Contains(line) {
 			continue
 		}
 		if !autofix {

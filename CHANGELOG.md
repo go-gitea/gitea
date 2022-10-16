@@ -4,6 +4,86 @@ This changelog goes through all the changes that have been made in each release
 without substantial changes to our git log; to see the highlights of what has
 been added to each release, please refer to the [blog](https://blog.gitea.io).
 
+## [1.17.3](https://github.com/go-gitea/gitea/releases/tag/v1.17.3) - 2022-10-15
+
+* SECURITY
+  * Sanitize and Escape refs in git backend (#21464) (#21463)
+  * Bump `golang.org/x/text` (#21412) (#21413)
+  * Update bluemonday (#21281) (#21287)
+* ENHANCEMENTS
+  * Fix empty container layer history and UI (#21251) (#21278)
+  * Use en-US as fallback when using other default language (#21200) (#21256)
+  * Make the vscode clone link respect transport protocol (#20557) (#21128)
+* BUGFIXES
+  * Do DB update after merge in hammer context (#21401) (#21416)
+  * Add Num{Issues,Pulls} stats checks (#21404) (#21414)
+  * Stop logging CheckPath returns error: context canceled (#21064) (#21405)
+  * Parse OAuth Authorization header when request omits client secret (#21351) (#21374)
+  * Ignore port for loopback redirect URIs (#21293) (#21373)
+  * Set SemverCompatible to false for Conan packages (#21275) (#21366)
+  * Tag list should include draft releases with existing tags (#21263) (#21365)
+  * Fix linked account translation (#21331) (#21334)
+  * Make NuGet service index publicly accessible (#21242) (#21277)
+  * Foreign ID conflicts if ID is 0 for each item (#21271) (#21272)
+  * Use absolute links in feeds (#21229) (#21265)
+  * Prevent invalid behavior for file reviewing when loading more files (#21230) (#21234)
+  * Respect `REQUIRE_SIGNIN_VIEW` for packages (#20873) (#21232)
+  * Treat git object mode 40755 as directory (#21195) (#21218)
+  * Allow uppercase ASCII alphabet in PyPI package names (#21095) (#21217)
+  * Fix limited user cannot view himself's profile (#21212)
+  * Fix template bug of admin monitor (#21209)
+  * Fix reaction of issues (#21185) (#21196)
+  * Fix CSV diff for added/deleted files (#21189) (#21193)
+  * Fix pagination limit parameter problem (#21111)
+* TESTING
+  * Fix missing m.Run() in TestMain (#21341)
+* BUILD
+  * Use Go 1.19 fmt for Gitea 1.17, sync emoji data (#21239)
+
+## [1.17.2](https://github.com/go-gitea/gitea/releases/tag/v1.17.2) - 2022-09-06
+
+* SECURITY
+  * Double check CloneURL is acceptable (#20869) (#20892)
+  * Add more checks in migration code (#21011) (#21050)
+* ENHANCEMENTS
+  * Fix hard-coded timeout and error panic in API archive download endpoint (#20925) (#21051)
+  * Improve arc-green code theme (#21039) (#21042)
+  * Enable contenthash in filename for dynamic assets (#20813) (#20932)
+  * Don't open new page for ext wiki on same repository (#20725) (#20910)
+  * Disable doctor logging on panic (#20847) (#20898)
+  * Remove calls to load Mirrors in user.Dashboard (#20855) (#20897)
+  * Update codemirror to 5.65.8 (#20875)
+  * Rework repo buttons (#20602, #20718) (#20719)
+* BUGFIXES
+  * Ensure delete user deletes all comments (#21067) (#21068)
+  * Delete unreferenced packages when deleting a package version (#20977) (#21060)
+  * Redirect if user does not exist on admin pages (#20981) (#21059)
+  * Set uploadpack.allowFilter etc on gitea serv to enable partial clones with ssh (#20902) (#21058)
+  * Fix 500 on time in timeline API (#21052) (#21057)
+  * Fill the specified ref in webhook test payload (#20961) (#21055)
+  * Add another index for Action table on postgres (#21033) (#21054)
+  * Fix broken insecureskipverify handling in redis connection uris (#20967) (#21053)
+  * Add Dev, Peer and Optional dependencies to npm PackageMetadataVersion (#21017) (#21044)
+  * Do not add links to Posters or Assignees with ID < 0 (#20577) (#21037)
+  * Fix modified due date message (#20388) (#21032)
+  * Fix missed sort bug (#21006)
+  * Fix input.value attr for RequiredClaimName/Value (#20946) (#21001)
+  * Change review buttons to icons to make space for text (#20934) (#20978)
+  * Fix download archiver of a commit (#20962) (#20971)
+  * Return 404 NotFound if requested attachment does not exist (#20886) (#20941)
+  * Set no-tags in git fetch on compare (#20893) (#20936)
+  * Allow multiple metadata files for Maven packages (#20674) (#20916)
+  * Increase Content field size of gpg_key and public_key to MEDIUMTEXT (#20896) (#20911)
+  * Fix mirror address setting not working (#20850) (#20904)
+  * Fix push mirror address backend get error Address cause setting page display error (#20593) (#20901)
+  * Fix panic when an invalid oauth2 name is passed (#20820) (#20900)
+  * In PushMirrorsIterate and MirrorsIterate if limit is negative do not set it (#20837) (#20899)
+  * Ensure that graceful start-up is informed of unused SSH listener (#20877) (#20888)
+  * Pad GPG Key ID with preceding zeroes (#20878) (#20885)
+  * Fix SQL Query for `SearchTeam` (#20844) (#20872)
+  * Fix the mode of custom dir to 0700 in docker-rootless (#20861) (#20867)
+  * Fix UI mis-align for PR commit history (#20845) (#20859)
+
 ## [1.17.1](https://github.com/go-gitea/gitea/releases/tag/1.17.1) - 2022-08-17
 
 * SECURITY

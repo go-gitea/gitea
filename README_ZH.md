@@ -33,6 +33,12 @@
   <a href="https://opensource.org/licenses/MIT" title="License: MIT">
     <img src="https://img.shields.io/badge/License-MIT-blue.svg">
   </a>
+  <a href="https://gitpod.io/#https://github.com/go-gitea/gitea">
+  <img
+    src="https://img.shields.io/badge/Contribute%20with-Gitpod-908a85?logo=gitpod"
+    alt="Contribute with Gitpod"
+  />
+  </a>
   <a href="https://crowdin.com/project/gitea" title="Crowdin">
     <img src="https://badges.crowdin.net/gitea/localized.svg">
   </a>
