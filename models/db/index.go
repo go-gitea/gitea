@@ -43,12 +43,8 @@ func SyncMaxResourceIndex(ctx context.Context, tableName string, groupID, maxInd
 		return err
 	}
 	if affected == 0 {
-		// if nothing is updated, the record might not exist or is larger, it's safe to try to insert and update it again
-		_, errIns := e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) VALUES (?, 0)", tableName), groupID)
-		_, err = e.Exec(fmt.Sprintf("UPDATE %s SET max_index=? WHERE group_id=? AND max_index<?", tableName), maxIndex, groupID, maxIndex)
-		if err != nil {
-			return err
-		}
+		// if nothing is updated, the record might not exist or might be larger, it's safe to try to insert it again and then check whether the record exists
+		_, errIns := e.Exec(fmt.Sprintf("INSERT INTO %s (group_id, max_index) VALUES (?, ?)", tableName), groupID, maxIndex)
 		var savedIdx int64
 		has, err := e.SQL(fmt.Sprintf("SELECT max_index FROM %s WHERE group_id=?", tableName), groupID).Get(&savedIdx)
 		if err != nil {
@@ -57,7 +53,7 @@ func SyncMaxResourceIndex(ctx context.Context, tableName string, groupID, maxInd
 		// if the record still doesn't exist, there must be some errors (insert error)
 		if !has {
 			if errIns == nil {
-				return errors.New("impossible error when SyncMaxResourceIndex, insert and update both succeeded but no record is saved")
+				return errors.New("impossible error when SyncMaxResourceIndex, insert succeeded but no record is saved")
 			}
 			return errIns
 		}
