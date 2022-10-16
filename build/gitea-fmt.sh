@@ -2,6 +2,8 @@
 
 set -e
 
+GO="${GO:=go}"
+
 # a simple self-check, make sure the current working directory is Gitea's repo
 if [ ! -f ./build/gitea-fmt.sh ]; then
   echo "$0 could only run in Gitea's source directory"
@@ -19,4 +21,4 @@ echo "Run gofumpt with Go language version $GO_VERSION ..."
 gofumpt -extra -lang "$GO_VERSION" "$1" .
 
 echo "Run codeformat ..."
-go run ./build/codeformat.go "$1" .
+$GO run ./build/codeformat.go "$1" .
