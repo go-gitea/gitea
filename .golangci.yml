@@ -12,7 +12,6 @@ linters:
     - dupl
     #- gocyclo # The cyclomatic complexety of a lot of functions is too high, we should refactor those another time.
     - gofmt
-    - misspell
     - gocritic
     - bidichk
     - ineffassign
@@ -148,9 +147,6 @@ issues:
     - path: models/issue_comment_list.go
       linters:
         - dupl
-    - linters:
-        - misspell
-      text: '`Unknwon` is a misspelling of `Unknown`'
     - path: models/update.go
       linters:
         - unused

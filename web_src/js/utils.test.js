@@ -56,8 +56,8 @@ test('joinPaths', () => {
 });
 
 test('isObject', () => {
-  expect(isObject({})).toBeTrue();
-  expect(isObject([])).toBeFalse();
+  expect(isObject({})).toBeTruthy();
+  expect(isObject([])).toBeFalsy();
 });
 
 test('uniq', () => {
