@@ -31,6 +31,7 @@ ERRCHECK_PACKAGE ?= github.com/kisielk/errcheck@v1.6.1
 GOFUMPT_PACKAGE ?= mvdan.cc/gofumpt@v0.3.1
 GOLANGCI_LINT_PACKAGE ?= github.com/golangci/golangci-lint/cmd/golangci-lint@v1.47.0
 GXZ_PAGAGE ?= github.com/ulikunitz/xz/cmd/gxz@v0.5.10
+MISSPELL_PACKAGE ?= github.com/client9/misspell/cmd/misspell@v0.3.4
 SWAGGER_PACKAGE ?= github.com/go-swagger/go-swagger/cmd/swagger@v0.30.0
 XGO_PACKAGE ?= src.techknowlogick.com/xgo@latest
 GO_LICENSES_PACKAGE ?= github.com/google/go-licenses@v1.3.0
@@ -129,6 +130,7 @@ TEST_TAGS ?= sqlite sqlite_unlock_notify
 TAR_EXCLUDES := .git data indexers queues log node_modules $(EXECUTABLE) $(FOMANTIC_WORK_DIR)/node_modules $(DIST) $(MAKE_EVIDENCE_DIR) $(AIR_TMP_DIR) $(GO_LICENSE_TMP_DIR)
 
 GO_DIRS := cmd tests models modules routers build services tools
+WEB_DIRS := web_src/js web_src/less
 
 GO_SOURCES := $(wildcard *.go)
 GO_SOURCES += $(shell find $(GO_DIRS) -type f -name "*.go" -not -path modules/options/bindata.go -not -path modules/public/bindata.go -not -path modules/templates/bindata.go)
@@ -262,10 +264,23 @@ clean:
 
 .PHONY: fmt
 fmt:
-	@./build/gitea-fmt.sh -w
+	GOFUMPT_PACKAGE=$(GOFUMPT_PACKAGE) $(GO) run build/code-batch-process.go gitea-fmt -w '{file-list}'
 	$(eval TEMPLATES := $(shell find templates -type f -name '*.tmpl'))
 	@# strip whitespace after '{{' and before `}}` unless there is only whitespace before it
 	@$(SED_INPLACE) -e 's/{{[ 	]\{1,\}/{{/g' -e '/^[ 	]\{1,\}}}/! s/[ 	]\{1,\}}}/}}/g' $(TEMPLATES)
+
+.PHONY: fmt-check
+fmt-check: fmt
+	@diff=$$(git diff $(GO_SOURCES) templates $(WEB_DIRS)); \
+	if [ -n "$$diff" ]; then \
+	  echo "Please run 'make fmt' and commit the result:"; \
+	  echo "$${diff}"; \
+	  exit 1; \
+	fi
+
+.PHONY: misspell-check
+misspell-check:
+	go run $(MISSPELL_PACKAGE) -error -i unknwon $(GO_DIRS) $(WEB_DIRS)
 
 .PHONY: vet
 vet:
@@ -310,22 +325,6 @@ errcheck:
 	@echo "Running errcheck..."
 	$(GO) run $(ERRCHECK_PACKAGE) $(GO_PACKAGES)
 
-.PHONY: fmt-check
-fmt-check:
-	@# get all go files and run gitea-fmt (with gofmt) on them
-	@diff=$$(@./build/gitea-fmt.sh -l); \
-	if [ -n "$$diff" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff}"; \
-		exit 1; \
-	fi
-	@diff2=$$(git diff templates); \
-	if [ -n "$$diff2" ]; then \
-		echo "Please run 'make fmt' and commit the result:"; \
-		echo "$${diff2}"; \
-		exit 1; \
-	fi
-
 .PHONY: checks
 checks: checks-frontend checks-backend
 
@@ -333,7 +332,7 @@ checks: checks-frontend checks-backend
 checks-frontend: lockfile-check svg-check
 
 .PHONY: checks-backend
-checks-backend: tidy-check swagger-check swagger-validate
+checks-backend: tidy-check swagger-check fmt-check misspell-check swagger-validate
 
 .PHONY: lint
 lint: lint-frontend lint-backend
@@ -811,6 +810,7 @@ deps-backend:
 	$(GO) install $(GOFUMPT_PACKAGE)
 	$(GO) install $(GOLANGCI_LINT_PACKAGE)
 	$(GO) install $(GXZ_PAGAGE)
+	$(GO) install $(MISSPELL_PACKAGE)
 	$(GO) install $(SWAGGER_PACKAGE)
 	$(GO) install $(XGO_PACKAGE)
 	$(GO) install $(GO_LICENSES_PACKAGE)
