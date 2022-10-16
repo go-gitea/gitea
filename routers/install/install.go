@@ -156,7 +156,7 @@ func Install(ctx *context.Context) {
 		form.DisableGravatar = false
 	}
 
-	enableFederatedAvatarSetting, _ := system_model.GetSetting("")
+	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
 	if enableFederatedAvatarSetting != nil {
 		form.EnableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
 	} else {
