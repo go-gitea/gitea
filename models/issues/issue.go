@@ -1064,18 +1064,18 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
-	}
-
-	issue.Index = idx
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %w", err)
+	}
+
+	issue.Index = idx
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,

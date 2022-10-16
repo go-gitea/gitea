@@ -169,15 +169,16 @@ func TestHook(ctx *context.APIContext) {
 
 	commitID := ctx.Repo.Commit.ID.String()
 	if err := webhook_service.PrepareWebhook(hook, ctx.Repo.Repository, webhook.HookEventPush, &api.PushPayload{
-		Ref:        ref,
-		Before:     commitID,
-		After:      commitID,
-		CompareURL: setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
-		Commits:    []*api.PayloadCommit{commit},
-		HeadCommit: commit,
-		Repo:       convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
-		Pusher:     convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
-		Sender:     convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
+		Ref:          ref,
+		Before:       commitID,
+		After:        commitID,
+		CompareURL:   setting.AppURL + ctx.Repo.Repository.ComposeCompareURL(commitID, commitID),
+		Commits:      []*api.PayloadCommit{commit},
+		TotalCommits: 1,
+		HeadCommit:   commit,
+		Repo:         convert.ToRepo(ctx.Repo.Repository, perm.AccessModeNone),
+		Pusher:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
+		Sender:       convert.ToUserWithAccessMode(ctx.Doer, perm.AccessModeNone),
 	}); err != nil {
 		ctx.Error(http.StatusInternalServerError, "PrepareWebhook: ", err)
 		return

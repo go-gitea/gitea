@@ -163,7 +163,7 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 	}
 
 	// Delete issue index
-	if err := db.DeleteResouceIndex(ctx, "issue_index", repoID); err != nil {
+	if err := db.DeleteResourceIndex(ctx, "issue_index", repoID); err != nil {
 		return err
 	}
 
