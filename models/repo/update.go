@@ -64,7 +64,7 @@ func (err ErrReachLimitOfRepo) Error() string {
 }
 
 func (err ErrReachLimitOfRepo) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
@@ -84,7 +84,7 @@ func (err ErrRepoAlreadyExist) Error() string {
 }
 
 func (err ErrRepoAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
@@ -104,7 +104,7 @@ func (err ErrRepoFilesAlreadyExist) Error() string {
 }
 
 func (err ErrRepoFilesAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // CheckCreateRepository check if could created a repository

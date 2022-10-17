@@ -40,7 +40,7 @@ func (err ErrForkAlreadyExist) Error() string {
 }
 
 func (err ErrForkAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ForkRepoOptions contains the fork repository options

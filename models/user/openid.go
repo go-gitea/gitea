@@ -67,7 +67,7 @@ func (err ErrOpenIDAlreadyUsed) Error() string {
 }
 
 func (err ErrOpenIDAlreadyUsed) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // AddUserOpenID adds an pre-verified/normalized OpenID URI to given user.

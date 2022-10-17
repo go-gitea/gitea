@@ -63,7 +63,7 @@ func (err ErrKeyAlreadyExist) Error() string {
 }
 
 func (err ErrKeyAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrKeyNameAlreadyUsed represents a "KeyNameAlreadyUsed" kind of error.
@@ -83,7 +83,7 @@ func (err ErrKeyNameAlreadyUsed) Error() string {
 }
 
 func (err ErrKeyNameAlreadyUsed) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrGPGNoEmailFound represents a "ErrGPGNoEmailFound" kind of error.
@@ -187,7 +187,7 @@ func (err ErrGPGKeyIDAlreadyUsed) Error() string {
 }
 
 func (err ErrGPGKeyIDAlreadyUsed) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrGPGKeyAccessDenied represents a "GPGKeyAccessDenied" kind of Error.
@@ -209,7 +209,7 @@ func (err ErrGPGKeyAccessDenied) Error() string {
 }
 
 func (err ErrGPGKeyAccessDenied) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrKeyAccessDenied represents a "KeyAccessDenied" kind of error.
@@ -231,7 +231,7 @@ func (err ErrKeyAccessDenied) Error() string {
 }
 
 func (err ErrKeyAccessDenied) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrDeployKeyNotExist represents a "DeployKeyNotExist" kind of error.
@@ -272,7 +272,7 @@ func (err ErrDeployKeyAlreadyExist) Error() string {
 }
 
 func (err ErrDeployKeyAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrDeployKeyNameAlreadyUsed represents a "DeployKeyNameAlreadyUsed" kind of error.
@@ -312,5 +312,5 @@ func (err ErrSSHInvalidTokenSignature) Error() string {
 }
 
 func (err ErrSSHInvalidTokenSignature) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }

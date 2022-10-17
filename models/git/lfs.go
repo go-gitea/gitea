@@ -63,7 +63,7 @@ func (err ErrLFSUnauthorizedAction) Error() string {
 }
 
 func (err ErrLFSUnauthorizedAction) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
@@ -83,7 +83,7 @@ func (err ErrLFSLockAlreadyExist) Error() string {
 }
 
 func (err ErrLFSLockAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
@@ -104,7 +104,7 @@ func (err ErrLFSFileLocked) Error() string {
 }
 
 func (err ErrLFSFileLocked) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // LFSMetaObject stores metadata for LFS tracked files.

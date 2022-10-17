@@ -64,7 +64,7 @@ func (err ErrNotValidReviewRequest) Error() string {
 }
 
 func (err ErrNotValidReviewRequest) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // ReviewType defines the sort of feedback a review gives

@@ -45,7 +45,7 @@ func (err ErrTeamAlreadyExist) Error() string {
 }
 
 func (err ErrTeamAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrTeamNotExist represents a "TeamNotExist" error

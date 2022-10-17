@@ -389,7 +389,7 @@ func (err ErrSourceAlreadyExist) Error() string {
 
 // Unwrap unwraps this as a ErrExist err
 func (err ErrSourceAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrSourceInUse represents a "SourceInUse" kind of error.

@@ -31,7 +31,7 @@ func (err ErrDependencyExists) Error() string {
 }
 
 func (err ErrDependencyExists) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrDependencyNotExists represents a "DependencyAlreadyExists" kind of error.
@@ -101,7 +101,7 @@ func (err ErrUnknownDependencyType) Error() string {
 }
 
 func (err ErrUnknownDependencyType) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // IssueDependency represents an issue dependency

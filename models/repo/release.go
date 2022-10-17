@@ -38,7 +38,7 @@ func (err ErrReleaseAlreadyExist) Error() string {
 }
 
 func (err ErrReleaseAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.

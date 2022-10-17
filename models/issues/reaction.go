@@ -36,7 +36,7 @@ func (err ErrForbiddenIssueReaction) Error() string {
 }
 
 func (err ErrForbiddenIssueReaction) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
@@ -55,7 +55,7 @@ func (err ErrReactionAlreadyExist) Error() string {
 }
 
 func (err ErrReactionAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // Reaction represents a reactions on issues and comments.

@@ -40,7 +40,7 @@ func (err ErrIssueStopwatchAlreadyExist) Error() string {
 }
 
 func (err ErrIssueStopwatchAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // Stopwatch represents a stopwatch for time tracking.

@@ -9,6 +9,6 @@ import (
 )
 
 var (
-	ErrLocaleAlreadyExist = util.SilentWrap{Message: "lang already exists", Err: util.ErrExist}
-	ErrUncertainArguments = util.SilentWrap{Message: "arguments to i18n should not contain uncertain slices", Err: util.ErrInvalid}
+	ErrLocaleAlreadyExist = util.SilentWrap{Message: "lang already exists", Err: util.ErrAlreadyExist}
+	ErrUncertainArguments = util.SilentWrap{Message: "arguments to i18n should not contain uncertain slices", Err: util.ErrInvalidArgument}
 )

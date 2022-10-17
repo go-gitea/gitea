@@ -73,7 +73,7 @@ func (err ErrPullRequestAlreadyExists) Error() string {
 }
 
 func (err ErrPullRequestAlreadyExists) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error

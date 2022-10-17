@@ -44,7 +44,7 @@ func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 }
 
 func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 var (

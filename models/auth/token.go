@@ -53,7 +53,7 @@ func (err ErrAccessTokenEmpty) Error() string {
 }
 
 func (err ErrAccessTokenEmpty) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 var successfulAccessTokenCache *lru.Cache

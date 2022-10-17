@@ -79,7 +79,7 @@ func (err ErrUserNotAllowedCreateOrg) Error() string {
 }
 
 func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // Organization represents an organization

@@ -34,7 +34,7 @@ func (err ErrUserAlreadyExist) Error() string {
 
 // Unwrap unwraps this error as a ErrExist error
 func (err ErrUserAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrUserNotExist represents a "UserNotExist" kind of error.
@@ -77,7 +77,7 @@ func (err ErrUserProhibitLogin) Error() string {
 
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserProhibitLogin) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }
 
 // ErrUserInactive represents a "ErrUserInactive" kind of error.
@@ -98,5 +98,5 @@ func (err ErrUserInactive) Error() string {
 
 // Unwrap unwraps this error as a ErrPermission error
 func (err ErrUserInactive) Unwrap() error {
-	return util.ErrPermission
+	return util.ErrPermissionDenied
 }

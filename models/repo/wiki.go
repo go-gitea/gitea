@@ -31,7 +31,7 @@ func (err ErrWikiAlreadyExist) Error() string {
 }
 
 func (err ErrWikiAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrWikiReservedName represents a reserved name error.
@@ -50,7 +50,7 @@ func (err ErrWikiReservedName) Error() string {
 }
 
 func (err ErrWikiReservedName) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // ErrWikiInvalidFileName represents an invalid wiki file name.
@@ -69,7 +69,7 @@ func (err ErrWikiInvalidFileName) Error() string {
 }
 
 func (err ErrWikiInvalidFileName) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // WikiCloneLink returns clone URLs of repository wiki.

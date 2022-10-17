@@ -15,7 +15,7 @@ import (
 
 var (
 	// ErrNameEmpty name is empty error
-	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalid}
+	ErrNameEmpty = util.SilentWrap{Message: "name is empty", Err: util.ErrInvalidArgument}
 
 	// AlphaDashDotPattern characters prohibited in a user name (anything except A-Za-z0-9_.-)
 	AlphaDashDotPattern = regexp.MustCompile(`[^\w-\.]`)
@@ -38,7 +38,7 @@ func (err ErrNameReserved) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNameReserved) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // ErrNamePatternNotAllowed represents a "pattern not allowed" error.
@@ -58,7 +58,7 @@ func (err ErrNamePatternNotAllowed) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNamePatternNotAllowed) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // ErrNameCharsNotAllowed represents a "character not allowed in name" error.
@@ -78,7 +78,7 @@ func (err ErrNameCharsNotAllowed) Error() string {
 
 // Unwrap unwraps this as a ErrInvalid err
 func (err ErrNameCharsNotAllowed) Unwrap() error {
-	return util.ErrInvalid
+	return util.ErrInvalidArgument
 }
 
 // IsUsableName checks if name is reserved or pattern of name is not allowed

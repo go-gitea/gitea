@@ -33,7 +33,7 @@ func (err ErrExternalLoginUserAlreadyExist) Error() string {
 }
 
 func (err ErrExternalLoginUserAlreadyExist) Unwrap() error {
-	return util.ErrExist
+	return util.ErrAlreadyExist
 }
 
 // ErrExternalLoginUserNotExist represents a "ExternalLoginUserNotExist" kind of error.
