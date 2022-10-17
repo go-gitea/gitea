@@ -375,7 +375,6 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		return
 	}
-	db.UnsetDefaultEngine()
 
 	// Save settings.
 	cfg := ini.Empty()
@@ -507,6 +506,9 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
+
+	// unset default engine before reload database setting
+	db.UnsetDefaultEngine()
 
 	// ---- All checks are passed
 
