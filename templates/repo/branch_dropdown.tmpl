@@ -14,15 +14,15 @@
 		data-branch-url-suffix="{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}"
 		data-tag-url-prefix="{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if $release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}"
 		data-tag-url-suffix="{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if $release}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}">
-		<div class="branch-dropdown-button ellipsis ui basic small compact button" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
-			<span class="text">
+		<div class="branch-dropdown-button ellipsis ui basic small compact button df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+			<span class="text df ac mr-2">
 				{{if $release}}
 					{{.root.locale.Tr "repo.release.compare"}}
 				{{else}}
 					<span :class="{visible: isViewTag}" v-if="isViewTag" {{if not (eq $type "tag")}}v-cloak{{end}}>{{svg "octicon-tag"}} {{.root.locale.Tr "repo.tag"}}:</span>
 					<span :class="{visible: isViewBranch}" v-if="isViewBranch" {{if not (eq $type "branch")}}v-cloak{{end}}>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.branch"}}:</span>
 					<span :class="{visible: isViewTree}" v-if="isViewTree" {{if not (eq $type "tree")}}v-cloak{{end}}>{{svg "octicon-git-branch"}} {{.root.locale.Tr "repo.tree"}}:</span>
-					<strong ref="dropdownRefName">{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
+					<strong ref="dropdownRefName">&nbsp;{{if and .root.IsViewTag (not .noTag)}}{{.root.TagName}}{{else if .root.IsViewBranch}}{{.root.BranchName}}{{else}}{{ShortSha .root.CommitID}}{{end}}</strong>
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
