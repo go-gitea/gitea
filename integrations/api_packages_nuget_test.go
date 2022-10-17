@@ -10,6 +10,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -43,23 +44,29 @@ func TestPackageNuGet(t *testing.T) {
 	symbolFilename := "test.pdb"
 	symbolID := "d910bb6948bd4c6cb40155bcf52c3c94"
 
-	var buf bytes.Buffer
-	archive := zip.NewWriter(&buf)
-	w, _ := archive.Create("package.nuspec")
-	w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
-	<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-	  <metadata>
-		<id>` + packageName + `</id>
-		<version>` + packageVersion + `</version>
-		<authors>` + packageAuthors + `</authors>
-		<description>` + packageDescription + `</description>
-		<group targetFramework=".NETStandard2.0">
-			<dependency id="Microsoft.CSharp" version="4.5.0" />
-		</group>
-	  </metadata>
-	</package>`))
-	archive.Close()
-	content := buf.Bytes()
+	createPackage := func(id, version string) io.Reader {
+		var buf bytes.Buffer
+		archive := zip.NewWriter(&buf)
+		w, _ := archive.Create("package.nuspec")
+		w.Write([]byte(`<?xml version="1.0" encoding="utf-8"?>
+		<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+			<metadata>
+				<id>` + id + `</id>
+				<version>` + version + `</version>
+				<authors>` + packageAuthors + `</authors>
+				<description>` + packageDescription + `</description>
+				<dependencies>
+					<group targetFramework=".NETStandard2.0">
+						<dependency id="Microsoft.CSharp" version="4.5.0" />
+					</group>
+				</dependencies>
+			</metadata>
+		</package>`))
+		archive.Close()
+		return &buf
+	}
+
+	content, _ := ioutil.ReadAll(createPackage(packageName, packageVersion))
 
 	url := fmt.Sprintf("/api/packages/%s/nuget", user.Name)
 
@@ -159,7 +166,7 @@ func TestPackageNuGet(t *testing.T) {
 		t.Run("SymbolPackage", func(t *testing.T) {
 			defer PrintCurrentTest(t)()
 
-			createPackage := func(id, packageType string) io.Reader {
+			createSymbolPackage := func(id, packageType string) io.Reader {
 				var buf bytes.Buffer
 				archive := zip.NewWriter(&buf)
 
@@ -185,15 +192,15 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				return &buf
 			}
 
-			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage("unknown-package", "SymbolsPackage"))
+			req := NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage("unknown-package", "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusNotFound)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "DummyPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "DummyPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusBadRequest)
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusCreated)
 
@@ -237,7 +244,7 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 				}
 			}
 
-			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createPackage(packageName, "SymbolsPackage"))
+			req = NewRequestWithBody(t, "PUT", fmt.Sprintf("%s/symbolpackage", url), createSymbolPackage(packageName, "SymbolsPackage"))
 			req = AddBasicAuthHeader(req, user.Name)
 			MakeRequest(t, req, http.StatusConflict)
 		})
@@ -315,6 +322,43 @@ AAAjQmxvYgAAAGm7ENm9SGxMtAFVvPUsPJTF6PbtAAAAAFcVogEJAAAAAQAAAA==`)
 			assert.Equal(t, c.ExpectedTotal, result.TotalHits, "case %d: unexpected total hits", i)
 			assert.Len(t, result.Data, c.ExpectedResults, "case %d: unexpected result count", i)
 		}
+
+		t.Run("EnforceGrouped", func(t *testing.T) {
+			defer PrintCurrentTest(t)()
+
+			req := NewRequestWithBody(t, "PUT", url, createPackage(packageName+".dummy", "1.0.0"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			req = NewRequestWithBody(t, "PUT", url, createPackage(packageName, "1.0.99"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusCreated)
+
+			req = NewRequest(t, "GET", fmt.Sprintf("%s/query?q=%s", url, packageName))
+			req = AddBasicAuthHeader(req, user.Name)
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var result nuget.SearchResultResponse
+			DecodeJSON(t, resp, &result)
+
+			assert.EqualValues(t, 3, result.TotalHits)
+			assert.Len(t, result.Data, 2)
+			for _, sr := range result.Data {
+				if sr.ID == packageName {
+					assert.Len(t, sr.Versions, 2)
+				} else {
+					assert.Len(t, sr.Versions, 1)
+				}
+			}
+
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName+".dummy", "1.0.0"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+
+			req = NewRequest(t, "DELETE", fmt.Sprintf("%s/%s/%s", url, packageName, "1.0.99"))
+			req = AddBasicAuthHeader(req, user.Name)
+			MakeRequest(t, req, http.StatusNoContent)
+		})
 	})
 
 	t.Run("RegistrationService", func(t *testing.T) {
