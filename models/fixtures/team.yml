@@ -55,7 +55,7 @@
   name: Owners
   authorize: 4 # owner
   num_repos: 2
-  num_members: 1
+  num_members: 2
   can_create_org_repo: true
 
 -

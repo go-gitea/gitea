@@ -59,6 +59,8 @@ _Symbols used in table:_
 | Built-in CI/CD                                   | [✘](https://github.com/go-gitea/gitea/issues/13539) | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 | Subgroups: groups within groups                  | [✘](https://github.com/go-gitea/gitea/issues/1872)  | ✘    | ✘         | ✓         | ✓         | ✘         | ✓            |
 | Interaction with other instances                 | [/](https://github.com/go-gitea/gitea/issues/18240) | ✘    | ✘         | ✘         | ✘         | ✘         | ✘            |
+| Mermaid diagrams in Markdown                     | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
+| Math syntax in Markdown                          | ✓                                                   | ✘    | ✓         | ✓         | ✓         | ✘         | ✘            |
 
 ## Code management
 

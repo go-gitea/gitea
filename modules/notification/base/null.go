@@ -5,7 +5,6 @@
 package base
 
 import (
-	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	packages_model "code.gitea.io/gitea/models/packages"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -79,16 +78,28 @@ func (*NullNotifier) NotifyUpdateComment(doer *user_model.User, c *issues_model.
 func (*NullNotifier) NotifyDeleteComment(doer *user_model.User, c *issues_model.Comment) {
 }
 
+// NotifyNewWikiPage places a place holder function
+func (*NullNotifier) NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+}
+
+// NotifyEditWikiPage places a place holder function
+func (*NullNotifier) NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+}
+
+// NotifyDeleteWikiPage places a place holder function
+func (*NullNotifier) NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string) {
+}
+
 // NotifyNewRelease places a place holder function
-func (*NullNotifier) NotifyNewRelease(rel *models.Release) {
+func (*NullNotifier) NotifyNewRelease(rel *repo_model.Release) {
 }
 
 // NotifyUpdateRelease places a place holder function
-func (*NullNotifier) NotifyUpdateRelease(doer *user_model.User, rel *models.Release) {
+func (*NullNotifier) NotifyUpdateRelease(doer *user_model.User, rel *repo_model.Release) {
 }
 
 // NotifyDeleteRelease places a place holder function
-func (*NullNotifier) NotifyDeleteRelease(doer *user_model.User, rel *models.Release) {
+func (*NullNotifier) NotifyDeleteRelease(doer *user_model.User, rel *repo_model.Release) {
 }
 
 // NotifyIssueChangeMilestone places a place holder function

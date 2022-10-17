@@ -129,29 +129,11 @@ func SearchTeam(opts *SearchTeamOptions) ([]*Team, int64, error) {
 	if opts.UserID > 0 {
 		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
 	}
-
-	count, err := sess.
-		Where(cond).
-		Count(new(Team))
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if opts.UserID > 0 {
-		sess = sess.Join("INNER", "team_user", "team_user.team_id = team.id")
-	}
-
-	if opts.PageSize == -1 {
-		opts.PageSize = int(count)
-	} else {
-		sess = sess.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
+	sess = db.SetSessionPagination(sess, opts)
 
 	teams := make([]*Team, 0, opts.PageSize)
-	if err = sess.
-		Where(cond).
-		OrderBy("lower_name").
-		Find(&teams); err != nil {
+	count, err := sess.Where(cond).OrderBy("lower_name").FindAndCount(&teams)
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -358,4 +340,10 @@ func GetRepoTeams(ctx context.Context, repo *repo_model.Repository) (teams []*Te
 		And("team_repo.repo_id=?", repo.ID).
 		OrderBy("CASE WHEN name LIKE '" + OwnerTeamName + "' THEN '' ELSE name END").
 		Find(&teams)
+}
+
+// IncrTeamRepoNum increases the number of repos for the given team by 1
+func IncrTeamRepoNum(ctx context.Context, teamID int64) error {
+	_, err := db.GetEngine(ctx).Incr("num_repos").ID(teamID).Update(new(Team))
+	return err
 }

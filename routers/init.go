@@ -11,7 +11,6 @@ import (
 
 	"code.gitea.io/gitea/models"
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
-	"code.gitea.io/gitea/modules/appstate"
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/eventsource"
 	"code.gitea.io/gitea/modules/git"
@@ -27,6 +26,8 @@ import (
 	"code.gitea.io/gitea/modules/ssh"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/svg"
+	"code.gitea.io/gitea/modules/system"
+	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/translation"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/modules/web"
@@ -75,8 +76,8 @@ func InitGitServices() {
 }
 
 func syncAppPathForGit(ctx context.Context) error {
-	runtimeState := new(appstate.RuntimeState)
-	if err := appstate.AppState.Get(runtimeState); err != nil {
+	runtimeState := new(system.RuntimeState)
+	if err := system.AppState.Get(runtimeState); err != nil {
 		return err
 	}
 	if runtimeState.LastAppPath != setting.AppPath {
@@ -89,7 +90,7 @@ func syncAppPathForGit(ctx context.Context) error {
 		mustInit(asymkey_model.RewriteAllPublicKeys)
 
 		runtimeState.LastAppPath = setting.AppPath
-		return appstate.AppState.Set(runtimeState)
+		return system.AppState.Set(runtimeState)
 	}
 	return nil
 }
@@ -110,12 +111,12 @@ func GlobalInitInstalled(ctx context.Context) {
 	log.Info("Run Mode: %s", util.ToTitleCase(setting.RunMode))
 
 	// Setup i18n
-	translation.InitLocales()
+	translation.InitLocales(ctx)
 
 	setting.NewServices()
 	mustInit(storage.Init)
 
-	mailer.NewContext()
+	mailer.NewContext(ctx)
 	mustInit(cache.NewContext)
 	notification.NewContext()
 	mustInit(archiver.Init)
@@ -132,10 +133,10 @@ func GlobalInitInstalled(ctx context.Context) {
 
 	mustInitCtx(ctx, common.InitDBEngine)
 	log.Info("ORM engine initialization successful!")
-	mustInit(appstate.Init)
+	mustInit(system.Init)
 	mustInit(oauth2.Init)
 
-	models.NewRepoContext()
+	mustInit(models.Init)
 	mustInit(repo_service.Init)
 
 	// Booting long running goroutines.
@@ -163,18 +164,19 @@ func GlobalInitInstalled(ctx context.Context) {
 }
 
 // NormalRoutes represents non install routes
-func NormalRoutes() *web.Route {
+func NormalRoutes(ctx context.Context) *web.Route {
+	ctx, _ = templates.HTMLRenderer(ctx)
 	r := web.NewRoute()
 	for _, middle := range common.Middlewares() {
 		r.Use(middle)
 	}
 
-	r.Mount("/", web_routers.Routes())
-	r.Mount("/api/v1", apiv1.Routes())
+	r.Mount("/", web_routers.Routes(ctx))
+	r.Mount("/api/v1", apiv1.Routes(ctx))
 	r.Mount("/api/internal", private.Routes())
 	if setting.Packages.Enabled {
-		r.Mount("/api/packages", packages_router.Routes())
-		r.Mount("/v2", packages_router.ContainerRoutes())
+		r.Mount("/api/packages", packages_router.Routes(ctx))
+		r.Mount("/v2", packages_router.ContainerRoutes(ctx))
 	}
 	return r
 }

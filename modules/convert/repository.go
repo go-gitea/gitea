@@ -56,9 +56,10 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		config := unit.ExternalTrackerConfig()
 		hasIssues = true
 		externalTracker = &api.ExternalTracker{
-			ExternalTrackerURL:    config.ExternalTrackerURL,
-			ExternalTrackerFormat: config.ExternalTrackerFormat,
-			ExternalTrackerStyle:  config.ExternalTrackerStyle,
+			ExternalTrackerURL:           config.ExternalTrackerURL,
+			ExternalTrackerFormat:        config.ExternalTrackerFormat,
+			ExternalTrackerStyle:         config.ExternalTrackerStyle,
+			ExternalTrackerRegexpPattern: config.ExternalTrackerRegexpPattern,
 		}
 	}
 	hasWiki := false
@@ -102,7 +103,7 @@ func innerToRepo(repo *repo_model.Repository, mode perm.AccessMode, isParent boo
 		return nil
 	}
 
-	numReleases, _ := models.GetReleaseCountByRepoID(repo.ID, models.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
+	numReleases, _ := repo_model.GetReleaseCountByRepoID(repo.ID, repo_model.FindReleasesOptions{IncludeDrafts: false, IncludeTags: false})
 
 	mirrorInterval := ""
 	var mirrorUpdated time.Time

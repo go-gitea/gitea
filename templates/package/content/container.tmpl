@@ -15,6 +15,10 @@
 				{{end}}
 			</div>
 			<div class="field">
+				<label>{{svg "octicon-code"}} {{.locale.Tr "packages.container.digest"}}</label>
+				<div class="markup"><pre class="code-block"><code>{{range .PackageDescriptor.Files}}{{if eq .File.LowerName "manifest.json"}}{{.Properties.GetByName "container.digest"}}{{end}}{{end}}</code></pre></div>
+			</div>
+			<div class="field">
 				<label>{{.locale.Tr "packages.container.documentation" | Safe}}</label>
 			</div>
 		</div>
@@ -43,7 +47,7 @@
 	{{if .PackageDescriptor.Metadata.ImageLayers}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.layers"}}</h4>
 		<div class="ui attached segment">
-			<table id="notice-table" class="ui very basic compact table">
+			<table class="ui very basic compact table">
 				<tbody>
 					{{range .PackageDescriptor.Metadata.ImageLayers}}
 						<tr>
@@ -57,7 +61,7 @@
 	{{if .PackageDescriptor.Metadata.Labels}}
 		<h4 class="ui top attached header">{{.locale.Tr "packages.container.labels"}}</h4>
 		<div class="ui attached segment">
-			<table id="notice-table" class="ui very basic compact table">
+			<table class="ui very basic compact table container-labels">
 				<thead>
 					<tr>
 						<th>{{.locale.Tr "packages.container.labels.key"}}</th>

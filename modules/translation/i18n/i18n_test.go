@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_Tr(t *testing.T) {
+func TestLocaleStore(t *testing.T) {
 	testData1 := []byte(`
 .dot.name = Dot Name
 fmt = %[1]s %[2]s
@@ -27,36 +27,52 @@ fmt = %[2]s %[1]s
 sub = Changed Sub String
 `)
 
-	for _, isProd := range []bool{true, false} {
-		ls := NewLocaleStore(isProd)
-		assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1))
-		assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2))
-		ls.SetDefaultLang("lang1")
+	ls := NewLocaleStore()
+	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, nil))
+	assert.NoError(t, ls.AddLocaleByIni("lang2", "Lang2", testData2, nil))
+	ls.SetDefaultLang("lang1")
 
-		result := ls.Tr("lang1", "fmt", "a", "b")
-		assert.Equal(t, "a b", result)
+	result := ls.Tr("lang1", "fmt", "a", "b")
+	assert.Equal(t, "a b", result)
 
-		result = ls.Tr("lang2", "fmt", "a", "b")
-		assert.Equal(t, "b a", result)
+	result = ls.Tr("lang2", "fmt", "a", "b")
+	assert.Equal(t, "b a", result)
 
-		result = ls.Tr("lang1", "section.sub")
-		assert.Equal(t, "Sub String", result)
+	result = ls.Tr("lang1", "section.sub")
+	assert.Equal(t, "Sub String", result)
 
-		result = ls.Tr("lang2", "section.sub")
-		assert.Equal(t, "Changed Sub String", result)
+	result = ls.Tr("lang2", "section.sub")
+	assert.Equal(t, "Changed Sub String", result)
 
-		result = ls.Tr("", ".dot.name")
-		assert.Equal(t, "Dot Name", result)
+	result = ls.Tr("", ".dot.name")
+	assert.Equal(t, "Dot Name", result)
 
-		result = ls.Tr("lang2", "section.mixed")
-		assert.Equal(t, `test value; <span style="color: red; background: none;">more text</span>`, result)
+	result = ls.Tr("lang2", "section.mixed")
+	assert.Equal(t, `test value; <span style="color: red; background: none;">more text</span>`, result)
 
-		langs, descs := ls.ListLangNameDesc()
-		assert.Equal(t, []string{"lang1", "lang2"}, langs)
-		assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
+	langs, descs := ls.ListLangNameDesc()
+	assert.Equal(t, []string{"lang1", "lang2"}, langs)
+	assert.Equal(t, []string{"Lang1", "Lang2"}, descs)
 
-		result, found := ls.localeMap["lang1"].tryTr("no-such")
-		assert.Equal(t, "no-such", result)
-		assert.False(t, found)
-	}
+	found := ls.Has("lang1", "no-such")
+	assert.False(t, found)
+	assert.NoError(t, ls.Close())
+}
+
+func TestLocaleStoreMoreSource(t *testing.T) {
+	testData1 := []byte(`
+a=11
+b=12
+`)
+
+	testData2 := []byte(`
+b=21
+c=22
+`)
+
+	ls := NewLocaleStore()
+	assert.NoError(t, ls.AddLocaleByIni("lang1", "Lang1", testData1, testData2))
+	assert.Equal(t, "11", ls.Tr("lang1", "a"))
+	assert.Equal(t, "21", ls.Tr("lang1", "b"))
+	assert.Equal(t, "22", ls.Tr("lang1", "c"))
 }

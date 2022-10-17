@@ -7,10 +7,10 @@ package setting
 import (
 	"path/filepath"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/context"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	repo_service "code.gitea.io/gitea/services/repository"
@@ -46,7 +46,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" && allowAdopt {
-		if _, err := repo_service.AdoptRepository(ctxUser, ctxUser, models.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctxUser, ctxUser, repo_module.CreateRepoOptions{
 			Name:      dir,
 			IsPrivate: true,
 		}); err != nil {

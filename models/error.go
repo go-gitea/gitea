@@ -57,93 +57,6 @@ func (err ErrUserOwnPackages) Error() string {
 	return fmt.Sprintf("user still has ownership of packages [uid: %d]", err.UID)
 }
 
-//  __      __.__ __   .__
-// /  \    /  \__|  | _|__|
-// \   \/\/   /  |  |/ /  |
-//  \        /|  |    <|  |
-//   \__/\  / |__|__|_ \__|
-//        \/          \/
-
-// ErrWikiAlreadyExist represents a "WikiAlreadyExist" kind of error.
-type ErrWikiAlreadyExist struct {
-	Title string
-}
-
-// IsErrWikiAlreadyExist checks if an error is an ErrWikiAlreadyExist.
-func IsErrWikiAlreadyExist(err error) bool {
-	_, ok := err.(ErrWikiAlreadyExist)
-	return ok
-}
-
-func (err ErrWikiAlreadyExist) Error() string {
-	return fmt.Sprintf("wiki page already exists [title: %s]", err.Title)
-}
-
-// ErrWikiReservedName represents a reserved name error.
-type ErrWikiReservedName struct {
-	Title string
-}
-
-// IsErrWikiReservedName checks if an error is an ErrWikiReservedName.
-func IsErrWikiReservedName(err error) bool {
-	_, ok := err.(ErrWikiReservedName)
-	return ok
-}
-
-func (err ErrWikiReservedName) Error() string {
-	return fmt.Sprintf("wiki title is reserved: %s", err.Title)
-}
-
-// ErrWikiInvalidFileName represents an invalid wiki file name.
-type ErrWikiInvalidFileName struct {
-	FileName string
-}
-
-// IsErrWikiInvalidFileName checks if an error is an ErrWikiInvalidFileName.
-func IsErrWikiInvalidFileName(err error) bool {
-	_, ok := err.(ErrWikiInvalidFileName)
-	return ok
-}
-
-func (err ErrWikiInvalidFileName) Error() string {
-	return fmt.Sprintf("Invalid wiki filename: %s", err.FileName)
-}
-
-//    _____                                   ___________     __
-//   /  _  \   ____  ____  ____   ______ _____\__    ___/___ |  | __ ____   ____
-//  /  /_\  \_/ ___\/ ___\/ __ \ /  ___//  ___/ |    | /  _ \|  |/ // __ \ /    \
-// /    |    \  \__\  \__\  ___/ \___ \ \___ \  |    |(  <_> )    <\  ___/|   |  \
-// \____|__  /\___  >___  >___  >____  >____  > |____| \____/|__|_ \\___  >___|  /
-//         \/     \/    \/    \/     \/     \/                    \/    \/     \/
-
-// ErrAccessTokenNotExist represents a "AccessTokenNotExist" kind of error.
-type ErrAccessTokenNotExist struct {
-	Token string
-}
-
-// IsErrAccessTokenNotExist checks if an error is a ErrAccessTokenNotExist.
-func IsErrAccessTokenNotExist(err error) bool {
-	_, ok := err.(ErrAccessTokenNotExist)
-	return ok
-}
-
-func (err ErrAccessTokenNotExist) Error() string {
-	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
-}
-
-// ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
-type ErrAccessTokenEmpty struct{}
-
-// IsErrAccessTokenEmpty checks if an error is a ErrAccessTokenEmpty.
-func IsErrAccessTokenEmpty(err error) bool {
-	_, ok := err.(ErrAccessTokenEmpty)
-	return ok
-}
-
-func (err ErrAccessTokenEmpty) Error() string {
-	return "access token is empty"
-}
-
 // ErrNoPendingRepoTransfer is an error type for repositories without a pending
 // transfer request
 type ErrNoPendingRepoTransfer struct {
@@ -176,23 +89,6 @@ func IsErrRepoTransferInProgress(err error) bool {
 
 func (err ErrRepoTransferInProgress) Error() string {
 	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
-}
-
-// ErrForkAlreadyExist represents a "ForkAlreadyExist" kind of error.
-type ErrForkAlreadyExist struct {
-	Uname    string
-	RepoName string
-	ForkName string
-}
-
-// IsErrForkAlreadyExist checks if an error is an ErrForkAlreadyExist.
-func IsErrForkAlreadyExist(err error) bool {
-	_, ok := err.(ErrForkAlreadyExist)
-	return ok
-}
-
-func (err ErrForkAlreadyExist) Error() string {
-	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
@@ -241,37 +137,6 @@ func IsErrUpdateTaskNotExist(err error) bool {
 
 func (err ErrUpdateTaskNotExist) Error() string {
 	return fmt.Sprintf("update task does not exist [uuid: %s]", err.UUID)
-}
-
-// ErrReleaseAlreadyExist represents a "ReleaseAlreadyExist" kind of error.
-type ErrReleaseAlreadyExist struct {
-	TagName string
-}
-
-// IsErrReleaseAlreadyExist checks if an error is a ErrReleaseAlreadyExist.
-func IsErrReleaseAlreadyExist(err error) bool {
-	_, ok := err.(ErrReleaseAlreadyExist)
-	return ok
-}
-
-func (err ErrReleaseAlreadyExist) Error() string {
-	return fmt.Sprintf("release tag already exist [tag_name: %s]", err.TagName)
-}
-
-// ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
-type ErrReleaseNotExist struct {
-	ID      int64
-	TagName string
-}
-
-// IsErrReleaseNotExist checks if an error is a ErrReleaseNotExist.
-func IsErrReleaseNotExist(err error) bool {
-	_, ok := err.(ErrReleaseNotExist)
-	return ok
-}
-
-func (err ErrReleaseNotExist) Error() string {
-	return fmt.Sprintf("release tag does not exist [id: %d, tag_name: %s]", err.ID, err.TagName)
 }
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -656,72 +521,4 @@ func IsErrPullRequestHasMerged(err error) bool {
 func (err ErrPullRequestHasMerged) Error() string {
 	return fmt.Sprintf("pull request has merged [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
-}
-
-//  _________ __                                __         .__
-//  /   _____//  |_  ____ ________  _  _______ _/  |_  ____ |  |__
-//  \_____  \\   __\/  _ \\____ \ \/ \/ /\__  \\   __\/ ___\|  |  \
-//  /        \|  | (  <_> )  |_> >     /  / __ \|  | \  \___|   Y  \
-//  /_______  /|__|  \____/|   __/ \/\_/  (____  /__|  \___  >___|  /
-// \/             |__|                \/          \/     \/
-
-// ErrStopwatchNotExist represents a "Stopwatch Not Exist" kind of error.
-type ErrStopwatchNotExist struct {
-	ID int64
-}
-
-// IsErrStopwatchNotExist checks if an error is a ErrStopwatchNotExist.
-func IsErrStopwatchNotExist(err error) bool {
-	_, ok := err.(ErrStopwatchNotExist)
-	return ok
-}
-
-func (err ErrStopwatchNotExist) Error() string {
-	return fmt.Sprintf("stopwatch does not exist [id: %d]", err.ID)
-}
-
-// ___________                     __              .______________.__
-// \__    ___/___________    ____ |  | __ ____   __| _/\__    ___/|__| _____   ____
-// |    |  \_  __ \__  \ _/ ___\|  |/ // __ \ / __ |   |    |   |  |/     \_/ __ \
-// |    |   |  | \// __ \\  \___|    <\  ___// /_/ |   |    |   |  |  Y Y  \  ___/
-// |____|   |__|  (____  /\___  >__|_ \\___  >____ |   |____|   |__|__|_|  /\___  >
-// \/     \/     \/    \/     \/                     \/     \/
-
-// ErrTrackedTimeNotExist represents a "TrackedTime Not Exist" kind of error.
-type ErrTrackedTimeNotExist struct {
-	ID int64
-}
-
-// IsErrTrackedTimeNotExist checks if an error is a ErrTrackedTimeNotExist.
-func IsErrTrackedTimeNotExist(err error) bool {
-	_, ok := err.(ErrTrackedTimeNotExist)
-	return ok
-}
-
-func (err ErrTrackedTimeNotExist) Error() string {
-	return fmt.Sprintf("tracked time does not exist [id: %d]", err.ID)
-}
-
-//  ____ ___        .__                    .___
-// |    |   \______ |  |   _________     __| _/
-// |    |   /\____ \|  |  /  _ \__  \   / __ |
-// |    |  / |  |_> >  |_(  <_> ) __ \_/ /_/ |
-// |______/  |   __/|____/\____(____  /\____ |
-//           |__|                   \/      \/
-//
-
-// ErrUploadNotExist represents a "UploadNotExist" kind of error.
-type ErrUploadNotExist struct {
-	ID   int64
-	UUID string
-}
-
-// IsErrUploadNotExist checks if an error is a ErrUploadNotExist.
-func IsErrUploadNotExist(err error) bool {
-	_, ok := err.(ErrUploadNotExist)
-	return ok
-}
-
-func (err ErrUploadNotExist) Error() string {
-	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
 }

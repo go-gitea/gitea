@@ -63,6 +63,17 @@ func runTemplate(t *template.Template, filename string, data interface{}) error 
 		verbosef("Bad source:\n%s", buf.String())
 		return fmt.Errorf("unable to format source: %w", err)
 	}
+
+	old, err := os.ReadFile(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("failed to read old file %s because %w", filename, err)
+	} else if err == nil {
+		if bytes.Equal(bs, old) {
+			// files are the same don't rewrite it.
+			return nil
+		}
+	}
+
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("failed to create file %s because %w", filename, err)

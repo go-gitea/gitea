@@ -10,8 +10,8 @@ import (
 	"reflect"
 	"sync"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -114,7 +114,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 			t.LastDoer = doerName
 			t.lock.Unlock()
 
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
+			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "cancelled", doerName, message)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 			return
@@ -127,7 +127,7 @@ func (t *Task) RunWithUser(doer *user_model.User, config Config) {
 		t.lock.Unlock()
 
 		if config.DoNoticeOnSuccess() {
-			if err := admin_model.CreateNotice(ctx, admin_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
+			if err := system_model.CreateNotice(ctx, system_model.NoticeTask, config.FormatMessage(translation.NewLocale("en-US"), t.Name, "finished", doerName)); err != nil {
 				log.Error("CreateNotice: %v", err)
 			}
 		}

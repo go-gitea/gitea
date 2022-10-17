@@ -364,7 +364,7 @@ func loadOrCreateSymmetricKey() (interface{}, error) {
 			return nil, err
 		}
 
-		setting.CreateOrAppendToCustomConf(func(cfg *ini.File) {
+		setting.CreateOrAppendToCustomConf("oauth2.JWT_SECRET", func(cfg *ini.File) {
 			secretBase64 := base64.RawURLEncoding.EncodeToString(key)
 			cfg.Section("oauth2").Key("JWT_SECRET").SetValue(secretBase64)
 		})

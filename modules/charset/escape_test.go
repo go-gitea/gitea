@@ -133,11 +133,18 @@ then resh (ר), and finally heh (ה) (which should appear leftmost).`,
 	},
 }
 
+type nullLocale struct{}
+
+func (nullLocale) Language() string                                                   { return "" }
+func (nullLocale) Tr(key string, _ ...interface{}) string                             { return key }
+func (nullLocale) TrN(cnt interface{}, key1, keyN string, args ...interface{}) string { return "" }
+
+var _ (translation.Locale) = nullLocale{}
+
 func TestEscapeControlString(t *testing.T) {
 	for _, tt := range escapeControlTests {
 		t.Run(tt.name, func(t *testing.T) {
-			locale := translation.NewLocale("en_US")
-			status, result := EscapeControlString(tt.text, locale)
+			status, result := EscapeControlString(tt.text, nullLocale{})
 			if !reflect.DeepEqual(*status, tt.status) {
 				t.Errorf("EscapeControlString() status = %v, wanted= %v", status, tt.status)
 			}
@@ -173,7 +180,7 @@ func TestEscapeControlReader(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			input := strings.NewReader(tt.text)
 			output := &strings.Builder{}
-			status, err := EscapeControlReader(input, output, translation.NewLocale("en_US"))
+			status, err := EscapeControlReader(input, output, nullLocale{})
 			result := output.String()
 			if err != nil {
 				t.Errorf("EscapeControlReader(): err = %v", err)
@@ -195,5 +202,5 @@ func TestEscapeControlReader_panic(t *testing.T) {
 	for i := 0; i < 6826; i++ {
 		bs = append(bs, []byte("—")...)
 	}
-	_, _ = EscapeControlString(string(bs), translation.NewLocale("en_US"))
+	_, _ = EscapeControlString(string(bs), nullLocale{})
 }

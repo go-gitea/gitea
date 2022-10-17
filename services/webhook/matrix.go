@@ -143,6 +143,13 @@ func (m *MatrixPayloadUnsafe) IssueComment(p *api.IssueCommentPayload) (api.Payl
 	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
 }
 
+// Wiki implements PayloadConvertor Wiki method
+func (m *MatrixPayloadUnsafe) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, MatrixLinkFormatter, true)
+
+	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil
+}
+
 // Release implements PayloadConvertor Release method
 func (m *MatrixPayloadUnsafe) Release(p *api.ReleasePayload) (api.Payloader, error) {
 	text, _ := getReleasePayloadInfo(p, MatrixLinkFormatter, true)
@@ -154,10 +161,10 @@ func (m *MatrixPayloadUnsafe) Release(p *api.ReleasePayload) (api.Payloader, err
 func (m *MatrixPayloadUnsafe) Push(p *api.PushPayload) (api.Payloader, error) {
 	var commitDesc string
 
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 commit"
 	} else {
-		commitDesc = fmt.Sprintf("%d commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d commits", p.TotalCommits)
 	}
 
 	repoLink := MatrixLinkFormatter(p.Repo.HTMLURL, p.Repo.FullName)
@@ -188,7 +195,7 @@ func (m *MatrixPayloadUnsafe) PullRequest(p *api.PullRequestPayload) (api.Payloa
 func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event webhook_model.HookEventType) (api.Payloader, error) {
 	senderLink := MatrixLinkFormatter(setting.AppURL+url.PathEscape(p.Sender.UserName), p.Sender.UserName)
 	title := fmt.Sprintf("#%d %s", p.Index, p.PullRequest.Title)
-	titleLink := fmt.Sprintf("%s/pulls/%d", p.Repository.HTMLURL, p.Index)
+	titleLink := MatrixLinkFormatter(p.PullRequest.URL, title)
 	repoLink := MatrixLinkFormatter(p.Repository.HTMLURL, p.Repository.FullName)
 	var text string
 
@@ -199,7 +206,7 @@ func (m *MatrixPayloadUnsafe) Review(p *api.PullRequestPayload, event webhook_mo
 			return nil, err
 		}
 
-		text = fmt.Sprintf("[%s] Pull request review %s: [%s](%s) by %s", repoLink, action, title, titleLink, senderLink)
+		text = fmt.Sprintf("[%s] Pull request review %s: %s by %s", repoLink, action, titleLink, senderLink)
 	}
 
 	return getMatrixPayloadUnsafe(text, nil, m.AccessToken, m.MsgType), nil

@@ -89,11 +89,11 @@ func (t *TelegramPayload) Push(p *api.PushPayload) (api.Payloader, error) {
 	)
 
 	var titleLink string
-	if len(p.Commits) == 1 {
+	if p.TotalCommits == 1 {
 		commitDesc = "1 new commit"
 		titleLink = p.Commits[0].URL
 	} else {
-		commitDesc = fmt.Sprintf("%d new commits", len(p.Commits))
+		commitDesc = fmt.Sprintf("%d new commits", p.TotalCommits)
 		titleLink = p.CompareURL
 	}
 	if titleLink == "" {
@@ -169,6 +169,13 @@ func (t *TelegramPayload) Repository(p *api.RepositoryPayload) (api.Payloader, e
 		return createTelegramPayload(title), nil
 	}
 	return nil, nil
+}
+
+// Wiki implements PayloadConvertor Wiki method
+func (t *TelegramPayload) Wiki(p *api.WikiPayload) (api.Payloader, error) {
+	text, _, _ := getWikiPayloadInfo(p, htmlLinkFormatter, true)
+
+	return createTelegramPayload(text), nil
 }
 
 // Release implements PayloadConvertor Release method

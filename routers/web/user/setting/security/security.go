@@ -8,8 +8,7 @@ package security
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
-	"code.gitea.io/gitea/models/auth"
+	auth_model "code.gitea.io/gitea/models/auth"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -56,21 +55,21 @@ func DeleteAccountLink(ctx *context.Context) {
 }
 
 func loadSecurityData(ctx *context.Context) {
-	enrolled, err := auth.HasTwoFactorByUID(ctx.Doer.ID)
+	enrolled, err := auth_model.HasTwoFactorByUID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("SettingsTwoFactor", err)
 		return
 	}
 	ctx.Data["TOTPEnrolled"] = enrolled
 
-	credentials, err := auth.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
+	credentials, err := auth_model.GetWebAuthnCredentialsByUID(ctx.Doer.ID)
 	if err != nil {
 		ctx.ServerError("GetWebAuthnCredentialsByUID", err)
 		return
 	}
 	ctx.Data["WebAuthnCredentials"] = credentials
 
-	tokens, err := models.ListAccessTokens(models.ListAccessTokensOptions{UserID: ctx.Doer.ID})
+	tokens, err := auth_model.ListAccessTokens(auth_model.ListAccessTokensOptions{UserID: ctx.Doer.ID})
 	if err != nil {
 		ctx.ServerError("ListAccessTokens", err)
 		return
@@ -84,9 +83,9 @@ func loadSecurityData(ctx *context.Context) {
 	}
 
 	// map the provider display name with the AuthSource
-	sources := make(map[*auth.Source]string)
+	sources := make(map[*auth_model.Source]string)
 	for _, externalAccount := range accountLinks {
-		if authSource, err := auth.GetSourceByID(externalAccount.LoginSourceID); err == nil {
+		if authSource, err := auth_model.GetSourceByID(externalAccount.LoginSourceID); err == nil {
 			var providerDisplayName string
 
 			type DisplayNamed interface {

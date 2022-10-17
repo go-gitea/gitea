@@ -9,13 +9,13 @@ import (
 	"net/url"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/log"
+	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/routers/web/explore"
@@ -148,7 +148,7 @@ func AdoptOrDeleteRepository(ctx *context.Context) {
 	if has || !isDir {
 		// Fallthrough to failure mode
 	} else if action == "adopt" {
-		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, models.CreateRepoOptions{
+		if _, err := repo_service.AdoptRepository(ctx.Doer, ctxUser, repo_module.CreateRepoOptions{
 			Name:      dirSplit[1],
 			IsPrivate: true,
 		}); err != nil {

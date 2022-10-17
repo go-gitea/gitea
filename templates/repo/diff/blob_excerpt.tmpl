@@ -3,12 +3,12 @@
 	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
 		{{if eq .GetType 4}}
 			<td class="lines-num lines-num-old" data-line-num="{{if $line.LeftIdx}}{{$line.LeftIdx}}{{end}}">
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
 					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</a>
 				{{end}}
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
 					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=split&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</a>
@@ -47,12 +47,12 @@
 	<tr class="{{DiffLineTypeToStr .GetType}}-code nl-{{$k}} ol-{{$k}}">
 		{{if eq .GetType 4}}
 			<td colspan="2" class="lines-num">
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5) }}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 5)}}
 					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=down&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-down"}}
 					</a>
 				{{end}}
-				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4) }}
+				{{if or (eq $line.GetExpandDirection 3) (eq $line.GetExpandDirection 4)}}
 					<a role="button" class="blob-excerpt" data-url="{{$.RepoLink}}/blob_excerpt/{{PathEscape $.AfterCommitID}}" data-query="{{$line.GetBlobExcerptQuery}}&style=unified&direction=up&wiki={{$.PageIsWiki}}" data-anchor="{{$.Anchor}}">
 						{{svg "octicon-fold-up"}}
 					</a>

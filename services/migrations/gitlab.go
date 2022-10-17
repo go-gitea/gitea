@@ -63,6 +63,7 @@ type GitlabDownloader struct {
 	base.NullDownloader
 	ctx        context.Context
 	client     *gitlab.Client
+	baseURL    string
 	repoID     int
 	repoName   string
 	issueCount int64
@@ -70,8 +71,9 @@ type GitlabDownloader struct {
 }
 
 // NewGitlabDownloader creates a gitlab Downloader via gitlab API
-//   Use either a username/password, personal token entered into the username field, or anonymous/public access
-//   Note: Public access only allows very basic access
+//
+//	Use either a username/password, personal token entered into the username field, or anonymous/public access
+//	Note: Public access only allows very basic access
 func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, password, token string) (*GitlabDownloader, error) {
 	gitlabClient, err := gitlab.NewClient(token, gitlab.WithBaseURL(baseURL), gitlab.WithHTTPClient(NewMigrationHTTPClient()))
 	// Only use basic auth if token is blank and password is NOT
@@ -124,10 +126,25 @@ func NewGitlabDownloader(ctx context.Context, baseURL, repoPath, username, passw
 	return &GitlabDownloader{
 		ctx:        ctx,
 		client:     gitlabClient,
+		baseURL:    baseURL,
 		repoID:     gr.ID,
 		repoName:   gr.Name,
 		maxPerPage: 100,
 	}, nil
+}
+
+// String implements Stringer
+func (g *GitlabDownloader) String() string {
+	return fmt.Sprintf("migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
+}
+
+// ColorFormat provides a basic color format for a GitlabDownloader
+func (g *GitlabDownloader) ColorFormat(s fmt.State) {
+	if g == nil {
+		log.ColorFprintf(s, "<nil: GitlabDownloader>")
+		return
+	}
+	log.ColorFprintf(s, "migration from gitlab server %s [%d]/%s", g.baseURL, g.repoID, g.repoName)
 }
 
 // SetContext set context
@@ -307,6 +324,11 @@ func (g *GitlabDownloader) convertGitlabRelease(rel *gitlab.Release) *base.Relea
 					return nil, err
 				}
 
+				if !hasBaseURL(link.URL, g.baseURL) {
+					WarnAndNotice("Unexpected AssetURL for assetID[%d] in %s: %s", asset.ID, g, link.URL)
+					return io.NopCloser(strings.NewReader(link.URL)), nil
+				}
+
 				req, err := http.NewRequest("GET", link.URL, nil)
 				if err != nil {
 					return nil, err
@@ -353,7 +375,8 @@ type gitlabIssueContext struct {
 }
 
 // GetIssues returns issues according start and limit
-//   Note: issue label description and colors are not supported by the go-gitlab library at this time
+//
+//	Note: issue label description and colors are not supported by the go-gitlab library at this time
 func (g *GitlabDownloader) GetIssues(page, perPage int) ([]*base.Issue, bool, error) {
 	state := "all"
 	sort := "asc"
@@ -610,6 +633,9 @@ func (g *GitlabDownloader) GetPullRequests(page, perPage int) ([]*base.PullReque
 			ForeignIndex: int64(pr.IID),
 			Context:      gitlabIssueContext{IsMergeRequest: true},
 		})
+
+		// SECURITY: Ensure that the PR is safe
+		_ = CheckAndEnsureSafePR(allPRs[len(allPRs)-1], g.baseURL, g)
 	}
 
 	return allPRs, len(prs) < perPage, nil

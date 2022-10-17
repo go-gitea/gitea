@@ -6,17 +6,20 @@
 package install
 
 import (
+	goctx "context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	db_install "code.gitea.io/gitea/models/db/install"
 	"code.gitea.io/gitea/models/migrations"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
@@ -51,39 +54,41 @@ func getSupportedDbTypeNames() (dbTypeNames []map[string]string) {
 }
 
 // Init prepare for rendering installation page
-func Init(next http.Handler) http.Handler {
-	rnd := templates.HTMLRenderer()
+func Init(ctx goctx.Context) func(next http.Handler) http.Handler {
+	_, rnd := templates.HTMLRenderer(ctx)
 	dbTypeNames := getSupportedDbTypeNames()
-	return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		if setting.InstallLock {
-			resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
-			_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
-			return
-		}
-		locale := middleware.Locale(resp, req)
-		startTime := time.Now()
-		ctx := context.Context{
-			Resp:    context.NewResponse(resp),
-			Flash:   &middleware.Flash{},
-			Locale:  locale,
-			Render:  rnd,
-			Session: session.GetSession(req),
-			Data: map[string]interface{}{
-				"locale":        locale,
-				"Title":         locale.Tr("install.install"),
-				"PageIsInstall": true,
-				"DbTypeNames":   dbTypeNames,
-				"AllLangs":      translation.AllLangs(),
-				"PageStartTime": startTime,
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+			if setting.InstallLock {
+				resp.Header().Add("Refresh", "1; url="+setting.AppURL+"user/login")
+				_ = rnd.HTML(resp, http.StatusOK, string(tplPostInstall), nil)
+				return
+			}
+			locale := middleware.Locale(resp, req)
+			startTime := time.Now()
+			ctx := context.Context{
+				Resp:    context.NewResponse(resp),
+				Flash:   &middleware.Flash{},
+				Locale:  locale,
+				Render:  rnd,
+				Session: session.GetSession(req),
+				Data: map[string]interface{}{
+					"locale":        locale,
+					"Title":         locale.Tr("install.install"),
+					"PageIsInstall": true,
+					"DbTypeNames":   dbTypeNames,
+					"AllLangs":      translation.AllLangs(),
+					"PageStartTime": startTime,
 
-				"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
-			},
-		}
-		defer ctx.Close()
+					"PasswordHashAlgorithms": user_model.AvailableHashAlgorithms,
+				},
+			}
+			defer ctx.Close()
 
-		ctx.Req = context.WithContext(req, &ctx)
-		next.ServeHTTP(resp, ctx.Req)
-	})
+			ctx.Req = context.WithContext(req, &ctx)
+			next.ServeHTTP(resp, ctx.Req)
+		})
+	}
 }
 
 // Install render installation page
@@ -144,8 +149,19 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	form.DisableGravatar = setting.DisableGravatar
-	form.EnableFederatedAvatar = setting.EnableFederatedAvatar
+	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
+	if disableGravatarSetting != nil {
+		form.DisableGravatar = disableGravatarSetting.GetValueBool()
+	} else {
+		form.DisableGravatar = false
+	}
+
+	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
+	if enableFederatedAvatarSetting != nil {
+		form.EnableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
+	} else {
+		form.EnableFederatedAvatar = false
+	}
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
@@ -436,7 +452,11 @@ func SubmitInstall(ctx *context.Context) {
 	cfg.Section("service").Key("ENABLE_NOTIFY_MAIL").SetValue(fmt.Sprint(form.MailNotify))
 
 	cfg.Section("server").Key("OFFLINE_MODE").SetValue(fmt.Sprint(form.OfflineMode))
-	cfg.Section("picture").Key("DISABLE_GRAVATAR").SetValue(fmt.Sprint(form.DisableGravatar))
+	// if you are reinstalling, this maybe not right because of missing version
+	if err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, strconv.FormatBool(form.DisableGravatar)); err != nil {
+		ctx.RenderWithErr(ctx.Tr("install.secret_key_failed", err), tplInstall, &form)
+		return
+	}
 	cfg.Section("picture").Key("ENABLE_FEDERATED_AVATAR").SetValue(fmt.Sprint(form.EnableFederatedAvatar))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNIN").SetValue(fmt.Sprint(form.EnableOpenIDSignIn))
 	cfg.Section("openid").Key("ENABLE_OPENID_SIGNUP").SetValue(fmt.Sprint(form.EnableOpenIDSignUp))

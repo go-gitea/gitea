@@ -7,7 +7,6 @@ package repo
 import (
 	"net/http"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
@@ -57,6 +56,10 @@ func GetReleaseAttachment(ctx *context.APIContext) {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
+		if repo_model.IsErrAttachmentNotExist(err) {
+			ctx.NotFound()
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
@@ -98,8 +101,12 @@ func ListReleaseAttachments(ctx *context.APIContext) {
 	//     "$ref": "#/responses/AttachmentList"
 
 	releaseID := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(ctx, releaseID)
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
@@ -164,8 +171,12 @@ func CreateReleaseAttachment(ctx *context.APIContext) {
 
 	// Check if release exists an load release
 	releaseID := ctx.ParamsInt64(":id")
-	release, err := models.GetReleaseByID(ctx, releaseID)
+	release, err := repo_model.GetReleaseByID(ctx, releaseID)
 	if err != nil {
+		if repo_model.IsErrReleaseNotExist(err) {
+			ctx.NotFound()
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetReleaseByID", err)
 		return
 	}
@@ -244,6 +255,10 @@ func EditReleaseAttachment(ctx *context.APIContext) {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
+		if repo_model.IsErrAttachmentNotExist(err) {
+			ctx.NotFound()
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}
@@ -302,6 +317,10 @@ func DeleteReleaseAttachment(ctx *context.APIContext) {
 	attachID := ctx.ParamsInt64(":asset")
 	attach, err := repo_model.GetAttachmentByID(ctx, attachID)
 	if err != nil {
+		if repo_model.IsErrAttachmentNotExist(err) {
+			ctx.NotFound()
+			return
+		}
 		ctx.Error(http.StatusInternalServerError, "GetAttachmentByID", err)
 		return
 	}

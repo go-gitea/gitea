@@ -149,7 +149,7 @@ func TestMigrate_InsertReleases(t *testing.T) {
 	a := &repo_model.Attachment{
 		UUID: "a0eebc91-9c0c-4ef7-bb6e-6bb9bd380a12",
 	}
-	r := &Release{
+	r := &repo_model.Release{
 		Attachments: []*repo_model.Attachment{a},
 	}
 

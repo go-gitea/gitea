@@ -42,11 +42,11 @@
 				{{end}}
 				<div class="field {{if .Err_Description}}error{{end}}">
 					<label for="description">{{$.locale.Tr "repo.repo_desc"}}</label>
-					<textarea id="description" name="description" rows="2">{{.Repository.Description}}</textarea>
+					<textarea id="description" name="description" rows="2" maxlength="2048">{{.Repository.Description}}</textarea>
 				</div>
 				<div class="field {{if .Err_Website}}error{{end}}">
 					<label for="website">{{.locale.Tr "repo.settings.site"}}</label>
-					<input id="website" name="website" type="url" value="{{.Repository.Website}}">
+					<input id="website" name="website" type="url" maxlength="1024" value="{{.Repository.Website}}">
 				</div>
 
 				<div class="field">
@@ -93,7 +93,7 @@
 						<tr>
 							<td>{{(MirrorRemoteAddress $.Context .Repository .Mirror.GetRemoteName false).Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.pull"}}</td>
-							<td>{{.Mirror.UpdatedUnix.AsTime}}</td>
+							<td><time data-format="date-time" datetime="{{.Mirror.UpdatedUnix.FormatLong}}">{{.Mirror.UpdatedUnix.AsTime}}</time></td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{.CsrfTokenHtml}}
@@ -171,7 +171,7 @@
 							{{$address := MirrorRemoteAddress $.Context $.Repository .GetRemoteName true}}
 							<td>{{$address.Address}}</td>
 							<td>{{$.locale.Tr "repo.settings.mirror_settings.direction.push"}}</td>
-							<td>{{if .LastUpdateUnix}}{{.LastUpdateUnix.AsTime}}{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
+							<td>{{if .LastUpdateUnix}}<time data-format="date-time" datetime="{{.LastUpdateUnix.FormatLong}}">{{.LastUpdateUnix.AsTime}}</time>{{else}}{{$.locale.Tr "never"}}{{end}} {{if .LastError}}<div class="ui red label tooltip" data-content="{{.LastError}}">{{$.locale.Tr "error"}}</div>{{end}}</td>
 							<td class="right aligned">
 								<form method="post" style="display: inline-block">
 									{{$.CsrfTokenHtml}}
@@ -221,7 +221,7 @@
 										</details>
 										<div class="field">
 											<div class="ui checkbox">
-												<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" value="{{.push_mirror_sync_on_commit}}">
+												<input id="push_mirror_sync_on_commit" name="push_mirror_sync_on_commit" type="checkbox" {{if .push_mirror_sync_on_commit}}checked{{end}}>
 												<label for="push_mirror_sync_on_commit">{{.locale.Tr "repo.mirror_sync_on_commit"}}</label>
 											</div>
 										</div>
@@ -336,7 +336,7 @@
 							</div>
 						</div>
 						<div class="ui checkbox">
-							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{ if .Repository.CloseIssuesViaCommitInAnyBranch }}checked{{end}}>
+							<input name="enable_close_issues_via_commit_in_any_branch" type="checkbox" {{if .Repository.CloseIssuesViaCommitInAnyBranch}}checked{{end}}>
 							<label>{{.locale.Tr "repo.settings.admin_enable_close_issues_via_commit_in_any_branch"}}</label>
 						</div>
 					</div>
@@ -678,9 +678,9 @@
 							<input type="hidden" name="action" value="cancel_transfer">
 							<button class="ui red button">{{.locale.Tr "repo.settings.transfer_abort"}}</button>
 						</form>
-					{{ else }}
+					{{else}}
 						<button class="ui basic red show-modal button" data-modal="#transfer-repo-modal">{{.locale.Tr "repo.settings.transfer"}}</button>
-					{{ end }}
+					{{end}}
 				</div>
 				<div>
 					<h5>{{.locale.Tr "repo.settings.transfer"}}</h5>
