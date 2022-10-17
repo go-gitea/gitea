@@ -368,9 +368,7 @@ func (r *HTMLRenderer) renderColorPreview(w util.BufWriter, source []byte, node 
 	var err error
 	n := node.(*ColorPreview)
 	if entering {
-		_, err = w.WriteString(fmt.Sprintf(`<code class="color-preview"><span class="repo-icon rounded" style="background-color: %v">`, string(n.Color)))
-	} else {
-		_, err = w.WriteString("</span></code>")
+		_, err = w.WriteString(fmt.Sprintf(`<code class="color-preview"><span class="repo-icon rounded" style="background-color: %v"></span></code>`, string(n.Color)))
 	}
 
 	if err != nil {
