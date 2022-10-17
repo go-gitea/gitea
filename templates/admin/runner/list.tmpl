@@ -6,7 +6,32 @@
 		<h4 class="ui top attached header">
 			{{.locale.Tr "admin.runners.runner_manage_panel"}} ({{.locale.Tr "admin.total" .Total}})
 			<div class="ui right">
-				<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "admin.runners.new"}}</a>
+				<!--<a class="ui primary tiny button" href="{{AppSubUrl}}/admin/runners/new">{{.locale.Tr "admin.runners.new"}}</a>-->
+
+				<div class="ui top right pointing dropdown button primary" id="runner-new">
+					<span class="text runner-new-text">{{.locale.Tr "admin.runners.new"}}</span>
+					<div class="menu runner-new-menu">
+						<div class="item">
+							<a href="#">{{.locale.Tr "admin.runners.new_notice"}}</a>
+						</div>
+						<div class="divider"></div>
+						<div class="header">
+							Registration Token
+						</div>
+						<div class="ui input">
+							<input type="text" value="{{.RegistrationToken}}">
+							<div class="ui basic label button" data-clipboard-text="{{.RegistrationToken}}">
+								{{svg "octicon-copy" 14}}
+							</div>
+						</div>
+						<div class="divider"></div>
+
+						<div class="item">
+							<a href="{{$.Link}}/reset_registration_token">Reset registration token</a>
+						</div>
+					</div>
+				</div>
+
 			</div>
 		</h4>
 		<div class="ui attached segment">
@@ -26,9 +51,9 @@
 						<th data-sortt-asc="alphabetically">
 							{{.locale.Tr "admin.runners.id"}}
 						</th>
-						<th>{{.locale.Tr "admin.runners.own_type"}}</th>
-						<th>{{.locale.Tr "admin.runners.tags"}}</th>
-						<th>{{.locale.Tr "admin.runners.latest_contact"}}</th>
+						<th>{{.locale.Tr "admin.runners.owner_type"}}</th>
+						<th>{{.locale.Tr "admin.runners.labels"}}</th>
+						<th>{{.locale.Tr "admin.runners.latest_online"}}</th>
 						<th></th>
 					</tr>
 				</thead>

@@ -627,6 +627,7 @@ func RegisterRoutes(m *web.Route) {
 
 		m.Group("/runners", func() {
 			m.Get("", admin.Runners)
+			m.Get("/reset_registration_token", admin.ResetRunnerRegistrationToken)
 			m.Combo("/{runnerid}").Get(admin.EditRunner).Post(bindIgnErr(forms.AdminEditRunnerForm{}), admin.EditRunnerPost)
 			m.Post("/{runnerid}/delete", admin.DeleteRunnerPost)
 		})

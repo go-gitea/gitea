@@ -49,13 +49,6 @@ func init() {
 	db.RegisterModel(new(RunnerToken))
 }
 
-// NewRunnerToken creates new runner token.
-func NewRunnerToken(t *RunnerToken) error {
-	t.Token = base.EncodeSha1(gouuid.New().String())
-	_, err := db.GetEngine(db.DefaultContext).Insert(t)
-	return err
-}
-
 // GetRunnerByToken returns a bot runner via token
 func GetRunnerToken(token string) (*RunnerToken, error) {
 	var runnerToken RunnerToken
@@ -80,4 +73,29 @@ func UpdateRunnerToken(ctx context.Context, r *RunnerToken, cols ...string) (err
 		_, err = e.ID(r.ID).Cols(cols...).Update(r)
 	}
 	return err
+}
+
+// NewRunnerToken creates a new runner token
+func NewRunnerToken(ownerID, repoID int64) (*RunnerToken, error) {
+	runnerToken := &RunnerToken{
+		OwnerID:  ownerID,
+		RepoID:   repoID,
+		IsActive: false,
+		// FIXME: why token is 36 chars?
+		Token: base.EncodeSha1(gouuid.New().String())[:36],
+	}
+	_, err := db.GetEngine(db.DefaultContext).Insert(runnerToken)
+	return runnerToken, err
+}
+
+// GetUnactivatedRunnerToken returns a unactivated runner token
+func GetUnactivatedRunnerToken(ownerID, repoID int64) (*RunnerToken, error) {
+	var runnerToken RunnerToken
+	has, err := db.GetEngine(db.DefaultContext).Where("owner_id=? AND repo_id=? AND is_active=0", ownerID, repoID).OrderBy("id DESC").Get(&runnerToken)
+	if err != nil {
+		return nil, err
+	} else if !has {
+		return nil, ErrRunnerTokenNotExist{}
+	}
+	return &runnerToken, nil
 }

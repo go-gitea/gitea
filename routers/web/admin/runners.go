@@ -63,9 +63,26 @@ func Runners(ctx *context.Context) {
 		return
 	}
 
+	// ownid=0,repo_id=0,means this token is used for global
+	var token *bots_model.RunnerToken
+	token, err = bots_model.GetUnactivatedRunnerToken(0, 0)
+	if _, ok := err.(bots_model.ErrRunnerTokenNotExist); ok {
+		token, err = bots_model.NewRunnerToken(0, 0)
+		if err != nil {
+			ctx.ServerError("CreateRunnerToken", err)
+			return
+		}
+	} else {
+		if err != nil {
+			ctx.ServerError("GetUnactivatedRunnerToken", err)
+			return
+		}
+	}
+
 	ctx.Data["Keyword"] = opts.Filter
 	ctx.Data["Runners"] = runners
 	ctx.Data["Total"] = count
+	ctx.Data["RegistrationToken"] = token.Token
 
 	pager := context.NewPagination(int(count), opts.PageSize, opts.Page, 5)
 	ctx.Data["Page"] = pager
@@ -75,7 +92,7 @@ func Runners(ctx *context.Context) {
 
 // EditRunner show editing runner page
 func EditRunner(ctx *context.Context) {
-	ctx.Data["Title"] = ctx.Tr("admin.runners.edit")
+	ctx.Data["Title"] = ctx.Tr("admin.runners.edit_runner")
 	ctx.Data["PageIsAdmin"] = true
 	ctx.Data["PageIsAdminRunners"] = true
 
@@ -107,7 +124,7 @@ func EditRunnerPost(ctx *context.Context) {
 	err = bots_model.UpdateRunner(ctx, runner, "description", "custom_labels")
 	if err != nil {
 		log.Warn("EditRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("admin.runners.edit_failed"))
+		ctx.Flash.Warning(ctx.Tr("admin.runners.update_runner_failed"))
 		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
 		return
 	}
@@ -118,7 +135,7 @@ func EditRunnerPost(ctx *context.Context) {
 
 	log.Debug("EditRunnerPost success: %s", ctx.Req.URL)
 
-	ctx.Flash.Success(ctx.Tr("admin.runners.edit_success"))
+	ctx.Flash.Success(ctx.Tr("admin.runners.update_runner_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
 }
 
@@ -134,14 +151,25 @@ func DeleteRunnerPost(ctx *context.Context) {
 	err = bots_model.DeleteRunner(ctx, runner)
 	if err != nil {
 		log.Warn("DeleteRunnerPost.UpdateRunner failed: %v, url: %s", err, ctx.Req.URL)
-		ctx.Flash.Warning(ctx.Tr("admin.runners.delete_failed"))
+		ctx.Flash.Warning(ctx.Tr("admin.runners.delete_runner_failed"))
 		ctx.Redirect(setting.AppSubURL + "/admin/runners/" + url.PathEscape(ctx.Params(":runnerid")))
 		return
 	}
 
 	log.Info("DeleteRunnerPost success: %s", ctx.Req.URL)
 
-	ctx.Flash.Success(ctx.Tr("admin.runners.deletion_success"))
+	ctx.Flash.Success(ctx.Tr("admin.runners.delete_runner_success"))
+	ctx.Redirect(setting.AppSubURL + "/admin/runners/")
+}
+
+func ResetRunnerRegistrationToken(ctx *context.Context) {
+	_, err := bots_model.NewRunnerToken(0, 0)
+	if err != nil {
+		ctx.ServerError("ResetRunnerRegistrationToken", err)
+		return
+	}
+
+	ctx.Flash.Success(ctx.Tr("admin.runners.reset_registration_token_success"))
 	ctx.Redirect(setting.AppSubURL + "/admin/runners/")
 }
 

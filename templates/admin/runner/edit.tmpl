@@ -16,7 +16,7 @@
 						<span class="runner-status-{{.Runner.StatusType}}">{{.Runner.StatusType}}</span>
 					</div>
 					<div class="field dib">
-						<label>{{.locale.Tr "admin.runners.last_online"}}</label>
+						<label>{{.locale.Tr "admin.runners.latest_online"}}</label>
 						<span>{{TimeSinceUnix .Runner.LastOnline $.locale}}</span>
 					</div>
 					<div class="field dib">
@@ -56,7 +56,7 @@
 		</div>
 
 		<h4 class="ui top attached header">
-			{{.locale.Tr "admin.runner.task_list"}}
+			{{.locale.Tr "admin.runners.task_list"}}
 		</h4>
 		<div class="ui attached segment">
 			Comming soon
@@ -66,18 +66,18 @@
 
 <div class="ui small modal" id="runner-delete-modal">
 	<div class="header">
-		{{.locale.Tr "admin.runners.delete_header"}}
+		{{.locale.Tr "admin.runners.delete_runner_header"}}
 	</div>
 	<div class="content">
 		<div class="ui warning message text left">
-			{{.locale.Tr "admin.runnners.delete_notice" | Safe}}
+			{{.locale.Tr "admin.runners.delete_runner_notice" | Safe}}
 		</div>
 		<form class="ui form" action="{{.Link}}/delete" method="post">
 			{{.CsrfTokenHtml}}
 			<input type="hidden" name="action" value="delete">
 			<div class="text right actions">
 				<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
-				<button class="ui red button">{{.locale.Tr "admin.runners.delete_confirm"}}</button>
+				<button class="ui red button">{{.locale.Tr "admin.runners.delete_runner_confirm"}}</button>
 			</div>
 		</form>
 	</div>
