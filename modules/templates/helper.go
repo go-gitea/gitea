@@ -29,6 +29,7 @@ import (
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/emoji"
@@ -41,6 +42,7 @@ import (
 	"code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/svg"
+	system_module "code.gitea.io/gitea/modules/system"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
 	"code.gitea.io/gitea/services/gitdiff"
@@ -85,7 +87,7 @@ func NewFuncMap() []template.FuncMap {
 			return setting.AssetVersion
 		},
 		"DisableGravatar": func() bool {
-			return setting.DisableGravatar
+			return system_module.GetSettingBool(system_model.KeyPictureDisableGravatar)
 		},
 		"DefaultShowFullName": func() bool {
 			return setting.UI.DefaultShowFullName
@@ -161,6 +163,7 @@ func NewFuncMap() []template.FuncMap {
 		"RenderCommitMessageLink":        RenderCommitMessageLink,
 		"RenderCommitMessageLinkSubject": RenderCommitMessageLinkSubject,
 		"RenderCommitBody":               RenderCommitBody,
+		"RenderCodeBlock":                RenderCodeBlock,
 		"RenderIssueTitle":               RenderIssueTitle,
 		"RenderEmoji":                    RenderEmoji,
 		"RenderEmojiPlain":               emoji.ReplaceAliases,
@@ -793,6 +796,16 @@ func RenderCommitBody(ctx context.Context, msg, urlPrefix string, metas map[stri
 		return ""
 	}
 	return template.HTML(renderedMessage)
+}
+
+// Match text that is between back ticks.
+var codeMatcher = regexp.MustCompile("`([^`]+)`")
+
+// RenderCodeBlock renders "`…`" as highlighted "<code>" block.
+// Intended for issue and PR titles, these containers should have styles for "<code>" elements
+func RenderCodeBlock(htmlEscapedTextToRender template.HTML) template.HTML {
+	htmlWithCodeTags := codeMatcher.ReplaceAllString(string(htmlEscapedTextToRender), "<code>$1</code>") // replace with HTML <code> tags
+	return template.HTML(htmlWithCodeTags)
 }
 
 // RenderIssueTitle renders issue/pull title with defined post processors

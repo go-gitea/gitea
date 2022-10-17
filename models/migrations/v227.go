@@ -6,42 +6,59 @@ package migrations
 
 import (
 	"fmt"
+	"strconv"
 
-	"code.gitea.io/gitea/models/issues"
+	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/timeutil"
 
-	"xorm.io/builder"
 	"xorm.io/xorm"
 )
 
-func updateOpenMilestoneCounts(x *xorm.Engine) error {
-	var openMilestoneIDs []int64
-	err := x.Table("milestone").Select("id").Where(builder.Neq{"is_closed": 1}).Find(&openMilestoneIDs)
-	if err != nil {
-		return fmt.Errorf("error selecting open milestone IDs: %w", err)
-	}
+type SystemSetting struct {
+	ID           int64              `xorm:"pk autoincr"`
+	SettingKey   string             `xorm:"varchar(255) unique"` // ensure key is always lowercase
+	SettingValue string             `xorm:"text"`
+	Version      int                `xorm:"version"` // prevent to override
+	Created      timeutil.TimeStamp `xorm:"created"`
+	Updated      timeutil.TimeStamp `xorm:"updated"`
+}
 
-	for _, id := range openMilestoneIDs {
-		_, err := x.ID(id).
-			SetExpr("num_issues", builder.Select("count(*)").From("issue").Where(
-				builder.Eq{"milestone_id": id},
-			)).
-			SetExpr("num_closed_issues", builder.Select("count(*)").From("issue").Where(
-				builder.Eq{
-					"milestone_id": id,
-					"is_closed":    true,
-				},
-			)).
-			Update(&issues.Milestone{})
+func insertSettingsIfNotExist(x *xorm.Engine, sysSettings []*SystemSetting) error {
+	sess := x.NewSession()
+	defer sess.Close()
+	if err := sess.Begin(); err != nil {
+		return err
+	}
+	for _, setting := range sysSettings {
+		exist, err := sess.Table("system_setting").Where("setting_key=?", setting.SettingKey).Exist()
 		if err != nil {
-			return fmt.Errorf("error updating issue counts in milestone %d: %w", id, err)
+			return err
 		}
-		_, err = x.Exec("UPDATE `milestone` SET completeness=100*num_closed_issues/(CASE WHEN num_issues > 0 THEN num_issues ELSE 1 END) WHERE id=?",
-			id,
-		)
-		if err != nil {
-			return fmt.Errorf("error setting completeness on milestone %d: %w", id, err)
+		if !exist {
+			if _, err := sess.Insert(setting); err != nil {
+				return err
+			}
 		}
 	}
+	return sess.Commit()
+}
 
-	return nil
+func createSystemSettingsTable(x *xorm.Engine) error {
+	if err := x.Sync2(new(SystemSetting)); err != nil {
+		return fmt.Errorf("sync2: %v", err)
+	}
+
+	// migrate xx to database
+	sysSettings := []*SystemSetting{
+		{
+			SettingKey:   "picture.disable_gravatar",
+			SettingValue: strconv.FormatBool(setting.DisableGravatar),
+		},
+		{
+			SettingKey:   "picture.enable_federated_avatar",
+			SettingValue: strconv.FormatBool(setting.EnableFederatedAvatar),
+		},
+	}
+
+	return insertSettingsIfNotExist(x, sysSettings)
 }
