@@ -7,12 +7,12 @@ package unittest
 import (
 	"context"
 	"fmt"
-	"net/url"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"code.gitea.io/gitea/models/db"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/setting"
@@ -91,10 +91,8 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 	setting.AppDataPath = appDataPath
 	setting.AppWorkPath = testOpts.GiteaRootPath
 	setting.StaticRootPath = testOpts.GiteaRootPath
-	setting.GravatarSourceURL, err = url.Parse("https://secure.gravatar.com/avatar/")
-	if err != nil {
-		fatalTestError("url.Parse: %v\n", err)
-	}
+	setting.GravatarSource = "https://secure.gravatar.com/avatar/"
+
 	setting.Attachment.Storage.Path = filepath.Join(setting.AppDataPath, "attachments")
 
 	setting.LFS.Storage.Path = filepath.Join(setting.AppDataPath, "lfs")
@@ -111,6 +109,9 @@ func MainTest(m *testing.M, testOpts *TestOptions) {
 
 	if err = storage.Init(); err != nil {
 		fatalTestError("storage.Init: %v\n", err)
+	}
+	if err = system_model.Init(); err != nil {
+		fatalTestError("models.Init: %v\n", err)
 	}
 
 	if err = util.RemoveAll(repoRootPath); err != nil {

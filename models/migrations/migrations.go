@@ -416,6 +416,8 @@ var migrations = []Migration{
 	// v226 -> v227
 	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
 	// v227 -> v228
+	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
+	// v228 -> v229
 	NewMigration("Create secrets table", createSecretsTable),
 }
 
