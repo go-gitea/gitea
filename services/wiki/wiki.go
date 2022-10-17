@@ -12,8 +12,8 @@ import (
 	"os"
 	"strings"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
@@ -384,6 +384,6 @@ func DeleteWiki(ctx context.Context, repo *repo_model.Repository) error {
 		return err
 	}
 
-	admin_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
+	system_model.RemoveAllWithNotice(ctx, "Delete repository wiki", repo.WikiPath())
 	return nil
 }
