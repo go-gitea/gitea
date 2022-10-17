@@ -183,7 +183,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 		case *ast.CodeSpan:
 			colorContent := n.Text(reader.Source())
 			if cssColorRegex.Match(colorContent) {
-				v.Parent().InsertAfter(v.Parent(), v, NewColorPreview(colorContent))
+				v.AppendChild(v, NewColorPreview(colorContent))
 			}
 		}
 		return ast.WalkContinue, nil
@@ -273,9 +273,41 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
-	reg.Register(KindColorPreview, r.renderColorPreview)
+	reg.Register(ast.KindCodeSpan, r.renderCodeSpan)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
+}
+
+// renderCodeSpan renders CodeSpan elements (like goldmark upstream does) but also renders ColorPreview elements.
+// See #21474 for reference
+func (r *HTMLRenderer) renderCodeSpan(w util.BufWriter, source []byte, n ast.Node, entering bool) (ast.WalkStatus, error) {
+	if entering {
+		if n.Attributes() != nil {
+			_, _ = w.WriteString("<code")
+			html.RenderAttributes(w, n, html.CodeAttributeFilter)
+			_ = w.WriteByte('>')
+		} else {
+			_, _ = w.WriteString("<code>")
+		}
+		for c := n.FirstChild(); c != nil; c = c.NextSibling() {
+			switch v := c.(type) {
+			case *ast.Text:
+				segment := v.Segment
+				value := segment.Value(source)
+				if bytes.HasSuffix(value, []byte("\n")) {
+					r.Writer.RawWrite(w, value[:len(value)-1])
+					r.Writer.RawWrite(w, []byte(" "))
+				} else {
+					r.Writer.RawWrite(w, value)
+				}
+			case *ColorPreview:
+				_, _ = w.WriteString(fmt.Sprintf(`<span class="repo-icon rounded color-preview" style="background-color: %v"></span>`, string(v.Color)))
+			}
+		}
+		return ast.WalkSkipChildren, nil
+	}
+	_, _ = w.WriteString("</code>")
+	return ast.WalkContinue, nil
 }
 
 func (r *HTMLRenderer) renderDocument(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
@@ -356,20 +388,6 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 
 	var err error
 	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
-
-	if err != nil {
-		return ast.WalkStop, err
-	}
-
-	return ast.WalkContinue, nil
-}
-
-func (r *HTMLRenderer) renderColorPreview(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
-	var err error
-	n := node.(*ColorPreview)
-	if entering {
-		_, err = w.WriteString(fmt.Sprintf(`<code class="color-preview"><span class="repo-icon rounded" style="background-color: %v"></span></code>`, string(n.Color)))
-	}
 
 	if err != nil {
 		return ast.WalkStop, err
