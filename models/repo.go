@@ -22,6 +22,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/models/webhook"
@@ -32,9 +33,13 @@ import (
 	"xorm.io/builder"
 )
 
-// NewRepoContext creates a new repository context
-func NewRepoContext() {
+// ItemsPerPage maximum items per page in forks, watchers and stars of a repo
+var ItemsPerPage = 40
+
+// Init initialize model
+func Init() error {
 	unit.LoadUnitConfig()
+	return system_model.Init()
 }
 
 // DeleteRepository deletes a repository for a user or organization.
@@ -267,36 +272,36 @@ func DeleteRepository(doer *user_model.User, uid, repoID int64) error {
 
 	// Remove repository files.
 	repoPath := repo.RepoPath()
-	admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
+	system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository files", repoPath)
 
 	// Remove wiki files
 	if repo.HasWiki() {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete repository wiki", repo.WikiPath())
 	}
 
 	// Remove archives
 	for _, archive := range archivePaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.RepoArchives, "Delete repo archive file", archive)
 	}
 
 	// Remove lfs objects
 	for _, lfsObj := range lfsPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.LFS, "Delete orphaned LFS file", lfsObj)
 	}
 
 	// Remove issue attachment files.
 	for _, attachment := range attachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", attachment)
 	}
 
 	// Remove release attachment files.
 	for _, releaseAttachment := range releaseAttachments {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete release attachment", releaseAttachment)
 	}
 
 	// Remove attachment with no issue_id and release_id.
 	for _, newAttachment := range newAttachmentPaths {
-		admin_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
+		system_model.RemoveStorageWithNotice(db.DefaultContext, storage.Attachments, "Delete issue attachment", newAttachment)
 	}
 
 	if len(repo.Avatar) > 0 {
