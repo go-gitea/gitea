@@ -131,6 +131,7 @@
   --color-timeline: #ececec;
   --color-input-text: #212121;
   --color-input-background: #ffffff;
+  --color-input-toggle-background: #dedede;
   --color-input-border: #dedede;
   --color-input-border-hover: #cecece;
   --color-navbar: #f8f8f8;
@@ -332,6 +333,11 @@ a.commit-statuses-trigger {
   &:extend(.unselectable);
 }
 
+.issue-title code {
+  padding: 2px 4px;
+  border-radius: 6px;
+  background-color: var(--color-markup-code-block);
+}
 /* try to match button with no icons in height */
 .icon-button {
   padding-top: 7.42px !important;
