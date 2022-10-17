@@ -608,15 +608,16 @@ func (m *webhookNotifier) NotifyPushCommits(pusher *user_model.User, repo *repo_
 	}
 
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventPush, &api.PushPayload{
-		Ref:        opts.RefFullName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + commits.CompareURL,
-		Commits:    apiCommits,
-		HeadCommit: apiHeadCommit,
-		Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
+		Ref:          opts.RefFullName,
+		Before:       opts.OldCommitID,
+		After:        opts.NewCommitID,
+		CompareURL:   setting.AppURL + commits.CompareURL,
+		Commits:      apiCommits,
+		TotalCommits: commits.Len,
+		HeadCommit:   apiHeadCommit,
+		Repo:         convert.ToRepo(repo, perm.AccessModeOwner),
+		Pusher:       apiPusher,
+		Sender:       apiPusher,
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
@@ -838,15 +839,16 @@ func (m *webhookNotifier) NotifySyncPushCommits(pusher *user_model.User, repo *r
 	}
 
 	if err := webhook_services.PrepareWebhooks(repo, webhook.HookEventPush, &api.PushPayload{
-		Ref:        opts.RefFullName,
-		Before:     opts.OldCommitID,
-		After:      opts.NewCommitID,
-		CompareURL: setting.AppURL + commits.CompareURL,
-		Commits:    apiCommits,
-		HeadCommit: apiHeadCommit,
-		Repo:       convert.ToRepo(repo, perm.AccessModeOwner),
-		Pusher:     apiPusher,
-		Sender:     apiPusher,
+		Ref:          opts.RefFullName,
+		Before:       opts.OldCommitID,
+		After:        opts.NewCommitID,
+		CompareURL:   setting.AppURL + commits.CompareURL,
+		Commits:      apiCommits,
+		TotalCommits: commits.Len,
+		HeadCommit:   apiHeadCommit,
+		Repo:         convert.ToRepo(repo, perm.AccessModeOwner),
+		Pusher:       apiPusher,
+		Sender:       apiPusher,
 	}); err != nil {
 		log.Error("PrepareWebhooks: %v", err)
 	}
