@@ -27,6 +27,8 @@ import (
 
 var byteMailto = []byte("mailto:")
 
+var cssColorRegex = regexp.MustCompile(`(?i)(#(?:[0-9a-f]{2}){2,4}$|(#[0-9a-f]{3}$)|(rgb|hsl)a?\((-?\d+%?[,\s]+){2,3}\s*[\d\.]+%?\))$`)
+
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
 
@@ -178,6 +180,11 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 					v.SetHardLineBreak(setting.Markdown.EnableHardLineBreakInDocuments)
 				}
 			}
+		case *ast.CodeSpan:
+			colorContent := n.Text(reader.Source())
+			if cssColorRegex.Match(colorContent) {
+				v.Parent().InsertAfter(v.Parent(), v, NewColorPreview(colorContent))
+			}
 		}
 		return ast.WalkContinue, nil
 	})
@@ -266,6 +273,7 @@ func (r *HTMLRenderer) RegisterFuncs(reg renderer.NodeRendererFuncRegisterer) {
 	reg.Register(KindDetails, r.renderDetails)
 	reg.Register(KindSummary, r.renderSummary)
 	reg.Register(KindIcon, r.renderIcon)
+	reg.Register(KindColorPreview, r.renderColorPreview)
 	reg.Register(KindTaskCheckBoxListItem, r.renderTaskCheckBoxListItem)
 	reg.Register(east.KindTaskCheckBox, r.renderTaskCheckBox)
 }
@@ -348,6 +356,22 @@ func (r *HTMLRenderer) renderIcon(w util.BufWriter, source []byte, node ast.Node
 
 	var err error
 	_, err = w.WriteString(fmt.Sprintf(`<i class="icon %s"></i>`, name))
+
+	if err != nil {
+		return ast.WalkStop, err
+	}
+
+	return ast.WalkContinue, nil
+}
+
+func (r *HTMLRenderer) renderColorPreview(w util.BufWriter, source []byte, node ast.Node, entering bool) (ast.WalkStatus, error) {
+	var err error
+	n := node.(*ColorPreview)
+	if entering {
+		_, err = w.WriteString(fmt.Sprintf(`<code class="color-preview"><span class="repo-icon rounded" style="background-color: %v">`, string(n.Color)))
+	} else {
+		_, err = w.WriteString("</span></code>")
+	}
 
 	if err != nil {
 		return ast.WalkStop, err

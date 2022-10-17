@@ -1371,6 +1371,22 @@ a.ui.card:hover,
   border-color: var(--color-secondary);
 }
 
+.color-preview {
+  padding-left: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  span {
+    height: 7px;
+    width: 7px;
+  }
+}
+
+code:has(+ .color-preview) {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  padding-right: 0.2em;
+}
+
 footer {
   background-color: var(--color-footer);
   border-top: 1px solid var(--color-secondary);
