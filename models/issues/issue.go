@@ -1496,7 +1496,8 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 			builder.In("issue.repo_id", builder.
 				Select("id").
 				From("watch").
-				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+				Where(builder.And(builder.Eq{"user_id": subscriberID},
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
 			),
 		),
 	)
