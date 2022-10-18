@@ -140,7 +140,7 @@ const sfc = {
     toggleStepLogs(idx) {
       this.currentJobStepsStates[idx].expanded = !this.currentJobStepsStates[idx].expanded;
       if (this.currentJobStepsStates[idx].expanded) {
-        this.loadJobData();
+        this.loadJobData(true);
       }
     },
 
@@ -260,7 +260,7 @@ const sfc = {
       return await resp.json();
     },
 
-    async loadJobData() {
+    async loadJobData(once) {
       if (this.loading) return;
       try {
         this.loading = true;
@@ -297,7 +297,9 @@ const sfc = {
         }
       } finally {
         this.loading = false;
-        setTimeout(() => this.loadJobData(), 1000);
+        if (!once) {
+          setTimeout(() => this.loadJobData(), 1000);
+        }
       }
     }
   },
