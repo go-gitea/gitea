@@ -18,13 +18,11 @@ import (
 type ActionList []*Action
 
 func (actions ActionList) getUserIDs() []int64 {
-	userIDs := make(map[int64]struct{}, len(actions))
+	userIDs := make(container.Set[int64], len(actions))
 	for _, action := range actions {
-		if _, ok := userIDs[action.ActUserID]; !ok {
-			userIDs[action.ActUserID] = struct{}{}
-		}
+		userIDs.Add(action.ActUserID)
 	}
-	return container.KeysInt64(userIDs)
+	return userIDs.Values()
 }
 
 func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.User, error) {
@@ -48,13 +46,11 @@ func (actions ActionList) loadUsers(ctx context.Context) (map[int64]*user_model.
 }
 
 func (actions ActionList) getRepoIDs() []int64 {
-	repoIDs := make(map[int64]struct{}, len(actions))
+	repoIDs := make(container.Set[int64], len(actions))
 	for _, action := range actions {
-		if _, ok := repoIDs[action.RepoID]; !ok {
-			repoIDs[action.RepoID] = struct{}{}
-		}
+		repoIDs.Add(action.RepoID)
 	}
-	return container.KeysInt64(repoIDs)
+	return repoIDs.Values()
 }
 
 func (actions ActionList) loadRepositories(ctx context.Context) error {

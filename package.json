@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@playwright/test": "1.27.0",
+    "@rollup/pluginutils": "5.0.1",
     "@stoplight/spectral-cli": "6.5.1",
     "eslint": "8.25.0",
     "eslint-plugin-import": "2.26.0",
@@ -55,15 +56,14 @@
     "eslint-plugin-sonarjs": "0.15.0",
     "eslint-plugin-unicorn": "44.0.2",
     "eslint-plugin-vue": "9.6.0",
-    "jest": "29.1.2",
-    "jest-environment-jsdom": "29.1.2",
-    "jest-extended": "3.1.0",
+    "jsdom": "20.0.1",
     "markdownlint-cli": "0.32.2",
     "postcss-less": "6.0.0",
     "stylelint": "14.13.0",
     "stylelint-config-standard": "28.0.0",
     "svgo": "2.8.0",
-    "updates": "13.1.8"
+    "updates": "13.1.8",
+    "vitest": "0.24.1"
   },
   "browserslist": [
     "defaults",

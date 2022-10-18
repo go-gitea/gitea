@@ -2,10 +2,10 @@
 // Use of this source code is governed by a MIT-style
 // license that can be found in the LICENSE file.
 
-package appstate
+package system
 
 import (
-	"code.gitea.io/gitea/models/appstate"
+	"code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/modules/json"
 
 	"github.com/yuin/goldmark/util"
@@ -16,7 +16,7 @@ type DBStore struct{}
 
 // Get reads the state item
 func (f *DBStore) Get(item StateItem) error {
-	content, err := appstate.GetAppStateContent(item.Name())
+	content, err := system.GetAppStateContent(item.Name())
 	if err != nil {
 		return err
 	}
@@ -32,5 +32,5 @@ func (f *DBStore) Set(item StateItem) error {
 	if err != nil {
 		return err
 	}
-	return appstate.SaveAppStateContent(item.Name(), util.BytesToReadOnlyString(b))
+	return system.SaveAppStateContent(item.Name(), util.BytesToReadOnlyString(b))
 }

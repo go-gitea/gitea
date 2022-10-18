@@ -415,6 +415,8 @@ var migrations = []Migration{
 	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
 	// v226 -> v227
 	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	// v227 -> v228
+	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
 }
 
 // GetCurrentDBVersion returns the current db version

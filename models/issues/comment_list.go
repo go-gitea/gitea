@@ -17,13 +17,11 @@ import (
 type CommentList []*Comment
 
 func (comments CommentList) getPosterIDs() []int64 {
-	posterIDs := make(map[int64]struct{}, len(comments))
+	posterIDs := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := posterIDs[comment.PosterID]; !ok {
-			posterIDs[comment.PosterID] = struct{}{}
-		}
+		posterIDs.Add(comment.PosterID)
 	}
-	return container.KeysInt64(posterIDs)
+	return posterIDs.Values()
 }
 
 func (comments CommentList) loadPosters(ctx context.Context) error {
@@ -70,13 +68,11 @@ func (comments CommentList) getCommentIDs() []int64 {
 }
 
 func (comments CommentList) getLabelIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := ids[comment.LabelID]; !ok {
-			ids[comment.LabelID] = struct{}{}
-		}
+		ids.Add(comment.LabelID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
@@ -120,13 +116,11 @@ func (comments CommentList) loadLabels(ctx context.Context) error { //nolint
 }
 
 func (comments CommentList) getMilestoneIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := ids[comment.MilestoneID]; !ok {
-			ids[comment.MilestoneID] = struct{}{}
-		}
+		ids.Add(comment.MilestoneID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadMilestones(ctx context.Context) error {
@@ -163,13 +157,11 @@ func (comments CommentList) loadMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getOldMilestoneIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := ids[comment.OldMilestoneID]; !ok {
-			ids[comment.OldMilestoneID] = struct{}{}
-		}
+		ids.Add(comment.OldMilestoneID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadOldMilestones(ctx context.Context) error {
@@ -206,13 +198,11 @@ func (comments CommentList) loadOldMilestones(ctx context.Context) error {
 }
 
 func (comments CommentList) getAssigneeIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := ids[comment.AssigneeID]; !ok {
-			ids[comment.AssigneeID] = struct{}{}
-		}
+		ids.Add(comment.AssigneeID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadAssignees(ctx context.Context) error {
@@ -259,16 +249,14 @@ func (comments CommentList) loadAssignees(ctx context.Context) error {
 
 // getIssueIDs returns all the issue ids on this comment list which issue hasn't been loaded
 func (comments CommentList) getIssueIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
 		if comment.Issue != nil {
 			continue
 		}
-		if _, ok := ids[comment.IssueID]; !ok {
-			ids[comment.IssueID] = struct{}{}
-		}
+		ids.Add(comment.IssueID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 // Issues returns all the issues of comments
@@ -334,16 +322,14 @@ func (comments CommentList) loadIssues(ctx context.Context) error {
 }
 
 func (comments CommentList) getDependentIssueIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
 		if comment.DependentIssue != nil {
 			continue
 		}
-		if _, ok := ids[comment.DependentIssueID]; !ok {
-			ids[comment.DependentIssueID] = struct{}{}
-		}
+		ids.Add(comment.DependentIssueID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadDependentIssues(ctx context.Context) error {
@@ -439,13 +425,11 @@ func (comments CommentList) loadAttachments(ctx context.Context) (err error) {
 }
 
 func (comments CommentList) getReviewIDs() []int64 {
-	ids := make(map[int64]struct{}, len(comments))
+	ids := make(container.Set[int64], len(comments))
 	for _, comment := range comments {
-		if _, ok := ids[comment.ReviewID]; !ok {
-			ids[comment.ReviewID] = struct{}{}
-		}
+		ids.Add(comment.ReviewID)
 	}
-	return container.KeysInt64(ids)
+	return ids.Values()
 }
 
 func (comments CommentList) loadReviews(ctx context.Context) error { //nolint

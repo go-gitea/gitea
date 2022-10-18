@@ -412,7 +412,7 @@ func ToLFSLock(l *git_model.LFSLock) *api.LFSLock {
 		Path:     l.Path,
 		LockedAt: l.Created.Round(time.Second),
 		Owner: &api.LFSLockOwner{
-			Name: u.DisplayName(),
+			Name: u.Name,
 		},
 	}
 }
