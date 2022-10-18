@@ -224,20 +224,13 @@ type SearchResultVersion struct {
 }
 
 func createSearchResultResponse(l *linkBuilder, totalHits int64, pds []*packages_model.PackageDescriptor) *SearchResultResponse {
+	grouped := make(map[string][]*packages_model.PackageDescriptor)
+	for _, pd := range pds {
+		grouped[pd.Package.Name] = append(grouped[pd.Package.Name], pd)
+	}
+
 	data := make([]*SearchResult, 0, len(pds))
-
-	if len(pds) > 0 {
-		groupID := pds[0].Package.Name
-		group := make([]*packages_model.PackageDescriptor, 0, 10)
-
-		for i := 0; i < len(pds); i++ {
-			if groupID != pds[i].Package.Name {
-				data = append(data, createSearchResult(l, group))
-				groupID = pds[i].Package.Name
-				group = group[:0]
-			}
-			group = append(group, pds[i])
-		}
+	for _, group := range grouped {
 		data = append(data, createSearchResult(l, group))
 	}
 

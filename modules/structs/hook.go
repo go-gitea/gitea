@@ -267,15 +267,16 @@ func (p *ReleasePayload) JSONPayload() ([]byte, error) {
 
 // PushPayload represents a payload information of push event.
 type PushPayload struct {
-	Ref        string           `json:"ref"`
-	Before     string           `json:"before"`
-	After      string           `json:"after"`
-	CompareURL string           `json:"compare_url"`
-	Commits    []*PayloadCommit `json:"commits"`
-	HeadCommit *PayloadCommit   `json:"head_commit"`
-	Repo       *Repository      `json:"repository"`
-	Pusher     *User            `json:"pusher"`
-	Sender     *User            `json:"sender"`
+	Ref          string           `json:"ref"`
+	Before       string           `json:"before"`
+	After        string           `json:"after"`
+	CompareURL   string           `json:"compare_url"`
+	Commits      []*PayloadCommit `json:"commits"`
+	TotalCommits int              `json:"total_commits"`
+	HeadCommit   *PayloadCommit   `json:"head_commit"`
+	Repo         *Repository      `json:"repository"`
+	Pusher       *User            `json:"pusher"`
+	Sender       *User            `json:"sender"`
 }
 
 // JSONPayload FIXME
