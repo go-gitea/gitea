@@ -5,8 +5,12 @@
 package bots
 
 import (
+	"bytes"
 	"context"
+	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
@@ -29,10 +33,10 @@ type Task struct {
 	Started  timeutil.TimeStamp
 	Stopped  timeutil.TimeStamp
 
-	LogURL     string  // dbfs:///a/b.log or s3://endpoint.com/a/b.log and etc.
-	LogLength  int64   // lines count
-	LogSize    int64   // blob size
-	LogIndexes []int64 `xorm:"JSON TEXT"` // line number to offset
+	LogURL     string      // dbfs:///a/b.log or s3://endpoint.com/a/b.log and etc.
+	LogLength  int64       // lines count
+	LogSize    int64       // blob size
+	LogIndexes *LogIndexes `xorm:"BLOB"` // line number to offset
 	LogExpired bool
 
 	Created timeutil.TimeStamp `xorm:"created"`
@@ -107,6 +111,30 @@ func (task *Task) FullSteps() []*TaskStep {
 	steps = append(steps, tailStep)
 
 	return steps
+}
+
+type LogIndexes []int64
+
+func (i *LogIndexes) FromDB(b []byte) error {
+	reader := bytes.NewReader(b)
+	for {
+		v, err := binary.ReadVarint(reader)
+		if err != nil {
+			if errors.Is(err, io.EOF) {
+				return nil
+			}
+			return fmt.Errorf("binary ReadVarint: %w", err)
+		}
+		*i = append(*i, v)
+	}
+}
+
+func (i *LogIndexes) ToDB() ([]byte, error) {
+	var buf []byte
+	for _, v := range *i {
+		buf = binary.AppendVarint(buf, v)
+	}
+	return buf, nil
 }
 
 // ErrTaskNotExist represents an error for bot task not exist

@@ -1,10 +1,10 @@
 <div class="ui compact tiny menu">
 	<a class="{{if not .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{$.ViewType}}&sort={{$.SortType}}&state=open&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 		{{svg "octicon-issue-opened" 16 "mr-3"}}
-		{{.locale.Tr "repo.issues.open_tab" .Repository.NumOpenBuilds}}
+		{{.locale.Tr "repo.issues.open_tab" .Repository.NumOpenRuns}}
 	</a>
 	<a class="{{if .IsShowClosed}}active{{end}} item" href="{{$.Link}}?q={{$.Keyword}}&type={{.ViewType}}&sort={{$.SortType}}&state=closed&labels={{.SelectLabels}}&milestone={{.MilestoneID}}&assignee={{.AssigneeID}}">
 		{{svg "octicon-issue-closed" 16 "mr-3"}}
-		{{.locale.Tr "repo.issues.close_tab" .Repository.NumClosedBuilds}}
+		{{.locale.Tr "repo.issues.close_tab" .Repository.NumClosedRuns}}
 	</a>
 </div>

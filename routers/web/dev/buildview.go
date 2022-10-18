@@ -179,7 +179,7 @@ func BuildViewPost(ctx *context.Context) {
 					if cursor.Cursor < step.LogLength || step.LogLength < 0 {
 						index := step.LogIndex + cursor.Cursor
 						length := step.LogLength - cursor.Cursor
-						offset := task.LogIndexes[index]
+						offset := (*task.LogIndexes)[index]
 						logRows, err = bots.ReadLogs(ctx, task.LogURL, offset, length)
 						if err != nil {
 							ctx.Error(http.StatusInternalServerError, err.Error())
