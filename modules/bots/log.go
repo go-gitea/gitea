@@ -34,7 +34,7 @@ func WriteLogs(ctx context.Context, rawURL string, offset int64, rows []*runnerv
 	if err != nil {
 		return nil, err
 	}
-	f, err := dbfs.OpenFile(ctx, name, os.O_RDWR|os.O_CREATE|os.O_TRUNC|os.O_APPEND)
+	f, err := dbfs.OpenFile(ctx, name, os.O_WRONLY|os.O_CREATE)
 	if err != nil {
 		return nil, fmt.Errorf("dbfs OpenFile %q: %w", name, err)
 	}
