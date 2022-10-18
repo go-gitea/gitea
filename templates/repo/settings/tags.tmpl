@@ -94,14 +94,14 @@
 												{{$userIDs := .AllowlistUserIDs}}
 												{{range $.Users}}
 													{{if contain $userIDs .ID}}
-														<a class="ui basic image label" href="{{.HomeLink}}">{{avatar . 26}} {{.GetDisplayName}}</a>
+														<a class="ui basic label" href="{{.HomeLink}}">{{avatar . 26}} {{.GetDisplayName}}</a>
 													{{end}}
 												{{end}}
 												{{if $.Owner.IsOrganization}}
 													{{$teamIDs := .AllowlistTeamIDs}}
 													{{range $.Teams}}
 														{{if contain $teamIDs .ID}}
-															<a class="ui basic image label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
+															<a class="ui basic label" href="{{$.Owner.OrganisationLink}}/teams/{{PathEscape .LowerName}}">{{.Name}}</a>
 														{{end}}
 													{{end}}
 												{{end}}

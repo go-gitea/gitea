@@ -13,7 +13,6 @@ import (
 	"strconv"
 	"strings"
 
-	admin_model "code.gitea.io/gitea/models/admin"
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/foreignreference"
 	"code.gitea.io/gitea/models/organization"
@@ -21,6 +20,7 @@ import (
 	access_model "code.gitea.io/gitea/models/perm/access"
 	project_model "code.gitea.io/gitea/models/project"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unit"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/base"
@@ -1064,18 +1064,18 @@ func NewIssueWithIndex(ctx context.Context, doer *user_model.User, opts NewIssue
 
 // NewIssue creates new issue with labels for repository.
 func NewIssue(repo *repo_model.Repository, issue *Issue, labelIDs []int64, uuids []string) (err error) {
-	idx, err := db.GetNextResourceIndex("issue_index", repo.ID)
-	if err != nil {
-		return fmt.Errorf("generate issue index failed: %v", err)
-	}
-
-	issue.Index = idx
-
 	ctx, committer, err := db.TxContext()
 	if err != nil {
 		return err
 	}
 	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", repo.ID)
+	if err != nil {
+		return fmt.Errorf("generate issue index failed: %w", err)
+	}
+
+	issue.Index = idx
 
 	if err = NewIssueWithIndex(ctx, issue.Poster, NewIssueOptions{
 		Repo:        repo,
@@ -1186,6 +1186,7 @@ type IssuesOptions struct { //nolint
 	PosterID           int64
 	MentionedID        int64
 	ReviewRequestedID  int64
+	SubscriberID       int64
 	MilestoneIDs       []int64
 	ProjectID          int64
 	ProjectBoardID     int64
@@ -1297,6 +1298,10 @@ func (opts *IssuesOptions) setupSessionNoLimit(sess *xorm.Session) {
 
 	if opts.ReviewRequestedID > 0 {
 		applyReviewRequestedCondition(sess, opts.ReviewRequestedID)
+	}
+
+	if opts.SubscriberID > 0 {
+		applySubscribedCondition(sess, opts.SubscriberID)
 	}
 
 	if len(opts.MilestoneIDs) > 0 {
@@ -1461,6 +1466,36 @@ func applyReviewRequestedCondition(sess *xorm.Session, reviewRequestedID int64) 
 		And("r.reviewer_id = ? and r.id in (select max(id) from review where issue_id = r.issue_id and reviewer_id = r.reviewer_id and type in (?, ?, ?))"+
 			" or r.reviewer_team_id in (select team_id from team_user where uid = ?)",
 			reviewRequestedID, ReviewTypeApprove, ReviewTypeReject, ReviewTypeRequest, reviewRequestedID)
+}
+
+func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Session {
+	return sess.And(
+		builder.
+			NotIn("issue.id",
+				builder.Select("issue_id").
+					From("issue_watch").
+					Where(builder.Eq{"is_watching": false, "user_id": subscriberID}),
+			),
+	).And(
+		builder.Or(
+			builder.In("issue.id", builder.
+				Select("issue_id").
+				From("issue_watch").
+				Where(builder.Eq{"is_watching": true, "user_id": subscriberID}),
+			),
+			builder.In("issue.id", builder.
+				Select("issue_id").
+				From("comment").
+				Where(builder.Eq{"poster_id": subscriberID}),
+			),
+			builder.Eq{"issue.poster_id": subscriberID},
+			builder.In("issue.repo_id", builder.
+				Select("id").
+				From("watch").
+				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+			),
+		),
+	)
 }
 
 // CountIssuesByRepo map from repoID to number of issues matching the options
@@ -2435,7 +2470,7 @@ func DeleteOrphanedIssues() error {
 
 	// Remove issue attachment files.
 	for i := range attachmentPaths {
-		admin_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
+		system_model.RemoveAllWithNotice(db.DefaultContext, "Delete issue attachment", attachmentPaths[i])
 	}
 	return nil
 }

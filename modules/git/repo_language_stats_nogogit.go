@@ -57,7 +57,7 @@ func (repo *Repository) GetLanguageStats(commitID string) (map[string]int64, err
 
 	tree := commit.Tree
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveWithSize()
 	if err != nil {
 		return nil, err
 	}

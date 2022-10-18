@@ -19,7 +19,10 @@
 	{{end}}
 	inline-template
 	v-cloak
-	>
+	></repo-search>
+</div>
+
+<template id="dashboard-repo-list-template">
 	<div>
 		<div v-if="!isOrganization" class="ui two item tabable menu">
 			<a :class="{item: true, active: tab === 'repos'}" @click="changeTab('repos')">{{.locale.Tr "repository"}}</a>
@@ -193,5 +196,4 @@
 			</div>
 		</div>
 	</div>
-</repo-search>
-</div>
+</template>

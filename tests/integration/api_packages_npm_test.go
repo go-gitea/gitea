@@ -35,6 +35,8 @@ func TestPackageNpm(t *testing.T) {
 	packageTag2 := "release"
 	packageAuthor := "KN4CK3R"
 	packageDescription := "Test Description"
+	packageBinName := "cli"
+	packageBinPath := "./cli.sh"
 
 	data := "H4sIAAAAAAAA/ytITM5OTE/VL4DQelnF+XkMVAYGBgZmJiYK2MRBwNDcSIHB2NTMwNDQzMwAqA7IMDUxA9LUdgg2UFpcklgEdAql5kD8ogCnhwio5lJQUMpLzE1VslJQcihOzi9I1S9JLS7RhSYIJR2QgrLUouLM/DyQGkM9Az1D3YIiqExKanFyUWZBCVQ2BKhVwQVJDKwosbQkI78IJO/tZ+LsbRykxFXLNdA+HwWjYBSMgpENACgAbtAACAAA"
 
@@ -54,6 +56,9 @@ func TestPackageNpm(t *testing.T) {
 				"author": {
 				  "name": "` + packageAuthor + `"
 				},
+        "bin": {
+          "` + packageBinName + `": "` + packageBinPath + `"
+        },
 				"dist": {
 				  "integrity": "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==",
 				  "shasum": "aaa7eaf852a948b0aa05afeda35b1badca155d90"
@@ -154,6 +159,7 @@ func TestPackageNpm(t *testing.T) {
 		assert.Equal(t, packageName, pmv.Name)
 		assert.Equal(t, packageDescription, pmv.Description)
 		assert.Equal(t, packageAuthor, pmv.Author.Name)
+		assert.Equal(t, packageBinPath, pmv.Bin[packageBinName])
 		assert.Equal(t, "sha512-yA4FJsVhetynGfOC1jFf79BuS+jrHbm0fhh+aHzCQkOaOBXKf9oBnC4a6DnLLnEsHQDRLYd00cwj8sCXpC+wIg==", pmv.Dist.Integrity)
 		assert.Equal(t, "aaa7eaf852a948b0aa05afeda35b1badca155d90", pmv.Dist.Shasum)
 		assert.Equal(t, fmt.Sprintf("%s%s/-/%s/%s", setting.AppURL, root[1:], packageVersion, filename), pmv.Dist.Tarball)
@@ -222,6 +228,37 @@ func TestPackageNpm(t *testing.T) {
 		test(t, http.StatusBadRequest, "1.0")
 		test(t, http.StatusOK, "dummy")
 		test(t, http.StatusOK, packageTag2)
+	})
+
+	t.Run("Search", func(t *testing.T) {
+		defer tests.PrintCurrentTest(t)()
+
+		url := fmt.Sprintf("/api/packages/%s/npm/-/v1/search", user.Name)
+
+		cases := []struct {
+			Query           string
+			Skip            int
+			Take            int
+			ExpectedTotal   int64
+			ExpectedResults int
+		}{
+			{"", 0, 0, 1, 1},
+			{"", 0, 10, 1, 1},
+			{"gitea", 0, 10, 0, 0},
+			{"test", 0, 10, 1, 1},
+			{"test", 1, 10, 1, 0},
+		}
+
+		for i, c := range cases {
+			req := NewRequest(t, "GET", fmt.Sprintf("%s?text=%s&from=%d&size=%d", url, c.Query, c.Skip, c.Take))
+			resp := MakeRequest(t, req, http.StatusOK)
+
+			var result npm.PackageSearch
+			DecodeJSON(t, resp, &result)
+
+			assert.Equal(t, c.ExpectedTotal, result.Total, "case %d: unexpected total hits", i)
+			assert.Len(t, result.Objects, c.ExpectedResults, "case %d: unexpected result count", i)
+		}
 	})
 
 	t.Run("Delete", func(t *testing.T) {

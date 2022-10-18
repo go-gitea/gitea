@@ -6,6 +6,7 @@
   authorize: 4 # owner
   num_repos: 3
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -16,6 +17,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 2
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -26,6 +28,7 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -36,6 +39,7 @@
   authorize: 4 # owner
   num_repos: 0
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -46,6 +50,7 @@
   authorize: 4 # owner
   num_repos: 2
   num_members: 2
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -55,7 +60,8 @@
   name: Owners
   authorize: 4 # owner
   num_repos: 2
-  num_members: 1
+  num_members: 2
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -66,6 +72,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -76,6 +83,7 @@
   authorize: 2 # write
   num_repos: 1
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -86,6 +94,7 @@
   authorize: 1 # read
   num_repos: 1
   num_members: 2
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -93,9 +102,10 @@
   org_id: 25
   lower_name: notowners
   name: NotOwners
-  authorize: 1 # owner
+  authorize: 1 # read
   num_repos: 0
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -106,6 +116,7 @@
   authorize: 1 # read
   num_repos: 0
   num_members: 0
+  includes_all_repositories: false
   can_create_org_repo: false
 
 -
@@ -116,6 +127,7 @@
   authorize: 3 # admin
   num_repos: 0
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: true
 
 -
@@ -126,4 +138,5 @@
   authorize: 3 # admin
   num_repos: 0
   num_members: 1
+  includes_all_repositories: false
   can_create_org_repo: false
