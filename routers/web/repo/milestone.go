@@ -157,6 +157,15 @@ func NewMilestone(ctx *context.Context) {
 	ctx.HTML(http.StatusOK, tplMilestoneNew)
 }
 
+// Int64sToMap converts a slice of int64 to a int64 map.
+func Int64sToMap(ints []int64) map[int64]bool {
+	m := make(map[int64]bool)
+	for _, i := range ints {
+		m[i] = true
+	}
+	return m
+}
+
 // NewMilestonePost response for creating milestone
 func NewMilestonePost(ctx *context.Context) {
 	form := web.GetForm(ctx).(*forms.CreateMilestoneForm)
@@ -192,7 +201,7 @@ func NewMilestonePost(ctx *context.Context) {
 		if err != nil {
 			return
 		}
-		labelIDMark := base.Int64sToMap(labelIDs)
+		labelIDMark := Int64sToMap(labelIDs)
 
 		for i := range labels {
 			if labelIDMark[labels[i].ID] {
@@ -325,7 +334,7 @@ func EditMilestonePost(ctx *context.Context) {
 		if err != nil {
 			return
 		}
-		labelIDMark := base.Int64sToMap(labelIDs)
+		labelIDMark := Int64sToMap(labelIDs)
 
 		for i := range labels {
 			if labelIDMark[labels[i].ID] {
