@@ -11,7 +11,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,11 +20,17 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-const defaultBufSize = 64 * 1024
+const (
+	MaxLineSize = 64 * 1024
+
+	timeFormat     = time.RFC3339Nano
+	defaultBufSize = 64 * 1024
+)
 
 const (
 	StorageSchemaDBFS = "dbfs"
-	StorageSchemaS2   = "s2"
+	StorageSchemaFile = "file"
+	StorageSchemaS3   = "s3"
 	// ...
 )
 
@@ -75,8 +80,11 @@ func ReadLogs(ctx context.Context, rawURL string, offset int64, limit int64) ([]
 		return nil, fmt.Errorf("dbfs Seek %q: %w", name, err)
 	}
 
-	var rows []*runnerv1.LogRow
 	scanner := bufio.NewScanner(f)
+	maxLineSize := len(timeFormat) + MaxLineSize + 1
+	scanner.Buffer(make([]byte, maxLineSize), maxLineSize)
+
+	var rows []*runnerv1.LogRow
 	for scanner.Scan() && (int64(len(rows)) < limit || limit < 0) {
 		t, c, err := ParseLog(scanner.Text())
 		if err != nil {
@@ -112,7 +120,12 @@ func parseDBFSName(rawURL string) (string, error) {
 }
 
 func FormatLog(timestamp time.Time, content string) string {
-	return fmt.Sprintf("%s %s", timestamp.UTC().Format(time.RFC3339Nano), strconv.Quote(content))
+	// Content shouldn't contain new line, it will break log indexes, other control chars are safe.
+	content = strings.ReplaceAll(content, "\n", `\n`)
+	if len(content) > MaxLineSize {
+		content = content[:MaxLineSize]
+	}
+	return fmt.Sprintf("%s %s", timestamp.UTC().Format(timeFormat), content)
 }
 
 func ParseLog(in string) (timestamp time.Time, content string, err error) {
@@ -121,10 +134,10 @@ func ParseLog(in string) (timestamp time.Time, content string, err error) {
 		err = fmt.Errorf("invalid log: %q", in)
 		return
 	}
-	timestamp, err = time.Parse(time.RFC3339Nano, in[:index])
+	timestamp, err = time.Parse(timeFormat, in[:index])
 	if err != nil {
 		return
 	}
-	content, err = strconv.Unquote(in[index+1:])
+	content = in[index+1:]
 	return
 }
