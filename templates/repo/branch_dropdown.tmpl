@@ -14,7 +14,7 @@
 		data-branch-url-suffix="{{if .branchURLSuffix}}{{.branchURLSuffix}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}"
 		data-tag-url-prefix="{{if .tagURLPrefix}}{{.tagURLPrefix}}{{else if $release}}{{$.root.RepoLink}}/compare/{{else}}{{$.root.RepoLink}}/{{if $.root.PageIsCommits}}commits{{else}}src{{end}}/tag/{{end}}"
 		data-tag-url-suffix="{{if .tagURLSuffix}}{{.tagURLSuffix}}{{else if $release}}...{{if $release.IsDraft}}{{PathEscapeSegments $release.Target}}{{else}}{{if $release.TagName}}{{PathEscapeSegments $release.TagName}}{{else}}{{PathEscapeSegments $release.Sha1}}{{end}}{{end}}{{else}}{{if $.root.TreePath}}/{{PathEscapeSegments $.root.TreePath}}{{end}}{{end}}">
-		<div class="branch-dropdown-button ellipsis ui basic small compact button df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
+		<button class="branch-dropdown-button ellipsis ui basic small compact button df" @click="menuVisible = !menuVisible" @keyup.enter="menuVisible = !menuVisible">
 			<span class="text df ac mr-2">
 				{{if $release}}
 					{{.root.locale.Tr "repo.release.compare"}}
@@ -26,7 +26,7 @@
 				{{end}}
 			</span>
 			{{svg "octicon-triangle-down" 14 "dropdown icon"}}
-		</div>
+		</button>
 		<div class="data" style="display: none" data-mode="{{if or .root.IsViewTag .isTag}}tags{{else}}branches{{end}}">
 			{{if $showBranchesInDropdown}}
 				{{range .root.Branches}}
