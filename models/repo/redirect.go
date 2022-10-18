@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models/db"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrRedirectNotExist represents a "RedirectNotExist" kind of error.
@@ -26,6 +27,10 @@ func IsErrRedirectNotExist(err error) bool {
 
 func (err ErrRedirectNotExist) Error() string {
 	return fmt.Sprintf("repository redirect does not exist [uid: %d, name: %s]", err.OwnerID, err.RepoName)
+}
+
+func (err ErrRedirectNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Redirect represents that a repo name should be redirected to another

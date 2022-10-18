@@ -52,6 +52,10 @@ func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
 }
 
+func (err ErrIssueNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
 type ErrIssueIsClosed struct {
 	ID     int64
@@ -1492,7 +1496,8 @@ func applySubscribedCondition(sess *xorm.Session, subscriberID int64) *xorm.Sess
 			builder.In("issue.repo_id", builder.
 				Select("id").
 				From("watch").
-				Where(builder.Eq{"user_id": subscriberID, "mode": true}),
+				Where(builder.And(builder.Eq{"user_id": subscriberID},
+					builder.In("mode", repo_model.WatchModeNormal, repo_model.WatchModeAuto))),
 			),
 		),
 	)

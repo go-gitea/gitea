@@ -63,6 +63,10 @@ func (err ErrReachLimitOfRepo) Error() string {
 	return fmt.Sprintf("user has reached maximum limit of repositories [limit: %d]", err.Limit)
 }
 
+func (err ErrReachLimitOfRepo) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrRepoAlreadyExist represents a "RepoAlreadyExist" kind of error.
 type ErrRepoAlreadyExist struct {
 	Uname string
@@ -79,6 +83,10 @@ func (err ErrRepoAlreadyExist) Error() string {
 	return fmt.Sprintf("repository already exists [uname: %s, name: %s]", err.Uname, err.Name)
 }
 
+func (err ErrRepoAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrRepoFilesAlreadyExist represents a "RepoFilesAlreadyExist" kind of error.
 type ErrRepoFilesAlreadyExist struct {
 	Uname string
@@ -93,6 +101,10 @@ func IsErrRepoFilesAlreadyExist(err error) bool {
 
 func (err ErrRepoFilesAlreadyExist) Error() string {
 	return fmt.Sprintf("repository files already exist [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
+func (err ErrRepoFilesAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // CheckCreateRepository check if could created a repository
