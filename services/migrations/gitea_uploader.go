@@ -412,6 +412,10 @@ func (g *GiteaLocalUploader) CreateIssues(issues ...*base.Issue) error {
 			},
 		}
 
+		if is.ForeignReference.ForeignIndex == "0" {
+			is.ForeignReference.ForeignIndex = strconv.FormatInt(is.Index, 10)
+		}
+
 		if err := g.remapUser(issue, &is); err != nil {
 			return err
 		}

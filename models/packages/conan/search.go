@@ -12,6 +12,7 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/modules/container"
 	conan_module "code.gitea.io/gitea/modules/packages/conan"
 
 	"xorm.io/builder"
@@ -88,7 +89,7 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 		return nil, err
 	}
 
-	unique := make(map[string]bool)
+	unique := make(container.Set[string])
 	for _, info := range results {
 		recipe := fmt.Sprintf("%s/%s", info.Name, info.Version)
 
@@ -111,7 +112,7 @@ func SearchRecipes(ctx context.Context, opts *RecipeSearchOptions) ([]string, er
 			}
 		}
 
-		unique[recipe] = true
+		unique.Add(recipe)
 	}
 
 	recipes := make([]string, 0, len(unique))

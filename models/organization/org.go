@@ -18,6 +18,7 @@ import (
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -43,6 +44,10 @@ func IsErrOrgNotExist(err error) bool {
 
 func (err ErrOrgNotExist) Error() string {
 	return fmt.Sprintf("org does not exist [id: %d, name: %s]", err.ID, err.Name)
+}
+
+func (err ErrOrgNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLastOrgOwner represents a "LastOrgOwner" kind of error.
@@ -71,6 +76,10 @@ func IsErrUserNotAllowedCreateOrg(err error) bool {
 
 func (err ErrUserNotAllowedCreateOrg) Error() string {
 	return "user is not allowed to create organizations"
+}
+
+func (err ErrUserNotAllowedCreateOrg) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // Organization represents an organization

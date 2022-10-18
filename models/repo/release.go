@@ -37,6 +37,10 @@ func (err ErrReleaseAlreadyExist) Error() string {
 	return fmt.Sprintf("release tag already exist [tag_name: %s]", err.TagName)
 }
 
+func (err ErrReleaseAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
 type ErrReleaseNotExist struct {
 	ID      int64
@@ -51,6 +55,10 @@ func IsErrReleaseNotExist(err error) bool {
 
 func (err ErrReleaseNotExist) Error() string {
 	return fmt.Sprintf("release tag does not exist [id: %d, tag_name: %s]", err.ID, err.TagName)
+}
+
+func (err ErrReleaseNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Release represents a release of repository.
@@ -200,6 +208,7 @@ type FindReleasesOptions struct {
 	IsPreRelease  util.OptionalBool
 	IsDraft       util.OptionalBool
 	TagNames      []string
+	HasSha1       util.OptionalBool // useful to find draft releases which are created with existing tags
 }
 
 func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
@@ -220,6 +229,13 @@ func (opts *FindReleasesOptions) toConds(repoID int64) builder.Cond {
 	}
 	if !opts.IsDraft.IsNone() {
 		cond = cond.And(builder.Eq{"is_draft": opts.IsDraft.IsTrue()})
+	}
+	if !opts.HasSha1.IsNone() {
+		if opts.HasSha1.IsTrue() {
+			cond = cond.And(builder.Neq{"sha1": ""})
+		} else {
+			cond = cond.And(builder.Eq{"sha1": ""})
+		}
 	}
 	return cond
 }
