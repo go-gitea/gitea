@@ -19,19 +19,24 @@ import (
 
 // Task represents a distribution of job
 type Task struct {
-	ID        int64
-	JobID     int64
-	Job       *RunJob     `xorm:"-"`
-	Steps     []*TaskStep `xorm:"-"`
-	Attempt   int64
-	RunnerID  int64  `xorm:"index"`
-	LogToFile bool   // read log from database or from storage
-	LogURL    string // url of the log file in storage
-	Result    runnerv1.Result
-	Started   timeutil.TimeStamp
-	Stopped   timeutil.TimeStamp
-	Created   timeutil.TimeStamp `xorm:"created"`
-	Updated   timeutil.TimeStamp `xorm:"updated"`
+	ID       int64
+	JobID    int64
+	Job      *RunJob     `xorm:"-"`
+	Steps    []*TaskStep `xorm:"-"`
+	Attempt  int64
+	RunnerID int64 `xorm:"index"`
+	Result   runnerv1.Result
+	Started  timeutil.TimeStamp
+	Stopped  timeutil.TimeStamp
+
+	LogURL     string  // dbfs:///a/b.log or s3://endpoint.com/a/b.log and etc.
+	LogLength  int64   // lines count
+	LogSize    int64   // blob size
+	LogIndexes []int64 `xorm:"JSON TEXT"` // line number to offset
+	LogExpired bool
+
+	Created timeutil.TimeStamp `xorm:"created"`
+	Updated timeutil.TimeStamp `xorm:"updated"`
 }
 
 func init() {
@@ -80,7 +85,7 @@ func (task *Task) FullSteps() []*TaskStep {
 	headStep := &TaskStep{
 		Name:      "Set up job",
 		LogIndex:  0,
-		LogLength: -1, // no limit
+		LogLength: task.LogLength,
 		Started:   task.Started,
 	}
 	if firstStep != nil {
@@ -93,7 +98,7 @@ func (task *Task) FullSteps() []*TaskStep {
 	}
 	if lastStep != nil {
 		tailStep.LogIndex = lastStep.LogIndex + lastStep.LogLength
-		tailStep.LogLength = -1 // no limit
+		tailStep.LogLength = task.LogLength - tailStep.LogIndex
 		tailStep.Started = lastStep.Stopped
 	}
 	steps := make([]*TaskStep, 0, len(task.Steps)+2)
@@ -208,7 +213,16 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	return task, true, nil
 }
 
-func UpdateTask(state *runnerv1.TaskState) error {
+func UpdateTask(ctx context.Context, task *Task, cols ...string) error {
+	sess := db.GetEngine(ctx).ID(task.ID)
+	if len(cols) > 0 {
+		sess.Cols(cols...)
+	}
+	_, err := sess.Update(task)
+	return err
+}
+
+func UpdateTaskByState(state *runnerv1.TaskState) error {
 	stepStates := map[int64]*runnerv1.StepState{}
 	for _, v := range state.Steps {
 		stepStates[v.Id] = v

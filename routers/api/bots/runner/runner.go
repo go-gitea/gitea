@@ -12,9 +12,9 @@ import (
 
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/json"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/timeutil"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 	"gitea.com/gitea/proto-go/runner/v1/runnerv1connect"
 
@@ -149,7 +149,7 @@ func (s *Service) UpdateTask(
 ) (*connect.Response[runnerv1.UpdateTaskResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateTaskResponse{})
 
-	if err := bots_model.UpdateTask(req.Msg.State); err != nil {
+	if err := bots_model.UpdateTaskByState(req.Msg.State); err != nil {
 		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
@@ -163,27 +163,38 @@ func (s *Service) UpdateLog(
 ) (*connect.Response[runnerv1.UpdateLogResponse], error) {
 	res := connect.NewResponse(&runnerv1.UpdateLogResponse{})
 
-	if len(req.Msg.Rows) == 0 {
-		// TODO: should be 1 + the max id of stored log
-		res.Msg.AckIndex = req.Msg.Index
+	task, err := bots_model.GetTaskByID(ctx, req.Msg.TaskId)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get task: %v", err)
+	}
+	if task.LogURL == "" {
+		task.LogURL = fmt.Sprintf("dbfs:///bots/tasks/%d.log", task.ID)
+		if err := bots_model.UpdateTask(ctx, task, "log_url"); err != nil {
+			return nil, status.Errorf(codes.Internal, "update task: %v", err)
+		}
+	}
+	ack := task.LogLength
+
+	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
+		res.Msg.AckIndex = ack
 		return res, nil
 	}
 
-	rowIndex := req.Msg.Index
-	rows := make([]*bots_model.TaskLog, len(req.Msg.Rows))
-	for i, v := range req.Msg.Rows {
-		rows[i] = &bots_model.TaskLog{
-			ID:        rowIndex + int64(i),
-			Timestamp: timeutil.TimeStamp(v.Time.AsTime().Unix()),
-			Content:   v.Content,
-		}
+	rows := req.Msg.Rows[ack-req.Msg.Index:]
+	ns, err := bots.WriteLogs(ctx, task.LogURL, task.LogSize, rows)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
+	}
+	task.LogLength += int64(len(rows))
+	for _, n := range ns {
+		task.LogIndexes = append(task.LogIndexes, task.LogSize)
+		task.LogSize += int64(n)
+	}
+	if err := bots_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size"); err != nil {
+		return nil, status.Errorf(codes.Internal, "update task: %v", err)
 	}
 
-	ack, err := bots_model.InsertTaskLogs(req.Msg.TaskId, rows)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "insert task log: %v", err)
-	}
-	res.Msg.AckIndex = ack
+	res.Msg.AckIndex = task.LogLength
 
 	if req.Msg.NoMore {
 		// TODO: transfer logs to storage from db

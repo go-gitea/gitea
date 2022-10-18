@@ -3,11 +3,14 @@ package dev
 import (
 	"fmt"
 	"net/http"
+	"time"
 
 	"code.gitea.io/gitea/core"
 	bots_model "code.gitea.io/gitea/models/bots"
+	"code.gitea.io/gitea/modules/bots"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/web"
+	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 )
 
 func BuildView(ctx *context.Context) {
@@ -78,7 +81,7 @@ type BuildViewStepLog struct {
 }
 
 type BuildViewStepLogLine struct {
-	Ln int     `json:"ln"`
+	Ln int64   `json:"ln"`
 	M  string  `json:"m"`
 	T  float64 `json:"t"`
 }
@@ -172,9 +175,12 @@ func BuildViewPost(ctx *context.Context) {
 			for _, cursor := range req.StepLogCursors {
 				if cursor.Expanded {
 					step := steps[cursor.StepIndex]
-					var logRows []*bots_model.TaskLog
+					var logRows []*runnerv1.LogRow
 					if cursor.Cursor < step.LogLength || step.LogLength < 0 {
-						logRows, err = bots_model.GetTaskLogs(task.ID, step.LogIndex+cursor.Cursor, step.LogLength-cursor.Cursor)
+						index := step.LogIndex + cursor.Cursor
+						length := step.LogLength - cursor.Cursor
+						offset := task.LogIndexes[index]
+						logRows, err = bots.ReadLogs(ctx, task.LogURL, offset, length)
 						if err != nil {
 							ctx.Error(http.StatusInternalServerError, err.Error())
 							return
@@ -183,9 +189,9 @@ func BuildViewPost(ctx *context.Context) {
 					logLines := make([]BuildViewStepLogLine, len(logRows))
 					for i, row := range logRows {
 						logLines[i] = BuildViewStepLogLine{
-							Ln: i,
+							Ln: cursor.Cursor + int64(i),
 							M:  row.Content,
-							T:  float64(row.Timestamp),
+							T:  float64(row.Time.AsTime().UnixNano()) / float64(time.Second),
 						}
 					}
 					resp.LogsData.StreamingLogs = append(resp.LogsData.StreamingLogs, BuildViewStepLog{
