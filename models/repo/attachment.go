@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/storage"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // Attachment represent a attachment of issue/comment/release.
@@ -81,6 +82,10 @@ func IsErrAttachmentNotExist(err error) bool {
 
 func (err ErrAttachmentNotExist) Error() string {
 	return fmt.Sprintf("attachment does not exist [id: %d, uuid: %s]", err.ID, err.UUID)
+}
+
+func (err ErrAttachmentNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // GetAttachmentByID returns attachment by given id
