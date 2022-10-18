@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/httpcache"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
@@ -83,11 +84,11 @@ func AssetsHandlerFunc(opts *Options) http.HandlerFunc {
 }
 
 // parseAcceptEncoding parse Accept-Encoding: deflate, gzip;q=1.0, *;q=0.5 as compress methods
-func parseAcceptEncoding(val string) map[string]bool {
+func parseAcceptEncoding(val string) container.Set[string] {
 	parts := strings.Split(val, ";")
-	types := make(map[string]bool)
+	types := make(container.Set[string])
 	for _, v := range strings.Split(parts[0], ",") {
-		types[strings.TrimSpace(v)] = true
+		types.Add(strings.TrimSpace(v))
 	}
 	return types
 }

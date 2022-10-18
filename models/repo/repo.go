@@ -23,9 +23,11 @@ import (
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
 	"code.gitea.io/gitea/modules/util"
+
+	"xorm.io/builder"
 )
 
-// ErrUserDoesNotHaveAccessToRepo represets an error where the user doesn't has access to a given repo.
+// ErrUserDoesNotHaveAccessToRepo represents an error where the user doesn't has access to a given repo.
 type ErrUserDoesNotHaveAccessToRepo struct {
 	UserID   int64
 	RepoName string
@@ -39,6 +41,10 @@ func IsErrUserDoesNotHaveAccessToRepo(err error) bool {
 
 func (err ErrUserDoesNotHaveAccessToRepo) Error() string {
 	return fmt.Sprintf("user doesn't have access to repo [user_id: %d, repo_name: %s]", err.UserID, err.RepoName)
+}
+
+func (err ErrUserDoesNotHaveAccessToRepo) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 var (
@@ -641,6 +647,11 @@ func (err ErrRepoNotExist) Error() string {
 		err.ID, err.UID, err.OwnerName, err.Name)
 }
 
+// Unwrap unwraps this error as a ErrNotExist error
+func (err ErrRepoNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // GetRepositoryByOwnerAndNameCtx returns the repository by given owner name and repo name
 func GetRepositoryByOwnerAndNameCtx(ctx context.Context, ownerName, repoName string) (*Repository, error) {
 	var repo Repository
@@ -783,4 +794,16 @@ func UpdateRepoIssueNumbers(ctx context.Context, repoID int64, isPull, isClosed 
 		}
 	}
 	return nil
+}
+
+// CountNullArchivedRepository counts the number of repositories with is_archived is null
+func CountNullArchivedRepository() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Count(new(Repository))
+}
+
+// FixNullArchivedRepository sets is_archived to false where it is null
+func FixNullArchivedRepository() (int64, error) {
+	return db.GetEngine(db.DefaultContext).Where(builder.IsNull{"is_archived"}).Cols("is_archived").NoAutoTime().Update(&Repository{
+		IsArchived: false,
+	})
 }

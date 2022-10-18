@@ -15,11 +15,11 @@
 	<input type="hidden" id="issueIndex" value="{{.Issue.Index}}"/>
 	<input type="hidden" id="type" value="{{.IssueType}}">
 
-	{{ $createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale }}
+	{{$createdStr:= TimeSinceUnix .Issue.CreatedUnix $.locale}}
 	<div class="twelve wide column comment-list prevent-before-timeline">
 		<ui class="ui timeline">
 			<div id="{{.Issue.HashTag}}" class="timeline-item comment first">
-			{{if .Issue.OriginalAuthor }}
+			{{if .Issue.OriginalAuthor}}
 				<span class="timeline-avatar"><img src="{{AppSubUrl}}/assets/img/avatar_default.png"></span>
 			{{else}}
 				<a class="timeline-avatar" {{if gt .Issue.Poster.ID 0}}href="{{.Issue.Poster.HomeLink}}"{{end}}>
@@ -29,16 +29,16 @@
 				<div class="content comment-container">
 					<div class="ui top attached header comment-header df ac sb">
 						<div class="comment-header-left df ac">
-							{{if .Issue.OriginalAuthor }}
+							{{if .Issue.OriginalAuthor}}
 								<span class="text black">
 									{{svg (MigrationIcon .Repository.GetOriginalURLHostname)}}
-									{{ .Issue.OriginalAuthor }}
+									{{.Issue.OriginalAuthor}}
 								</span>
 								<span class="text grey">
-									{{ .locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe }}
+									{{.locale.Tr "repo.issues.commented_at" (.Issue.HashTag|Escape) $createdStr | Safe}}
 								</span>
 								<span class="text migrate">
-									{{if .Repository.OriginalURL}} ({{$.locale.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe }}){{end}}
+									{{if .Repository.OriginalURL}} ({{$.locale.Tr "repo.migrated_from" (.Repository.OriginalURL|Escape) (.Repository.GetOriginalURLHostname|Escape) | Safe}}){{end}}
 								</span>
 							{{else}}
 								<a class="inline-timeline-avatar" href="{{.Issue.Poster.HomeLink}}">
@@ -92,13 +92,13 @@
 				</div>
 			</div>
 
-			{{ template "repo/issue/view_content/comments" . }}
+			{{template "repo/issue/view_content/comments" .}}
 
 			{{if and .Issue.IsPull (not $.Repository.IsArchived)}}
-				{{ template "repo/issue/view_content/pull". }}
+				{{template "repo/issue/view_content/pull".}}
 			{{end}}
 			{{if .IsSigned}}
-				{{ if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived) }}
+				{{if and (or .IsRepoAdmin .HasIssuesOrPullsWritePermission (not .Issue.IsLocked)) (not .Repository.IsArchived)}}
 				<div class="timeline-item comment form">
 					<a class="timeline-avatar" href="{{.SignedUser.HomeLink}}">
 						{{avatar .SignedUser}}
@@ -129,7 +129,7 @@
 						</form>
 					</div>
 				</div>
-				{{ else if .Repository.IsArchived }}
+				{{else if .Repository.IsArchived}}
 					<div class="ui warning message">
 						{{if .Issue.IsPull}}
 							{{.locale.Tr "repo.archive.pull.nocomment"}}
@@ -137,7 +137,7 @@
 							{{.locale.Tr "repo.archive.issue.nocomment"}}
 						{{end}}
 					</div>
-				{{ end }}
+				{{end}}
 			{{else}}
 			{{if .Repository.IsArchived}}
 				<div class="ui warning message">
@@ -191,7 +191,7 @@
 		</ui>
 	</div>
 
-	{{ template "repo/issue/view_content/sidebar" . }}
+	{{template "repo/issue/view_content/sidebar" .}}
 </div>
 
 <div class="hide" id="edit-content-form">
@@ -231,7 +231,7 @@
 <div class="ui small basic delete modal">
 	<div class="ui icon header">
 		{{svg "octicon-trash"}}
-		{{.locale.Tr "repo.branch.delete" .HeadTarget }}
+		{{.locale.Tr "repo.branch.delete" .HeadTarget}}
 	</div>
 	<div class="content">
 		<p>{{.locale.Tr "repo.branch.delete_desc" | Str2html}}</p>

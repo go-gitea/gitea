@@ -10,6 +10,7 @@ import (
 	"net/http"
 
 	"code.gitea.io/gitea/models"
+	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/convert"
 	api "code.gitea.io/gitea/modules/structs"
@@ -249,9 +250,9 @@ func DeleteTag(ctx *context.APIContext) {
 	//     "$ref": "#/responses/conflict"
 	tagName := ctx.Params("*")
 
-	tag, err := models.GetRelease(ctx.Repo.Repository.ID, tagName)
+	tag, err := repo_model.GetRelease(ctx.Repo.Repository.ID, tagName)
 	if err != nil {
-		if models.IsErrReleaseNotExist(err) {
+		if repo_model.IsErrReleaseNotExist(err) {
 			ctx.NotFound()
 			return
 		}

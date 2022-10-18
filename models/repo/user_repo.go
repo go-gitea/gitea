@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/perm"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	api "code.gitea.io/gitea/modules/structs"
 
 	"xorm.io/builder"
@@ -83,37 +84,19 @@ func GetRepoAssignees(ctx context.Context, repo *Repository) (_ []*user_model.Us
 		return nil, err
 	}
 
-	uidMap := map[int64]bool{}
-	i := 0
-	for _, uid := range userIDs {
-		if uidMap[uid] {
-			continue
-		}
-		uidMap[uid] = true
-		userIDs[i] = uid
-		i++
-	}
-	userIDs = userIDs[:i]
-	userIDs = append(userIDs, additionalUserIDs...)
-
-	for _, uid := range additionalUserIDs {
-		if uidMap[uid] {
-			continue
-		}
-		userIDs[i] = uid
-		i++
-	}
-	userIDs = userIDs[:i]
+	uniqueUserIDs := make(container.Set[int64])
+	uniqueUserIDs.AddMultiple(userIDs...)
+	uniqueUserIDs.AddMultiple(additionalUserIDs...)
 
 	// Leave a seat for owner itself to append later, but if owner is an organization
 	// and just waste 1 unit is cheaper than re-allocate memory once.
-	users := make([]*user_model.User, 0, len(userIDs)+1)
+	users := make([]*user_model.User, 0, len(uniqueUserIDs)+1)
 	if len(userIDs) > 0 {
-		if err = e.In("id", userIDs).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
+		if err = e.In("id", uniqueUserIDs.Values()).OrderBy(user_model.GetOrderByName()).Find(&users); err != nil {
 			return nil, err
 		}
 	}
-	if !repo.Owner.IsOrganization() && !uidMap[repo.OwnerID] {
+	if !repo.Owner.IsOrganization() && !uniqueUserIDs.Contains(repo.OwnerID) {
 		users = append(users, repo.Owner)
 	}
 
@@ -168,5 +151,17 @@ func GetReviewers(ctx context.Context, repo *Repository, doerID, posterID int64)
 	}
 
 	users := make([]*user_model.User, 0, 8)
+	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
+}
+
+// GetIssuePosters returns all users that have authored an issue/pull request for the given repository
+func GetIssuePosters(ctx context.Context, repo *Repository, isPull bool) ([]*user_model.User, error) {
+	users := make([]*user_model.User, 0, 8)
+	cond := builder.In("`user`.id",
+		builder.Select("poster_id").From("issue").Where(
+			builder.Eq{"repo_id": repo.ID}.
+				And(builder.Eq{"is_pull": isPull}),
+		).GroupBy("poster_id"),
+	)
 	return users, db.GetEngine(ctx).Where(cond).OrderBy(user_model.GetOrderByName()).Find(&users)
 }

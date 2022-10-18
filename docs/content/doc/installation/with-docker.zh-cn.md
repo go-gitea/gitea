@@ -23,7 +23,7 @@ Gitea 在其 Docker Hub 组织内提供自动更新的 Docker 镜像。可以始
 
 ## 基本
 
-最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `:1.13.0`。
+最简单的设置只是创建一个卷和一个网络，然后将 `gitea/gitea:latest` 镜像作为服务启动。由于没有可用的数据库，因此可以使用 SQLite3 初始化数据库。创建一个类似 `gitea` 的目录，并将以下内容粘贴到名为 `docker-compose.yml` 的文件中。请注意，该卷应由配置文件中指定的 UID/GID 的用户/组拥有。如果您不授予卷正确的权限，则容器可能无法启动。另请注意，标签 `:latest` 将安装当前的开发版本。对于稳定的发行版，您可以使用 `:1` 或指定某个发行版，例如 `{{< version >}}`。
 
 ```yaml
 version: "3"
@@ -103,11 +103,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=mysql
-+     - DB_HOST=db:3306
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=mysql
++     - GITEA__database__HOST=db:3306
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -153,11 +153,11 @@ services:
     environment:
       - USER_UID=1000
       - USER_GID=1000
-+     - DB_TYPE=postgres
-+     - DB_HOST=db:5432
-+     - DB_NAME=gitea
-+     - DB_USER=gitea
-+     - DB_PASSWD=gitea
++     - GITEA__database__DB_TYPE=postgres
++     - GITEA__database__HOST=db:5432
++     - GITEA__database__NAME=gitea
++     - GITEA__database__USER=gitea
++     - GITEA__database__PASSWD=gitea
     restart: always
     networks:
       - gitea
@@ -274,6 +274,42 @@ MySQL 或 PostgreSQL 容器将需要分别创建。
 docker-compose pull
 # Start a new container, automatically removes old one
 docker-compose up -d
+```
+
+## 使用环境变量管理部署
+
+除了上面的环境变量之外，`app.ini` 中的任何设置都可以使用以下形式的环境变量进行设置或覆盖：`GITEA__SECTION_NAME__KEY_NAME`。 每次 docker 容器启动时都会应用这些设置。 完整信息在[这里](https://github.com/go-gitea/gitea/tree/master/contrib/environment-to-ini)。
+
+```bash
+...
+services:
+  server:
+    environment:
+    - GITEA__mailer__ENABLED=true
+    - GITEA__mailer__FROM=${GITEA__mailer__FROM:?GITEA__mailer__FROM not set}
+    - GITEA__mailer__MAILER_TYPE=smtp
+    - GITEA__mailer__HOST=${GITEA__mailer__HOST:?GITEA__mailer__HOST not set}
+    - GITEA__mailer__IS_TLS_ENABLED=true
+    - GITEA__mailer__USER=${GITEA__mailer__USER:-apikey}
+    - GITEA__mailer__PASSWD="""${GITEA__mailer__PASSWD:?GITEA__mailer__PASSWD not set}"""
+```
+
+Gitea 将为每次新安装自动生成新的 `SECRET_KEY` 并将它们写入 `app.ini`。 如果您想手动设置 `SECRET_KEY`，您可以使用以下 docker 命令来使用 Gitea 内置的[方法](https://docs.gitea.io/en-us/command-line/#generate)生成 `SECRET_KEY`。 安装后请妥善保管您的 `SECRET_KEY`，如若丢失则无法解密已加密的数据。
+
+以下命令将向 `stdout` 输出一个新的 `SECRET_KEY` 和 `INTERNAL_TOKEN`，然后您可以将其放入环境变量中。
+
+```bash
+docker run -it --rm gitea/gitea:1 gitea generate secret SECRET_KEY
+docker run -it --rm  gitea/gitea:1 gitea generate secret INTERNAL_TOKEN
+```
+
+```yaml
+...
+services:
+  server:
+    environment:
+      - GITEA__security__SECRET_KEY=[value returned by generate secret SECRET_KEY]
+      - GITEA__security__INTERNAL_TOKEN=[value returned by generate secret INTERNAL_TOKEN]
 ```
 
 ## SSH 容器直通

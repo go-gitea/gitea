@@ -5,20 +5,24 @@
 package migrations
 
 import (
-	"fmt"
-
 	"xorm.io/xorm"
 )
 
-func addMilestoneLabels(x *xorm.Engine) error {
-	type MilestoneLabel struct {
+func createUserBadgesTable(x *xorm.Engine) error {
+	type Badge struct {
 		ID          int64 `xorm:"pk autoincr"`
-		MilestoneID int64 `xorm:"UNIQUE(milestoneid_labelid)"`
-		LabelID     int64 `xorm:"UNIQUE(milestoneid_labelid)"`
+		Description string
+		ImageURL    string
 	}
 
-	if err := x.Sync2(new(MilestoneLabel)); err != nil {
-		return fmt.Errorf("Sync2: %v", err)
+	type userBadge struct {
+		ID      int64 `xorm:"pk autoincr"`
+		BadgeID int64
+		UserID  int64 `xorm:"INDEX"`
 	}
-	return nil
+
+	if err := x.Sync2(new(Badge)); err != nil {
+		return err
+	}
+	return x.Sync2(new(userBadge))
 }

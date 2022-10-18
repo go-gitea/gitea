@@ -1,6 +1,8 @@
 ---
 date: "2021-09-02T16:00:00+08:00"
 title: "Upgrade from an old Gitea"
+aliases:
+  - /en-us/upgrade/
 slug: "upgrade-from-gitea"
 weight: 10
 toc: false
@@ -22,6 +24,12 @@ menu:
 To update Gitea, download a newer version, stop the old one, perform a backup, and run the new one.
 Every time a Gitea instance starts up, it checks whether a database migration should be run.
 If a database migration is required, Gitea will take some time to complete the upgrade and then serve.
+
+## Check the Changelog for breaking changes
+
+To make Gitea better, some breaking changes are unavoidable, especially for big milestone releases.
+Before upgrade, please read the [Changelog on Gitea blog](https://blog.gitea.io/)
+and check whether the breaking changes affect your Gitea instance.
 
 ## Backup for downgrade
 

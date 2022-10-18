@@ -40,6 +40,7 @@ type Command struct {
 	parentContext    context.Context
 	desc             string
 	globalArgsLength int
+	brokenArgs       []string
 }
 
 func (c *Command) String() string {
@@ -50,6 +51,7 @@ func (c *Command) String() string {
 }
 
 // NewCommand creates and returns a new Git Command based on given command and arguments.
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommand(ctx context.Context, args ...string) *Command {
 	// Make an explicit copy of globalCommandArgs, otherwise append might overwrite it
 	cargs := make([]string, len(globalCommandArgs))
@@ -63,11 +65,13 @@ func NewCommand(ctx context.Context, args ...string) *Command {
 }
 
 // NewCommandNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommandNoGlobals(args ...string) *Command {
 	return NewCommandContextNoGlobals(DefaultContext, args...)
 }
 
 // NewCommandContextNoGlobals creates and returns a new Git Command based on given command and arguments only with the specify args and don't care global command args
+// Each argument should be safe to be trusted. User-provided arguments should be passed to AddDynamicArguments instead.
 func NewCommandContextNoGlobals(ctx context.Context, args ...string) *Command {
 	return &Command{
 		name:          GitExecutable,
@@ -89,20 +93,37 @@ func (c *Command) SetDescription(desc string) *Command {
 	return c
 }
 
-// AddArguments adds new argument(s) to the command.
+// AddArguments adds new argument(s) to the command. Each argument must be safe to be trusted.
+// User-provided arguments should be passed to AddDynamicArguments instead.
 func (c *Command) AddArguments(args ...string) *Command {
 	c.args = append(c.args, args...)
 	return c
 }
 
-// RunOpts represents parameters to run the command
+// AddDynamicArguments adds new dynamic argument(s) to the command.
+// The arguments may come from user input and can not be trusted, so no leading '-' is allowed to avoid passing options
+func (c *Command) AddDynamicArguments(args ...string) *Command {
+	for _, arg := range args {
+		if arg != "" && arg[0] == '-' {
+			c.brokenArgs = append(c.brokenArgs, arg)
+		}
+	}
+	if len(c.brokenArgs) != 0 {
+		return c
+	}
+	c.args = append(c.args, args...)
+	return c
+}
+
+// RunOpts represents parameters to run the command. If UseContextTimeout is specified, then Timeout is ignored.
 type RunOpts struct {
-	Env            []string
-	Timeout        time.Duration
-	Dir            string
-	Stdout, Stderr io.Writer
-	Stdin          io.Reader
-	PipelineFunc   func(context.Context, context.CancelFunc) error
+	Env               []string
+	Timeout           time.Duration
+	UseContextTimeout bool
+	Dir               string
+	Stdout, Stderr    io.Writer
+	Stdin             io.Reader
+	PipelineFunc      func(context.Context, context.CancelFunc) error
 }
 
 func commonBaseEnvs() []string {
@@ -137,8 +158,14 @@ func CommonCmdServEnvs() []string {
 	return commonBaseEnvs()
 }
 
+var ErrBrokenCommand = errors.New("git command is broken")
+
 // Run runs the command with the RunOpts
 func (c *Command) Run(opts *RunOpts) error {
+	if len(c.brokenArgs) != 0 {
+		log.Error("git command is broken: %s, broken args: %s", c.String(), strings.Join(c.brokenArgs, " "))
+		return ErrBrokenCommand
+	}
 	if opts == nil {
 		opts = &RunOpts{}
 	}
@@ -171,7 +198,15 @@ func (c *Command) Run(opts *RunOpts) error {
 		desc = fmt.Sprintf("%s %s [repo_path: %s]", c.name, strings.Join(args, " "), opts.Dir)
 	}
 
-	ctx, cancel, finished := process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	var ctx context.Context
+	var cancel context.CancelFunc
+	var finished context.CancelFunc
+
+	if opts.UseContextTimeout {
+		ctx, cancel, finished = process.GetManager().AddContext(c.parentContext, desc)
+	} else {
+		ctx, cancel, finished = process.GetManager().AddContextTimeout(c.parentContext, opts.Timeout, desc)
+	}
 	defer finished()
 
 	cmd := exec.CommandContext(ctx, c.name, c.args...)

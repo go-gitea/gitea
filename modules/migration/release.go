@@ -18,15 +18,16 @@ type ReleaseAsset struct {
 	DownloadCount *int `yaml:"download_count"`
 	Created       time.Time
 	Updated       time.Time
-	DownloadURL   *string `yaml:"download_url"`
+
+	DownloadURL *string `yaml:"download_url"` // SECURITY: It is the responsibility of downloader to make sure this is safe
 	// if DownloadURL is nil, the function should be invoked
-	DownloadFunc func() (io.ReadCloser, error) `yaml:"-"`
+	DownloadFunc func() (io.ReadCloser, error) `yaml:"-"` // SECURITY: It is the responsibility of downloader to make sure this is safe
 }
 
 // Release represents a release
 type Release struct {
-	TagName         string `yaml:"tag_name"`
-	TargetCommitish string `yaml:"target_commitish"`
+	TagName         string `yaml:"tag_name"`         // SECURITY: This must pass git.IsValidRefPattern
+	TargetCommitish string `yaml:"target_commitish"` // SECURITY: This must pass git.IsValidRefPattern
 	Name            string
 	Body            string
 	Draft           bool

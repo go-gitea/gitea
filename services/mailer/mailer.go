@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"hash/fnv"
@@ -24,6 +25,7 @@ import (
 	"code.gitea.io/gitea/modules/process"
 	"code.gitea.io/gitea/modules/queue"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/templates"
 
 	"github.com/jaytaylor/html2text"
 	"gopkg.in/gomail.v2"
@@ -347,7 +349,7 @@ var mailQueue queue.Queue
 var Sender gomail.Sender
 
 // NewContext start mail queue service
-func NewContext() {
+func NewContext(ctx context.Context) {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
 	// before but switched install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
@@ -379,6 +381,8 @@ func NewContext() {
 	}, &Message{})
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
+
+	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
 }
 
 // SendAsync send mail asynchronously

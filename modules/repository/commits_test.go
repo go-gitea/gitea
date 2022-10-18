@@ -11,8 +11,10 @@ import (
 	"time"
 
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	"code.gitea.io/gitea/models/unittest"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/setting"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -49,7 +51,7 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	}
 	pushCommits.HeadCommit = &PushCommit{Sha1: "69554a6"}
 
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 16})
 	payloadCommits, headCommit, err := pushCommits.ToAPIPayloadCommits(git.DefaultContext, repo.RepoPath(), "/user2/repo16")
 	assert.NoError(t, err)
 	assert.Len(t, payloadCommits, 3)
@@ -100,6 +102,14 @@ func TestPushCommits_ToAPIPayloadCommits(t *testing.T) {
 	assert.EqualValues(t, []string{"readme.md"}, headCommit.Modified)
 }
 
+func enableGravatar(t *testing.T) {
+	err := system_model.SetSettingNoVersion(system_model.KeyPictureDisableGravatar, "false")
+	assert.NoError(t, err)
+	setting.GravatarSource = "https://secure.gravatar.com/avatar"
+	err = system_model.Init()
+	assert.NoError(t, err)
+}
+
 func TestPushCommits_AvatarLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
@@ -122,6 +132,8 @@ func TestPushCommits_AvatarLink(t *testing.T) {
 			Message:        "message2",
 		},
 	}
+
+	enableGravatar(t)
 
 	assert.Equal(t,
 		"https://secure.gravatar.com/avatar/ab53a2911ddf9b4817ac01ddcd3d975f?d=identicon&s=84",

@@ -27,8 +27,10 @@
 					{{template "package/content/maven" .}}
 					{{template "package/content/npm" .}}
 					{{template "package/content/nuget" .}}
+					{{template "package/content/pub" .}}
 					{{template "package/content/pypi" .}}
 					{{template "package/content/rubygems" .}}
+					{{template "package/content/vagrant" .}}
 				</div>
 				<div class="four wide column">
 					<div class="ui segment metas">
@@ -38,7 +40,7 @@
 							{{if .HasRepositoryAccess}}
 							<div class="item">{{svg "octicon-repo" 16 "mr-3"}} <a href="{{.PackageDescriptor.Repository.HTMLURL}}">{{.PackageDescriptor.Repository.FullName}}</a></div>
 							{{end}}
-							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{.PackageDescriptor.Version.CreatedUnix.FormatDate}}</div>
+							<div class="item">{{svg "octicon-calendar" 16 "mr-3"}} {{TimeSinceUnix .PackageDescriptor.Version.CreatedUnix $.locale}}</div>
 							<div class="item">{{svg "octicon-download" 16 "mr-3"}} {{.PackageDescriptor.Version.DownloadCount}}</div>
 							{{template "package/metadata/composer" .}}
 							{{template "package/metadata/conan" .}}
@@ -48,8 +50,11 @@
 							{{template "package/metadata/maven" .}}
 							{{template "package/metadata/npm" .}}
 							{{template "package/metadata/nuget" .}}
+							{{template "package/metadata/pub" .}}
 							{{template "package/metadata/pypi" .}}
 							{{template "package/metadata/rubygems" .}}
+							{{template "package/metadata/vagrant" .}}
+							<div class="item">{{svg "octicon-database" 16 "mr-3"}} {{FileSize .PackageDescriptor.CalculateBlobSize}}</div>
 						</div>
 						{{if not (eq .PackageDescriptor.Package.Type "container")}}
 							<div class="ui divider"></div>

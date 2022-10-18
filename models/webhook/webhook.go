@@ -41,6 +41,10 @@ func (err ErrWebhookNotExist) Error() string {
 	return fmt.Sprintf("webhook does not exist [id: %d]", err.ID)
 }
 
+func (err ErrWebhookNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrHookTaskNotExist represents a "HookTaskNotExist" kind of error.
 type ErrHookTaskNotExist struct {
 	HookID int64
@@ -55,6 +59,10 @@ func IsErrHookTaskNotExist(err error) bool {
 
 func (err ErrHookTaskNotExist) Error() string {
 	return fmt.Sprintf("hook task does not exist [hook: %d, uuid: %s]", err.HookID, err.UUID)
+}
+
+func (err ErrHookTaskNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // HookContentType is the content type of a web hook
@@ -132,6 +140,7 @@ type HookEvents struct {
 	PullRequestComment   bool `json:"pull_request_comment"`
 	PullRequestReview    bool `json:"pull_request_review"`
 	PullRequestSync      bool `json:"pull_request_sync"`
+	Wiki                 bool `json:"wiki"`
 	Repository           bool `json:"repository"`
 	Release              bool `json:"release"`
 	Package              bool `json:"package"`
@@ -328,6 +337,12 @@ func (w *Webhook) HasPullRequestSyncEvent() bool {
 		(w.ChooseEvents && w.HookEvents.PullRequestSync)
 }
 
+// HasWikiEvent returns true if hook enabled wiki event.
+func (w *Webhook) HasWikiEvent() bool {
+	return w.SendEverything ||
+		(w.ChooseEvents && w.HookEvent.Wiki)
+}
+
 // HasReleaseEvent returns if hook enabled release event.
 func (w *Webhook) HasReleaseEvent() bool {
 	return w.SendEverything ||
@@ -373,6 +388,7 @@ func (w *Webhook) EventCheckers() []struct {
 		{w.HasPullRequestRejectedEvent, HookEventPullRequestReviewRejected},
 		{w.HasPullRequestCommentEvent, HookEventPullRequestReviewComment},
 		{w.HasPullRequestSyncEvent, HookEventPullRequestSync},
+		{w.HasWikiEvent, HookEventWiki},
 		{w.HasRepositoryEvent, HookEventRepository},
 		{w.HasReleaseEvent, HookEventRelease},
 		{w.HasPackageEvent, HookEventPackage},
@@ -399,6 +415,10 @@ func CreateWebhook(ctx context.Context, w *Webhook) error {
 
 // CreateWebhooks creates multiple web hooks
 func CreateWebhooks(ctx context.Context, ws []*Webhook) error {
+	// xorm returns err "no element on slice when insert" for empty slices.
+	if len(ws) == 0 {
+		return nil
+	}
 	for i := 0; i < len(ws); i++ {
 		ws[i].Type = strings.TrimSpace(ws[i].Type)
 	}

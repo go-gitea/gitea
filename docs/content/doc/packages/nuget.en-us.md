@@ -14,7 +14,7 @@ menu:
 
 # NuGet Packages Repository
 
-Publish [NuGet](https://www.nuget.org/) packages for your user or organization. The package registry supports [NuGet Symbol Packages](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) too.
+Publish [NuGet](https://www.nuget.org/) packages for your user or organization. The package registry supports the V2 and V3 API protocol and you can work with [NuGet Symbol Packages](https://docs.microsoft.com/en-us/nuget/create-packages/symbol-packages-snupkg) too.
 
 **Table of Contents**
 
@@ -46,6 +46,8 @@ For example:
 ```shell
 dotnet nuget add source --name gitea --username testuser --password password123 https://gitea.example.com/api/packages/testuser/nuget/index.json
 ```
+
+You can add the source without credentials and use the [`--api-key`](https://docs.microsoft.com/en-us/dotnet/core/tools/dotnet-nuget-push) parameter when publishing packages. In this case you need to provide a [personal access token]({{< relref "doc/developers/api-usage.en-us.md#authentication" >}}).
 
 ## Publish a package
 

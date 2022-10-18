@@ -6,6 +6,8 @@ package db
 
 import (
 	"fmt"
+
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrCancelled represents an error due to context cancellation
@@ -45,7 +47,8 @@ func (err ErrSSHDisabled) Error() string {
 
 // ErrNotExist represents a non-exist error.
 type ErrNotExist struct {
-	ID int64
+	Resource string
+	ID       int64
 }
 
 // IsErrNotExist checks if an error is an ErrNotExist
@@ -55,5 +58,18 @@ func IsErrNotExist(err error) bool {
 }
 
 func (err ErrNotExist) Error() string {
-	return fmt.Sprintf("record does not exist [id: %d]", err.ID)
+	name := "record"
+	if err.Resource != "" {
+		name = err.Resource
+	}
+
+	if err.ID != 0 {
+		return fmt.Sprintf("%s does not exist [id: %d]", name, err.ID)
+	}
+	return fmt.Sprintf("%s does not exist", name)
+}
+
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrNotExist) Unwrap() error {
+	return util.ErrNotExist
 }

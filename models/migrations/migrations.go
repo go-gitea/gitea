@@ -406,8 +406,17 @@ var migrations = []Migration{
 	NewMigration("Drop old CredentialID column", dropOldCredentialIDColumn),
 	// v223 -> v224
 	NewMigration("Rename CredentialIDBytes column to CredentialID", renameCredentialIDBytes),
+
+	// Gitea 1.17.0 ends at v224
+
 	// v224 -> v225
-	NewMigration("Add milestone labels", addMilestoneLabels),
+	NewMigration("Add badges to users", createUserBadgesTable),
+	// v225 -> v226
+	NewMigration("Alter gpg_key/public_key content TEXT fields to MEDIUMTEXT", alterPublicGPGKeyContentFieldsToMediumText),
+	// v226 -> v227
+	NewMigration("Conan and generic packages do not need to be semantically versioned", fixPackageSemverField),
+	// v227 -> v228
+	NewMigration("Create key/value table for system settings", createSystemSettingsTable),
 }
 
 // GetCurrentDBVersion returns the current db version

@@ -78,8 +78,7 @@ func sessionHandler(session ssh.Session) {
 	gitProtocol := ""
 	for _, env := range session.Environ() {
 		if strings.HasPrefix(env, "GIT_PROTOCOL=") {
-			// The value would be version=2, so using normal split doesn't work here.
-			gitProtocol = strings.SplitN(env, "=", 2)[1]
+			_, gitProtocol, _ = strings.Cut(env, "=")
 			break
 		}
 	}

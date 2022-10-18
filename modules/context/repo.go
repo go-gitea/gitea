@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"html"
-	"io"
 	"net/http"
 	"net/url"
 	"path"
@@ -26,8 +25,8 @@ import (
 	"code.gitea.io/gitea/modules/cache"
 	"code.gitea.io/gitea/modules/git"
 	code_indexer "code.gitea.io/gitea/modules/indexer/code"
+	"code.gitea.io/gitea/modules/issue/template"
 	"code.gitea.io/gitea/modules/log"
-	"code.gitea.io/gitea/modules/markup/markdown"
 	repo_module "code.gitea.io/gitea/modules/repository"
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
@@ -118,7 +117,8 @@ type CanCommitToBranchResults struct {
 }
 
 // CanCommitToBranch returns true if repository is editable and user has proper access level
-//   and branch is not protected for push
+//
+// and branch is not protected for push
 func (r *Repository) CanCommitToBranch(ctx context.Context, doer *user_model.User) (CanCommitToBranchResults, error) {
 	protectedBranch, err := git_model.GetProtectedBranchBy(ctx, r.Repository.ID, r.BranchName)
 	if err != nil {
@@ -451,11 +451,20 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		owner, err = user_model.GetUserByName(ctx, userName)
 		if err != nil {
 			if user_model.IsErrUserNotExist(err) {
+				// go-get does not support redirects
+				// https://github.com/golang/go/issues/19760
 				if ctx.FormString("go-get") == "1" {
 					EarlyResponseForGoGetMeta(ctx)
 					return
 				}
-				ctx.NotFound("GetUserByName", nil)
+
+				if redirectUserID, err := user_model.LookupUserRedirect(userName); err == nil {
+					RedirectToUser(ctx, userName, redirectUserID)
+				} else if user_model.IsErrUserRedirectNotExist(err) {
+					ctx.NotFound("GetUserByName", nil)
+				} else {
+					ctx.ServerError("LookupUserRedirect", err)
+				}
 			} else {
 				ctx.ServerError("GetUserByName", err)
 			}
@@ -523,14 +532,16 @@ func RepoAssignment(ctx *Context) (cancel context.CancelFunc) {
 		ctx.Data["RepoExternalIssuesLink"] = unit.ExternalTrackerConfig().ExternalTrackerURL
 	}
 
-	ctx.Data["NumTags"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{
-		IncludeTags: true,
+	ctx.Data["NumTags"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{
+		IncludeDrafts: true,
+		IncludeTags:   true,
+		HasSha1:       util.OptionalBoolTrue, // only draft releases which are created with existing tags
 	})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
 	}
-	ctx.Data["NumReleases"], err = models.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, models.FindReleasesOptions{})
+	ctx.Data["NumReleases"], err = repo_model.GetReleaseCountByRepoID(ctx.Repo.Repository.ID, repo_model.FindReleasesOptions{})
 	if err != nil {
 		ctx.ServerError("GetReleaseCountByRepoID", err)
 		return
@@ -986,6 +997,7 @@ func RepoRefByType(refType RepoRefType, ignoreNotExistErr ...bool) func(*Context
 		}
 
 		ctx.Data["BranchName"] = ctx.Repo.BranchName
+		ctx.Data["RefName"] = ctx.Repo.RefName
 		ctx.Data["BranchNameSubURL"] = ctx.Repo.BranchNameSubURL()
 		ctx.Data["TagName"] = ctx.Repo.TagName
 		ctx.Data["CommitID"] = ctx.Repo.CommitID
@@ -1032,70 +1044,52 @@ func UnitTypes() func(ctx *Context) {
 	}
 }
 
-// IssueTemplatesFromDefaultBranch checks for issue templates in the repo's default branch
-func (ctx *Context) IssueTemplatesFromDefaultBranch() []api.IssueTemplate {
-	var issueTemplates []api.IssueTemplate
+// IssueTemplatesFromDefaultBranch checks for valid issue templates in the repo's default branch,
+func (ctx *Context) IssueTemplatesFromDefaultBranch() []*api.IssueTemplate {
+	ret, _ := ctx.IssueTemplatesErrorsFromDefaultBranch()
+	return ret
+}
+
+// IssueTemplatesErrorsFromDefaultBranch checks for issue templates in the repo's default branch,
+// returns valid templates and the errors of invalid template files.
+func (ctx *Context) IssueTemplatesErrorsFromDefaultBranch() ([]*api.IssueTemplate, map[string]error) {
+	var issueTemplates []*api.IssueTemplate
 
 	if ctx.Repo.Repository.IsEmpty {
-		return issueTemplates
+		return issueTemplates, nil
 	}
 
 	if ctx.Repo.Commit == nil {
 		var err error
 		ctx.Repo.Commit, err = ctx.Repo.GitRepo.GetBranchCommit(ctx.Repo.Repository.DefaultBranch)
 		if err != nil {
-			return issueTemplates
+			return issueTemplates, nil
 		}
 	}
 
+	invalidFiles := map[string]error{}
 	for _, dirName := range IssueTemplateDirCandidates {
 		tree, err := ctx.Repo.Commit.SubTree(dirName)
 		if err != nil {
+			log.Debug("get sub tree of %s: %v", dirName, err)
 			continue
 		}
 		entries, err := tree.ListEntries()
 		if err != nil {
-			return issueTemplates
+			log.Debug("list entries in %s: %v", dirName, err)
+			return issueTemplates, nil
 		}
 		for _, entry := range entries {
-			if strings.HasSuffix(entry.Name(), ".md") {
-				if entry.Blob().Size() >= setting.UI.MaxDisplayFileSize {
-					log.Debug("Issue template is too large: %s", entry.Name())
-					continue
-				}
-				r, err := entry.Blob().DataAsync()
-				if err != nil {
-					log.Debug("DataAsync: %v", err)
-					continue
-				}
-				closed := false
-				defer func() {
-					if !closed {
-						_ = r.Close()
-					}
-				}()
-				data, err := io.ReadAll(r)
-				if err != nil {
-					log.Debug("ReadAll: %v", err)
-					continue
-				}
-				_ = r.Close()
-				var it api.IssueTemplate
-				content, err := markdown.ExtractMetadata(string(data), &it)
-				if err != nil {
-					log.Debug("ExtractMetadata: %v", err)
-					continue
-				}
-				it.Content = content
-				it.FileName = entry.Name()
-				if it.Valid() {
-					issueTemplates = append(issueTemplates, it)
-				}
+			if !template.CouldBe(entry.Name()) {
+				continue
+			}
+			fullName := path.Join(dirName, entry.Name())
+			if it, err := template.UnmarshalFromEntry(entry, dirName); err != nil {
+				invalidFiles[fullName] = err
+			} else {
+				issueTemplates = append(issueTemplates, it)
 			}
 		}
-		if len(issueTemplates) > 0 {
-			return issueTemplates
-		}
 	}
-	return issueTemplates
+	return issueTemplates, invalidFiles
 }

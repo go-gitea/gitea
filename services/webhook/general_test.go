@@ -82,12 +82,13 @@ func pushTestPayload() *api.PushPayload {
 	}
 
 	return &api.PushPayload{
-		Ref:        "refs/heads/test",
-		Before:     "2020558fe2e34debb818a514715839cabd25e777",
-		After:      "2020558fe2e34debb818a514715839cabd25e778",
-		CompareURL: "",
-		HeadCommit: commit,
-		Commits:    []*api.PayloadCommit{commit, commit},
+		Ref:          "refs/heads/test",
+		Before:       "2020558fe2e34debb818a514715839cabd25e777",
+		After:        "2020558fe2e34debb818a514715839cabd25e778",
+		CompareURL:   "",
+		HeadCommit:   commit,
+		Commits:      []*api.PayloadCommit{commit, commit},
+		TotalCommits: 2,
 		Repo: &api.Repository{
 			HTMLURL:  "http://localhost:3000/test/repo",
 			Name:     "repo",
@@ -192,6 +193,22 @@ func pullRequestCommentTestPayload() *api.IssueCommentPayload {
 			Body:    "fixes bug #2",
 		},
 		IsPull: true,
+	}
+}
+
+func wikiTestPayload() *api.WikiPayload {
+	return &api.WikiPayload{
+		Repository: &api.Repository{
+			HTMLURL:  "http://localhost:3000/test/repo",
+			Name:     "repo",
+			FullName: "test/repo",
+		},
+		Sender: &api.User{
+			UserName:  "user1",
+			AvatarURL: "http://localhost:3000/user1/avatar",
+		},
+		Page:    "index",
+		Comment: "Wiki change comment",
 	}
 }
 
@@ -466,6 +483,44 @@ func TestGetPullRequestPayloadInfo(t *testing.T) {
 		assert.Equal(t, c.issueTitle, issueTitle, "case %d", i)
 		assert.Equal(t, c.attachmentText, attachmentText, "case %d", i)
 		assert.Equal(t, c.color, color, "case %d", i)
+	}
+}
+
+func TestGetWikiPayloadInfo(t *testing.T) {
+	p := wikiTestPayload()
+
+	cases := []struct {
+		action api.HookWikiAction
+		text   string
+		color  int
+		link   string
+	}{
+		{
+			api.HookWikiCreated,
+			"[test/repo] New wiki page 'index' (Wiki change comment) by user1",
+			greenColor,
+			"index",
+		},
+		{
+			api.HookWikiEdited,
+			"[test/repo] Wiki page 'index' edited (Wiki change comment) by user1",
+			yellowColor,
+			"index",
+		},
+		{
+			api.HookWikiDeleted,
+			"[test/repo] Wiki page 'index' deleted by user1",
+			redColor,
+			"index",
+		},
+	}
+
+	for i, c := range cases {
+		p.Action = c.action
+		text, color, link := getWikiPayloadInfo(p, noneLinkFormatter, true)
+		assert.Equal(t, c.text, text, "case %d", i)
+		assert.Equal(t, c.color, color, "case %d", i)
+		assert.Equal(t, c.link, link, "case %d", i)
 	}
 }
 
