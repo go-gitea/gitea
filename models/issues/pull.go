@@ -46,6 +46,10 @@ func (err ErrPullRequestNotExist) Error() string {
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
 }
 
+func (err ErrPullRequestNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrPullRequestAlreadyExists represents a "PullRequestAlreadyExists"-error
 type ErrPullRequestAlreadyExists struct {
 	ID         int64
@@ -66,6 +70,10 @@ func IsErrPullRequestAlreadyExists(err error) bool {
 func (err ErrPullRequestAlreadyExists) Error() string {
 	return fmt.Sprintf("pull request already exists for these targets [id: %d, issue_id: %d, head_repo_id: %d, base_repo_id: %d, head_branch: %s, base_branch: %s]",
 		err.ID, err.IssueID, err.HeadRepoID, err.BaseRepoID, err.HeadBranch, err.BaseBranch)
+}
+
+func (err ErrPullRequestAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrPullRequestHeadRepoMissing represents a "ErrPullRequestHeadRepoMissing" error

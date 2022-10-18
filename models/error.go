@@ -10,6 +10,7 @@ import (
 
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/util"
 )
 
 // ErrUserOwnRepos represents a "UserOwnRepos" kind of error.
@@ -63,8 +64,8 @@ type ErrNoPendingRepoTransfer struct {
 	RepoID int64
 }
 
-func (e ErrNoPendingRepoTransfer) Error() string {
-	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", e.RepoID)
+func (err ErrNoPendingRepoTransfer) Error() string {
+	return fmt.Sprintf("repository doesn't have a pending transfer [repo_id: %d]", err.RepoID)
 }
 
 // IsErrNoPendingTransfer is an error type when a repository has no pending
@@ -72,6 +73,10 @@ func (e ErrNoPendingRepoTransfer) Error() string {
 func IsErrNoPendingTransfer(err error) bool {
 	_, ok := err.(ErrNoPendingRepoTransfer)
 	return ok
+}
+
+func (err ErrNoPendingRepoTransfer) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrRepoTransferInProgress represents the state of a repository that has an
@@ -89,6 +94,10 @@ func IsErrRepoTransferInProgress(err error) bool {
 
 func (err ErrRepoTransferInProgress) Error() string {
 	return fmt.Sprintf("repository is already being transferred [uname: %s, name: %s]", err.Uname, err.Name)
+}
+
+func (err ErrRepoTransferInProgress) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrInvalidCloneAddr represents a "InvalidCloneAddr" kind of error.
@@ -124,6 +133,10 @@ func (err *ErrInvalidCloneAddr) Error() string {
 	return fmt.Sprintf("migration/cloning from '%s' is not allowed", err.Host)
 }
 
+func (err *ErrInvalidCloneAddr) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrUpdateTaskNotExist represents a "UpdateTaskNotExist" kind of error.
 type ErrUpdateTaskNotExist struct {
 	UUID string
@@ -137,6 +150,10 @@ func IsErrUpdateTaskNotExist(err error) bool {
 
 func (err ErrUpdateTaskNotExist) Error() string {
 	return fmt.Sprintf("update task does not exist [uuid: %s]", err.UUID)
+}
+
+func (err ErrUpdateTaskNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrInvalidTagName represents a "InvalidTagName" kind of error.
@@ -154,6 +171,10 @@ func (err ErrInvalidTagName) Error() string {
 	return fmt.Sprintf("release tag name is not valid [tag_name: %s]", err.TagName)
 }
 
+func (err ErrInvalidTagName) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrProtectedTagName represents a "ProtectedTagName" kind of error.
 type ErrProtectedTagName struct {
 	TagName string
@@ -169,6 +190,10 @@ func (err ErrProtectedTagName) Error() string {
 	return fmt.Sprintf("release tag name is protected [tag_name: %s]", err.TagName)
 }
 
+func (err ErrProtectedTagName) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrRepoFileAlreadyExists represents a "RepoFileAlreadyExist" kind of error.
 type ErrRepoFileAlreadyExists struct {
 	Path string
@@ -182,6 +207,10 @@ func IsErrRepoFileAlreadyExists(err error) bool {
 
 func (err ErrRepoFileAlreadyExists) Error() string {
 	return fmt.Sprintf("repository file already exists [path: %s]", err.Path)
+}
+
+func (err ErrRepoFileAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrRepoFileDoesNotExist represents a "RepoFileDoesNotExist" kind of error.
@@ -200,6 +229,10 @@ func (err ErrRepoFileDoesNotExist) Error() string {
 	return fmt.Sprintf("repository file does not exist [path: %s]", err.Path)
 }
 
+func (err ErrRepoFileDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrFilenameInvalid represents a "FilenameInvalid" kind of error.
 type ErrFilenameInvalid struct {
 	Path string
@@ -215,6 +248,10 @@ func (err ErrFilenameInvalid) Error() string {
 	return fmt.Sprintf("path contains a malformed path component [path: %s]", err.Path)
 }
 
+func (err ErrFilenameInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrUserCannotCommit represents "UserCannotCommit" kind of error.
 type ErrUserCannotCommit struct {
 	UserName string
@@ -228,6 +265,10 @@ func IsErrUserCannotCommit(err error) bool {
 
 func (err ErrUserCannotCommit) Error() string {
 	return fmt.Sprintf("user cannot commit to repo [user: %s]", err.UserName)
+}
+
+func (err ErrUserCannotCommit) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // ErrFilePathInvalid represents a "FilePathInvalid" kind of error.
@@ -251,6 +292,10 @@ func (err ErrFilePathInvalid) Error() string {
 	return fmt.Sprintf("path is invalid [path: %s]", err.Path)
 }
 
+func (err ErrFilePathInvalid) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrFilePathProtected represents a "FilePathProtected" kind of error.
 type ErrFilePathProtected struct {
 	Message string
@@ -268,6 +313,10 @@ func (err ErrFilePathProtected) Error() string {
 		return err.Message
 	}
 	return fmt.Sprintf("path is protected and can not be changed [path: %s]", err.Path)
+}
+
+func (err ErrFilePathProtected) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // __________                             .__
@@ -292,6 +341,10 @@ func (err ErrBranchDoesNotExist) Error() string {
 	return fmt.Sprintf("branch does not exist [name: %s]", err.BranchName)
 }
 
+func (err ErrBranchDoesNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrBranchAlreadyExists represents an error that branch with such name already exists.
 type ErrBranchAlreadyExists struct {
 	BranchName string
@@ -307,6 +360,10 @@ func (err ErrBranchAlreadyExists) Error() string {
 	return fmt.Sprintf("branch already exists [name: %s]", err.BranchName)
 }
 
+func (err ErrBranchAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrBranchNameConflict represents an error that branch name conflicts with other branch.
 type ErrBranchNameConflict struct {
 	BranchName string
@@ -320,6 +377,10 @@ func IsErrBranchNameConflict(err error) bool {
 
 func (err ErrBranchNameConflict) Error() string {
 	return fmt.Sprintf("branch conflicts with existing branch [name: %s]", err.BranchName)
+}
+
+func (err ErrBranchNameConflict) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrBranchesEqual represents an error that branch name conflicts with other branch.
@@ -338,6 +399,10 @@ func (err ErrBranchesEqual) Error() string {
 	return fmt.Sprintf("branches are equal [head: %sm base: %s]", err.HeadBranchName, err.BaseBranchName)
 }
 
+func (err ErrBranchesEqual) Unwrap() error {
+	return util.ErrInvalidArgument
+}
+
 // ErrDisallowedToMerge represents an error that a branch is protected and the current user is not allowed to modify it.
 type ErrDisallowedToMerge struct {
 	Reason string
@@ -353,6 +418,10 @@ func (err ErrDisallowedToMerge) Error() string {
 	return fmt.Sprintf("not allowed to merge [reason: %s]", err.Reason)
 }
 
+func (err ErrDisallowedToMerge) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrTagAlreadyExists represents an error that tag with such name already exists.
 type ErrTagAlreadyExists struct {
 	TagName string
@@ -366,6 +435,10 @@ func IsErrTagAlreadyExists(err error) bool {
 
 func (err ErrTagAlreadyExists) Error() string {
 	return fmt.Sprintf("tag already exists [name: %s]", err.TagName)
+}
+
+func (err ErrTagAlreadyExists) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrSHADoesNotMatch represents a "SHADoesNotMatch" kind of error.
@@ -398,6 +471,10 @@ func IsErrSHANotFound(err error) bool {
 
 func (err ErrSHANotFound) Error() string {
 	return fmt.Sprintf("sha not found [%s]", err.SHA)
+}
+
+func (err ErrSHANotFound) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrCommitIDDoesNotMatch represents a "CommitIDDoesNotMatch" kind of error.
@@ -444,6 +521,10 @@ func IsErrInvalidMergeStyle(err error) bool {
 func (err ErrInvalidMergeStyle) Error() string {
 	return fmt.Sprintf("merge strategy is not allowed or is invalid [repo_id: %d, strategy: %s]",
 		err.ID, err.Style)
+}
+
+func (err ErrInvalidMergeStyle) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ErrMergeConflicts represents an error if merging fails with a conflict
