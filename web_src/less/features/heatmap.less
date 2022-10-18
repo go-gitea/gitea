@@ -1,25 +1,27 @@
 #user-heatmap {
   width: 100%;
-  text-align: center;
+  font-size: 9px;
   position: relative;
   min-height: 125px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  > svg {
-    width: 100%;
-  }
-
-  svg:not(:root) {
-    overflow: inherit;
-    padding: 0 !important;
-  }
 
   text {
     fill: currentcolor !important;
   }
 
+  // for the "Less" and "More" legend
+  .vch__legend .vch__legend {
+    display: flex;
+    font-size: 11px;
+    align-items: center;
+    justify-content: right;
+  }
+  .vch__legend .vch__legend div:first-child,
+  .vch__legend .vch__legend div:last-child {
+    display: inline-block;
+    padding: 0 5px;
+  }
+
+  // move the "? contributions in the last ? months" text from top to bottom
   .total-contributions {
     font-size: 11px;
     position: absolute;

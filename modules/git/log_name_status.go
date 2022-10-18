@@ -14,6 +14,8 @@ import (
 	"sort"
 	"strings"
 
+	"code.gitea.io/gitea/modules/container"
+
 	"github.com/djherbis/buffer"
 	"github.com/djherbis/nio/v3"
 )
@@ -339,7 +341,7 @@ func WalkGitLog(ctx context.Context, repo *Repository, head *Commit, treepath st
 	lastEmptyParent := head.ID.String()
 	commitSinceLastEmptyParent := uint64(0)
 	commitSinceNextRestart := uint64(0)
-	parentRemaining := map[string]bool{}
+	parentRemaining := make(container.Set[string])
 
 	changed := make([]bool, len(paths))
 
@@ -365,7 +367,7 @@ heaploop:
 		if current == nil {
 			break heaploop
 		}
-		delete(parentRemaining, current.CommitID)
+		parentRemaining.Remove(current.CommitID)
 		if current.Paths != nil {
 			for i, found := range current.Paths {
 				if !found {
@@ -410,14 +412,12 @@ heaploop:
 					}
 				}
 				g = NewLogNameStatusRepoParser(ctx, repo.Path, lastEmptyParent, treepath, remainingPaths...)
-				parentRemaining = map[string]bool{}
+				parentRemaining = make(container.Set[string])
 				nextRestart = (remaining * 3) / 4
 				continue heaploop
 			}
 		}
-		for _, parent := range current.ParentIDs {
-			parentRemaining[parent] = true
-		}
+		parentRemaining.AddMultiple(current.ParentIDs...)
 	}
 	g.Close()
 

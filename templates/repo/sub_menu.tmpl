@@ -1,3 +1,4 @@
+{{if and (not .HideRepoInfo) (not .IsBlame)}}
 <div class="ui segments repository-summary{{if and (.Permission.CanRead $.UnitTypeCode) (not .IsEmptyRepo) .LanguageStats}} repository-summary-language-stats{{end}} mt-2 mb-0">
 	<div class="ui segment sub-menu repository-menu">
 		<div class="ui two horizontal center link list">
@@ -44,3 +45,4 @@
 	</a>
 	{{end}}
 </div>
+{{end}}

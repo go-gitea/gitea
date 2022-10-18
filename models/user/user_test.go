@@ -102,7 +102,7 @@ func TestSearchUsers(t *testing.T) {
 		[]int64{9})
 
 	testUserSuccess(&user_model.SearchUserOptions{OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
-		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 28, 29, 30, 32})
+		[]int64{1, 2, 4, 5, 8, 10, 11, 12, 13, 14, 15, 16, 18, 20, 21, 24, 27, 28, 29, 30, 32})
 
 	testUserSuccess(&user_model.SearchUserOptions{Keyword: "user1", OrderBy: "id ASC", ListOptions: db.ListOptions{Page: 1}, IsActive: util.OptionalBoolTrue},
 		[]int64{1, 10, 11, 12, 13, 14, 15, 16, 18})
@@ -302,8 +302,24 @@ func TestUpdateUser(t *testing.T) {
 	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.True(t, user.KeepActivityPrivate)
 
+	newEmail := "new_" + user.Email
+	user.Email = newEmail
+	assert.NoError(t, user_model.UpdateUser(db.DefaultContext, user, true))
+	user = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	assert.Equal(t, newEmail, user.Email)
+
 	user.Email = "no mail@mail.org"
 	assert.Error(t, user_model.UpdateUser(db.DefaultContext, user, true))
+}
+
+func TestUpdateUserEmailAlreadyUsed(t *testing.T) {
+	assert.NoError(t, unittest.PrepareTestDatabase())
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+
+	user2.Email = user3.Email
+	err := user_model.UpdateUser(db.DefaultContext, user2, true)
+	assert.True(t, user_model.IsErrEmailAlreadyUsed(err))
 }
 
 func TestNewUserRedirect(t *testing.T) {
