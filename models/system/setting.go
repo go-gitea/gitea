@@ -89,6 +89,10 @@ func GetSetting(key string) (*Setting, error) {
 
 // GetSettings returns specific settings
 func GetSettings(keys []string) (map[string]*Setting, error) {
+	if db.DefaultContext == nil {
+		return map[string]*Setting{}, nil
+	}
+
 	for i := 0; i < len(keys); i++ {
 		keys[i] = strings.ToLower(keys[i])
 	}
