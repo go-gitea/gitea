@@ -21,4 +21,4 @@ echo "Run gofumpt with Go language version $GO_VERSION ..."
 gofumpt -extra -lang "$GO_VERSION" "$1" .
 
 echo "Run codeformat ..."
-$GO run ./build/codeformat.go "$1" .
+"$GO" run ./build/codeformat.go "$1" .
