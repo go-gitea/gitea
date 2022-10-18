@@ -619,7 +619,7 @@ func handleUserCreated(ctx *context.Context, u *user_model.User, gothUser *goth.
 	// update external user information
 	if gothUser != nil {
 		if err := externalaccount.UpdateExternalUser(u, *gothUser); err != nil {
-			if !user_model.IsErrExternalLoginUserNotExist(err) {
+			if !errors.Is(err, util.ErrNotExist) {
 				log.Error("UpdateExternalUser failed: %v", err)
 			}
 		}
