@@ -38,7 +38,7 @@ type file struct {
 var _ File = (*file)(nil)
 
 func (f *file) readAt(fileMeta *FileMeta, offset int64, p []byte) (n int, err error) {
-	if f.offset >= fileMeta.FileSize {
+	if offset >= fileMeta.FileSize {
 		return 0, io.EOF
 	}
 

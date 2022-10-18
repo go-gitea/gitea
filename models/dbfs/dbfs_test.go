@@ -13,9 +13,8 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/unittest"
 
-	"github.com/stretchr/testify/assert"
-
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/stretchr/testify/assert"
 )
 
 func changeDefaultFileBlockSize(n int64) (restore func()) {
@@ -151,4 +150,37 @@ func TestDbfsReadWrite(t *testing.T) {
 	assert.EqualValues(t, "line 2\n", line)
 	_, err = f2r.ReadString('\n')
 	assert.ErrorIs(t, err, io.EOF)
+}
+
+func TestDbfsSeekWrite(t *testing.T) {
+	defer changeDefaultFileBlockSize(4)()
+
+	assert.NoError(t, unittest.PrepareTestDatabase())
+
+	f, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDWR|os.O_CREATE)
+	assert.NoError(t, err)
+	defer f.Close()
+
+	n, err := f.Write([]byte("111"))
+	assert.NoError(t, err)
+
+	_, err = f.Seek(int64(n), io.SeekStart)
+	assert.NoError(t, err)
+
+	_, err = f.Write([]byte("222"))
+	assert.NoError(t, err)
+
+	_, err = f.Seek(int64(n), io.SeekStart)
+	assert.NoError(t, err)
+
+	_, err = f.Write([]byte("333"))
+	assert.NoError(t, err)
+
+	fr, err := OpenFile(db.DefaultContext, "test2.log", os.O_RDONLY)
+	assert.NoError(t, err)
+	defer f.Close()
+
+	buf, err := io.ReadAll(fr)
+	assert.NoError(t, err)
+	assert.EqualValues(t, "111333", string(buf))
 }
