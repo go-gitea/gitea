@@ -1,12 +1,12 @@
-<a class="ui link commit-statuses-trigger">{{template "repo/commit_status" .Status}}</a>
-<div class="ui popup very wide fixed basic commit-statuses">
+<a class="ui link commit-statuses-trigger vm"{{if eq (len .Statuses) 1}}{{$status := index .Statuses 0}}{{if $status.TargetURL}} href="{{$status.TargetURL}}"{{end}}{{end}}>{{template "repo/commit_status" .Status}}</a>
+<div class="ui commit-statuses-popup commit-statuses tippy-target">
 	<div class="ui relaxed list divided">
 		{{range .Statuses}}
 			<div class="ui item singular-status df">
-				<span>{{template "repo/commit_status" .}}</span>
-				<span class="ui f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
+				{{template "repo/commit_status" .}}
+				<span class="ui ml-3 f1">{{.Context}} <span class="text grey">{{.Description}}</span></span>
 				{{if .TargetURL}}
-					<div class="ui"><a href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a></div>
+					<a class="ml-3" href="{{.TargetURL}}" target="_blank" rel="noopener noreferrer">{{$.root.locale.Tr "repo.pulls.status_checks_details"}}</a>
 				{{end}}
 			</div>
 		{{end}}

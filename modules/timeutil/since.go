@@ -234,7 +234,7 @@ func TimeSince(then time.Time, lang translation.Locale) template.HTML {
 }
 
 func htmlTimeSince(then, now time.Time, lang translation.Locale) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+	return template.HTML(fmt.Sprintf(`<span class="time-since tooltip" data-content="%s">%s</span>`,
 		then.In(setting.DefaultUILocation).Format(GetTimeFormat(lang.Language())),
 		timeSince(then, now, lang)))
 }
@@ -245,7 +245,7 @@ func TimeSinceUnix(then TimeStamp, lang translation.Locale) template.HTML {
 }
 
 func htmlTimeSinceUnix(then, now TimeStamp, lang translation.Locale) template.HTML {
-	return template.HTML(fmt.Sprintf(`<span class="time-since" title="%s">%s</span>`,
+	return template.HTML(fmt.Sprintf(`<span class="time-since tooltip" data-content="%s">%s</span>`,
 		then.FormatInLocation(GetTimeFormat(lang.Language()), setting.DefaultUILocation),
 		timeSinceUnix(int64(then), int64(now), lang)))
 }

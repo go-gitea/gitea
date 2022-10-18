@@ -309,7 +309,7 @@ func TestRegExp_mentionPattern(t *testing.T) {
 		pat string
 		exp string
 	}{
-		{"@Unknwon", "@Unknwon"},
+		{"@User", "@User"},
 		{"@ANT_123", "@ANT_123"},
 		{"@xxx-DiN0-z-A..uru..s-xxx", "@xxx-DiN0-z-A..uru..s-xxx"},
 		{"   @lol   ", "@lol"},

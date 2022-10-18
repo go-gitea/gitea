@@ -26,6 +26,3 @@ indent_style = tab
 
 [*.svg]
 insert_final_newline = false
-
-[*.md]
-trim_trailing_whitespace = false

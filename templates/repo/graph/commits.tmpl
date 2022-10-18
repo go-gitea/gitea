@@ -1,10 +1,10 @@
 <div id="rev-container">
 	<ul id="rev-list">
-		{{ range $commitI, $commit := .Graph.Commits }}
+		{{range $commitI, $commit := .Graph.Commits}}
 			<li {{if $commit.Rev}}id="commit-{{$commit.Rev}}"{{end}} data-flow="{{$commit.Flow}}">
-				{{ if $commit.OnlyRelation }}
+				{{if $commit.OnlyRelation}}
 					<span></span>
-				{{ else }}
+				{{else}}
 					<span class="sha" id="{{$commit.ShortRev}}">
 						{{$class := "ui sha label"}}
 						{{if $commit.Commit.Signature}}
@@ -72,8 +72,8 @@
 						{{end}}
 					</span>
 					<span class="time df ac">{{$commit.Date}}</span>
-				{{ end }}
+				{{end}}
 			</li>
-		{{ end }}
+		{{end}}
 	</ul>
 </div>

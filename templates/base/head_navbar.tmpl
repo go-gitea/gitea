@@ -5,7 +5,7 @@
 	{{end}}
 	<div class="item brand" style="justify-content: space-between;">
 		<a href="{{AppSubUrl}}/" aria-label="{{if .IsSigned}}{{.locale.Tr "dashboard"}}{{else}}{{.locale.Tr "home"}}{{end}}">
-			<img class="ui mini image" width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
+			<img width="30" height="30" src="{{AssetUrlPrefix}}/img/logo.svg" alt="{{.locale.Tr "logo"}}" aria-hidden="true">
 		</a>
 		{{if .IsSigned}}
 		<a href="{{AppSubUrl}}/notifications" class="tooltip mobile-only" data-content='{{.locale.Tr "notifications"}}'>
@@ -86,10 +86,10 @@
 					<span class="sr-mobile-only">{{.locale.Tr "active_stopwatch"}}</span>
 				</span>
 			</a>
-			<div class="ui popup very wide">
+			<div class="active-stopwatch-popup tippy-target">
 				<div class="df ac">
 					<a class="stopwatch-link df ac" href="{{.ActiveStopwatch.IssueLink}}">
-						{{svg "octicon-issue-opened"}}
+						{{svg "octicon-issue-opened" 16 "mr-3"}}
 						<span class="stopwatch-issue">{{.ActiveStopwatch.RepoSlug}}#{{.ActiveStopwatch.IssueIndex}}</span>
 						<span class="ui primary label stopwatch-time my-0 mx-4" data-seconds="{{.ActiveStopwatch.Seconds}}">
 							{{if .ActiveStopwatch}}{{Sec2Time .ActiveStopwatch.Seconds}}{{end}}
@@ -98,6 +98,7 @@
 					<form class="stopwatch-commit" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/toggle">
 						{{.CsrfTokenHtml}}
 						<button
+							type="submit"
 							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.locale.Tr "repo.issues.stop_tracking"}}"
 							data-position="top right"
@@ -106,6 +107,7 @@
 					<form class="stopwatch-cancel" method="POST" action="{{.ActiveStopwatch.IssueLink}}/times/stopwatch/cancel">
 						{{.CsrfTokenHtml}}
 						<button
+							type="submit"
 							class="ui button mini compact basic icon fitted tooltip"
 							data-content="{{.locale.Tr "repo.issues.cancel_tracking"}}"
 							data-position="top right"
@@ -114,7 +116,7 @@
 				</div>
 			</div>
 
-			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content='{{.locale.Tr "notifications"}}'>
+			<a href="{{AppSubUrl}}/notifications" class="item tooltip not-mobile" data-content="{{.locale.Tr "notifications"}}" aria-label="{{.locale.Tr "notifications"}}">
 				<span class="text">
 					<span class="fitted">{{svg "octicon-bell"}}</span>
 					<span class="ui red label {{if not $notificationUnreadCount}}hidden{{end}} notification_count">
@@ -169,6 +171,10 @@
 							{{.locale.Tr "your_starred"}}
 						</a>
 					{{end}}
+					<a class="item" href="{{AppSubUrl}}/notifications/subscriptions">
+						{{svg "octicon-bell"}}
+						{{.locale.Tr "notification.subscriptions"}}<!-- Subscriptions -->
+					</a>
 					<a class="{{if .PageIsUserSettings}}active{{end}} item" href="{{AppSubUrl}}/user/settings">
 						{{svg "octicon-tools"}}
 						{{.locale.Tr "your_settings"}}<!-- Your settings -->

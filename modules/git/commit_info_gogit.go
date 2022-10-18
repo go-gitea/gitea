@@ -17,7 +17,7 @@ import (
 )
 
 // GetCommitsInfo gets information of all commits that are corresponding to these entries
-func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string, cache *LastCommitCache) ([]CommitInfo, *Commit, error) {
+func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath string) ([]CommitInfo, *Commit, error) {
 	entryPaths := make([]string, len(tes)+1)
 	// Get the commit for the treePath itself
 	entryPaths[0] = ""
@@ -35,15 +35,15 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		return nil, nil, err
 	}
 
-	var revs map[string]*object.Commit
-	if cache != nil {
+	var revs map[string]*Commit
+	if commit.repo.LastCommitCache != nil {
 		var unHitPaths []string
-		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, cache)
+		revs, unHitPaths, err = getLastCommitForPathsByCache(commit.ID.String(), treePath, entryPaths, commit.repo.LastCommitCache)
 		if err != nil {
 			return nil, nil, err
 		}
 		if len(unHitPaths) > 0 {
-			revs2, err := GetLastCommitForPaths(ctx, cache, c, treePath, unHitPaths)
+			revs2, err := GetLastCommitForPaths(ctx, commit.repo.LastCommitCache, c, treePath, unHitPaths)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -68,8 +68,7 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 		}
 
 		// Check if we have found a commit for this entry in time
-		if rev, ok := revs[entry.Name()]; ok {
-			entryCommit := convertCommit(rev)
+		if entryCommit, ok := revs[entry.Name()]; ok {
 			commitsInfo[i].Commit = entryCommit
 		}
 
@@ -96,10 +95,10 @@ func (tes Entries) GetCommitsInfo(ctx context.Context, commit *Commit, treePath 
 	// get it for free during the tree traversal and it's used for listing
 	// pages to display information about newest commit for a given path.
 	var treeCommit *Commit
+	var ok bool
 	if treePath == "" {
 		treeCommit = commit
-	} else if rev, ok := revs[""]; ok {
-		treeCommit = convertCommit(rev)
+	} else if treeCommit, ok = revs[""]; ok {
 		treeCommit.repo = commit.repo
 	}
 	return commitsInfo, treeCommit, nil
@@ -155,16 +154,16 @@ func getFileHashes(c cgobject.CommitNode, treePath string, paths []string) (map[
 	return hashes, nil
 }
 
-func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*object.Commit, []string, error) {
+func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cache *LastCommitCache) (map[string]*Commit, []string, error) {
 	var unHitEntryPaths []string
-	results := make(map[string]*object.Commit)
+	results := make(map[string]*Commit)
 	for _, p := range paths {
 		lastCommit, err := cache.Get(commitID, path.Join(treePath, p))
 		if err != nil {
 			return nil, nil, err
 		}
 		if lastCommit != nil {
-			results[p] = lastCommit.(*object.Commit)
+			results[p] = lastCommit
 			continue
 		}
 
@@ -175,7 +174,7 @@ func getLastCommitForPathsByCache(commitID, treePath string, paths []string, cac
 }
 
 // GetLastCommitForPaths returns last commit information
-func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*object.Commit, error) {
+func GetLastCommitForPaths(ctx context.Context, cache *LastCommitCache, c cgobject.CommitNode, treePath string, paths []string) (map[string]*Commit, error) {
 	refSha := c.ID().String()
 
 	// We do a tree traversal with nodes sorted by commit time
@@ -293,13 +292,13 @@ heaploop:
 	}
 
 	// Post-processing
-	result := make(map[string]*object.Commit)
+	result := make(map[string]*Commit)
 	for path, commitNode := range resultNodes {
-		var err error
-		result[path], err = commitNode.Commit()
+		commit, err := commitNode.Commit()
 		if err != nil {
 			return nil, err
 		}
+		result[path] = convertCommit(commit)
 	}
 
 	return result, nil

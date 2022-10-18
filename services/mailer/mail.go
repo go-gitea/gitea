@@ -17,7 +17,7 @@ import (
 	texttmpl "text/template"
 	"time"
 
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
@@ -54,12 +54,6 @@ var (
 	subjectTemplates    *texttmpl.Template
 	subjectRemoveSpaces = regexp.MustCompile(`[\s]+`)
 )
-
-// InitMailRender initializes the mail renderer
-func InitMailRender(subjectTpl *texttmpl.Template, bodyTpl *template.Template) {
-	subjectTemplates = subjectTpl
-	bodyTemplates = bodyTpl
-}
 
 // SendTestMail sends a test mail
 func SendTestMail(email string) error {
@@ -308,7 +302,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 
 	// Make sure to compose independent messages to avoid leaking user emails
 	msgID := createReference(ctx.Issue, ctx.Comment, ctx.ActionType)
-	reference := createReference(ctx.Issue, nil, models.ActionType(0))
+	reference := createReference(ctx.Issue, nil, activities_model.ActionType(0))
 
 	msgs := make([]*Message, 0, len(recipients))
 	for _, recipient := range recipients {
@@ -329,7 +323,7 @@ func composeIssueCommentMessages(ctx *mailCommentContext, lang string, recipient
 	return msgs, nil
 }
 
-func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType models.ActionType) string {
+func createReference(issue *issues_model.Issue, comment *issues_model.Comment, actionType activities_model.ActionType) string {
 	var path string
 	if issue.IsPull {
 		path = "pulls"
@@ -342,13 +336,13 @@ func createReference(issue *issues_model.Issue, comment *issues_model.Comment, a
 		extra = fmt.Sprintf("/comment/%d", comment.ID)
 	} else {
 		switch actionType {
-		case models.ActionCloseIssue, models.ActionClosePullRequest:
+		case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 			extra = fmt.Sprintf("/close/%d", time.Now().UnixNano()/1e6)
-		case models.ActionReopenIssue, models.ActionReopenPullRequest:
+		case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 			extra = fmt.Sprintf("/reopen/%d", time.Now().UnixNano()/1e6)
-		case models.ActionMergePullRequest:
+		case activities_model.ActionMergePullRequest:
 			extra = fmt.Sprintf("/merge/%d", time.Now().UnixNano()/1e6)
-		case models.ActionPullRequestReadyForReview:
+		case activities_model.ActionPullRequestReadyForReview:
 			extra = fmt.Sprintf("/ready/%d", time.Now().UnixNano()/1e6)
 		}
 	}
@@ -426,7 +420,7 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 			Context:    context.TODO(), // TODO: use a correct context
 			Issue:      issue,
 			Doer:       doer,
-			ActionType: models.ActionType(0),
+			ActionType: activities_model.ActionType(0),
 			Content:    content,
 			Comment:    comment,
 		}, lang, tos, false, "issue assigned")
@@ -439,8 +433,8 @@ func SendIssueAssignedMail(issue *issues_model.Issue, doer *user_model.User, con
 }
 
 // actionToTemplate returns the type and name of the action facing the user
-// (slightly different from models.ActionType) and the name of the template to use (based on availability)
-func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
+// (slightly different from activities_model.ActionType) and the name of the template to use (based on availability)
+func actionToTemplate(issue *issues_model.Issue, actionType activities_model.ActionType,
 	commentType issues_model.CommentType, reviewType issues_model.ReviewType,
 ) (typeName, name, template string) {
 	if issue.IsPull {
@@ -449,19 +443,19 @@ func actionToTemplate(issue *issues_model.Issue, actionType models.ActionType,
 		typeName = "issue"
 	}
 	switch actionType {
-	case models.ActionCreateIssue, models.ActionCreatePullRequest:
+	case activities_model.ActionCreateIssue, activities_model.ActionCreatePullRequest:
 		name = "new"
-	case models.ActionCommentIssue, models.ActionCommentPull:
+	case activities_model.ActionCommentIssue, activities_model.ActionCommentPull:
 		name = "comment"
-	case models.ActionCloseIssue, models.ActionClosePullRequest:
+	case activities_model.ActionCloseIssue, activities_model.ActionClosePullRequest:
 		name = "close"
-	case models.ActionReopenIssue, models.ActionReopenPullRequest:
+	case activities_model.ActionReopenIssue, activities_model.ActionReopenPullRequest:
 		name = "reopen"
-	case models.ActionMergePullRequest:
+	case activities_model.ActionMergePullRequest:
 		name = "merge"
-	case models.ActionPullReviewDismissed:
+	case activities_model.ActionPullReviewDismissed:
 		name = "review_dismissed"
-	case models.ActionPullRequestReadyForReview:
+	case activities_model.ActionPullRequestReadyForReview:
 		name = "ready_for_review"
 	default:
 		switch commentType {

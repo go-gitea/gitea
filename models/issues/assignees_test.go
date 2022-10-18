@@ -68,8 +68,8 @@ func TestUpdateAssignee(t *testing.T) {
 func TestMakeIDsFromAPIAssigneesToAdd(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	_ = unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 
 	IDs, err := issues_model.MakeIDsFromAPIAssigneesToAdd("", []string{""})
 	assert.NoError(t, err)

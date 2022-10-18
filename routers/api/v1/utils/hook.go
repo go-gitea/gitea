@@ -15,7 +15,6 @@ import (
 	"code.gitea.io/gitea/modules/json"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/util"
-	"code.gitea.io/gitea/routers/utils"
 	webhook_service "code.gitea.io/gitea/services/webhook"
 )
 
@@ -127,6 +126,7 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 				PullRequestComment:   pullHook(form.Events, string(webhook.HookEventPullRequestComment)),
 				PullRequestReview:    pullHook(form.Events, "pull_request_review"),
 				PullRequestSync:      pullHook(form.Events, string(webhook.HookEventPullRequestSync)),
+				Wiki:                 util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true),
 				Repository:           util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true),
 				Release:              util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true),
 			},
@@ -141,14 +141,15 @@ func addHook(ctx *context.APIContext, form *api.CreateHookOption, orgID, repoID 
 			ctx.Error(http.StatusUnprocessableEntity, "", "Missing config option: channel")
 			return nil, false
 		}
+		channel = strings.TrimSpace(channel)
 
-		if !utils.IsValidSlackChannel(channel) {
+		if !webhook_service.IsValidSlackChannel(channel) {
 			ctx.Error(http.StatusBadRequest, "", "Invalid slack channel name")
 			return nil, false
 		}
 
 		meta, err := json.Marshal(&webhook_service.SlackMeta{
-			Channel:  strings.TrimSpace(channel),
+			Channel:  channel,
 			Username: form.Config["username"],
 			IconURL:  form.Config["icon_url"],
 			Color:    form.Config["color"],
@@ -249,6 +250,7 @@ func editHook(ctx *context.APIContext, form *api.EditHookOption, w *webhook.Webh
 	w.Delete = util.IsStringInSlice(string(webhook.HookEventDelete), form.Events, true)
 	w.Fork = util.IsStringInSlice(string(webhook.HookEventFork), form.Events, true)
 	w.Repository = util.IsStringInSlice(string(webhook.HookEventRepository), form.Events, true)
+	w.Wiki = util.IsStringInSlice(string(webhook.HookEventWiki), form.Events, true)
 	w.Release = util.IsStringInSlice(string(webhook.HookEventRelease), form.Events, true)
 	w.BranchFilter = form.BranchFilter
 

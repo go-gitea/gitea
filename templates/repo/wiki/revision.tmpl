@@ -1,12 +1,13 @@
 {{template "base/head" .}}
 <div class="page-content repository wiki revisions">
 	{{template "repo/header" .}}
-	{{ $title := .title}}
+	{{$title := .title}}
 	<div class="ui container">
 		<div class="ui stackable grid">
 			<div class="ui eight wide column text right df ac je">
 				<div class="ui action small input" id="clone-panel">
 					{{template "repo/clone_buttons" .}}
+					{{template "repo/clone_script" .}}
 				</div>
 			</div>
 			<div class="ui header eight wide column">

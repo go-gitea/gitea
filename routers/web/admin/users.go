@@ -209,7 +209,11 @@ func NewUserPost(ctx *context.Context) {
 func prepareUserInfo(ctx *context.Context) *user_model.User {
 	u, err := user_model.GetUserByID(ctx.ParamsInt64(":userid"))
 	if err != nil {
-		ctx.ServerError("GetUserByID", err)
+		if user_model.IsErrUserNotExist(err) {
+			ctx.Redirect(setting.AppSubURL + "/admin/users")
+		} else {
+			ctx.ServerError("GetUserByID", err)
+		}
 		return nil
 	}
 	ctx.Data["User"] = u

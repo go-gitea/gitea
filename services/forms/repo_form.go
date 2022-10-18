@@ -17,7 +17,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/web/middleware"
-	"code.gitea.io/gitea/routers/utils"
+	"code.gitea.io/gitea/services/webhook"
 
 	"gitea.com/go-chi/binding"
 )
@@ -34,7 +34,7 @@ type CreateRepoForm struct {
 	UID           int64  `binding:"Required"`
 	RepoName      string `binding:"Required;AlphaDashDot;MaxSize(100)"`
 	Private       bool
-	Description   string `binding:"MaxSize(255)"`
+	Description   string `binding:"MaxSize(2048)"`
 	DefaultBranch string `binding:"GitRefName;MaxSize(100)"`
 	AutoInit      bool
 	Gitignores    string
@@ -76,7 +76,7 @@ type MigrateRepoForm struct {
 	LFS            bool   `json:"lfs"`
 	LFSEndpoint    string `json:"lfs_endpoint"`
 	Private        bool   `json:"private"`
-	Description    string `json:"description" binding:"MaxSize(255)"`
+	Description    string `json:"description" binding:"MaxSize(2048)"`
 	Wiki           bool   `json:"wiki"`
 	Milestones     bool   `json:"milestones"`
 	Labels         bool   `json:"labels"`
@@ -116,8 +116,8 @@ func ParseRemoteAddr(remoteAddr, authUsername, authPassword string) (string, err
 // RepoSettingForm form for changing repository settings
 type RepoSettingForm struct {
 	RepoName               string `binding:"Required;AlphaDashDot;MaxSize(100)"`
-	Description            string `binding:"MaxSize(255)"`
-	Website                string `binding:"ValidUrl;MaxSize(255)"`
+	Description            string `binding:"MaxSize(2048)"`
+	Website                string `binding:"ValidUrl;MaxSize(1024)"`
 	Interval               string
 	MirrorAddress          string
 	MirrorUsername         string
@@ -215,12 +215,12 @@ func (f *ProtectBranchForm) Validate(req *http.Request, errs binding.Errors) bin
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
 }
 
-//  __      __      ___.   .__    .__            __
-// /  \    /  \ ____\_ |__ |  |__ |  |__   ____ |  | __
-// \   \/\/   // __ \| __ \|  |  \|  |  \ /  _ \|  |/ /
-//  \        /\  ___/| \_\ \   Y  \   Y  (  <_> )    <
-//   \__/\  /  \___  >___  /___|  /___|  /\____/|__|_ \
-//        \/       \/    \/     \/     \/            \/
+//  __      __      ___.   .__                   __
+// /  \    /  \ ____\_ |__ |  |__   ____   ____ |  | __
+// \   \/\/   // __ \| __ \|  |  \ /  _ \ /  _ \|  |/ /
+//  \        /\  ___/| \_\ \   Y  (  <_> |  <_> )    <
+//   \__/\  /  \___  >___  /___|  /\____/ \____/|__|_ \
+//        \/       \/    \/     \/                   \/
 
 // WebhookForm form for changing web hook
 type WebhookForm struct {
@@ -242,6 +242,7 @@ type WebhookForm struct {
 	PullRequestComment   bool
 	PullRequestReview    bool
 	PullRequestSync      bool
+	Wiki                 bool
 	Repository           bool
 	Package              bool
 	Active               bool
@@ -305,12 +306,14 @@ type NewSlackHookForm struct {
 // Validate validates the fields
 func (f *NewSlackHookForm) Validate(req *http.Request, errs binding.Errors) binding.Errors {
 	ctx := context.GetContext(req)
+	if !webhook.IsValidSlackChannel(strings.TrimSpace(f.Channel)) {
+		errs = append(errs, binding.Error{
+			FieldNames:     []string{"Channel"},
+			Classification: "",
+			Message:        ctx.Tr("repo.settings.add_webhook.invalid_channel_name"),
+		})
+	}
 	return middleware.Validate(errs, ctx.Data, f, ctx.Locale)
-}
-
-// HasInvalidChannel validates the channel name is in the right format
-func (f NewSlackHookForm) HasInvalidChannel() bool {
-	return !utils.IsValidSlackChannel(f.Channel)
 }
 
 // NewDiscordHookForm form for creating discord hook

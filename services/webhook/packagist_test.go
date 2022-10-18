@@ -116,6 +116,26 @@ func TestPackagistPayload(t *testing.T) {
 		require.Nil(t, pl)
 	})
 
+	t.Run("Wiki", func(t *testing.T) {
+		p := wikiTestPayload()
+
+		d := new(PackagistPayload)
+		p.Action = api.HookWikiCreated
+		pl, err := d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiEdited
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+
+		p.Action = api.HookWikiDeleted
+		pl, err = d.Wiki(p)
+		require.NoError(t, err)
+		require.Nil(t, pl)
+	})
+
 	t.Run("Release", func(t *testing.T) {
 		p := pullReleaseTestPayload()
 

@@ -11,10 +11,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -26,7 +26,7 @@ import (
 )
 
 // AdoptRepository adopts pre-existing repository files for the user/organization.
-func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*repo_model.Repository, error) {
+func AdoptRepository(doer, u *user_model.User, opts repo_module.CreateRepoOptions) (*repo_model.Repository, error) {
 	if !doer.IsAdmin && !u.CanCreateRepo() {
 		return nil, repo_model.ErrReachLimitOfRepo{
 			Limit: u.MaxRepoCreation,
@@ -67,7 +67,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 			}
 		}
 
-		if err := models.CreateRepository(ctx, doer, u, repo, true); err != nil {
+		if err := repo_module.CreateRepositoryByExample(ctx, doer, u, repo, true); err != nil {
 			return err
 		}
 		if err := adoptRepository(ctx, repoPath, doer, repo, opts); err != nil {
@@ -100,7 +100,7 @@ func AdoptRepository(doer, u *user_model.User, opts models.CreateRepoOptions) (*
 	return repo, nil
 }
 
-func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts models.CreateRepoOptions) (err error) {
+func adoptRepository(ctx context.Context, repoPath string, u *user_model.User, repo *repo_model.Repository, opts repo_module.CreateRepoOptions) (err error) {
 	isExist, err := util.IsExist(repoPath)
 	if err != nil {
 		log.Error("Unable to check if %s exists. Error: %v", repoPath, err)
@@ -258,12 +258,12 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	if len(repos) == len(repoNamesToCheck) {
 		return nil
 	}
-	repoNames := make(map[string]bool, len(repos))
+	repoNames := make(container.Set[string], len(repos))
 	for _, repo := range repos {
-		repoNames[repo.LowerName] = true
+		repoNames.Add(repo.LowerName)
 	}
 	for _, repoName := range repoNamesToCheck {
-		if _, ok := repoNames[repoName]; !ok {
+		if !repoNames.Contains(repoName) {
 			unadopted.add(filepath.Join(userName, repoName))
 		}
 	}

@@ -5,6 +5,7 @@
 		<input type="hidden" name="labels" value="{{.SelectLabels}}"/>
 		<input type="hidden" name="milestone" value="{{$.MilestoneID}}"/>
 		<input type="hidden" name="assignee" value="{{$.AssigneeID}}"/>
+		<input type="hidden" name="poster" value="{{$.PosterID}}"/>
 		<input name="q" value="{{.Keyword}}" placeholder="{{.locale.Tr "explore.search"}}...">
 		<button class="ui primary button" type="submit">{{.locale.Tr "explore.search"}}</button>
 	</div>

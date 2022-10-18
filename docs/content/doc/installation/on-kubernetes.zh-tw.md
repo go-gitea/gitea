@@ -26,7 +26,7 @@ helm install gitea gitea-charts/gitea
 
 若您想自訂安裝（包括使用 kubernetes ingress），請前往完整的 [Gitea helm chart configuration details](https://gitea.com/gitea/helm-chart/)
 
-##運行狀況檢查終端節點
+## 運行狀況檢查終端節點
 
 Gitea 附帶了一個運行狀況檢查端點 `/api/healthz`，你可以像這樣在 kubernetes 中配置它:
 

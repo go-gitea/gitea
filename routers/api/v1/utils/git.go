@@ -10,6 +10,7 @@ import (
 
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
+	"code.gitea.io/gitea/modules/log"
 )
 
 // ResolveRefOrSha resolve ref to sha if exist
@@ -19,6 +20,7 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 		return ""
 	}
 
+	sha := ref
 	// Search branches and tags
 	for _, refType := range []string{"heads", "tags"} {
 		refSHA, lastMethodName, err := searchRefCommitByType(ctx, refType, ref)
@@ -27,10 +29,19 @@ func ResolveRefOrSha(ctx *context.APIContext, ref string) string {
 			return ""
 		}
 		if refSHA != "" {
-			return refSHA
+			sha = refSHA
+			break
 		}
 	}
-	return ref
+
+	if ctx.Repo.GitRepo != nil {
+		err := ctx.Repo.GitRepo.AddLastCommitCache(ctx.Repo.Repository.GetCommitsCountCacheKey(ref, ref != sha), ctx.Repo.Repository.FullName(), sha)
+		if err != nil {
+			log.Error("Unable to get commits count for %s in %s. Error: %v", sha, ctx.Repo.Repository.FullName(), err)
+		}
+	}
+
+	return sha
 }
 
 // GetGitRefs return git references based on filter

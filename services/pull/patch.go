@@ -17,6 +17,7 @@ import (
 	"code.gitea.io/gitea/models"
 	issues_model "code.gitea.io/gitea/models/issues"
 	"code.gitea.io/gitea/models/unit"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
@@ -124,6 +125,7 @@ func (e *errMergeConflict) Error() string {
 }
 
 func attemptMerge(ctx context.Context, file *unmergedFile, tmpBasePath string, gitRepo *git.Repository) error {
+	log.Trace("Attempt to merge:\n%v", file)
 	switch {
 	case file.stage1 != nil && (file.stage2 == nil || file.stage3 == nil):
 		// 1. Deleted in one or both:
@@ -295,7 +297,8 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 		var treeHash string
 		treeHash, _, err = git.NewCommand(ctx, "write-tree").RunStdString(&git.RunOpts{Dir: tmpBasePath})
 		if err != nil {
-			return false, err
+			lsfiles, _, _ := git.NewCommand(ctx, "ls-files", "-u").RunStdString(&git.RunOpts{Dir: tmpBasePath})
+			return false, fmt.Errorf("unable to write unconflicted tree: %w\n`git ls-files -u`:\n%s", err, lsfiles)
 		}
 		treeHash = strings.TrimSpace(treeHash)
 		baseTree, err := gitRepo.GetTree("base")
@@ -407,7 +410,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 				const appliedPatchPrefix = "Applied patch to '"
 				const withConflicts = "' with conflicts."
 
-				conflictMap := map[string]bool{}
+				conflicts := make(container.Set[string])
 
 				// Now scan the output from the command
 				scanner := bufio.NewScanner(stderrReader)
@@ -416,7 +419,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 					if strings.HasPrefix(line, prefix) {
 						conflict = true
 						filepath := strings.TrimSpace(strings.Split(line[len(prefix):], ":")[0])
-						conflictMap[filepath] = true
+						conflicts.Add(filepath)
 					} else if is3way && line == threewayFailed {
 						conflict = true
 					} else if strings.HasPrefix(line, errorPrefix) {
@@ -425,7 +428,7 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 							if strings.HasSuffix(line, suffix) {
 								filepath := strings.TrimSpace(strings.TrimSuffix(line[len(errorPrefix):], suffix))
 								if filepath != "" {
-									conflictMap[filepath] = true
+									conflicts.Add(filepath)
 								}
 								break
 							}
@@ -434,18 +437,18 @@ func checkConflicts(ctx context.Context, pr *issues_model.PullRequest, gitRepo *
 						conflict = true
 						filepath := strings.TrimPrefix(strings.TrimSuffix(line, withConflicts), appliedPatchPrefix)
 						if filepath != "" {
-							conflictMap[filepath] = true
+							conflicts.Add(filepath)
 						}
 					}
 					// only list 10 conflicted files
-					if len(conflictMap) >= 10 {
+					if len(conflicts) >= 10 {
 						break
 					}
 				}
 
-				if len(conflictMap) > 0 {
-					pr.ConflictedFiles = make([]string, 0, len(conflictMap))
-					for key := range conflictMap {
+				if len(conflicts) > 0 {
+					pr.ConflictedFiles = make([]string, 0, len(conflicts))
+					for key := range conflicts {
 						pr.ConflictedFiles = append(pr.ConflictedFiles, key)
 					}
 				}

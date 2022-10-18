@@ -7,12 +7,10 @@ package repository
 import (
 	"context"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
 	repo_module "code.gitea.io/gitea/modules/repository"
 )
@@ -22,6 +20,11 @@ func GenerateIssueLabels(ctx context.Context, templateRepo, generateRepo *repo_m
 	templateLabels, err := issues_model.GetLabelsByRepoID(ctx, templateRepo.ID, "", db.ListOptions{})
 	if err != nil {
 		return err
+	}
+	// Prevent insert being called with an empty slice which would result in
+	// err "no element on slice when insert".
+	if len(templateLabels) == 0 {
+		return nil
 	}
 
 	newLabels := make([]*issues_model.Label, 0, len(templateLabels))
@@ -95,11 +98,6 @@ func GenerateRepository(doer, owner *user_model.User, templateRepo *repo_model.R
 
 		return nil
 	}); err != nil {
-		if generateRepo != nil && generateRepo.ID > 0 {
-			if errDelete := models.DeleteRepository(doer, owner.ID, generateRepo.ID); errDelete != nil {
-				log.Error("Rollback deleteRepository: %v", errDelete)
-			}
-		}
 		return nil, err
 	}
 

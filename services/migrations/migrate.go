@@ -14,8 +14,8 @@ import (
 	"strings"
 
 	"code.gitea.io/gitea/models"
-	admin_model "code.gitea.io/gitea/models/admin"
 	repo_model "code.gitea.io/gitea/models/repo"
+	system_model "code.gitea.io/gitea/models/system"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/hostmatcher"
 	"code.gitea.io/gitea/modules/log"
@@ -128,11 +128,11 @@ func MigrateRepository(ctx context.Context, doer *user_model.User, ownerName str
 	uploader := NewGiteaLocalUploader(ctx, doer, ownerName, opts.RepoName)
 	uploader.gitServiceType = opts.GitServiceType
 
-	if err := migrateRepository(downloader, uploader, opts, messenger); err != nil {
+	if err := migrateRepository(doer, downloader, uploader, opts, messenger); err != nil {
 		if err1 := uploader.Rollback(); err1 != nil {
 			log.Error("rollback failed: %v", err1)
 		}
-		if err2 := admin_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
+		if err2 := system_model.CreateRepositoryNotice(fmt.Sprintf("Migrate repository from %s failed: %v", opts.OriginalURL, err)); err2 != nil {
 			log.Error("create respotiry notice failed: ", err2)
 		}
 		return nil, err
@@ -177,7 +177,7 @@ func newDownloader(ctx context.Context, ownerName string, opts base.MigrateOptio
 // migrateRepository will download information and then upload it to Uploader, this is a simple
 // process for small repository. For a big repository, save all the data to disk
 // before upload is better
-func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
+func migrateRepository(doer *user_model.User, downloader base.Downloader, uploader base.Uploader, opts base.MigrateOptions, messenger base.Messenger) error {
 	if messenger == nil {
 		messenger = base.NilMessenger
 	}
@@ -196,6 +196,27 @@ func migrateRepository(downloader base.Downloader, uploader base.Uploader, opts 
 	}
 	if repo.CloneURL, err = downloader.FormatCloneURL(opts, repo.CloneURL); err != nil {
 		return err
+	}
+
+	// SECURITY: If the downloader is not a RepositoryRestorer then we need to recheck the CloneURL
+	if _, ok := downloader.(*RepositoryRestorer); !ok {
+		// Now the clone URL can be rewritten by the downloader so we must recheck
+		if err := IsMigrateURLAllowed(repo.CloneURL, doer); err != nil {
+			return err
+		}
+
+		// SECURITY: Ensure that we haven't been redirected from an external to a local filesystem
+		// Now we know all of these must parse
+		cloneAddrURL, _ := url.Parse(opts.CloneAddr)
+		cloneURL, _ := url.Parse(repo.CloneURL)
+
+		if cloneURL.Scheme == "file" || cloneURL.Scheme == "" {
+			if cloneAddrURL.Scheme != "file" && cloneAddrURL.Scheme != "" {
+				return fmt.Errorf("repo info has changed from external to local filesystem")
+			}
+		}
+
+		// We don't actually need to check the OriginalURL as it isn't used anywhere
 	}
 
 	log.Trace("migrating git data from %s", repo.CloneURL)
@@ -479,5 +500,10 @@ func Init() error {
 	}
 	// TODO: at the moment, if ALLOW_LOCALNETWORKS=false, ALLOWED_DOMAINS=domain.com, and domain.com has IP 127.0.0.1, then it's still allowed.
 	// if we want to block such case, the private&loopback should be added to the blockList when ALLOW_LOCALNETWORKS=false
+
+	if setting.Proxy.Enabled && setting.Proxy.ProxyURLFixed != nil {
+		allowList.AppendPattern(setting.Proxy.ProxyURLFixed.Host)
+	}
+
 	return nil
 }

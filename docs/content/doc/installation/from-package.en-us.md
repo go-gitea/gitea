@@ -53,7 +53,7 @@ snap install gitea
 
 ## SUSE and openSUSE
 
-OpenSUSE build service provides packages for [openSUSE and SLE](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm) 
+OpenSUSE build service provides packages for [openSUSE and SLE](https://software.opensuse.org/download/package?package=gitea&project=devel%3Atools%3Ascm)
 in the Development Software Configuration Management Repository
 
 ## Windows

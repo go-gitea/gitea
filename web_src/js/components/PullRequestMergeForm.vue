@@ -1,7 +1,7 @@
 <template>
   <!--
-  if this component is shown, either the user is admin (can do merge without checks), or they is a writer who has the permission to do merge
-  if the user is a writer and can't do merge now (canMergeNow==false), then only show the Auto Merge for them
+  if this component is shown, either the user is an admin (can do a merge without checks), or they are a writer who has the permission to do a merge
+  if the user is a writer and can't do a merge now (canMergeNow==false), then only show the Auto Merge for them
   How to test the UI manually:
   * Method 1: manually set some variables in pull.tmpl, eg: {{$notAllOverridableChecksOk = true}} {{$canMergeNow = false}}
   * Method 2: make a protected branch, then set state=pending/success :
@@ -145,7 +145,10 @@ export default {
 
   created() {
     this.mergeStyleAllowedCount = this.mergeForm.mergeStyles.reduce((v, msd) => v + (msd.allowed ? 1 : 0), 0);
-    this.switchMergeStyle(this.mergeForm.mergeStyles.find((e) => e.allowed)?.name, !this.mergeForm.canMergeNow);
+
+    let mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed && e.name === this.mergeForm.defaultMergeStyle)?.name;
+    if (!mergeStyle) mergeStyle = this.mergeForm.mergeStyles.find((e) => e.allowed)?.name;
+    this.switchMergeStyle(mergeStyle, !this.mergeForm.canMergeNow);
   },
 
   mounted() {

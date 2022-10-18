@@ -5,6 +5,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	golog "log"
 	"os"
@@ -123,20 +124,11 @@ func runRecreateTable(ctx *cli.Context) error {
 	})
 }
 
-func runDoctor(ctx *cli.Context) error {
-	// Silence the default loggers
-	log.DelNamedLogger("console")
-	log.DelNamedLogger(log.DEFAULT)
-
-	stdCtx, cancel := installSignals()
-	defer cancel()
-
-	// Now setup our own
+func setDoctorLogger(ctx *cli.Context) {
 	logFile := ctx.String("log-file")
 	if !ctx.IsSet("log-file") {
 		logFile = "doctor.log"
 	}
-
 	colorize := log.CanColorStdout
 	if ctx.IsSet("color") {
 		colorize = ctx.Bool("color")
@@ -144,10 +136,49 @@ func runDoctor(ctx *cli.Context) error {
 
 	if len(logFile) == 0 {
 		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))
-	} else if logFile == "-" {
+		return
+	}
+
+	defer func() {
+		recovered := recover()
+		if recovered == nil {
+			return
+		}
+
+		err, ok := recovered.(error)
+		if !ok {
+			panic(recovered)
+		}
+		if errors.Is(err, os.ErrPermission) {
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file due to permissions error: %s\n       %v\n", logFile, err)
+		} else {
+			fmt.Fprintf(os.Stderr, "ERROR: Unable to write logs to provided file: %s\n       %v\n", logFile, err)
+		}
+		fmt.Fprintf(os.Stderr, "WARN: Logging will be disabled\n       Use `--log-file` to configure log file location\n")
+		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"NONE","stacktracelevel":"NONE","colorize":%t}`, colorize))
+	}()
+
+	if logFile == "-" {
 		log.NewLogger(1000, "doctor", "console", fmt.Sprintf(`{"level":"trace","stacktracelevel":"NONE","colorize":%t}`, colorize))
 	} else {
 		log.NewLogger(1000, "doctor", "file", fmt.Sprintf(`{"filename":%q,"level":"trace","stacktracelevel":"NONE"}`, logFile))
+	}
+}
+
+func runDoctor(ctx *cli.Context) error {
+	stdCtx, cancel := installSignals()
+	defer cancel()
+
+	// Silence the default loggers
+	log.DelNamedLogger("console")
+	log.DelNamedLogger(log.DEFAULT)
+
+	// Now setup our own
+	setDoctorLogger(ctx)
+
+	colorize := log.CanColorStdout
+	if ctx.IsSet("color") {
+		colorize = ctx.Bool("color")
 	}
 
 	// Finally redirect the default golog to here

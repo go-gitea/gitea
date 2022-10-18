@@ -1,0 +1,6 @@
+{{if .Attributes.label}}
+	<h3>{{.Attributes.label}}{{if .Validations.required}}<label class="required"></label>{{end}}</h3>
+{{end}}
+{{if .Attributes.description}}
+	<span class="help">{{RenderMarkdownToHtml .Attributes.description}}</span>
+{{end}}

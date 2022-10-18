@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	api "code.gitea.io/gitea/modules/structs"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -37,6 +38,10 @@ func (err ErrMilestoneNotExist) Error() string {
 		return fmt.Sprintf("milestone does not exist [name: %s, repo_id: %d]", err.Name, err.RepoID)
 	}
 	return fmt.Sprintf("milestone does not exist [id: %d, repo_id: %d]", err.ID, err.RepoID)
+}
+
+func (err ErrMilestoneNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Milestone represents a milestone of repository.
@@ -361,7 +366,7 @@ func (opts GetMilestonesOption) toCond() builder.Cond {
 	}
 
 	if len(opts.Name) != 0 {
-		cond = cond.And(builder.Like{"UPPER(name)", strings.ToUpper(opts.Name)})
+		cond = cond.And(db.BuildCaseInsensitiveLike("name", opts.Name))
 	}
 
 	return cond

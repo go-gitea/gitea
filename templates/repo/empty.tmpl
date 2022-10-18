@@ -37,7 +37,7 @@ git init
 {{if ne .Repository.DefaultBranch "master"}}git checkout -b {{.Repository.DefaultBranch}}{{end}}
 git add README.md
 git commit -m "first commit"
-git remote add origin <span class="clone-url"></span>
+git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
@@ -46,24 +46,11 @@ git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 							<div class="item">
 								<h3>{{.locale.Tr "repo.push_exist_repo"}}</h3>
 								<div class="markup">
-									<pre><code>git remote add origin <span class="clone-url"></span>
+									<pre><code>git remote add origin <span class="js-clone-url">{{$.CloneButtonOriginLink.HTTPS}}</span>
 git push -u origin {{.Repository.DefaultBranch}}</code></pre>
 								</div>
 							</div>
-							<!-- the clone-url content will be updated by initRepoCloneLink, the code below is used to avoid UI flicking  -->
-							<script>
-								(() => {
-									const proto = localStorage.getItem('repo-clone-protocol') || 'https';
-									const btn = document.getElementById(`repo-clone-${proto}`);
-									const cloneUrls = document.getElementsByClassName('clone-url');
-									// it's ok if we didn't find the btn here, initRepoCloneLink will take all the work
-									if (btn) {
-										for (let i = 0; i < cloneUrls.length; i++) {
-											cloneUrls[i].textContent = btn.getAttribute('data-link');
-										}
-									}
-								})();
-							</script>
+							{{template "repo/clone_script" .}}
 						{{end}}
 					{{else}}
 						<div class="ui segment center">

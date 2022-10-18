@@ -241,15 +241,6 @@ func Int64sToStrings(ints []int64) []string {
 	return strs
 }
 
-// Int64sToMap converts a slice of int64 to a int64 map.
-func Int64sToMap(ints []int64) map[int64]bool {
-	m := make(map[int64]bool)
-	for _, i := range ints {
-		m[i] = true
-	}
-	return m
-}
-
 // Int64sContains returns if a int64 in a slice of int64
 func Int64sContains(intsSlice []int64, a int64) bool {
 	for _, c := range intsSlice {

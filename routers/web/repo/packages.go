@@ -9,9 +9,11 @@ import (
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/models/packages"
+	"code.gitea.io/gitea/models/unit"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/setting"
+	"code.gitea.io/gitea/modules/util"
 )
 
 const (
@@ -32,10 +34,11 @@ func Packages(ctx *context.Context) {
 			PageSize: setting.UI.PackagesPagingNum,
 			Page:     page,
 		},
-		OwnerID: ctx.ContextUser.ID,
-		RepoID:  ctx.Repo.Repository.ID,
-		Type:    packages.Type(packageType),
-		Name:    packages.SearchValue{Value: query},
+		OwnerID:    ctx.ContextUser.ID,
+		RepoID:     ctx.Repo.Repository.ID,
+		Type:       packages.Type(packageType),
+		Name:       packages.SearchValue{Value: query},
+		IsInternal: util.OptionalBoolFalse,
 	})
 	if err != nil {
 		ctx.ServerError("SearchLatestVersions", err)
@@ -60,6 +63,9 @@ func Packages(ctx *context.Context) {
 	ctx.Data["Query"] = query
 	ctx.Data["PackageType"] = packageType
 	ctx.Data["HasPackages"] = hasPackages
+	if ctx.Repo != nil {
+		ctx.Data["CanWritePackages"] = ctx.IsUserRepoWriter([]unit.Type{unit.TypePackages}) || ctx.IsUserSiteAdmin()
+	}
 	ctx.Data["PackageDescriptors"] = pds
 	ctx.Data["Total"] = total
 	ctx.Data["RepositoryAccessMap"] = map[int64]bool{ctx.Repo.Repository.ID: true} // There is only the current repository

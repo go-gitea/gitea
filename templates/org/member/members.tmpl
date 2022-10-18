@@ -5,7 +5,7 @@
 		{{template "base/alert" .}}
 
 		<div class="list">
-			{{ range .Members}}
+			{{range .Members}}
 				<div class="item ui grid">
 					<div class="ui four wide column" style="display: flex;">
 						{{avatar . 48}}
@@ -19,7 +19,7 @@
 							{{$.locale.Tr "org.members.membership_visibility"}}
 						</div>
 						<div class="meta">
-							{{ $isPublic := index $.MembersIsPublicMember .ID}}
+							{{$isPublic := index $.MembersIsPublicMember .ID}}
 							{{if $isPublic}}
 								<strong>{{$.locale.Tr "org.members.public"}}</strong>
 								{{if or (eq $.SignedUser.ID .ID) $.IsOrganizationOwner}}(<a class="link-action" href data-url="{{$.OrgLink}}/members/action/private?uid={{.ID}}">{{$.locale.Tr "org.members.public_helper"}}</a>){{end}}
@@ -29,7 +29,7 @@
 							{{end}}
 						</div>
 					</div>
-					{{if not .PublicOnly}}
+					{{if not $.PublicOnly}}
 						<div class="ui three wide column center">
 							<div class="meta">
 								{{$.locale.Tr "org.members.member_role"}}

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
-	"code.gitea.io/gitea/models"
 	"code.gitea.io/gitea/models/db"
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/models/organization"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
@@ -31,8 +31,8 @@ import (
 )
 
 /*
-	GitHub, GitLab, Gogs: *.wiki.git
-	BitBucket: *.git/wiki
+GitHub, GitLab, Gogs: *.wiki.git
+BitBucket: *.git/wiki
 */
 var commonWikiURLSuffixes = []string{".wiki.git", ".git/wiki"}
 
@@ -276,15 +276,15 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 		return pullMirrorReleaseSync(repo, gitRepo)
 	}
 
-	existingRelTags := make(map[string]struct{})
-	opts := models.FindReleasesOptions{
+	existingRelTags := make(container.Set[string])
+	opts := repo_model.FindReleasesOptions{
 		IncludeDrafts: true,
 		IncludeTags:   true,
 		ListOptions:   db.ListOptions{PageSize: 50},
 	}
 	for page := 1; ; page++ {
 		opts.Page = page
-		rels, err := models.GetReleasesByRepoID(repo.ID, opts)
+		rels, err := repo_model.GetReleasesByRepoID(repo.ID, opts)
 		if err != nil {
 			return fmt.Errorf("unable to GetReleasesByRepoID in Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
@@ -300,18 +300,18 @@ func SyncReleasesWithTags(repo *repo_model.Repository, gitRepo *git.Repository) 
 				return fmt.Errorf("unable to GetTagCommitID for %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 			}
 			if git.IsErrNotExist(err) || commitID != rel.Sha1 {
-				if err := models.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
+				if err := repo_model.PushUpdateDeleteTag(repo, rel.TagName); err != nil {
 					return fmt.Errorf("unable to PushUpdateDeleteTag: %q in Repo[%d:%s/%s]: %w", rel.TagName, repo.ID, repo.OwnerName, repo.Name, err)
 				}
 			} else {
-				existingRelTags[strings.ToLower(rel.TagName)] = struct{}{}
+				existingRelTags.Add(strings.ToLower(rel.TagName))
 			}
 		}
 	}
 
 	_, err := gitRepo.WalkReferences(git.ObjectTag, 0, 0, func(sha1, refname string) error {
 		tagName := strings.TrimPrefix(refname, git.TagPrefix)
-		if _, ok := existingRelTags[strings.ToLower(tagName)]; ok {
+		if existingRelTags.Contains(strings.ToLower(tagName)) {
 			return nil
 		}
 
@@ -359,7 +359,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		return fmt.Errorf("unable to get CommitsCount: %w", err)
 	}
 
-	rel := models.Release{
+	rel := repo_model.Release{
 		RepoID:       repo.ID,
 		TagName:      tagName,
 		LowerTagName: strings.ToLower(tagName),
@@ -372,7 +372,7 @@ func PushUpdateAddTag(repo *repo_model.Repository, gitRepo *git.Repository, tagN
 		rel.PublisherID = author.ID
 	}
 
-	return models.SaveOrUpdateTag(repo, &rel)
+	return repo_model.SaveOrUpdateTag(repo, &rel)
 }
 
 // StoreMissingLfsObjectsInRepository downloads missing LFS objects
@@ -489,14 +489,14 @@ func pullMirrorReleaseSync(repo *repo_model.Repository, gitRepo *git.Repository)
 		//
 		// clear out existing releases
 		//
-		if _, err := db.DeleteByBean(ctx, &models.Release{RepoID: repo.ID}); err != nil {
+		if _, err := db.DeleteByBean(ctx, &repo_model.Release{RepoID: repo.ID}); err != nil {
 			return fmt.Errorf("unable to clear releases for pull-mirror Repo[%d:%s/%s]: %w", repo.ID, repo.OwnerName, repo.Name, err)
 		}
 		//
 		// make release set identical to upstream tags
 		//
 		for _, tag := range tags {
-			release := models.Release{
+			release := repo_model.Release{
 				RepoID:       repo.ID,
 				TagName:      tag.Name,
 				LowerTagName: strings.ToLower(tag.Name),

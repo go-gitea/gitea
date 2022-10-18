@@ -5,12 +5,15 @@
 package repo
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+
+	"xorm.io/builder"
 )
 
 // ErrPushMirrorNotExist mirror does not exist error
@@ -28,6 +31,25 @@ type PushMirror struct {
 	CreatedUnix    timeutil.TimeStamp `xorm:"created"`
 	LastUpdateUnix timeutil.TimeStamp `xorm:"INDEX last_update"`
 	LastError      string             `xorm:"text"`
+}
+type PushMirrorOptions struct {
+	ID         int64
+	RepoID     int64
+	RemoteName string
+}
+
+func (opts *PushMirrorOptions) toConds() builder.Cond {
+	cond := builder.NewCond()
+	if opts.RepoID > 0 {
+		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
+	}
+	if opts.RemoteName != "" {
+		cond = cond.And(builder.Eq{"remote_name": opts.RemoteName})
+	}
+	if opts.ID > 0 {
+		cond = cond.And(builder.Eq{"id": opts.ID})
+	}
+	return cond
 }
 
 func init() {
@@ -53,45 +75,48 @@ func (m *PushMirror) GetRemoteName() string {
 }
 
 // InsertPushMirror inserts a push-mirror to database
-func InsertPushMirror(m *PushMirror) error {
-	_, err := db.GetEngine(db.DefaultContext).Insert(m)
+func InsertPushMirror(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).Insert(m)
 	return err
 }
 
 // UpdatePushMirror updates the push-mirror
-func UpdatePushMirror(m *PushMirror) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(m.ID).AllCols().Update(m)
+func UpdatePushMirror(ctx context.Context, m *PushMirror) error {
+	_, err := db.GetEngine(ctx).ID(m.ID).AllCols().Update(m)
 	return err
 }
 
-// DeletePushMirrorByID deletes a push-mirrors by ID
-func DeletePushMirrorByID(ID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).ID(ID).Delete(&PushMirror{})
-	return err
+func DeletePushMirrors(ctx context.Context, opts PushMirrorOptions) error {
+	if opts.RepoID > 0 {
+		_, err := db.GetEngine(ctx).Where(opts.toConds()).Delete(&PushMirror{})
+		return err
+	}
+	return errors.New("repoID required and must be set")
 }
 
-// DeletePushMirrorsByRepoID deletes all push-mirrors by repoID
-func DeletePushMirrorsByRepoID(repoID int64) error {
-	_, err := db.GetEngine(db.DefaultContext).Delete(&PushMirror{RepoID: repoID})
-	return err
-}
-
-// GetPushMirrorByID returns push-mirror information.
-func GetPushMirrorByID(ID int64) (*PushMirror, error) {
-	m := &PushMirror{}
-	has, err := db.GetEngine(db.DefaultContext).ID(ID).Get(m)
+func GetPushMirror(ctx context.Context, opts PushMirrorOptions) (*PushMirror, error) {
+	mirror := &PushMirror{}
+	exist, err := db.GetEngine(ctx).Where(opts.toConds()).Get(mirror)
 	if err != nil {
 		return nil, err
-	} else if !has {
+	} else if !exist {
 		return nil, ErrPushMirrorNotExist
 	}
-	return m, nil
+	return mirror, nil
 }
 
 // GetPushMirrorsByRepoID returns push-mirror information of a repository.
-func GetPushMirrorsByRepoID(repoID int64) ([]*PushMirror, error) {
+func GetPushMirrorsByRepoID(ctx context.Context, repoID int64, listOptions db.ListOptions) ([]*PushMirror, int64, error) {
+	sess := db.GetEngine(ctx).Where("repo_id = ?", repoID)
+	if listOptions.Page != 0 {
+		sess = db.SetSessionPagination(sess, &listOptions)
+		mirrors := make([]*PushMirror, 0, listOptions.PageSize)
+		count, err := sess.FindAndCount(&mirrors)
+		return mirrors, count, err
+	}
 	mirrors := make([]*PushMirror, 0, 10)
-	return mirrors, db.GetEngine(db.DefaultContext).Where("repo_id=?", repoID).Find(&mirrors)
+	count, err := sess.FindAndCount(&mirrors)
+	return mirrors, count, err
 }
 
 // GetPushMirrorsSyncedOnCommit returns push-mirrors for this repo that should be updated by new commits
@@ -103,11 +128,13 @@ func GetPushMirrorsSyncedOnCommit(repoID int64) ([]*PushMirror, error) {
 }
 
 // PushMirrorsIterate iterates all push-mirror repositories.
-func PushMirrorsIterate(limit int, f func(idx int, bean interface{}) error) error {
-	return db.GetEngine(db.DefaultContext).
+func PushMirrorsIterate(ctx context.Context, limit int, f func(idx int, bean interface{}) error) error {
+	sess := db.GetEngine(ctx).
 		Where("last_update + (`interval` / ?) <= ?", time.Second, time.Now().Unix()).
 		And("`interval` != 0").
-		OrderBy("last_update ASC").
-		Limit(limit).
-		Iterate(new(PushMirror), f)
+		OrderBy("last_update ASC")
+	if limit > 0 {
+		sess = sess.Limit(limit)
+	}
+	return sess.Iterate(new(PushMirror), f)
 }
