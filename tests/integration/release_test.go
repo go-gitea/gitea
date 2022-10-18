@@ -81,6 +81,21 @@ func TestViewReleasesNoLogin(t *testing.T) {
 	MakeRequest(t, req, http.StatusOK)
 }
 
+func TestViewLatestRelease(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	session := loginUser(t, "user2")
+	req := NewRequest(t, "GET", "/user2/repo1/releases/latest")
+	session.MakeRequest(t, req, http.StatusOK)
+}
+
+func TestViewLatestReleaseNoLogin(t *testing.T) {
+	defer tests.PrepareTestEnv(t)()
+
+	req := NewRequest(t, "GET", "/user2/repo1/releases/latest")
+	MakeRequest(t, req, http.StatusOK)
+}
+
 func TestCreateRelease(t *testing.T) {
 	defer tests.PrepareTestEnv(t)()
 
