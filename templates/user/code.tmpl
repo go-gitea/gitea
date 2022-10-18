@@ -5,13 +5,13 @@
 		{{template "code/searchform" .}}
 		<div class="ui divider"></div>
 		<div class="ui user list">
-			{{if .CodeIndexerUnavailable }}
+			{{if .CodeIndexerUnavailable}}
 				<div class="ui error message">
 					<p>{{$.locale.Tr "explore.code_search_unavailable"}}</p>
 				</div>
 			{{else if .SearchResults}}
 				<h3>
-					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html }}
+					{{.locale.Tr "explore.code_search_results" (.Keyword|Escape) | Str2html}}
 				</h3>
 				{{template "code/searchresults" .}}
 			{{else if .Keyword}}
