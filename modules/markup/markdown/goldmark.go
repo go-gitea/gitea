@@ -16,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/setting"
 	giteautil "code.gitea.io/gitea/modules/util"
 
+	"github.com/microcosm-cc/bluemonday/css"
 	"github.com/yuin/goldmark/ast"
 	east "github.com/yuin/goldmark/extension/ast"
 	"github.com/yuin/goldmark/parser"
@@ -26,8 +27,6 @@ import (
 )
 
 var byteMailto = []byte("mailto:")
-
-var cssColorRegex = regexp.MustCompile(`(?i)(#(?:[0-9a-f]{2}){2,4}$|(#[0-9a-f]{3}$)|(rgb|hsl)a?\((-?\d+%?[,\s]+){2,3}\s*[\d\.]+%?\))$`)
 
 // ASTTransformer is a default transformer of the goldmark tree.
 type ASTTransformer struct{}
@@ -182,7 +181,7 @@ func (g *ASTTransformer) Transform(node *ast.Document, reader text.Reader, pc pa
 			}
 		case *ast.CodeSpan:
 			colorContent := n.Text(reader.Source())
-			if cssColorRegex.Match(colorContent) {
+			if css.ColorHandler(strings.ToLower(string(colorContent))) {
 				v.AppendChild(v, NewColorPreview(colorContent))
 			}
 		}

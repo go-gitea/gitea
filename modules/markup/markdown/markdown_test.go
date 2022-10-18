@@ -451,6 +451,10 @@ func TestColorPreview(t *testing.T) {
 			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
 			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="repo-icon rounded color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
 		},
+		{ // uppercase hsl
+			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="repo-icon rounded color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+		},
 	}
 
 	for _, test := range positiveTests {
@@ -468,7 +472,9 @@ func TestColorPreview(t *testing.T) {
 		// no backticks
 		"rgb(166, 32, 64)",
 		// typo
-		"hsI(0, 100%, 50%)",
+		"`hsI(0, 100%, 50%)`",
+		// looks like a color but not really
+		"`hsl(40, 60, 80)`",
 	}
 
 	for _, test := range negativeTests {
