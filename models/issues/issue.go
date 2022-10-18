@@ -52,6 +52,10 @@ func (err ErrIssueNotExist) Error() string {
 	return fmt.Sprintf("issue does not exist [id: %d, repo_id: %d, index: %d]", err.ID, err.RepoID, err.Index)
 }
 
+func (err ErrIssueNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrIssueIsClosed represents a "IssueIsClosed" kind of error.
 type ErrIssueIsClosed struct {
 	ID     int64

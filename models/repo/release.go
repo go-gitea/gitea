@@ -37,6 +37,10 @@ func (err ErrReleaseAlreadyExist) Error() string {
 	return fmt.Sprintf("release tag already exist [tag_name: %s]", err.TagName)
 }
 
+func (err ErrReleaseAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ErrReleaseNotExist represents a "ReleaseNotExist" kind of error.
 type ErrReleaseNotExist struct {
 	ID      int64
@@ -51,6 +55,10 @@ func IsErrReleaseNotExist(err error) bool {
 
 func (err ErrReleaseNotExist) Error() string {
 	return fmt.Sprintf("release tag does not exist [id: %d, tag_name: %s]", err.ID, err.TagName)
+}
+
+func (err ErrReleaseNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // Release represents a release of repository.
