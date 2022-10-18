@@ -2,7 +2,7 @@
 {{$defaultBranch := $.root.BranchName}}{{if and .root.IsViewTag (not .noTag)}}{{$defaultBranch = .root.TagName}}{{end}}{{if eq $defaultBranch ""}}{{$defaultBranch = $.root.Repository.DefaultBranch}}{{end}}
 {{$type := ""}}{{if and .root.IsViewTag (not .noTag)}}{{$type = "tag"}}{{else if .root.IsViewBranch}}{{$type = "branch"}}{{else}}{{$type = "tree"}}{{end}}
 {{$showBranchesInDropdown := not .root.HideBranchesInDropdown}}
-<div class="fitted item choose reference{{if not $release}} mr-1{{end}}">
+<div class="fitted item choose reference">
 	<div class="ui floating filter dropdown custom"
 		data-branch-form="{{if $.branchForm}}{{$.branchForm}}{{end}}"
 		data-can-create-branch="{{if .canCreateBranch}}{{.canCreateBranch}}{{else}}{{.root.CanCreateBranch}}{{end}}"
