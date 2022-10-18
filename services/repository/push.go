@@ -220,10 +220,6 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					log.Error("updateIssuesCommit: %v", err)
 				}
 
-				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
-					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
-				}
-
 				oldCommitID := opts.OldCommitID
 				if oldCommitID == git.EmptySHA && len(commits.Commits) > 0 {
 					oldCommit, err := gitRepo.GetCommit(commits.Commits[len(commits.Commits)-1].Sha1)
@@ -249,6 +245,10 @@ func pushUpdates(optsList []*repo_module.PushUpdateOptions) error {
 					commits.CompareURL = repo.ComposeCompareURL(oldCommitID, opts.NewCommitID)
 				} else {
 					commits.CompareURL = ""
+				}
+
+				if len(commits.Commits) > setting.UI.FeedMaxCommitNum {
+					commits.Commits = commits.Commits[:setting.UI.FeedMaxCommitNum]
 				}
 
 				notification.NotifyPushCommits(pusher, repo, opts, commits)
