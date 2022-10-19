@@ -149,19 +149,9 @@ func Install(ctx *context.Context) {
 
 	// Server and other services settings
 	form.OfflineMode = setting.OfflineMode
-	disableGravatarSetting, _ := system_model.GetSetting(system_model.KeyPictureDisableGravatar)
-	if disableGravatarSetting != nil {
-		form.DisableGravatar = disableGravatarSetting.GetValueBool()
-	} else {
-		form.DisableGravatar = false
-	}
+	form.DisableGravatar = false       // when installing, there is no database connection so that given a default value
+	form.EnableFederatedAvatar = false // when installing, there is no database connection so that given a default value
 
-	enableFederatedAvatarSetting, _ := system_model.GetSetting(system_model.KeyPictureEnableFederatedAvatar)
-	if enableFederatedAvatarSetting != nil {
-		form.EnableFederatedAvatar = enableFederatedAvatarSetting.GetValueBool()
-	} else {
-		form.EnableFederatedAvatar = false
-	}
 	form.EnableOpenIDSignIn = setting.Service.EnableOpenIDSignIn
 	form.EnableOpenIDSignUp = setting.Service.EnableOpenIDSignUp
 	form.DisableRegistration = setting.Service.DisableRegistration
@@ -385,7 +375,6 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.invalid_db_setting", err), tplInstall, &form)
 		return
 	}
-	db.UnsetDefaultEngine()
 
 	// Save settings.
 	cfg := ini.Empty()
@@ -517,6 +506,9 @@ func SubmitInstall(ctx *context.Context) {
 		ctx.RenderWithErr(ctx.Tr("install.save_config_failed", err), tplInstall, &form)
 		return
 	}
+
+	// unset default engine before reload database setting
+	db.UnsetDefaultEngine()
 
 	// ---- All checks are passed
 

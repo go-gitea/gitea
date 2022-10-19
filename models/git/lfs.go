@@ -6,7 +6,6 @@ package git
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"code.gitea.io/gitea/models/db"
@@ -17,6 +16,7 @@ import (
 	"code.gitea.io/gitea/modules/lfs"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -36,6 +36,10 @@ func IsErrLFSLockNotExist(err error) bool {
 
 func (err ErrLFSLockNotExist) Error() string {
 	return fmt.Sprintf("lfs lock does not exist [id: %d, rid: %d, path: %s]", err.ID, err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockNotExist) Unwrap() error {
+	return util.ErrNotExist
 }
 
 // ErrLFSUnauthorizedAction represents a "LFSUnauthorizedAction" kind of error.
@@ -58,6 +62,10 @@ func (err ErrLFSUnauthorizedAction) Error() string {
 	return fmt.Sprintf("User %s doesn't have read access for lfs lock [rid: %d]", err.UserName, err.RepoID)
 }
 
+func (err ErrLFSUnauthorizedAction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrLFSLockAlreadyExist represents a "LFSLockAlreadyExist" kind of error.
 type ErrLFSLockAlreadyExist struct {
 	RepoID int64
@@ -72,6 +80,10 @@ func IsErrLFSLockAlreadyExist(err error) bool {
 
 func (err ErrLFSLockAlreadyExist) Error() string {
 	return fmt.Sprintf("lfs lock already exists [rid: %d, path: %s]", err.RepoID, err.Path)
+}
+
+func (err ErrLFSLockAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrLFSFileLocked represents a "LFSFileLocked" kind of error.
@@ -89,6 +101,10 @@ func IsErrLFSFileLocked(err error) bool {
 
 func (err ErrLFSFileLocked) Error() string {
 	return fmt.Sprintf("File is lfs locked [repo: %d, locked by: %s, path: %s]", err.RepoID, err.UserName, err.Path)
+}
+
+func (err ErrLFSFileLocked) Unwrap() error {
+	return util.ErrPermissionDenied
 }
 
 // LFSMetaObject stores metadata for LFS tracked files.
@@ -114,7 +130,7 @@ type LFSTokenResponse struct {
 
 // ErrLFSObjectNotExist is returned from lfs models functions in order
 // to differentiate between database and missing object errors.
-var ErrLFSObjectNotExist = errors.New("LFS Meta object does not exist")
+var ErrLFSObjectNotExist = db.ErrNotExist{Resource: "LFS Meta object"}
 
 // NewLFSMetaObject stores a given populated LFSMetaObject structure in the database
 // if it is not already present.

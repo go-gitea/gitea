@@ -39,6 +39,10 @@ func (err ErrReviewNotExist) Error() string {
 	return fmt.Sprintf("review does not exist [id: %d]", err.ID)
 }
 
+func (err ErrReviewNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrNotValidReviewRequest an not allowed review request modify
 type ErrNotValidReviewRequest struct {
 	Reason string
@@ -57,6 +61,10 @@ func (err ErrNotValidReviewRequest) Error() string {
 		err.Reason,
 		err.UserID,
 		err.RepoID)
+}
+
+func (err ErrNotValidReviewRequest) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 // ReviewType defines the sort of feedback a review gives
