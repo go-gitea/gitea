@@ -9,7 +9,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -22,23 +21,14 @@ import (
 
 const (
 	MaxLineSize = 64 * 1024
+	DBFSPrefix  = "bots_tasks/"
 
 	timeFormat     = time.RFC3339Nano
 	defaultBufSize = 64 * 1024
 )
 
-const (
-	StorageSchemaDBFS = "dbfs"
-	StorageSchemaFile = "file"
-	StorageSchemaS3   = "s3"
-	// ...
-)
-
-func WriteLogs(ctx context.Context, rawURL string, offset int64, rows []*runnerv1.LogRow) ([]int, error) {
-	name, err := parseDBFSName(rawURL)
-	if err != nil {
-		return nil, err
-	}
+func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runnerv1.LogRow) ([]int, error) {
+	name := DBFSPrefix + filename
 	f, err := dbfs.OpenFile(ctx, name, os.O_WRONLY|os.O_CREATE)
 	if err != nil {
 		return nil, fmt.Errorf("dbfs OpenFile %q: %w", name, err)
@@ -65,12 +55,8 @@ func WriteLogs(ctx context.Context, rawURL string, offset int64, rows []*runnerv
 	return ns, nil
 }
 
-func ReadLogs(ctx context.Context, rawURL string, offset int64, limit int64) ([]*runnerv1.LogRow, error) {
-	name, err := parseDBFSName(rawURL)
-	if err != nil {
-		return nil, err
-	}
-
+func ReadLogs(ctx context.Context, filename string, offset int64, limit int64) ([]*runnerv1.LogRow, error) {
+	name := DBFSPrefix + filename
 	f, err := dbfs.Open(ctx, name)
 	if err != nil {
 		return nil, fmt.Errorf("dbfs Open %q: %w", name, err)
@@ -101,22 +87,6 @@ func ReadLogs(ctx context.Context, rawURL string, offset int64, limit int64) ([]
 	}
 
 	return rows, nil
-}
-
-func parseDBFSName(rawURL string) (string, error) {
-	u, err := url.Parse(rawURL)
-	if err != nil {
-		return "", fmt.Errorf("invalid url: %w", err)
-	}
-	if u.Scheme != StorageSchemaDBFS {
-		return "", fmt.Errorf("%s supported only yet", StorageSchemaDBFS)
-	}
-
-	if u.Path == "" {
-		return "", fmt.Errorf("empty path")
-	}
-
-	return u.Path, nil
 }
 
 func FormatLog(timestamp time.Time, content string) string {

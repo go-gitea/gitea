@@ -167,12 +167,6 @@ func (s *Service) UpdateLog(
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get task: %v", err)
 	}
-	if task.LogURL == "" {
-		task.LogURL = fmt.Sprintf("dbfs:///bots/tasks/%d.log", task.ID)
-		if err := bots_model.UpdateTask(ctx, task, "log_url"); err != nil {
-			return nil, status.Errorf(codes.Internal, "update task: %v", err)
-		}
-	}
 	ack := task.LogLength
 
 	if len(req.Msg.Rows) == 0 || req.Msg.Index > ack || int64(len(req.Msg.Rows))+req.Msg.Index <= ack {
@@ -181,7 +175,7 @@ func (s *Service) UpdateLog(
 	}
 
 	rows := req.Msg.Rows[ack-req.Msg.Index:]
-	ns, err := bots.WriteLogs(ctx, task.LogURL, task.LogSize, rows)
+	ns, err := bots.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "write logs: %v", err)
 	}

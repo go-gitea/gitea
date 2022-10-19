@@ -33,11 +33,12 @@ type Task struct {
 	Started  timeutil.TimeStamp
 	Stopped  timeutil.TimeStamp
 
-	LogURL     string      // dbfs:///a/b.log or s3://endpoint.com/a/b.log and etc.
-	LogLength  int64       // lines count
-	LogSize    int64       // blob size
-	LogIndexes *LogIndexes `xorm:"BLOB"` // line number to offset
-	LogExpired bool
+	LogFilename  string      // file name of log
+	LogInStorage bool        // read log from database or from storage
+	LogLength    int64       // lines count
+	LogSize      int64       // blob size
+	LogIndexes   *LogIndexes `xorm:"BLOB"` // line number to offset
+	LogExpired   bool        // files that are too old will be deleted
 
 	Created timeutil.TimeStamp `xorm:"created"`
 	Updated timeutil.TimeStamp `xorm:"updated"`
@@ -167,8 +168,10 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	}
 	defer commiter.Close()
 
+	e := db.GetEngine(ctx)
+
 	var jobs []*RunJob
-	if err := db.GetEngine(ctx).Where("task_id=? AND ready=?", 0, true).OrderBy("id").Find(&jobs); err != nil {
+	if err := e.Where("task_id=? AND ready=?", 0, true).OrderBy("id").Find(&jobs); err != nil {
 		return nil, false, err
 	}
 
@@ -184,6 +187,9 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 	}
 	if job == nil {
 		return nil, false, nil
+	}
+	if err := job.LoadAttributes(ctx); err != nil {
+		return nil, false, err
 	}
 
 	now := timeutil.TimeStampNow()
@@ -207,7 +213,12 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 		_, wolkflowJob = gots[0].Job()
 	}
 
-	if err := db.Insert(ctx, task); err != nil {
+	if _, err := e.Insert(ctx, task); err != nil {
+		return nil, false, err
+	}
+
+	task.LogFilename = fmt.Sprintf("%s/%d.log", job.Run.Repo.FullName(), task.ID)
+	if _, err := e.ID(task.ID).Cols("log_filename").Update(task); err != nil {
 		return nil, false, err
 	}
 
@@ -219,20 +230,17 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 			Number: int64(i),
 		}
 	}
-	if err := db.Insert(ctx, steps); err != nil {
+	if _, err := e.Insert(ctx, steps); err != nil {
 		return nil, false, err
 	}
 	task.Steps = steps
 
 	job.TaskID = task.ID
-	if _, err := db.GetEngine(ctx).ID(job.ID).Update(job); err != nil {
+	if _, err := e.ID(job.ID).Update(job); err != nil {
 		return nil, false, err
 	}
 
 	task.Job = job
-	if err := task.Job.LoadAttributes(ctx); err != nil {
-		return nil, false, err
-	}
 
 	if err := commiter.Commit(); err != nil {
 		return nil, false, err
