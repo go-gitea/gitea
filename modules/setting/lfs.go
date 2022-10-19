@@ -62,7 +62,7 @@ func newLFSService() {
 			}
 
 			// Save secret
-			CreateOrAppendToCustomConf(func(cfg *ini.File) {
+			CreateOrAppendToCustomConf("server.LFS_JWT_SECRET", func(cfg *ini.File) {
 				cfg.Section("server").Key("LFS_JWT_SECRET").SetValue(LFS.JWTSecretBase64)
 			})
 		}

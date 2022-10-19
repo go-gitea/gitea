@@ -10,6 +10,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/structs"
 )
 
@@ -99,9 +100,9 @@ func InsertIssueComments(comments []*issues_model.Comment) error {
 		return nil
 	}
 
-	issueIDs := make(map[int64]bool)
+	issueIDs := make(container.Set[int64])
 	for _, comment := range comments {
-		issueIDs[comment.IssueID] = true
+		issueIDs.Add(comment.IssueID)
 	}
 
 	ctx, committer, err := db.TxContext()

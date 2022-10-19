@@ -5,6 +5,7 @@
 package integration
 
 import (
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -37,7 +38,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, org.UserName, apiOrg.UserName)
+		assert.Equal(t, org.UserName, apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
@@ -53,7 +54,7 @@ func TestAPIOrgCreate(t *testing.T) {
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)
 		DecodeJSON(t, resp, &apiOrg)
-		assert.EqualValues(t, org.UserName, apiOrg.UserName)
+		assert.EqualValues(t, org.UserName, apiOrg.Name)
 
 		req = NewRequestf(t, "GET", "/api/v1/orgs/%s/repos?token=%s", org.UserName, token)
 		resp = MakeRequest(t, req, http.StatusOK)
@@ -93,7 +94,7 @@ func TestAPIOrgEdit(t *testing.T) {
 		var apiOrg api.Organization
 		DecodeJSON(t, resp, &apiOrg)
 
-		assert.Equal(t, "user3", apiOrg.UserName)
+		assert.Equal(t, "user3", apiOrg.Name)
 		assert.Equal(t, org.FullName, apiOrg.FullName)
 		assert.Equal(t, org.Description, apiOrg.Description)
 		assert.Equal(t, org.Website, apiOrg.Website)
@@ -150,4 +151,39 @@ func TestAPIGetAll(t *testing.T) {
 	assert.Len(t, apiOrgList, 7)
 	assert.Equal(t, "org25", apiOrgList[0].FullName)
 	assert.Equal(t, "public", apiOrgList[0].Visibility)
+}
+
+func TestAPIOrgSearchEmptyTeam(t *testing.T) {
+	onGiteaRun(t, func(*testing.T, *url.URL) {
+		token := getUserToken(t, "user1")
+		orgName := "org_with_empty_team"
+
+		// create org
+		req := NewRequestWithJSON(t, "POST", "/api/v1/orgs?token="+token, &api.CreateOrgOption{
+			UserName: orgName,
+		})
+		MakeRequest(t, req, http.StatusCreated)
+
+		// create team with no member
+		req = NewRequestWithJSON(t, "POST", fmt.Sprintf("/api/v1/orgs/%s/teams?token=%s", orgName, token), &api.CreateTeamOption{
+			Name:                    "Empty",
+			IncludesAllRepositories: true,
+			Permission:              "read",
+			Units:                   []string{"repo.code", "repo.issues", "repo.ext_issues", "repo.wiki", "repo.pulls"},
+		})
+		MakeRequest(t, req, http.StatusCreated)
+
+		// case-insensitive search for teams that have no members
+		req = NewRequest(t, "GET", fmt.Sprintf("/api/v1/orgs/%s/teams/search?q=%s&token=%s", orgName, "empty", token))
+		resp := MakeRequest(t, req, http.StatusOK)
+		data := struct {
+			Ok   bool
+			Data []*api.Team
+		}{}
+		DecodeJSON(t, resp, &data)
+		assert.True(t, data.Ok)
+		if assert.Len(t, data.Data, 1) {
+			assert.EqualValues(t, "Empty", data.Data[0].Name)
+		}
+	})
 }

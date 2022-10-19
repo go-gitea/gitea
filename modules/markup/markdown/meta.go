@@ -11,6 +11,7 @@ import (
 	"unicode/utf8"
 
 	"code.gitea.io/gitea/modules/log"
+
 	"gopkg.in/yaml.v3"
 )
 
@@ -87,7 +88,9 @@ func ExtractMetadataBytes(contents []byte, out interface{}) ([]byte, error) {
 		line := contents[start:end]
 		if isYAMLSeparator(line) {
 			front = contents[frontMatterStart:start]
-			body = contents[end+1:]
+			if end+1 < len(contents) {
+				body = contents[end+1:]
+			}
 			break
 		}
 	}

@@ -21,11 +21,11 @@ func TestDiffWithHighlight(t *testing.T) {
 		"		run(db)\n",
 	)
 
-	expected := `		<span class="n">run</span><span class="o">(</span><span class="removed-code"><span class="k">&#39;</span><span class="o">&lt;</span><span class="o">&gt;</span><span class="k">&#39;</span></span><span class="o">)</span>` + "\n"
+	expected := `		<span class="n">run</span><span class="o">(</span><span class="removed-code"><span class="k">&#39;</span><span class="o">&lt;</span><span class="o">&gt;</span><span class="k">&#39;</span></span><span class="o">)</span>`
 	output := diffToHTML(nil, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 
-	expected = `		<span class="n">run</span><span class="o">(</span><span class="added-code"><span class="n">db</span></span><span class="o">)</span>` + "\n"
+	expected = `		<span class="n">run</span><span class="o">(</span><span class="added-code"><span class="n">db</span></span><span class="o">)</span>`
 	output = diffToHTML(nil, diffs, DiffLineAdd)
 	assert.Equal(t, expected, output)
 
@@ -57,7 +57,7 @@ func TestDiffWithHighlightPlaceholder(t *testing.T) {
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x00100000])
 	assert.Equal(t, "", hcd.placeholderTokenMap[0x0010FFFD])
 
-	expected := fmt.Sprintf(`<span class="line"><span class="cl"><span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="removed-code">%s</span>&#39;</span></span>`, "\U00100000")
+	expected := fmt.Sprintf(`<span class="nx">a</span><span class="o">=</span><span class="s1">&#39;</span><span class="removed-code">%s</span>&#39;`, "\U00100000")
 	output := diffToHTML(hcd.lineWrapperTags, diffs, DiffLineDel)
 	assert.Equal(t, expected, output)
 

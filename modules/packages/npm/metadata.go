@@ -20,5 +20,6 @@ type Metadata struct {
 	DevelopmentDependencies map[string]string `json:"development_dependencies,omitempty"`
 	PeerDependencies        map[string]string `json:"peer_dependencies,omitempty"`
 	OptionalDependencies    map[string]string `json:"optional_dependencies,omitempty"`
+	Bin                     map[string]string `json:"bin,omitempty"`
 	Readme                  string            `json:"readme,omitempty"`
 }

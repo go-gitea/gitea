@@ -18,6 +18,7 @@ import (
 	git_model "code.gitea.io/gitea/models/git"
 	"code.gitea.io/gitea/modules/base"
 	"code.gitea.io/gitea/modules/charset"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/context"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/git/pipeline"
@@ -176,14 +177,12 @@ func LFSLocks(ctx *context.Context) {
 		return
 	}
 
-	filemap := make(map[string]bool, len(filelist))
-	for _, name := range filelist {
-		filemap[name] = true
-	}
+	fileset := make(container.Set[string], len(filelist))
+	fileset.AddMultiple(filelist...)
 
 	linkable := make([]bool, len(lfsLocks))
 	for i, lock := range lfsLocks {
-		linkable[i] = filemap[lock.Path]
+		linkable[i] = fileset.Contains(lock.Path)
 	}
 	ctx.Data["Linkable"] = linkable
 
