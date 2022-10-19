@@ -14,6 +14,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/git"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification"
@@ -257,12 +258,12 @@ func checkUnadoptedRepositories(userName string, repoNamesToCheck []string, unad
 	if len(repos) == len(repoNamesToCheck) {
 		return nil
 	}
-	repoNames := make(map[string]bool, len(repos))
+	repoNames := make(container.Set[string], len(repos))
 	for _, repo := range repos {
-		repoNames[repo.LowerName] = true
+		repoNames.Add(repo.LowerName)
 	}
 	for _, repoName := range repoNamesToCheck {
-		if _, ok := repoNames[repoName]; !ok {
+		if !repoNames.Contains(repoName) {
 			unadopted.add(filepath.Join(userName, repoName))
 		}
 	}

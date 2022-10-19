@@ -225,7 +225,7 @@ func NamesToBean(names ...string) ([]interface{}, error) {
 	for _, name := range names {
 		bean, ok := beanMap[strings.ToLower(strings.TrimSpace(name))]
 		if !ok {
-			return nil, fmt.Errorf("No table found that matches: %s", name)
+			return nil, fmt.Errorf("no table found that matches: %s", name)
 		}
 		if !gotBean[bean] {
 			beans = append(beans, bean)

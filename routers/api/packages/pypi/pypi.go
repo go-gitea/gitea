@@ -16,7 +16,6 @@ import (
 	packages_module "code.gitea.io/gitea/modules/packages"
 	pypi_module "code.gitea.io/gitea/modules/packages/pypi"
 	"code.gitea.io/gitea/modules/setting"
-	"code.gitea.io/gitea/modules/templates"
 	"code.gitea.io/gitea/modules/validation"
 	"code.gitea.io/gitea/routers/api/packages/helper"
 	packages_service "code.gitea.io/gitea/services/packages"
@@ -24,7 +23,7 @@ import (
 
 // https://www.python.org/dev/peps/pep-0503/#normalized-names
 var normalizer = strings.NewReplacer(".", "-", "_", "-")
-var nameMatcher = regexp.MustCompile(`\A[a-z0-9\.\-_]+\z`)
+var nameMatcher = regexp.MustCompile(`\A[a-zA-Z0-9\.\-_]+\z`)
 
 // https://www.python.org/dev/peps/pep-0440/#appendix-b-parsing-version-strings-with-regular-expressions
 var versionMatcher = regexp.MustCompile(`^([1-9][0-9]*!)?(0|[1-9][0-9]*)(\.(0|[1-9][0-9]*))*((a|b|rc)(0|[1-9][0-9]*))?(\.post(0|[1-9][0-9]*))?(\.dev(0|[1-9][0-9]*))?$`)
@@ -58,7 +57,6 @@ func PackageMetadata(ctx *context.Context) {
 	ctx.Data["RegistryURL"] = setting.AppURL + "api/packages/" + ctx.Package.Owner.Name + "/pypi"
 	ctx.Data["PackageDescriptor"] = pds[0]
 	ctx.Data["PackageDescriptors"] = pds
-	ctx.Render = templates.HTMLRenderer()
 	ctx.HTML(http.StatusOK, "api/packages/pypi/simple")
 }
 
@@ -90,7 +88,7 @@ func DownloadPackageFile(ctx *context.Context) {
 	}
 	defer s.Close()
 
-	ctx.ServeStream(s, pf.Name)
+	ctx.ServeContent(pf.Name, s, pf.CreatedUnix.AsLocalTime())
 }
 
 // UploadPackageFile adds a file to the package. If the package does not exist, it gets created.

@@ -384,7 +384,7 @@
       }
 
       tr:hover {
-        background-color: #ffffee;
+        background-color: var(--color-hover);
       }
 
       tr.has-parent a {
@@ -407,10 +407,6 @@
 
         .tiny.icon {
           font-size: .5em;
-        }
-
-        .file-info {
-          font-size: 13px;
         }
 
         .file-actions {
@@ -846,8 +842,8 @@
           display: none;
         }
 
-        .avatar.image,
-        .avatar.image img {
+        img.avatar,
+        .avatar img {
           width: 20px;
           height: 20px;
           margin: 0 .25rem;
@@ -908,8 +904,8 @@
             line-height: 34px; /* this must be same as .badge height, to avoid overflow */
             clear: both; // reset the "float right shabox", in the future, use flexbox instead
 
-            > .avatar.image,
-            > .avatar.image img {
+            > img.avatar,
+            > .avatar img {
               position: relative;
               top: -2px;
             }
@@ -991,6 +987,12 @@
 
         .comment-form-reply .footer {
           padding-bottom: 1em;
+        }
+
+        @media @mediaSm {
+          .ui.segments {
+            margin-left: -2rem;
+          }
         }
       }
 
@@ -1125,7 +1127,7 @@
           margin-left: 36px;
         }
 
-        .avatar.image {
+        img.avatar {
           width: 28px;
           height: 28px;
         }
@@ -1168,6 +1170,10 @@
         .segments {
           box-shadow: none;
         }
+      }
+
+      @media @mediaSm {
+        padding: 1rem 0 !important; // Important is required here to override existing fomantic styles.
       }
     }
 
@@ -1938,16 +1944,16 @@
           }
 
           .dot {
-            width: 9px;
-            height: 9px;
-            background-color: #ddd;
+            width: 10px;
+            height: 10px;
+            background-color: var(--color-secondary-dark-3);
             z-index: 9;
             position: absolute;
             display: block;
-            left: -5px;
+            left: -6px;
             top: 40px;
-            border-radius: 6px;
-            border: 1px solid #ffffff;
+            border-radius: 100%;
+            border: 2.5px solid var(--color-body);
           }
         }
       }
@@ -2497,7 +2503,7 @@
 #search-user-box {
   .results {
     .result {
-      .image {
+      img {
         float: left;
         margin-right: 8px;
         width: 2em;
@@ -2827,6 +2833,11 @@ tbody.commit-list {
   vertical-align: middle;
 }
 
+// in the commit list, messages can wrap so we can use inline
+.commit-list .message-wrapper {
+  display: inline;
+}
+
 @media @mediaSm {
   tr.commit-list {
     width: 100%;
@@ -3012,9 +3023,9 @@ tbody.commit-list {
 }
 
 .tag-code,
-.tag-code td {
-  background-color: #f0f9ff;
-  border-color: #f1f8ff !important;
+.tag-code td,
+.tag-code .blob-excerpt {
+  background-color: var(--color-box-body-highlight);
   vertical-align: middle;
 }
 
@@ -3030,7 +3041,7 @@ tbody.commit-list {
 }
 
 td.blob-excerpt {
-  background-color: #fafafa;
+  background-color: var(--color-secondary-alpha-30);
 }
 
 .issue-keyword {
@@ -3046,7 +3057,8 @@ td.blob-excerpt {
   display: flex;
   justify-content: space-between;
   overflow-x: auto;
-  padding: 8px 12px !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
 }
 
 .file-info {
@@ -3064,6 +3076,35 @@ td.blob-excerpt {
   border-left: 1px solid currentcolor;
   margin-left: 8px;
   padding-left: 8px;
+}
+
+#diff-container {
+  display: flex;
+}
+#diff-file-boxes {
+  flex: 1;
+}
+
+#diff-file-tree {
+  width: 20%;
+  max-width: 380px;
+  line-height: inherit;
+  position: sticky;
+  padding-top: 0;
+  top: 47px;
+  max-height: calc(100vh - 50px);
+  height: 100%;
+  overflow-y: auto;
+}
+
+@media @mediaMdAndDown {
+  #diff-file-tree {
+    display: none !important;
+  }
+
+  .diff-toggle-file-tree-button {
+    display: none !important;
+  }
 }
 
 .ui.message.unicode-escape-prompt {
@@ -3300,7 +3341,7 @@ td.blob-excerpt {
         display: flex;
         margin-bottom: auto;
 
-        img.avatar.image {
+        img.avatar {
           height: 24px;
           width: 24px;
         }

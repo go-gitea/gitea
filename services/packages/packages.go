@@ -402,7 +402,7 @@ func Cleanup(unused context.Context, olderThan time.Duration) error {
 }
 
 // GetFileStreamByPackageNameAndVersion returns the content of the specific package file
-func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %s, %s, %s, %s", pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version, pfi.Filename, pfi.CompositeKey)
 
 	pv, err := packages_model.GetVersionByNameAndVersion(ctx, pvi.Owner.ID, pvi.PackageType, pvi.Name, pvi.Version)
@@ -418,7 +418,7 @@ func GetFileStreamByPackageNameAndVersion(ctx context.Context, pvi *PackageInfo,
 }
 
 // GetFileStreamByPackageVersionAndFileID returns the content of the specific package file
-func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_model.User, versionID, fileID int64) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	log.Trace("Getting package file stream: %v, %v, %v", owner.ID, versionID, fileID)
 
 	pv, err := packages_model.GetVersionByID(ctx, versionID)
@@ -449,7 +449,7 @@ func GetFileStreamByPackageVersionAndFileID(ctx context.Context, owner *user_mod
 }
 
 // GetFileStreamByPackageVersion returns the content of the specific package file
-func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.PackageVersion, pfi *PackageFileInfo) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	pf, err := packages_model.GetFileForVersionByName(ctx, pv.ID, pfi.Filename, pfi.CompositeKey)
 	if err != nil {
 		return nil, nil, err
@@ -459,7 +459,7 @@ func GetFileStreamByPackageVersion(ctx context.Context, pv *packages_model.Packa
 }
 
 // GetPackageFileStream returns the content of the specific package file
-func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadCloser, *packages_model.PackageFile, error) {
+func GetPackageFileStream(ctx context.Context, pf *packages_model.PackageFile) (io.ReadSeekCloser, *packages_model.PackageFile, error) {
 	pb, err := packages_model.GetBlobByID(ctx, pf.BlobID)
 	if err != nil {
 		return nil, nil, err

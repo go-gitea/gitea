@@ -2,7 +2,7 @@
 	<div class="ui segment metas">
 		{{template "repo/issue/branch_selector_field" .}}
 
-		{{if .Issue.IsPull }}
+		{{if .Issue.IsPull}}
 
 			<input id="reviewer_id" name="reviewer_id" type="hidden" value="{{.reviewer_id}}">
 			<div class="ui {{if or (not .Reviewers) (not .CanChooseReviewer) .Repository.IsArchived}}disabled{{end}} floating jump select-reviewers-modify dropdown">
@@ -79,10 +79,10 @@
 					{{end}}
 					{{range .OriginalReviews}}
 						<div class="item" style="margin-bottom: 10px;">
-							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe }}">
+							<a href="{{$.Repository.OriginalURL}}" class="ui tooltip" data-content="{{$.locale.Tr "repo.migrated_from_fake" ($.Repository.GetOriginalURLHostname|Escape) | Safe}}">
 								<span class="text black">
 									{{svg (MigrationIcon $.Repository.GetOriginalURLHostname)}}
-									{{ .OriginalAuthor }}
+									{{.OriginalAuthor}}
 								</span>
 							</a>
 							<span class="ui right type-icon text {{if eq .Type 1}}green
@@ -125,12 +125,12 @@
 				{{if or .Labels .OrgLabels}}
 					{{range .Labels}}
 						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
-						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 					<div class="ui divider"></div>
 					{{range .OrgLabels}}
 						<a class="{{if .IsChecked}}checked{{end}} item" href="#" data-id="{{.ID}}" data-id-selector="#label_{{.ID}}"><span class="octicon-check {{if not .IsChecked}}invisible{{end}}">{{svg "octicon-check"}}</span><span class="label color" style="background-color: {{.Color}}"></span> {{.Name | RenderEmoji}}
-						{{if .Description }}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
+						{{if .Description}}<br><small class="desc">{{.Description | RenderEmoji}}</small>{{end}}</a>
 					{{end}}
 				{{else}}
 					<div class="header" style="text-transform: none;font-size:14px;">{{.locale.Tr "repo.issues.new.no_items"}}</div>
@@ -337,7 +337,7 @@
 				</div>
 			</div>
 		{{end}}
-		{{if .Repository.IsTimetrackerEnabled }}
+		{{if .Repository.IsTimetrackerEnabled}}
 			{{if and .CanUseTimetracker (not .Repository.IsArchived)}}
 				<div class="ui divider"></div>
 				<div class="ui timetrack">
@@ -413,7 +413,7 @@
 					<div class="df sb ac">
 						<div class="due-date tooltip {{if .Issue.IsOverdue}}text red{{end}}" {{if .Issue.IsOverdue}}data-content="{{.locale.Tr "repo.issues.due_date_overdue"}}"{{end}}>
 							{{svg "octicon-calendar" 16 "mr-3"}}
-							{{.Issue.DeadlineUnix.FormatDate}}
+							<time data-format="date" datetime="{{.Issue.DeadlineUnix.FormatLong}}">{{.Issue.DeadlineUnix.FormatDate}}</time>
 						</div>
 						<div>
 							{{if and .HasIssuesOrPullsWritePermission (not .Repository.IsArchived)}}
@@ -580,7 +580,7 @@
 		{{if and .IsRepoAdmin (not .Repository.IsArchived)}}
 			<div class="ui divider"></div>
 			<div class="ui watching">
-				<button class="fluid ui show-modal button {{if .Issue.IsLocked }} negative {{end}}" data-modal="#lock">
+				<button class="fluid ui show-modal button {{if .Issue.IsLocked}} negative {{end}}" data-modal="#lock">
 					{{if .Issue.IsLocked}}
 						{{svg "octicon-key"}}
 						{{.locale.Tr "repo.issues.unlock"}}
@@ -592,7 +592,7 @@
 			</div>
 			<div class="ui tiny modal" id="lock">
 				<div class="header">
-					{{ if .Issue.IsLocked }}
+					{{if .Issue.IsLocked}}
 						{{.locale.Tr "repo.issues.unlock.title"}}
 					{{else}}
 						{{.locale.Tr "repo.issues.lock.title"}}
@@ -600,7 +600,7 @@
 				</div>
 				<div class="content">
 					<div class="ui warning message text left">
-						{{ if .Issue.IsLocked }}
+						{{if .Issue.IsLocked}}
 							{{.locale.Tr "repo.issues.unlock.notice_1"}}<br>
 							{{.locale.Tr "repo.issues.unlock.notice_2"}}<br>
 						{{else}}
@@ -610,13 +610,13 @@
 						{{end}}
 					</div>
 
-					<form class="ui form" action="{{.Issue.Link}}{{ if .Issue.IsLocked }}/unlock{{else}}/lock{{end}}"
+					<form class="ui form" action="{{.Issue.Link}}{{if .Issue.IsLocked}}/unlock{{else}}/lock{{end}}"
 						method="post">
 						{{.CsrfTokenHtml}}
 
-						{{ if not .Issue.IsLocked }}
+						{{if not .Issue.IsLocked}}
 							<div class="field">
-								<strong> {{ .locale.Tr "repo.issues.lock.reason" }} </strong>
+								<strong> {{.locale.Tr "repo.issues.lock.reason"}} </strong>
 							</div>
 
 							<div class="field">
@@ -644,7 +644,7 @@
 						<div class="text right actions">
 							<div class="ui cancel button">{{.locale.Tr "settings.cancel"}}</div>
 							<button class="ui red button">
-								{{ if .Issue.IsLocked }}
+								{{if .Issue.IsLocked}}
 									{{.locale.Tr "repo.issues.unlock_confirm"}}
 								{{else}}
 									{{.locale.Tr "repo.issues.lock_confirm"}}

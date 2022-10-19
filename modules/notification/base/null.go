@@ -78,6 +78,18 @@ func (*NullNotifier) NotifyUpdateComment(doer *user_model.User, c *issues_model.
 func (*NullNotifier) NotifyDeleteComment(doer *user_model.User, c *issues_model.Comment) {
 }
 
+// NotifyNewWikiPage places a place holder function
+func (*NullNotifier) NotifyNewWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+}
+
+// NotifyEditWikiPage places a place holder function
+func (*NullNotifier) NotifyEditWikiPage(doer *user_model.User, repo *repo_model.Repository, page, comment string) {
+}
+
+// NotifyDeleteWikiPage places a place holder function
+func (*NullNotifier) NotifyDeleteWikiPage(doer *user_model.User, repo *repo_model.Repository, page string) {
+}
+
 // NotifyNewRelease places a place holder function
 func (*NullNotifier) NotifyNewRelease(rel *repo_model.Release) {
 }

@@ -131,7 +131,11 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 	r := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: repo})
 	d := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: doer})
 
-	idx, err := db.GetNextResourceIndex("issue_index", r.ID)
+	ctx, committer, err := db.TxContext()
+	assert.NoError(t, err)
+	defer committer.Close()
+
+	idx, err := db.GetNextResourceIndex(ctx, "issue_index", r.ID)
 	assert.NoError(t, err)
 	i := &issues_model.Issue{
 		RepoID:   r.ID,
@@ -143,9 +147,6 @@ func testCreateIssue(t *testing.T, repo, doer int64, title, content string, ispu
 		Index:    idx,
 	}
 
-	ctx, committer, err := db.TxContext()
-	assert.NoError(t, err)
-	defer committer.Close()
 	err = issues_model.NewIssueWithIndex(ctx, d, issues_model.NewIssueOptions{
 		Repo:  r,
 		Issue: i,

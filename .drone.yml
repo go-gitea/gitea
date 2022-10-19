@@ -39,6 +39,16 @@ steps:
       - make lint-frontend
     depends_on: [deps-frontend]
 
+  - name: security-check
+    image: golang:1.19
+    pull: always
+    commands:
+      - make security-check
+    depends_on: [deps-backend]
+    volumes:
+      - name: deps
+        path: /go
+
   - name: lint-backend
     image: gitea/test_env:linux-amd64  # https://gitea.com/gitea/test-env
     pull: always
@@ -90,7 +100,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
-      - make checks-backend
+      - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -106,7 +116,7 @@ steps:
     image: node:18
     commands:
       - make frontend
-    depends_on: [test-frontend]
+    depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
     image: golang:1.18 # this step is kept as the lowest version of golang that we support
@@ -500,6 +510,78 @@ steps:
 
 ---
 kind: pipeline
+type: docker
+name: testing-e2e
+
+platform:
+  os: linux
+  arch: amd64
+
+depends_on:
+  - compliance
+
+trigger:
+  event:
+    - pull_request
+
+volumes:
+  - name: deps
+    temp: {}
+
+services:
+  - name: pgsql
+    pull: default
+    image: postgres:10
+    environment:
+      POSTGRES_DB: testgitea-e2e
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: --encoding=UTF8 --lc-collate='en_US.UTF-8' --lc-ctype='en_US.UTF-8'
+
+steps:
+  - name: deps-frontend
+    image: node:18
+    pull: always
+    commands:
+      - make deps-frontend
+
+  - name: build-frontend
+    image: node:18
+    commands:
+      - make frontend
+    depends_on: [deps-frontend]
+
+  - name: deps-backend
+    image: golang:1.18
+    pull: always
+    commands:
+      - make deps-backend
+    volumes:
+      - name: deps
+        path: /go
+
+  # TODO: We should probably build all dependencies into a test image
+  - name: test-e2e
+    image: mcr.microsoft.com/playwright:v1.27.0-focal
+    commands:
+      - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
+      - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
+      - apt-get -qq update && apt-get -qqy install build-essential
+      - export TEST_PGSQL_SCHEMA=''
+      - ./build/test-env-prepare.sh
+      - su gitea bash -c "export PATH=$PATH:/usr/local/go/bin && timeout -s ABRT 40m make test-e2e-pgsql"
+    environment:
+      GOPROXY: https://goproxy.io
+      GOSUMDB: sum.golang.org
+      USE_REPO_TEST_DIR: 1
+      TEST_PGSQL_DBNAME: 'testgitea-e2e'
+      DEBIAN_FRONTEND: noninteractive
+    depends_on: [build-frontend, deps-backend]
+    volumes:
+      - name: deps
+        path: /go
+
+---
+kind: pipeline
 name: update_translations
 
 platform:
@@ -544,6 +626,8 @@ steps:
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: GiteaBot
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
@@ -588,12 +672,14 @@ steps:
     pull: always
     settings:
       author_email: "teabot@gitea.io"
-      author_name: GiteaBot
+      author_name: "GiteaBot"
       branch: main
       commit: true
-      commit_message: "[skip ci] Updated licenses and gitignores "
+      commit_message: "[skip ci] Updated licenses and gitignores"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: "GiteaBot"
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
@@ -653,12 +739,13 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     volumes:
       - name: deps
         path: /go
@@ -773,12 +860,13 @@ steps:
     pull: always
     commands:
       # Upgrade to node 18 once https://github.com/techknowlogick/xgo/issues/163 is resolved
-      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs
+      - curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get -qqy install nodejs
       - export PATH=$PATH:$GOPATH/bin
       - make release
     environment:
       GOPROXY: https://goproxy.io # proxy.golang.org is blocked in China, this proxy is not
       TAGS: bindata sqlite sqlite_unlock_notify
+      DEBIAN_FRONTEND: noninteractive
     depends_on: [fetch-tags]
     volumes:
       - name: deps

@@ -1,6 +1,6 @@
-{{ if .comment.Time }} {{/* compatibility with time comments made before v1.14 */}}
-	{{ if (not .comment.Time.Deleted) }}
-		{{ if (or .ctx.IsAdmin (and .ctx.IsSigned (eq .ctx.SignedUserID .comment.PosterID))) }}
+{{if .comment.Time}} {{/* compatibility with time comments made before v1.14 */}}
+	{{if (not .comment.Time.Deleted)}}
+		{{if (or .ctx.IsAdmin (and .ctx.IsSigned (eq .ctx.SignedUserID .comment.PosterID)))}}
 			<span class="ui float right">
 				<div class="ui mini modal issue-delete-time-modal" data-id="{{.comment.Time.ID}}">
 					<form method="POST" class="delete-time-form" action="{{.ctx.RepoLink}}/issues/{{.ctx.Issue.Index}}/times/{{.comment.TimeID}}/delete">

@@ -9,6 +9,7 @@ package templates
 import (
 	"html/template"
 	"io"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -16,10 +17,8 @@ import (
 	texttmpl "text/template"
 	"time"
 
-	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
-	"code.gitea.io/gitea/modules/util"
 )
 
 var (
@@ -32,6 +31,18 @@ func GlobalModTime(filename string) time.Time {
 	return timeutil.GetExecutableModTime()
 }
 
+// GetAssetFilename returns the filename of the provided asset
+func GetAssetFilename(name string) (string, error) {
+	filename := filepath.Join(setting.CustomPath, name)
+	_, err := os.Stat(filename)
+	if err != nil && !os.IsNotExist(err) {
+		return name, err
+	} else if err == nil {
+		return filename, nil
+	}
+	return "(builtin) " + name, nil
+}
+
 // GetAsset get a special asset, only for chi
 func GetAsset(name string) ([]byte, error) {
 	bs, err := os.ReadFile(filepath.Join(setting.CustomPath, name))
@@ -40,95 +51,42 @@ func GetAsset(name string) ([]byte, error) {
 	} else if err == nil {
 		return bs, nil
 	}
-	return Asset(strings.TrimPrefix(name, "templates/"))
+	return BuiltinAsset(strings.TrimPrefix(name, "templates/"))
 }
 
-// GetAssetNames only for chi
-func GetAssetNames() []string {
+// GetFiles calls a callback for each template asset
+func walkTemplateFiles(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "templates"), true, callback); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// GetTemplateAssetNames only for chi
+func GetTemplateAssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	tmpls := make([]string, 0, len(realFS))
 	for k := range realFS {
+		if strings.HasPrefix(k, "/mail/") {
+			continue
+		}
 		tmpls = append(tmpls, "templates/"+k[1:])
 	}
 
 	customDir := path.Join(setting.CustomPath, "templates")
-	customTmpls := getDirAssetNames(customDir)
+	customTmpls := getDirTemplateAssetNames(customDir)
 	return append(tmpls, customTmpls...)
 }
 
-// Mailer provides the templates required for sending notification mails.
-func Mailer() (*texttmpl.Template, *template.Template) {
-	for _, funcs := range NewTextFuncMap() {
-		subjectTemplates.Funcs(funcs)
+func walkMailerTemplates(callback func(path, name string, d fs.DirEntry, err error) error) error {
+	if err := walkAssetDir(filepath.Join(setting.CustomPath, "templates", "mail"), false, callback); err != nil && !os.IsNotExist(err) {
+		return err
 	}
-	for _, funcs := range NewFuncMap() {
-		bodyTemplates.Funcs(funcs)
-	}
-
-	for _, assetPath := range AssetNames() {
-		if !strings.HasPrefix(assetPath, "mail/") {
-			continue
-		}
-
-		if !strings.HasSuffix(assetPath, ".tmpl") {
-			continue
-		}
-
-		content, err := Asset(assetPath)
-		if err != nil {
-			log.Warn("Failed to read embedded %s template. %v", assetPath, err)
-			continue
-		}
-
-		buildSubjectBodyTemplate(subjectTemplates,
-			bodyTemplates,
-			strings.TrimPrefix(
-				strings.TrimSuffix(
-					assetPath,
-					".tmpl",
-				),
-				"mail/",
-			),
-			content)
-	}
-
-	customDir := path.Join(setting.CustomPath, "templates", "mail")
-	isDir, err := util.IsDir(customDir)
-	if err != nil {
-		log.Warn("Failed to check if custom directory %s is a directory. %v", err)
-	}
-	if isDir {
-		files, err := util.StatDir(customDir)
-
-		if err != nil {
-			log.Warn("Failed to read %s templates dir. %v", customDir, err)
-		} else {
-			for _, filePath := range files {
-				if !strings.HasSuffix(filePath, ".tmpl") {
-					continue
-				}
-
-				content, err := os.ReadFile(path.Join(customDir, filePath))
-				if err != nil {
-					log.Warn("Failed to read custom %s template. %v", filePath, err)
-					continue
-				}
-
-				buildSubjectBodyTemplate(subjectTemplates,
-					bodyTemplates,
-					strings.TrimSuffix(
-						filePath,
-						".tmpl",
-					),
-					content)
-			}
-		}
-	}
-
-	return subjectTemplates, bodyTemplates
+	return nil
 }
 
-func Asset(name string) ([]byte, error) {
+// BuiltinAsset reads the provided asset from the builtin embedded assets
+func BuiltinAsset(name string) ([]byte, error) {
 	f, err := Assets.Open("/" + name)
 	if err != nil {
 		return nil, err
@@ -137,7 +95,8 @@ func Asset(name string) ([]byte, error) {
 	return io.ReadAll(f)
 }
 
-func AssetNames() []string {
+// BuiltinAssetNames returns the names of the built-in embedded assets
+func BuiltinAssetNames() []string {
 	realFS := Assets.(vfsgen۰FS)
 	results := make([]string, 0, len(realFS))
 	for k := range realFS {
@@ -146,7 +105,8 @@ func AssetNames() []string {
 	return results
 }
 
-func AssetIsDir(name string) (bool, error) {
+// BuiltinAssetIsDir returns if a provided asset is a directory
+func BuiltinAssetIsDir(name string) (bool, error) {
 	if f, err := Assets.Open("/" + name); err != nil {
 		return false, err
 	} else {

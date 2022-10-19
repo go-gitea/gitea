@@ -2,7 +2,7 @@
 <div class="page-content repository commits">
 	{{template "repo/header" .}}
 	<div class="ui container">
-		<h2 class="ui header">{{.DateFrom}} - {{.DateUntil}}
+		<h2 class="ui header"><time data-format="date" datetime="{{.DateFrom}}">{{.DateFrom}}</time> - <time data-format="date" datetime="{{.DateUntil}}">{{.DateUntil}}</time>
 			<div class="ui right">
 				<!-- Period -->
 				<div class="ui floating dropdown jump filter">
@@ -41,7 +41,7 @@
 						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
-					{{.locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount | Safe }}
+					{{.locale.TrN .Activity.ActivePRCount "repo.activity.active_prs_count_1" "repo.activity.active_prs_count_n" .Activity.ActivePRCount | Safe}}
 				</div>
 			{{end}}
 			{{if .Permission.CanRead $.UnitTypeIssues}}
@@ -56,7 +56,7 @@
 						<a class="table-cell tiny background light grey"></a>
 					</div>
 					{{end}}
-					{{.locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount | Safe }}
+					{{.locale.TrN .Activity.ActiveIssueCount "repo.activity.active_issues_count_1" "repo.activity.active_issues_count_n" .Activity.ActiveIssueCount | Safe}}
 				</div>
 			{{end}}
 		</div>
@@ -87,25 +87,25 @@
 		{{if .Permission.CanRead $.UnitTypeCode}}
 			{{if eq .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui center aligned segment">
-				<h4 class="ui header">{{.locale.Tr "repo.activity.no_git_activity" }}</h4>
+				<h4 class="ui header">{{.locale.Tr "repo.activity.no_git_activity"}}</h4>
 				</div>
 			{{end}}
 			{{if gt .Activity.Code.CommitCountInAllBranches 0}}
 				<div class="ui attached segment horizontal segments">
 					<div class="ui attached segment text">
-						{{.locale.Tr "repo.activity.git_stats_exclude_merges" }}
+						{{.locale.Tr "repo.activity.git_stats_exclude_merges"}}
 						<strong>{{.locale.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_author_1" "repo.activity.git_stats_author_n" .Activity.Code.AuthorCount}}</strong>
 						{{.locale.TrN .Activity.Code.AuthorCount "repo.activity.git_stats_pushed_1" "repo.activity.git_stats_pushed_n"}}
 						<strong>{{.locale.TrN .Activity.Code.CommitCount "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCount}}</strong>
-						{{.locale.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch }}
+						{{.locale.Tr "repo.activity.git_stats_push_to_branch" .Repository.DefaultBranch}}
 						<strong>{{.locale.TrN .Activity.Code.CommitCountInAllBranches "repo.activity.git_stats_commit_1" "repo.activity.git_stats_commit_n" .Activity.Code.CommitCountInAllBranches}}</strong>
-						{{.locale.Tr "repo.activity.git_stats_push_to_all_branches" }}
-						{{.locale.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch }}
+						{{.locale.Tr "repo.activity.git_stats_push_to_all_branches"}}
+						{{.locale.Tr "repo.activity.git_stats_on_default_branch" .Repository.DefaultBranch}}
 						<strong>{{.locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_file_1" "repo.activity.git_stats_file_n" .Activity.Code.ChangedFiles}}</strong>
 						{{.locale.TrN .Activity.Code.ChangedFiles "repo.activity.git_stats_files_changed_1" "repo.activity.git_stats_files_changed_n"}}
-						{{.locale.Tr "repo.activity.git_stats_additions" }}
+						{{.locale.Tr "repo.activity.git_stats_additions"}}
 						<strong class="text green">{{.locale.TrN .Activity.Code.Additions "repo.activity.git_stats_addition_1" "repo.activity.git_stats_addition_n" .Activity.Code.Additions}}</strong>
-						{{.locale.Tr "repo.activity.git_stats_and_deletions" }}
+						{{.locale.Tr "repo.activity.git_stats_and_deletions"}}
 						<strong class="text red">{{.locale.TrN .Activity.Code.Deletions "repo.activity.git_stats_deletion_1" "repo.activity.git_stats_deletion_n" .Activity.Code.Deletions}}</strong>.
 					</div>
 					<div class="ui attached segment">

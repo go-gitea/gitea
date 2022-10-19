@@ -12,6 +12,7 @@ import (
 	"code.gitea.io/gitea/models/db"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/xorm"
 	"xorm.io/xorm/convert"
@@ -366,6 +367,11 @@ func (err ErrSourceNotExist) Error() string {
 	return fmt.Sprintf("login source does not exist [id: %d]", err.ID)
 }
 
+// Unwrap unwraps this as a ErrNotExist err
+func (err ErrSourceNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrSourceAlreadyExist represents a "SourceAlreadyExist" kind of error.
 type ErrSourceAlreadyExist struct {
 	Name string
@@ -379,6 +385,11 @@ func IsErrSourceAlreadyExist(err error) bool {
 
 func (err ErrSourceAlreadyExist) Error() string {
 	return fmt.Sprintf("login source already exists [name: %s]", err.Name)
+}
+
+// Unwrap unwraps this as a ErrExist err
+func (err ErrSourceAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // ErrSourceInUse represents a "SourceInUse" kind of error.

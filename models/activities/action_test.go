@@ -10,6 +10,7 @@ import (
 
 	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
+	issue_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
@@ -20,7 +21,7 @@ import (
 
 func TestAction_GetRepoPath(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
 	action := &activities_model.Action{RepoID: repo.ID}
 	assert.Equal(t, path.Join(owner.Name, repo.Name), action.GetRepoPath())
@@ -28,12 +29,15 @@ func TestAction_GetRepoPath(t *testing.T) {
 
 func TestAction_GetRepoLink(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{})
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	owner := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: repo.OwnerID})
-	action := &activities_model.Action{RepoID: repo.ID}
+	comment := unittest.AssertExistsAndLoadBean(t, &issue_model.Comment{ID: 2})
+	action := &activities_model.Action{RepoID: repo.ID, CommentID: comment.ID}
 	setting.AppSubURL = "/suburl"
 	expected := path.Join(setting.AppSubURL, owner.Name, repo.Name)
 	assert.Equal(t, expected, action.GetRepoLink())
+	assert.Equal(t, repo.HTMLURL(), action.GetRepoAbsoluteLink())
+	assert.Equal(t, comment.HTMLURL(), action.GetCommentLink())
 }
 
 func TestGetFeeds(t *testing.T) {
