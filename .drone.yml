@@ -100,7 +100,7 @@ steps:
   - name: checks-backend
     image: golang:1.19
     commands:
-      - make checks-backend
+      - make --always-make checks-backend # ensure the 'go-licenses' make target runs
     depends_on: [deps-backend]
     volumes:
       - name: deps
@@ -112,16 +112,11 @@ steps:
       - make test-frontend
     depends_on: [lint-frontend]
 
-  - name: generate-frontend
-    image: golang:1.19
-    commands:
-      - make generate-frontend
-
   - name: build-frontend
     image: node:18
     commands:
       - make frontend
-    depends_on: [deps-frontend, generate-frontend]
+    depends_on: [deps-frontend]
 
   - name: build-backend-no-gcc
     image: golang:1.18 # this step is kept as the lowest version of golang that we support
@@ -549,16 +544,11 @@ steps:
     commands:
       - make deps-frontend
 
-  - name: generate-frontend
-    image: golang:1.18
-    commands:
-      - make generate-frontend
-
   - name: build-frontend
     image: node:18
     commands:
       - make frontend
-    depends_on: [deps-frontend, generate-frontend]
+    depends_on: [deps-frontend]
 
   - name: deps-backend
     image: golang:1.18
@@ -571,9 +561,9 @@ steps:
 
   # TODO: We should probably build all dependencies into a test image
   - name: test-e2e
-    image: mcr.microsoft.com/playwright:v1.24.0-focal
+    image: mcr.microsoft.com/playwright:v1.27.0-focal
     commands:
-      - curl -sLO https://go.dev/dl/go1.18.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.18.linux-amd64.tar.gz
+      - curl -sLO https://go.dev/dl/go1.19.linux-amd64.tar.gz && tar -C /usr/local -xzf go1.19.linux-amd64.tar.gz
       - groupadd --gid 1001 gitea && useradd -m --gid 1001 --uid 1001 gitea
       - apt-get -qq update && apt-get -qqy install build-essential
       - export TEST_PGSQL_SCHEMA=''
@@ -636,6 +626,8 @@ steps:
       commit_message: "[skip ci] Updated translations via Crowdin"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: GiteaBot
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 
@@ -680,12 +672,14 @@ steps:
     pull: always
     settings:
       author_email: "teabot@gitea.io"
-      author_name: GiteaBot
+      author_name: "GiteaBot"
       branch: main
       commit: true
-      commit_message: "[skip ci] Updated licenses and gitignores "
+      commit_message: "[skip ci] Updated licenses and gitignores"
       remote: "git@github.com:go-gitea/gitea.git"
     environment:
+      DRONE_COMMIT_AUTHOR_EMAIL: "teabot@gitea.io"
+      DRONE_COMMIT_AUTHOR: "GiteaBot"
       GIT_PUSH_SSH_KEY:
         from_secret: git_push_ssh_key
 

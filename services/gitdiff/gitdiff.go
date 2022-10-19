@@ -1178,8 +1178,6 @@ func GetDiff(gitRepo *git.Repository, opts *DiffOptions, files ...string) (*Diff
 				} else if language, has := attrs["gitlab-language"]; has && language != "unspecified" && language != "" {
 					diffFile.Language = language
 				}
-			} else {
-				log.Error("Unexpected error: %v", err)
 			}
 		}
 

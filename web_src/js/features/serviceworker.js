@@ -1,6 +1,6 @@
 import {joinPaths, parseUrl} from '../utils.js';
 
-const {useServiceWorker, assetUrlPrefix, appVer, assetVersionEncoded} = window.config;
+const {useServiceWorker, assetUrlPrefix, assetVersionEncoded} = window.config;
 const cachePrefix = 'static-cache-v'; // actual version is set in the service worker script
 const workerUrl = `${joinPaths(assetUrlPrefix, 'serviceworker.js')}?v=${assetVersionEncoded}`;
 
@@ -25,7 +25,7 @@ async function invalidateCache() {
 }
 
 async function checkCacheValidity() {
-  const cacheKey = appVer;
+  const cacheKey = assetVersionEncoded;
   const storedCacheKey = localStorage.getItem('staticCacheKey');
 
   // invalidate cache if it belongs to a different gitea version

@@ -765,6 +765,11 @@ func SearchTeam(ctx *context.APIContext) {
 		ListOptions: listOptions,
 	}
 
+	// Only admin is allowd to search for all teams
+	if !ctx.Doer.IsAdmin {
+		opts.UserID = ctx.Doer.ID
+	}
+
 	teams, maxResults, err := organization.SearchTeam(opts)
 	if err != nil {
 		log.Error("SearchTeam failed: %v", err)

@@ -64,8 +64,8 @@ func main() {
 		}
 
 		entries = append(entries, LicenseEntry{
-			Name: name,
-			Path: path,
+			Name:        name,
+			Path:        path,
 			LicenseText: string(licenseText),
 		})
 	}
