@@ -152,7 +152,7 @@ func localizedExtensions(ext, languageCode string) (localizedExts []string) {
 		underscoreLangCode := strings.ReplaceAll(lowerLangCode, "-", "_")
 		indexOfDash := strings.Index(lowerLangCode, "-")
 		// e.g. [.zh-cn.md, .zh_cn.md, .zh.md, _zh.md, .md]
-		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, "_" +lowerLangCode[1:indexOfDash]+ext, ext}
+		return []string{lowerLangCode + ext, underscoreLangCode + ext, lowerLangCode[:indexOfDash] + ext, "_" + lowerLangCode[1:indexOfDash] + ext, ext}
 	}
 
 	// e.g. [.en.md, .md]
