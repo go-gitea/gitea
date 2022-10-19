@@ -140,6 +140,8 @@ func TestRenameReservedUsername(t *testing.T) {
 }
 
 func TestExportUserGPGKeys(t *testing.T) {
+	t.Skip("Test is flaky, see https://github.com/go-gitea/gitea/issues/19961")
+
 	defer tests.PrepareTestEnv(t)()
 	// Export empty key list
 	testExportUserGPGKeys(t, "user1", `-----BEGIN PGP PUBLIC KEY BLOCK-----
