@@ -70,7 +70,8 @@ func List(ctx *context.Context) {
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
-		RepoID: ctx.Repo.Repository.ID,
+		RepoID:           ctx.Repo.Repository.ID,
+		WorkflowFileName: ctx.FormString("workflow"),
 	}
 	if ctx.FormString("state") == "closed" {
 		opts.IsClosed = util.OptionalBoolTrue

@@ -56,27 +56,6 @@ func (run *Run) HTMLURL() string {
 	return fmt.Sprintf("%s/builds/run/%d", run.Repo.HTMLURL(), run.Index)
 }
 
-func (run *Run) IsPending() bool {
-	return run.Status == core.StatusWaiting || run.Status == core.StatusPending
-}
-
-func (run *Run) IsRunning() bool {
-	return run.Status == core.StatusRunning
-}
-
-func (run *Run) IsSuccess() bool {
-	return run.Status == core.StatusPassing
-}
-
-func (run *Run) IsFailed() bool {
-	return run.Status == core.StatusFailing ||
-		run.Status == core.StatusKilled ||
-		run.Status == core.StatusError ||
-		run.Status == core.StatusSkipped ||
-		run.Status == core.StatusBlocked ||
-		run.Status == core.StatusDeclined
-}
-
 // LoadAttributes load Repo TriggerUser if not loaded
 func (r *Run) LoadAttributes(ctx context.Context) error {
 	if r == nil {

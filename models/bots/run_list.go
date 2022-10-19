@@ -7,6 +7,7 @@ package bots
 import (
 	"context"
 
+	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/util"
@@ -42,8 +43,9 @@ func (runs RunList) LoadTriggerUser() error {
 
 type FindRunOptions struct {
 	db.ListOptions
-	RepoID   int64
-	IsClosed util.OptionalBool
+	RepoID           int64
+	IsClosed         util.OptionalBool
+	WorkflowFileName string
 }
 
 func (opts FindRunOptions) toConds() builder.Cond {
@@ -52,7 +54,16 @@ func (opts FindRunOptions) toConds() builder.Cond {
 		cond = cond.And(builder.Eq{"repo_id": opts.RepoID})
 	}
 	if opts.IsClosed.IsFalse() {
+		cond = cond.And(builder.Eq{"status": core.StatusPending}.Or(
+			builder.Eq{"status": core.StatusWaiting}.Or(
+				builder.Eq{"status": core.StatusRunning})))
 	} else if opts.IsClosed.IsTrue() {
+		cond = cond.And(builder.Neq{"status": core.StatusPending}.And(
+			builder.Neq{"status": core.StatusWaiting}.And(
+				builder.Neq{"status": core.StatusRunning})))
+	}
+	if opts.WorkflowFileName != "" {
+		cond = cond.And(builder.Eq{"workflow_id": opts.WorkflowFileName})
 	}
 	return cond
 }
@@ -63,6 +74,6 @@ func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) 
 		e.Limit(opts.PageSize, (opts.Page-1)*opts.PageSize)
 	}
 	var runs RunList
-	total, err := e.FindAndCount(&runs)
+	total, err := e.Desc("id").FindAndCount(&runs)
 	return runs, total, err
 }
