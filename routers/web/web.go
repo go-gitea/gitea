@@ -473,8 +473,13 @@ func RegisterRoutes(m *web.Route) {
 	m.Group("/admin", func() {
 		m.Get("", adminReq, admin.Dashboard)
 		m.Post("", adminReq, bindIgnErr(forms.AdminDashboardForm{}), admin.DashboardPost)
-		m.Get("/config", admin.Config)
-		m.Post("/config/test_mail", admin.SendTestMail)
+
+		m.Group("/config", func() {
+			m.Get("", admin.Config)
+			m.Post("", admin.ChangeConfig)
+			m.Post("/test_mail", admin.SendTestMail)
+		})
+
 		m.Group("/monitor", func() {
 			m.Get("", admin.Monitor)
 			m.Get("/stacktrace", admin.GoroutineStacktrace)
@@ -644,6 +649,11 @@ func RegisterRoutes(m *web.Route) {
 		m.Group("", func() {
 			m.Get("/create", org.Create)
 			m.Post("/create", bindIgnErr(forms.CreateOrgForm{}), org.CreatePost)
+		})
+
+		m.Group("/invite/{token}", func() {
+			m.Get("", org.TeamInvite)
+			m.Post("", org.TeamInvitePost)
 		})
 
 		m.Group("/{org}", func() {
