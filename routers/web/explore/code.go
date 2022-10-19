@@ -110,6 +110,16 @@ func Code(ctx *context.Context) {
 		}
 
 		ctx.Data["RepoMaps"] = repoMaps
+
+		//Remove deleted repos from search results
+		var cleanedSearchResults = make([]*code_indexer.Result, 0, len(repoMaps))
+		for _, sr := range searchResults {
+			if _, found := repoMaps[sr.RepoID]; found {
+				cleanedSearchResults = append(cleanedSearchResults, sr)
+			}
+		}
+
+		searchResults = cleanedSearchResults
 	}
 
 	ctx.Data["SearchResults"] = searchResults
