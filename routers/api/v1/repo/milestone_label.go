@@ -99,7 +99,7 @@ func AddMilestoneLabels(ctx *context.APIContext) {
 		return
 	}
 
-	selectLabels, err = issues_model.GetLabelsByMilestoneID(m.ID)
+	selectLabels, err = issues_model.GetLabelsByMilestoneID(ctx, m.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByMilestoneID", err)
 		return
@@ -221,7 +221,7 @@ func ReplaceMilestoneLabels(ctx *context.APIContext) {
 		return
 	}
 
-	selectLabels, err = issues_model.GetLabelsByMilestoneID(m.ID)
+	selectLabels, err = issues_model.GetLabelsByMilestoneID(ctx, m.ID)
 	if err != nil {
 		ctx.Error(http.StatusInternalServerError, "GetLabelsByMilestoneID", err)
 		return

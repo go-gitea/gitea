@@ -25,27 +25,23 @@ func init() {
 	db.RegisterModel(new(MilestoneLabel))
 }
 
-func hasMilestoneLabel(e db.Engine, milestoneID, labelID int64) bool {
-	has, _ := e.Where("milestone_id = ? AND label_id = ?", milestoneID, labelID).Get(new(MilestoneLabel))
+func hasMilestoneLabel(ctx context.Context, milestoneID, labelID int64) bool {
+	has, _ := db.GetEngine(ctx).Where("milestone_id = ? AND label_id = ?", milestoneID, labelID).Get(new(MilestoneLabel))
 	return has
 }
 
 // HasMilestoneLabel returns true if milestone has been labeled.
 func HasMilestoneLabel(milestoneID, labelID int64) bool {
-	return hasMilestoneLabel(db.GetEngine(db.DefaultContext), milestoneID, labelID)
-}
-
-func getLabelsByMilestoneID(e db.Engine, milestoneID int64) ([]*Label, error) {
-	var labels []*Label
-	return labels, e.Where("milestone_label.milestone_id = ?", milestoneID).
-		Join("LEFT", "milestone_label", "milestone_label.label_id = label.id").
-		Asc("label.name").
-		Find(&labels)
+	return hasMilestoneLabel(db.DefaultContext, milestoneID, labelID)
 }
 
 // GetLabelsByMilestoneID returns all labels that belong to given milestone by ID.
-func GetLabelsByMilestoneID(milestoneID int64) ([]*Label, error) {
-	return getLabelsByMilestoneID(db.GetEngine(db.DefaultContext), milestoneID)
+func GetLabelsByMilestoneID(ctx context.Context, milestoneID int64) ([]*Label, error) {
+	var labels []*Label
+	return labels, db.GetEngine(ctx).Where("milestone_label.milestone_id = ?", milestoneID).
+		Join("LEFT", "milestone_label", "milestone_label.label_id = label.id").
+		Asc("label.name").
+		Find(&labels)
 }
 
 // newMilestoneLabel this function creates a new label it does not check if the label is valid for the milestone
@@ -73,8 +69,6 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 	}
 	defer committer.Close()
 
-	sess := db.GetEngine(ctx)
-
 	// Do NOT add invalid labels
 	if m.RepoID != label.RepoID && m.Repo.OwnerID != label.OrgID {
 		return nil
@@ -85,7 +79,7 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(sess); err != nil {
+	if err = m.loadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -93,10 +87,10 @@ func NewMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (err e
 }
 
 // newMilestoneLabels add labels to an milestone. It will check if the labels are valid for the milestone
-func newMilestoneLabels(ctx context.Context, e db.Engine, m *Milestone, labels []*Label, doer *user_model.User) (err error) {
+func newMilestoneLabels(ctx context.Context, m *Milestone, labels []*Label, doer *user_model.User) (err error) {
 	for _, label := range labels {
 		// Don't add already present labels and invalid labels
-		if hasMilestoneLabel(e, m.ID, label.ID) ||
+		if hasMilestoneLabel(ctx, m.ID, label.ID) ||
 			(label.RepoID != m.RepoID && label.OrgID != m.Repo.OwnerID) {
 			continue
 		}
@@ -117,12 +111,12 @@ func NewMilestoneLabels(m *Milestone, labels []*Label, doer *user_model.User) (e
 	}
 	defer committer.Close()
 
-	if err = newMilestoneLabels(ctx, db.GetEngine(ctx), m, labels, doer); err != nil {
+	if err = newMilestoneLabels(ctx, m, labels, doer); err != nil {
 		return err
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = m.loadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -159,26 +153,26 @@ func DeleteMilestoneLabel(m *Milestone, label *Label, doer *user_model.User) (er
 
 // LoadLabels loads labels
 func (m *Milestone) LoadLabels() error {
-	return m.loadLabels(db.GetEngine(db.DefaultContext))
+	return m.loadLabels(db.DefaultContext)
 }
 
-func (m *Milestone) loadLabels(e db.Engine) (err error) {
+func (m *Milestone) loadLabels(ctx context.Context) (err error) {
 	if m.Labels == nil {
-		m.Labels, err = getLabelsByMilestoneID(e, m.ID)
+		m.Labels, err = GetLabelsByMilestoneID(ctx, m.ID)
 		if err != nil {
-			return fmt.Errorf("getLabelsByMilestoneID [%d]: %v", m.ID, err)
+			return fmt.Errorf("GetLabelsByMilestoneID [%d]: %v", m.ID, err)
 		}
 	}
 	return nil
 }
 
-func (m *Milestone) hasLabel(e db.Engine, labelID int64) bool {
-	return hasMilestoneLabel(e, m.ID, labelID)
+func (m *Milestone) hasLabel(ctx context.Context, labelID int64) bool {
+	return hasMilestoneLabel(ctx, m.ID, labelID)
 }
 
 // HasLabel returns true if milestone has been labeled by given ID.
 func (m *Milestone) HasLabel(labelID int64) bool {
-	return m.hasLabel(db.GetEngine(db.DefaultContext), labelID)
+	return m.hasLabel(db.DefaultContext, labelID)
 }
 
 func (m *Milestone) addLabel(ctx context.Context, label *Label, doer *user_model.User) error {
@@ -190,8 +184,8 @@ func (m *Milestone) AddLabels(doer *user_model.User, labels []*Label) error {
 	return NewMilestoneLabels(m, labels, doer)
 }
 
-func (m *Milestone) addLabels(ctx context.Context, e db.Engine, labels []*Label, doer *user_model.User) error {
-	return newMilestoneLabels(ctx, e, m, labels, doer)
+func (m *Milestone) addLabels(ctx context.Context, labels []*Label, doer *user_model.User) error {
+	return newMilestoneLabels(ctx, m, labels, doer)
 }
 
 func (m *Milestone) removeLabel(ctx context.Context, doer *user_model.User, label *Label) error {
@@ -199,7 +193,7 @@ func (m *Milestone) removeLabel(ctx context.Context, doer *user_model.User, labe
 }
 
 func (m *Milestone) clearLabels(ctx context.Context, e db.Engine, doer *user_model.User) (err error) {
-	if err = m.loadLabels(e); err != nil {
+	if err = m.loadLabels(ctx); err != nil {
 		return fmt.Errorf("getLabels: %v", err)
 	}
 
@@ -249,7 +243,7 @@ func (m *Milestone) ReplaceLabels(labels []*Label, doer *user_model.User) (err e
 	}
 	defer committer.Close()
 
-	if err = m.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = m.loadLabels(ctx); err != nil {
 		return err
 	}
 
@@ -285,7 +279,7 @@ func (m *Milestone) ReplaceLabels(labels []*Label, doer *user_model.User) (err e
 	toRemove = append(toRemove, m.Labels[removeIndex:]...)
 
 	if len(toAdd) > 0 {
-		if err = m.addLabels(ctx, db.GetEngine(ctx), toAdd, doer); err != nil {
+		if err = m.addLabels(ctx, toAdd, doer); err != nil {
 			return fmt.Errorf("addLabels: %v", err)
 		}
 	}
@@ -297,7 +291,7 @@ func (m *Milestone) ReplaceLabels(labels []*Label, doer *user_model.User) (err e
 	}
 
 	m.Labels = nil
-	if err = m.loadLabels(db.GetEngine(ctx)); err != nil {
+	if err = m.loadLabels(ctx); err != nil {
 		return err
 	}
 

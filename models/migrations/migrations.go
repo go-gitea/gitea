@@ -378,7 +378,7 @@ var migrations = []Migration{
 	// v210 -> v211
 	NewMigration("v208 was completely broken - remigrate", remigrateU2FCredentials),
 
-	// Gitea 1.16.2 ends at v212
+	// Gitea 1.16.2 ends at v211
 
 	// v211 -> v212
 	NewMigration("Create ForeignReference table", createForeignReferenceTable),

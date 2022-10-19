@@ -48,7 +48,6 @@ func (err ErrMilestoneNotExist) Unwrap() error {
 type Milestone struct {
 	ID              int64                  `xorm:"pk autoincr"`
 	RepoID          int64                  `xorm:"INDEX"`
-	OwnerID         int64                  `xorm:"INDEX"`
 	Repo            *repo_model.Repository `xorm:"-"`
 	Labels          []*Label               `xorm:"-"`
 	Name            string
@@ -131,13 +130,17 @@ func NewMilestone(m *Milestone) (err error) {
 		// During the session, SQLite3 driver cannot handle retrieve objects after update something.
 		// So we have to get all needed labels first.
 		labels := m.Labels
-		if err = sess.Find(&m.Labels); err != nil {
+		labelsIDs := make([]int64, len(labels))
+		for i, label := range labels {
+			labelsIDs[i] = label.ID
+		}
+		if err = sess.In("id", labelsIDs).Find(&m.Labels); err != nil {
 			return fmt.Errorf("find all labels [label_ids: %v]: %v", m.Labels, err)
 		}
 
 		for _, label := range labels {
 			// Silently drop invalid labels.
-			if label.RepoID != m.RepoID && label.OrgID != m.OwnerID {
+			if label.RepoID != m.RepoID && label.OrgID != m.Repo.OwnerID {
 				continue
 			}
 
@@ -168,7 +171,7 @@ func GetMilestoneByRepoID(ctx context.Context, repoID, id int64) (*Milestone, er
 		return nil, ErrMilestoneNotExist{ID: id, RepoID: repoID}
 	}
 	var labels []*Label
-	labels, err = GetLabelsByMilestoneID(m.ID)
+	labels, err = GetLabelsByMilestoneID(ctx, m.ID)
 	m.Labels = labels
 	if err != nil {
 		return nil, err
@@ -187,7 +190,7 @@ func GetMilestoneByRepoIDANDName(repoID int64, name string) (*Milestone, error) 
 		return nil, ErrMilestoneNotExist{Name: name, RepoID: repoID}
 	}
 	var labels []*Label
-	labels, err = GetLabelsByMilestoneID(m.ID)
+	labels, err = GetLabelsByMilestoneID(db.DefaultContext, m.ID)
 	m.Labels = labels
 	if err != nil {
 		return nil, err
@@ -218,8 +221,7 @@ func UpdateMilestone(m *Milestone, oldIsClosed bool) error {
 		}
 	}
 
-	var dbLabels []*Label
-	dbLabels, err = GetLabelsByMilestoneID(m.ID)
+	dbLabels, err := GetLabelsByMilestoneID(ctx, m.ID)
 	if err != nil {
 		return err
 	}
@@ -481,7 +483,7 @@ func GetMilestones(opts GetMilestonesOption) (MilestoneList, int64, error) {
 
 	for _, m := range miles {
 		var labels []*Label
-		labels, err = GetLabelsByMilestoneID(m.ID)
+		labels, err = GetLabelsByMilestoneID(db.DefaultContext, m.ID)
 		m.Labels = labels
 		if opts.Repo != nil {
 			m.Repo = opts.Repo

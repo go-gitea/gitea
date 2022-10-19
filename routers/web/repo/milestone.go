@@ -219,7 +219,6 @@ func NewMilestonePost(ctx *context.Context) {
 	deadline = time.Date(deadline.Year(), deadline.Month(), deadline.Day(), 23, 59, 59, 0, deadline.Location())
 	if err = issues_model.NewMilestone(&issues_model.Milestone{
 		RepoID:       ctx.Repo.Repository.ID,
-		OwnerID:      ctx.Repo.Repository.OwnerID,
 		Name:         form.Title,
 		Content:      form.Content,
 		Labels:       selectLabels,

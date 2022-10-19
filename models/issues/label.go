@@ -573,7 +573,7 @@ func updateLabelCols(ctx context.Context, l *Label, cols ...string) error {
 			builder.Select("count(*)").From("milestone_label").
 				InnerJoin("milestone", "milestone_label.milestone_id = milestone.id").
 				Where(builder.Eq{
-					"milestone_label.milestone_id": l.ID,
+					"milestone_label.label_id": l.ID,
 				}),
 		).
 		Cols(cols...).Update(l)
