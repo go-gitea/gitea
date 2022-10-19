@@ -12,7 +12,7 @@ import (
 	"code.gitea.io/gitea/services/mailer"
 )
 
-// CreateTeamInvite make a persistant invite in db and mail it
+// CreateTeamInvite make a persistent invite in db and mail it
 func CreateTeamInvite(ctx context.Context, inviter *user_model.User, team *org_model.Team, uname string) error {
 	invite, err := org_model.CreateTeamInvite(ctx, inviter, team, uname)
 	if err != nil {
