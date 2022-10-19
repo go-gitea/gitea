@@ -14,6 +14,8 @@ import (
 	"time"
 
 	"code.gitea.io/gitea/models/dbfs"
+	"code.gitea.io/gitea/modules/log"
+	"code.gitea.io/gitea/modules/storage"
 	runnerv1 "gitea.com/gitea/proto-go/runner/v1"
 
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -55,15 +57,15 @@ func WriteLogs(ctx context.Context, filename string, offset int64, rows []*runne
 	return ns, nil
 }
 
-func ReadLogs(ctx context.Context, filename string, offset int64, limit int64) ([]*runnerv1.LogRow, error) {
-	name := DBFSPrefix + filename
-	f, err := dbfs.Open(ctx, name)
+func ReadLogs(ctx context.Context, inStorage bool, filename string, offset int64, limit int64) ([]*runnerv1.LogRow, error) {
+	f, err := openLogs(ctx, inStorage, filename)
 	if err != nil {
-		return nil, fmt.Errorf("dbfs Open %q: %w", name, err)
+		return nil, err
 	}
 	defer f.Close()
+
 	if _, err := f.Seek(offset, io.SeekStart); err != nil {
-		return nil, fmt.Errorf("dbfs Seek %q: %w", name, err)
+		return nil, fmt.Errorf("file seek: %w", err)
 	}
 
 	scanner := bufio.NewScanner(f)
@@ -87,6 +89,41 @@ func ReadLogs(ctx context.Context, filename string, offset int64, limit int64) (
 	}
 
 	return rows, nil
+}
+
+func TransferLogs(ctx context.Context, filename string) (func(), error) {
+	name := DBFSPrefix + filename
+	remove := func() {
+		if err := dbfs.Remove(ctx, name); err != nil {
+			log.Warn("dbfs remove %q: %v", name, err)
+		}
+	}
+	f, err := dbfs.Open(ctx, name)
+	if err != nil {
+		return nil, fmt.Errorf("dbfs open %q: %w", name, err)
+	}
+	defer f.Close()
+
+	if _, err := storage.Builds.Save(filename, f, -1); err != nil {
+		return nil, fmt.Errorf("storage save %q: %w", filename, err)
+	}
+	return remove, nil
+}
+
+func openLogs(ctx context.Context, inStorage bool, filename string) (io.ReadSeekCloser, error) {
+	if !inStorage {
+		name := DBFSPrefix + filename
+		f, err := dbfs.Open(ctx, name)
+		if err != nil {
+			return nil, fmt.Errorf("dbfs open %q: %w", name, err)
+		}
+		return f, nil
+	}
+	f, err := storage.Builds.Open(filename)
+	if err != nil {
+		return nil, fmt.Errorf("storage open %q: %w", filename, err)
+	}
+	return f, nil
 }
 
 func FormatLog(timestamp time.Time, content string) string {

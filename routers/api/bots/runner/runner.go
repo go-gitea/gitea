@@ -174,6 +174,10 @@ func (s *Service) UpdateLog(
 		return res, nil
 	}
 
+	if task.LogInStorage {
+		return nil, status.Errorf(codes.AlreadyExists, "log file has been archived")
+	}
+
 	rows := req.Msg.Rows[ack-req.Msg.Index:]
 	ns, err := bots.WriteLogs(ctx, task.LogFilename, task.LogSize, rows)
 	if err != nil {
@@ -187,14 +191,23 @@ func (s *Service) UpdateLog(
 		*task.LogIndexes = append(*task.LogIndexes, task.LogSize)
 		task.LogSize += int64(n)
 	}
-	if err := bots_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size"); err != nil {
-		return nil, status.Errorf(codes.Internal, "update task: %v", err)
-	}
 
 	res.Msg.AckIndex = task.LogLength
 
+	var remove func()
 	if req.Msg.NoMore {
-		// TODO: transfer logs to storage from db
+		task.LogInStorage = true
+		remove, err = bots.TransferLogs(ctx, task.LogFilename)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "transfer logs: %v", err)
+		}
+	}
+
+	if err := bots_model.UpdateTask(ctx, task, "log_indexes", "log_length", "log_size", "log_in_storage"); err != nil {
+		return nil, status.Errorf(codes.Internal, "update task: %v", err)
+	}
+	if remove != nil {
+		remove()
 	}
 
 	return res, nil

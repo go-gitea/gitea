@@ -213,7 +213,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 		_, wolkflowJob = gots[0].Job()
 	}
 
-	if _, err := e.Insert(ctx, task); err != nil {
+	if _, err := e.Insert(task); err != nil {
 		return nil, false, err
 	}
 
@@ -230,7 +230,7 @@ func CreateTaskForRunner(runner *Runner) (*Task, bool, error) {
 			Number: int64(i),
 		}
 	}
-	if _, err := e.Insert(ctx, steps); err != nil {
+	if _, err := e.Insert(steps); err != nil {
 		return nil, false, err
 	}
 	task.Steps = steps

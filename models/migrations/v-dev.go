@@ -94,20 +94,21 @@ func addBotTables(x *xorm.Engine) error {
 	type BotsRunIndex db.ResourceIndex
 
 	type BotsTask struct {
-		ID         int64
-		JobID      int64
-		Attempt    int64
-		RunnerID   int64 `xorm:"index"`
-		Result     int32
-		Started    timeutil.TimeStamp
-		Stopped    timeutil.TimeStamp
-		LogURL     string   // dbfs:///a/b.log or s3://endpoint.com/a/b.log and etc.
-		LogLength  int64    // lines count
-		LogSize    int64    // blob size
-		LogIndexes *[]int64 `xorm:"BLOB"` // line number to offset
-		LogExpired bool
-		Created    timeutil.TimeStamp `xorm:"created"`
-		Updated    timeutil.TimeStamp `xorm:"updated"`
+		ID           int64
+		JobID        int64
+		Attempt      int64
+		RunnerID     int64 `xorm:"index"`
+		Result       int32
+		Started      timeutil.TimeStamp
+		Stopped      timeutil.TimeStamp
+		LogFilename  string   // file name of log
+		LogInStorage bool     // read log from database or from storage
+		LogLength    int64    // lines count
+		LogSize      int64    // blob size
+		LogIndexes   *[]int64 `xorm:"BLOB"` // line number to offset
+		LogExpired   bool
+		Created      timeutil.TimeStamp `xorm:"created"`
+		Updated      timeutil.TimeStamp `xorm:"updated"`
 	}
 
 	type BotsTaskStep struct {

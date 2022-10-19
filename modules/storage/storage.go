@@ -126,31 +126,27 @@ var (
 
 	// Packages represents packages storage
 	Packages ObjectStorage
+
+	// Builds represents builds storage
+	Builds ObjectStorage
 )
 
 // Init init the stoarge
 func Init() error {
-	if err := initAttachments(); err != nil {
-		return err
+	for _, f := range []func() error{
+		initAttachments,
+		initAvatars,
+		initRepoAvatars,
+		initLFS,
+		initRepoArchives,
+		initPackages,
+		initBuilds,
+	} {
+		if err := f(); err != nil {
+			return err
+		}
 	}
-
-	if err := initAvatars(); err != nil {
-		return err
-	}
-
-	if err := initRepoAvatars(); err != nil {
-		return err
-	}
-
-	if err := initLFS(); err != nil {
-		return err
-	}
-
-	if err := initRepoArchives(); err != nil {
-		return err
-	}
-
-	return initPackages()
+	return nil
 }
 
 // NewStorage takes a storage type and some config and returns an ObjectStorage or an error
@@ -199,5 +195,11 @@ func initRepoArchives() (err error) {
 func initPackages() (err error) {
 	log.Info("Initialising Packages storage with type: %s", setting.Packages.Storage.Type)
 	Packages, err = NewStorage(setting.Packages.Storage.Type, &setting.Packages.Storage)
+	return err
+}
+
+func initBuilds() (err error) {
+	log.Info("Initialising Builds storage with type: %s", setting.Builds.Storage.Type)
+	Builds, err = NewStorage(setting.Builds.Storage.Type, &setting.Builds.Storage)
 	return err
 }
