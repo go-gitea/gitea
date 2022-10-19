@@ -20,8 +20,8 @@ import (
 func TestPullRequest_APIFormat(t *testing.T) {
 	// with HeadRepo
 	assert.NoError(t, unittest.PrepareTestDatabase())
-	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	headRepo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	pr := unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadAttributes())
 	assert.NoError(t, pr.LoadIssue())
 	apiPullRequest := ToAPIPullRequest(git.DefaultContext, pr, nil)
@@ -35,7 +35,7 @@ func TestPullRequest_APIFormat(t *testing.T) {
 	}, apiPullRequest.Head)
 
 	// withOut HeadRepo
-	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1}).(*issues_model.PullRequest)
+	pr = unittest.AssertExistsAndLoadBean(t, &issues_model.PullRequest{ID: 1})
 	assert.NoError(t, pr.LoadIssue())
 	assert.NoError(t, pr.LoadAttributes())
 	// simulate fork deletion

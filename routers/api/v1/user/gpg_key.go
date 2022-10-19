@@ -7,6 +7,7 @@ package user
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	asymkey_model "code.gitea.io/gitea/models/asymkey"
 	"code.gitea.io/gitea/models/db"
@@ -176,6 +177,12 @@ func VerifyUserGPGKey(ctx *context.APIContext) {
 	form := web.GetForm(ctx).(*api.VerifyGPGKeyOption)
 	token := asymkey_model.VerificationToken(ctx.Doer, 1)
 	lastToken := asymkey_model.VerificationToken(ctx.Doer, 0)
+
+	form.KeyID = strings.TrimLeft(form.KeyID, "0")
+	if form.KeyID == "" {
+		ctx.NotFound()
+		return
+	}
 
 	_, err := asymkey_model.VerifyGPGKey(ctx.Doer.ID, form.KeyID, token, form.Signature)
 	if err != nil && asymkey_model.IsErrGPGInvalidTokenSignature(err) {

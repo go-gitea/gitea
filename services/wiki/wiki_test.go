@@ -5,16 +5,13 @@
 package wiki
 
 import (
-	"os"
 	"path/filepath"
 	"testing"
 
-	"code.gitea.io/gitea/models"
 	repo_model "code.gitea.io/gitea/models/repo"
 	"code.gitea.io/gitea/models/unittest"
 	user_model "code.gitea.io/gitea/models/user"
 	"code.gitea.io/gitea/modules/git"
-	"code.gitea.io/gitea/modules/util"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -90,11 +87,11 @@ func TestWikiFilenameToName(t *testing.T) {
 	} {
 		_, err := FilenameToName(badFilename)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiInvalidFileName(err))
+		assert.True(t, repo_model.IsErrWikiInvalidFileName(err))
 	}
 	_, err := FilenameToName("badescaping%%.md")
 	assert.Error(t, err)
-	assert.False(t, models.IsErrWikiInvalidFileName(err))
+	assert.False(t, repo_model.IsErrWikiInvalidFileName(err))
 }
 
 func TestWikiNameToFilenameToName(t *testing.T) {
@@ -116,11 +113,11 @@ func TestWikiNameToFilenameToName(t *testing.T) {
 func TestRepository_InitWiki(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 	// repo1 already has a wiki
-	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo1 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	assert.NoError(t, InitWiki(git.DefaultContext, repo1))
 
 	// repo2 does not already have a wiki
-	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2}).(*repo_model.Repository)
+	repo2 := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 2})
 	assert.NoError(t, InitWiki(git.DefaultContext, repo2))
 	assert.True(t, repo2.HasWiki())
 }
@@ -129,8 +126,8 @@ func TestRepository_AddWikiPage(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 	const wikiContent = "This is the wiki content"
 	const commitMsg = "Commit message"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	for _, wikiName := range []string{
 		"Another page",
 		"Here's a <tag> and a/slash",
@@ -143,7 +140,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 			gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 			assert.NoError(t, err)
 			defer gitRepo.Close()
-			masterTree, err := gitRepo.GetTree("master")
+			masterTree, err := gitRepo.GetTree(DefaultBranch)
 			assert.NoError(t, err)
 			wikiPath := NameToFilename(wikiName)
 			entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -157,7 +154,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for already-existing wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "Home", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiAlreadyExist(err))
+		assert.True(t, repo_model.IsErrWikiAlreadyExist(err))
 	})
 
 	t.Run("check wiki reserved name", func(t *testing.T) {
@@ -165,7 +162,7 @@ func TestRepository_AddWikiPage(t *testing.T) {
 		// test for reserved wiki name
 		err := AddWikiPage(git.DefaultContext, doer, repo, "_edit", wikiContent, commitMsg)
 		assert.Error(t, err)
-		assert.True(t, models.IsErrWikiReservedName(err))
+		assert.True(t, repo_model.IsErrWikiReservedName(err))
 	})
 }
 
@@ -174,8 +171,8 @@ func TestRepository_EditWikiPage(t *testing.T) {
 
 	const newWikiContent = "This is the new content"
 	const commitMsg = "Commit message"
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	for _, newWikiName := range []string{
 		"Home", // same name as before
 		"New home",
@@ -187,7 +184,7 @@ func TestRepository_EditWikiPage(t *testing.T) {
 		// Now need to show that the page has been added:
 		gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 		assert.NoError(t, err)
-		masterTree, err := gitRepo.GetTree("master")
+		masterTree, err := gitRepo.GetTree(DefaultBranch)
 		assert.NoError(t, err)
 		wikiPath := NameToFilename(newWikiName)
 		entry, err := masterTree.GetTreeEntryByPath(wikiPath)
@@ -204,15 +201,15 @@ func TestRepository_EditWikiPage(t *testing.T) {
 
 func TestRepository_DeleteWikiPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
-	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
+	doer := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
 	assert.NoError(t, DeleteWikiPage(git.DefaultContext, doer, repo, "Home"))
 
 	// Now need to show that the page has been added:
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	assert.NoError(t, err)
 	defer gitRepo.Close()
-	masterTree, err := gitRepo.GetTree("master")
+	masterTree, err := gitRepo.GetTree(DefaultBranch)
 	assert.NoError(t, err)
 	wikiPath := NameToFilename("Home")
 	_, err = masterTree.GetTreeEntryByPath(wikiPath)
@@ -221,7 +218,7 @@ func TestRepository_DeleteWikiPage(t *testing.T) {
 
 func TestPrepareWikiFileName(t *testing.T) {
 	unittest.PrepareTestEnv(t)
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 	gitRepo, err := git.OpenRepository(git.DefaultContext, repo.WikiPath())
 	defer gitRepo.Close()
 	assert.NoError(t, err)
@@ -274,15 +271,9 @@ func TestPrepareWikiFileName_FirstPage(t *testing.T) {
 	unittest.PrepareTestEnv(t)
 
 	// Now create a temporaryDirectory
-	tmpDir, err := os.MkdirTemp("", "empty-wiki")
-	assert.NoError(t, err)
-	defer func() {
-		if _, err := os.Stat(tmpDir); !os.IsNotExist(err) {
-			_ = util.RemoveAll(tmpDir)
-		}
-	}()
+	tmpDir := t.TempDir()
 
-	err = git.InitRepository(git.DefaultContext, tmpDir, true)
+	err := git.InitRepository(git.DefaultContext, tmpDir, true)
 	assert.NoError(t, err)
 
 	gitRepo, err := git.OpenRepository(git.DefaultContext, tmpDir)

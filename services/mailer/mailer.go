@@ -7,6 +7,7 @@ package mailer
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"fmt"
 	"hash/fnv"
@@ -348,7 +349,7 @@ var mailQueue queue.Queue
 var Sender gomail.Sender
 
 // NewContext start mail queue service
-func NewContext() {
+func NewContext(ctx context.Context) {
 	// Need to check if mailQueue is nil because in during reinstall (user had installed
 	// before but switched install lock off), this function will be called again
 	// while mail queue is already processing tasks, and produces a race condition.
@@ -381,7 +382,7 @@ func NewContext() {
 
 	go graceful.GetManager().RunWithShutdownFns(mailQueue.Run)
 
-	subjectTemplates, bodyTemplates = templates.Mailer()
+	subjectTemplates, bodyTemplates = templates.Mailer(ctx)
 }
 
 // SendAsync send mail asynchronously

@@ -22,9 +22,9 @@ func TreeList(ctx *context.Context) {
 		return
 	}
 
-	entries, err := tree.ListEntriesRecursive()
+	entries, err := tree.ListEntriesRecursiveFast()
 	if err != nil {
-		ctx.ServerError("ListEntriesRecursive", err)
+		ctx.ServerError("ListEntriesRecursiveFast", err)
 		return
 	}
 	entries.CustomSort(base.NaturalSortLess)

@@ -11,7 +11,7 @@
 				{{if .Dirs}}
 					<div class="ui middle aligned divided list">
 						{{range $dirI, $dir := .Dirs}}
-							{{ $repo := index $.ReposMap $dir}}
+							{{$repo := index $.ReposMap $dir}}
 							<div class="item">
 								<div class="content">
 									{{if $repo}}

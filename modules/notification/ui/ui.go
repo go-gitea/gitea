@@ -5,11 +5,12 @@
 package ui
 
 import (
-	"code.gitea.io/gitea/models"
+	activities_model "code.gitea.io/gitea/models/activities"
 	"code.gitea.io/gitea/models/db"
 	issues_model "code.gitea.io/gitea/models/issues"
 	repo_model "code.gitea.io/gitea/models/repo"
 	user_model "code.gitea.io/gitea/models/user"
+	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/graceful"
 	"code.gitea.io/gitea/modules/log"
 	"code.gitea.io/gitea/modules/notification/base"
@@ -42,7 +43,7 @@ func NewNotifier() base.Notifier {
 func (ns *notificationService) handle(data ...queue.Data) []queue.Data {
 	for _, datum := range data {
 		opts := datum.(issueNotificationOpts)
-		if err := models.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
+		if err := activities_model.CreateOrUpdateIssueNotifications(opts.IssueID, opts.CommentID, opts.NotificationAuthorID, opts.ReceiverID); err != nil {
 			log.Error("Was unable to create issue notification: %v", err)
 		}
 	}
@@ -123,14 +124,14 @@ func (ns *notificationService) NotifyNewPullRequest(pr *issues_model.PullRequest
 		log.Error("Unable to load issue: %d for pr: %d: Error: %v", pr.IssueID, pr.ID, err)
 		return
 	}
-	toNotify := make(map[int64]struct{}, 32)
+	toNotify := make(container.Set[int64], 32)
 	repoWatchers, err := repo_model.GetRepoWatchersIDs(db.DefaultContext, pr.Issue.RepoID)
 	if err != nil {
 		log.Error("GetRepoWatchersIDs: %v", err)
 		return
 	}
 	for _, id := range repoWatchers {
-		toNotify[id] = struct{}{}
+		toNotify.Add(id)
 	}
 	issueParticipants, err := issues_model.GetParticipantsIDsByIssueID(pr.IssueID)
 	if err != nil {
@@ -138,11 +139,11 @@ func (ns *notificationService) NotifyNewPullRequest(pr *issues_model.PullRequest
 		return
 	}
 	for _, id := range issueParticipants {
-		toNotify[id] = struct{}{}
+		toNotify.Add(id)
 	}
 	delete(toNotify, pr.Issue.PosterID)
 	for _, mention := range mentions {
-		toNotify[mention.ID] = struct{}{}
+		toNotify.Add(mention.ID)
 	}
 	for receiverID := range toNotify {
 		_ = ns.issueQueue.Push(issueNotificationOpts{
@@ -237,7 +238,7 @@ func (ns *notificationService) NotifyPullReviewRequest(doer *user_model.User, is
 }
 
 func (ns *notificationService) NotifyRepoPendingTransfer(doer, newOwner *user_model.User, repo *repo_model.Repository) {
-	if err := models.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
+	if err := activities_model.CreateRepoTransferNotification(doer, newOwner, repo); err != nil {
 		log.Error("NotifyRepoPendingTransfer: %v", err)
 	}
 }

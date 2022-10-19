@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="{{.locale.Lang}}" class="theme-{{.SignedUser.Theme}}">
+<html lang="{{.locale.Lang}}" class="theme-{{if .SignedUser.Theme}}{{.SignedUser.Theme}}{{else}}auto{{end}}">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}} {{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
+	<title>{{if .Title}}{{.Title | RenderEmojiPlain}} - {{end}}{{if .Repository.Name}}{{.Repository.Name}} - {{end}}{{AppName}}</title>
 	<link rel="manifest" href="data:{{.ManifestData}}">
 	<meta name="theme-color" content="{{ThemeColorMetaTag}}">
 	<meta name="default-theme" content="{{DefaultTheme}}">
@@ -21,7 +21,7 @@
 {{end}}
 	<link rel="icon" href="{{AssetUrlPrefix}}/img/favicon.svg" type="image/svg+xml">
 	<link rel="alternate icon" href="{{AssetUrlPrefix}}/img/favicon.png" type="image/png">
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/index.css?v={{AssetVersion}}">
 	{{template "base/head_script" .}}
 	<noscript>
 		<style>
@@ -65,12 +65,12 @@
 	<meta property="og:description" content="{{MetaDescription}}">
 {{end}}
 <meta property="og:site_name" content="{{AppName}}">
-{{if .IsSigned }}
-	{{ if ne .SignedUser.Theme "gitea" }}
-		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{MD5 AppVer}}">
+{{if .IsSigned}}
+	{{if ne .SignedUser.Theme "gitea"}}
+		<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{.SignedUser.Theme | PathEscape}}.css?v={{AssetVersion}}">
 	{{end}}
 {{else if ne DefaultTheme "gitea"}}
-	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{MD5 AppVer}}">
+	<link rel="stylesheet" href="{{AssetUrlPrefix}}/css/theme-{{DefaultTheme | PathEscape}}.css?v={{AssetVersion}}">
 {{end}}
 {{template "custom/header" .}}
 </head>

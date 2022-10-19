@@ -98,6 +98,17 @@
 			</div>
 		</div>
 
+		<!-- Wiki -->
+		<div class="seven wide column">
+			<div class="field">
+				<div class="ui checkbox">
+					<input class="hidden" name="wiki" type="checkbox" tabindex="0" {{if .Webhook.Wiki}}checked{{end}}>
+					<label>{{.locale.Tr "repo.settings.event_wiki"}}</label>
+					<span class="help">{{.locale.Tr "repo.settings.event_wiki_desc"}}</span>
+				</div>
+			</div>
+		</div>
+
 		<!-- Issue Events -->
 		<div class="fourteen wide column">
 			<label>{{.locale.Tr "repo.settings.event_header_issue"}}</label>

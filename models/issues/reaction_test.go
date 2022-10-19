@@ -32,7 +32,7 @@ func addReaction(t *testing.T, doerID, issueID, commentID int64, content string)
 func TestIssueAddReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var issue1ID int64 = 1
 
@@ -44,7 +44,7 @@ func TestIssueAddReaction(t *testing.T) {
 func TestIssueAddDuplicateReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var issue1ID int64 = 1
 
@@ -58,14 +58,14 @@ func TestIssueAddDuplicateReaction(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, issues_model.ErrReactionAlreadyExist{Reaction: "heart"}, err)
 
-	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID}).(*issues_model.Reaction)
+	existingR := unittest.AssertExistsAndLoadBean(t, &issues_model.Reaction{Type: "heart", UserID: user1.ID, IssueID: issue1ID})
 	assert.Equal(t, existingR.ID, reaction.ID)
 }
 
 func TestIssueDeleteReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var issue1ID int64 = 1
 
@@ -82,14 +82,14 @@ func TestIssueReactionCount(t *testing.T) {
 
 	setting.UI.ReactionMaxUserNum = 2
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 	ghost := user_model.NewGhostUser()
 
 	var issueID int64 = 2
-	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1}).(*repo_model.Repository)
+	repo := unittest.AssertExistsAndLoadBean(t, &repo_model.Repository{ID: 1})
 
 	addReaction(t, user1.ID, issueID, 0, "heart")
 	addReaction(t, user2.ID, issueID, 0, "heart")
@@ -122,7 +122,7 @@ func TestIssueReactionCount(t *testing.T) {
 func TestIssueCommentAddReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var issue1ID int64 = 1
 	var comment1ID int64 = 1
@@ -135,10 +135,10 @@ func TestIssueCommentAddReaction(t *testing.T) {
 func TestIssueCommentDeleteReaction(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
-	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2}).(*user_model.User)
-	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3}).(*user_model.User)
-	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
+	user2 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 2})
+	user3 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 3})
+	user4 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 4})
 
 	var issue1ID int64 = 1
 	var comment1ID int64 = 1
@@ -163,7 +163,7 @@ func TestIssueCommentDeleteReaction(t *testing.T) {
 func TestIssueCommentReactionCount(t *testing.T) {
 	assert.NoError(t, unittest.PrepareTestDatabase())
 
-	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1}).(*user_model.User)
+	user1 := unittest.AssertExistsAndLoadBean(t, &user_model.User{ID: 1})
 
 	var issue1ID int64 = 1
 	var comment1ID int64 = 1
