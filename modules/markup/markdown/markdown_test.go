@@ -437,23 +437,23 @@ func TestColorPreview(t *testing.T) {
 	}{
 		{ // hex
 			"`#FF0000`",
-			`<p><code>#FF0000<span class="repo-icon rounded color-preview" style="background-color: #FF0000"></span></code></p>` + nl,
+			`<p><code>#FF0000<span class="color-preview dib" style="background-color: #FF0000"></span></code></p>` + nl,
 		},
 		{ // rgb
 			"`rgb(16, 32, 64)`",
-			`<p><code>rgb(16, 32, 64)<span class="repo-icon rounded color-preview" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
+			`<p><code>rgb(16, 32, 64)<span class="color-preview dib" style="background-color: rgb(16, 32, 64)"></span></code></p>` + nl,
 		},
 		{ // short hex
 			"This is the color white `#000`",
-			`<p>This is the color white <code>#000<span class="repo-icon rounded color-preview" style="background-color: #000"></span></code></p>` + nl,
+			`<p>This is the color white <code>#000<span class="color-preview dib" style="background-color: #000"></span></code></p>` + nl,
 		},
 		{ // hsl
 			"HSL stands for hue, saturation, and lightness. An example: `hsl(0, 100%, 50%)`.",
-			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="repo-icon rounded color-preview" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>hsl(0, 100%, 50%)<span class="color-preview dib" style="background-color: hsl(0, 100%, 50%)"></span></code>.</p>` + nl,
 		},
 		{ // uppercase hsl
 			"HSL stands for hue, saturation, and lightness. An example: `HSL(0, 100%, 50%)`.",
-			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="repo-icon rounded color-preview" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
+			`<p>HSL stands for hue, saturation, and lightness. An example: <code>HSL(0, 100%, 50%)<span class="color-preview dib" style="background-color: HSL(0, 100%, 50%)"></span></code>.</p>` + nl,
 		},
 	}
 

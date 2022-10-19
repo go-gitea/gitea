@@ -56,7 +56,7 @@ func createDefaultPolicy() *bluemonday.Policy {
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^code-block( is-loading)?$`)).OnElements("pre")
 
 	// For color preview
-	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^repo-icon rounded color-preview$`)).OnElements("span")
+	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^color-preview dib$`)).OnElements("span")
 
 	// For Chroma markdown plugin
 	policy.AllowAttrs("class").Matching(regexp.MustCompile(`^(chroma )?language-[\w-]+( display)?( is-loading)?$`)).OnElements("code")
