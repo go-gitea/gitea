@@ -87,9 +87,10 @@ func (task *Task) FullSteps() []*TaskStep {
 		firstStep = task.Steps[0]
 		lastStep = task.Steps[l-1]
 	}
+	var index int64
+
 	headStep := &TaskStep{
 		Name:      "Set up job",
-		LogIndex:  0,
 		LogLength: task.LogLength,
 		Started:   task.Started,
 	}
@@ -97,12 +98,18 @@ func (task *Task) FullSteps() []*TaskStep {
 		headStep.LogLength = firstStep.LogIndex
 		headStep.Stopped = firstStep.Started
 	}
+	index += headStep.LogLength
+
+	for _, step := range task.Steps {
+		index += step.LogLength
+	}
+
 	tailStep := &TaskStep{
 		Name:    "Complete job",
 		Stopped: task.Stopped,
 	}
 	if lastStep != nil && lastStep.Result != runnerv1.Result_RESULT_UNSPECIFIED {
-		tailStep.LogIndex = lastStep.LogIndex + lastStep.LogLength
+		tailStep.LogIndex = index
 		tailStep.LogLength = task.LogLength - tailStep.LogIndex
 		tailStep.Started = lastStep.Stopped
 	}
