@@ -22,6 +22,9 @@
 			{{.locale.Tr "packages.title"}}
 		</a>
 		{{end}}
+		<a class="{{if .PageIsOrgSettingsRunners}}active{{end}} item" href="{{.OrgLink}}/settings/runners">
+			{{.locale.Tr "repo.runners"}}
+		</a>
 		<a class="{{if .PageIsSettingsDelete}}active{{end}} item" href="{{.OrgLink}}/settings/delete">
 			{{.locale.Tr "org.settings.delete"}}
 		</a>

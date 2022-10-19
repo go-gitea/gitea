@@ -797,6 +797,10 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/initialize", bindIgnErr(forms.InitializeLabelsForm{}), org.InitializeLabels)
 				})
 
+				m.Group("/runners", func() {
+					m.Get("", org.Runners)
+				})
+
 				m.Route("/delete", "GET,POST", org.SettingsDelete)
 
 				m.Group("/packages", func() {
@@ -950,6 +954,11 @@ func RegisterRoutes(m *web.Route) {
 					m.Post("/{lid}/unlock", repo.LFSUnlock)
 				})
 			})
+
+			m.Group("/runners", func() {
+				m.Get("", repo.Runners)
+			})
+
 		}, func(ctx *context.Context) {
 			ctx.Data["PageIsSettings"] = true
 			ctx.Data["LFSStartServer"] = setting.LFS.StartServer

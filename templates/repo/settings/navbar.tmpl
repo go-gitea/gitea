@@ -32,5 +32,8 @@
 				{{.locale.Tr "repo.settings.lfs"}}
 			</a>
 		{{end}}
+		<a class="{{if .PageIsSettingsRunners}}active{{end}} item" href="{{.RepoLink}}/settings/runners">
+			{{.locale.Tr "repo.settings.runners"}}
+		</a>
 	</div>
 </div>

@@ -21,9 +21,9 @@ import (
 )
 
 const (
-	tplRunners    base.TplName = "admin/runner/list"
-	tplRunnerNew  base.TplName = "admin/runner/new"
-	tplRunnerEdit base.TplName = "admin/runner/edit"
+	tplRunners    base.TplName = "runners/list"
+	tplRunnerNew  base.TplName = "runners/new"
+	tplRunnerEdit base.TplName = "runners/edit"
 )
 
 // Runners show all the runners
