@@ -35,6 +35,10 @@ func (err ErrAccessTokenNotExist) Error() string {
 	return fmt.Sprintf("access token does not exist [sha: %s]", err.Token)
 }
 
+func (err ErrAccessTokenNotExist) Unwrap() error {
+	return util.ErrNotExist
+}
+
 // ErrAccessTokenEmpty represents a "AccessTokenEmpty" kind of error.
 type ErrAccessTokenEmpty struct{}
 
@@ -46,6 +50,10 @@ func IsErrAccessTokenEmpty(err error) bool {
 
 func (err ErrAccessTokenEmpty) Error() string {
 	return "access token is empty"
+}
+
+func (err ErrAccessTokenEmpty) Unwrap() error {
+	return util.ErrInvalidArgument
 }
 
 var successfulAccessTokenCache *lru.Cache

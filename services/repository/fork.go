@@ -39,6 +39,10 @@ func (err ErrForkAlreadyExist) Error() string {
 	return fmt.Sprintf("repository is already forked by user [uname: %s, repo path: %s, fork path: %s]", err.Uname, err.RepoName, err.ForkName)
 }
 
+func (err ErrForkAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
+}
+
 // ForkRepoOptions contains the fork repository options
 type ForkRepoOptions struct {
 	BaseRepo    *repo_model.Repository
