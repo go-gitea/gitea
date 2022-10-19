@@ -94,6 +94,7 @@ func init() {
 	db.RegisterModel(new(TeamUser))
 	db.RegisterModel(new(TeamRepo))
 	db.RegisterModel(new(TeamUnit))
+	db.RegisterModel(new(TeamInvite))
 }
 
 // SearchTeamOptions holds the search options
