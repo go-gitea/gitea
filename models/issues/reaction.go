@@ -15,6 +15,7 @@ import (
 	"code.gitea.io/gitea/modules/container"
 	"code.gitea.io/gitea/modules/setting"
 	"code.gitea.io/gitea/modules/timeutil"
+	"code.gitea.io/gitea/modules/util"
 
 	"xorm.io/builder"
 )
@@ -34,6 +35,10 @@ func (err ErrForbiddenIssueReaction) Error() string {
 	return fmt.Sprintf("'%s' is not an allowed reaction", err.Reaction)
 }
 
+func (err ErrForbiddenIssueReaction) Unwrap() error {
+	return util.ErrPermissionDenied
+}
+
 // ErrReactionAlreadyExist is used when a existing reaction was try to created
 type ErrReactionAlreadyExist struct {
 	Reaction string
@@ -47,6 +52,10 @@ func IsErrReactionAlreadyExist(err error) bool {
 
 func (err ErrReactionAlreadyExist) Error() string {
 	return fmt.Sprintf("reaction '%s' already exists", err.Reaction)
+}
+
+func (err ErrReactionAlreadyExist) Unwrap() error {
+	return util.ErrAlreadyExist
 }
 
 // Reaction represents a reactions on issues and comments.
