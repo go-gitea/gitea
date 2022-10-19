@@ -59,6 +59,7 @@ func List(ctx *context.Context) {
 	}
 
 	ctx.Data["workflows"] = workflows
+	ctx.Data["RepoLink"] = ctx.Repo.Repository.HTMLURL()
 
 	page := ctx.FormInt("page")
 	if page <= 0 {
@@ -76,6 +77,26 @@ func List(ctx *context.Context) {
 		RepoID:           ctx.Repo.Repository.ID,
 		WorkflowFileName: workflow,
 	}
+
+	// open counts
+	opts.IsClosed = util.OptionalBoolFalse
+	numOpenRuns, err := bots_model.CountRuns(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	ctx.Data["NumOpenRuns"] = numOpenRuns
+
+	// closed counts
+	opts.IsClosed = util.OptionalBoolTrue
+	numClosedRuns, err := bots_model.CountRuns(ctx, opts)
+	if err != nil {
+		ctx.Error(http.StatusInternalServerError, err.Error())
+		return
+	}
+	ctx.Data["NumClosedRuns"] = numClosedRuns
+
+	opts.IsClosed = util.OptionalBoolNone
 	if ctx.FormString("state") == "closed" {
 		opts.IsClosed = util.OptionalBoolTrue
 	} else {

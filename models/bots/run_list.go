@@ -77,3 +77,7 @@ func FindRuns(ctx context.Context, opts FindRunOptions) (RunList, int64, error) 
 	total, err := e.Desc("id").FindAndCount(&runs)
 	return runs, total, err
 }
+
+func CountRuns(ctx context.Context, opts FindRunOptions) (int64, error) {
+	return db.GetEngine(ctx).Where(opts.toConds()).Count(new(Run))
+}
