@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 	"hash/fnv"
+	"time"
 
 	"code.gitea.io/gitea/core"
 	"code.gitea.io/gitea/models/db"
@@ -82,6 +83,10 @@ func (r *Run) LoadAttributes(ctx context.Context) error {
 	}
 
 	return nil
+}
+
+func (run *Run) TakeTime() time.Duration {
+	return run.EndTime.AsTime().Sub(run.StartTime.AsTime())
 }
 
 func updateRepoRunsNumbers(ctx context.Context, repo *repo_model.Repository) error {

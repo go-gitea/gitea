@@ -65,13 +65,16 @@ func List(ctx *context.Context) {
 		page = 1
 	}
 
+	workflow := ctx.FormString("workflow")
+	ctx.Data["CurWorkflow"] = workflow
+
 	opts := bots_model.FindRunOptions{
 		ListOptions: db.ListOptions{
 			Page:     page,
 			PageSize: convert.ToCorrectPageSize(ctx.FormInt("limit")),
 		},
 		RepoID:           ctx.Repo.Repository.ID,
-		WorkflowFileName: ctx.FormString("workflow"),
+		WorkflowFileName: workflow,
 	}
 	if ctx.FormString("state") == "closed" {
 		opts.IsClosed = util.OptionalBoolTrue
