@@ -1241,7 +1241,6 @@ func SyncAndGetUserSpecificDiff(ctx context.Context, userID int64, pull *issues_
 	// For SOME of the errors such as the gc'ed commit, it would be best to mark all files as changed
 	// But as that does not work for all potential errors, we simply mark all files as unchanged and drop the error which always works, even if not as good as possible
 	if err != nil {
-		changedFiles = []string{}
 		log.Error("Could not get changed files between %s and %s for pull request %d in repo with path %s. Assuming no changes. Error: %w", review.CommitSHA, latestCommit, pull.Index, gitRepo.Path, err)
 	}
 
