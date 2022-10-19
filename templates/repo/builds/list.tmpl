@@ -1,40 +1,49 @@
 {{template "base/head" .}}
 <div class="page-content repository">
 	{{template "repo/header" .}}
-	<div>
-	{{range .workflows}}
-	<li>{{.Name}}</li>
-	{{end}}
-	</div>
+
 	<div class="ui container">
-		<div id="issue-filters" class="ui stackable grid">
-			<div class="six wide column">
-				{{template "repo/builds/openclose" .}}
-			</div>
-		</div>
-		<div id="issue-actions" class="ui stackable grid hide">
-			<div class="six wide column">
-				{{template "repo/builds/openclose" .}}
-			</div>
-			<div class="ui divider"></div>
-			{{/* Ten wide does not cope well and makes the columns stack.
-			This seems to be related to jQuery's hide/show: in fact, switching
-			issue-actions and issue-filters and having this ten wide will show
-			this one correctly, but not the other one. */}}
-			<div class="nine wide right aligned right floated column">
-				<div class="ui secondary filter stackable menu">
-					{{if not .Repository.IsArchived}}
-						<!-- Action Button -->
-						{{if .IsShowClosed}}
-							<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</div>
-						{{else}}
-							<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</div>
-						{{end}}
+		<div class="ui grid">
+			<div class="four wide column">
+				<div class="ui fluid vertical menu">
+					<a class="item" href="{{$.Link}}">All Workflows</a>
+					<div class="divider"></div>
+					{{range .workflows}}
+						<a class="item" href="{{$.Link}}?workflow={{.Name}}">{{.Name}}</a>
 					{{end}}
 				</div>
 			</div>
+			<div class="twelve wide column content">
+				<div id="issue-filters" class="ui stackable grid">
+					<div class="six wide column">
+						{{template "repo/builds/openclose" .}}
+					</div>
+				</div>
+				<div id="issue-actions" class="ui stackable grid hide">
+					<div class="six wide column">
+						{{template "repo/builds/openclose" .}}
+					</div>
+					<div class="ui divider"></div>
+					{{/* Ten wide does not cope well and makes the columns stack.
+					This seems to be related to jQuery's hide/show: in fact, switching
+					issue-actions and issue-filters and having this ten wide will show
+					this one correctly, but not the other one. */}}
+					<div class="nine wide right aligned right floated column">
+						<div class="ui secondary filter stackable menu">
+							{{if not .Repository.IsArchived}}
+								<!-- Action Button -->
+								{{if .IsShowClosed}}
+									<div class="ui green active basic button issue-action" data-action="open" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_open"}}</div>
+								{{else}}
+									<div class="ui red active basic button issue-action" data-action="close" data-url="{{$.RepoLink}}/issues/status" style="margin-left: auto">{{.locale.Tr "repo.issues.action_close"}}</div>
+								{{end}}
+							{{end}}
+						</div>
+					</div>
+				</div>
+				{{template "repo/builds/build_list" .}}
+			</div>
 		</div>
-		{{template "repo/builds/build_list" .}}
 	</div>
 </div>
 {{template "base/footer" .}}
