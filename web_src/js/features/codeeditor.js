@@ -17,6 +17,7 @@ const baseOptions = {
   rulers: false,
   scrollbar: {horizontalScrollbarSize: 6, verticalScrollbarSize: 6},
   scrollBeyondLastLine: false,
+  automaticLayout: true,
 };
 
 function getEditorconfig(input) {
